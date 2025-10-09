@@ -46,14 +46,13 @@ class FullMarketQuotesCollectCommand extends Command
                                     ->toArray();
 
         $indexSpotNames = ['Nifty 50', 'Nifty Bank', 'BSE SENSEX'];
-        $indexSpotKeys = Instrument::where('instrument_type', 'INDEX')
-                                   ->whereIn('name', $indexSpotNames)
-                                   ->pluck('instrument_key')
-                                   ->unique()
-                                   ->toArray();
-
-// Combine all instrument keys (remove duplicates)
-        $allInstrumentKeys = array_unique(array_merge($instrumentKeys, $indexSpotKeys));
+        $indexSpotKeys  = Instrument::where('instrument_type', 'INDEX')
+                                    ->whereIn('name', $indexSpotNames)
+                                    ->pluck('instrument_key')
+                                    ->unique()
+                                    ->toArray();
+        $nifty50        = self::nifty50();
+        $allInstrumentKeys = array_unique(array_merge($instrumentKeys, $indexSpotKeys, $nifty50));
 
         if (empty($allInstrumentKeys)) {
             $this->warn('No instrument keys found matching criteria.');
@@ -207,10 +206,10 @@ class FullMarketQuotesCollectCommand extends Command
     protected function parseOptionSymbol($symbol)
     {
         $parts = [
-            'underlying'   => null,
-            'expiry'       => null,
-            'strike'       => null,
-            'option_type'  => null,
+            'underlying'  => null,
+            'expiry'      => null,
+            'strike'      => null,
+            'option_type' => null,
         ];
 
         // SENSEX: SENSEX25O0976300PE
@@ -219,27 +218,49 @@ class FullMarketQuotesCollectCommand extends Command
             $parts['expiry']      = $m[2];
             $parts['strike']      = $m[3];
             $parts['option_type'] = $m[4];
-        }
-        // NIFTY/BANKNIFTY: NIFTY25O1424450CE, NIFTY25OCT22700CE, BANKNIFTY25OCT1424450PE, etc.
+        } // NIFTY/BANKNIFTY: NIFTY25O1424450CE, NIFTY25OCT22700CE, BANKNIFTY25OCT1424450PE, etc.
         elseif (preg_match('/^([A-Z]+)(\d{2}[A-Z]{1,3}\d{0,2})(\d{5})(CE|PE)$/', $symbol, $m)) {
             $parts['underlying']  = $m[1];
             $parts['expiry']      = $m[2]; // Handles both monthly and weekly
             $parts['strike']      = $m[3];
             $parts['option_type'] = $m[4];
-        }
-        // Futures
+        } // Futures
         elseif (preg_match('/^([A-Z]+)(\d{2}[A-Z]{1,3})FUT$/', $symbol, $m)) {
             $parts['underlying']  = $m[1];
             $parts['expiry']      = $m[2];
             $parts['strike']      = null;
             $parts['option_type'] = 'FUT';
-        }
-        elseif (preg_match('/^([A-Z]+)/', $symbol, $m)) {
+        } elseif (preg_match('/^([A-Z]+)/', $symbol, $m)) {
             $parts['underlying'] = $m[1];
+            $parts['option_type'] = 'EQ';
         }
+
         return $parts;
     }
 
+    public static function nifty50()
+    {
+        $nifty50List = self::nifty50List();
+
+        return \App\Models\Instrument::where('instrument_type', 'EQ')
+                                     ->whereIn('trading_symbol', $nifty50List)
+                                     ->pluck('instrument_key')
+                                     ->unique()
+                                     ->toArray();
+    }
+
+    public static function nifty50List()
+    {
+        return [
+            'ADANIPORTS', 'ASIANPAINT', 'AXISBANK', 'BAJAJ-AUTO', 'BAJFINANCE', 'BAJAJFINSV',
+            'BPCL', 'BHARTIARTL', 'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY',
+            'EICHERMOT', 'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE', 'HEROMOTOCO', 'HINDALCO',
+            'HINDUNILVR', 'ICICIBANK', 'ITC', 'INDUSINDBK', 'INFY', 'JSWSTEEL', 'KOTAKBANK',
+            'LT', 'M&M', 'MARUTI', 'NTPC', 'NESTLEIND', 'ONGC', 'POWERGRID', 'RELIANCE',
+            'SBIN', 'SHREECEM', 'SUNPHARMA', 'TCS', 'TATACONSUM', 'TATAMOTORS', 'TATASTEEL',
+            'TECHM', 'TITAN', 'UPL', 'ULTRACEMCO', 'WIPRO', 'HDFCAMC', 'ADANIENT', 'APOLLOHOSP',
+        ];
+    }
 
 
 }
