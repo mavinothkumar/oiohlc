@@ -28,6 +28,10 @@ class FullMarketQuote extends Model
         'low',
         'close',
         'timestamp',
+        'expiry',
+        'strike',
+        'option_type',
+        'symbol_name',
     ];
 
     protected $casts = [

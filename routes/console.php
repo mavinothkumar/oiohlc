@@ -1,12 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('market:fetch-quotes')->weekdays()
+Schedule::command('market:collect-quotes')->weekdays()
         ->everyMinute()
-        ->between( '9:14', '15:32' );
+        ->between( '9:14', '15:32' )
+    ->appendOutputTo( storage_path( 'logs/collect-quotes.log' ) );
 
 Schedule::command( 'upstox:fetch-instruments' )
         ->dailyAt( '09:02' )

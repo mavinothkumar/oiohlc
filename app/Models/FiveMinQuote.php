@@ -33,6 +33,10 @@ class FiveMinQuote extends Model
         'diff_buy_quantity',
         'diff_sell_quantity',
         'diff_quantity',
+        'symbol_name',
+        'expiry',
+        'strike',
+        'option_type',
     ];
 
     protected $casts = [
