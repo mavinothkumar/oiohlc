@@ -19,6 +19,8 @@ class CollectDailyOHLCQuotes extends Command
         $symbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
         $types   = ['FUT', 'CE', 'PE', 'INDEX'];
 
+        $this->info('Starting CollectDailyOHLCQuotes: ' . \Illuminate\Support\Carbon::now());
+
         // Get last trading date based on actual data
         $last_trading_timestamp = FullMarketQuote::orderBy('timestamp', 'desc')->value('timestamp');
         $trading_date           = $last_trading_timestamp

@@ -29,6 +29,8 @@ class FullMarketQuotesCollectCommand extends Command
                               ->unique()
                               ->toArray();
 
+        $this->info('Starting FullMarketQuotesCollectCommand: ' . \Illuminate\Support\Carbon::now());
+
         if (empty($expiryDates)) {
             $this->warn('No expiry dates found for required symbols.');
 
@@ -117,82 +119,82 @@ class FullMarketQuotesCollectCommand extends Command
                 ]);
 
                 // 3-minute AGGREGATION
-                $prev3 = FullMarketQuote::where('instrument_token', $fmq->instrument_token)
-                                        ->where('timestamp', '<', $fmq->timestamp)
-                                        ->orderBy('timestamp', 'desc')
-                                        ->skip(2)->first(); // Get the quote that's 3 mins ago
-
-                if ($prev3) {
-                    ThreeMinQuote::create([
-                        'instrument_token'    => $fmq->instrument_token,
-                        'symbol'              => $fmq->symbol,
-                        'symbol_name'         => $parsed['underlying'],
-                        'expiry'              => $parsed['expiry'],
-                        'strike'              => $parsed['strike'],
-                        'option_type'         => $parsed['option_type'],
-                        'last_price'          => $fmq->last_price,
-                        'volume'              => $fmq->volume,
-                        'average_price'       => $fmq->average_price,
-                        'oi'                  => $fmq->oi,
-                        'net_change'          => $fmq->net_change,
-                        'total_buy_quantity'  => $fmq->total_buy_quantity,
-                        'total_sell_quantity' => $fmq->total_sell_quantity,
-                        'lower_circuit_limit' => $fmq->lower_circuit_limit,
-                        'upper_circuit_limit' => $fmq->upper_circuit_limit,
-                        'last_trade_time'     => $fmq->last_trade_time,
-                        'oi_day_high'         => $fmq->oi_day_high,
-                        'oi_day_low'          => $fmq->oi_day_low,
-                        'open'                => $fmq->open,
-                        'high'                => $fmq->high,
-                        'low'                 => $fmq->low,
-                        'close'               => $fmq->close,
-                        'timestamp'           => $fmq->timestamp,
-                        'diff_oi'             => $prev3->oi - $fmq->oi,
-                        'diff_volume'         => $prev3->volume - $fmq->volume,
-                        'diff_buy_quantity'   => $prev3->total_buy_quantity - $fmq->total_buy_quantity,
-                        'diff_sell_quantity'  => $prev3->total_sell_quantity - $fmq->total_sell_quantity,
-                        'diff_quantity'       => $fmq->total_buy_quantity - $fmq->total_sell_quantity,
-                    ]);
-                }
+//                $prev3 = FullMarketQuote::where('instrument_token', $fmq->instrument_token)
+//                                        ->where('timestamp', '<', $fmq->timestamp)
+//                                        ->orderBy('timestamp', 'desc')
+//                                        ->skip(2)->first(); // Get the quote that's 3 mins ago
+//
+//                if ($prev3) {
+//                    ThreeMinQuote::create([
+//                        'instrument_token'    => $fmq->instrument_token,
+//                        'symbol'              => $fmq->symbol,
+//                        'symbol_name'         => $parsed['underlying'],
+//                        'expiry'              => $parsed['expiry'],
+//                        'strike'              => $parsed['strike'],
+//                        'option_type'         => $parsed['option_type'],
+//                        'last_price'          => $fmq->last_price,
+//                        'volume'              => $fmq->volume,
+//                        'average_price'       => $fmq->average_price,
+//                        'oi'                  => $fmq->oi,
+//                        'net_change'          => $fmq->net_change,
+//                        'total_buy_quantity'  => $fmq->total_buy_quantity,
+//                        'total_sell_quantity' => $fmq->total_sell_quantity,
+//                        'lower_circuit_limit' => $fmq->lower_circuit_limit,
+//                        'upper_circuit_limit' => $fmq->upper_circuit_limit,
+//                        'last_trade_time'     => $fmq->last_trade_time,
+//                        'oi_day_high'         => $fmq->oi_day_high,
+//                        'oi_day_low'          => $fmq->oi_day_low,
+//                        'open'                => $fmq->open,
+//                        'high'                => $fmq->high,
+//                        'low'                 => $fmq->low,
+//                        'close'               => $fmq->close,
+//                        'timestamp'           => $fmq->timestamp,
+//                        'diff_oi'             => $prev3->oi - $fmq->oi,
+//                        'diff_volume'         => $prev3->volume - $fmq->volume,
+//                        'diff_buy_quantity'   => $prev3->total_buy_quantity - $fmq->total_buy_quantity,
+//                        'diff_sell_quantity'  => $prev3->total_sell_quantity - $fmq->total_sell_quantity,
+//                        'diff_quantity'       => $fmq->total_buy_quantity - $fmq->total_sell_quantity,
+//                    ]);
+//                }
 
                 // 5-minute AGGREGATION
-                $prev5 = FullMarketQuote::where('instrument_token', $fmq->instrument_token)
-                                        ->where('timestamp', '<', $fmq->timestamp)
-                                        ->orderBy('timestamp', 'desc')
-                                        ->skip(4)->first(); // Get the quote that's 5 mins ago
-
-                if ($prev5) {
-                    FiveMinQuote::create([
-                        'instrument_token'    => $fmq->instrument_token,
-                        'symbol'              => $fmq->symbol,
-                        'symbol_name'         => $parsed['underlying'],
-                        'expiry'              => $parsed['expiry'],
-                        'strike'              => $parsed['strike'],
-                        'option_type'         => $parsed['option_type'],
-                        'last_price'          => $fmq->last_price,
-                        'volume'              => $fmq->volume,
-                        'average_price'       => $fmq->average_price,
-                        'oi'                  => $fmq->oi,
-                        'net_change'          => $fmq->net_change,
-                        'total_buy_quantity'  => $fmq->total_buy_quantity,
-                        'total_sell_quantity' => $fmq->total_sell_quantity,
-                        'lower_circuit_limit' => $fmq->lower_circuit_limit,
-                        'upper_circuit_limit' => $fmq->upper_circuit_limit,
-                        'last_trade_time'     => $fmq->last_trade_time,
-                        'oi_day_high'         => $fmq->oi_day_high,
-                        'oi_day_low'          => $fmq->oi_day_low,
-                        'open'                => $fmq->open,
-                        'high'                => $fmq->high,
-                        'low'                 => $fmq->low,
-                        'close'               => $fmq->close,
-                        'timestamp'           => $fmq->timestamp,
-                        'diff_oi'             => $prev5->oi - $fmq->oi,
-                        'diff_volume'         => $prev5->volume - $fmq->volume,
-                        'diff_buy_quantity'   => $prev5->total_buy_quantity - $fmq->total_buy_quantity,
-                        'diff_sell_quantity'  => $prev5->total_sell_quantity - $fmq->total_sell_quantity,
-                        'diff_quantity'       => $fmq->total_buy_quantity - $fmq->total_sell_quantity,
-                    ]);
-                }
+//                $prev5 = FullMarketQuote::where('instrument_token', $fmq->instrument_token)
+//                                        ->where('timestamp', '<', $fmq->timestamp)
+//                                        ->orderBy('timestamp', 'desc')
+//                                        ->skip(4)->first(); // Get the quote that's 5 mins ago
+//
+//                if ($prev5) {
+//                    FiveMinQuote::create([
+//                        'instrument_token'    => $fmq->instrument_token,
+//                        'symbol'              => $fmq->symbol,
+//                        'symbol_name'         => $parsed['underlying'],
+//                        'expiry'              => $parsed['expiry'],
+//                        'strike'              => $parsed['strike'],
+//                        'option_type'         => $parsed['option_type'],
+//                        'last_price'          => $fmq->last_price,
+//                        'volume'              => $fmq->volume,
+//                        'average_price'       => $fmq->average_price,
+//                        'oi'                  => $fmq->oi,
+//                        'net_change'          => $fmq->net_change,
+//                        'total_buy_quantity'  => $fmq->total_buy_quantity,
+//                        'total_sell_quantity' => $fmq->total_sell_quantity,
+//                        'lower_circuit_limit' => $fmq->lower_circuit_limit,
+//                        'upper_circuit_limit' => $fmq->upper_circuit_limit,
+//                        'last_trade_time'     => $fmq->last_trade_time,
+//                        'oi_day_high'         => $fmq->oi_day_high,
+//                        'oi_day_low'          => $fmq->oi_day_low,
+//                        'open'                => $fmq->open,
+//                        'high'                => $fmq->high,
+//                        'low'                 => $fmq->low,
+//                        'close'               => $fmq->close,
+//                        'timestamp'           => $fmq->timestamp,
+//                        'diff_oi'             => $prev5->oi - $fmq->oi,
+//                        'diff_volume'         => $prev5->volume - $fmq->volume,
+//                        'diff_buy_quantity'   => $prev5->total_buy_quantity - $fmq->total_buy_quantity,
+//                        'diff_sell_quantity'  => $prev5->total_sell_quantity - $fmq->total_sell_quantity,
+//                        'diff_quantity'       => $fmq->total_buy_quantity - $fmq->total_sell_quantity,
+//                    ]);
+//                }
             }
             $this->info("Stored ".count($quotes)." full market quotes for this batch, and aggregated 3/5-min data.");
         }

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Instrument;
 use App\Models\Expiry;
+use Illuminate\Support\Carbon;
 
 class UpdateExpiriesFromInstruments extends Command
 {
@@ -26,6 +27,8 @@ class UpdateExpiriesFromInstruments extends Command
             'OPT' => ['CE', 'PE'],
         ];
 
+        $this->info('Starting UpdateExpiriesFromInstruments: ' . \Illuminate\Support\Carbon::now());
+        Expiry::truncate();
         foreach ($exchanges as $exchange) {
             foreach ($indices as $indexSymbol) {
                 foreach ($types as $expiry_type => $type_values) {
@@ -41,6 +44,7 @@ class UpdateExpiriesFromInstruments extends Command
                                           ->unique()
                                           ->sort()
                                           ->values();
+
 
                     foreach ($expiries as $index => $expiry_ts) {
                         Expiry::updateOrCreate([

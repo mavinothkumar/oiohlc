@@ -18,7 +18,7 @@ class FetchUpstoxInstruments extends Command
         $gzFile = storage_path('app/complete.json.gz');
         $jsonFile = storage_path('app/complete.json');
 
-        $this->info('Downloading instruments file...');
+        $this->info('Starting Downloading instruments file: ' . \Illuminate\Support\Carbon::now());
         $data = Http::get($url)->body();
         file_put_contents($gzFile, $data);
 
