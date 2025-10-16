@@ -24,9 +24,10 @@ class UpdateExpiriesFromInstruments extends Command
         // Grouping logic for expiry type
         $types = [
             'FUT' => ['FUT'],
-            'OPT' => ['CE', 'PE'],
+            'OPT' => ['CE'],
         ];
 
+       info('Starting UpdateExpiriesFromInstruments: ' . \Illuminate\Support\Carbon::now());
         $this->info('Starting UpdateExpiriesFromInstruments: ' . \Illuminate\Support\Carbon::now());
         Expiry::truncate();
         foreach ($exchanges as $exchange) {
@@ -44,6 +45,10 @@ class UpdateExpiriesFromInstruments extends Command
                                           ->unique()
                                           ->sort()
                                           ->values();
+
+                    info('$exchange', [$exchange, $indexSymbol, $type_values, $expiry_type]);
+                    info('$expiries', [$expiries]);
+
 
 
                     foreach ($expiries as $index => $expiry_ts) {
@@ -67,6 +72,7 @@ class UpdateExpiriesFromInstruments extends Command
                 }
             }
         }
+
         $this->info('Benchmark index expiries updated.');
     }
 }

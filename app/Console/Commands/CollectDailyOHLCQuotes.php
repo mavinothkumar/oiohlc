@@ -19,6 +19,7 @@ class CollectDailyOHLCQuotes extends Command
         $symbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
         $types   = ['FUT', 'CE', 'PE', 'INDEX'];
 
+        info('Starting CollectDailyOHLCQuotes: ' . \Illuminate\Support\Carbon::now());
         $this->info('Starting CollectDailyOHLCQuotes: ' . \Illuminate\Support\Carbon::now());
 
         // Get last trading date based on actual data

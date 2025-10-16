@@ -18,6 +18,7 @@ class FetchUpstoxInstruments extends Command
         $gzFile = storage_path('app/complete.json.gz');
         $jsonFile = storage_path('app/complete.json');
 
+       info('Starting Downloading instruments file: ' . \Illuminate\Support\Carbon::now());
         $this->info('Starting Downloading instruments file: ' . \Illuminate\Support\Carbon::now());
         $data = Http::get($url)->body();
         file_put_contents($gzFile, $data);
@@ -39,6 +40,8 @@ class FetchUpstoxInstruments extends Command
         $instruments = json_decode($json, true);
 
         $count = 0;
+
+        Instrument::truncate();
 
         if (is_array($instruments)) {
             foreach ($instruments as $instrument) {
@@ -79,6 +82,8 @@ class FetchUpstoxInstruments extends Command
             }
         }
 
+        unlink($gzFile);
+        unlink($jsonFile);
         $this->info("Upsert complete. Total: $count instruments.");
     }
 }
