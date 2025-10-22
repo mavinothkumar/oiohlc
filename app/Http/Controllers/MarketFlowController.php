@@ -33,20 +33,17 @@ class MarketFlowController extends Controller
         // Base Query
         $query = DB::table($table)
                    ->whereBetween('timestamp', [$startTime, $endTime])
-                    ->where('expiry', $currentExpiry)
-                   ->where(function($q) use ($market, $type, $strike) {
-                       if ($market === 'nifty') $q->where('symbol', 'LIKE', '%NIFTY%');
-                       if ($market === 'banknifty') $q->where('symbol', 'LIKE', '%BANKNIFTY%');
-                       if ($market === 'sensex') $q->where('symbol', 'LIKE', '%SENSEX%');
-                       if ($type === 'opt' && $strike) $q->where('strike', $strike);
-                   });
+                    ->where('expiry_date', $currentExpiry)
+                    ->where('option_type', $type)
+                    ->where('symbol_name', strtoupper($market));
 
         // Exclude 9:15-9:30 for ranking (but keep for display)
         $minRankTime = $date . " 09:30:00";
 
         // Get all data for the day for that symbol
-        $allData = $query->orderBy('timestamp')->toRawSql();
-        return $allData;
+        //$allData = $query->orderBy('timestamp')->toRawSql();
+        $allData = $query->orderBy('timestamp')->get();
+        //$allData->get();
 
         // OI/Volume Ranks (ignore early time for ranking)
         $rankWindow = collect($allData)->where('timestamp', '>=', $minRankTime);

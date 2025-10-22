@@ -1,0 +1,17 @@
+POST http://localhost:80/api/item
+Content-Type: application/x-www-form-urlencoded
+
+id = 99 &
+content = new-element
+
+###
+GET https://api.upstox.com/v2/option/chain
+Accept: application/json
+Content-Type: application/json
+Authorization: 'Bearer eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OGY4NGIxYTY4OTM5NDRlOTNjMjhlOTQiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzYxMTAyNjE4LCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjExNzA0MDB9.MG7wN3-9yK9R6VMaIWNd5-m6tk-ZlRPbYh6vmaho8yk'
+
+{
+    "instrument_key": "NSE_INDEX|Nifty 50",
+    "expiry_date": "2025-10-28"
+}
+###

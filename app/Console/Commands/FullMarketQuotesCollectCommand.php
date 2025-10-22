@@ -133,46 +133,46 @@ class FullMarketQuotesCollectCommand extends Command
             $this->info("Bulk inserted ".count($toInsert)." quotes");
 
             // Aggregation for 3-min quotes (one loop; can be optimized/bulked further if desired)
-            foreach ($toInsert as $row) {
-                $prev3 = FullMarketQuote::where('instrument_token', $row['instrument_token'])
-                                        ->where('timestamp', '<', $row['timestamp'])
-                                        ->orderBy('timestamp', 'desc')
-                                        ->skip(2)->first();
-                if ($prev3) {
-                    ThreeMinQuote::create([
-                        'instrument_token'    => $row['instrument_token'],
-                        'symbol'              => $row['symbol'],
-                        'symbol_name'         => $row['symbol_name'],
-                        'expiry'              => null,//$row['expiry'],
-                        'expiry_date'         => $row['expiry_date'],
-                        'expiry_timestamp'    => $row['expiry_timestamp'],
-                        'strike'              => $row['strike'],
-                        'option_type'         => $row['option_type'],
-                        'last_price'          => $row['last_price'],
-                        'volume'              => $row['volume'],
-                        'average_price'       => $row['average_price'],
-                        'oi'                  => $row['oi'],
-                        'net_change'          => $row['net_change'],
-                        'total_buy_quantity'  => $row['total_buy_quantity'],
-                        'total_sell_quantity' => $row['total_sell_quantity'],
-                        'lower_circuit_limit' => $row['lower_circuit_limit'],
-                        'upper_circuit_limit' => $row['upper_circuit_limit'],
-                        'last_trade_time'     => $row['last_trade_time'],
-                        'oi_day_high'         => $row['oi_day_high'],
-                        'oi_day_low'          => $row['oi_day_low'],
-                        'open'                => $row['open'],
-                        'high'                => $row['high'],
-                        'low'                 => $row['low'],
-                        'close'               => $row['close'],
-                        'timestamp'           => $row['timestamp'],
-                        'diff_oi'             => $prev3->oi - $row['oi'],
-                        'diff_volume'         => $prev3->volume - $row['volume'],
-                        'diff_buy_quantity'   => $prev3->total_buy_quantity - $row['total_buy_quantity'],
-                        'diff_sell_quantity'  => $prev3->total_sell_quantity - $row['total_sell_quantity'],
-                        'diff_quantity'       => $row['total_buy_quantity'] - $row['total_sell_quantity'],
-                    ]);
-                }
-            }
+//            foreach ($toInsert as $row) {
+//                $prev3 = FullMarketQuote::where('instrument_token', $row['instrument_token'])
+//                                        ->where('timestamp', '<', $row['timestamp'])
+//                                        ->orderBy('timestamp', 'desc')
+//                                        ->skip(2)->first();
+//                if ($prev3) {
+//                    ThreeMinQuote::create([
+//                        'instrument_token'    => $row['instrument_token'],
+//                        'symbol'              => $row['symbol'],
+//                        'symbol_name'         => $row['symbol_name'],
+//                        'expiry'              => null,//$row['expiry'],
+//                        'expiry_date'         => $row['expiry_date'],
+//                        'expiry_timestamp'    => $row['expiry_timestamp'],
+//                        'strike'              => $row['strike'],
+//                        'option_type'         => $row['option_type'],
+//                        'last_price'          => $row['last_price'],
+//                        'volume'              => $row['volume'],
+//                        'average_price'       => $row['average_price'],
+//                        'oi'                  => $row['oi'],
+//                        'net_change'          => $row['net_change'],
+//                        'total_buy_quantity'  => $row['total_buy_quantity'],
+//                        'total_sell_quantity' => $row['total_sell_quantity'],
+//                        'lower_circuit_limit' => $row['lower_circuit_limit'],
+//                        'upper_circuit_limit' => $row['upper_circuit_limit'],
+//                        'last_trade_time'     => $row['last_trade_time'],
+//                        'oi_day_high'         => $row['oi_day_high'],
+//                        'oi_day_low'          => $row['oi_day_low'],
+//                        'open'                => $row['open'],
+//                        'high'                => $row['high'],
+//                        'low'                 => $row['low'],
+//                        'close'               => $row['close'],
+//                        'timestamp'           => $row['timestamp'],
+//                        'diff_oi'             => $prev3->oi - $row['oi'],
+//                        'diff_volume'         => $prev3->volume - $row['volume'],
+//                        'diff_buy_quantity'   => $prev3->total_buy_quantity - $row['total_buy_quantity'],
+//                        'diff_sell_quantity'  => $prev3->total_sell_quantity - $row['total_sell_quantity'],
+//                        'diff_quantity'       => $row['total_buy_quantity'] - $row['total_sell_quantity'],
+//                    ]);
+//                }
+//            }
 
             $this->info('All quotes stored and aggregated.');
             info('End FullMarketQuotesCollectCommand: ' . Carbon::now());

@@ -39,6 +39,7 @@ class ThreeMinQuote extends Model
         'option_type',
         'expiry_date',
         'expiry_timestamp',
+        'build_up',
     ];
 
     protected $casts = [
