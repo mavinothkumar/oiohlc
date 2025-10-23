@@ -18,6 +18,12 @@ return new class extends Migration
             $table->decimal('ltp', 10, 2)->nullable();
             $table->bigInteger('volume')->nullable();
             $table->bigInteger('oi')->nullable();
+            $table->enum('build_up', [
+                'Long Build',
+                'Short Build',
+                'Short Cover',
+                'Long Unwind'
+            ])->nullable()->index();
             $table->decimal('close_price', 10, 2)->nullable();
             $table->decimal('bid_price', 10, 2)->nullable();
             $table->bigInteger('bid_qty')->nullable();
