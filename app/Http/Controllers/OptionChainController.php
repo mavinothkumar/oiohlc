@@ -95,7 +95,7 @@ class OptionChainController extends Controller
             /* ---------- OI leaders (skip pre-open) ---------- */
             $rowsOiTop = DB::table('option_chains_3m')
                            ->select('captured_at','strike_price','option_type',
-                               'diff_oi','diff_volume')
+                               'diff_oi','diff_ltp','diff_volume')
                            ->where('trading_symbol', $symbol)
                            ->where('expiry', $expiry)
                            ->whereBetween('strike_price', [$minStrike, $maxStrike])
@@ -116,7 +116,7 @@ class OptionChainController extends Controller
             /* ---------- VOL leaders (skip pre-open) ---------- */
             $rowsVolTop = DB::table('option_chains_3m')
                             ->select('captured_at','strike_price','option_type',
-                                'diff_oi','diff_volume')
+                                'diff_oi','diff_ltp','diff_volume')
                             ->where('trading_symbol', $symbol)
                             ->where('expiry', $expiry)
                             ->whereBetween('strike_price', [$minStrike, $maxStrike])
@@ -149,6 +149,7 @@ class OptionChainController extends Controller
                 $strike = (int) $row->strike_price;
                 $time   = Carbon::parse($row->captured_at)->format('H:i');
                 $opt    = $row->option_type;
+                $diff_ltp    = $row->diff_ltp ?? null;
 
                 /* per-strike summary tables (if you keep them) */
                 if ($rowOi) {
@@ -158,6 +159,7 @@ class OptionChainController extends Controller
                         'oi_diff'   => $rowOi->diff_oi,
                         'vol_diff'  => $rowOi->diff_volume,
                         'oi_rank'   => $rowOi->oi_rank ?? null,
+                        'diff_ltp'   => $diff_ltp,
                     ];
                 }
                 if ($rowVol) {
@@ -167,6 +169,7 @@ class OptionChainController extends Controller
                         'oi_diff'   => $rowVol->diff_oi,
                         'vol_diff'  => $rowVol->diff_volume,
                         'vol_rank'  => $rowVol->vol_rank ?? null,
+                        'diff_ltp'   => $diff_ltp,
                     ];
                 }
 
@@ -175,6 +178,7 @@ class OptionChainController extends Controller
                     'time'      => $time,
                     'strike'    => $strike,
                     'opt_type'  => $opt,
+                    'diff_ltp'   => $diff_ltp,
                 ];
 
                 /* build-type sub-array */
@@ -238,44 +242,6 @@ class OptionChainController extends Controller
             'buildupsVol' => $buildupsVol,
             'timeline'    => $timelineList,
             'colVisible'  => $colVisible,
-        ]);
-    }
-    public function index2(Request $request)
-    {
-        // Input filters
-        $indexFilter = $request->input('index', 'NIFTY');
-        $dateFilter = $request->input('date', now()->toDateString());
-        $itemCount = (int)$request->input('item_count', 20);
-        $sortField = $request->input('sort', 'diff_oi'); // Could allow switching between OI and Volume
-
-        // Get top records by OI and Volume, latest time first, only with meaningful values
-        $topRows = DB::table('option_chains_3m')
-                     ->select('captured_at', 'strike_price', 'build_up', 'diff_ltp', 'diff_oi', 'diff_volume', 'option_type')
-                     ->where('trading_symbol', strtoupper($indexFilter))
-                     ->whereDate('captured_at', $dateFilter)
-                     ->where(function($q){
-                         $q->where('diff_oi', '!=', 0)->orWhere('diff_volume', '!=', 0);
-                     })
-                     ->orderByDesc('captured_at')    // First order by time descending for latest first!
-                     ->orderByDesc($sortField)
-                     ->limit($itemCount)
-                     ->get();
-
-
-        // Dropdown values
-        $indices = DB::table('option_chains_3m')->distinct()->pluck('trading_symbol')->toArray();
-        $dates = DB::table('option_chains_3m')->distinct()->pluck(DB::raw('DATE(captured_at)'))->toArray();
-
-        return view('option-chain-table', [
-            'topRows' => $topRows,
-            'indices' => $indices,
-            'dates' => $dates,
-            'filters' => [
-                'index' => $indexFilter,
-                'date' => $dateFilter,
-                'item_count' => $itemCount,
-                'sort' => $sortField,
-            ],
         ]);
     }
 }

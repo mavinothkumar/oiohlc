@@ -34,6 +34,12 @@
                                     : (($row['opt_type'] ?? '') === 'PE'
                                        ? 'border-l-4 border-red-500' : '');
                         $bestRank = $row['best_rank'] ?? null;
+                        $show_price =  'inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10';
+                        $is_price_positive = false;
+                        if($row['diff_ltp'] > 0){
+                            $is_price_positive = true;
+                            $show_price =  'inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 inset-ring inset-ring-green-600/20';
+                        }
                     @endphp
                     <tr
                         @if($loop->first) id="latest" @endif
@@ -50,6 +56,7 @@
                                  : (($row['opt_type'] ?? '') === 'PE' ? 'text-red-600' : '') }}">
                             {{ $row['opt_type'] ?? '' }}
                         </span>
+                            <span class="{{$show_price}}">{{$row['diff_ltp']}}</span>
                         </td>
 
                         @foreach (['Long Build','Short Build','Long Unwind','Short Cover'] as $t)
