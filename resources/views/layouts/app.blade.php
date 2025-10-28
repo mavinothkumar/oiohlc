@@ -6,9 +6,8 @@
     @vite('resources/css/app.css')
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
-<header class="bg-white shadow p-4 flex justify-between items-center">
-    <div class="font-bold text-xl">OI OHLC</div>
-
+<header class="bg-white shadow p-4 flex items-center">
+    <x-header-nav />
 </header>
 
 <main class="p-6 w-full">

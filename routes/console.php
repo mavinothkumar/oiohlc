@@ -4,18 +4,18 @@ use Illuminate\Support\Facades\Schedule;
 
 
 
-Schedule::command( 'upstox:fetch-instruments' )
+Schedule::command( 'upstox:fetch-instruments' ) // php artisan upstox:fetch-instruments
         ->dailyAt( '08:40' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/instruments.log' ) );
 
-Schedule::command( 'expiries:update-benchmarks' )
+Schedule::command( 'expiries:update-benchmarks' ) // php artisan expiries:update-benchmarks
         ->weekdays()
         ->dailyAt( '09:05' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/expiry.log' ) );
 
-Schedule::command( 'quotes:collect-daily-ohlc' )
+Schedule::command( 'quotes:collect-daily-ohlc' ) // php artisan quotes:collect-daily-ohlc
         ->dailyAt( '09:08' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/instruments.log' ) );

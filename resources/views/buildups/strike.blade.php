@@ -91,27 +91,24 @@
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="strike">Strike</th>
                         <th class="px-2 py-1 border text-left">Type</th>
 
-                        {{-- Long Build --}}
+                        {{-- Long & Short Build --}}
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_lu">LB−LU</th>
+                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_sc">SB−SC</th>
+
+                        {{-- Long Build --}}
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_total">LB Total ΔOI</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_5">LB 5m</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_15">LB 15m</th>
 
                         {{-- Long Unwind --}}
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="lu_total">LU Total ΔOI</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lu_5">LU 5m</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lu_15">LU 15m</th>
+
 
                         {{-- Short Build --}}
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_sc">SB−SC</th>
+
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_total">SB Total ΔOI</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_5">SB 5m</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_15">SB 15m</th>
 
                         {{-- Short Cover --}}
                         <th class="px-2 py-1 border text-left cursor-pointer" data-key="sc_total">SC Total ΔOI</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sc_5">SC 5m</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sc_15">SC 15m</th>
+
                     </tr>
                     </thead>
                     <tbody id="buildups-body">
@@ -142,6 +139,15 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="lb_lu"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
+                            {{-- SB-SC diff --}}
+                            @php
+                                $v = $ce_sb_sc;
+                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
+                                     ? 'bg-yellow-200 font-semibold' : '';
+                            @endphp
+                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
+                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
                             {{-- LB TOTAL --}}
                             @php
                                 $v = $ce['Long Build'];
@@ -150,14 +156,6 @@
                             @endphp
                             <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-                            {{-- LB 5m / 15m (existing logic) --}}
-                            @php $v = $s['CE_5']['Long Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lb_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['CE_15']['Long Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lb_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             {{-- LU TOTAL --}}
                             @php
@@ -168,22 +166,7 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            {{-- LU 5m / 15m --}}
-                            @php $v = $s['CE_5']['Long Unwind']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lu_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['CE_15']['Long Unwind']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lu_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            {{-- SB-SC diff --}}
-                            @php
-                                $v = $ce_sb_sc;
-                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             {{-- SB TOTAL --}}
                             @php
@@ -194,13 +177,6 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            {{-- SB 5m / 15m --}}
-                            @php $v = $s['CE_5']['Short Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sb_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['CE_15']['Short Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sb_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             {{-- SC TOTAL --}}
                             @php
@@ -211,13 +187,6 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            {{-- SC 5m / 15m --}}
-                            @php $v = $s['CE_5']['Short Cover']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sc_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['CE_15']['Short Cover']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sc_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                         </tr>
 
                         {{-- ───────── PE row ───────── --}}
@@ -234,6 +203,15 @@
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             @php
+                                $v = $pe_sb_sc;
+                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
+                                     ? 'bg-yellow-200 font-semibold' : '';
+                            @endphp
+                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
+                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                            
+
+                            @php
                                 $v = $pe['Long Build'];
                                 $c = in_array($v, $result['top3_total']['Long Build'], true) && $v!=0
                                      ? 'bg-yellow-200 font-semibold' : '';
@@ -241,12 +219,6 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php $v = $s['PE_5']['Long Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lb_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['PE_15']['Long Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lb_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             @php
                                 $v = $pe['Long Unwind'];
@@ -256,20 +228,7 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php $v = $s['PE_5']['Long Unwind']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lu_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['PE_15']['Long Unwind']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="lu_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php
-                                $v = $pe_sb_sc;
-                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
                             @php
                                 $v = $pe['Short Build'];
@@ -279,13 +238,6 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php $v = $s['PE_5']['Short Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sb_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['PE_15']['Short Build']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sb_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
                             @php
                                 $v = $pe['Short Cover'];
                                 $c = in_array($v, $result['top3_total']['Short Cover'], true)
@@ -294,12 +246,6 @@
                             <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
                                 data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php $v = $s['PE_5']['Short Cover']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sc_5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            @php $v = $s['PE_15']['Short Cover']; @endphp
-                            <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}"
-                                data-sort="sc_15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                         </tr>
                     @endforeach
                     </tbody>

@@ -60,3 +60,18 @@ function exchange_segments() {
         'BSE_FNO',
     ];
 }
+
+/**
+ * Get build-up label and styling
+ */
+function getBuildUpLabel($buildUp)
+{
+    $labels = [
+        'Long Build' => ['label' => 'LB', 'color' => 'bg-blue-200 text-blue-800'],
+        'Short Build' => ['label' => 'SB', 'color' => 'bg-orange-200 text-orange-800'],
+        'Short Cover' => ['label' => 'SC', 'color' => 'bg-green-200 text-green-800'],
+        'Long Unwind' => ['label' => 'LU', 'color' => 'bg-red-200 text-red-800'],
+    ];
+
+    return $labels[$buildUp] ?? null;
+}
