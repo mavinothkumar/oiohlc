@@ -11,7 +11,7 @@ Schedule::command( 'upstox:fetch-instruments' ) // php artisan upstox:fetch-inst
 
 Schedule::command( 'expiries:update-benchmarks' ) // php artisan expiries:update-benchmarks
         ->weekdays()
-        ->dailyAt( '09:05' )
+        ->dailyAt( '09:06' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/expiry.log' ) );
 

@@ -84,6 +84,7 @@ class FetchUpstoxInstruments extends Command
 
         unlink($gzFile);
         unlink($jsonFile);
+        info("Upsert complete. Total: $count instruments.");
         $this->info("Upsert complete. Total: $count instruments.");
     }
 }

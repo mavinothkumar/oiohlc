@@ -17,4 +17,5 @@ Route::get('/option-chain', [App\Http\Controllers\OptionChainController::class, 
 Route::get('/buildups', [App\Http\Controllers\BuildUpSummaryController::class, 'index'])->name('buildups.index');
 Route::get('/buildup/strike', [App\Http\Controllers\BuildUpSummaryController::class, 'strike'])->name('buildups.strike');
 Route::get('/option-chain-diff', [App\Http\Controllers\OptionChainDiffController::class, 'index'])->name('option-chain-diff');
-
+Route::get('/option-chain/build-up', [App\Http\Controllers\OptionChainController::class, 'showBuildUp'])->name('option-chain.build-up');
+Route::get('/option-chain/build-up-all', [App\Http\Controllers\OptionChainController::class, 'showBuildUpAll'])->name('option-chain.build-up-all');

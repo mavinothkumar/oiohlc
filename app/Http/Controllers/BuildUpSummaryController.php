@@ -58,7 +58,7 @@ class BuildUpSummaryController extends Controller
         /* ───────────── Expiry ───────────── */
         $expiry = $expiryOverride
             ? Carbon::parse($expiryOverride, $tz)->toDateString()
-            : Expiry::where('trading_symbol', $symbol)->where('is_current', 1)->value('expiry_date');
+            : Expiry::where('trading_symbol', $symbol)->where('is_current', 1)->where('instrument_type', 'OPT')->value('expiry_date');
 
         /* ───────────── Persist UI filters ───────────── */
         $filters = [
@@ -301,7 +301,7 @@ class BuildUpSummaryController extends Controller
         /* ───────────── Expiry ───────────── */
         $expiry = $expiryOverride
             ? Carbon::parse($expiryOverride, $tz)->toDateString()
-            : Expiry::where('trading_symbol', $symbol)->where('is_current', 1)->value('expiry_date');
+            : Expiry::where('trading_symbol', $symbol)->where('is_current', 1)->where('instrument_type', 'OPT')->value('expiry_date');
 
         /* ───────────── Persist UI filters ───────────── */
         $filters = [

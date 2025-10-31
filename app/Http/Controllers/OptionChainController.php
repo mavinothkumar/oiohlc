@@ -244,6 +244,228 @@ class OptionChainController extends Controller
             'colVisible'  => $colVisible,
         ]);
     }
+
+    public function showBuildUp(Request $request)
+    {
+        $symbol = $request->input('symbol', 'NIFTY');
+        $strikeWindow = (int) $request->input('strike_window', 7); // Odd number only!
+
+        // 1. Get expiry for the selected symbol
+        $expiry = DB::table('expiries')
+                    ->where('trading_symbol', $symbol)
+                    ->where('instrument_type', 'OPT')
+                    ->where('is_current', 1)
+                    ->orderBy('expiry_date', 'desc')
+                    ->value('expiry_date');
+
+        // 2. Get latest underlying_spot_price for this symbol/expiry
+        $latestSpotRow = DB::table('option_chains_3m')
+                           ->where('trading_symbol', $symbol)
+                           ->where('expiry', $expiry)
+                           ->orderByDesc('captured_at')
+                           ->first();
+
+        if (!$latestSpotRow) {
+            return view('option_chain_buildup', [
+                'symbol' => $symbol,
+                'expiry' => $expiry,
+                'strike_window' => $strikeWindow,
+                'rows' => [],
+            ]);
+        }
+
+        $latestSpot = $latestSpotRow->underlying_spot_price;
+
+        // 3. Find the closest ATM strike
+        $strikes = DB::table('option_chains_3m')
+                     ->where('trading_symbol', $symbol)
+                     ->where('expiry', $expiry)
+                     ->pluck('strike_price')
+                     ->unique()
+                     ->sort()
+                     ->values();
+
+        $atm = $strikes->min(function ($strike) use ($latestSpot) {
+            return abs($strike - $latestSpot);
+        });
+
+        $atmStrike = $strikes->first(function ($strike) use ($latestSpot, $atm) {
+            return abs($strike - $latestSpot) === $atm;
+        });
+
+        // Window logic (assumes strikes are sorted)
+        $atmIndex = $strikes->search($atmStrike);
+        $halfWindow = intval($strikeWindow / 2);
+        $strikeWindowArr = $strikes->slice(max(0, $atmIndex - $halfWindow), $strikeWindow);
+
+        // 4. For each timestamp, pull rows within window for CE and PE, group by timestamp
+        $result = [];
+        $timestamps = DB::table('option_chains_3m')
+                        ->where('trading_symbol', $symbol)
+                        ->where('expiry', $expiry)
+                        ->select('captured_at')
+                        ->distinct()
+                        ->orderBy('captured_at')
+                        ->get()
+                        ->pluck('captured_at');
+
+        foreach ($timestamps as $timestamp) {
+            foreach (['CE', 'PE'] as $optionType) {
+                $windowRows = DB::table('option_chains_3m')
+                                ->where('trading_symbol', $symbol)
+                                ->where('expiry', $expiry)
+                                ->where('captured_at', $timestamp)
+                                ->whereIn('strike_price', $strikeWindowArr)
+                                ->where('option_type', $optionType)
+                                ->get();
+
+                if ($windowRows->count() === $strikeWindow) {
+                    $buildUpSet = $windowRows->pluck('build_up')->filter()->unique();
+                    if ($buildUpSet->count() === 1) {
+                        $result[] = [
+                            'timestamp' => $timestamp,
+                            'option_type' => $optionType,
+                            'strikes' => $windowRows->pluck('strike_price')->toArray(),
+                            'build_up' => $buildUpSet->first(),
+                            'diff_oi' => $windowRows->pluck('diff_oi')->toArray(),
+                            'diff_vol' => $windowRows->pluck('diff_volume')->toArray(),
+                            'diff_ltp' => $windowRows->pluck('diff_ltp')->toArray(),
+                        ];
+                    }
+                }
+            }
+        }
+
+        $grouped = [];
+        foreach ($result as $item) {
+            $ts = $item['timestamp'];
+            if (!isset($grouped[$ts])) {
+                $grouped[$ts] = ['timestamp' => $ts, 'CE' => null, 'PE' => null];
+            }
+            $grouped[$ts][$item['option_type']] = $item;
+        }
+// Order by timestamp DESC
+        $grouped = collect($grouped)->sortByDesc('timestamp')->values();
+
+        return view('option_chain_buildup', [
+            'symbol' => $symbol,
+            'expiry' => $expiry,
+            'strike_window' => $strikeWindow,
+            'rows' => $grouped,
+        ]);
+    }
+
+    public function showBuildUpAll(Request $request)
+    {
+        $symbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
+        $strikeWindow = (int) $request->input('strike_window', 7);
+        $onlyWithBoth = $request->boolean('only_with_both', false);
+
+        // 1. Get all current expiries for all symbols
+        $expiries = DB::table('expiries')
+                      ->whereIn('trading_symbol', $symbols)
+                      ->where('instrument_type', 'OPT')
+                      ->where('is_current', 1)
+                      ->get()
+                      ->mapWithKeys(function ($item) {
+                          return [$item->trading_symbol => $item->expiry_date];
+                      });
+
+        $allRows = [];
+
+        foreach ($symbols as $symbol) {
+            $expiry = $expiries[$symbol] ?? null;
+            if (!$expiry) continue;
+
+            // 2. Latest spot
+            $latestSpotRow = DB::table('option_chains_3m')
+                               ->where('trading_symbol', $symbol)
+                               ->where('expiry', $expiry)
+                               ->orderByDesc('captured_at')
+                               ->first();
+            if (!$latestSpotRow) continue;
+            $latestSpot = $latestSpotRow->underlying_spot_price;
+
+            // 3. All strikes
+            $strikes = DB::table('option_chains_3m')
+                         ->where('trading_symbol', $symbol)
+                         ->where('expiry', $expiry)
+                         ->pluck('strike_price')
+                         ->unique()
+                         ->sort()
+                         ->values();
+
+            // 4. ATM logic
+            $atm = $strikes->min(function ($strike) use ($latestSpot) {
+                return abs($strike - $latestSpot);
+            });
+            $atmStrike = $strikes->first(function ($strike) use ($latestSpot, $atm) {
+                return abs($strike - $latestSpot) === $atm;
+            });
+            $atmIndex = $strikes->search($atmStrike);
+            $halfWindow = intval($strikeWindow / 2);
+            $strikeWindowArr = $strikes->slice(max(0, $atmIndex - $halfWindow), $strikeWindow);
+
+            // 5. Distinct timestamps (latest first!)
+            $timestamps = DB::table('option_chains_3m')
+                            ->where('trading_symbol', $symbol)
+                            ->where('expiry', $expiry)
+                            ->select('captured_at')
+                            ->distinct()
+                            ->orderByDesc('captured_at')
+                            ->get()
+                            ->pluck('captured_at');
+
+            foreach ($timestamps as $timestamp) {
+                $row = [
+                    'symbol' => $symbol,
+                    'expiry' => $expiry,
+                    'timestamp' => $timestamp,
+                    'CE' => null,
+                    'PE' => null
+                ];
+                foreach (['CE', 'PE'] as $optionType) {
+                    $windowRows = DB::table('option_chains_3m')
+                                    ->where('trading_symbol', $symbol)
+                                    ->where('expiry', $expiry)
+                                    ->where('captured_at', $timestamp)
+                                    ->whereIn('strike_price', $strikeWindowArr)
+                                    ->where('option_type', $optionType)
+                                    ->get();
+
+                    if ($windowRows->count() === $strikeWindow) {
+                        $buildUpSet = $windowRows->pluck('build_up')->filter()->unique();
+                        if ($buildUpSet->count() === 1) {
+                            $row[$optionType] = [
+                                'strikes' => $windowRows->pluck('strike_price')->toArray(),
+                                'build_up' => $buildUpSet->first(),
+                                'diff_oi' => $windowRows->pluck('diff_oi')->toArray(),
+                                'diff_vol' => $windowRows->pluck('diff_volume')->toArray(),
+                                'diff_ltp' => $windowRows->pluck('diff_ltp')->toArray(),
+                            ];
+                        }
+                    }
+                }
+                // Checkbox logic
+                if ($onlyWithBoth) {
+                    if ($row['CE'] && $row['PE']) $allRows[] = $row;
+                } else {
+                    if ($row['CE'] || $row['PE']) $allRows[] = $row;
+                }
+            }
+        }
+
+        // 6. Sort entire result by most recent timestamp
+        usort($allRows, fn($a, $b) => strcmp($b['timestamp'], $a['timestamp']));
+
+        return view('option_chain_buildup_all', [
+            'strike_window' => $strikeWindow,
+            'rows' => $allRows,
+            'only_with_both' => $onlyWithBoth,
+        ]);
+    }
+
+
 }
 
 

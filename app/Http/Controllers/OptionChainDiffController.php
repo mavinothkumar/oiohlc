@@ -20,7 +20,7 @@ class OptionChainDiffController extends Controller
         // Get parameters
         $tradingSymbol = $request->input('trading_symbol', 'NIFTY');
         $expiryDate = $request->input('expiry_date');
-        $date = $request->input('date', now()->toDateString());
+        $date = $request->input('date', now()->toDateString() . ' 09:30:00');
 
         // Get current expiry if not provided
         if (!$expiryDate) {
@@ -40,7 +40,7 @@ class OptionChainDiffController extends Controller
         $optionChainData = DB::table('option_chains_3m')
                              ->where('trading_symbol', $tradingSymbol)
                              ->where('expiry', $expiryDate)
-                             ->whereDate('captured_at', $date)
+                             ->where('captured_at','>', $date)
                              ->orderBy('captured_at', 'desc')
                              ->get();
 
