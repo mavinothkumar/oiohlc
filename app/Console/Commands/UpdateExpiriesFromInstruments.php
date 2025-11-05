@@ -14,23 +14,17 @@ class UpdateExpiriesFromInstruments extends Command
 
     public function handle()
     {
-        $exchanges = ['NSE', 'BSE'];
-        // Index symbols to filter
-        $indices = [
-            'NIFTY',
-            'BANKNIFTY',
-            'SENSEX',
-        ];
+        $exchanges = ['NSE' => ['NIFTY', 'BANKNIFTY'], 'BSE' => ['SENSEX']];
         // Grouping logic for expiry type
         $types = [
             'FUT' => ['FUT'],
             'OPT' => ['CE'],
         ];
 
-       info('Starting UpdateExpiriesFromInstruments: ' . \Illuminate\Support\Carbon::now());
-        $this->info('Starting UpdateExpiriesFromInstruments: ' . \Illuminate\Support\Carbon::now());
+        info('Starting UpdateExpiriesFromInstruments: '.\Illuminate\Support\Carbon::now());
+        $this->info('Starting UpdateExpiriesFromInstruments: '.\Illuminate\Support\Carbon::now());
         Expiry::truncate();
-        foreach ($exchanges as $exchange) {
+        foreach ($exchanges as $exchange => $indices) {
             foreach ($indices as $indexSymbol) {
                 foreach ($types as $expiry_type => $type_values) {
                     // Filter by trading_symbol or underlying_symbol
@@ -50,24 +44,23 @@ class UpdateExpiriesFromInstruments extends Command
                     info('$expiries', [$expiries]);
 
 
-
                     foreach ($expiries as $index => $expiry_ts) {
                         Expiry::updateOrCreate([
-                            'exchange' => $exchange,
+                            'exchange'        => $exchange,
                             'instrument_type' => $expiry_type,
-                            'trading_symbol' => $indexSymbol,
-                            'expiry' => $expiry_ts,
+                            'trading_symbol'  => $indexSymbol,
+                            'expiry'          => $expiry_ts,
                         ], [
-                            'segment' => "{$exchange}_FO",
+                            'segment'     => "{$exchange}_FO",
                             'expiry_date' => date('Y-m-d', $expiry_ts / 1000),
-                            'is_current' => ($index === 0),
-                            'is_next' => ($index === 1),
+                            'is_current'  => ($index === 0),
+                            'is_next'     => ($index === 1),
                         ]);
                     }
                     $this->info(
                         "Updated {$exchange} {$indexSymbol} {$expiry_type}: "
-                        . "Current = " . (isset($expiries[0]) ? date('Y-m-d', $expiries[0] / 1000) : 'N/A')
-                        . ", Next = " . (isset($expiries[1]) ? date('Y-m-d', $expiries[1] / 1000) : 'N/A')
+                        ."Current = ".(isset($expiries[0]) ? date('Y-m-d', $expiries[0] / 1000) : 'N/A')
+                        .", Next = ".(isset($expiries[1]) ? date('Y-m-d', $expiries[1] / 1000) : 'N/A')
                     );
                 }
             }
