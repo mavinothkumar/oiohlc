@@ -24,6 +24,7 @@ class CollectDailyOHLCQuotes extends Command
 
         // Get last trading date based on actual data
         $last_trading_timestamp = FullMarketQuote::orderBy('timestamp', 'desc')->value('timestamp');
+
         $trading_date           = $last_trading_timestamp
             ? Carbon::parse($last_trading_timestamp)->format('Y-m-d')
             : Carbon::yesterday()->format('Y-m-d');

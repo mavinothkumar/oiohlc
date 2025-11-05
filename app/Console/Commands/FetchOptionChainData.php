@@ -39,9 +39,9 @@ class FetchOptionChainData extends Command
         Log::info('Fetching option chain data from Upstox API at '.Carbon::now());
 
         $instruments = [
-            ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
             ['key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY'],
             ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
+            ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
         ];
 
         $token = config('services.upstox.access_token');
