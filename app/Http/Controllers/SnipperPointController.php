@@ -11,8 +11,9 @@ class SnipperPointController extends Controller
     public function index(Request $request)
     {
         $index = $request->get('index', 'NIFTY');
+        $strikeStep = $request->get('strike_step', 100);
         // Set default strike step and range
-        $strikeStep = $index == 'NIFTY' ? 100 : 100; // Change as required (for NIFTY: 100, for BANKNIFTY/SENSEX: 100/200)
+        // $strikeStep = $index == 'NIFTY' ? 50 : 100; // Change as required (for NIFTY: 100, for BANKNIFTY/SENSEX: 100/200)
         $strikeRange = intval($request->get('strike_range', 400));
         $delta = intval($request->get('delta', 20));
 

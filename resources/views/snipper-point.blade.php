@@ -11,6 +11,15 @@
                 </select>
             </div>
             <div>
+                <label>Strike Step</label>
+                <select name="strike_step" class="border px-3 py-2 rounded text-base">
+                    <option value="50" {{ request('strike_step') == 50 ? 'selected' : '' }}>50</option>
+                    <option value="100" {{ request('strike_step', 100) == 100 ? 'selected' : '' }}>100</option>
+                    <option value="150" {{ request('strike_step') == 150 ? 'selected' : '' }}>150</option>
+                    <option value="200" {{ request('strike_step') == 200 ? 'selected' : '' }}>200</option>
+                </select>
+            </div>
+            <div>
                 <label class="mr-2 font-semibold text-gray-700">± Strike Range:</label>
                 <input type="number" name="strike_range" step="50" min="50" max="500" class="border px-3 py-2 rounded w-28 text-base" value="{{ request('strike_range', $strikeRange) }}" />
             </div>
