@@ -29,6 +29,8 @@ class CollectDailyOHLCQuotes extends Command
             ? Carbon::parse($last_trading_timestamp)->format('Y-m-d')
             : Carbon::yesterday()->format('Y-m-d');
 
+        $trading_date = '2025-11-06';
+
         $accessToken = config('services.upstox.access_token');
         $baseUrl     = 'https://api.upstox.com/v3/market-quote/ohlc';
 

@@ -1,0 +1,23 @@
+###
+# curl --location 'https://api.upstox.com/v3/historical-candle/NSE_EQ%7CINE848E01016/days/1/2025-03-01/2025-01-01'
+#--header 'Content-Type: application/json'
+#--header 'Accept: application/json'
+#--header 'Authorization: Bearer {your_access_token}'
+GET https://api.upstox.com/v3/historical-candle/NSE_FO%7C40087/days/1/2025-11-06/2025-11-06
+Accept: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTBkNjY3MmNmMDMwMDM1MjA0NDU1ZTIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzYyNDg1ODc0LCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjI1NTI4MDB9.uTfctQlImqlLWyHDBjJTlqVsNNCDpteAmjAW6JxeS60
+Content-Type: application/json
+
+###
+
+# curl --location 'https://api.upstox.com/v2/market/holidays'
+#--header 'Content-Type: application/json'
+#--header 'Accept: application/json'
+#--header 'Authorization: Bearer {your_access_token}'
+GET https://api.upstox.com/v2/market/holidays/2026-01-26
+Accept: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTBkNjY3MmNmMDMwMDM1MjA0NDU1ZTIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzYyNDg1ODc0LCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjI1NTI4MDB9.uTfctQlImqlLWyHDBjJTlqVsNNCDpteAmjAW6JxeS60
+
+Content-Type: application/json
+
+###

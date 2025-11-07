@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use App\Models\Instrument;
@@ -87,6 +88,8 @@ class FetchUpstoxInstruments extends Command
                         'mtf_bracket'       => $instrument['mtf_bracket'] ?? null,
                         'intraday_margin'   => $instrument['intraday_margin'] ?? null,
                         'intraday_leverage' => $instrument['intraday_leverage'] ?? null,
+                        'created_at'        => Carbon::now(),
+                        'updated_at'        => Carbon::now(),
                     ];
 
                     $count++;

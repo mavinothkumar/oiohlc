@@ -12,6 +12,7 @@ Route::get('test', function () {
    dd($expiryDate);
 });
 
+Route::get('/snipper-point', [App\Http\Controllers\SnipperPointController::class, 'index'])->name('snipper-point');
 Route::get('/market-flow', [App\Http\Controllers\MarketFlowController::class, 'index'])->name('market-flow.index');
 Route::get('/option-chain', [App\Http\Controllers\OptionChainController::class, 'index'])->name('option.chain');
 Route::get('/buildups', [App\Http\Controllers\BuildUpSummaryController::class, 'index'])->name('buildups.index');

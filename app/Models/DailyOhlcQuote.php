@@ -21,6 +21,7 @@ class DailyOhlcQuote extends Model
         'close',
         'volume',
         'open_interest',
+        'expiry_date'
     ];
 
     protected $casts = [
