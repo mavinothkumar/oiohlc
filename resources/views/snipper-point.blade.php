@@ -1,85 +1,77 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-5xl mx-auto py-6">
-        <form method="GET" class="flex flex-wrap gap-4 mb-6">
+    <div class="max-w-screen-2xl mx-auto py-8 px-2">
+        <form method="GET" class="flex flex-wrap gap-6 mb-8 items-center">
             <div>
-                <select name="index" class="border px-2 py-1 rounded">
+                <select name="index" class="border px-3 py-2 rounded text-base">
                     <option value="NIFTY" {{ request('index', 'NIFTY') == 'NIFTY' ? 'selected' : '' }}>NIFTY</option>
                     <option value="BANKNIFTY" {{ request('index') == 'BANKNIFTY' ? 'selected' : '' }}>BANKNIFTY</option>
                     <option value="SENSEX" {{ request('index') == 'SENSEX' ? 'selected' : '' }}>SENSEX</option>
                 </select>
             </div>
             <div>
-                <label class="mr-2 text-gray-700">± Strike Range:</label>
-                <input type="number" name="strike_range" class="border px-2 py-1 rounded w-24" value="{{ request('strike_range', $strikeRange) }}" />
+                <label class="mr-2 font-semibold text-gray-700">± Strike Range:</label>
+                <input type="number" name="strike_range" step="50" min="50" max="500" class="border px-3 py-2 rounded w-28 text-base" value="{{ request('strike_range', $strikeRange) }}" />
             </div>
             <div>
-                <label class="mr-2 text-gray-700">Delta:</label>
-                <input type="number" name="delta" class="border px-2 py-1 rounded w-16" value="{{ request('delta', $delta) }}" />
+                <label class="mr-2 font-semibold text-gray-700">Delta:</label>
+                <input type="number" name="delta" class="border px-3 py-2 rounded w-20 text-base" value="{{ request('delta', $delta) }}" />
             </div>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Filter</button>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded font-bold text-base shadow">Filter</button>
         </form>
 
-        <div class="mb-4 text-sm">
-            <span class="mr-4 font-bold">Index:</span> {{ $index }}
-            <span class="mr-4 font-bold">Spot Price:</span> {{ number_format($spotPrice,2) }}
-            <span class="font-bold">Prev Day:</span> {{ $prevDay }}
+        <div class="mb-4 text-base flex flex-wrap gap-10">
+            <span><span class="font-bold">Index:</span> <span class="font-mono">{{ $index }}</span></span>
+            <span><span class="font-bold">Spot Price:</span> <span class="font-mono">{{ number_format($spotPrice,2) }}</span></span>
+            <span><span class="font-bold">Prev Day:</span> <span class="font-mono">{{ $prevDay }}</span></span>
         </div>
 
-        <table class="min-w-full border rounded shadow text-xs">
-            <thead>
-            <tr class="bg-gray-100">
-                <th class="py-2 px-2">Step</th>
-                <th>CE OTM</th>
-                <th>PE OTM</th>
-                <th>Snipper Avg</th>
-                <th>Close CE</th>
-                <th>Close PE</th>
-                <th>High CE</th>
-                <th>High PE</th>
-                <th>LTP CE</th>
-                <th>LTP PE</th>
-                <th>CE Diff</th>
-                <th>PE Diff</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach($strikes as $step => $sp)
-                @php
-                    $ceOtm = $sp['ce_otm'];
-                    $peOtm = $sp['pe_otm'];
-
-                    $ohlcCe = $ohlc->where('strike', $ceOtm)->where('option_type', 'CE')->first();
-                    $ohlcPe = $ohlc->where('strike', $peOtm)->where('option_type', 'PE')->first();
-                    $ltpCe = $ltps[$ceOtm . 'CE'] ?? null;
-                    $ltpPe = $ltps[$peOtm . 'PE'] ?? null;
-                    $avg = ($ohlcCe && $ohlcPe) ? ($ohlcCe->close + $ohlcPe->close) / 2 : null;
-                    $diffCe = ($avg && $ltpCe) ? $ltpCe - $avg : null;
-                    $diffPe = ($avg && $ltpPe) ? $ltpPe - $avg : null;
-                @endphp
-                <tr>
-                    <td class="font-bold">{{ $step }}</td>
-                    <td>{{ $ceOtm }}</td>
-                    <td>{{ $peOtm }}</td>
-                    <td class="@if($avg && $diffCe && abs($diffCe) <= $delta) bg-green-200 font-bold @else bg-red-200 @endif">
-                        {{ $avg !== null ? number_format($avg,2) : '-' }}
-                    </td>
-                    <td class="bg-yellow-100 font-bold">{{ $ohlcCe->close ?? '-' }}</td>
-                    <td class="bg-yellow-100 font-bold">{{ $ohlcPe->close ?? '-' }}</td>
-                    <td class="bg-pink-100">{{ $ohlcCe->high ?? '-' }}</td>
-                    <td class="bg-pink-100">{{ $ohlcPe->high ?? '-' }}</td>
-                    <td>{{ $ltpCe ?? '-' }}</td>
-                    <td>{{ $ltpPe ?? '-' }}</td>
-                    <td class="@if($diffCe !== null && abs($diffCe) <= $delta) bg-green-400 text-white @else bg-red-400 text-white @endif">
-                        {{ $diffCe !== null ? number_format($diffCe,2) : '-' }}
-                    </td>
-                    <td class="@if($diffPe !== null && abs($diffPe) <= $delta) bg-green-400 text-white @else bg-red-400 text-white @endif">
-                        {{ $diffPe !== null ? number_format($diffPe,2) : '-' }}
-                    </td>
+        <div class="overflow-x-auto rounded-lg shadow mb-2">
+            <table class="min-w-full text-lg border border-gray-200 rounded-lg bg-white">
+                <thead>
+                <tr class="bg-gray-300 text-gray-900">
+                    <th class="py-4 px-6 font-extrabold text-left">Base Strike</th>
+                    <th class="py-4 px-6 font-extrabold text-left">Option</th>
+                    <th class="py-4 px-6 font-extrabold text-left">Strike</th>
+                    <th class="py-4 px-6 font-extrabold text-left">Close</th>
+                    <th class="py-4 px-6 font-extrabold text-left">High</th>
+                    <th class="py-4 px-6 font-extrabold text-left">LTP</th>
+                    <th class="py-4 px-6 font-extrabold text-left">Diff</th>
+                    <th class="py-4 px-6 font-extrabold text-left">Snipper</th>
                 </tr>
-            @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                @foreach($tableRows as $row)
+                    <tr class="bg-gray-100 border-b border-gray-300">
+                        <td class="font-bold text-left align-middle py-5 px-6" rowspan="2">{{ $row['base'] }}</td>
+                        <td class="text-left py-5 px-6">CE</td>
+                        <td class="text-left py-5 px-6">{{ $row['ce_otm'] }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['close_ce'] !== null ? number_format($row['close_ce'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['high_ce'] !== null ? number_format($row['high_ce'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['ltp_ce'] !== null ? number_format($row['ltp_ce'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6 @if($row['ce_diff'] !== null && abs($row['ce_diff']) <= $delta) bg-green-300 text-white font-bold @elseif($row['ce_diff'] !== null) bg-red-300 text-white font-bold @endif">
+                            {{ $row['ce_diff'] !== null ? number_format($row['ce_diff'],2) : '-' }}
+                        </td>
+                        <td class="text-left py-5 px-6 font-bold" rowspan="2">
+                            {{ $row['snipper_avg'] !== null ? number_format($row['snipper_avg'],2) : '-' }}
+                        </td>
+                    </tr>
+                    <tr class="bg-white border-b border-gray-300">
+                        <td class="text-left py-5 px-6">PE</td>
+                        <td class="text-left py-5 px-6">{{ $row['pe_otm'] }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['close_pe'] !== null ? number_format($row['close_pe'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['high_pe'] !== null ? number_format($row['high_pe'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6">{{ $row['ltp_pe'] !== null ? number_format($row['ltp_pe'],2) : '-' }}</td>
+                        <td class="text-left py-5 px-6 @if($row['pe_diff'] !== null && abs($row['pe_diff']) <= $delta) bg-green-300 text-white font-bold @elseif($row['pe_diff'] !== null) bg-red-300 text-white font-bold @endif">
+                            {{ $row['pe_diff'] !== null ? number_format($row['pe_diff'],2) : '-' }}
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+
+
     </div>
 @endsection
