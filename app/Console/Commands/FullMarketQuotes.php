@@ -11,17 +11,18 @@ use App\Models\ThreeMinQuote;
 use App\Models\FiveMinQuote;
 use Carbon\Carbon;
 
-class FullMarketQuotesCollectCommand extends Command
+class FullMarketQuotes extends Command
 {
-    protected $signature = 'market:collect-quotes';
+    protected $signature = 'full-market:collect-quotes';
     protected $description = 'Fetch/stores 1-min quotes then aggregates 3-min & 5-min data for Nifty/BankNifty/Sensex FUT/OPT current/next expiry';
 
     public function handle()
     {
         try {
-            info('Start FullMarketQuotesCollectCommand: ' . Carbon::now());
-            $indexSymbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
-            $types        = ['FUT', 'CE', 'PE'];
+            info('Start Full Market Quotes Collect Command: ' . Carbon::now());
+            // $indexSymbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
+            $indexSymbols = ['NIFTY'];
+            $types        = ['CE', 'PE'];
             $_expiryDates = Expiry::whereIn('trading_symbol', $indexSymbols)
                                   ->where(function ($q) {
                                       $q->where('is_current', true);
@@ -37,17 +38,8 @@ class FullMarketQuotesCollectCommand extends Command
                                          ->whereIn('instrument_type', $types)
                                          ->whereIn('expiry', $expiryDates);
 
-            $instrumentKeys = $_instrumentKeys->pluck('instrument_key')->unique()->toArray();
+            $allInstrumentKeys = $_instrumentKeys->pluck('instrument_key')->unique()->toArray();
             $fullInstrument = $_instrumentKeys->get()->keyBy('instrument_key')->toArray();
-
-            $indexSpotNames    = ['Nifty 50', 'Nifty Bank', 'BSE SENSEX'];
-            $indexSpotKeys     = Instrument::where('instrument_type', 'INDEX')
-                                           ->whereIn('name', $indexSpotNames)
-                                           ->pluck('instrument_key')
-                                           ->unique()
-                                           ->toArray();
-            $nifty50           = self::nifty50();
-            $allInstrumentKeys = array_unique(array_merge($instrumentKeys, $indexSpotKeys, $nifty50));
 
             if (empty($allInstrumentKeys)) {
                 $this->warn('No instrument keys found matching criteria.');
@@ -130,48 +122,6 @@ class FullMarketQuotesCollectCommand extends Command
                 }
             }
             $this->info("Bulk inserted ".count($toInsert)." quotes");
-
-            // Aggregation for 3-min quotes (one loop; can be optimized/bulked further if desired)
-//            foreach ($toInsert as $row) {
-//                $prev3 = FullMarketQuote::where('instrument_token', $row['instrument_token'])
-//                                        ->where('timestamp', '<', $row['timestamp'])
-//                                        ->orderBy('timestamp', 'desc')
-//                                        ->skip(2)->first();
-//                if ($prev3) {
-//                    ThreeMinQuote::create([
-//                        'instrument_token'    => $row['instrument_token'],
-//                        'symbol'              => $row['symbol'],
-//                        'symbol_name'         => $row['symbol_name'],
-//                        'expiry'              => null,//$row['expiry'],
-//                        'expiry_date'         => $row['expiry_date'],
-//                        'expiry_timestamp'    => $row['expiry_timestamp'],
-//                        'strike'              => $row['strike'],
-//                        'option_type'         => $row['option_type'],
-//                        'last_price'          => $row['last_price'],
-//                        'volume'              => $row['volume'],
-//                        'average_price'       => $row['average_price'],
-//                        'oi'                  => $row['oi'],
-//                        'net_change'          => $row['net_change'],
-//                        'total_buy_quantity'  => $row['total_buy_quantity'],
-//                        'total_sell_quantity' => $row['total_sell_quantity'],
-//                        'lower_circuit_limit' => $row['lower_circuit_limit'],
-//                        'upper_circuit_limit' => $row['upper_circuit_limit'],
-//                        'last_trade_time'     => $row['last_trade_time'],
-//                        'oi_day_high'         => $row['oi_day_high'],
-//                        'oi_day_low'          => $row['oi_day_low'],
-//                        'open'                => $row['open'],
-//                        'high'                => $row['high'],
-//                        'low'                 => $row['low'],
-//                        'close'               => $row['close'],
-//                        'timestamp'           => $row['timestamp'],
-//                        'diff_oi'             => $prev3->oi - $row['oi'],
-//                        'diff_volume'         => $prev3->volume - $row['volume'],
-//                        'diff_buy_quantity'   => $prev3->total_buy_quantity - $row['total_buy_quantity'],
-//                        'diff_sell_quantity'  => $prev3->total_sell_quantity - $row['total_sell_quantity'],
-//                        'diff_quantity'       => $row['total_buy_quantity'] - $row['total_sell_quantity'],
-//                    ]);
-//                }
-//            }
 
             $this->info('All quotes stored and aggregated.');
             info('End FullMarketQuotesCollectCommand: ' . Carbon::now());

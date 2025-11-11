@@ -20,3 +20,4 @@ Route::get('/buildup/strike', [App\Http\Controllers\BuildUpSummaryController::cl
 Route::get('/option-chain-diff', [App\Http\Controllers\OptionChainDiffController::class, 'index'])->name('option-chain-diff');
 Route::get('/option-chain/build-up', [App\Http\Controllers\OptionChainController::class, 'showBuildUp'])->name('option-chain.build-up');
 Route::get('/option-chain/build-up-all', [App\Http\Controllers\OptionChainController::class, 'showBuildUpAll'])->name('option-chain.build-up-all');
+Route::get('/option-straddle', [App\Http\Controllers\OptionStraddleController::class, 'show'])->name('option-straddle');

@@ -25,6 +25,7 @@
                         <a href="{{ route('option-chain.build-up') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Buildup</a>
                         <a href="{{ route('option-chain.build-up-all') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Buildup All</a>
                         <a href="{{ route('snipper-point') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Snipper</a>
+                        <a href="{{ route('option-straddle') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Straddle</a>
                     </div>
                 </div>
             </div>

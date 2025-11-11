@@ -18,7 +18,7 @@ class SnipperPointController extends Controller
         $delta = intval($request->get('delta', 20));
 
         // Get previous working day, latest expiry and spot price
-        $prevDay = DB::table('nse_working_days')->where('previous', 1)->value('working_date');
+       $prevDay = DB::table('nse_working_days')->where('previous', 1)->value('working_date');
         $expiry = DB::table('expiries')
                     ->where('instrument_type', 'OPT')
                     ->where('is_current', 1)
