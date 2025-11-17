@@ -2,8 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/111', function () {
+    return now()->second(0);
 })->name('home');
 
 Route::get('test', function () {

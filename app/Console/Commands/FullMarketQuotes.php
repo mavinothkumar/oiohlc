@@ -76,7 +76,7 @@ class FullMarketQuotes extends Command
             foreach ($allQuotes as $instKey => $q) {
                 $ohlc = $q['ohlc'] ?? [];
                 $symbol = $q['symbol'] ?? null;
-                $timestamp = isset($q['timestamp']) ? Carbon::parse($q['timestamp']) : $now;
+                $timestamp = now()->second(0);
                 $instrumentDetails = $fullInstrument[$q['instrument_token'] ?? $instKey] ?? null;
                 $expiry_value = $instrumentDetails && $instrumentDetails['expiry'] ? $instrumentDetails['expiry'] : null;
                 $symbol_name = $instrumentDetails && $instrumentDetails['name'] ? $instrumentDetails['name'] : null;

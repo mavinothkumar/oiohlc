@@ -34,6 +34,7 @@
             <span><span class="font-bold">Index:</span> <span class="font-mono">{{ $index }}</span></span>
             <span><span class="font-bold">Spot Price:</span> <span class="font-mono">{{ number_format($spotPrice,2) }}</span></span>
             <span><span class="font-bold">Prev Day:</span> <span class="font-mono">{{ $prevDay }}</span></span>
+            <span><span class="font-bold">Captured at:</span> <span class="font-mono">{{ $captured_at }}</span></span>
         </div>
 
         <div class="overflow-x-auto rounded-lg shadow mb-2">

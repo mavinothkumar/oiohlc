@@ -42,5 +42,6 @@ class UpdateNseCurrentPreviousWorkingDay extends Command
         }
 
         $this->info("Updated NSE working days: current=$current, previous=$previous");
+        info("Updated NSE working days: current=$current, previous=$previous");
     }
 }
