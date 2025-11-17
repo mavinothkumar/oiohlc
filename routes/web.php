@@ -22,3 +22,5 @@ Route::get('/option-chain/build-up', [App\Http\Controllers\OptionChainController
 Route::get('/option-chain/build-up-all', [App\Http\Controllers\OptionChainController::class, 'showBuildUpAll'])->name('option-chain.build-up-all');
 Route::get('/option-straddle', [App\Http\Controllers\OptionStraddleController::class, 'show'])->name('option-straddle');
 Route::get('/ohlc', [App\Http\Controllers\OHLCController::class, 'index'])->name('ohlc.index');
+
+Route::get('/hlc', [App\Http\Controllers\HlcController::class, 'index'])->name('hlc.index');

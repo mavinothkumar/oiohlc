@@ -11,8 +11,8 @@ class OHLCController extends Controller
     public function index(Request $request)
     {
         // Default filter values
-        $range = $request->input('range', 300); // +/- range for strike around spot price
-         $filterDate = $request->input('date', Carbon::today()->toDateString());
+        $range      = $request->input('range', 300); // +/- range for strike around spot price
+        $filterDate = $request->input('date', Carbon::today()->toDateString());
 
         // Step 1: Get current expiry date for NIFTY options
         $expiryData = DB::table('expiries')
@@ -22,28 +22,28 @@ class OHLCController extends Controller
                         ->select('expiry_date')
                         ->first();
 
-        if (!$expiryData) {
+        if ( ! $expiryData) {
             return view('ohlc.index')->with('error', 'No current expiry found for NIFTY options.');
         }
 
-         $expiryDate = $expiryData->expiry_date;
+        $expiryDate = $expiryData->expiry_date;
 
         // Step 2: Get underlying spot price from option_chains for NIFTY & that expiry date
         $spotData = DB::table('option_chains')
                       ->where('trading_symbol', 'NIFTY')
                       ->whereDate('expiry', $expiryDate)
-                      ->where('option_type', 'CE')  // CE or PE both have same underlying spot price so just pick one
+                      ->where('option_type', 'CE')
                       ->whereDate('captured_at', $filterDate)
                       ->orderByDesc('captured_at')
                       ->select('underlying_spot_price', 'captured_at')
                       ->first();
 
-        if (!$spotData) {
+        if ( ! $spotData) {
             return view('ohlc.index')->with('error', 'No spot price data found for NIFTY options.');
         }
 
-       $spotPrice = $spotData->underlying_spot_price;
-       $timestamp_captured = $spotData->captured_at;
+        $spotPrice          = $spotData->underlying_spot_price;
+        $timestamp_captured = $spotData->captured_at;
 
         // Step 3: Calculate strike price range to filter by
         $minStrike = $spotPrice - $range;
@@ -51,13 +51,14 @@ class OHLCController extends Controller
 
         // Step 4: Fetch option data from full_market_quotes for CE and PE within strike price range, on expiry date
         // Subquery: get the latest timestamp and highest id per strike+option_type
-        $optionsData = DB::table('full_market_quotes')
-                      ->where('symbol_name', 'NIFTY')
-                      ->whereDate('expiry_date', $expiryDate)
-                      ->whereBetween('strike', [$minStrike, $maxStrike])
-                      ->whereIn('option_type', ['CE', 'PE'])
-                      ->where('timestamp','>=', $timestamp_captured)
-                      ->get();
+        $full_market_quotes_last_record = DB::table('full_market_quotes')->orderByDesc('timestamp')->first();
+        $optionsData                    = DB::table('full_market_quotes')
+                                            ->where('symbol_name', 'NIFTY')
+                                            ->whereDate('expiry_date', $expiryDate)
+                                            ->whereBetween('strike', [$minStrike, $maxStrike])
+                                            ->whereIn('option_type', ['CE', 'PE'])
+                                            ->where('timestamp', $full_market_quotes_last_record->timestamp)
+                                            ->get();
 
 // Join on timestamp, then for tied timestamps pick the highest id ONLY
 //        $optionsData = DB::table('full_market_quotes as fmq')
