@@ -24,3 +24,6 @@ Route::get('/option-straddle', [App\Http\Controllers\OptionStraddleController::c
 Route::get('/ohlc', [App\Http\Controllers\OHLCController::class, 'index'])->name('ohlc.index');
 
 Route::get('/hlc', [App\Http\Controllers\HlcController::class, 'index'])->name('hlc.index');
+
+Route::get('/hlc-close', [App\Http\Controllers\HlcCloseController::class, 'index'])->name('hlc.close');
+

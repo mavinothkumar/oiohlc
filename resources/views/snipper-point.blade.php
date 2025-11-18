@@ -1,5 +1,7 @@
 @extends('layouts.app')
-
+@section('title')
+    Snipper Point
+@endsection
 @section('content')
     <div class="max-w-screen-2xl mx-auto py-8 px-2">
         <form method="GET" class="flex flex-wrap gap-6 mb-8 items-center">

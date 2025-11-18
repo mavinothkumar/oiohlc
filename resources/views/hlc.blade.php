@@ -1,4 +1,9 @@
-@extends('layouts.app') {{-- Or use your chosen layout --}}
+@extends('layouts.app')
+
+@section('title')
+    HLC
+@endsection
+
 @section('content')
     <div class="container mx-auto p-4">
         <h1 class="text-2xl font-bold mb-4">NIFTY ATM Strikes & OI (Previous Day)</h1>

@@ -28,7 +28,7 @@ class SnipperPointController extends Controller
         $spotPrice       = DB::table('option_chains')
                              ->where('expiry', $expiry)
                              ->whereDate('captured_at', $prevDay)
-                             ->orderByDesc('captured_at')->limit(1)->first();
+                             ->orderByDesc('captured_at')->first();
         $spotPrice_value = $spotPrice->underlying_spot_price;
         // Calculate base strikes
         $atmStrike   = round($spotPrice_value / $strikeStep) * $strikeStep;
@@ -57,7 +57,7 @@ class SnipperPointController extends Controller
         $allNeededStrikes = array_unique($allNeededStrikes);
 
         // Fetch OHLC and LTP in bulk
-        $ohlcRows = DB::table('daily_ohlc_quotes')
+       $ohlcRows = DB::table('daily_ohlc_quotes')
                       ->where('symbol_name', $index)
                       ->where('expiry_date', $expiry)
                       ->where('quote_date', $prevDay)
@@ -77,11 +77,11 @@ class SnipperPointController extends Controller
         foreach ($ohlcRows as $r) {
             $ohlc[$r->strike.'.00'.$r->option_type] = $r;
         }
+
         $ltps = [];
         foreach ($ltpRows as $r) {
             $ltps[$r->strike_price.$r->option_type] = $r->ltp;
         }
-
         // Assemble table with all calculation for Blade
         foreach ($tableRows as &$row) {
             $ceKey  = $row['ce_otm'].'.00CE';
@@ -101,6 +101,7 @@ class SnipperPointController extends Controller
             $row['ce_diff']     = ($row['snipper_avg'] !== null && $ltpCe !== null) ? $ltpCe - $row['snipper_avg'] : null;
             $row['pe_diff']     = ($row['snipper_avg'] !== null && $ltpPe !== null) ? $ltpPe - $row['snipper_avg'] : null;
         }
+
         unset($row);
 
         return view('snipper-point', [
