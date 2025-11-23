@@ -36,7 +36,6 @@ class HlcController extends Controller
         // Get underlying spot price on previous day (CE entry)
         $spotData            = DB::table('option_chains')
                                  ->where('trading_symbol', 'NIFTY')
-                                 ->whereDate('expiry', $expiryDate)
                                  ->where('option_type', 'CE')
                                  ->whereDate('captured_at', $prevWorkDate)
                                  ->orderByDesc('captured_at')

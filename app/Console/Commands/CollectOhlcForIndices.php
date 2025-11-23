@@ -15,7 +15,7 @@ class CollectOhlcForIndices extends Command
     public function handle()
     {
         $quoteDate = Carbon::now()->toDateString();
-        $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
+        $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'];
 
         $workingDay = DB::table('nse_working_days')->where('previous', 1)->first();
         if (!$workingDay) {

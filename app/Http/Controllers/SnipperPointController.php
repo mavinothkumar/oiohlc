@@ -26,8 +26,7 @@ class SnipperPointController extends Controller
                              ->where('trading_symbol', $index)->limit(1)
                              ->value('expiry_date');
         $spotPrice       = DB::table('option_chains')
-                             ->where('expiry', $expiry)
-                             ->whereDate('captured_at', $prevDay)
+                             ->where('trading_symbol', $index)
                              ->orderByDesc('captured_at')->first();
         $spotPrice_value = $spotPrice->underlying_spot_price;
         // Calculate base strikes
@@ -35,7 +34,7 @@ class SnipperPointController extends Controller
         $startStrike = $atmStrike - $strikeRange;
         $endStrike   = $atmStrike + $strikeRange;
         $baseStrikes = [];
-        for ($strike = $startStrike; $strike <= $endStrike; $strike += $strikeStep) {
+        for ($strike = $startStrike; $strike <= $endStrike; $strike += 50) {
             $baseStrikes[] = $strike;
         }
 
@@ -63,6 +62,7 @@ class SnipperPointController extends Controller
                       ->where('quote_date', $prevDay)
                       ->whereIn('strike', $allNeededStrikes)
                       ->get();
+
         $ltpRows  = DB::table('option_chains')
                       ->where('trading_symbol', $index)
                       ->where('expiry', $expiry)

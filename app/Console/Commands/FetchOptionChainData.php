@@ -42,6 +42,7 @@ class FetchOptionChainData extends Command
             ['key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY'],
             ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
             ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
+            ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
         ];
 
         $token = config('services.upstox.access_token');

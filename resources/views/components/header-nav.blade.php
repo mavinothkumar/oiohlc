@@ -28,6 +28,7 @@
                         <a href="{{ route('option-straddle') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Straddle</a>
                         <a href="{{ route('ohlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OHLC</a>
                         <a href="{{ route('hlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC</a>
+                        <a href="{{ route('hlc.close') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC Close</a>
                     </div>
                 </div>
             </div>

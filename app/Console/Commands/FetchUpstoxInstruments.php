@@ -24,6 +24,7 @@ class FetchUpstoxInstruments extends Command
             'NIFTY',
             'SENSEX',
             'BANKNIFTY',
+            'FINNIFTY',
         ];
 
         info('Starting Downloading instruments file: '.\Illuminate\Support\Carbon::now());

@@ -14,7 +14,7 @@ class UpdateExpiriesFromInstruments extends Command
 
     public function handle()
     {
-        $exchanges = ['NSE' => ['NIFTY', 'BANKNIFTY'], 'BSE' => ['SENSEX']];
+        $exchanges = ['NSE' => ['NIFTY', 'BANKNIFTY', 'FINNIFTY'], 'BSE' => ['SENSEX']];
         // Grouping logic for expiry type
         $types = [
             'FUT' => ['FUT'],

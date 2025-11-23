@@ -40,15 +40,15 @@ Schedule::command('indices:collect-daily-ohlc') // php artisan indices:collect-d
 //        ->appendOutputTo(storage_path('logs/instruments.log'));
 
 
-Schedule::command('optionchain:fetch')->weekdays()
+Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
         ->everyMinute()
         ->between('9:15', '15:32')
         ->appendOutputTo(storage_path('logs/optionchain.log'));
 
-Schedule::command('full-market:collect-quotes')->weekdays()
-        ->everyMinute()
-        ->between( '9:15', '15:32' )
-        ->appendOutputTo( storage_path( 'logs/full-market-collect-quotes.log' ) );
+//Schedule::command('full-market:collect-quotes')->weekdays()
+//        ->everyMinute()
+//        ->between( '9:15', '15:32' )
+//        ->appendOutputTo( storage_path( 'logs/full-market-collect-quotes.log' ) );
 //
 //Schedule::command('market:aggregate-3min-quotes')->weekdays()
 //        ->everyThreeMinutes()

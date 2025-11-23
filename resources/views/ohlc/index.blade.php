@@ -5,15 +5,15 @@
 @endsection
 @section('content')
     <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">NIFTY Option Chains (Expiry: {{ $expiryDate }})</h1>
+        <h1 class="text-2xl font-bold mb-4">NIFTY Option Chains (Expiry: {{ $expiryDate ?? '' }})</h1>
 
         {{-- Filter Form --}}
         <form method="GET" action="{{ url()->current() }}" class="mb-6 flex items-center gap-4 flex-wrap">
             <label for="date" class="font-semibold">Date:</label>
-            <input type="date" id="date" name="date" value="{{ $filterDate }}" max="{{ \Carbon\Carbon::today()->toDateString() }}" class="border rounded px-2 py-1">
+            <input type="date" id="date" name="date" value="{{ $filterDate ?? '' }}" max="{{ \Carbon\Carbon::today()->toDateString() }}" class="border rounded px-2 py-1">
 
             <label for="range" class="font-semibold">Strike Price Range (+/-):</label>
-            <input type="number" id="range" name="range" value="{{ $range }}" min="50" step="50" class="border rounded px-2 py-1 w-20">
+            <input type="number" id="range" name="range" value="{{ $range ?? '' }}" min="50" step="50" class="border rounded px-2 py-1 w-20">
 
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Apply Filter</button>
         </form>

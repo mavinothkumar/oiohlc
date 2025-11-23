@@ -31,7 +31,6 @@ class OHLCController extends Controller
         // Step 2: Get underlying spot price from option_chains for NIFTY & that expiry date
         $spotData = DB::table('option_chains')
                       ->where('trading_symbol', 'NIFTY')
-                      ->whereDate('expiry', $expiryDate)
                       ->where('option_type', 'CE')
                       ->whereDate('captured_at', $filterDate)
                       ->orderByDesc('captured_at')
