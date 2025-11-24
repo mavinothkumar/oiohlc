@@ -1,4 +1,7 @@
 @extends('layouts.app')
+@section('title')
+    HLC Close
+@endsection
 @section('content')
     <div class="container mx-auto p-6">
         <h1 class="text-2xl font-bold mb-4">NIFTY CE/PE Custom Pairing (by Nearest Close Value)</h1>
@@ -19,6 +22,28 @@
                 </div>
             </div>
         </div>
+
+        <form method="get" action="{{ route('hlc.close') }}" class="flex items-end gap-2">
+            <div>
+                <label class="block text-xs text-gray-700">Strike Range (+/-)</label>
+                <input type="number" name="strike_range" value="{{ $strikeRange }}"
+                    class="border px-2 py-1 rounded w-28" min="50" step="50" max="1000">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-700">Symbol</label>
+                <select name="symbol"  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKNIFTY' ? 'selected' : ''}}>BANKNIFTY</option>
+                    <option value="SENSEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'SENSEX' ? 'selected' : ''}}>SENSEX</option>
+                    <option value="FINNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'FINNIFTY' ? 'selected' : ''}}>FINNIFTY</option>
+                    <option value="BANKEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKEX' ? 'selected' : ''}}>BANKEX</option>
+                </select>
+            </div>
+            <button type="submit"
+                class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 mb-1">
+                Update Range
+            </button>
+        </form>
 
         <h2 class="text-lg font-semibold mb-2">Pairing: CE → Nearest PE</h2>
         <div class="overflow-x-auto shadow rounded mb-8">

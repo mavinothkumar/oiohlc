@@ -14,6 +14,7 @@ class HlcController extends Controller
                       ->where('previous', 1)
                       ->orWhere('current', 1)
                       ->get();
+        $symbol   = $request->input('symbol', 'NIFTY');
         foreach ($workDays as $days) {
             if (1 === $days->previous) {
                 $prevWorkDate = $days->working_date ?? now()->subDay()->toDateString();
@@ -26,7 +27,7 @@ class HlcController extends Controller
 
         // Get current NIFTY expiry
         $expiryData = DB::table('expiries')
-                        ->where('trading_symbol', 'NIFTY')
+                        ->where('trading_symbol', $symbol)
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)
                         ->select('expiry_date')
@@ -34,22 +35,30 @@ class HlcController extends Controller
         $expiryDate = $expiryData->expiry_date ?? null;
 
         // Get underlying spot price on previous day (CE entry)
-        $spotData            = DB::table('option_chains')
-                                 ->where('trading_symbol', 'NIFTY')
-                                 ->where('option_type', 'CE')
-                                 ->whereDate('captured_at', $prevWorkDate)
-                                 ->orderByDesc('captured_at')
-                                 ->select('underlying_spot_price')
-                                 ->first();
-        $underlyingSpotPrice = $spotData->underlying_spot_price ?? null;
+        $spotData = DB::table('daily_ohlc_quotes')
+                      ->where('symbol_name', $symbol)
+                      ->where('option_type', 'INDEX')
+                      ->select('close')
+                      ->first();
+        if ( ! empty($spotData->close)) {
+            $underlyingSpotPrice = $spotData->close ?? null;
+        } else {
+            $spotData            = DB::table('option_chains')
+                                     ->where('trading_symbol', $symbol)
+                                     ->where('option_type', 'CE')
+                                     ->orderBy('captured_at')
+                                     ->select('underlying_spot_price')
+                                     ->first();
+            $underlyingSpotPrice = $spotData->underlying_spot_price ?? null;
+        }
 
         $strikeRange = $request->get('strike_range', 300);
-        $minStrike   = $underlyingSpotPrice - $strikeRange;
+         $minStrike   = $underlyingSpotPrice - $strikeRange;
         $maxStrike   = $underlyingSpotPrice + $strikeRange;
 
         // Get all strikes in range for prev expiry date and captured_at
         $rowsRaw = DB::table('daily_ohlc_quotes')
-                     ->where('symbol_name', 'NIFTY')
+                     ->where('symbol_name', $symbol)
                      ->where('expiry_date', $expiryDate)
                      ->whereBetween('strike', [$minStrike, $maxStrike])
                      ->whereIn('option_type', ['CE', 'PE'])
@@ -93,7 +102,7 @@ class HlcController extends Controller
 
         // Also get daily OHLC for prevWorkDate
         $ohlcQuote = DB::table('daily_ohlc_quotes')
-                       ->where('symbol_name', 'NIFTY')
+                       ->where('symbol_name', $symbol)
                        ->where('quote_date', $prevWorkDate)
                        ->orderByDesc('quote_date')
                        ->first();

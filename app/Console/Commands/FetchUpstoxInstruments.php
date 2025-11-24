@@ -55,11 +55,27 @@ class FetchUpstoxInstruments extends Command
         Instrument::truncate();
 
         if (is_array($instruments)) {
+            $index_instrument_key = [
+                'BSE_INDEX|BANKEX',
+                'BSE_INDEX|SENSEX',
+                'NSE_INDEX|Nifty 50',
+                'NSE_INDEX|Nifty Bank',
+                'NSE_INDEX|Nifty Fin Service',
+            ];
             foreach ($instruments as $instrument) {
                 if (
-                    isset($instrument['underlying_type'], $instrument['underlying_symbol']) &&
-                    $instrument['underlying_type'] === 'INDEX' &&
-                    in_array($instrument['underlying_symbol'], $index)
+                    (
+                        isset($instrument['underlying_type'], $instrument['underlying_symbol']) &&
+                        $instrument['underlying_type'] === 'INDEX' &&
+                        in_array($instrument['underlying_symbol'], $index)
+                    )
+                    ||
+                    (
+                    (isset($instrument['segment']) &&
+                     in_array($instrument['segment'], ['BSE_INDEX', 'NSE_INDEX']) &&
+                     in_array($instrument['instrument_key'], $index_instrument_key)
+                    )
+                    )
                 ) {
 
                     $batch[] = [

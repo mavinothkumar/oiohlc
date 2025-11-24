@@ -19,10 +19,14 @@
                 <div class="text-sm text-gray-500 mt-2">OHLC ({{ $prevWorkDate }})</div>
 
                 @if($ohlcQuote)
-                    <div class="text-xs">Open: <b>{{ $ohlcQuote->open }}</b>
-                        | High: <b>{{ $ohlcQuote->high }}</b>
-                        | Low: <b>{{ $ohlcQuote->low }}</b>
-                        | Close: <b>{{ $ohlcQuote->close }}</b>
+                    <div class="text-xs">Open:
+                        <b>{{ $ohlcQuote->open }}</b>
+                        | High:
+                        <b>{{ $ohlcQuote->high }}</b>
+                        | Low:
+                        <b>{{ $ohlcQuote->low }}</b>
+                        | Close:
+                        <b>{{ $ohlcQuote->close }}</b>
                     </div>
                 @else
                     <div class="text-xs text-red-500">No OHLC data found for previous day.</div>
@@ -33,6 +37,16 @@
                     <label class="block text-xs text-gray-700">Strike Range (+/-)</label>
                     <input type="number" name="strike_range" value="{{ $strikeRange }}"
                         class="border px-2 py-1 rounded w-28" min="50" step="50" max="1000">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-700">Symbol</label>
+                    <select name="symbol"  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="NIFTY">NIFTY</option>
+                        <option value="BANKNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKNIFTY' ? 'selected' : ''}}>BANKNIFTY</option>
+                        <option value="SENSEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'SENSEX' ? 'selected' : ''}}>SENSEX</option>
+                        <option value="FINNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'FINNIFTY' ? 'selected' : ''}}>FINNIFTY</option>
+                        <option value="BANKEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKEX' ? 'selected' : ''}}>BANKEX</option>
+                    </select>
                 </div>
                 <button type="submit"
                     class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 mb-1">

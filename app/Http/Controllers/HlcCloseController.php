@@ -8,6 +8,7 @@ class HlcCloseController extends Controller
 {
     public function index(Request $request)
     {
+        $symbol   = $request->input('symbol', 'NIFTY');
         // Previous NSE work day
         $workDays = DB::table('nse_working_days')
                       ->where('previous', 1)
@@ -24,21 +25,19 @@ class HlcCloseController extends Controller
 
         // Get current NIFTY expiry
         $expiryData = DB::table('expiries')
-                        ->where('trading_symbol', 'NIFTY')
+                        ->where('trading_symbol', $symbol)
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)
                         ->select('expiry_date')
                         ->first();
         $expiryDate = $expiryData->expiry_date ?? null;
 
-        $spotData            = DB::table('option_chains')
-                                 ->where('trading_symbol', 'NIFTY')
-                                 ->where('option_type', 'CE')
-                                 ->whereDate('captured_at', $prevWorkDate)
-                                 ->orderByDesc('captured_at')
-                                 ->select('underlying_spot_price')
-                                 ->first();
-        $underlyingSpotPrice = $spotData->underlying_spot_price ?? null;
+        $spotData = DB::table('daily_ohlc_quotes')
+                      ->where('symbol_name', $symbol)
+                      ->where('option_type', 'INDEX')
+                      ->select('close')
+                      ->first();
+        $underlyingSpotPrice = $spotData->close ?? null;
 
         $strikeRange = $request->get('strike_range', 300);
         $minStrike   = $underlyingSpotPrice - $strikeRange;
@@ -47,7 +46,7 @@ class HlcCloseController extends Controller
         // Get all CE/PE in range for previous day and expiry
 
         $ceList = DB::table('daily_ohlc_quotes')
-                    ->where('symbol_name', 'NIFTY')
+                    ->where('symbol_name', $symbol)
                     ->where('expiry_date', $expiryDate)
                     ->whereBetween('strike', [$minStrike, $maxStrike])
                     ->where('option_type', 'CE')
@@ -57,7 +56,7 @@ class HlcCloseController extends Controller
                     ->get();
 
         $peList = DB::table('daily_ohlc_quotes')
-                    ->where('symbol_name', 'NIFTY')
+                    ->where('symbol_name', $symbol)
                     ->where('expiry_date', $expiryDate)
                     ->whereBetween('strike', [$minStrike, $maxStrike])
                     ->where('option_type', 'PE')
@@ -131,6 +130,7 @@ class HlcCloseController extends Controller
             'expiryDate'   => $expiryDate,
             'prevWorkDate' => $prevWorkDate,
             'currentWorkDate' => $currentWorkDate,
+            'strikeRange' => $strikeRange,
         ]);
     }
 }
