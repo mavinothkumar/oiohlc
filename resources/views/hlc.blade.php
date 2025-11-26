@@ -5,55 +5,100 @@
 @endsection
 
 @section('content')
+    @php
+        $level = ($spotData->high - $spotData->low) * 0.2611;
+    @endphp
+
     <div class="container mx-auto p-4">
         <h1 class="text-2xl font-bold mb-4">NIFTY ATM Strikes & OI (Previous Day)</h1>
 
-        <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="p-4 bg-indigo-50 rounded shadow">
-                <div class="text-sm text-gray-500">Expiry Date</div>
-                <div class="text-lg font-semibold">{{ $expiryDate }}</div>
-                <div class="text-sm text-gray-500 mt-2">Spot (Previous Day)</div>
-                <div class="text-lg font-semibold">{{ $underlyingSpotPrice }}</div>
-                <div class="text-sm text-gray-500 mt-2">Current Day</div>
-                <div class="text-lg font-semibold">{{ $currentWorkDate }}</div>
-                <div class="text-sm text-gray-500 mt-2">OHLC ({{ $prevWorkDate }})</div>
-
-                @if($ohlcQuote)
-                    <div class="text-xs">Open:
-                        <b>{{ $ohlcQuote->open }}</b>
-                        | High:
-                        <b>{{ $ohlcQuote->high }}</b>
-                        | Low:
-                        <b>{{ $ohlcQuote->low }}</b>
-                        | Close:
-                        <b>{{ $ohlcQuote->close }}</b>
+        <div class="max-w-5xl mx-auto mt-4">
+            <!-- Row 1: Expiry, Current Day, OHLC -->
+            <div class="flex flex-wrap items-center gap-4 bg-white shadow rounded px-4 py-2 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Expiry Date:</span>
+                    <span class="font-semibold text-indigo-700">{{ $expiryDate }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Current Day:</span>
+                    <span class="font-semibold text-gray-800">{{ $currentWorkDate }}</span>
+                </div>
+                @if($spotData)
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">Open:</span>
+                        <span class="font-semibold text-blue-600">{{ $spotData->open }}</span>
+                        <span class="text-xs text-gray-500">High:</span>
+                        <span class="font-semibold text-green-600">{{ $spotData->high }}</span>
+                        <span class="text-xs text-gray-500">Low:</span>
+                        <span class="font-semibold text-red-600">{{ $spotData->low }}</span>
+                        <span class="text-xs text-gray-500">Close:</span>
+                        <span class="font-semibold text-yellow-600">{{ $spotData->close }}</span>
                     </div>
                 @else
-                    <div class="text-xs text-red-500">No OHLC data found for previous day.</div>
+                    <span class="text-xs text-red-500">No OHLC data found for previous day.</span>
                 @endif
             </div>
-            <form method="get" action="{{ route('hlc.index') }}" class="flex items-end gap-2">
-                <div>
-                    <label class="block text-xs text-gray-700">Strike Range (+/-)</label>
-                    <input type="number" name="strike_range" value="{{ $strikeRange }}"
-                        class="border px-2 py-1 rounded w-28" min="50" step="50" max="1000">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-700">Symbol</label>
-                    <select name="symbol"  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white">
-                        <option value="NIFTY">NIFTY</option>
-                        <option value="BANKNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKNIFTY' ? 'selected' : ''}}>BANKNIFTY</option>
-                        <option value="SENSEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'SENSEX' ? 'selected' : ''}}>SENSEX</option>
-                        <option value="FINNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'FINNIFTY' ? 'selected' : ''}}>FINNIFTY</option>
-                        <option value="BANKEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKEX' ? 'selected' : ''}}>BANKEX</option>
-                    </select>
-                </div>
+
+            <!-- Row 2: Earth Level/Preopen -->
+            <div class="flex flex-wrap items-center gap-4 bg-white shadow rounded px-4 py-2 mb-3">
+                <label for="preopen" class="text-xs font-semibold text-gray-700">Preopen Value:</label>
+                <input
+                    type="number"
+                    id="preopen"
+                    step="any"
+                    class="border border-gray-300 rounded px-2 py-1 w-32 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    placeholder="Enter preopen"
+                />
+                <span class="font-bold text-indigo-800">Earth Level (26.11%):</span>
+                <span id="earthLevel" class="font-semibold">{{ number_format($level, 2) }}</span>
+                <span class="font-bold text-gray-700">Preopen High:</span>
+                <span id="preopenHigh">-</span>
+                <span class="font-bold text-gray-700">Preopen Low:</span>
+                <span id="preopenLow">-</span>
+            </div>
+
+            <!-- Row 3: Strike Range, Symbol, Button -->
+            <form method="get" action="{{ route('hlc.index') }}"
+                class="flex flex-wrap items-center gap-4 bg-white shadow rounded px-4 py-2 mb-2">
+                <label class="text-xs font-semibold text-gray-700" for="strike_range">Strike Range (+/-):</label>
+                <input type="number" name="strike_range" value="{{ $strikeRange }}"
+                    class="border border-gray-300 px-2 py-1 rounded w-24 focus:ring-2 focus:ring-indigo-200" min="50" step="50" max="1000">
+
+                <label class="text-xs font-semibold text-gray-700" for="symbol">Symbol:</label>
+                <select name="symbol"
+                    class="px-2 py-1 border border-gray-300 rounded focus:ring-indigo-200 focus:border-indigo-400 bg-white">
+                    <option value="NIFTY">NIFTY</option>
+                    <option value="BANKNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKNIFTY' ? 'selected' : ''}}>BANKNIFTY</option>
+                    <option value="SENSEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'SENSEX' ? 'selected' : ''}}>SENSEX</option>
+                    <option value="FINNIFTY" {{isset($_GET['symbol']) && $_GET['symbol'] === 'FINNIFTY' ? 'selected' : ''}}>FINNIFTY</option>
+                    <option value="BANKEX" {{isset($_GET['symbol']) && $_GET['symbol'] === 'BANKEX' ? 'selected' : ''}}>BANKEX</option>
+                </select>
                 <button type="submit"
-                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-800 mb-1">
+                    class="bg-indigo-600 text-white font-bold px-4 py-2 rounded shadow hover:bg-indigo-800 transition-all">
                     Update Range
                 </button>
             </form>
+
+            <!-- Data table below... -->
         </div>
+
+        <script>
+            const level = @json($level);
+            const preopenInput = document.getElementById('preopen');
+            const preopenHigh = document.getElementById('preopenHigh');
+            const preopenLow = document.getElementById('preopenLow');
+            preopenInput.addEventListener('input', function() {
+                const preopen = parseFloat(this.value || 0);
+                if (this.value !== '') {
+                    preopenHigh.textContent = (preopen + level).toFixed(2);
+                    preopenLow.textContent = (preopen - level).toFixed(2);
+                } else {
+                    preopenHigh.textContent = '-';
+                    preopenLow.textContent = '-';
+                }
+            });
+        </script>
+
 
         <div class="overflow-x-auto shadow rounded">
             <table class="min-w-full bg-white border border-gray-200 text-xs">

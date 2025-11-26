@@ -25,10 +25,17 @@ class SnipperPointController extends Controller
                              ->where('is_current', 1)
                              ->where('trading_symbol', $index)->limit(1)
                              ->value('expiry_date');
-        $spotPrice       = DB::table('option_chains')
-                             ->where('trading_symbol', $index)
-                             ->orderByDesc('captured_at')->first();
-        $spotPrice_value = $spotPrice->underlying_spot_price;
+//        $spotPrice       = DB::table('option_chains')
+//                             ->where('trading_symbol', $index)
+//                             ->orderByDesc('captured_at')->first();
+
+        $spotPrice = DB::table('daily_ohlc_quotes')
+                      ->where('symbol_name', $index)
+                      ->where('option_type', 'INDEX')
+                      ->select('close')
+                      ->first();
+        //$underlyingSpotPrice = $spotData->close ?? null;
+        $spotPrice_value = $spotPrice->close ?? null;
         // Calculate base strikes
         $atmStrike   = round($spotPrice_value / $strikeStep) * $strikeStep;
         $startStrike = $atmStrike - $strikeRange;
@@ -63,12 +70,14 @@ class SnipperPointController extends Controller
                       ->whereIn('strike', $allNeededStrikes)
                       ->get();
 
+       $last_traded_time = DB::table('option_chains')->orderByDesc('captured_at')->first();
+
         $ltpRows  = DB::table('option_chains')
                       ->where('trading_symbol', $index)
                       ->where('expiry', $expiry)
                       ->whereIn('strike_price', $allNeededStrikes)
                       ->whereIn('option_type', ['CE', 'PE'])
-                      ->where('captured_at', $spotPrice->captured_at)
+                      ->where('captured_at', $last_traded_time->captured_at)
                       ->orderByDesc('captured_at')
                       ->get();
 
@@ -113,7 +122,7 @@ class SnipperPointController extends Controller
             'strikeStep'  => $strikeStep,
             'tableRows'   => $tableRows,
             'prevDay'     => $prevDay,
-            'captured_at' => $spotPrice->captured_at,
+            'captured_at' => $last_traded_time->captured_at,
         ]);
     }
 }

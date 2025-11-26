@@ -45,10 +45,10 @@ return [
         'http'   => env('DEPTH_PROXY_HTTP', 'http://127.0.0.1:8081'),
     ],
     'upstox'      => [
-        'access_token' => 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTIzZDFmOGFhNDdmMDczMmM0MWNmYjciLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzYzOTU1MTkyLCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjQwMjE2MDB9.Izcw9d6HdXXCEXG1RcDqrmScc8LoKOFM38WXEiXfa1g',
+        'access_token' => 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTI2NmU5N2QxMjUwOTRhYzJjOWZhMzUiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzY0MTI2MzU5LCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjQxOTQ0MDB9.rhcjWK2KJxUJd2Kw3GckhbUJeeN2yXXXMR9KiBnHWfg',
         'client_id'    => env('UPSTOX_CLIENT_ID', ''),
         'segment'      => env('UPSTOX_EXCHANGE_SEGMENT', 'NSE_FNO'),
     ],
-    // php artisan config:clear php artisan optimize
+    // php artisan config:clear
     // php artisan optimize
 ];

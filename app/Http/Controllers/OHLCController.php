@@ -13,10 +13,11 @@ class OHLCController extends Controller
         // Default filter values
         $range      = $request->input('range', 300); // +/- range for strike around spot price
         $filterDate = $request->input('date', Carbon::today()->toDateString());
+        $symbol = $request->input('symbol', 'NIFTY');
 
         // Step 1: Get current expiry date for NIFTY options
         $expiryData = DB::table('expiries')
-                        ->where('trading_symbol', 'NIFTY')
+                        ->where('trading_symbol', $symbol)
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)
                         ->select('expiry_date')
@@ -30,7 +31,7 @@ class OHLCController extends Controller
 
         // Step 2: Get underlying spot price from option_chains for NIFTY & that expiry date
         $spotData = DB::table('option_chains')
-                      ->where('trading_symbol', 'NIFTY')
+                      ->where('trading_symbol', $symbol)
                       ->where('option_type', 'CE')
                       ->whereDate('captured_at', $filterDate)
                       ->orderByDesc('captured_at')

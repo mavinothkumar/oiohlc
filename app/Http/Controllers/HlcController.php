@@ -37,9 +37,12 @@ class HlcController extends Controller
         // Get underlying spot price on previous day (CE entry)
         $spotData = DB::table('daily_ohlc_quotes')
                       ->where('symbol_name', $symbol)
+                      ->where('quote_date', $prevWorkDate)
                       ->where('option_type', 'INDEX')
-                      ->select('close')
+                      ->orderByDesc('quote_date')
                       ->first();
+
+
         if ( ! empty($spotData->close)) {
             $underlyingSpotPrice = $spotData->close ?? null;
         } else {
@@ -100,19 +103,12 @@ class HlcController extends Controller
             }
         }
 
-        // Also get daily OHLC for prevWorkDate
-        $ohlcQuote = DB::table('daily_ohlc_quotes')
-                       ->where('symbol_name', $symbol)
-                       ->where('quote_date', $prevWorkDate)
-                       ->orderByDesc('quote_date')
-                       ->first();
-
         return view('hlc', [
             'rows'                => $rows,
             'atmStrike'           => $atmStrike,
             'underlyingSpotPrice' => $underlyingSpotPrice,
             'expiryDate'          => $expiryDate,
-            'ohlcQuote'           => $ohlcQuote,
+            'spotData'           => $spotData,
             'prevWorkDate'        => $prevWorkDate,
             'currentWorkDate'     => $currentWorkDate,
             'strikeRange'         => $strikeRange,

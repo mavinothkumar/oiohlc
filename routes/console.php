@@ -45,6 +45,11 @@ Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:f
         ->between('9:15', '15:32')
         ->appendOutputTo(storage_path('logs/optionchain.log'));
 
+Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:collect-ohlc
+        ->everyMinute()
+        ->between('9:15', '15:32')
+        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
+
 //Schedule::command('full-market:collect-quotes')->weekdays()
 //        ->everyMinute()
 //        ->between( '9:15', '15:32' )
