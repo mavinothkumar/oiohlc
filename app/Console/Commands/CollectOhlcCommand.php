@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Expiry;
 use App\Models\Instrument;
+use App\Models\OhlcDayQuote;
 use App\Models\OhlcQuote;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -73,105 +74,133 @@ class CollectOhlcCommand extends Command
         }
 
         $index          = Instrument::where('instrument_type', 'INDEX')->get([
-            'instrument_type', 'expiry as expiry_date', 'instrument_key', 'strike_price', 'name',
+            'instrument_type', 'expiry as expiry_date', 'instrument_key', 'strike_price', 'name as trading_symbol',
         ])->keyBy('instrument_key')->toArray();
         $instrumentMeta = array_merge($index, $instrumentMeta);
         $instrumentKeys = array_keys($instrumentMeta);
 
         $this->info('Total instruments to query: '.count($instrumentKeys));
 
-        // 3) Chunk into max 500 instrument keys per request
-        $chunks = array_chunk($instrumentKeys, 500);
+        foreach (['1d', 'I1'] as $interval) {
+            // 3) Chunk into max 500 instrument keys per request
+            $chunks = array_chunk($instrumentKeys, 500);
 
-        $accessToken = config('services.upstox.access_token');
-        if ( ! $accessToken) {
-            $this->error('Upstox access token not configured (services.upstox.access_token).');
+            $accessToken = config('services.upstox.access_token');
+            if ( ! $accessToken) {
+                $this->error('Upstox access token not configured (services.upstox.access_token).');
 
-            return self::FAILURE;
-        }
-
-        foreach ($chunks as $chunkIndex => $chunkKeys) {
-            $this->info(sprintf('Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count($chunkKeys)));
-
-            $instrumentKeyParam = implode(',', $chunkKeys);
-
-            $response = Http::withHeaders([
-                'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json',
-                'Authorization' => 'Bearer '.$accessToken,
-            ])
-                            ->timeout(10)
-                            ->get('https://api.upstox.com/v3/market-quote/ohlc', [
-                                'instrument_key' => $instrumentKeyParam,
-                                'interval'       => 'I1', // always 1-min interval
-                            ]);
-
-            if ( ! $response->ok()) {
-                $this->error('Upstox API error: HTTP '.$response->status());
-                continue;
+                return self::FAILURE;
             }
 
-            $body = $response->json();
+            foreach ($chunks as $chunkIndex => $chunkKeys) {
+                $this->info(sprintf('Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count($chunkKeys)));
 
-            if ( ! isset($body['status']) || $body['status'] !== 'success' || ! isset($body['data'])) {
-                $this->error('Unexpected Upstox response format.');
-                continue;
-            }
+                $instrumentKeyParam = implode(',', $chunkKeys);
 
-            $data = $body['data'];
+                $response = Http::withHeaders([
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                    'Authorization' => 'Bearer '.$accessToken,
+                ])
+                                ->timeout(10)
+                                ->get('https://api.upstox.com/v3/market-quote/ohlc', [
+                                    'instrument_key' => $instrumentKeyParam,
+                                    'interval'       => $interval, // always 1-min interval
+                                ]);
 
-            DB::beginTransaction();
-            try {
-                foreach ($data as $instrumentKey => $quote) {
-                    if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
-                        // Instrument not in our map, skip
-                        continue;
-                    }
-
-                    $meta = $instrumentMeta[$quote['instrument_token']];
-
-                    $live = $quote['live_ohlc'] ?? null;
-                    if ( ! $live) {
-                        // No live data
-                        continue;
-                    }
-
-                    $tsMs = $live['ts'] ?? null;
-                    $tsAt = null;
-                    if ($tsMs) {
-                        $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
-                    }
-
-                    // Upsert on instrument_key + ts to keep one row per candle
-                    OhlcQuote::updateOrCreate(
-                        [
-                            'instrument_key' => $quote['instrument_token'],
-                            'ts'             => $tsMs,
-                        ],
-                        [
-                            'instrument_type' => $meta['instrument_type'],
-                            'expiry_date'     => $meta['expiry_date'] ?? null,
-                            'strike_price'    => $meta['strike_price'] ?? null,
-                            'trading_symbol'  => $meta['trading_symbol'] ?? null,
-
-                            'open'       => $live['open'] ?? null,
-                            'high'       => $live['high'] ?? null,
-                            'low'        => $live['low'] ?? null,
-                            'close'      => $live['close'] ?? null,
-                            'volume'     => $live['volume'] ?? null,
-                            'ts_at'      => $tsAt,
-                            'last_price' => $quote['last_price'] ?? null,
-                        ]
-                    );
+                if ( ! $response->ok()) {
+                    $this->error('Upstox API error: HTTP '.$response->status());
+                    continue;
                 }
 
-                DB::commit();
-            } catch (\Throwable $e) {
-                DB::rollBack();
-                $this->error('DB error: '.$e->getMessage());
-            }
-        }
+                $body = $response->json();
 
+                if ( ! isset($body['status']) || $body['status'] !== 'success' || ! isset($body['data'])) {
+                    $this->error('Unexpected Upstox response format.');
+                    continue;
+                }
+
+                $data = $body['data'];
+
+                DB::beginTransaction();
+                try {
+                    foreach ($data as $instrumentKey => $quote) {
+                        if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
+                            // Instrument not in our map, skip
+                            continue;
+                        }
+
+                        $meta = $instrumentMeta[$quote['instrument_token']];
+
+                        $live = $quote['live_ohlc'] ?? null;
+                        if ( ! $live) {
+                            // No live data
+                            continue;
+                        }
+
+                        $tsMs = $live['ts'] ?? null;
+                        $tsAt = null;
+                        if ($tsMs) {
+                            $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
+                        }
+
+                        // Upsert on instrument_key + ts to keep one row per candle
+                        if ($interval === 'I1') {
+                            OhlcDayQuote::updateOrCreate(
+                                [
+                                    'instrument_key' => $quote['instrument_token'],
+                                    'ts'             => $tsMs,
+                                ],
+                                [
+                                    'instrument_type' => $meta['instrument_type'],
+                                    'expiry_date'     => $meta['expiry_date'] ?? null,
+                                    'strike_price'    => $meta['strike_price'] ?? null,
+                                    'trading_symbol'  => $meta['trading_symbol'] ?? null,
+
+                                    'open'       => $live['open'] ?? null,
+                                    'high'       => $live['high'] ?? null,
+                                    'low'        => $live['low'] ?? null,
+                                    'close'      => $live['close'] ?? null,
+                                    'volume'     => $live['volume'] ?? null,
+                                    'ts_at'      => $tsAt,
+                                    'last_price' => $quote['last_price'] ?? null,
+                                ]
+                            );
+                        }
+                        if ($interval === '1d') {
+                            OhlcQuote::updateOrCreate(
+                                [
+                                    'instrument_key' => $quote['instrument_token'],
+                                    'ts'             => $tsMs,
+                                ],
+                                [
+                                    'instrument_type' => $meta['instrument_type'],
+                                    'expiry_date'     => $meta['expiry_date'] ?? null,
+                                    'strike_price'    => $meta['strike_price'] ?? null,
+                                    'trading_symbol'  => $meta['trading_symbol'] ?? null,
+
+                                    'open'       => $live['open'] ?? null,
+                                    'high'       => $live['high'] ?? null,
+                                    'low'        => $live['low'] ?? null,
+                                    'close'      => $live['close'] ?? null,
+                                    'volume'     => $live['volume'] ?? null,
+                                    'ts_at'      => $tsAt,
+                                    'last_price' => $quote['last_price'] ?? null,
+                                ]
+                            );
+                        }
+
+
+                    }
+
+                    DB::commit();
+                } catch (\Throwable $e) {
+                    DB::rollBack();
+                    $this->error('DB error: '.$e->getMessage());
+                }
+            }
+            $this->info('OHLC collection of '.$interval.' completed.');
+        }
         $this->info('OHLC collection complete.');
 
         return self::SUCCESS;

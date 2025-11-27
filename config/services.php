@@ -45,7 +45,7 @@ return [
         'http'   => env('DEPTH_PROXY_HTTP', 'http://127.0.0.1:8081'),
     ],
     'upstox'      => [
-        'access_token' => 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTI2NmU5N2QxMjUwOTRhYzJjOWZhMzUiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzY0MTI2MzU5LCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjQxOTQ0MDB9.rhcjWK2KJxUJd2Kw3GckhbUJeeN2yXXXMR9KiBnHWfg',
+        'access_token' => 'eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiI0R0NVTjQiLCJqdGkiOiI2OTI3YjZhZjhjZDgwMjRlMjQ1NWU4OTEiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzY0MjEwMzUxLCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3NjQyODA4MDB9.OYSylElwtn3nep9uR071k5FvievZOH4hcp2bCFSvQio',
         'client_id'    => env('UPSTOX_CLIENT_ID', ''),
         'segment'      => env('UPSTOX_EXCHANGE_SEGMENT', 'NSE_FNO'),
     ],
