@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\DailyOhlcQuote;
 use App\Models\OhlcDayQuote;
+use App\Models\OhlcQuote;
 
 class TrendController extends Controller
 {
     public function index()
     {
-        // 1. Previous & current working days (DB::table as you noted)
+        // 1. Working days (previous + current)
         $days = DB::table('nse_working_days')
                   ->where(function ($q) {
                       $q->where('previous', 1)
@@ -27,24 +27,62 @@ class TrendController extends Controller
             abort(404, 'Working days not configured');
         }
 
-        // 2. Yesterday INDEX OHLC (for NIFTY, BANKNIFTY, SENSEX, FINNIFTY)
+        // 2. Yesterday index OHLC from daily_ohlc_quotes
         $yesterdayIndexes = DailyOhlcQuote::where('option_type', 'INDEX')
                                           ->where('quote_date', $previousDay)
-                                          ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'])
+                                          ->whereIn('symbol_name', ['NIFTY','BANKNIFTY','SENSEX','FINNIFTY'])
                                           ->get()
                                           ->keyBy('symbol_name');
 
-        // 3. Current day INDEX open from ohlc_day_quotes
+        // 3. Current-day index OPEN for Earth levels
         $currentIndexOpens = OhlcDayQuote::query()
                                          ->where('instrument_type', 'INDEX')
                                          ->whereDate('created_at', $currentDay)
-                                         ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'BSE SENSEX', 'Nifty Fin Service'])
+                                         ->whereIn('trading_symbol', ['Nifty 50','Nifty Bank','BSE SENSEX','Nifty Fin Service'])
                                          ->orderBy('created_at')
                                          ->get()
                                          ->groupBy('trading_symbol')
             ->map->first();
 
-        // Map INDEX symbol_name (in daily_ohlc_quotes) to trading_symbol (in ohlc_day_quotes)
+        // 4. Current option expiries (OPT) per symbol
+        $currentOptExpiries = DB::table('expiries')
+                                ->where('is_current', 1)
+                                ->where('instrument_type', 'OPT')
+                                ->whereIn('trading_symbol', ['NIFTY','BANKNIFTY','FINNIFTY','SENSEX'])
+                                ->get()
+                                ->keyBy('trading_symbol');
+
+        $symbolExpiryMap = $currentOptExpiries->mapWithKeys(function ($row) {
+            return [$row->trading_symbol => $row->expiry_date];
+        });
+
+        // 5. Current-day option LTPs from ohlc_quotes (CE/PE), filtered to current expiry
+        $optionLtps = collect();
+        if ($symbolExpiryMap->isNotEmpty()) {
+            $optionLtps = OhlcQuote::query()
+                                   ->whereDate('created_at', $currentDay)
+                                   ->whereIn('instrument_type', ['CE','PE'])
+                                   ->whereIn('trading_symbol', $symbolExpiryMap->keys())
+                                   ->whereIn('expiry_date', $symbolExpiryMap->values())
+                                   ->get()
+                                   ->groupBy(function ($row) {
+                                       // key per underlying+strike+side; here trading_symbol is index name
+                                       return $row->trading_symbol . '_' . (int) $row->strike_price . '_' . $row->instrument_type;
+                                   })
+                ->map->last();
+        }
+
+        // 6. Current-day index LTPs from ohlc_quotes
+        $indexLtps = OhlcQuote::query()
+                              ->whereDate('created_at', $currentDay)
+                              ->where('instrument_type', 'INDEX')
+                              ->whereIn('trading_symbol', ['Nifty 50','Nifty Bank','Nifty Fin Service','BSE SENSEX'])
+                              ->orderBy('created_at')
+                              ->get()
+                              ->groupBy('trading_symbol')
+            ->map->last();
+
+        // Map daily_ohlc_quotes.symbol_name -> intraday/trading_symbol
         $symbolMap = [
             'NIFTY'     => 'Nifty 50',
             'BANKNIFTY' => 'Nifty Bank',
@@ -56,34 +94,34 @@ class TrendController extends Controller
 
         foreach ($yesterdayIndexes as $symbol => $indexRow) {
 
-            // ---- Earth value (26.11% of yesterday high-low) ----
+            // ---- Earth levels (26.11% of yesterday range) ----
             $highLowDiff = $indexRow->high - $indexRow->low;
-            $earthValue  = $highLowDiff * 0.2611;   // 26.11%
+            $earthValue  = $highLowDiff * 0.2611;
 
             $earthHigh = null;
             $earthLow  = null;
 
-            $tradingSymbol = $symbolMap[$symbol] ?? null;
-            $openRow = $tradingSymbol
-                ? ($currentIndexOpens[$tradingSymbol] ?? null)
+            $earthTradingSymbol = $symbolMap[$symbol] ?? null;
+            $openRow = $earthTradingSymbol
+                ? ($currentIndexOpens[$earthTradingSymbol] ?? null)
                 : null;
 
             if ($openRow) {
-                $open = $openRow->open;
-                $earthHigh = $open + $earthValue;  // E-H
-                $earthLow  = $open - $earthValue;  // E-L
+                $open      = $openRow->open;
+                $earthHigh = $open + $earthValue;
+                $earthLow  = $open - $earthValue;
             }
 
-            // ---- Find current expiry for this symbol (if any) ----
+            // ---- current expiry selection for yesterday OHLC (DailyOhlcQuote) ----
             $currentExpiry = DailyOhlcQuote::where('quote_date', $previousDay)
                                            ->where('symbol_name', $symbol)
-                                           ->whereIn('option_type', ['CE', 'PE'])
+                                           ->whereIn('option_type', ['CE','PE'])
                                            ->orderBy('expiry_date')
                                            ->value('expiry_date');
 
             $optionQuery = DailyOhlcQuote::where('quote_date', $previousDay)
                                          ->where('symbol_name', $symbol)
-                                         ->whereIn('option_type', ['CE', 'PE']);
+                                         ->whereIn('option_type', ['CE','PE']);
 
             if ($currentExpiry) {
                 $optionQuery->where('expiry_date', $currentExpiry);
@@ -94,7 +132,7 @@ class TrendController extends Controller
                 continue;
             }
 
-            // ---- best CE/PE pair (min |CE close - PE close|) per strike ----
+            // ---- best CE/PE pair per strike ----
             $groupedByStrike = $options->groupBy('strike');
 
             $bestPair = null;
@@ -129,33 +167,106 @@ class TrendController extends Controller
             $peClose  = $bestPair['pe']->close;
             $sumClose = $ceClose + $peClose;
 
-            // ---- symbol+strike level R/S ----
+            // ---- Min/Max R/S ----
             $minR = $strike + $ceClose;
             $minS = $strike - $peClose;
             $maxR = $strike + $sumClose;
             $maxS = $strike - $sumClose;
 
-            // ---- push CE & PE rows ----
-            foreach (['ce', 'pe'] as $side) {
+            // saturation thresholds for LTP matching
+            $sat = match ($symbol) {
+                'NIFTY','FINNIFTY' => 5,
+                'BANKNIFTY'        => 10,
+                'SENSEX'           => 20,
+                default            => 5,
+            };
+
+            // Side thresholds (for type logic)
+            $sideThreshold = match ($symbol) {
+                'NIFTY','FINNIFTY' => 30,
+                'BANKNIFTY'        => 60,
+                'SENSEX'           => 90,
+                default            => 30,
+            };
+
+            // index LTP for this symbol
+            $idxTradingSymbol = $earthTradingSymbol;
+            $idxLtpRow = $idxTradingSymbol ? ($indexLtps[$idxTradingSymbol] ?? null) : null;
+            $indexLtp  = $idxLtpRow?->last_price;
+
+            foreach (['ce','pe'] as $side) {
                 $contract = $bestPair[$side];
 
+                // option LTP key: intraday ohlc_quotes trading_symbol is same as index trading_symbol
+                $optTradingSymbol = $idxTradingSymbol;
+                $optKey = $optTradingSymbol . '_' . (int) $strike . '_' . $contract->instrument_type ?? $contract->option_type;
+
+                // your grouping above used instrument_type (CE/PE), but DailyOhlcQuote has option_type;
+                // to be safe, use instrument_type from ohlc_quotes key, but fallback to option_type text.
+                if (! isset($optionLtps[$optKey])) {
+                    $optKey = $symbol . '_' . (int) $strike . '_' . $contract->option_type;
+                }
+
+                $optLtpRow = $optionLtps[$optKey] ?? null;
+                $optionLtp = $optLtpRow?->last_price;
+
+                // ---- Type logic (Profit/Panic/Side) ----
                 $highCloseDiff = max(0, $contract->high - $contract->close);
                 $closeLowDiff  = max(0, $contract->close - $contract->low);
 
-                $type = 'Side';
-                $typeColor = 'bg-yellow-100 text-yellow-800';
-
-                if ($highCloseDiff < $closeLowDiff) {
-                    $type = 'Panic';
-                    $typeColor = 'bg-red-100 text-red-800';
-                } elseif ($closeLowDiff < $highCloseDiff) {
+                if ($highCloseDiff > $closeLowDiff) {
                     $type = 'Profit';
                     $typeColor = 'bg-green-100 text-green-800';
-                }
-
-                if ($highCloseDiff > 30 || $closeLowDiff > 30) {
+                } elseif ($highCloseDiff < $closeLowDiff) {
+                    $type = 'Panic';
+                    $typeColor = 'bg-red-100 text-red-800';
+                } else {
                     $type = 'Side';
                     $typeColor = 'bg-yellow-100 text-yellow-800';
+                }
+
+                $minDiff = min($highCloseDiff, $closeLowDiff);
+                if ($minDiff > $sideThreshold) {
+                    if ($type === 'Side') {
+                        $type = 'Side';
+                        $typeColor = 'bg-yellow-100 text-yellow-800';
+                    } else {
+                        $type .= ' Side';
+                        $typeColor = 'bg-yellow-100 text-yellow-800';
+                    }
+                }
+
+                // ---- CE/PE near yesterday OHLC (field-level flags) ----
+                $ceNearHigh = $ceNearLow = $ceNearClose = false;
+                $peNearHigh = $peNearLow = $peNearClose = false;
+
+                if (!is_null($optionLtp)) {
+                    if ($contract->option_type === 'CE') {
+                        $ceNearHigh  = abs($optionLtp - $contract->high)  <= $sat;
+                        $ceNearLow   = abs($optionLtp - $contract->low)   <= $sat;
+                        $ceNearClose = abs($optionLtp - $contract->close) <= $sat;
+                    } elseif ($contract->option_type === 'PE') {
+                        $peNearHigh  = abs($optionLtp - $contract->high)  <= $sat;
+                        $peNearLow   = abs($optionLtp - $contract->low)   <= $sat;
+                        $peNearClose = abs($optionLtp - $contract->close) <= $sat;
+                    }
+                }
+
+                // ---- index LTP vs R/S & Earth (orange) ----
+                $idxMinRNear = $idxMinSNear = $idxMaxRNear = $idxMaxSNear = false;
+                $idxEHNear   = $idxELNear   = false;
+
+                if (!is_null($indexLtp)) {
+                    $idxMinRNear = abs($indexLtp - $minR)      <= $sat;
+                    $idxMinSNear = abs($indexLtp - $minS)      <= $sat;
+                    $idxMaxRNear = abs($indexLtp - $maxR)      <= $sat;
+                    $idxMaxSNear = abs($indexLtp - $maxS)      <= $sat;
+                    if (!is_null($earthHigh)) {
+                        $idxEHNear = abs($indexLtp - $earthHigh) <= $sat;
+                    }
+                    if (!is_null($earthLow)) {
+                        $idxELNear = abs($indexLtp - $earthLow)  <= $sat;
+                    }
                 }
 
                 $rows[] = [
@@ -170,7 +281,6 @@ class TrendController extends Controller
                     'type'            => $type,
                     'type_color'      => $typeColor,
 
-                    // symbol+strike level
                     'min_r'       => $minR,
                     'min_s'       => $minS,
                     'max_r'       => $maxR,
@@ -178,6 +288,25 @@ class TrendController extends Controller
                     'earth_value' => $earthValue,
                     'earth_high'  => $earthHigh,
                     'earth_low'   => $earthLow,
+
+                    'option_ltp'  => $optionLtp,
+                    'index_ltp'   => $indexLtp,
+
+                    // CE/PE field-level flags
+                    'ce_near_high'   => $ceNearHigh,
+                    'ce_near_low'    => $ceNearLow,
+                    'ce_near_close'  => $ceNearClose,
+                    'pe_near_high'   => $peNearHigh,
+                    'pe_near_low'    => $peNearLow,
+                    'pe_near_close'  => $peNearClose,
+
+                    // index vs R/S & Earth
+                    'idx_minr_near' => $idxMinRNear,
+                    'idx_mins_near' => $idxMinSNear,
+                    'idx_maxr_near' => $idxMaxRNear,
+                    'idx_maxs_near' => $idxMaxSNear,
+                    'idx_eh_near'   => $idxEHNear,
+                    'idx_el_near'   => $idxELNear,
                 ];
             }
         }
