@@ -27,3 +27,5 @@ Route::get('/hlc', [App\Http\Controllers\HlcController::class, 'index'])->name('
 
 Route::get('/hlc-close', [App\Http\Controllers\HlcCloseController::class, 'index'])->name('hlc.close');
 
+Route::get('/trend',  [App\Http\Controllers\TrendController::class, 'index'])->name('trend.index');
+
