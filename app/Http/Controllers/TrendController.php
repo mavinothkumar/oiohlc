@@ -339,6 +339,24 @@ class TrendController extends Controller
                     }
                 }
 
+                // ---- Broken status (Up / Down) based on this side's OHLC ----
+                $broken = null;
+                $brokenColor = null;
+
+                if (!is_null($optionLtp)) {
+                    // compare LTP with this row's CE/PE OHLC
+                    $minOhlc = min($contract->high, $contract->low, $contract->close);
+                    $maxOhlc = max($contract->high, $contract->low, $contract->close);
+
+                    if ($optionLtp < $minOhlc) {
+                        $broken = 'Down';
+                        $brokenColor = 'bg-red-100 text-red-800';
+                    } elseif ($optionLtp > $maxOhlc) {
+                        $broken = 'Up';
+                        $brokenColor = 'bg-green-100 text-green-800';
+                    }
+                }
+
                 $rows[] = [
                     'symbol'          => $symbol,
                     'strike'          => $strike,
@@ -361,6 +379,9 @@ class TrendController extends Controller
 
                     'option_ltp' => $optionLtp,
                     'index_ltp'  => $indexLtp,
+
+                    'broken'       => $broken,
+                    'broken_color' => $brokenColor,
 
                     'ce_near_high'  => $ceNearHigh,
                     'ce_near_low'   => $ceNearLow,

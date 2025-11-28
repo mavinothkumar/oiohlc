@@ -34,10 +34,11 @@
                     <th class="px-3 py-2 w-24">H–C</th>
                     <th class="px-3 py-2 w-24">C–L</th>
                     <th class="px-3 py-2 w-24">Type</th>
-                    <th class="px-3 py-2 w-32">Min R</th>
-                    <th class="px-3 py-2 w-32">Min S</th>
-                    <th class="px-3 py-2 w-32">Max R</th>
-                    <th class="px-3 py-2 w-32">Max S</th>
+                    <th class="px-3 py-2 w-24">Broken</th>
+                    <th class="px-3 py-2 w-28">Min R</th>
+                    <th class="px-3 py-2 w-28">Min S</th>
+                    <th class="px-3 py-2 w-28">Max R</th>
+                    <th class="px-3 py-2 w-28">Max S</th>
                     <th class="px-3 py-2 w-40">Earth</th>
                 </tr>
                 </thead>
@@ -136,6 +137,16 @@
                                 <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold {{ $row['type_color'] }}">
                                     {{ $row['type'] }}
                                 </span>
+                            </td>
+
+                            <td class="px-3 py-2">
+                                @if(!empty($row['broken']))
+                                    <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold {{ $row['broken_color'] }}">
+                                        {{ $row['broken'] }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold"> — </span>
+                                @endif
                             </td>
 
                             {{-- R/S + Earth merged per symbol+strike --}}
