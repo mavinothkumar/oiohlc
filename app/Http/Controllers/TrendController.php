@@ -181,9 +181,9 @@ class TrendController extends Controller
                 default            => 5,
             };
             $index_sat = match ($symbol) {
-                'NIFTY','FINNIFTY' => 10,
-                'BANKNIFTY'        => 20,
-                'SENSEX'           => 30,
+                'NIFTY','FINNIFTY' => 20,
+                'BANKNIFTY'        => 40,
+                'SENSEX'           => 50,
                 default            => 10,
             };
 
