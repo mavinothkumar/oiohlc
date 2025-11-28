@@ -180,6 +180,12 @@ class TrendController extends Controller
                 'SENSEX'           => 20,
                 default            => 5,
             };
+            $index_sat = match ($symbol) {
+                'NIFTY','FINNIFTY' => 10,
+                'BANKNIFTY'        => 20,
+                'SENSEX'           => 30,
+                default            => 10,
+            };
 
             // Side thresholds (for type logic)
             $sideThreshold = match ($symbol) {
@@ -257,15 +263,15 @@ class TrendController extends Controller
                 $idxEHNear   = $idxELNear   = false;
 
                 if (!is_null($indexLtp)) {
-                    $idxMinRNear = abs($indexLtp - $minR)      <= $sat;
-                    $idxMinSNear = abs($indexLtp - $minS)      <= $sat;
-                    $idxMaxRNear = abs($indexLtp - $maxR)      <= $sat;
-                    $idxMaxSNear = abs($indexLtp - $maxS)      <= $sat;
+                    $idxMinRNear = abs($indexLtp - $minR)      <= $index_sat;
+                    $idxMinSNear = abs($indexLtp - $minS)      <= $index_sat;
+                    $idxMaxRNear = abs($indexLtp - $maxR)      <= $index_sat;
+                    $idxMaxSNear = abs($indexLtp - $maxS)      <= $index_sat;
                     if (!is_null($earthHigh)) {
-                        $idxEHNear = abs($indexLtp - $earthHigh) <= $sat;
+                        $idxEHNear = abs($indexLtp - $earthHigh) <= $index_sat;
                     }
                     if (!is_null($earthLow)) {
-                        $idxELNear = abs($indexLtp - $earthLow)  <= $sat;
+                        $idxELNear = abs($indexLtp - $earthLow)  <= $index_sat;
                     }
                 }
 
