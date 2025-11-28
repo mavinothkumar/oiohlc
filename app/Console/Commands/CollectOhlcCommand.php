@@ -145,7 +145,7 @@ class CollectOhlcCommand extends Command
                         }
 
                         // Upsert on instrument_key + ts to keep one row per candle
-                        if ($interval === 'I1') {
+                        if ($interval === '1d') {
                             OhlcDayQuote::updateOrCreate(
                                 [
                                     'instrument_key' => $quote['instrument_token'],
@@ -167,7 +167,7 @@ class CollectOhlcCommand extends Command
                                 ]
                             );
                         }
-                        if ($interval === '1d') {
+                        if ($interval === 'I1') {
                             OhlcQuote::updateOrCreate(
                                 [
                                     'instrument_key' => $quote['instrument_token'],
