@@ -30,6 +30,8 @@ return new class extends Migration {
             $table->decimal('earth_value', 12, 2);
             $table->decimal('earth_high', 12, 2)->nullable();
             $table->decimal('earth_low', 12, 2)->nullable();
+            $table->string('ce_type')->default('side');
+            $table->string('pe_type')->default('side');
             $table->string('market_type')->default('REGULAR');
             $table->json('six_levels_broken')->nullable();
             $table->decimal('current_day_index_open', 12, 2)->nullable();

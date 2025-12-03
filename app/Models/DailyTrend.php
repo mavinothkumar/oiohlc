@@ -15,7 +15,7 @@ class DailyTrend extends Model
         'pe_high', 'pe_low', 'pe_close',
         'min_r', 'min_s', 'max_r', 'max_s',
         'expiry_date', 'market_type', 'six_levels_broken',
-        'current_day_index_open', 'market_open_time'
+        'current_day_index_open', 'market_open_time', 'ce_type', 'pe_type'
     ];
 
     protected $casts = [

@@ -22,13 +22,13 @@ class TrendController extends Controller
         $previousDay = optional($days->firstWhere('previous', 1))->working_date;
         $currentDay  = optional($days->firstWhere('current', 1))->working_date;
 
-        if ( ! $previousDay || ! $currentDay) {
+        if (! $previousDay || ! $currentDay) {
             abort(404, 'Working days not configured');
         }
 
-        // 2. Load precomputed daily trends for previous day
+        // 2. Precomputed daily trends (static yesterday data)
         $dailyTrends = DailyTrend::whereDate('quote_date', $previousDay)
-                                 ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // add FINNIFTY if needed
+                                 ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // add FINNIFTY when ready
                                  ->get()
                                  ->keyBy('symbol_name');
 
@@ -36,7 +36,7 @@ class TrendController extends Controller
             abort(404, 'Daily trends not populated for previous day');
         }
 
-        // 3. Build minimal option contracts list (one CE + one PE per symbol)
+        // 3. Minimal option contracts (one CE + one PE per symbol+strike)
         $optionContracts = [];
         foreach ($dailyTrends as $symbol => $trend) {
             $strike = (int) $trend->strike;
@@ -56,7 +56,7 @@ class TrendController extends Controller
         // 4. Fetch only needed option LTPs
         $optionLtps = collect();
 
-        if ( ! empty($optionContracts)) {
+        if (! empty($optionContracts)) {
             $rawOptions = OhlcQuote::query()
                                    ->whereDate('created_at', $currentDay)
                                    ->whereIn('instrument_type', ['CE', 'PE'])
@@ -74,22 +74,22 @@ class TrendController extends Controller
 
             $optionLtps = $rawOptions
                 ->groupBy(function ($row) {
-                    return $row->trading_symbol.'_'.(int) $row->strike_price.'_'.$row->instrument_type;
+                    return $row->trading_symbol . '_' . (int) $row->strike_price . '_' . $row->instrument_type;
                 })
                 ->map->last();
         }
 
-        // 5. Current-day index LTPs from ohlc_quotes
+        // 5. Current-day index LTPs
         $indexLtps = OhlcQuote::query()
                               ->whereDate('created_at', $currentDay)
                               ->where('instrument_type', 'INDEX')
-                              ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'BSE SENSEX']) // add 'Nifty Fin Service' if needed
+                              ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'BSE SENSEX']) // add 'Nifty Fin Service' later
                               ->orderBy('created_at')
                               ->get()
                               ->groupBy('trading_symbol')
             ->map->last();
 
-        // Map DailyTrend.symbol_name -> intraday index symbol
+        // Mapping for intraday index symbol
         $symbolMap = [
             'NIFTY'     => 'Nifty 50',
             'BANKNIFTY' => 'Nifty Bank',
@@ -99,6 +99,7 @@ class TrendController extends Controller
 
         $rows = [];
 
+        // 6. Build view rows (CE + PE per symbol)
         foreach ($dailyTrends as $symbol => $trend) {
             $strike     = (int) $trend->strike;
             $earthHigh  = $trend->earth_high;
@@ -129,74 +130,60 @@ class TrendController extends Controller
                 $trend->pe_close
             );
 
-            // Saturation thresholds
+            // thresholds
             $sat = match ($symbol) {
-                'NIFTY' => 10,
-                'BANKNIFTY' => 20,
-                'SENSEX' => 30,
-                default => 10,
+                'NIFTY', 'FINNIFTY' => 10,
+                'BANKNIFTY'         => 20,
+                'SENSEX'            => 30,
+                default             => 10,
             };
 
             $indexSat = match ($symbol) {
-                'NIFTY' => 20,
-                'BANKNIFTY' => 40,
-                'SENSEX' => 50,
-                default => 20,
+                'NIFTY', 'FINNIFTY' => 20,
+                'BANKNIFTY'         => 40,
+                'SENSEX'            => 50,
+                default             => 20,
             };
 
-            $sideThreshold = match ($symbol) {
-                'NIFTY' => 30,
-                'BANKNIFTY' => 60,
-                'SENSEX' => 90,
-                default => 30,
-            };
-
-            // Index LTP for this symbol
+            // Index LTP
             $idxTradingSymbol = $symbolMap[$symbol] ?? null;
             $idxLtpRow        = $idxTradingSymbol ? ($indexLtps[$idxTradingSymbol] ?? null) : null;
             $indexLtp         = $idxLtpRow?->last_price;
 
-            // Pair-level option LTPs for this symbol+strike
+            // Option LTPs for CE/PE at this strike
             $baseSymbol = $symbol;
 
-            $ceKey     = $baseSymbol.'_'.$strike.'_CE';
+            $ceKey     = $baseSymbol . '_' . $strike . '_CE';
             $ceLtpRow  = $optionLtps[$ceKey] ?? null;
             $pairCeLtp = $ceLtpRow?->last_price;
 
-            $peKey     = $baseSymbol.'_'.$strike.'_PE';
+            $peKey     = $baseSymbol . '_' . $strike . '_PE';
             $peLtpRow  = $optionLtps[$peKey] ?? null;
             $pairPeLtp = $peLtpRow?->last_price;
 
-            // Build CE and PE rows
             foreach (['CE', 'PE'] as $side) {
-                $isCe      = $side === 'CE';
-                $high      = $isCe ? $trend->ce_high : $trend->pe_high;
-                $low       = $isCe ? $trend->ce_low : $trend->pe_low;
-                $close     = $isCe ? $trend->ce_close : $trend->pe_close;
+                $isCe  = $side === 'CE';
+
+                $high  = $isCe ? $trend->ce_high  : $trend->pe_high;
+                $low   = $isCe ? $trend->ce_low   : $trend->pe_low;
+                $close = $isCe ? $trend->ce_close : $trend->pe_close;
+
                 $optionLtp = $isCe ? $pairCeLtp : $pairPeLtp;
 
-                // Type logic (Profit / Panic / Side)
+                // Use precomputed type from daily_trend
+                $type = $isCe ? $trend->ce_type : $trend->pe_type;
+
+                // Map type to Tailwind color
+                $typeColor = match (true) {
+                    str_starts_with($type, 'Profit') => 'bg-green-100 text-green-800',
+                    str_starts_with($type, 'Panic')  => 'bg-red-100 text-red-800',
+                    default                          => 'bg-yellow-100 text-yellow-800',
+                };
+
                 $highCloseDiff = max(0, $high - $close);
                 $closeLowDiff  = max(0, $close - $low);
 
-                if ($highCloseDiff > $closeLowDiff) {
-                    $type      = 'Profit';
-                    $typeColor = 'bg-green-100 text-green-800';
-                } elseif ($highCloseDiff < $closeLowDiff) {
-                    $type      = 'Panic';
-                    $typeColor = 'bg-red-100 text-red-800';
-                } else {
-                    $type      = 'Side';
-                    $typeColor = 'bg-yellow-100 text-yellow-800';
-                }
-
-                $minDiff = min($highCloseDiff, $closeLowDiff);
-                if ($minDiff > $sideThreshold && $type !== 'Side') {
-                    $type      .= ' Side';
-                    $typeColor = 'bg-yellow-100 text-yellow-800';
-                }
-
-                // CE & PE cross-comparison for dots
+                // CE/PE near flags (dots)
                 $ceNearHigh  = false;
                 $ceNearLow   = false;
                 $ceNearClose = false;
@@ -204,7 +191,7 @@ class TrendController extends Controller
                 $peNearLow   = false;
                 $peNearClose = false;
 
-                if ( ! is_null($pairCeLtp) || ! is_null($pairPeLtp)) {
+                if (! is_null($pairCeLtp) || ! is_null($pairPeLtp)) {
                     $levels = [
                         'high'  => $high,
                         'low'   => $low,
@@ -215,12 +202,12 @@ class TrendController extends Controller
                         $bestSource = null; // 'CE' or 'PE'
                         $bestDiff   = null;
 
-                        if ( ! is_null($pairCeLtp)) {
+                        if (! is_null($pairCeLtp)) {
                             $bestSource = 'CE';
                             $bestDiff   = abs($pairCeLtp - $price);
                         }
 
-                        if ( ! is_null($pairPeLtp)) {
+                        if (! is_null($pairPeLtp)) {
                             $peDiff = abs($pairPeLtp - $price);
                             if (is_null($bestDiff) || $peDiff < $bestDiff) {
                                 $bestDiff   = $peDiff;
@@ -228,33 +215,21 @@ class TrendController extends Controller
                             }
                         }
 
-                        if ( ! is_null($bestDiff) && $bestDiff <= $sat) {
+                        if (! is_null($bestDiff) && $bestDiff <= $sat) {
                             if ($bestSource === 'CE') {
-                                if ($key === 'high') {
-                                    $ceNearHigh = true;
-                                }
-                                if ($key === 'low') {
-                                    $ceNearLow = true;
-                                }
-                                if ($key === 'close') {
-                                    $ceNearClose = true;
-                                }
+                                if ($key === 'high')  $ceNearHigh  = true;
+                                if ($key === 'low')   $ceNearLow   = true;
+                                if ($key === 'close') $ceNearClose = true;
                             } else {
-                                if ($key === 'high') {
-                                    $peNearHigh = true;
-                                }
-                                if ($key === 'low') {
-                                    $peNearLow = true;
-                                }
-                                if ($key === 'close') {
-                                    $peNearClose = true;
-                                }
+                                if ($key === 'high')  $peNearHigh  = true;
+                                if ($key === 'low')   $peNearLow   = true;
+                                if ($key === 'close') $peNearClose = true;
                             }
                         }
                     }
                 }
 
-                // Index LTP vs R/S & Earth (orange dots)
+                // Index vs R/S & Earth dots
                 $idxMinRNear = false;
                 $idxMinSNear = false;
                 $idxMaxRNear = false;
@@ -262,25 +237,25 @@ class TrendController extends Controller
                 $idxEHNear   = false;
                 $idxELNear   = false;
 
-                if ( ! is_null($indexLtp)) {
+                if (! is_null($indexLtp)) {
                     $idxMinRNear = abs($indexLtp - $minR) <= $indexSat;
                     $idxMinSNear = abs($indexLtp - $minS) <= $indexSat;
                     $idxMaxRNear = abs($indexLtp - $maxR) <= $indexSat;
                     $idxMaxSNear = abs($indexLtp - $maxS) <= $indexSat;
 
-                    if ( ! is_null($earthHigh)) {
+                    if (! is_null($earthHigh)) {
                         $idxEHNear = abs($indexLtp - $earthHigh) <= $indexSat;
                     }
-                    if ( ! is_null($earthLow)) {
+                    if (! is_null($earthLow)) {
                         $idxELNear = abs($indexLtp - $earthLow) <= $indexSat;
                     }
                 }
 
-                // Broken status (Up / Down) based on BOTH CE+PE range
+                // Broken status
                 $broken      = null;
                 $brokenColor = null;
 
-                if ( ! is_null($optionLtp)) {
+                if (! is_null($optionLtp)) {
                     if ($optionLtp < $jointMin) {
                         $broken      = 'Down';
                         $brokenColor = 'bg-red-100 text-red-800';
@@ -291,9 +266,9 @@ class TrendController extends Controller
                 }
 
                 $rows[] = [
-                    'symbol'      => $symbol,
-                    'strike'      => $strike,
-                    'option_type' => $side,
+                    'symbol'          => $symbol,
+                    'strike'          => $strike,
+                    'option_type'     => $side,
 
                     'high'            => $high,
                     'low'             => $low,

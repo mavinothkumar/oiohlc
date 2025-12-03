@@ -20,13 +20,14 @@ class PopulateDailyTrend extends Command
                   ->where('working_date', $targetDate)
                   ->first();
 
-        if (!$days) {
+        if ( ! $days) {
             $this->error("No working day found for {$targetDate}");
+
             return 1;
         }
 
         $symbols = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
-        $saved = 0;
+        $saved   = 0;
 
         foreach ($symbols as $symbol) {
             $data = $this->calculateTrendData($targetDate, $symbol);
@@ -40,6 +41,7 @@ class PopulateDailyTrend extends Command
         }
 
         $this->info("Saved/updated {$saved} records for {$targetDate}");
+
         return 0;
     }
 
@@ -51,7 +53,9 @@ class PopulateDailyTrend extends Command
                                   ->where('symbol_name', $symbol)
                                   ->first();
 
-        if (!$indexRow) return null;
+        if ( ! $indexRow) {
+            return null;
+        }
 
         $currentExpiry = DailyOhlcQuote::where('quote_date', $quoteDate)
                                        ->where('symbol_name', $symbol)
@@ -65,57 +69,134 @@ class PopulateDailyTrend extends Command
                                  ->when($currentExpiry, fn($q) => $q->where('expiry_date', $currentExpiry))
                                  ->get();
 
-        if ($options->isEmpty()) return null;
+        if ($options->isEmpty()) {
+            return null;
+        }
 
         $bestPair = $this->findBestPair($options);
-        if (!$bestPair) return null;
+        if ( ! $bestPair) {
+            return null;
+        }
+
+        $strike   = $bestPair['strike'];
+        $ce       = $bestPair['ce'];
+        $pe       = $bestPair['pe'];
+        $ceClose  = $ce->close;
+        $peClose  = $pe->close;
+        $sumClose = $ceClose + $peClose;
 
         $earthValue = ($indexRow->high - $indexRow->low) * 0.2611;
 
+        // ---- Type logic per side (same as controller) ----
+        $ceType = $this->computeType($ce, $symbol);
+        $peType = $this->computeType($pe, $symbol);
+
+        // Optional aggregate market_type (e.g. CE/PE combination)
+        $marketType = $this->computeMarketType($ceType, $peType);
+
         return [
-            'quote_date' => $quoteDate,
+            'quote_date'  => $quoteDate,
             'symbol_name' => $symbol,
-            'index_high' => $indexRow->high,
-            'index_low' => $indexRow->low,
+            'index_high'  => $indexRow->high,
+            'index_low'   => $indexRow->low,
             'earth_value' => $earthValue,
-            'strike' => $bestPair['strike'],
-            'ce_high' => $bestPair['ce']->high,
-            'ce_low' => $bestPair['ce']->low,
-            'ce_close' => $bestPair['ce']->close,
-            'pe_high' => $bestPair['pe']->high,
-            'pe_low' => $bestPair['pe']->low,
-            'pe_close' => $bestPair['pe']->close,
-            'min_r' => $bestPair['strike'] + $bestPair['ce']->close,
-            'min_s' => $bestPair['strike'] - $bestPair['pe']->close,
-            'max_r' => $bestPair['strike'] + $bestPair['ce']->close + $bestPair['pe']->close,
-            'max_s' => $bestPair['strike'] - $bestPair['ce']->close - $bestPair['pe']->close,
+            'strike'      => $strike,
+            'ce_high'     => $ce->high,
+            'ce_low'      => $ce->low,
+            'ce_close'    => $ceClose,
+            'pe_high'     => $pe->high,
+            'pe_low'      => $pe->low,
+            'pe_close'    => $peClose,
+            'min_r'       => $strike + $ceClose,
+            'min_s'       => $strike - $peClose,
+            'max_r'       => $strike + $sumClose,
+            'max_s'       => $strike - $sumClose,
             'expiry_date' => $currentExpiry,
+            'market_type' => $marketType,
+            'ce_type'     => $ceType,
+            'pe_type'     => $peType,
         ];
     }
 
     private function findBestPair($options)
     {
         $groupedByStrike = $options->groupBy('strike');
-        $bestPair = null;
-        $bestDiff = null;
+        $bestPair        = null;
+        $bestDiff        = null;
 
         foreach ($groupedByStrike as $strike => $contracts) {
             $ce = $contracts->firstWhere('option_type', 'CE');
             $pe = $contracts->firstWhere('option_type', 'PE');
 
-            if (!$ce || !$pe) continue;
+            if ( ! $ce || ! $pe) {
+                continue;
+            }
 
             $diff = abs($ce->close - $pe->close);
             if ($bestDiff === null || $diff < $bestDiff) {
                 $bestDiff = $diff;
                 $bestPair = [
                     'strike' => $strike,
-                    'ce' => $ce,
-                    'pe' => $pe,
+                    'ce'     => $ce,
+                    'pe'     => $pe,
                 ];
             }
         }
 
         return $bestPair;
+    }
+
+    private function computeType($contract, string $symbol): string
+    {
+        $high  = $contract->high;
+        $low   = $contract->low;
+        $close = $contract->close;
+
+        $highCloseDiff = max(0, $high - $close);
+        $closeLowDiff  = max(0, $close - $low);
+
+        $sideThreshold = match ($symbol) {
+            'NIFTY' => 30,
+            'BANKNIFTY' => 60,
+            'SENSEX' => 90,
+            default => 30,
+        };
+
+        if ($highCloseDiff > $closeLowDiff) {
+            $type = 'Profit';
+        } elseif ($highCloseDiff < $closeLowDiff) {
+            $type = 'Panic';
+        } else {
+            $type = 'Side';
+        }
+
+        $minDiff = min($highCloseDiff, $closeLowDiff);
+        if ($minDiff > $sideThreshold && $type !== 'Side') {
+            $type      .= ' Side';
+        }
+
+        return $type;
+    }
+
+    private function computeMarketType(string $ceType, string $peType): string
+    {
+        // You can define your own combination rules; simple example:
+        if (str_starts_with($ceType, 'Panic') && str_starts_with($peType, 'Panic')) {
+            return 'Both Panic';
+        }
+
+        if (str_starts_with($ceType, 'Profit') && str_starts_with($peType, 'Profit')) {
+            return 'Both Profit';
+        }
+
+        if (str_starts_with($ceType, 'Panic')) {
+            return 'Call Panic';
+        }
+
+        if (str_starts_with($peType, 'Panic')) {
+            return 'Put Panic';
+        }
+
+        return 'Side';
     }
 }

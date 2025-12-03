@@ -35,7 +35,7 @@ Schedule::command('indices:collect-daily-ohlc') // php artisan indices:collect-d
 Schedule::command('trend:populate-daily') // php artisan trend:populate-daily
         ->dailyAt('09:09')
         ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+        ->appendOutputTo(storage_path('logs/populate-daily.log'));
 
 Schedule::command('trend:update-index-open') // php artisan trend:update-index-open
         ->dailyAt('09:10')
