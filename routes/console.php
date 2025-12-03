@@ -32,6 +32,18 @@ Schedule::command('indices:collect-daily-ohlc') // php artisan indices:collect-d
         ->timezone('Asia/Kolkata')
         ->appendOutputTo(storage_path('logs/working-days.log'));
 
+Schedule::command('trend:populate-daily') // php artisan trend:populate-daily
+        ->dailyAt('09:09')
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+
+Schedule::command('trend:update-index-open') // php artisan trend:update-index-open
+        ->dailyAt('09:10')
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+
+
+
 
 
 //Schedule::command('quotes:collect-daily-ohlc') // php artisan quotes:collect-daily-ohlc
@@ -41,13 +53,18 @@ Schedule::command('indices:collect-daily-ohlc') // php artisan indices:collect-d
 
 
 Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
-        ->everyMinute()
-        ->between('9:15', '15:32')
+        ->everyThreeMinutes()
+        ->between('9:15', '15:33')
         ->appendOutputTo(storage_path('logs/optionchain.log'));
+
+//Schedule::command('market:collect-ohlc-5m')->weekdays()  // php artisan market:collect-ohlc-5m
+//        ->everyMinute()
+//        ->between('9:15', '15:30')
+//        ->appendOutputTo(storage_path('logs/collect-ohlc-5m.log'));
 
 Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:collect-ohlc
         ->everyMinute()
-        ->between('9:15', '15:32')
+        ->between('9:15', '15:30')
         ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
 
 //Schedule::command('full-market:collect-quotes')->weekdays()

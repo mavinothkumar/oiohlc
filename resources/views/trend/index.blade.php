@@ -5,7 +5,6 @@
 @endsection
 
 @section('content')
-    {{-- resources/views/trend/index.blade.php --}}
     <div class="w-full px-2 py-4">
         <div class="flex items-baseline justify-between mb-4">
             <h1 class="text-xl font-semibold">

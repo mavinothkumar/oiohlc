@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
-use App\Models\DailyOhlcQuote;
-use App\Models\OhlcDayQuote;
+use App\Models\DailyTrend;
 use App\Models\OhlcQuote;
 
 class TrendController extends Controller
@@ -27,216 +26,158 @@ class TrendController extends Controller
             abort(404, 'Working days not configured');
         }
 
-        // 2. Yesterday index OHLC from daily_ohlc_quotes
-        $yesterdayIndexes = DailyOhlcQuote::where('option_type', 'INDEX')
-                                          ->where('quote_date', $previousDay)
-                                          ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'])
-                                          ->get()
-                                          ->keyBy('symbol_name');
+        // 2. Load precomputed daily trends for previous day
+        $dailyTrends = DailyTrend::whereDate('quote_date', $previousDay)
+                                 ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // add FINNIFTY if needed
+                                 ->get()
+                                 ->keyBy('symbol_name');
 
-        // 3. Current-day index OPEN for Earth levels
-        $currentIndexOpens = OhlcDayQuote::query()
-                                         ->where('instrument_type', 'INDEX')
-                                         ->whereDate('created_at', $currentDay)
-                                         ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'BSE SENSEX', 'Nifty Fin Service'])
-                                         ->orderBy('created_at')
-                                         ->get()
-                                         ->groupBy('trading_symbol')
-            ->map->first();
+        if ($dailyTrends->isEmpty()) {
+            abort(404, 'Daily trends not populated for previous day');
+        }
 
-        // 4. Current option expiries (OPT) per symbol
-        $currentOptExpiries = DB::table('expiries')
-                                ->where('is_current', 1)
-                                ->where('instrument_type', 'OPT')
-                                ->whereIn('trading_symbol', ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'SENSEX'])
-                                ->get()
-                                ->keyBy('trading_symbol');
+        // 3. Build minimal option contracts list (one CE + one PE per symbol)
+        $optionContracts = [];
+        foreach ($dailyTrends as $symbol => $trend) {
+            $strike = (int) $trend->strike;
 
-        // symbol => expiry_date (Y-m-d)
-        $symbolExpiryMap = $currentOptExpiries->mapWithKeys(function ($row) {
-            return [$row->trading_symbol => $row->expiry_date];
-        });
+            $optionContracts[] = [
+                'trading_symbol' => $symbol,
+                'strike_price'   => $strike,
+                'side'           => 'CE',
+            ];
+            $optionContracts[] = [
+                'trading_symbol' => $symbol,
+                'strike_price'   => $strike,
+                'side'           => 'PE',
+            ];
+        }
 
-        // 5. Current-day option LTPs from ohlc_quotes (CE/PE), strict on (symbol + expiry)
+        // 4. Fetch only needed option LTPs
         $optionLtps = collect();
-        if ($symbolExpiryMap->isNotEmpty()) {
+
+        if ( ! empty($optionContracts)) {
             $rawOptions = OhlcQuote::query()
                                    ->whereDate('created_at', $currentDay)
                                    ->whereIn('instrument_type', ['CE', 'PE'])
+                                   ->where(function ($q) use ($optionContracts) {
+                                       foreach ($optionContracts as $c) {
+                                           $q->orWhere(function ($sub) use ($c) {
+                                               $sub->where('trading_symbol', $c['trading_symbol'])
+                                                   ->where('strike_price', $c['strike_price'])
+                                                   ->where('instrument_type', $c['side']);
+                                           });
+                                       }
+                                   })
+                                   ->orderBy('created_at')
                                    ->get();
 
-            // keep only rows where base symbol + expiry match current OPT expiry
-            $filtered = $rawOptions->filter(function ($row) use ($symbolExpiryMap) {
-                // base symbol in ohlc_quotes must match expiries.trading_symbol (NIFTY/BANKNIFTY/FINNIFTY/SENSEX)
-                $base     = $row->trading_symbol;   // adjust here if you later store full option symbol
-                $expected = $symbolExpiryMap[$base] ?? null;
-                if ( ! $expected) {
-                    return false;
-                }
-
-                $rowDate      = substr((string) $row->expiry_date, 0, 10);
-                $expectedDate = substr((string) $expected, 0, 10);
-
-                return $rowDate === $expectedDate;
-            });
-
-            $optionLtps = $filtered
+            $optionLtps = $rawOptions
                 ->groupBy(function ($row) {
-                    // key: BASE_SYMBOL_STRIKE_SIDE   e.g. NIFTY_26250_CE
                     return $row->trading_symbol.'_'.(int) $row->strike_price.'_'.$row->instrument_type;
                 })
                 ->map->last();
         }
 
-        // 6. Current-day index LTPs from ohlc_quotes
+        // 5. Current-day index LTPs from ohlc_quotes
         $indexLtps = OhlcQuote::query()
                               ->whereDate('created_at', $currentDay)
                               ->where('instrument_type', 'INDEX')
-                              ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'Nifty Fin Service', 'BSE SENSEX'])
+                              ->whereIn('trading_symbol', ['Nifty 50', 'Nifty Bank', 'BSE SENSEX']) // add 'Nifty Fin Service' if needed
                               ->orderBy('created_at')
                               ->get()
                               ->groupBy('trading_symbol')
             ->map->last();
 
-        // Map daily_ohlc_quotes.symbol_name -> intraday/trading_symbol
+        // Map DailyTrend.symbol_name -> intraday index symbol
         $symbolMap = [
             'NIFTY'     => 'Nifty 50',
             'BANKNIFTY' => 'Nifty Bank',
             'SENSEX'    => 'BSE SENSEX',
-            'FINNIFTY'  => 'Nifty Fin Service',
+            // 'FINNIFTY'  => 'Nifty Fin Service',
         ];
 
         $rows = [];
 
-        foreach ($yesterdayIndexes as $symbol => $indexRow) {
+        foreach ($dailyTrends as $symbol => $trend) {
+            $strike     = (int) $trend->strike;
+            $earthHigh  = $trend->earth_high;
+            $earthLow   = $trend->earth_low;
+            $earthValue = $trend->earth_value;
 
-            // ---- Earth levels (26.11% of yesterday range) ----
-            $highLowDiff = $indexRow->high - $indexRow->low;
-            $earthValue  = $highLowDiff * 0.2611;
+            $minR = $trend->min_r;
+            $minS = $trend->min_s;
+            $maxR = $trend->max_r;
+            $maxS = $trend->max_s;
 
-            $earthHigh = null;
-            $earthLow  = null;
+            // joint CE+PE range for "Broken" logic
+            $jointMin = min(
+                $trend->ce_high,
+                $trend->ce_low,
+                $trend->ce_close,
+                $trend->pe_high,
+                $trend->pe_low,
+                $trend->pe_close
+            );
 
-            $earthTradingSymbol = $symbolMap[$symbol] ?? null;
-            $openRow            = $earthTradingSymbol
-                ? ($currentIndexOpens[$earthTradingSymbol] ?? null)
-                : null;
+            $jointMax = max(
+                $trend->ce_high,
+                $trend->ce_low,
+                $trend->ce_close,
+                $trend->pe_high,
+                $trend->pe_low,
+                $trend->pe_close
+            );
 
-            if ($openRow) {
-                $open      = $openRow->open;
-                $earthHigh = $open + $earthValue;
-                $earthLow  = $open - $earthValue;
-            }
-
-            // ---- current expiry selection for yesterday OHLC (DailyOhlcQuote) ----
-            $currentExpiry = DailyOhlcQuote::where('quote_date', $previousDay)
-                                           ->where('symbol_name', $symbol)
-                                           ->whereIn('option_type', ['CE', 'PE'])
-                                           ->orderBy('expiry_date')
-                                           ->value('expiry_date');
-
-            $optionQuery = DailyOhlcQuote::where('quote_date', $previousDay)
-                                         ->where('symbol_name', $symbol)
-                                         ->whereIn('option_type', ['CE', 'PE']);
-
-            if ($currentExpiry) {
-                $optionQuery->where('expiry_date', $currentExpiry);
-            }
-
-            $options = $optionQuery->get();
-            if ($options->isEmpty()) {
-                continue;
-            }
-
-            // ---- best CE/PE pair per strike ----
-            $groupedByStrike = $options->groupBy('strike');
-
-            $bestPair = null;
-            $bestDiff = null;
-
-            foreach ($groupedByStrike as $strike => $contracts) {
-                $ce = $contracts->firstWhere('option_type', 'CE');
-                $pe = $contracts->firstWhere('option_type', 'PE');
-
-                if ( ! $ce || ! $pe) {
-                    continue;
-                }
-
-                $diff = abs($ce->close - $pe->close);
-
-                if ($bestDiff === null || $diff < $bestDiff) {
-                    $bestDiff = $diff;
-                    $bestPair = [
-                        'strike' => $strike,
-                        'ce'     => $ce,
-                        'pe'     => $pe,
-                    ];
-                }
-            }
-
-            if ( ! $bestPair) {
-                continue;
-            }
-
-            $strike   = $bestPair['strike'];
-            $ceClose  = $bestPair['ce']->close;
-            $peClose  = $bestPair['pe']->close;
-            $sumClose = $ceClose + $peClose;
-
-            // ---- Min/Max R/S ----
-            $minR = $strike + $ceClose;
-            $minS = $strike - $peClose;
-            $maxR = $strike + $sumClose;
-            $maxS = $strike - $sumClose;
-
-// saturation thresholds for LTP matching
+            // Saturation thresholds
             $sat = match ($symbol) {
-                'NIFTY', 'FINNIFTY' => 15,
+                'NIFTY' => 10,
                 'BANKNIFTY' => 20,
                 'SENSEX' => 30,
                 default => 10,
             };
 
-            $index_sat = match ($symbol) {
-                'NIFTY', 'FINNIFTY' => 20,
+            $indexSat = match ($symbol) {
+                'NIFTY' => 20,
                 'BANKNIFTY' => 40,
                 'SENSEX' => 50,
                 default => 20,
             };
 
-// Side thresholds (for type logic)
             $sideThreshold = match ($symbol) {
-                'NIFTY', 'FINNIFTY' => 30,
+                'NIFTY' => 30,
                 'BANKNIFTY' => 60,
                 'SENSEX' => 90,
                 default => 30,
             };
 
-// index LTP for this symbol
-            $idxTradingSymbol = $earthTradingSymbol;
+            // Index LTP for this symbol
+            $idxTradingSymbol = $symbolMap[$symbol] ?? null;
             $idxLtpRow        = $idxTradingSymbol ? ($indexLtps[$idxTradingSymbol] ?? null) : null;
             $indexLtp         = $idxLtpRow?->last_price;
 
-// pair-level option LTPs for this symbol+strike
-            $pairCeLtp = null;
-            $pairPeLtp = null;
+            // Pair-level option LTPs for this symbol+strike
+            $baseSymbol = $symbol;
 
-            $baseSymbol = $symbol; // NIFTY/BANKNIFTY/FINNIFTY/SENSEX
-
-            $ceKey     = $baseSymbol.'_'.(int) $strike.'_CE';
+            $ceKey     = $baseSymbol.'_'.$strike.'_CE';
             $ceLtpRow  = $optionLtps[$ceKey] ?? null;
             $pairCeLtp = $ceLtpRow?->last_price;
 
-            $peKey     = $baseSymbol.'_'.(int) $strike.'_PE';
+            $peKey     = $baseSymbol.'_'.$strike.'_PE';
             $peLtpRow  = $optionLtps[$peKey] ?? null;
             $pairPeLtp = $peLtpRow?->last_price;
 
-            foreach (['ce', 'pe'] as $side) {
-                $contract = $bestPair[$side];
+            // Build CE and PE rows
+            foreach (['CE', 'PE'] as $side) {
+                $isCe      = $side === 'CE';
+                $high      = $isCe ? $trend->ce_high : $trend->pe_high;
+                $low       = $isCe ? $trend->ce_low : $trend->pe_low;
+                $close     = $isCe ? $trend->ce_close : $trend->pe_close;
+                $optionLtp = $isCe ? $pairCeLtp : $pairPeLtp;
 
-                // ---- Type logic (Profit / Panic / Side) ----
-                $highCloseDiff = max(0, $contract->high - $contract->close);
-                $closeLowDiff  = max(0, $contract->close - $contract->low);
+                // Type logic (Profit / Panic / Side)
+                $highCloseDiff = max(0, $high - $close);
+                $closeLowDiff  = max(0, $close - $low);
 
                 if ($highCloseDiff > $closeLowDiff) {
                     $type      = 'Profit';
@@ -250,33 +191,24 @@ class TrendController extends Controller
                 }
 
                 $minDiff = min($highCloseDiff, $closeLowDiff);
-                if ($minDiff > $sideThreshold) {
-                    if ($type === 'Side') {
-                        $type      = 'Side';
-                        $typeColor = 'bg-yellow-100 text-yellow-800';
-                    } else {
-                        $type      .= ' Side';
-                        $typeColor = 'bg-yellow-100 text-yellow-800';
-                    }
+                if ($minDiff > $sideThreshold && $type !== 'Side') {
+                    $type      .= ' Side';
+                    $typeColor = 'bg-yellow-100 text-yellow-800';
                 }
 
-                // LTP shown in OPT LTP column = that side's LTP
-                $optionLtp = $contract->option_type === 'CE' ? $pairCeLtp : $pairPeLtp;
-
-                // --------------------------------------------
-                // CE & PE cross‑comparison for dots
-                // At each of this row's HIGH/LOW/CLOSE, whichever
-                // LTP (CE or PE) is closer within $sat wins:
-                // CE -> red flag, PE -> green flag.
-                // --------------------------------------------
-                $ceNearHigh = $ceNearLow = $ceNearClose = false;
-                $peNearHigh = $peNearLow = $peNearClose = false;
+                // CE & PE cross-comparison for dots
+                $ceNearHigh  = false;
+                $ceNearLow   = false;
+                $ceNearClose = false;
+                $peNearHigh  = false;
+                $peNearLow   = false;
+                $peNearClose = false;
 
                 if ( ! is_null($pairCeLtp) || ! is_null($pairPeLtp)) {
                     $levels = [
-                        'high'  => $contract->high,
-                        'low'   => $contract->low,
-                        'close' => $contract->close,
+                        'high'  => $high,
+                        'low'   => $low,
+                        'close' => $close,
                     ];
 
                     foreach ($levels as $key => $price) {
@@ -322,48 +254,50 @@ class TrendController extends Controller
                     }
                 }
 
-                // ---- index LTP vs R/S & Earth (orange) ----
-                $idxMinRNear = $idxMinSNear = $idxMaxRNear = $idxMaxSNear = false;
-                $idxEHNear   = $idxELNear = false;
+                // Index LTP vs R/S & Earth (orange dots)
+                $idxMinRNear = false;
+                $idxMinSNear = false;
+                $idxMaxRNear = false;
+                $idxMaxSNear = false;
+                $idxEHNear   = false;
+                $idxELNear   = false;
 
                 if ( ! is_null($indexLtp)) {
-                    $idxMinRNear = abs($indexLtp - $minR) <= $index_sat;
-                    $idxMinSNear = abs($indexLtp - $minS) <= $index_sat;
-                    $idxMaxRNear = abs($indexLtp - $maxR) <= $index_sat;
-                    $idxMaxSNear = abs($indexLtp - $maxS) <= $index_sat;
+                    $idxMinRNear = abs($indexLtp - $minR) <= $indexSat;
+                    $idxMinSNear = abs($indexLtp - $minS) <= $indexSat;
+                    $idxMaxRNear = abs($indexLtp - $maxR) <= $indexSat;
+                    $idxMaxSNear = abs($indexLtp - $maxS) <= $indexSat;
+
                     if ( ! is_null($earthHigh)) {
-                        $idxEHNear = abs($indexLtp - $earthHigh) <= $index_sat;
+                        $idxEHNear = abs($indexLtp - $earthHigh) <= $indexSat;
                     }
                     if ( ! is_null($earthLow)) {
-                        $idxELNear = abs($indexLtp - $earthLow) <= $index_sat;
+                        $idxELNear = abs($indexLtp - $earthLow) <= $indexSat;
                     }
                 }
 
-                // ---- Broken status (Up / Down) based on this side's OHLC ----
-                $broken = null;
+                // Broken status (Up / Down) based on BOTH CE+PE range
+                $broken      = null;
                 $brokenColor = null;
 
-                if (!is_null($optionLtp)) {
-                    // compare LTP with this row's CE/PE OHLC
-                    $minOhlc = min($contract->high, $contract->low, $contract->close);
-                    $maxOhlc = max($contract->high, $contract->low, $contract->close);
-
-                    if ($optionLtp < $minOhlc) {
-                        $broken = 'Down';
+                if ( ! is_null($optionLtp)) {
+                    if ($optionLtp < $jointMin) {
+                        $broken      = 'Down';
                         $brokenColor = 'bg-red-100 text-red-800';
-                    } elseif ($optionLtp > $maxOhlc) {
-                        $broken = 'Up';
+                    } elseif ($optionLtp > $jointMax) {
+                        $broken      = 'Up';
                         $brokenColor = 'bg-green-100 text-green-800';
                     }
                 }
 
                 $rows[] = [
-                    'symbol'          => $symbol,
-                    'strike'          => $strike,
-                    'option_type'     => $contract->option_type,
-                    'high'            => $contract->high,
-                    'low'             => $contract->low,
-                    'close'           => $contract->close,
+                    'symbol'      => $symbol,
+                    'strike'      => $strike,
+                    'option_type' => $side,
+
+                    'high'            => $high,
+                    'low'             => $low,
+                    'close'           => $close,
                     'high_close_diff' => $highCloseDiff,
                     'close_low_diff'  => $closeLowDiff,
                     'type'            => $type,

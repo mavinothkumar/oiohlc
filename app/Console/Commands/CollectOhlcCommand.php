@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Expiry;
 use App\Models\Instrument;
+use App\Models\Ohlc5mQuote;
 use App\Models\OhlcDayQuote;
 use App\Models\OhlcQuote;
 use Carbon\Carbon;
@@ -18,12 +19,13 @@ class CollectOhlcCommand extends Command
 
     public function handle(): int
     {
-        $this->info('Collecting current-expiry instruments...');
+        $this->info('Collecting current-expiry instruments...'. now());
+        info('Collecting OHLC '. now());
 
         // 1) Get current expiries for index and options
         $expiries = Expiry::query()
                           ->where('is_current', 1)
-                          ->whereIn('trading_symbol', ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'])
+                          ->whereIn('trading_symbol', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // 'FINNIFTY'
                           ->whereIn('instrument_type', ['FUT', 'OPT'])
                           ->get();
 
@@ -34,7 +36,6 @@ class CollectOhlcCommand extends Command
         }
 
         // 2) Map (trading_symbol, expiry) to expiry_date
-        // Assuming expiries table has columns: trading_symbol, instrument_type, expiry, expiry_date
         $this->info('Resolving instruments for current expiries...');
 
         $instrumentMeta = []; // instrument_key => [instrument_type, expiry_date]
@@ -43,15 +44,9 @@ class CollectOhlcCommand extends Command
             $query = Instrument::query()
                                ->where('name', $expiry->trading_symbol);
 
-            // If both tables share an "expiry" column (string code)
             if ( ! is_null($expiry->expiry ?? null)) {
                 $query->where('expiry', $expiry->expiry);
             }
-
-            // If instruments also store instrument_type, match it as well
-//            if (!is_null($expiry->instrument_type ?? null)) {
-//                $query->where('instrument_type', $expiry->instrument_type);
-//            }
 
             $instruments = $query->get(['instrument_key', 'instrument_type', 'strike_price', 'name']);
 
@@ -82,7 +77,7 @@ class CollectOhlcCommand extends Command
         $this->info('Total instruments to query: '.count($instrumentKeys));
 
         foreach (['1d', 'I1'] as $interval) {
-            // 3) Chunk into max 500 instrument keys per request
+            info( $interval . ' start ' . now() );
             $chunks = array_chunk($instrumentKeys, 500);
 
             $accessToken = config('services.upstox.access_token');
@@ -94,6 +89,7 @@ class CollectOhlcCommand extends Command
 
             foreach ($chunks as $chunkIndex => $chunkKeys) {
                 $this->info(sprintf('Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count($chunkKeys)));
+                info(sprintf('Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count($chunkKeys)));
 
                 $instrumentKeyParam = implode(',', $chunkKeys);
 
@@ -105,7 +101,7 @@ class CollectOhlcCommand extends Command
                                 ->timeout(10)
                                 ->get('https://api.upstox.com/v3/market-quote/ohlc', [
                                     'instrument_key' => $instrumentKeyParam,
-                                    'interval'       => $interval, // always 1-min interval
+                                    'interval'       => $interval,
                                 ]);
 
                 if ( ! $response->ok()) {
@@ -126,7 +122,6 @@ class CollectOhlcCommand extends Command
                 try {
                     foreach ($data as $instrumentKey => $quote) {
                         if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
-                            // Instrument not in our map, skip
                             continue;
                         }
 
@@ -134,7 +129,6 @@ class CollectOhlcCommand extends Command
 
                         $live = $quote['live_ohlc'] ?? null;
                         if ( ! $live) {
-                            // No live data
                             continue;
                         }
 
@@ -144,53 +138,96 @@ class CollectOhlcCommand extends Command
                             $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
                         }
 
-                        // Upsert on instrument_key + ts to keep one row per candle
+                        // Common data array for reuse
+                        $commonData = [
+                            'instrument_type' => $meta['instrument_type'],
+                            'expiry_date'     => $meta['expiry_date'] ?? null,
+                            'strike_price'    => $meta['strike_price'] ?? null,
+                            'trading_symbol'  => $meta['trading_symbol'] ?? null,
+
+                            'open'       => $live['open'] ?? null,
+                            'high'       => $live['high'] ?? null,
+                            'low'        => $live['low'] ?? null,
+                            'close'      => $live['close'] ?? null,
+                            'volume'     => $live['volume'] ?? null,
+                            'ts_at'      => $tsAt,
+                            'last_price' => $quote['last_price'] ?? null,
+                        ];
+
                         if ($interval === '1d') {
                             OhlcDayQuote::updateOrCreate(
                                 [
                                     'instrument_key' => $quote['instrument_token'],
                                     'ts'             => $tsMs,
                                 ],
-                                [
-                                    'instrument_type' => $meta['instrument_type'],
-                                    'expiry_date'     => $meta['expiry_date'] ?? null,
-                                    'strike_price'    => $meta['strike_price'] ?? null,
-                                    'trading_symbol'  => $meta['trading_symbol'] ?? null,
-
-                                    'open'       => $live['open'] ?? null,
-                                    'high'       => $live['high'] ?? null,
-                                    'low'        => $live['low'] ?? null,
-                                    'close'      => $live['close'] ?? null,
-                                    'volume'     => $live['volume'] ?? null,
-                                    'ts_at'      => $tsAt,
-                                    'last_price' => $quote['last_price'] ?? null,
-                                ]
+                                $commonData
                             );
                         }
                         if ($interval === 'I1') {
+                            // Store 1-minute data (OhlcQuote)
                             OhlcQuote::updateOrCreate(
                                 [
                                     'instrument_key' => $quote['instrument_token'],
                                     'ts'             => $tsMs,
                                 ],
-                                [
-                                    'instrument_type' => $meta['instrument_type'],
-                                    'expiry_date'     => $meta['expiry_date'] ?? null,
-                                    'strike_price'    => $meta['strike_price'] ?? null,
-                                    'trading_symbol'  => $meta['trading_symbol'] ?? null,
-
-                                    'open'       => $live['open'] ?? null,
-                                    'high'       => $live['high'] ?? null,
-                                    'low'        => $live['low'] ?? null,
-                                    'close'      => $live['close'] ?? null,
-                                    'volume'     => $live['volume'] ?? null,
-                                    'ts_at'      => $tsAt,
-                                    'last_price' => $quote['last_price'] ?? null,
-                                ]
+                                $commonData
                             );
+
+                            // 5-MINUTE LOGIC WITH ERROR CORRECTION
+                            $currentTsAt = Carbon::createFromTimestampMs($tsMs);
+                            $minute      = $currentTsAt->format('i');
+
+                            // Check if this is a 5-minute boundary (9:20, 9:25, 9:30, etc.)
+                            if ((int) $minute % 5 === 0) {
+
+                                Ohlc5mQuote::updateOrCreate(
+                                    [
+                                        'instrument_key' => $quote['instrument_token'],
+                                        'ts'             => $tsMs,
+                                    ],
+                                    $commonData
+                                );
+                            }
+
+                            // ERROR CORRECTION: Check for missing previous 5m slot
+//                            $checkTsAt = $currentTsAt->copy()->subMinutes(5)->startOfMinute();
+//                            $checkTsMs = $checkTsAt->timestamp * 1000;
+
+//                            $latest5m = Ohlc5mQuote::where('instrument_key', $quote['instrument_token'])
+//                                                   ->where('ts', '<=', $checkTsMs)
+//                                                   ->orderBy('ts', 'desc')
+//                                                   ->first();
+
+//                            if ( ! $latest5m || $latest5m->ts < $checkTsMs) {
+//                                // Gap found! Backfill from latest 1m data for this instrument
+//                                $backup1m = OhlcQuote::where('instrument_key', $quote['instrument_token'])
+//                                                     ->where('ts', '<=', $checkTsMs)
+//                                                     ->orderBy('ts', 'desc')
+//                                                     ->first();
+//
+//                                if ($backup1m) {
+//                                    Ohlc5mQuote::updateOrCreate(
+//                                        [
+//                                            'instrument_key' => $quote['instrument_token'],
+//                                            'ts'             => $checkTsMs,
+//                                        ],
+//                                        [
+//                                            'instrument_type' => $backup1m->instrument_type,
+//                                            'expiry_date'     => $backup1m->expiry_date,
+//                                            'strike_price'    => $backup1m->strike_price,
+//                                            'trading_symbol'  => $backup1m->trading_symbol,
+//                                            'open'            => $backup1m->open,
+//                                            'high'            => $backup1m->high,
+//                                            'low'             => $backup1m->low,
+//                                            'close'           => $backup1m->close,
+//                                            'volume'          => $backup1m->volume,
+//                                            'ts_at'           => $backup1m->ts_at,
+//                                            'last_price'      => $backup1m->last_price,
+//                                        ]
+//                                    );
+//                                }
+//                            }
                         }
-
-
                     }
 
                     DB::commit();
@@ -200,8 +237,10 @@ class CollectOhlcCommand extends Command
                 }
             }
             $this->info('OHLC collection of '.$interval.' completed.');
+            info( $interval . ' End ' . now() );
         }
-        $this->info('OHLC collection complete.');
+       $this->info('OHLC collection complete.'. now());
+       info('OHLC collection complete '. now());
 
         return self::SUCCESS;
     }

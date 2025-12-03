@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use App\Models\DailyTrend;
+
+class UpdateDailyTrendIndexOpen extends Command
+{
+    protected $signature = 'trend:update-index-open';
+    protected $description = 'Fetch Nifty / BankNifty / Sensex open from Upstox API and update daily_trend.current_day_index_open';
+
+    public function handle(): int
+    {
+        // 1. Resolve current working day
+        $days = DB::table('nse_working_days')
+                  ->where(function ($q) {
+                      $q->where('previous', 1)
+                        ->orWhere('current', 1);
+                  })
+                  ->orderByDesc('id')
+                  ->get();
+
+        $currentDayRow  = $days->firstWhere('current', 1);
+        $previousDayRow = $days->firstWhere('previous', 1);
+
+        $currentDay = $currentDayRow->working_date ?? null;
+        $quoteDate  = $previousDayRow->working_date ?? null;
+
+        if (! $currentDay || ! $quoteDate) {
+            $this->error('Working days not configured (previous/current missing in nse_working_days)');
+            return 1;
+        }
+
+        $this->info("Current working day: {$currentDay}");
+        $this->info("Quote date (previous working day): {$quoteDate}");
+
+        // 2. Instrument keys for indices (replace with real keys)
+        $instrumentKeys = [
+            'NIFTY'     => 'NSE_INDEX|Nifty 50',    // example placeholder
+            'BANKNIFTY' => 'NSE_INDEX|Nifty Bank',  // example placeholder
+            'SENSEX'    => 'BSE_INDEX|SENSEX',     // example placeholder
+        ];
+
+        $interval = '1d';
+        $accessToken = config('services.upstox.access_token'); // or however you store it
+
+        $instrumentKeyParam = implode(',', $instrumentKeys);
+
+        // 3. Call Upstox OHLC API
+        $response = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer ' . $accessToken,
+        ])
+                        ->timeout(10)
+                        ->get('https://api.upstox.com/v3/market-quote/ohlc', [
+                            'instrument_key' => $instrumentKeyParam,
+                            'interval'       => $interval,
+                        ]);
+
+        if (! $response->ok()) {
+            $this->error('Upstox API error: HTTP ' . $response->status());
+            return 1;
+        }
+
+        $body = $response->json();
+
+
+        $data = $body['data'] ?? [];
+
+        if (empty($data)) {
+            $this->error('Upstox API: no data field in response');
+            return 1;
+        }
+
+        $updated = 0;
+
+        foreach ($instrumentKeys as $symbolName => $instrumentKey) {
+            $escapePipe = str_ireplace('|',':', $instrumentKey);
+            $item = $data[$escapePipe] ?? null;
+            if (! $item || empty($item['live_ohlc']['open'])) {
+                $this->warn("No open value for {$symbolName} ({$instrumentKey}) in API response");
+                continue;
+            }
+
+            $openPrice = (float) $item['live_ohlc']['open'];
+
+            $trend = DailyTrend::whereDate('quote_date', $quoteDate)
+                               ->where('symbol_name', $symbolName)
+                               ->first();
+
+            if (! $trend) {
+                $this->warn("No DailyTrend row found for {$symbolName} on {$quoteDate}");
+                continue;
+            }
+            $earthValue = (float) $trend->earth_value;
+
+            $trend->current_day_index_open = $openPrice;
+            $trend->earth_high             = $openPrice + $earthValue;
+            $trend->earth_low              = $openPrice - $earthValue;
+            $trend->save();
+
+            $updated++;
+
+            $this->info(
+                "Updated {$symbolName}: open={$openPrice}, earth_value={$earthValue}, " .
+                'EH=' . ($openPrice + $earthValue) . ', EL=' . ($openPrice - $earthValue)
+            );
+        }
+
+        $this->info("Total rows updated: {$updated}");
+
+        return 0;
+    }
+}

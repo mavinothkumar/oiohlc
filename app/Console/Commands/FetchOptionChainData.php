@@ -16,21 +16,22 @@ class FetchOptionChainData extends Command
 
     public function handle()
     {
+        info('Fetching option chain data from Upstox API at '.Carbon::now());
         // Step 1. Fetch and store 1-min data into option_chains
         $this->fetchAndStoreOptionChain();
 
         // Step 2. Determine if current time is within market hours (9:15–15:30)
-        $now          = now();
-        $start        = now()->copy()->setTime(9, 15);
-        $end          = now()->copy()->setTime(15, 30);
-        $isMarketTime = $now->between($start, $end);
-
-        // Step 3. Check if it’s a 3-minute interval
-        if ($isMarketTime && $now->second < 5 && $now->minute % 3 === 0) {
-            info('inside 3-minute interval '.$now->minute);
-            $this->aggregateThreeMinuteData();
-        }
-
+//        $now          = now();
+//        $start        = now()->copy()->setTime(9, 15);
+//        $end          = now()->copy()->setTime(15, 30);
+//        $isMarketTime = $now->between($start, $end);
+//
+//        // Step 3. Check if it’s a 3-minute interval
+//        if ($isMarketTime && $now->second < 5 && $now->minute % 3 === 0) {
+//            info('inside 3-minute interval '.$now->minute);
+//            $this->aggregateThreeMinuteData();
+//        }
+        Log::info('Completed option chain data from Upstox API at '.Carbon::now());
         return Command::SUCCESS;
     }
 
@@ -40,9 +41,9 @@ class FetchOptionChainData extends Command
 
         $instruments = [
             ['key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY'],
-            ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
-            ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
-            ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
+//            ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
+//            ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
+//            ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
         ];
 
         $token = config('services.upstox.access_token');
