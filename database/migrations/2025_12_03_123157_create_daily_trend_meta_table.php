@@ -1,5 +1,4 @@
 <?php
-// database/migrations/xxxx_xx_xx_create_enhanced_daily_trend_meta_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -7,76 +6,65 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('daily_trend_meta', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('daily_trend_id')->constrained('daily_trend')->onDelete('cascade');
-            $table->date('tracked_date'); // Current trading day
-            $table->timestamp('recorded_at'); // When recorded
 
-            // Live LTPs
+            // Link to static daily_trend row (per symbol + quote_date)
+            $table->foreignId('daily_trend_id')
+                  ->constrained('daily_trend')
+                  ->onDelete('cascade');
+
+            // Trading day for this meta snapshot
+            $table->date('tracked_date')->index();
+
+            // When this evaluation was done (e.g. every 5 mins)
+            $table->timestamp('recorded_at')->index();
+
+            // 5‑min LTPs
             $table->decimal('ce_ltp', 12, 2)->nullable();
             $table->decimal('pe_ltp', 12, 2)->nullable();
             $table->decimal('index_ltp', 12, 2)->nullable();
 
-            // HLC Strategy Scenarios (from flowchart)
-            $table->string('market_scenario')->nullable(); // "CSP-PSPB", "CSPB-PSP", "BOTHPB", "INDECISION"
-            $table->json('triggers')->nullable(); // ["spot_break_resistance", "call_seller_panic", "ce_above_pdh"]
-            $table->string('trade_signal')->nullable(); // "BUY_CE", "BUY_PE", "BUY_OPPOSITE", "LOW_CHANCE", "SIDEWAYS"
+            // HLC scenario group and signal
+            // 1) CSP-PSPB, 2) CSPB-PSP, 3) BOTHPB, 4) INDECISION
+            $table->string('market_scenario', 32)->nullable();   // e.g. "CSP-PSPB"
+            $table->string('trade_signal', 32)->nullable();      // e.g. "BUY_CE", "BUY_PE", "SIDEWAYS_NO_TRADE"
 
-            // Key Flowchart Levels & Checks (PDH/PDL/PDC equivalents)
-            $table->decimal('pdh_equiv', 12, 2)->nullable(); // Previous Day High equivalent (max_r?)
-            $table->decimal('pdl_equiv', 12, 2)->nullable(); // Previous Day Low equivalent (min_s?)
-            $table->decimal('pdc_equiv', 12, 2)->nullable(); // Previous Day Close equivalent (strike?)
+            // Stored CE/PE state at this 5‑min candle (can differ slightly from static ce_type/pe_type)
+            $table->string('ce_type', 32)->nullable();           // "Profit", "Panic", "Side", ...
+            $table->string('pe_type', 32)->nullable();
 
-            // 6 Levels Status (MinRes, MaxRes, MinSup, MaxSup + Earth)
-            $table->json('six_levels_status')->nullable(); // ["min_r"=>{"crossed"=>true,"first_at"=>"2025-12-03 09:30:00"}, ...]
-            $table->json('resistance_levels')->nullable(); // ["min_res", "max_res"] - crossed status
-            $table->json('support_levels')->nullable();    // ["min_sup", "max_sup"] - crossed status
+            // Flags / triggers used in decision (compact JSON)
+            // Example keys: spot_break_min_res, spot_break_min_sup, spot_near_pdc, ce_above_pdh, pe_above_pdh, cs_panic, ps_pb, cs_pb, ps_panic...
+            $table->json('triggers')->nullable();
 
-            // Side Analysis (Call Seller Panic / Put Seller Profit etc.)
-            $table->json('call_seller_status')->nullable(); // ["panic"=>true, "profit_booking"=>false]
-            $table->json('put_seller_status')->nullable();
+            // Levels crossed / touched during this 5‑min bar
+            // Example structure: {"min_r": {"crossed": true}, "earth_high": {"crossed": false}, ...}
+            $table->json('levels_crossed')->nullable();
 
-            // Spot vs PDC checks
-            $table->boolean('spot_above_pdc')->nullable();
-            $table->boolean('spot_below_pdc')->nullable();
-            $table->boolean('spot_break_resistance')->nullable();
-            $table->boolean('spot_break_support')->nullable();
-
-            // CE/PE specific checks
-            $table->boolean('ce_above_pdh')->nullable();
-            $table->boolean('pe_above_pdh')->nullable();
-            $table->boolean('ce_below_6levels')->nullable();
-            $table->boolean('pe_below_6levels')->nullable();
-
-            // Dominant Side & Reversal
-            $table->string('dominant_side')->nullable(); // "CALL", "PUT", "NEUTRAL"
-            $table->boolean('big_reversal_pattern')->nullable();
-            $table->string('good_zone')->nullable(); // "CE_ZONE", "PE_ZONE"
-
-            // Live Status Flags
-            $table->string('ce_type')->nullable(); // "Profit", "Panic", "Side"
-            $table->string('pe_type')->nullable();
-            $table->string('broken_status')->nullable(); // "Up", "Down"
-
-            // Timestamps for key events
-            $table->timestamp('first_trigger_at')->nullable();
+            // First time this symbol broke out of CE+PE joint range Up/Down, if any
+            $table->string('broken_status', 16)->nullable();     // "Up", "Down", null
             $table->timestamp('first_broken_at')->nullable();
 
-            // Backtesting fields
-            $table->integer('sequence_id')->default(0); // Order within day for sequencing
+            // Dominant side snapshot and zone tags (optional but useful for backtest)
+            $table->string('dominant_side', 16)->nullable();     // "CALL", "PUT", "BOTH_PB", "NONE"
+            $table->string('good_zone', 16)->nullable();         // "CE_ZONE", "PE_ZONE", null
+
+            // Order within the day (every 5 mins)
+            $table->unsignedInteger('sequence_id')->default(0)->index();
+
             $table->timestamps();
 
+            // Helpful compound indexes
             $table->index(['daily_trend_id', 'tracked_date']);
             $table->index(['daily_trend_id', 'recorded_at']);
             $table->index(['market_scenario', 'trade_signal']);
-            $table->index('sequence_id');
         });
     }
 
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('daily_trend_meta');
     }

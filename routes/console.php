@@ -67,6 +67,11 @@ Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:coll
         ->between('9:15', '15:30')
         ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
 
+Schedule::command('trend:process-5m')->weekdays()  // php artisan trend:process-5m
+        ->everyFiveMinutes()
+        ->between('9:15', '15:30')
+        ->appendOutputTo(storage_path('logs/process-5m.log'));
+
 //Schedule::command('full-market:collect-quotes')->weekdays()
 //        ->everyMinute()
 //        ->between( '9:15', '15:32' )

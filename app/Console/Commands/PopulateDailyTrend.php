@@ -99,6 +99,7 @@ class PopulateDailyTrend extends Command
             'symbol_name' => $symbol,
             'index_high'  => $indexRow->high,
             'index_low'   => $indexRow->low,
+            'index_close' => $indexRow->close,
             'earth_value' => $earthValue,
             'strike'      => $strike,
             'ce_high'     => $ce->high,
@@ -172,7 +173,7 @@ class PopulateDailyTrend extends Command
 
         $minDiff = min($highCloseDiff, $closeLowDiff);
         if ($minDiff > $sideThreshold && $type !== 'Side') {
-            $type      .= ' Side';
+            $type .= ' Side';
         }
 
         return $type;

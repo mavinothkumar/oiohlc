@@ -9,7 +9,7 @@ class DailyTrend extends Model
 {
     protected $table = 'daily_trend';
     protected $fillable = [
-        'quote_date', 'symbol_name', 'index_high', 'index_low',
+        'quote_date', 'symbol_name', 'index_high', 'index_low', 'index_close',
         'earth_value', 'earth_high', 'earth_low',
         'strike', 'ce_high', 'ce_low', 'ce_close',
         'pe_high', 'pe_low', 'pe_close',
@@ -23,6 +23,7 @@ class DailyTrend extends Model
         'expiry_date' => 'date',
         'index_high' => 'decimal:2',
         'index_low' => 'decimal:2',
+        'index_close' => 'decimal:2',
         'earth_value' => 'decimal:2',
         'earth_high' => 'decimal:2',
         'earth_low' => 'decimal:2',
