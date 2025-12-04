@@ -10,7 +10,6 @@ class TrendMetaController extends Controller
 {
     public function index()
     {
-        // 1. Working days
         $days = DB::table('nse_working_days')
                   ->where(function ($q) {
                       $q->where('previous', 1)
@@ -26,7 +25,6 @@ class TrendMetaController extends Controller
             abort(404, 'Working days not configured');
         }
 
-        // 2. Static trends
         $dailyTrends = DailyTrend::whereDate('quote_date', $previousDay)
                                  ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX'])
                                  ->get()
@@ -38,7 +36,6 @@ class TrendMetaController extends Controller
 
         $trendIds = $dailyTrends->keys()->all();
 
-        // 3. All meta rows for today, latest first
         $metaRows = DailyTrendMeta::whereIn('daily_trend_id', $trendIds)
                                   ->whereDate('tracked_date', $currentDay)
                                   ->orderBy('recorded_at', 'desc')
@@ -52,6 +49,8 @@ class TrendMetaController extends Controller
             if (! $trend) {
                 continue;
             }
+
+            $levelsCrossed = $meta->levels_crossed ?? [];
 
             $rows[] = [
                 'symbol'          => $trend->symbol_name,
@@ -79,7 +78,15 @@ class TrendMetaController extends Controller
                 'trade_signal'    => $meta->trade_signal,
                 'recorded_at'     => $meta->recorded_at?->format('H:i'),
                 'dominant_side'   => $meta->dominant_side,
+
+                'broken_status'   => $meta->broken_status,
+                'first_broken_at' => $meta->first_broken_at,
+                'good_zone'       => $meta->good_zone,
+
                 'triggers'        => $meta->triggers ?? [],
+                'levels_crossed'  => $levelsCrossed,
+                // NEW: summarized index crossings text
+                'index_crossed'   => $this->summarizeIndexCrossed($levelsCrossed),
             ];
         }
 
@@ -88,5 +95,60 @@ class TrendMetaController extends Controller
             'currentDay'  => $currentDay,
             'rows'        => $rows,
         ]);
+    }
+
+    /**
+     * Produce a short text summary like:
+     *  "Index Up: PDH, MinR • Down: PDL"
+     */
+    protected function summarizeIndexCrossed(array $levelsCrossed): ?string
+    {
+        if (empty($levelsCrossed)) {
+            return null;
+        }
+
+        $up = [];
+        $down = [];
+
+        foreach ($levelsCrossed as $item) {
+            if (empty($item['level']) || empty($item['direction'])) {
+                continue;
+            }
+
+            // Only index-related keys
+            if (! str_starts_with($item['level'], 'INDEX_')) {
+                continue;
+            }
+
+            // Map machine keys to short label
+            $label = match ($item['level']) {
+                'INDEX_PDH'        => 'PDH',
+                'INDEX_PDL'        => 'PDL',
+                'INDEX_PDC'        => 'PDC',
+                'INDEX_MinR'       => 'MinR',
+                'INDEX_MaxR'       => 'MaxR',
+                'INDEX_MinS'       => 'MinS',
+                'INDEX_MaxS'       => 'MaxS',
+                'INDEX_EarthHigh'  => 'EarthH',
+                'INDEX_EarthLow'   => 'EarthL',
+                default            => $item['level'],
+            };
+
+            if ($item['direction'] === 'Up') {
+                $up[] = $label;
+            } elseif ($item['direction'] === 'Down') {
+                $down[] = $label;
+            }
+        }
+
+        $parts = [];
+        if (! empty($up)) {
+            $parts[] = 'Index Up: ' . implode(', ', array_unique($up));
+        }
+        if (! empty($down)) {
+            $parts[] = 'Index Down: ' . implode(', ', array_unique($down));
+        }
+
+        return $parts ? implode(' • ', $parts) : null;
     }
 }

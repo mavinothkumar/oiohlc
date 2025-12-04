@@ -18,6 +18,9 @@ class ProcessHlc5mQuotes extends Command
         // 1. Resolve trading date and working days
         $tradingDate = $this->option('date') ?: now()->toDateString();
 
+        $lastRecorded = DailyTrendMeta::whereDate('tracked_date', $tradingDate)
+                                      ->max('recorded_at');
+
         $days = DB::table('nse_working_days')
                   ->where(function ($q) {
                       $q->where('previous', 1)
@@ -87,6 +90,15 @@ class ProcessHlc5mQuotes extends Command
         $indexSymbols = array_values($indexMap);
 
         $fiveMinQuotes = Ohlc5mQuote::query()
+            /**
+             * Hide Start
+             */
+                                    ->when($lastRecorded, function ($q) use ($lastRecorded) {
+                                        $q->where('ts_at', '>', $lastRecorded);
+                                    })
+            /**
+             * Hide End
+             */
                                     ->whereDate('ts_at', $tradingDate)
                                     ->where(function ($q) use ($indexSymbols, $optionContracts) {
                                         // Index candles
@@ -124,6 +136,9 @@ class ProcessHlc5mQuotes extends Command
         });
 
         $totalInserted = 0;
+        $prevIndexPrice = []; // [symbol => float]
+        $prevCePrice    = []; // [symbol => float]
+        $prevPePrice    = []; // [symbol => float]
 
         foreach ($barsByTime as $timestamp => $barRows) {
             $recordedAt = $timestamp;
@@ -145,6 +160,9 @@ class ProcessHlc5mQuotes extends Command
 
                 // Use last_price as primary source
                 $spot = (float) ($indexRow->last_price ?? $indexRow->close ?? 0);
+                $prevSpot = $prevIndexPrice[$symbol] ?? null;
+                $prevCe   = $prevCePrice[$symbol]    ?? null;
+                $prevPe   = $prevPePrice[$symbol]    ?? null;
 
                 $strike    = (float) $trend->strike;
                 $expiryStr = $trend->expiry_date?->toDateString();
@@ -175,37 +193,72 @@ class ProcessHlc5mQuotes extends Command
                 [$tradeSignal, $scenarioGroup, $triggers] = $this->decideTrade($context);
 
                 // 9. sequence_id per symbol/day
-                $sequenceId = (int) DailyTrendMeta::where('daily_trend_id', $trend->id)
-                                                  ->whereDate('tracked_date', $tradingDate)
-                                                  ->max('sequence_id') + 1;
+//                $sequenceId = (int) DailyTrendMeta::where('daily_trend_id', $trend->id)
+//                                                  ->whereDate('tracked_date', $tradingDate)
+//                                                  ->max('sequence_id') + 1;
+
+                $levelsCrossed = $this->computeLevelsCrossed(
+                    $trend,
+                    $spot,
+                    $ceLtp,
+                    $peLtp,
+                    $prevSpot,
+                    $prevCe,
+                    $prevPe,
+                    $recordedAt
+                );
+
+                // Update previous for next 5‑min bar
+                $prevIndexPrice[$symbol] = $spot;
+                if ($ceLtp !== null) {
+                    $prevCePrice[$symbol] = $ceLtp;
+                }
+                if ($peLtp !== null) {
+                    $prevPePrice[$symbol] = $peLtp;
+                }
+
+
+                $brokenStatus  = $this->computeBrokenStatusFromLevels($trend, $levelsCrossed);
+
+// first_broken_at = earliest time with a non-null broken_status for this symbol/day
+                $firstBrokenAt = null;
+                if ($brokenStatus !== null) {
+                    $existing = DailyTrendMeta::where('daily_trend_id', $trend->id)
+                                              ->whereDate('tracked_date', $tradingDate)
+                                              ->whereNotNull('broken_status')
+                                              ->orderBy('recorded_at')
+                                              ->first();
+
+                    $firstBrokenAt = $existing ? $existing->first_broken_at : $recordedAt;
+                }
 
                 // 10. Insert meta row
-                DailyTrendMeta::create([
-                    'daily_trend_id' => $trend->id,
-                    'tracked_date'   => $tradingDate,
-                    'recorded_at'    => $recordedAt,
-
-                    'ce_ltp'         => $ceLtp,
-                    'pe_ltp'         => $peLtp,
-                    'index_ltp'      => $spot,
-
-                    'market_scenario'=> $scenarioGroup,
-                    'trade_signal'   => $tradeSignal,
-
-                    'ce_type'        => $trend->ce_type,
-                    'pe_type'        => $trend->pe_type,
-
-                    'triggers'       => $triggers,
-                    'levels_crossed' => null,
-
-                    'broken_status'   => null,
-                    'first_broken_at' => null,
-
-                    'dominant_side'   => $triggers['dominant_side'] ?? null,
-                    'good_zone'       => null,
-
-                    'sequence_id'     => $sequenceId,
-                ]);
+                DailyTrendMeta::updateOrCreate(
+                    [
+                        'daily_trend_id' => $trend->id,
+                        'recorded_at'    => $recordedAt,
+                    ],
+                    [
+                        'tracked_date'    => $tradingDate,
+                        'ce_ltp'          => $ceLtp,
+                        'pe_ltp'          => $peLtp,
+                        'index_ltp'       => $spot,
+                        'market_scenario' => $scenarioGroup,
+                        'trade_signal'    => $tradeSignal,
+                        'ce_type'         => $trend->ce_type,
+                        'pe_type'         => $trend->pe_type,
+                        'triggers'        => $triggers,
+                        'levels_crossed'  => $levelsCrossed,
+                        'broken_status'   => $brokenStatus,
+                        'first_broken_at' => $firstBrokenAt,
+                        'dominant_side'   => $triggers['dominant_side'] ?? null,
+                        'good_zone'       => $goodZone ?? null,
+                        // sequence_id: recompute or keep existing
+                        'sequence_id'     => (int) DailyTrendMeta::where('daily_trend_id', $trend->id)
+                                                                 ->whereDate('tracked_date', $tradingDate)
+                                                                 ->max('sequence_id') + 1,
+                    ]
+                );
 
                 $totalInserted++;
             }
@@ -214,6 +267,177 @@ class ProcessHlc5mQuotes extends Command
         $this->info("Inserted {$totalInserted} daily_trend_meta rows for {$tradingDate}");
 
         return 0;
+    }
+
+    protected function computeGoodZone(array $c): ?string
+    {
+        $spot = $c['spot'];
+        $PDC  = $c['PDC'];
+        $MinRes = $c['MinRes'];
+        $MinSup = $c['MinSup'];
+
+        // Example: CE zone if spot > PDC and near MinSup/MinRes mid
+        $mid = ($MinRes + $MinSup) / 2;
+
+        if ($spot > $PDC && abs($spot - $mid) <= 0.5 * abs($MinRes - $MinSup)) {
+            return 'CE_ZONE';
+        }
+
+        if ($spot < $PDC && abs($spot - $mid) <= 0.5 * abs($MinRes - $MinSup)) {
+            return 'PE_ZONE';
+        }
+
+        return null;
+    }
+
+    protected function computeLevelsCrossed(
+        DailyTrend $trend,
+        float $spot,
+        ?float $ceLtp,
+        ?float $peLtp,
+        ?float $prevSpot,
+        ?float $prevCe,
+        ?float $prevPe,
+        string $recordedAt
+    ): array {
+        $result = [];
+
+        // Index levels (only when we have a previous spot)
+        if ($prevSpot !== null) {
+            $this->checkCross($result, 'INDEX_PDH',       $prevSpot, $spot, (float) $trend->index_high,  $recordedAt);
+            $this->checkCross($result, 'INDEX_PDL',       $prevSpot, $spot, (float) $trend->index_low,   $recordedAt);
+            $this->checkCross($result, 'INDEX_PDC',       $prevSpot, $spot, (float) $trend->index_close, $recordedAt);
+
+            $this->checkCross($result, 'INDEX_MinR',      $prevSpot, $spot, (float) $trend->min_r,       $recordedAt);
+            $this->checkCross($result, 'INDEX_MaxR',      $prevSpot, $spot, (float) $trend->max_r,       $recordedAt);
+            $this->checkCross($result, 'INDEX_MinS',      $prevSpot, $spot, (float) $trend->min_s,       $recordedAt);
+            $this->checkCross($result, 'INDEX_MaxS',      $prevSpot, $spot, (float) $trend->max_s,       $recordedAt);
+
+            $this->checkCross($result, 'INDEX_EarthHigh', $prevSpot, $spot, (float) $trend->earth_high,  $recordedAt);
+            $this->checkCross($result, 'INDEX_EarthLow',  $prevSpot, $spot, (float) $trend->earth_low,   $recordedAt);
+        }
+
+        // CE levels
+        if ($ceLtp !== null && $prevCe !== null) {
+            $this->checkCross($result, 'CE_PDH', $prevCe, $ceLtp, (float) $trend->ce_high,  $recordedAt);
+            $this->checkCross($result, 'CE_PDL', $prevCe, $ceLtp, (float) $trend->ce_low,   $recordedAt);
+            $this->checkCross($result, 'CE_PDC', $prevCe, $ceLtp, (float) $trend->ce_close, $recordedAt);
+        }
+
+        // PE levels
+        if ($peLtp !== null && $prevPe !== null) {
+            $this->checkCross($result, 'PE_PDH', $prevPe, $peLtp, (float) $trend->pe_high,  $recordedAt);
+            $this->checkCross($result, 'PE_PDL', $prevPe, $peLtp, (float) $trend->pe_low,   $recordedAt);
+            $this->checkCross($result, 'PE_PDC', $prevPe, $peLtp, (float) $trend->pe_close, $recordedAt);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Record a cross only when price moved from one side of the level
+     * to the other between previous and current value.
+     */
+    protected function checkCross(array &$result, string $name, float $prevPrice, float $curPrice, float $level, string $recordedAt): void
+    {
+        // ignore invalid levels
+        if ($level == 0.0) {
+            return;
+        }
+
+        // previous and current on same side → no cross
+        if (($prevPrice <= $level && $curPrice <= $level) ||
+            ($prevPrice >= $level && $curPrice >= $level)) {
+            return;
+        }
+
+        // If we get here, we have crossed the level
+        $direction = $curPrice > $level ? 'Up' : 'Down';
+
+        $result[] = [
+            'level'       => $name,
+            'direction'   => $direction,
+            'price'       => $curPrice,
+            'level_price' => $level,
+            'broken_at'   => $recordedAt,
+        ];
+    }
+
+
+    /**
+     * If price crosses a level, append a record:
+     * [
+     *   "level" => "INDEX_MinR",
+     *   "direction" => "Up" or "Down",
+     *   "price" => 12345.6,
+     *   "level_price" => 12340.0,
+     *   "broken_at" => "2025-12-04 10:35:00"
+     * ]
+     */
+    protected function checkLevel(array &$result, string $name, float $price, float $level, string $recordedAt): void
+    {
+        if ($level === 0.0) {
+            return;
+        }
+
+        // Simple rule: if price is sufficiently above or below the level.
+        // You can add tolerance if needed.
+        if ($price > $level) {
+            $result[] = [
+                'level'       => $name,
+                'direction'   => 'Up',
+                'price'       => $price,
+                'level_price' => $level,
+                'broken_at'   => $recordedAt,
+            ];
+        } elseif ($price < $level) {
+            $result[] = [
+                'level'       => $name,
+                'direction'   => 'Down',
+                'price'       => $price,
+                'level_price' => $level,
+                'broken_at'   => $recordedAt,
+            ];
+        }
+    }
+
+
+    protected function computeBrokenStatus(DailyTrend $trend, ?float $ceLtp, ?float $peLtp): ?string
+    {
+        $jointMin = min(
+            $trend->ce_high,
+            $trend->ce_low,
+            $trend->ce_close,
+            $trend->pe_high,
+            $trend->pe_low,
+            $trend->pe_close
+        );
+
+        $jointMax = max(
+            $trend->ce_high,
+            $trend->ce_low,
+            $trend->ce_close,
+            $trend->pe_high,
+            $trend->pe_low,
+            $trend->pe_close
+        );
+
+        // you can choose CE, PE or sum; here: sum
+        if ($ceLtp === null || $peLtp === null) {
+            return null;
+        }
+
+        $sumLtp = $ceLtp + $peLtp;
+
+        if ($sumLtp < $jointMin) {
+            return 'Down';
+        }
+
+        if ($sumLtp > $jointMax) {
+            return 'Up';
+        }
+
+        return null;
     }
 
     /**
@@ -341,6 +565,9 @@ class ProcessHlc5mQuotes extends Command
             'dominant_side'      => $c['dominant_side'],
         ];
 
+        $goodZone = $this->computeGoodZone($c);
+        $triggers['good_zone'] = $goodZone;
+
         $spot   = $c['spot'];
         $PDH    = $c['PDH'];
         $PDL    = $c['PDL'];
@@ -456,4 +683,38 @@ class ProcessHlc5mQuotes extends Command
 
         return [$tradeSignal, $scenarioGroup, $triggers];
     }
+
+    protected function computeBrokenStatusFromLevels(DailyTrend $trend, array $levelsCrossed): ?string
+    {
+        $upKeys = ['INDEX_MinR', 'INDEX_MaxR', 'INDEX_EarthHigh', 'INDEX_PDH'];
+        $downKeys = ['INDEX_MinS', 'INDEX_MaxS', 'INDEX_EarthLow', 'INDEX_PDL'];
+
+        $brokenUp  = false;
+        $brokenDown = false;
+
+        foreach ($levelsCrossed as $item) {
+            if (!isset($item['level'], $item['direction'])) {
+                continue;
+            }
+
+            if (in_array($item['level'], $upKeys, true) && $item['direction'] === 'Up') {
+                $brokenUp = true;
+            }
+
+            if (in_array($item['level'], $downKeys, true) && $item['direction'] === 'Down') {
+                $brokenDown = true;
+            }
+        }
+
+        if ($brokenUp && ! $brokenDown) {
+            return 'Up';
+        }
+
+        if ($brokenDown && ! $brokenUp) {
+            return 'Down';
+        }
+
+        return null;
+    }
+
 }

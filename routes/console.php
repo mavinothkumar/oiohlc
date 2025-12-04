@@ -52,10 +52,10 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
 //        ->appendOutputTo(storage_path('logs/instruments.log'));
 
 
-Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
-        ->everyThreeMinutes()
-        ->between('9:15', '15:33')
-        ->appendOutputTo(storage_path('logs/optionchain.log'));
+//Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
+//        ->everyThreeMinutes()
+//        ->between('9:15', '15:33')
+//        ->appendOutputTo(storage_path('logs/optionchain.log'));
 
 //Schedule::command('market:collect-ohlc-5m')->weekdays()  // php artisan market:collect-ohlc-5m
 //        ->everyMinute()
