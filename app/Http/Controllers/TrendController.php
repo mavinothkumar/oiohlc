@@ -19,6 +19,8 @@ class TrendController extends Controller
                   ->orderByDesc('id')
                   ->get();
 
+
+
         $previousDay = optional($days->firstWhere('previous', 1))->working_date;
         $currentDay  = optional($days->firstWhere('current', 1))->working_date;
 
@@ -39,17 +41,26 @@ class TrendController extends Controller
         // 3. Minimal option contracts (one CE + one PE per symbol+strike)
         $optionContracts = [];
         foreach ($dailyTrends as $symbol => $trend) {
+
+            $expiry          = DB::table('expiries')
+                                 ->where('instrument_type', 'OPT')
+                                 ->where('is_current', 1)
+                                 ->where('trading_symbol', $symbol)->limit(1)
+                                 ->value('expiry_date');
+
             $strike = (int) $trend->strike;
 
             $optionContracts[] = [
                 'trading_symbol' => $symbol,
                 'strike_price'   => $strike,
                 'side'           => 'CE',
+                'expiry_date'    => $expiry,
             ];
             $optionContracts[] = [
                 'trading_symbol' => $symbol,
                 'strike_price'   => $strike,
                 'side'           => 'PE',
+                'expiry_date'    => $expiry,
             ];
         }
 
@@ -65,7 +76,8 @@ class TrendController extends Controller
                                            $q->orWhere(function ($sub) use ($c) {
                                                $sub->where('trading_symbol', $c['trading_symbol'])
                                                    ->where('strike_price', $c['strike_price'])
-                                                   ->where('instrument_type', $c['side']);
+                                                   ->where('instrument_type', $c['side'])
+                                                   ->where('expiry_date', $c['expiry_date']);
                                            });
                                        }
                                    })
