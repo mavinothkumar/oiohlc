@@ -25,6 +25,7 @@
                     <th class="px-3 py-2 w-20">Symbol</th>
                     <th class="px-3 py-2 w-28">Idx LTP</th>
                     <th class="px-3 py-2 w-24">Strike</th>
+                    <th class="px-3 py-2 w-24">Index Close</th>
                     <th class="px-3 py-2 w-14">Opt</th>
                     <th class="px-3 py-2 w-28">Opt LTP</th>
                     <th class="px-3 py-2 w-28">High</th>
@@ -71,6 +72,11 @@
                                 <td class="px-3 py-2 align-middle border-r border-slate-200"
                                     rowspan="{{ count($contracts) }}">
                                     {{ number_format($row['strike'], 0) }}
+                                </td>
+
+                                <td class="px-3 py-2 align-middle border-r border-slate-200"
+                                    rowspan="{{ count($contracts) }}">
+                                    {{ number_format($row['index_close'], 0) }}
                                 </td>
                             @endif
 

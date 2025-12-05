@@ -20,11 +20,10 @@ class TrendController extends Controller
                   ->get();
 
 
-
         $previousDay = optional($days->firstWhere('previous', 1))->working_date;
         $currentDay  = optional($days->firstWhere('current', 1))->working_date;
 
-        if (! $previousDay || ! $currentDay) {
+        if ( ! $previousDay || ! $currentDay) {
             abort(404, 'Working days not configured');
         }
 
@@ -42,11 +41,11 @@ class TrendController extends Controller
         $optionContracts = [];
         foreach ($dailyTrends as $symbol => $trend) {
 
-            $expiry          = DB::table('expiries')
-                                 ->where('instrument_type', 'OPT')
-                                 ->where('is_current', 1)
-                                 ->where('trading_symbol', $symbol)->limit(1)
-                                 ->value('expiry_date');
+            $expiry = DB::table('expiries')
+                        ->where('instrument_type', 'OPT')
+                        ->where('is_current', 1)
+                        ->where('trading_symbol', $symbol)->limit(1)
+                        ->value('expiry_date');
 
             $strike = (int) $trend->strike;
 
@@ -67,7 +66,7 @@ class TrendController extends Controller
         // 4. Fetch only needed option LTPs
         $optionLtps = collect();
 
-        if (! empty($optionContracts)) {
+        if ( ! empty($optionContracts)) {
             $rawOptions = OhlcQuote::query()
                                    ->whereDate('created_at', $currentDay)
                                    ->whereIn('instrument_type', ['CE', 'PE'])
@@ -86,7 +85,7 @@ class TrendController extends Controller
 
             $optionLtps = $rawOptions
                 ->groupBy(function ($row) {
-                    return $row->trading_symbol . '_' . (int) $row->strike_price . '_' . $row->instrument_type;
+                    return $row->trading_symbol.'_'.(int) $row->strike_price.'_'.$row->instrument_type;
                 })
                 ->map->last();
         }
@@ -145,16 +144,16 @@ class TrendController extends Controller
             // thresholds
             $sat = match ($symbol) {
                 'NIFTY', 'FINNIFTY' => 10,
-                'BANKNIFTY'         => 20,
-                'SENSEX'            => 30,
-                default             => 10,
+                'BANKNIFTY' => 20,
+                'SENSEX' => 30,
+                default => 10,
             };
 
             $indexSat = match ($symbol) {
                 'NIFTY', 'FINNIFTY' => 20,
-                'BANKNIFTY'         => 40,
-                'SENSEX'            => 50,
-                default             => 20,
+                'BANKNIFTY' => 40,
+                'SENSEX' => 50,
+                default => 20,
             };
 
             // Index LTP
@@ -165,19 +164,19 @@ class TrendController extends Controller
             // Option LTPs for CE/PE at this strike
             $baseSymbol = $symbol;
 
-            $ceKey     = $baseSymbol . '_' . $strike . '_CE';
+            $ceKey     = $baseSymbol.'_'.$strike.'_CE';
             $ceLtpRow  = $optionLtps[$ceKey] ?? null;
             $pairCeLtp = $ceLtpRow?->last_price;
 
-            $peKey     = $baseSymbol . '_' . $strike . '_PE';
+            $peKey     = $baseSymbol.'_'.$strike.'_PE';
             $peLtpRow  = $optionLtps[$peKey] ?? null;
             $pairPeLtp = $peLtpRow?->last_price;
 
             foreach (['CE', 'PE'] as $side) {
-                $isCe  = $side === 'CE';
+                $isCe = $side === 'CE';
 
-                $high  = $isCe ? $trend->ce_high  : $trend->pe_high;
-                $low   = $isCe ? $trend->ce_low   : $trend->pe_low;
+                $high  = $isCe ? $trend->ce_high : $trend->pe_high;
+                $low   = $isCe ? $trend->ce_low : $trend->pe_low;
                 $close = $isCe ? $trend->ce_close : $trend->pe_close;
 
                 $optionLtp = $isCe ? $pairCeLtp : $pairPeLtp;
@@ -188,8 +187,8 @@ class TrendController extends Controller
                 // Map type to Tailwind color
                 $typeColor = match (true) {
                     str_starts_with($type, 'Profit') => 'bg-green-100 text-green-800',
-                    str_starts_with($type, 'Panic')  => 'bg-red-100 text-red-800',
-                    default                          => 'bg-yellow-100 text-yellow-800',
+                    str_starts_with($type, 'Panic') => 'bg-red-100 text-red-800',
+                    default => 'bg-yellow-100 text-yellow-800',
                 };
 
                 $highCloseDiff = max(0, $high - $close);
@@ -203,7 +202,7 @@ class TrendController extends Controller
                 $peNearLow   = false;
                 $peNearClose = false;
 
-                if (! is_null($pairCeLtp) || ! is_null($pairPeLtp)) {
+                if ( ! is_null($pairCeLtp) || ! is_null($pairPeLtp)) {
                     $levels = [
                         'high'  => $high,
                         'low'   => $low,
@@ -214,12 +213,12 @@ class TrendController extends Controller
                         $bestSource = null; // 'CE' or 'PE'
                         $bestDiff   = null;
 
-                        if (! is_null($pairCeLtp)) {
+                        if ( ! is_null($pairCeLtp)) {
                             $bestSource = 'CE';
                             $bestDiff   = abs($pairCeLtp - $price);
                         }
 
-                        if (! is_null($pairPeLtp)) {
+                        if ( ! is_null($pairPeLtp)) {
                             $peDiff = abs($pairPeLtp - $price);
                             if (is_null($bestDiff) || $peDiff < $bestDiff) {
                                 $bestDiff   = $peDiff;
@@ -227,15 +226,27 @@ class TrendController extends Controller
                             }
                         }
 
-                        if (! is_null($bestDiff) && $bestDiff <= $sat) {
+                        if ( ! is_null($bestDiff) && $bestDiff <= $sat) {
                             if ($bestSource === 'CE') {
-                                if ($key === 'high')  $ceNearHigh  = true;
-                                if ($key === 'low')   $ceNearLow   = true;
-                                if ($key === 'close') $ceNearClose = true;
+                                if ($key === 'high') {
+                                    $ceNearHigh = true;
+                                }
+                                if ($key === 'low') {
+                                    $ceNearLow = true;
+                                }
+                                if ($key === 'close') {
+                                    $ceNearClose = true;
+                                }
                             } else {
-                                if ($key === 'high')  $peNearHigh  = true;
-                                if ($key === 'low')   $peNearLow   = true;
-                                if ($key === 'close') $peNearClose = true;
+                                if ($key === 'high') {
+                                    $peNearHigh = true;
+                                }
+                                if ($key === 'low') {
+                                    $peNearLow = true;
+                                }
+                                if ($key === 'close') {
+                                    $peNearClose = true;
+                                }
                             }
                         }
                     }
@@ -249,16 +260,16 @@ class TrendController extends Controller
                 $idxEHNear   = false;
                 $idxELNear   = false;
 
-                if (! is_null($indexLtp)) {
+                if ( ! is_null($indexLtp)) {
                     $idxMinRNear = abs($indexLtp - $minR) <= $indexSat;
                     $idxMinSNear = abs($indexLtp - $minS) <= $indexSat;
                     $idxMaxRNear = abs($indexLtp - $maxR) <= $indexSat;
                     $idxMaxSNear = abs($indexLtp - $maxS) <= $indexSat;
 
-                    if (! is_null($earthHigh)) {
+                    if ( ! is_null($earthHigh)) {
                         $idxEHNear = abs($indexLtp - $earthHigh) <= $indexSat;
                     }
-                    if (! is_null($earthLow)) {
+                    if ( ! is_null($earthLow)) {
                         $idxELNear = abs($indexLtp - $earthLow) <= $indexSat;
                     }
                 }
@@ -267,7 +278,7 @@ class TrendController extends Controller
                 $broken      = null;
                 $brokenColor = null;
 
-                if (! is_null($optionLtp)) {
+                if ( ! is_null($optionLtp)) {
                     if ($optionLtp < $jointMin) {
                         $broken      = 'Down';
                         $brokenColor = 'bg-red-100 text-red-800';
@@ -278,13 +289,14 @@ class TrendController extends Controller
                 }
 
                 $rows[] = [
-                    'symbol'          => $symbol,
-                    'strike'          => $strike,
-                    'option_type'     => $side,
+                    'symbol'      => $symbol,
+                    'strike'      => $strike,
+                    'option_type' => $side,
 
                     'high'            => $high,
                     'low'             => $low,
                     'close'           => $close,
+                    'index_close'     => $trend->index_close,
                     'high_close_diff' => $highCloseDiff,
                     'close_low_diff'  => $closeLowDiff,
                     'type'            => $type,

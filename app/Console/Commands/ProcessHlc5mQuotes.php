@@ -93,9 +93,9 @@ class ProcessHlc5mQuotes extends Command
             /**
              * Hide Start
              */
-                                    ->when($lastRecorded, function ($q) use ($lastRecorded) {
-                                        $q->where('ts_at', '>', $lastRecorded);
-                                    })
+//                                    ->when($lastRecorded, function ($q) use ($lastRecorded) {
+//                                        $q->where('ts_at', '>', $lastRecorded);
+//                                    })
             /**
              * Hide End
              */
@@ -231,6 +231,8 @@ class ProcessHlc5mQuotes extends Command
 
                     $firstBrokenAt = $existing ? $existing->first_broken_at : $recordedAt;
                 }
+
+                $goodZone = $this->computeGoodZone($context);
 
                 // 10. Insert meta row
                 DailyTrendMeta::updateOrCreate(

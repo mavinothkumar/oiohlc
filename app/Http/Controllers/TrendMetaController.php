@@ -10,6 +10,7 @@ class TrendMetaController extends Controller
 {
     public function index()
     {
+        // 1. Working days
         $days = DB::table('nse_working_days')
                   ->where(function ($q) {
                       $q->where('previous', 1)
@@ -25,6 +26,7 @@ class TrendMetaController extends Controller
             abort(404, 'Working days not configured');
         }
 
+        // 2. Static trends (yesterday)
         $dailyTrends = DailyTrend::whereDate('quote_date', $previousDay)
                                  ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX'])
                                  ->get()
@@ -36,6 +38,7 @@ class TrendMetaController extends Controller
 
         $trendIds = $dailyTrends->keys()->all();
 
+        // 3. All meta rows for today, latest first
         $metaRows = DailyTrendMeta::whereIn('daily_trend_id', $trendIds)
                                   ->whereDate('tracked_date', $currentDay)
                                   ->orderBy('recorded_at', 'desc')
@@ -51,45 +54,34 @@ class TrendMetaController extends Controller
             }
 
             $levelsCrossed = $meta->levels_crossed ?? [];
+            $triggers      = $meta->triggers ?? [];
 
             $rows[] = [
                 'symbol'          => $trend->symbol_name,
-                'quote_date'      => $trend->quote_date?->toDateString(),
                 'tracked_date'    => $currentDay,
-                'market_type'     => $trend->market_type ?? null,
-                'ce_type'         => $trend->ce_type ?? null,
-                'pe_type'         => $trend->pe_type ?? null,
-
-                'index_high'      => $trend->index_high,
-                'index_low'       => $trend->index_low,
-                'index_close'     => $trend->index_close,
-                'strike'          => $trend->strike,
-                'min_r'           => $trend->min_r,
-                'max_r'           => $trend->max_r,
-                'min_s'           => $trend->min_s,
-                'max_s'           => $trend->max_s,
-                'earth_high'      => $trend->earth_high,
-                'earth_low'       => $trend->earth_low,
 
                 'index_ltp'       => $meta->index_ltp,
                 'ce_ltp'          => $meta->ce_ltp,
                 'pe_ltp'          => $meta->pe_ltp,
+                'recorded_at'     => optional($meta->recorded_at)->format('H:i'),
+
                 'market_scenario' => $meta->market_scenario,
                 'trade_signal'    => $meta->trade_signal,
-                'recorded_at'     => $meta->recorded_at?->format('H:i'),
+
+                'ce_type'         => $meta->ce_type ?? $trend->ce_type,
+                'pe_type'         => $meta->pe_type ?? $trend->pe_type,
                 'dominant_side'   => $meta->dominant_side,
 
                 'broken_status'   => $meta->broken_status,
                 'first_broken_at' => $meta->first_broken_at,
                 'good_zone'       => $meta->good_zone,
 
-                'triggers'        => $meta->triggers ?? [],
+                'triggers'        => $triggers,
                 'levels_crossed'  => $levelsCrossed,
-                // NEW: summarized index crossings text
                 'index_crossed'   => $this->summarizeIndexCrossed($levelsCrossed),
+                'reason'          => $this->buildReason($meta->market_scenario, $meta->trade_signal, $triggers),
             ];
         }
-
         return view('trend.meta', [
             'previousDay' => $previousDay,
             'currentDay'  => $currentDay,
@@ -97,10 +89,6 @@ class TrendMetaController extends Controller
         ]);
     }
 
-    /**
-     * Produce a short text summary like:
-     *  "Index Up: PDH, MinR • Down: PDL"
-     */
     protected function summarizeIndexCrossed(array $levelsCrossed): ?string
     {
         if (empty($levelsCrossed)) {
@@ -114,13 +102,10 @@ class TrendMetaController extends Controller
             if (empty($item['level']) || empty($item['direction'])) {
                 continue;
             }
-
-            // Only index-related keys
             if (! str_starts_with($item['level'], 'INDEX_')) {
                 continue;
             }
 
-            // Map machine keys to short label
             $label = match ($item['level']) {
                 'INDEX_PDH'        => 'PDH',
                 'INDEX_PDL'        => 'PDL',
@@ -142,13 +127,54 @@ class TrendMetaController extends Controller
         }
 
         $parts = [];
-        if (! empty($up)) {
+        if ($up) {
             $parts[] = 'Index Up: ' . implode(', ', array_unique($up));
         }
-        if (! empty($down)) {
+        if ($down) {
             $parts[] = 'Index Down: ' . implode(', ', array_unique($down));
         }
 
         return $parts ? implode(' • ', $parts) : null;
+    }
+
+    protected function buildReason(?string $scenario, ?string $signal, array $t): string
+    {
+        $parts = [];
+
+        if (!empty($t['cs_panic']) && !empty($t['ps_pb'])) {
+            $parts[] = 'Call Panic + Put Profit Booking (CSP-PSPB)';
+        }
+        if (!empty($t['cs_pb']) && !empty($t['ps_panic'])) {
+            $parts[] = 'Call Profit Booking + Put Panic (CSPB-PSP)';
+        }
+        if (!empty($t['cs_pb']) && !empty($t['ps_pb'])) {
+            $parts[] = 'Both Profit Booking (BOTHPB)';
+        }
+
+        if (!empty($t['spot_break_min_res']) && empty($t['spot_break_max_res'])) {
+            $parts[] = 'Spot broke MinRes band';
+        }
+        if (!empty($t['spot_break_min_sup']) && empty($t['spot_break_max_sup'])) {
+            $parts[] = 'Spot broke MinSup band';
+        }
+        if (!empty($t['spot_near_pdc'])) {
+            $parts[] = 'Spot near PDC';
+        }
+        if (!empty($t['ce_above_pdh'])) {
+            $parts[] = 'CE above PDH';
+        }
+        if (!empty($t['pe_above_pdh'])) {
+            $parts[] = 'PE above PDH';
+        }
+
+        if ($signal === 'SIDEWAYS_NO_TRADE' && empty($parts)) {
+            $parts[] = 'No clear side; market indecision';
+        }
+
+        if ($scenario && empty($parts)) {
+            $parts[] = $scenario;
+        }
+
+        return implode(' • ', $parts);
     }
 }

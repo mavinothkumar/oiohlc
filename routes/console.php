@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Schedule;
 
 
-
 Schedule::command('nse:populate-working-days') // php artisan nse:populate-working-days
         ->yearlyOn(1, 1, '09:00')
         ->timezone('Asia/Kolkata')
@@ -43,8 +42,42 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
         ->appendOutputTo(storage_path('logs/update-index-open.log'));
 
 
+//Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:collect-ohlc
+//        ->everyMinute()
+//        ->between('9:15', '15:30')
+//        ->withoutOverlapping()
+//        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
+
+Schedule::job(new \App\Jobs\CollectOhlcJob())
+        ->weekdays()
+        ->everyMinute()
+        ->between('9:15', '15:30')
+        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
+
+//Schedule::command('trend:process-5m')->weekdays()  // php artisan trend:process-5m
+//        ->everyFiveMinutes()
+//        ->between('9:15', '15:30')
+//        ->withoutOverlapping()
+//        ->appendOutputTo(storage_path('logs/process-5m.log'));
+
+Schedule::job(new \App\Jobs\ProcessTrend5mJob())->weekdays()  // php artisan trend:process-5m
+        ->everyFiveMinutes()
+        ->between('9:15', '15:30')
+        ->withoutOverlapping()
+        ->appendOutputTo(storage_path('logs/process-5m.log'));
+
+//Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
+//        ->everyThreeMinutes()
+//        ->between('9:15', '15:33')
+//        ->appendOutputTo(storage_path('logs/optionchain.log'));
 
 
+Schedule::job(new \App\Jobs\FetchOptionChainJob())  // php artisan optionchain:fetch
+        ->everyThreeMinutes()
+        ->between('9:15', '15:33')
+        ->appendOutputTo(storage_path('logs/optionchain.log'));
+
+//php artisan queue:work --queue=default --sleep=1 --tries=1
 
 //Schedule::command('quotes:collect-daily-ohlc') // php artisan quotes:collect-daily-ohlc
 //        ->dailyAt('09:08')
@@ -52,25 +85,12 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
 //        ->appendOutputTo(storage_path('logs/instruments.log'));
 
 
-//Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
-//        ->everyThreeMinutes()
-//        ->between('9:15', '15:33')
-//        ->appendOutputTo(storage_path('logs/optionchain.log'));
 
 //Schedule::command('market:collect-ohlc-5m')->weekdays()  // php artisan market:collect-ohlc-5m
 //        ->everyMinute()
 //        ->between('9:15', '15:30')
 //        ->appendOutputTo(storage_path('logs/collect-ohlc-5m.log'));
 
-Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:collect-ohlc
-        ->everyMinute()
-        ->between('9:15', '15:30')
-        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
-
-Schedule::command('trend:process-5m')->weekdays()  // php artisan trend:process-5m
-        ->everyFiveMinutes()
-        ->between('9:15', '15:30')
-        ->appendOutputTo(storage_path('logs/process-5m.log'));
 
 //Schedule::command('full-market:collect-quotes')->weekdays()
 //        ->everyMinute()
