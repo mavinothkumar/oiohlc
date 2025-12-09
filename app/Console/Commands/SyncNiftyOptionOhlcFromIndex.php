@@ -121,6 +121,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                     );
 
                     $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
+                    usleep(400_000);
                 }
             }
         }
