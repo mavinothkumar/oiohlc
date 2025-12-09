@@ -73,7 +73,7 @@ Schedule::job(new \App\Jobs\ProcessTrend5mJob())->weekdays()  // php artisan tre
 
 
 Schedule::job(new \App\Jobs\FetchOptionChainJob())  // php artisan optionchain:fetch
-        ->everyThreeMinutes()
+        ->everyMinute()
         ->between('9:15', '15:33')
         ->appendOutputTo(storage_path('logs/optionchain.log'));
 

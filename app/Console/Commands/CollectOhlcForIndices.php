@@ -12,13 +12,13 @@ class CollectOhlcForIndices extends Command
     protected $signature = 'indices:collect-daily-ohlc';
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
     public $index_instruments = [
-       'BSE_INDEX|BANKEX',
+       //'BSE_INDEX|BANKEX',
        'BSE_INDEX|SENSEX',
        'NSE_INDEX|Nifty 50',
        'NSE_INDEX|Nifty Bank',
-       'NSE_INDEX|Nifty Fin Service',
+      // 'NSE_INDEX|Nifty Fin Service',
     ];
-    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'];
+    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX' ]; //'FINNIFTY'
     public $quoteDate;
     public $workingDay;
 

@@ -14,13 +14,12 @@ class PopulateDailyTrend extends Command
 
     public function handle()
     {
-        $targetDate = $this->option('date') ?: now()->subDay()->format('Y-m-d');
 
-        $days = DB::table('nse_working_days')
-                  ->where('working_date', $targetDate)
-                  ->first();
+        $targetDate = DB::table('nse_working_days')
+                  ->where('previous', 1)
+                  ->value('working_date');
 
-        if ( ! $days) {
+        if ( ! $targetDate) {
             $this->error("No working day found for {$targetDate}");
 
             return 1;
