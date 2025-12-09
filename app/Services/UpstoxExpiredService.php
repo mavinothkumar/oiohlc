@@ -67,6 +67,8 @@ class UpstoxExpiredService
         $response = $this->client()->get($this->baseUrl.$path);
         $response->throw();
 
+        usleep(400_000); // 0.2s
+
         return $response->json('data.candles') ?? [];
     }
 }
