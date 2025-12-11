@@ -14,9 +14,10 @@ class SyncNiftyOptionOhlcFromIndex extends Command
     protected $signature = 'upstox:sync-nifty-option-ohlc
                             {from : From working date YYYY-MM-DD}
                             {to   : To working date YYYY-MM-DD}
-                            {--expiry= : Optional explicit expiry date YYYY-MM-DD}';
+                            {--expiry= : Optional explicit expiry date YYYY-MM-DD}
+                            {--no-5m : Skip 5-minute candles}';
 
-    protected $description = 'Sync NIFTY option OHLC (day & 5m) based on previous index close and strike range';
+    protected $description = 'Sync NIFTY option OHLC (day & optionally 5m) based on previous index close and strike range';
 
     public function handle(
         BacktestIndexService $indexService,
@@ -25,6 +26,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
         $from      = $this->argument('from');
         $to        = $this->argument('to');
         $expiryOpt = $this->option('expiry');
+        $skip5m    = $this->option('no-5m');
 
         // All working days in given range
         $workingDays = DB::table('nse_working_days')
@@ -77,13 +79,12 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                 continue;
             }
 
-            // 6) For each contract, fetch day + 5minute expired candles
+            // 6) For each contract, fetch day (+ optional 5m) expired candles
             foreach ($contracts as $contract) {
                 $instrumentKey = $contract->instrument_key;
                 $this->line("   -> {$instrumentKey} ({$contract->instrument_type} {$contract->strike_price})");
 
-                // Choose your historical range for this contract:
-                // here: just this workingDate for both from/to.
+                // You can widen this range later if needed
                 $fromDate = $workingDate;
                 $toDate   = $workingDate;
 
@@ -96,7 +97,8 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                 );
                 $this->storeOptionCandles($dayCandles, $contract, 'day');
 
-                // 6b) 5-minute candles in chunks to avoid UDAPI1148
+                // 6b) 5-minute candles in chunks, only if enabled
+                if (! $skip5m) {
                 $chunkDays = 5;
                 $start     = Carbon::parse($fromDate);
                 $end       = Carbon::parse($toDate);
@@ -121,7 +123,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                     );
 
                     $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
-                    usleep(400_000);
+                    }
                 }
             }
         }

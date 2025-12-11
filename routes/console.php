@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Schedule;
 
 
+Schedule::command('upstox:fetch-market-holidays') // php artisan upstox:fetch-market-holidays
+        ->yearlyOn(1, 1, '08:57')
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/working-days.log'));
+
 Schedule::command('nse:populate-working-days') // php artisan nse:populate-working-days
         ->yearlyOn(1, 1, '09:00')
         ->timezone('Asia/Kolkata')

@@ -190,7 +190,7 @@ class CollectOhlcForIndices extends Command
                     [
                         'symbol_name'    => empty($index) ? $instrument->trading_symbol : $index,
                         'instrument_key' => $instrumentKey,
-                        'expiry'         => $expiry ?? null,
+                        'expiry'         => $expiryDate ?? null,
                         'strike'         => $instrument->strike_price ?? null,
                         'option_type'    => $instrument->instrument_type ?? null,
                         'quote_date'     => Carbon::parse($candle[0])->toDateString(),
@@ -208,7 +208,7 @@ class CollectOhlcForIndices extends Command
                     ]
                 );
                 $expiry = $expiry ?? null;
-                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiry, date ".Carbon::parse($candle[0])->toDateString());
+                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".Carbon::parse($candle[0])->toDateString());
             }
         }
 

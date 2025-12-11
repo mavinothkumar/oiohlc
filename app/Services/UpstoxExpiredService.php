@@ -12,7 +12,7 @@ class UpstoxExpiredService
     public function __construct()
     {
         $this->baseUrl ='https://api.upstox.com/v2';
-        $this->token   = config('services.upstox.access_token');
+        $this->token   = config('services.upstox.history_access_token');
     }
 
     protected function client()
