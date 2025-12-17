@@ -19,8 +19,8 @@ class CollectOhlcCommand extends Command
 
     public function handle(): int
     {
-        $this->info('Collecting current-expiry instruments...'. now());
-        info('Collecting OHLC '. now());
+        $this->info('Collecting current-expiry instruments...'.now());
+        info('Collecting OHLC '.now());
 
         // 1) Get current expiries for index and options
         $expiries = Expiry::query()
@@ -77,7 +77,7 @@ class CollectOhlcCommand extends Command
         $this->info('Total instruments to query: '.count($instrumentKeys));
 
         foreach (['1d', 'I1'] as $interval) {
-            info( $interval . ' start ' . now() );
+            info($interval.' start '.now());
             $chunks = array_chunk($instrumentKeys, 500);
 
             $accessToken = config('services.upstox.access_token');
@@ -118,129 +118,83 @@ class CollectOhlcCommand extends Command
 
                 $data = $body['data'];
 
-                DB::beginTransaction();
-                try {
-                    foreach ($data as $instrumentKey => $quote) {
-                        if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
-                            continue;
-                        }
 
-                        $meta = $instrumentMeta[$quote['instrument_token']];
-
-                        $live = $quote['live_ohlc'] ?? null;
-                        if ( ! $live) {
-                            continue;
-                        }
-
-                        $tsMs = $live['ts'] ?? null;
-                        $tsAt = null;
-                        if ($tsMs) {
-                            $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
-                        }
-
-                        // Common data array for reuse
-                        $commonData = [
-                            'instrument_type' => $meta['instrument_type'],
-                            'expiry_date'     => $meta['expiry_date'] ?? null,
-                            'strike_price'    => $meta['strike_price'] ?? null,
-                            'trading_symbol'  => $meta['trading_symbol'] ?? null,
-
-                            'open'       => $live['open'] ?? null,
-                            'high'       => $live['high'] ?? null,
-                            'low'        => $live['low'] ?? null,
-                            'close'      => $live['close'] ?? null,
-                            'volume'     => $live['volume'] ?? null,
-                            'ts_at'      => $tsAt,
-                            'last_price' => $quote['last_price'] ?? null,
-                        ];
-
-                        if ($interval === '1d') {
-                            OhlcDayQuote::updateOrCreate(
-                                [
-                                    'instrument_key' => $quote['instrument_token'],
-                                    'ts'             => $tsMs,
-                                ],
-                                $commonData
-                            );
-                        }
-                        if ($interval === 'I1') {
-                            // Store 1-minute data (OhlcQuote)
-                            OhlcQuote::updateOrCreate(
-                                [
-                                    'instrument_key' => $quote['instrument_token'],
-                                    'ts'             => $tsMs,
-                                ],
-                                $commonData
-                            );
-
-                            // 5-MINUTE LOGIC WITH ERROR CORRECTION
-                            $currentTsAt = Carbon::createFromTimestampMs($tsMs);
-                            $minute      = $currentTsAt->format('i');
-
-                            // Check if this is a 5-minute boundary (9:20, 9:25, 9:30, etc.)
-                            if ((int) $minute % 5 === 0) {
-
-                                Ohlc5mQuote::updateOrCreate(
-                                    [
-                                        'instrument_key' => $quote['instrument_token'],
-                                        'ts'             => $tsMs,
-                                    ],
-                                    $commonData
-                                );
-                            }
-
-                            // ERROR CORRECTION: Check for missing previous 5m slot
-//                            $checkTsAt = $currentTsAt->copy()->subMinutes(5)->startOfMinute();
-//                            $checkTsMs = $checkTsAt->timestamp * 1000;
-
-//                            $latest5m = Ohlc5mQuote::where('instrument_key', $quote['instrument_token'])
-//                                                   ->where('ts', '<=', $checkTsMs)
-//                                                   ->orderBy('ts', 'desc')
-//                                                   ->first();
-
-//                            if ( ! $latest5m || $latest5m->ts < $checkTsMs) {
-//                                // Gap found! Backfill from latest 1m data for this instrument
-//                                $backup1m = OhlcQuote::where('instrument_key', $quote['instrument_token'])
-//                                                     ->where('ts', '<=', $checkTsMs)
-//                                                     ->orderBy('ts', 'desc')
-//                                                     ->first();
-//
-//                                if ($backup1m) {
-//                                    Ohlc5mQuote::updateOrCreate(
-//                                        [
-//                                            'instrument_key' => $quote['instrument_token'],
-//                                            'ts'             => $checkTsMs,
-//                                        ],
-//                                        [
-//                                            'instrument_type' => $backup1m->instrument_type,
-//                                            'expiry_date'     => $backup1m->expiry_date,
-//                                            'strike_price'    => $backup1m->strike_price,
-//                                            'trading_symbol'  => $backup1m->trading_symbol,
-//                                            'open'            => $backup1m->open,
-//                                            'high'            => $backup1m->high,
-//                                            'low'             => $backup1m->low,
-//                                            'close'           => $backup1m->close,
-//                                            'volume'          => $backup1m->volume,
-//                                            'ts_at'           => $backup1m->ts_at,
-//                                            'last_price'      => $backup1m->last_price,
-//                                        ]
-//                                    );
-//                                }
-//                            }
-                        }
+                foreach ($data as $instrumentKey => $quote) {
+                    if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
+                        continue;
                     }
 
-                    DB::commit();
-                } catch (\Throwable $e) {
-                    DB::rollBack();
-                    $this->error('DB error: '.$e->getMessage());
+                    $meta = $instrumentMeta[$quote['instrument_token']];
+
+                    $live = $quote['live_ohlc'] ?? null;
+                    if ( ! $live) {
+                        continue;
+                    }
+
+                    $tsMs = $live['ts'] ?? null;
+                    $tsAt = null;
+                    if ($tsMs) {
+                        $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
+                    }
+
+                    // Common data array for reuse
+                    $commonData = [
+                        'instrument_type' => $meta['instrument_type'],
+                        'expiry_date'     => $meta['expiry_date'] ?? null,
+                        'strike_price'    => $meta['strike_price'] ?? null,
+                        'trading_symbol'  => $meta['trading_symbol'] ?? null,
+
+                        'open'       => $live['open'] ?? null,
+                        'high'       => $live['high'] ?? null,
+                        'low'        => $live['low'] ?? null,
+                        'close'      => $live['close'] ?? null,
+                        'volume'     => $live['volume'] ?? null,
+                        'ts_at'      => $tsAt,
+                        'last_price' => $quote['last_price'] ?? null,
+                    ];
+
+                    if ($interval === '1d') {
+                        OhlcDayQuote::updateOrCreate(
+                            [
+                                'instrument_key' => $quote['instrument_token'],
+                                'ts'             => $tsMs,
+                            ],
+                            $commonData
+                        );
+                    }
+                    if ($interval === 'I1') {
+                        // Store 1-minute data (OhlcQuote)
+                        OhlcQuote::updateOrCreate(
+                            [
+                                'instrument_key' => $quote['instrument_token'],
+                                'ts'             => $tsMs,
+                            ],
+                            $commonData
+                        );
+
+                        // 5-MINUTE LOGIC WITH ERROR CORRECTION
+                        $currentTsAt = Carbon::createFromTimestampMs($tsMs);
+                        $minute      = $currentTsAt->format('i');
+
+                        // Check if this is a 5-minute boundary (9:20, 9:25, 9:30, etc.)
+                        if ((int) $minute % 5 === 0) {
+
+                            Ohlc5mQuote::updateOrCreate(
+                                [
+                                    'instrument_key' => $quote['instrument_token'],
+                                    'ts'             => $tsMs,
+                                ],
+                                $commonData
+                            );
+                        }
+                    }
                 }
             }
             $this->info('OHLC collection of '.$interval.' completed.');
-            info( $interval . ' End ' . now() );
+            info($interval.' End '.now());
         }
-       $this->info('OHLC collection complete.'. now());
-       info('OHLC collection complete '. now());
+        $this->info('OHLC collection complete.'.now());
+        info('OHLC collection complete '.now());
 
         return self::SUCCESS;
     }

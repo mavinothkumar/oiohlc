@@ -30,4 +30,7 @@ Route::get('/hlc-close', [App\Http\Controllers\HlcCloseController::class, 'index
 Route::get('/trend',  [App\Http\Controllers\TrendController::class, 'index'])->name('trend.index');
 Route::get('/trend/meta', [\App\Http\Controllers\TrendMetaController::class, 'index'])->name('trend.meta');
 
-Route::get('/six-level', [\App\Http\Controllers\SixLevelController::class, 'index'])->name('six-level.index');
+Route::get('/backtests/six-level', [\App\Http\Controllers\SixLevelController::class, 'index'])->name('backtests.six-level.index');
+
+Route::get('/backtests/straddles', [\App\Http\Controllers\StraddleBacktestController::class, 'index'])
+     ->name('backtests.straddles.index');

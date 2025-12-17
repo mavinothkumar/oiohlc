@@ -159,7 +159,7 @@
                                     {{ $row->expiry ?? '' }}
                                 </td>
                                 <td class="border px-2 py-1 whitespace-nowrap text-[14px]">
-                                    {{ $row->strike ?? $row->strike_price ?? '' }}
+                                    {{ $row->atm_strike ?? $row->strike_price ?? '' }}
                                 </td>
                                 <td class="border px-2 py-1 text-[14px]">{{ $row->ce_prev_low ?? '-' }}</td>
                                 <td class="border px-2 py-1 text-[14px]">{{ $row->pe_prev_low ?? '-' }}</td>

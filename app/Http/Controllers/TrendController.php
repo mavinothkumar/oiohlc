@@ -24,7 +24,7 @@ class TrendController extends Controller
         $currentDay  = optional($days->firstWhere('current', 1))->working_date;
 
         if ( ! $previousDay || ! $currentDay) {
-            abort(404, 'Working days not configured');
+            die('Working days not configured');
         }
 
         // 2. Precomputed daily trends (static yesterday data)
@@ -34,7 +34,7 @@ class TrendController extends Controller
                                  ->keyBy('symbol_name');
 
         if ($dailyTrends->isEmpty()) {
-            abort(404, 'Daily trends not populated for previous day');
+            die( 'Daily trends not populated for previous day');
         }
 
         // 3. Minimal option contracts (one CE + one PE per symbol+strike)

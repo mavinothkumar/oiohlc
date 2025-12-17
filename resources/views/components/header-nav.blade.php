@@ -30,6 +30,20 @@
                         <a href="{{ route('ohlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OHLC</a>
                         <a href="{{ route('hlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC</a>
                         <a href="{{ route('hlc.close') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC Close</a>
+                        <a href="{{ route('hlc.close') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100"></a>
+                    </div>
+                </div>
+
+                <div class="relative group">
+                    <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">
+                        Strategies
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('backtests.six-level.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Six Levels</a>
+                        <a href="{{ route('backtests.straddles.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Straddle</a>
                     </div>
                 </div>
             </div>
