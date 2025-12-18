@@ -31,6 +31,7 @@ class ExpiredOptionContract extends Model
         'minimum_lot',
         'weekly',
         'nifty_expiry_id',
+        'expired_expiry_id',
     ];
 
     protected function casts(): array

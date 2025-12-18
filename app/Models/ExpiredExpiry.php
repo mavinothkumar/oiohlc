@@ -16,6 +16,7 @@ class ExpiredExpiry extends Model
         'underlying_instrument_key',
         'underlying_symbol',
         'expiry_date',
+        'instrument_type',
     ];
 
     protected function casts(): array

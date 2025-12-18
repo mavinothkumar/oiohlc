@@ -98,7 +98,6 @@ class CollectOhlcCommand extends Command
                     'Accept'        => 'application/json',
                     'Authorization' => 'Bearer '.$accessToken,
                 ])
-                                ->timeout(10)
                                 ->get('https://api.upstox.com/v3/market-quote/ohlc', [
                                     'instrument_key' => $instrumentKeyParam,
                                     'interval'       => $interval,

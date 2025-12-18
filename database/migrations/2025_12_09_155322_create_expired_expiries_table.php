@@ -15,7 +15,7 @@ return new class extends Migration
             $table->date('expiry_date')->index();        // from API
             $table->timestamps();
 
-            $table->unique(['underlying_instrument_key', 'expiry_date']);
+            $table->unique(['underlying_instrument_key', 'expiry_date', 'instrument_type']);
         });
     }
 

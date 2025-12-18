@@ -34,3 +34,5 @@ Route::get('/backtests/six-level', [\App\Http\Controllers\SixLevelController::cl
 
 Route::get('/backtests/straddles', [\App\Http\Controllers\StraddleBacktestController::class, 'index'])
      ->name('backtests.straddles.index');
+Route::get('/backtests/futures/ohlc', [\App\Http\Controllers\FutureOhlcController::class, 'index'])
+     ->name('backtests.futures.ohlc.index');
