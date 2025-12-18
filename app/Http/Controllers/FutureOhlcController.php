@@ -101,7 +101,7 @@ class FutureOhlcController extends Controller
 
                 // paginate the collection
                 $page    = LengthAwarePaginator::resolveCurrentPage();
-                $perPage = 50;
+                $perPage = 75;
                 $items   = $hourly->sortByDesc('timestamp')
                                   ->forPage($page, $perPage)
                                   ->values();
@@ -121,7 +121,7 @@ class FutureOhlcController extends Controller
 
             $ohlc = $base
                 ->orderByDesc('timestamp')
-                ->paginate(50)
+                ->paginate(75)
                 ->withQueryString();
         }
 
