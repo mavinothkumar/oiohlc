@@ -13,12 +13,12 @@ class CollectOhlcForIndices extends Command
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
     public $index_instruments = [
        //'BSE_INDEX|BANKEX',
-       'BSE_INDEX|SENSEX',
+     //  'BSE_INDEX|SENSEX',
        'NSE_INDEX|Nifty 50',
-       'NSE_INDEX|Nifty Bank',
+      // 'NSE_INDEX|Nifty Bank',
       // 'NSE_INDEX|Nifty Fin Service',
     ];
-    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX' ]; //'FINNIFTY'
+    public $indices = ['NIFTY' ]; //, 'BANKNIFTY', 'SENSEX''FINNIFTY'
     public $quoteDate;
     public $workingDay;
 
@@ -35,6 +35,7 @@ class CollectOhlcForIndices extends Command
         $index_instruments = DB::table('instruments')
                                ->whereIn('instrument_key', $this->index_instruments)
                                ->get()->toArray();
+
         $this->update($index_instruments);
 
 
@@ -152,12 +153,15 @@ class CollectOhlcForIndices extends Command
 
             $response = Http::withToken($apiToken)->get($apiUrl);
 
+
+
             if ($response->failed()) {
                 $this->error("API failed for $index ({$instrumentKey})".$response->body());
                 continue;
             }
 
             $result = $response->json();
+
 
             // Defensive: Support both 'data' wrapping and direct 'candles'
             $candles = [];

@@ -36,3 +36,6 @@ Route::get('/backtests/straddles', [\App\Http\Controllers\StraddleBacktestContro
      ->name('backtests.straddles.index');
 Route::get('/backtests/futures/ohlc', [\App\Http\Controllers\FutureOhlcController::class, 'index'])
      ->name('backtests.futures.ohlc.index');
+
+Route::get('/analysis', [\App\Http\Controllers\IndexOptionAnalysisController::class, 'index'])
+     ->name('analysis.index');
