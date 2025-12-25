@@ -26,17 +26,21 @@
                     <option value="">Select date first</option>
                 </select>
             </div>
-
-            <div class="flex-1">
-                <label class="block text-sm mb-1">Instrument Key</label>
-                <input id="ce_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="CE instrument key">
-                <input id="pe_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="PE instrument key">
+            <div>
+                <label class="block text-sm mb-1">CE Strike</label>
+                <input id="ce_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="CE Strike">
             </div>
+            <div>
+                <label class="block text-sm mb-1">PE Strike</label>
+                <input id="pe_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="PE Strike">
+            </div>
+            <div>
 
             <button id="loadChartBtn"
                 class="bg-blue-600 text-white px-4 py-2 rounded text-sm">
                 Load chart
             </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
@@ -60,26 +64,26 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const underlyingEl = document.getElementById('underlying');
-            const dateEl       = document.getElementById('date');
-            const expiryEl     = document.getElementById('expiry');
-            const ceKeyEl      = document.getElementById('ce_instrument_key');
-            const peKeyEl      = document.getElementById('pe_instrument_key');
-            const loadBtn      = document.getElementById('loadChartBtn');
+            const dateEl = document.getElementById('date');
+            const expiryEl = document.getElementById('expiry');
+            const ceKeyEl = document.getElementById('ce_instrument_key');
+            const peKeyEl = document.getElementById('pe_instrument_key');
+            const loadBtn = document.getElementById('loadChartBtn');
 
-            const ceContainer  = document.getElementById('ce-chart-container');
-            const peContainer  = document.getElementById('pe-chart-container');
+            const ceContainer = document.getElementById('ce-chart-container');
+            const peContainer = document.getElementById('pe-chart-container');
 
             let ceChart = null, ceSeries = null;
             let peChart = null, peSeries = null;
 
-            function createChart(container, upColor) {
+            function createChart (container, upColor) {
                 const rect = container.getBoundingClientRect();
                 const chart = LightweightCharts.createChart(container, {
                     width: rect.width,
                     height: rect.height,
                     layout: {
                         background: { color: '#ffffff' },
-                        textColor: '#111827',
+                        textColor: '#111827'
                     },
                     rightPriceScale: { borderColor: '#e5e7eb' },
                     timeScale: {
@@ -88,7 +92,7 @@
                         secondsVisible: false,
                         timezone: 'Asia/Kolkata'
                     },
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
                 });
 
                 const series = chart.addCandlestickSeries({
@@ -97,32 +101,32 @@
                     borderUpColor: upColor,
                     borderDownColor: '#dc2626',
                     wickUpColor: upColor,
-                    wickDownColor: '#dc2626',
+                    wickDownColor: '#dc2626'
                 });
 
                 new ResizeObserver(entries => {
-                    if (!entries.length) return;
-                    const cr = entries[0].contentRect;
+                    if ( ! entries.length) return;
+                    const cr = entries[ 0 ].contentRect;
                     chart.applyOptions({ width: cr.width, height: cr.height });
                 }).observe(container);
 
                 return { chart, series };
             }
 
-            function cleanOhlc(data) {
+            function cleanOhlc (data) {
                 const map = {};
-                for (const c of (data || [])) {
-                    if (!c) continue;
+                for (const c of ( data || [] )) {
+                    if ( ! c) continue;
                     if (c.time == null) continue;
                     if ([c.open, c.high, c.low, c.close].some(v => v == null)) continue;
 
                     const t = Number(c.time);
-                    map[t] = {
+                    map[ t ] = {
                         time: t,
                         open: Number(c.open),
                         high: Number(c.high),
                         low: Number(c.low),
-                        close: Number(c.close),
+                        close: Number(c.close)
                     };
                 }
 
@@ -130,28 +134,28 @@
                 return Object.values(map).sort((a, b) => a.time - b.time);
             }
 
-            function timeToLocal(originalTime) {
+            function timeToLocal (originalTime) {
                 const d = new Date(originalTime * 1000);
                 return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()) / 1000;
             }
 
             // Auto-load expiries when date changes
             dateEl.addEventListener('change', async () => {
-                const date       = dateEl.value;
+                const date = dateEl.value;
                 const underlying = underlyingEl.value;
 
-                if (!date || !underlying) return;
+                if ( ! date || ! underlying) return;
 
                 const url = new URL("{{ route('api.expiries') }}", window.location.origin);
                 url.searchParams.set('underlying_symbol', underlying);
                 url.searchParams.set('date', date);
 
-                const res  = await fetch(url);
+                const res = await fetch(url);
                 const json = await res.json();
 
                 expiryEl.innerHTML = '';
 
-                if (!json.expiries || !json.expiries.length) {
+                if ( ! json.expiries || ! json.expiries.length) {
                     const opt = document.createElement('option');
                     opt.value = '';
                     opt.textContent = 'No expiries';
@@ -167,18 +171,18 @@
                 });
 
                 // auto-select first expiry
-                expiryEl.value = json.expiries[0];
+                expiryEl.value = json.expiries[ 0 ];
             });
 
             // Load CE + PE candles
             loadBtn.addEventListener('click', async () => {
                 const underlying = underlyingEl.value;
-                const date       = dateEl.value;
-                const expiry     = expiryEl.value;
-                const ceKey      = ceKeyEl.value;
-                const peKey      = peKeyEl.value;
+                const date = dateEl.value;
+                const expiry = expiryEl.value;
+                const ceKey = ceKeyEl.value;
+                const peKey = peKeyEl.value;
 
-                if (!underlying || !date || !expiry || !ceKey || !peKey) {
+                if ( ! underlying || ! date || ! expiry || ! ceKey || ! peKey) {
                     alert('Please fill underlying, date, expiry, CE key & PE key.');
                     return;
                 }
@@ -190,36 +194,36 @@
                 url.searchParams.set('ce_instrument_key', ceKey);
                 url.searchParams.set('pe_instrument_key', peKey);
 
-                const res  = await fetch(url);
+                const res = await fetch(url);
                 const json = await res.json();
 
-                if (!ceChart) {
+                if ( ! ceChart) {
                     const ce = createChart(ceContainer, '#16a34a');
                     ceChart = ce.chart;
                     ceSeries = ce.series;
                 }
-                if (!peChart) {
+                if ( ! peChart) {
                     const pe = createChart(peContainer, '#3b82f6');
                     peChart = pe.chart;
                     peSeries = pe.series;
                 }
 
                 const normalizeAndSort = (data) => {
-                    if (!Array.isArray(data)) return [];
+                    if ( ! Array.isArray(data)) return [];
 
                     const out = data
                         .filter(c => c && c.time != null)
-                        .map(c => ({
+                        .map(c => ( {
                             time: timeToLocal(c.time),                 // 1734320700, 1734321000, ...
                             open: Number(c.open),
                             high: Number(c.high),
-                            low:  Number(c.low),
-                            close:Number(c.close),
-                        }))
+                            low: Number(c.low),
+                            close: Number(c.close)
+                        } ))
                         .sort((a, b) => a.time - b.time);        // ASCENDING
 
-                    console.log('FIRST:', out[0]);
-                    console.log('LAST :', out[out.length - 1]);
+                    console.log('FIRST:', out[ 0 ]);
+                    console.log('LAST :', out[ out.length - 1 ]);
                     return out;
                 };
 
@@ -229,8 +233,8 @@
                 ceSeries.setData(ceData);
                 peSeries.setData(peData);
 
-                const ceFirst = ceData[0]?.time;
-                const ceLast  = ceData[ceData.length - 1]?.time;
+                const ceFirst = ceData[ 0 ]?.time;
+                const ceLast = ceData[ ceData.length - 1 ]?.time;
                 if (ceFirst && ceLast) {
                     ceChart.timeScale().setVisibleRange({ from: ceFirst, to: ceLast });
                 }
