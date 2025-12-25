@@ -40,6 +40,7 @@ class BuildIndexOptionAnalysis extends Command
 INSERT INTO index_option_analysis (
     underlying_symbol, exchange, trade_date,
     prev_index_open, prev_index_high, prev_index_low, prev_index_close,
+    gap_prev_close_to_open,
     atm_strike,
     prev_ce_open, prev_ce_high, prev_ce_low, prev_ce_close,
     prev_pe_open, prev_pe_high, prev_pe_low, prev_pe_close,
@@ -249,6 +250,7 @@ SELECT
     ip.prev_high  AS prev_index_high,
     ip.prev_low   AS prev_index_low,
     ip.prev_close AS prev_index_close,
+    (ip.cur_open - ip.prev_close) AS gap_prev_close_to_open,
 
     a.strike      AS atm_strike,
 

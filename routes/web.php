@@ -39,3 +39,12 @@ Route::get('/backtests/futures/ohlc', [\App\Http\Controllers\FutureOhlcControlle
 
 Route::get('/analysis', [\App\Http\Controllers\IndexOptionAnalysisController::class, 'index'])
      ->name('analysis.index');
+
+
+Route::get('/options-chart', [App\Http\Controllers\OhlcChartController::class, 'index'])->name('options.chart');
+
+// AJAX: get expiries for a date + underlying
+Route::get('/api/expiries', [App\Http\Controllers\OhlcChartController::class, 'expiries'])->name('api.expiries');
+
+// AJAX: get OHLC for CE & PE
+Route::get('/api/ohlc', [App\Http\Controllers\OhlcChartController::class, 'ohlc'])->name('api.ohlc');

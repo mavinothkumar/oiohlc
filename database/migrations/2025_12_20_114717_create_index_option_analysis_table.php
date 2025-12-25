@@ -20,6 +20,8 @@ return new class extends Migration
             $table->decimal('prev_index_low', 12, 2)->nullable();
             $table->decimal('prev_index_close', 12, 2)->nullable();
 
+            $table->decimal('gap_prev_close_to_open', 12, 2)->nullable();
+
             // ATM strike & prev day CE/PE
             $table->integer('atm_strike')->nullable();
             $table->decimal('prev_ce_open', 12, 2)->nullable();
@@ -47,6 +49,7 @@ return new class extends Migration
             $table->decimal('cur_index_low', 12, 2)->nullable();
             $table->decimal('cur_index_close', 12, 2)->nullable();
 
+
             // Derived levels
             $table->decimal('range_ce_low_plus', 12, 2)->nullable();
             $table->decimal('range_ce_low_minus', 12, 2)->nullable();
@@ -56,6 +59,7 @@ return new class extends Migration
             $table->decimal('avg_high', 12, 2)->nullable();
             $table->decimal('range_avg_high_plus', 12, 2)->nullable();
             $table->decimal('range_avg_high_minus', 12, 2)->nullable();
+
 
             $table->timestamps();
 

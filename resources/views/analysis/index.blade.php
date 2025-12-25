@@ -81,6 +81,155 @@
             </div>
         </form>
 
+
+        @if(isset($summary))
+            <div class="mb-4 rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-700">
+                <div class="font-semibold mb-1">Highlight summary (current page):</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div>
+                        Index Low ± CE Low:
+                        <span class="text-green-600 font-semibold">+{{ $summary['idx_low_ce']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['idx_low_ce']['-'] }}</span>
+                    </div>
+                    <div>
+                        Index Low ± PE Low:
+                        <span class="text-green-600 font-semibold">+{{ $summary['idx_low_pe']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['idx_low_pe']['-'] }}</span>
+                    </div>
+                    <div>
+                        Index Low ± Avg Low:
+                        <span class="text-green-600 font-semibold">+{{ $summary['idx_low_avg_low']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['idx_low_avg_low']['-'] }}</span>
+                    </div>
+                    <div>
+                        Index Low ± Avg High:
+                        <span class="text-green-600 font-semibold">+{{ $summary['idx_low_avg_high']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['idx_low_avg_high']['-'] }}</span>
+                    </div>
+                    <div>
+                        Index High ± Avg Low/High:
+                        <span class="text-green-600 font-semibold">+{{ $summary['idx_high_avg']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['idx_high_avg']['-'] }}</span>
+                    </div>
+                    <div>
+                        Mid (H+L)/2 ± Avg H/L:
+                        <span class="text-green-600 font-semibold">+{{ $summary['mid_avg']['+'] }}</span>
+                        /
+                        <span class="text-red-600 font-semibold">-{{ $summary['mid_avg']['-'] }}</span>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if(isset($within10))
+            <div class="mb-2 rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-700">
+                <div class="font-semibold mb-1">
+                    Levels within ±20 points of close (current page):
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div>
+                        Index Low ± CE Low:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['idx_low_ce']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_low_ce']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Index Low ± PE Low:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['idx_low_pe']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_low_pe']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Index Low ± Avg Low:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['idx_low_avg_low']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_low_avg_low']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Index Low ± Avg High:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['idx_low_avg_high']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_low_avg_high']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Index High ± Avg L/H:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['idx_high_avg']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_high_avg']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Mid (H+L)/2 ± Avg H/L:
+                        <span class="text-green-600 font-semibold">
+                    +{{ $within10['mid_avg']['+'] }}
+                </span>
+                        /
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['mid_avg']['-'] }}
+                </span>
+                    </div>
+
+                    <div>
+                        Index High − CE Low:
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_high_ce_low']['-'] }}
+                </span>
+                    </div>
+                    <div>
+                        Index High − CE High:
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_high_ce_high']['-'] }}
+                </span>
+                    </div>
+                    <div>
+                        Index High − PE Low:
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_high_pe_low']['-'] }}
+                </span>
+                    </div>
+                    <div>
+                        Index High − PE High:
+                        <span class="text-red-600 font-semibold">
+                    -{{ $within10['idx_high_pe_high']['-'] }}
+                </span>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+
+
+
+
         {{-- Table wrapper --}}
         <div class="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
             <table class="min-w-full divide-y divide-gray-200 text-xs">
@@ -91,25 +240,59 @@
                     <th class="px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap">ATM</th>
 
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Prev Index C</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Gap (Prev C → Cur O)</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Cur Index O/H/L/C</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">
+                        Close − Low
+                    </th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">
+                        Close − High
+                    </th>
 
-
-                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Prev CE C</th>
-                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Prev PE C</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">
+                        Prev CE/PE C &Delta; (CE−PE)
+                    </th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">
+                        Gap − &Delta;(Prev CE/PE C)
+                    </th>
 
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Cur CE O/H/L/C</th>
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Cur PE O/H/L/C</th>
-                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Cur Index O/H/L/C</th>
 
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Index Low ± CE Low</th>
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Index Low ± PE Low</th>
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Index Low ± Avg Low</th>
                     <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Index Low ± Avg High</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Index High ± Avg L/H</th>
+                    <th class="px-3 py-2 text-center font-semibold text-gray-700 whitespace-nowrap">Mid (H+L)/2 ± Avg H/L</th>
                 </tr>
                 </thead>
 
                 <tbody class="divide-y divide-gray-100">
                 @forelse ($rows as $row)
+                    @php
+                        // Gap between prev close and current open
+                        $gap = $row->cur_index_open - $row->prev_index_close;
+                        $gapClass = $gap > 0
+                            ? 'text-green-600 font-semibold'
+                            : ($gap < 0 ? 'text-red-600 font-semibold' : 'text-gray-700');
+
+                        // Prev CE/PE close and their difference (CE - PE)
+                        $prevCe = $row->prev_ce_close;
+                        $prevPe = $row->prev_pe_close;
+                        $cePeDiff = ($prevCe !== null && $prevPe !== null)
+                            ? $prevCe - $prevPe
+                            : null;
+
+                        // Gap minus CE/PE diff
+                        $gapMinusCePeDiff = $cePeDiff !== null ? $gap - $cePeDiff : null;
+                        $gapMinusClass = $gapMinusCePeDiff > 0
+                            ? 'text-green-600 font-semibold'
+                            : ($gapMinusCePeDiff < 0 ? 'text-red-600 font-semibold' : 'text-gray-700');
+                    @endphp
+
                     <tr class="hover:bg-gray-50">
+                        {{-- Date / Symbol / ATM --}}
                         <td class="px-3 py-2 whitespace-nowrap text-gray-900">
                             {{ \Illuminate\Support\Carbon::parse($row->trade_date)->format('d-M-Y') }}
                         </td>
@@ -120,39 +303,72 @@
                             {{ $row->atm_strike }}
                         </td>
 
+                        {{-- Prev Index C --}}
                         <td class="px-3 py-2 text-center text-gray-700">
                             {{ $row->prev_index_close }}
                         </td>
 
-
-
-                        <td class="px-3 py-2 text-center text-teal-700">
-                            {{ $row->prev_ce_close }}
+                        {{-- Gap --}}
+                        <td class="px-3 py-2 text-center {{ $gapClass }}">
+                            {{ number_format($gap, 2) }}
                         </td>
 
-                        <td class="px-3 py-2 text-center text-rose-700">
-                            {{ $row->prev_pe_close }}
+                        {{-- Cur Index O/H/L/C --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            {{ $row->cur_index_open }} /
+                            {{ $row->cur_index_high }} /
+                            {{ $row->cur_index_low }} /
+                            {{ $row->cur_index_close }}
+                        </td>
+                        @php
+                            $closeMinusLow = $row->cur_index_close - $row->cur_index_low;
+                            $closeMinusHigh = $row->cur_index_close - $row->cur_index_high;
+                        @endphp
+
+                        {{-- Close − Low --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            {{ number_format($closeMinusLow, 2) }}
                         </td>
 
+                        {{-- Close − High --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            {{ number_format($closeMinusHigh, 2) }}
+                        </td>
+
+                        {{-- Prev CE/PE C with difference --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            @if($prevCe !== null && $prevPe !== null)
+                                {{ number_format($prevCe, 2) }} /
+                                {{ number_format($prevPe, 2) }}
+                                <span class="text-xs text-gray-500">
+                    ({{ number_format($cePeDiff, 2) }})
+                </span>
+                            @else
+                                —
+                            @endif
+                        </td>
+
+                        {{-- Gap − Diff Prev CE/PE C --}}
+                        <td class="px-3 py-2 text-center {{ $cePeDiff !== null ? $gapMinusClass : 'text-gray-400' }}">
+                            @if($gapMinusCePeDiff !== null)
+                                {{ number_format($gapMinusCePeDiff, 2) }}
+                            @else
+                                —
+                            @endif
+                        </td>
+
+                        {{-- Cur CE / PE OHLC --}}
                         <td class="px-3 py-2 text-center text-teal-700">
                             {{ $row->cur_ce_open }} /
                             {{ $row->cur_ce_high }} /
                             {{ $row->cur_ce_low }} /
                             {{ $row->cur_ce_close }}
                         </td>
-
                         <td class="px-3 py-2 text-center text-rose-700">
                             {{ $row->cur_pe_open }} /
                             {{ $row->cur_pe_high }} /
                             {{ $row->cur_pe_low }} /
                             {{ $row->cur_pe_close }}
-                        </td>
-
-                        <td class="px-3 py-2 text-center text-gray-700">
-                            {{ $row->cur_index_open }} /
-                            {{ $row->cur_index_high }} /
-                            {{ $row->cur_index_low }} /
-                            <span class="text-red-600 font-semibold">{{ $row->cur_index_close }}</span>
                         </td>
 
                         @php
@@ -174,96 +390,171 @@
                             $avgHighPlus  = $row->range_avg_high_plus;
                             $avgHighMinus = $row->range_avg_high_minus;
 
-                            // Collect all candidates with labels so we can find the closest
+                            // Index High ± Avg Low
+                            $idxHighPlusAvgLow  = $row->cur_index_high + $row->avg_low;
+                            $idxHighMinusAvgLow = $row->cur_index_high - $row->avg_low;
+
+                            // Index High ± Avg High
+                            $idxHighPlusAvgHigh  = $row->cur_index_high + $row->avg_high;
+                            $idxHighMinusAvgHigh = $row->cur_index_high - $row->avg_high;
+
+                            // Mid (H+L)/2
+                            $idxMid = ($row->cur_index_high + $row->cur_index_low) / 2;
+                            $midPlusAvgHigh  = $idxMid + $row->avg_high;
+                            $midMinusAvgHigh = $idxMid - $row->avg_high;
+                            $midPlusAvgLow   = $idxMid + $row->avg_low;
+                            $midMinusAvgLow  = $idxMid - $row->avg_low;
+
+                            // candidates for closest
                             $candidates = [];
+                            if ($cePlus !== null)      $candidates['ce_plus']       = $cePlus;
+                            if ($ceMinus !== null)     $candidates['ce_minus']      = $ceMinus;
+                            if ($pePlus !== null)      $candidates['pe_plus']       = $pePlus;
+                            if ($peMinus !== null)     $candidates['pe_minus']      = $peMinus;
+                            if ($avgLowPlus !== null)  $candidates['avg_low_plus']  = $avgLowPlus;
+                            if ($avgLowMinus !== null) $candidates['avg_low_minus'] = $avgLowMinus;
+                            if ($avgHighPlus !== null) $candidates['avg_high_plus'] = $avgHighPlus;
+                            if ($avgHighMinus !== null)$candidates['avg_high_minus']= $avgHighMinus;
 
-                            if ($cePlus !== null)     $candidates['ce_plus']      = $cePlus;
-                            if ($ceMinus !== null)    $candidates['ce_minus']     = $ceMinus;
-                            if ($pePlus !== null)     $candidates['pe_plus']      = $pePlus;
-                            if ($peMinus !== null)    $candidates['pe_minus']     = $peMinus;
-                            if ($avgLowPlus !== null) $candidates['avg_low_plus'] = $avgLowPlus;
-                            if ($avgLowMinus !== null)$candidates['avg_low_minus']= $avgLowMinus;
-                            if ($avgHighPlus !== null)$candidates['avg_high_plus']= $avgHighPlus;
-                            if ($avgHighMinus !== null)$candidates['avg_high_minus'] = $avgHighMinus;
+                            $candidates['idx_high_plus_avg_low']   = $idxHighPlusAvgLow;
+                            $candidates['idx_high_minus_avg_low']  = $idxHighMinusAvgLow;
+                            $candidates['idx_high_plus_avg_high']  = $idxHighPlusAvgHigh;
+                            $candidates['idx_high_minus_avg_high'] = $idxHighMinusAvgHigh;
 
-                            $closestKey = null;
+                            $candidates['mid_plus_avg_high']  = $midPlusAvgHigh;
+                            $candidates['mid_minus_avg_high'] = $midMinusAvgHigh;
+                            $candidates['mid_plus_avg_low']   = $midPlusAvgLow;
+                            $candidates['mid_minus_avg_low']  = $midMinusAvgLow;
+
+                            $closestKey  = null;
                             $closestDiff = null;
 
                             foreach ($candidates as $key => $value) {
-                                $diff = abs($value - $curClose);
-                                if ($closestDiff === null || $diff < $closestDiff) {
-                                    $closestDiff = $diff;
+                                $d = abs($value - $curClose);
+                                if ($closestDiff === null || $d < $closestDiff) {
+                                    $closestDiff = $d;
                                     $closestKey  = $key;
                                 }
                             }
 
                             $highlightClass = 'text-red-600 font-semibold';
+
+                            $diffFn = function ($level) use ($curClose) {
+                                return $level !== null ? number_format($level - $curClose, 2) : null;
+                            };
                         @endphp
 
-                        {{-- 1) Index Low ± CE Low --}}
+                        {{-- Index Low ± CE Low --}}
                         <td class="px-3 py-2 text-center text-gray-700">
                             {{ $row->cur_index_low }}<br>
                             <span class="text-xs text-gray-500">
-        <span class="{{ $closestKey === 'ce_plus' ? $highlightClass : '' }}">
-            +{{ $cePlus }}
-        </span>
-        /
-        <span class="{{ $closestKey === 'ce_minus' ? $highlightClass : '' }}">
-            -{{ $ceMinus }}
-        </span>
-    </span>
+                <span class="{{ $closestKey === 'ce_plus' ? $highlightClass : '' }}">
+                    +{{ $cePlus }} ({{ $diffFn($cePlus) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'ce_minus' ? $highlightClass : '' }}">
+                    -{{ $ceMinus }} ({{ $diffFn($ceMinus) }})
+                </span>
+            </span>
                         </td>
 
-                        {{-- 2) Index Low ± PE Low --}}
+                        {{-- Index Low ± PE Low --}}
                         <td class="px-3 py-2 text-center text-gray-700">
                             {{ $row->cur_index_low }}<br>
                             <span class="text-xs text-gray-500">
-        @if($pePlus !== null)
+                @if($pePlus !== null)
                                     <span class="{{ $closestKey === 'pe_plus' ? $highlightClass : '' }}">
-                +{{ $pePlus }}
-            </span>
+                        +{{ $pePlus }} ({{ $diffFn($pePlus) }})
+                    </span>
                                     /
                                     <span class="{{ $closestKey === 'pe_minus' ? $highlightClass : '' }}">
-                -{{ $peMinus }}
-            </span>
+                        -{{ $peMinus }} ({{ $diffFn($peMinus) }})
+                    </span>
                                 @else
                                     —
                                 @endif
-    </span>
+            </span>
                         </td>
 
-                        {{-- 3) Index Low ± Avg Low --}}
+                        {{-- Index Low ± Avg Low --}}
                         <td class="px-3 py-2 text-center text-gray-700">
                             {{ $row->avg_low }}<br>
                             <span class="text-xs text-gray-500">
-        <span class="{{ $closestKey === 'avg_low_plus' ? $highlightClass : '' }}">
-            +{{ $avgLowPlus }}
-        </span>
-        /
-        <span class="{{ $closestKey === 'avg_low_minus' ? $highlightClass : '' }}">
-            -{{ $avgLowMinus }}
-        </span>
-    </span>
+                <span class="{{ $closestKey === 'avg_low_plus' ? $highlightClass : '' }}">
+                    +{{ $avgLowPlus }} ({{ $diffFn($avgLowPlus) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'avg_low_minus' ? $highlightClass : '' }}">
+                    -{{ $avgLowMinus }} ({{ $diffFn($avgLowMinus) }})
+                </span>
+            </span>
                         </td>
 
-                        {{-- 4) Index Low ± Avg High --}}
+                        {{-- Index Low ± Avg High --}}
                         <td class="px-3 py-2 text-center text-gray-700">
                             {{ $row->avg_high }}<br>
                             <span class="text-xs text-gray-500">
-        <span class="{{ $closestKey === 'avg_high_plus' ? $highlightClass : '' }}">
-            +{{ $avgHighPlus }}
-        </span>
-        /
-        <span class="{{ $closestKey === 'avg_high_minus' ? $highlightClass : '' }}">
-            -{{ $avgHighMinus }}
-        </span>
-    </span>
+                <span class="{{ $closestKey === 'avg_high_plus' ? $highlightClass : '' }}">
+                    +{{ $avgHighPlus }} ({{ $diffFn($avgHighPlus) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'avg_high_minus' ? $highlightClass : '' }}">
+                    -{{ $avgHighMinus }} ({{ $diffFn($avgHighMinus) }})
+                </span>
+            </span>
                         </td>
 
+                        {{-- Index High ± Avg L/H --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            {{ $row->cur_index_high }}<br>
+                            <span class="text-xs text-gray-500">
+                {{-- High ± Avg Low --}}
+                <span class="{{ $closestKey === 'idx_high_plus_avg_low' ? $highlightClass : '' }}">
+                    +{{ number_format($idxHighPlusAvgLow, 2) }} ({{ $diffFn($idxHighPlusAvgLow) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'idx_high_minus_avg_low' ? $highlightClass : '' }}">
+                    -{{ number_format($idxHighMinusAvgLow, 2) }} ({{ $diffFn($idxHighMinusAvgLow) }})
+                </span>
+                <br>
+                {{-- High ± Avg High --}}
+                <span class="{{ $closestKey === 'idx_high_plus_avg_high' ? $highlightClass : '' }}">
+                    +{{ number_format($idxHighPlusAvgHigh, 2) }} ({{ $diffFn($idxHighPlusAvgHigh) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'idx_high_minus_avg_high' ? $highlightClass : '' }}">
+                    -{{ number_format($idxHighMinusAvgHigh, 2) }} ({{ $diffFn($idxHighMinusAvgHigh) }})
+                </span>
+            </span>
+                        </td>
+
+                        {{-- Mid (H+L)/2 ± Avg H/L --}}
+                        <td class="px-3 py-2 text-center text-gray-700">
+                            {{ number_format($idxMid, 2) }}<br>
+                            <span class="text-xs text-gray-500">
+                {{-- Mid ± Avg High --}}
+                <span class="{{ $closestKey === 'mid_plus_avg_high' ? $highlightClass : '' }}">
+                    +{{ number_format($midPlusAvgHigh, 2) }} ({{ $diffFn($midPlusAvgHigh) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'mid_minus_avg_high' ? $highlightClass : '' }}">
+                    -{{ number_format($midMinusAvgHigh, 2) }} ({{ $diffFn($midMinusAvgHigh) }})
+                </span>
+                <br>
+                {{-- Mid ± Avg Low --}}
+                <span class="{{ $closestKey === 'mid_plus_avg_low' ? $highlightClass : '' }}">
+                    +{{ number_format($midPlusAvgLow, 2) }} ({{ $diffFn($midPlusAvgLow) }})
+                </span>
+                /
+                <span class="{{ $closestKey === 'mid_minus_avg_low' ? $highlightClass : '' }}">
+                    -{{ number_format($midMinusAvgLow, 2) }} ({{ $diffFn($midMinusAvgLow) }})
+                </span>
+            </span>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="12" class="px-3 py-6 text-center text-sm text-gray-500">
+                        <td colspan="16" class="px-3 py-6 text-center text-sm text-gray-500">
                             No records found for the selected filters.
                         </td>
                     </tr>
@@ -272,7 +563,6 @@
             </table>
         </div>
 
-        {{-- Pagination --}}
         <div class="mt-4">
             {{ $rows->links() }}
         </div>

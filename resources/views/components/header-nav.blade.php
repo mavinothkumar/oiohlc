@@ -45,6 +45,7 @@
                         <a href="{{ route('backtests.six-level.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Six Levels</a>
                         <a href="{{ route('backtests.straddles.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Straddle</a>
                         <a href="{{ route('backtests.futures.ohlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Future</a>
+                        <a href="{{ route('analysis.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">ATM Analysis</a>
                     </div>
                 </div>
             </div>

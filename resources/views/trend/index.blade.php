@@ -23,7 +23,7 @@
                 <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
                 <tr>
                     <th class="px-3 py-2 w-20">Symbol</th>
-                    <th class="px-3 py-2 w-28">Idx LTP</th>
+                    <th class="px-3 py-2 w-28">Idx Open</th>
                     <th class="px-3 py-2 w-24">Strike</th>
                     <th class="px-3 py-2 w-24">Index Close</th>
                     <th class="px-3 py-2 w-14">Opt</th>
@@ -61,8 +61,8 @@
                                 {{-- Index LTP (merged) --}}
                                 <td class="px-3 py-2 align-middle border-r border-slate-200 text-indigo-700 font-semibold"
                                     rowspan="{{ count($contracts) }}">
-                                    @if(!is_null($row['index_ltp']))
-                                        {{ number_format($row['index_ltp'], 2) }}
+                                    @if(!is_null($row['index_open']))
+                                        {{ number_format($row['index_open'], 2) }}
                                     @else
                                         —
                                     @endif

@@ -297,6 +297,7 @@ class TrendController extends Controller
                     'low'             => $low,
                     'close'           => $close,
                     'index_close'     => $trend->index_close,
+                    'index_open'     => $trend->current_day_index_open,
                     'high_close_diff' => $highCloseDiff,
                     'close_low_diff'  => $closeLowDiff,
                     'type'            => $type,
