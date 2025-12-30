@@ -59,7 +59,11 @@
     {{-- put this at the bottom of resources/views/options-chart.blade.php --}}
 
     {{-- Lightweight Charts v4 (has addCandlestickSeries) --}}
-    <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+    <script src="https://unpkg.com/lightweight-charts-line-tools@1.0.5/dist/lightweight-charts-line-tools.umd.js"></script>
+
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -76,37 +80,35 @@
             let ceChart = null, ceSeries = null;
             let peChart = null, peSeries = null;
 
-            function createChart (container, upColor) {
+            function createChart(container, upColor) {
                 const rect = container.getBoundingClientRect();
+
                 const chart = LightweightCharts.createChart(container, {
                     width: rect.width,
                     height: rect.height,
-                    layout: {
-                        background: { color: '#ffffff' },
-                        textColor: '#111827'
-                    },
+                    layout: { background: { color: '#ffffff' }, textColor: '#111827' },
                     rightPriceScale: { borderColor: '#e5e7eb' },
                     timeScale: {
                         borderColor: '#e5e7eb',
                         timeVisible: true,
                         secondsVisible: false,
-                        timezone: 'Asia/Kolkata'
+                        timezone: 'Asia/Kolkata',
                     },
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 });
 
-                const series = chart.addCandlestickSeries({
+                const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
                     upColor: upColor,
                     downColor: '#dc2626',
                     borderUpColor: upColor,
                     borderDownColor: '#dc2626',
                     wickUpColor: upColor,
-                    wickDownColor: '#dc2626'
+                    wickDownColor: '#dc2626',
                 });
 
                 new ResizeObserver(entries => {
-                    if ( ! entries.length) return;
-                    const cr = entries[ 0 ].contentRect;
+                    if (!entries.length) return;
+                    const cr = entries[0].contentRect;
                     chart.applyOptions({ width: cr.width, height: cr.height });
                 }).observe(container);
 

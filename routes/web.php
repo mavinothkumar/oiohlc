@@ -48,3 +48,6 @@ Route::get('/api/expiries', [App\Http\Controllers\OhlcChartController::class, 'e
 
 // AJAX: get OHLC for CE & PE
 Route::get('/api/ohlc', [App\Http\Controllers\OhlcChartController::class, 'ohlc'])->name('api.ohlc');
+
+
+Route::get('/strangle-profit', [App\Http\Controllers\StrangleController::class, 'index'])->name('strangle.profit');

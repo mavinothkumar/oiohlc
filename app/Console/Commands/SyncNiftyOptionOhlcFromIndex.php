@@ -15,7 +15,9 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                             {from : From working date YYYY-MM-DD}
                             {to   : To working date YYYY-MM-DD}
                             {--expiry= : Optional explicit expiry date YYYY-MM-DD}
-                            {--no-5m : Skip 5-minute candles}';
+                            {--strikes= : Strikes comma separated}
+                            {--no-5m : Skip 5-minute candles}
+                            ';
 
     protected $description = 'Sync NIFTY option OHLC (day & optionally 5m) based on previous index close and strike range';
 
@@ -23,10 +25,11 @@ class SyncNiftyOptionOhlcFromIndex extends Command
         BacktestIndexService $indexService,
         UpstoxExpiredService $expiredService
     ): int {
-        $from      = $this->argument('from');
-        $to        = $this->argument('to');
-        $expiryOpt = $this->option('expiry');
-        $skip5m    = $this->option('no-5m');
+        $from          = $this->argument('from');
+        $to            = $this->argument('to');
+        $expiryOpt     = $this->option('expiry');
+        $skip5m        = $this->option('no-5m');
+        $manualStrikes = $this->option('strikes');
 
         // All working days in given range
         $workingDays = DB::table('nse_working_days')
@@ -37,6 +40,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
 
         if (empty($workingDays)) {
             $this->warn('No working days in given range.');
+
             return self::FAILURE;
         }
 
@@ -45,7 +49,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
 
             // 1) Previous working date
             $prevDate = $indexService->getPreviousWorkingDate($workingDate);
-            if (! $prevDate) {
+            if ( ! $prevDate) {
                 $this->warn("  No previous working date for {$workingDate}, skipping.");
                 continue;
             }
@@ -58,13 +62,16 @@ class SyncNiftyOptionOhlcFromIndex extends Command
             }
 
             // 3) Generate strikes ±500 around rounded 50
-            $strikes = $indexService->generateNiftyStrikes($close);
-            $this->line("  Prev close {$prevDate} = {$close}, strikes from "
-                        . reset($strikes) . ' to ' . end($strikes));
-
+            if ( ! $manualStrikes) {
+                $strikes = $indexService->generateNiftyStrikes($close);
+                $this->line("  Prev close {$prevDate} = {$close}, strikes from "
+                            .reset($strikes).' to '.end($strikes));
+            } else {
+                $strikes = explode(',', $manualStrikes);
+            }
             // 4) Resolve expiry: CLI option or current expiry for working date
             $expiryDate = $expiryOpt ?: $indexService->getCurrentExpiryForDate($workingDate);
-            if (! $expiryDate) {
+            if ( ! $expiryDate) {
                 $this->warn("  No expiry found for {$workingDate}, skipping.");
                 continue;
             }
@@ -98,44 +105,45 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                 $this->storeOptionCandles($dayCandles, $contract, 'day');
 
                 // 6b) 5-minute candles in chunks, only if enabled
-                if (! $skip5m) {
-                $chunkDays = 5;
-                $start     = Carbon::parse($fromDate);
-                $end       = Carbon::parse($toDate);
-                $period    = new CarbonPeriod($start, $chunkDays . ' days', $end);
+                if ( ! $skip5m) {
+                    $chunkDays = 5;
+                    $start     = Carbon::parse($fromDate);
+                    $end       = Carbon::parse($toDate);
+                    $period    = new CarbonPeriod($start, $chunkDays.' days', $end);
 
-                foreach ($period as $chunkStart) {
-                    $chunkEnd = $chunkStart->copy()->addDays($chunkDays - 1);
-                    if ($chunkEnd->gt($end)) {
-                        $chunkEnd = $end;
-                    }
+                    foreach ($period as $chunkStart) {
+                        $chunkEnd = $chunkStart->copy()->addDays($chunkDays - 1);
+                        if ($chunkEnd->gt($end)) {
+                            $chunkEnd = $end;
+                        }
 
-                    $fromChunk = $chunkStart->format('Y-m-d');
-                    $toChunk   = $chunkEnd->format('Y-m-d');
+                        $fromChunk = $chunkStart->format('Y-m-d');
+                        $toChunk   = $chunkEnd->format('Y-m-d');
 
-                    $this->line("      5m {$fromChunk} → {$toChunk}");
+                        $this->line("      5m {$fromChunk} → {$toChunk}");
 
-                    $fiveMinCandles = $expiredService->getExpiredHistoricalCandles(
-                        $instrumentKey,
-                        '5minute',
-                        $fromChunk,
-                        $toChunk
-                    );
+                        $fiveMinCandles = $expiredService->getExpiredHistoricalCandles(
+                            $instrumentKey,
+                            '5minute',
+                            $fromChunk,
+                            $toChunk
+                        );
 
-                    $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
+                        $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
                     }
                 }
             }
         }
 
         $this->info('Finished syncing NIFTY option OHLC.');
+
         return self::SUCCESS;
     }
 
     /**
      * Store option candles (day or 5m) into expired_ohlc.
      *
-     * @param array $candles [ [ts, o, h, l, c, v, oi], ... ] or associative
+     * @param  array  $candles  [ [ts, o, h, l, c, v, oi], ... ] or associative
      */
     protected function storeOptionCandles(
         array $candles,
@@ -150,13 +158,13 @@ class SyncNiftyOptionOhlcFromIndex extends Command
 
         foreach ($candles as $candle) {
             // Handle both numeric-indexed and associative formats
-            $ts     = $candle[0]       ?? $candle['timestamp']     ?? null;
-            $open   = $candle[1]       ?? $candle['open']          ?? null;
-            $high   = $candle[2]       ?? $candle['high']          ?? null;
-            $low    = $candle[3]       ?? $candle['low']           ?? null;
-            $close  = $candle[4]       ?? $candle['close']         ?? null;
-            $volume = $candle[5]       ?? $candle['volume']        ?? null;
-            $oi     = $candle[6]       ?? $candle['open_interest'] ?? null;
+            $ts     = $candle[0] ?? $candle['timestamp'] ?? null;
+            $open   = $candle[1] ?? $candle['open'] ?? null;
+            $high   = $candle[2] ?? $candle['high'] ?? null;
+            $low    = $candle[3] ?? $candle['low'] ?? null;
+            $close  = $candle[4] ?? $candle['close'] ?? null;
+            $volume = $candle[5] ?? $candle['volume'] ?? null;
+            $oi     = $candle[6] ?? $candle['open_interest'] ?? null;
 
             if ($ts === null) {
                 continue;
