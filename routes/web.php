@@ -58,3 +58,5 @@ Route::get('/strangle-profit', [App\Http\Controllers\StrangleController::class, 
 Route::get('/entry', [App\Http\Controllers\EntryController::class, 'index'])->name('entries.index');   // show form + P&L table
 Route::post('/entries', [App\Http\Controllers\EntryController::class, 'store'])->name('entries.store'); // save entry
 Route::get('/pnl-data', [App\Http\Controllers\EntryController::class, 'pnlData'])->name('entries.pnl'); // ajax P&L refresh
+Route::delete('/entries/{entry}', [App\Http\Controllers\EntryController::class, 'destroy'])->name('entries.destroy');
+Route::get('/pnl-series', [App\Http\Controllers\EntryController::class, 'pnlSeries'])->name('entries.pnlSeries');

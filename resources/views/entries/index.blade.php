@@ -11,6 +11,9 @@
         <button id="pauseBtn" class="px-3 py-1 rounded bg-amber-500 text-white text-sm">Pause</button>
         <button id="stopBtn" class="px-3 py-1 rounded bg-rose-600 text-white text-sm">Stop</button>
         <span id="statusText" class="ml-3 text-xs text-slate-400">Status: Paused</span>
+        <span id="currentTimeText" class="ml-4 text-2xl">
+        Time: --
+    </span>
     </div>
 
     {{-- Entry form --}}
@@ -55,8 +58,8 @@
             <span class="text-[11px] ">Side</span>
             <select name="side"
                 class="px-2 py-1 rounded border border-slate-700 text-xs">
-                <option value="BUY">Buy</option>
                 <option value="SELL">Sell</option>
+                <option value="BUY">Buy</option>
             </select>
         </div>
 
@@ -80,7 +83,7 @@
 
         <div class="flex flex-col gap-1">
             <span class="text-[11px] ">Qty</span>
-            <input type="number" name="quantity"
+            <input type="number" name="quantity" step="65"
                 class="px-2 py-1 rounded border border-slate-700 text-xs" />
         </div>
 
@@ -93,9 +96,9 @@
 
 
     {{-- Profit table --}}
-    <div class="bg-slate-800 rounded-lg overflow-hidden">
+    <div class="rounded-lg overflow-hidden">
         <table class="min-w-full text-xs">
-            <thead class="bg-slate-700 ">
+            <thead class=" ">
             <tr>
                 <th class="px-3 py-2 text-left">Script</th>
                 <th class="px-3 py-2 text-center">Side</th>
@@ -103,6 +106,7 @@
                 <th class="px-3 py-2 text-right">Entry</th>
                 <th class="px-3 py-2 text-right">LTP</th>
                 <th class="px-3 py-2 text-right">P&L</th>
+                <th class="px-3 py-2 text-right">Action</th>
             </tr>
             </thead>
             <tbody id="pnlBody">
@@ -110,8 +114,8 @@
                 <tr class="border-t border-slate-700">
                     <td class="px-3 py-1">{{ $e->underlying_symbol }} {{ $e->expiry }} {{ $e->strike }} {{ $e->instrument_type }}</td>
                     <td class="px-3 py-1 text-center">
-                        <span class="inline-flex items-center px-2 rounded-full text-[10px]
-                            {{ $e->side === 'BUY' ? 'bg-emerald-700' : 'bg-rose-700' }}">
+                        <span class="inline-flex items-center px-2 rounded-full text-[10px] text-white
+                            {{ $e->side === 'BUY' ? 'bg-green-700' : 'bg-red-700' }}">
                             {{ $e->side }}
                         </span>
                     </td>
@@ -119,11 +123,21 @@
                     <td class="px-3 py-1 text-right">{{ number_format($e->entry_price, 2) }}</td>
                     <td class="px-3 py-1 text-right">-</td>
                     <td class="px-3 py-1 text-right">-</td>
+                    <td class="px-3 py-1 text-right">
+                        <form method="POST" action="{{ route('entries.destroy', $e) }}"
+                            onsubmit="return confirm('Delete this entry?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="px-2 py-1 bg-rose-600 text-white rounded text-[11px]">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
                 </tr>
             @endforeach
             </tbody>
             <tfoot>
-            <tr class="bg-slate-700 font-semibold">
+            <tr class=" font-semibold">
                 <td colspan="5" class="px-3 py-2 text-right">Total P&L</td>
                 <td id="totalPnl" class="px-3 py-2 text-right">0.00</td>
             </tr>
@@ -133,65 +147,109 @@
 
     {{-- JS polling: calls /pnl-data every 0.5s and updates the table --}}
     <script>
-        let timer = null;
         let running = false;
+        let stepIndex = 0;
+        let timer = null;
+        let seriesData = null;
 
-        const statusText = document.getElementById('statusText');
         const bodyEl = document.getElementById('pnlBody');
         const totalEl = document.getElementById('totalPnl');
+        const statusText = document.getElementById('statusText');
+        const currentTimeText = document.getElementById('currentTimeText');
 
-        async function fetchPnl() {
-            if (!running) return;
+        function renderStep() {
+            if (!running || !seriesData) return;
 
-            const res = await fetch('{{ route('entries.pnl') }}');
-            const data = await res.json();
+            const { series, maxSteps } = seriesData;
+
+            if (stepIndex >= maxSteps) {
+                running = false;
+                statusText.textContent = 'Status: Finished';
+                clearInterval(timer);
+                return;
+            }
 
             bodyEl.innerHTML = '';
-            data.rows.forEach(row => {
+            let total = 0;
+            let stepTime = null;
+
+            series.forEach(row => {
+                const p = row.points[stepIndex] || row.points[row.points.length - 1];
+                if (p && !stepTime) {
+                    stepTime = p.time; // "YYYY-MM-DD HH:MM:SS"
+                }
+
+                const ltp = p ? p.ltp : null;
+                const pnl = p ? p.pnl : 0;
+                total += pnl;
+
                 const tr = document.createElement('tr');
                 tr.className = 'border-t border-slate-700';
-
-                const pnlColor = row.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                const pnlColor = pnl >= 0 ? 'text-green-400' : 'text-red-400';
 
                 tr.innerHTML = `
-                    <td class="px-3 py-1">${row.script}</td>
-                    <td class="px-3 py-1 text-center">
-                        <span class="inline-flex px-2 rounded-full text-[10px] ${
-                    row.side === 'BUY' ? 'bg-emerald-700' : 'bg-rose-700'
+            <td class="px-3 py-1">${row.script}</td>
+            <td class="px-3 py-1 text-center">
+                <span class="inline-flex px-2 rounded-full text-[10px] ${
+                    row.side === 'BUY' ? 'bg-green-700' : 'bg-red-700'
                 }">${row.side}</span>
-                    </td>
-                    <td class="px-3 py-1 text-right">${row.qty}</td>
-                    <td class="px-3 py-1 text-right">${row.entry.toFixed(2)}</td>
-                    <td class="px-3 py-1 text-right">${row.ltp ? row.ltp.toFixed(2) : '-'}</td>
-                    <td class="px-3 py-1 text-right ${pnlColor}">${row.pnl.toFixed(2)}</td>
-                `;
+            </td>
+            <td class="px-3 py-1 text-right">${row.qty}</td>
+            <td class="px-3 py-1 text-right">${row.entry.toFixed(2)}</td>
+            <td class="px-3 py-1 text-right">${ltp !== null ? ltp.toFixed(2) : '-'}</td>
+            <td class="px-3 py-1 text-right ${pnlColor}">${pnl.toFixed(2)}</td>
+        `;
                 bodyEl.appendChild(tr);
             });
 
-            totalEl.textContent = data.total.toFixed(2);
-            totalEl.className = 'px-3 py-2 text-right ' + (data.total >= 0 ? 'text-emerald-400' : 'text-rose-400');
+            if (stepTime) {
+                // optional: format nicer client-side
+                currentTimeText.textContent = 'Time: ' + stepTime;
+            }
+
+            totalEl.textContent = total.toFixed(2);
+            totalEl.className = 'px-3 py-2 text-right ' +
+                (total >= 0 ? 'text-green-400' : 'text-red-400');
+
+            stepIndex++;
         }
 
-        function startPolling() {
+        async function startReplay() {
             if (running) return;
+
+            statusText.textContent = 'Status: Loading...';
+
+            const res = await fetch('{{ route('entries.pnlSeries') }}', {
+                headers: { 'Accept': 'application/json' }
+            });
+            seriesData = await res.json();
+
+            stepIndex = 0;
             running = true;
             statusText.textContent = 'Status: Running';
-            timer = setInterval(fetchPnl, 500); // 0.5 seconds
+
+            if (timer) clearInterval(timer);
+            renderStep();                         // first frame
+            timer = setInterval(renderStep, 1000); // 0.5 second per step
         }
 
-        function pausePolling() {
+        function pauseReplay() {
             running = false;
             statusText.textContent = 'Status: Paused';
         }
 
-        function stopPolling() {
+        function stopReplay() {
             running = false;
+            seriesData = null;
+            stepIndex = 0;
             statusText.textContent = 'Status: Stopped';
             if (timer) clearInterval(timer);
         }
 
-        document.getElementById('startBtn').addEventListener('click', startPolling);
-        document.getElementById('pauseBtn').addEventListener('click', pausePolling);
-        document.getElementById('stopBtn').addEventListener('click', stopPolling);
+        document.getElementById('startBtn').addEventListener('click', startReplay);
+        document.getElementById('pauseBtn').addEventListener('click', pauseReplay);
+        document.getElementById('stopBtn').addEventListener('click', stopReplay);
+
     </script>
+
 @endsection
