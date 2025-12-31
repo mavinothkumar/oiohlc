@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Services\BacktestIndexService;
 use App\Services\UpstoxExpiredService;
 use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -19,198 +18,126 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                             {--no-5m : Skip 5-minute candles}
                             ';
 
-    protected $description = 'Sync NIFTY option OHLC (day & optionally 5m) based on previous index close and strike range';
+    protected $description = 'Sync NIFTY option OHLC (day & optionally 5m) - OPTIMIZED';
 
     public function handle(
         BacktestIndexService $indexService,
         UpstoxExpiredService $expiredService
     ): int {
-        $from          = $this->argument('from');
-        $to            = $this->argument('to');
-        $expiryOpt     = $this->option('expiry');
-        $skip5m        = $this->option('no-5m');
+        $from = $this->argument('from');
+        $to = $this->argument('to');
+        $expiryOpt = $this->option('expiry');
+        $skip5m = $this->option('no-5m');
         $manualStrikes = $this->option('strikes');
 
-        // All working days in given range
+        // Validate working days exist
         $workingDays = DB::table('nse_working_days')
                          ->whereBetween('working_date', [$from, $to])
-                         ->orderBy('working_date')
                          ->pluck('working_date')
                          ->all();
 
         if (empty($workingDays)) {
             $this->warn('No working days in given range.');
-
             return self::FAILURE;
         }
 
-        foreach ($workingDays as $workingDate) {
-            $this->info("Processing working date {$workingDate}...");
+        // Single expiry for entire range
+        $firstWorkingDate = $workingDays[0];
+        $expiryDate = $expiryOpt ?: $indexService->getCurrentExpiryForDate($firstWorkingDate);
+        if (!$expiryDate) {
+            $this->warn("No expiry found for {$firstWorkingDate}");
+            return self::FAILURE;
+        }
 
-            // 1) Previous working date
-            $prevDate = $indexService->getPreviousWorkingDate($workingDate);
-            if ( ! $prevDate) {
-                $this->warn("  No previous working date for {$workingDate}, skipping.");
-                continue;
-            }
+        $this->info("Using expiry {$expiryDate} for {$from} → {$to}");
 
-            // 2) Previous NIFTY close from expired_ohlc (INDEX, day)
-            $close = $indexService->getNiftyCloseForDate($prevDate);
-            if ($close === null) {
-                $this->warn("  No NIFTY close found for {$prevDate}, skipping {$workingDate}.");
-                continue;
-            }
+        // Single NIFTY close from first day's previous
+        $prevDate = $indexService->getPreviousWorkingDate($firstWorkingDate);
+        $close = $indexService->getNiftyCloseForDate($prevDate);
+        if ($close === null) {
+            $this->warn("No NIFTY close for {$prevDate}");
+            return self::FAILURE;
+        }
 
-            // 3) Generate strikes ±500 around rounded 50
-            if ( ! $manualStrikes) {
-                $strikes = $indexService->generateNiftyStrikes($close);
-                $this->line("  Prev close {$prevDate} = {$close}, strikes from "
-                            .reset($strikes).' to '.end($strikes));
-            } else {
-                $strikes = explode(',', $manualStrikes);
-            }
-            // 4) Resolve expiry: CLI option or current expiry for working date
-            $expiryDate = $expiryOpt ?: $indexService->getCurrentExpiryForDate($workingDate);
-            if ( ! $expiryDate) {
-                $this->warn("  No expiry found for {$workingDate}, skipping.");
-                continue;
-            }
+        // Generate strikes once
+        $strikes = $manualStrikes
+            ? explode(',', $manualStrikes)
+            : $indexService->generateNiftyStrikes($close);
 
-            $this->line("  Using expiry {$expiryDate}.");
+        $this->line("NIFTY close {$close}, strikes: " . count($strikes) . " pcs");
 
-            // 5) Get CE & PE contracts for those strikes and expiry
-            $contracts = $indexService->getNiftyOptionContractsForStrikes($expiryDate, $strikes);
+        // Get all contracts once
+        $contracts = $indexService->getNiftyOptionContractsForStrikes($expiryDate, $strikes);
+        if (empty($contracts)) {
+            $this->warn("No contracts found");
+            return self::FAILURE;
+        }
 
-            if (empty($contracts)) {
-                $this->warn("  No option contracts for expiry {$expiryDate} and strikes, skipping.");
-                continue;
-            }
+        $this->info("Processing " . count($contracts) . " contracts...");
 
-            // 6) For each contract, fetch day (+ optional 5m) expired candles
-            foreach ($contracts as $contract) {
-                $instrumentKey = $contract->instrument_key;
-                $this->line("   -> {$instrumentKey} ({$contract->instrument_type} {$contract->strike_price})");
+        // **OPTIMIZED: 1 API call per instrument per interval for FULL date range**
+        foreach ($contracts as $contract) {
+            $instrumentKey = $contract->instrument_key;
+            $this->line("  -> {$instrumentKey} ({$contract->instrument_type} {$contract->strike_price})");
 
-                // You can widen this range later if needed
-                $fromDate = $workingDate;
-                $toDate   = $workingDate;
+            // Day candles - SINGLE call for entire range
+            $dayCandles = $expiredService->getExpiredHistoricalCandles(
+                $instrumentKey, 'day', $from, $to
+            );
+            $this->storeOptionCandles($dayCandles, $contract, 'day');
 
-                // 6a) Day candles (no chunking needed)
-                $dayCandles = $expiredService->getExpiredHistoricalCandles(
-                    $instrumentKey,
-                    'day',
-                    $fromDate,
-                    $toDate
+            // 5m candles - SINGLE call for entire range (if enabled)
+            if (!$skip5m) {
+                $fiveMinCandles = $expiredService->getExpiredHistoricalCandles(
+                    $instrumentKey, '5minute', $from, $to
                 );
-                $this->storeOptionCandles($dayCandles, $contract, 'day');
-
-                // 6b) 5-minute candles in chunks, only if enabled
-                if ( ! $skip5m) {
-                    $chunkDays = 5;
-                    $start     = Carbon::parse($fromDate);
-                    $end       = Carbon::parse($toDate);
-                    $period    = new CarbonPeriod($start, $chunkDays.' days', $end);
-
-                    foreach ($period as $chunkStart) {
-                        $chunkEnd = $chunkStart->copy()->addDays($chunkDays - 1);
-                        if ($chunkEnd->gt($end)) {
-                            $chunkEnd = $end;
-                        }
-
-                        $fromChunk = $chunkStart->format('Y-m-d');
-                        $toChunk   = $chunkEnd->format('Y-m-d');
-
-                        $this->line("      5m {$fromChunk} → {$toChunk}");
-
-                        $fiveMinCandles = $expiredService->getExpiredHistoricalCandles(
-                            $instrumentKey,
-                            '5minute',
-                            $fromChunk,
-                            $toChunk
-                        );
-
-                        $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
-                    }
-                }
+                $this->storeOptionCandles($fiveMinCandles, $contract, '5minute');
             }
         }
 
-        $this->info('Finished syncing NIFTY option OHLC.');
-
+        $this->info('✅ Finished syncing NIFTY option OHLC.');
         return self::SUCCESS;
     }
 
-    /**
-     * Store option candles (day or 5m) into expired_ohlc.
-     *
-     * @param  array  $candles  [ [ts, o, h, l, c, v, oi], ... ] or associative
-     */
-    protected function storeOptionCandles(
-        array $candles,
-        $contract,
-        string $interval
-    ): void {
-        if (empty($candles)) {
-            return;
-        }
+    protected function storeOptionCandles(array $candles, $contract, string $interval): void
+    {
+        if (empty($candles)) return;
 
         $rows = [];
-
         foreach ($candles as $candle) {
-            // Handle both numeric-indexed and associative formats
-            $ts     = $candle[0] ?? $candle['timestamp'] ?? null;
-            $open   = $candle[1] ?? $candle['open'] ?? null;
-            $high   = $candle[2] ?? $candle['high'] ?? null;
-            $low    = $candle[3] ?? $candle['low'] ?? null;
-            $close  = $candle[4] ?? $candle['close'] ?? null;
-            $volume = $candle[5] ?? $candle['volume'] ?? null;
-            $oi     = $candle[6] ?? $candle['open_interest'] ?? null;
+            $ts = $candle[0] ?? $candle['timestamp'] ?? null;
+            if (!$ts) continue;
 
-            if ($ts === null) {
-                continue;
-            }
-
-            if (is_numeric($ts)) {
-                $timestamp = gmdate('Y-m-d H:i:s', (int) ($ts / 1000));
-            } else {
-                $timestamp = date('Y-m-d H:i:s', strtotime($ts));
-            }
+            $timestamp = is_numeric($ts)
+                ? gmdate('Y-m-d H:i:s', (int) ($ts / 1000))
+                : date('Y-m-d H:i:s', strtotime($ts));
 
             $rows[] = [
-                'underlying_symbol' => $contract->underlying_symbol, // NIFTY
-                'exchange'          => $contract->exchange,          // NSE
-                'expiry'            => $contract->expiry,
-                'instrument_key'    => $contract->instrument_key,
-                'instrument_type'   => $contract->instrument_type,   // CE / PE
-                'strike'            => $contract->strike_price,
-                'open'              => $open,
-                'high'              => $high,
-                'low'               => $low,
-                'close'             => $close,
-                'interval'          => $interval,
-                'volume'            => $volume,
-                'open_interest'     => $oi,
-                'timestamp'         => $timestamp,
-                'created_at'        => now(),
-                'updated_at'        => now(),
+                'underlying_symbol' => $contract->underlying_symbol,
+                'exchange' => $contract->exchange,
+                'expiry' => $contract->expiry,
+                'instrument_key' => $contract->instrument_key,
+                'instrument_type' => $contract->instrument_type,
+                'strike' => $contract->strike_price,
+                'open' => $candle[1] ?? $candle['open'] ?? null,
+                'high' => $candle[2] ?? $candle['high'] ?? null,
+                'low' => $candle[3] ?? $candle['low'] ?? null,
+                'close' => $candle[4] ?? $candle['close'] ?? null,
+                'volume' => $candle[5] ?? $candle['volume'] ?? null,
+                'open_interest' => $candle[6] ?? $candle['open_interest'] ?? null,
+                'interval' => $interval,
+                'timestamp' => $timestamp,
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
         }
 
+        // Bulk upsert in chunks
         foreach (array_chunk($rows, 500) as $chunk) {
             DB::table('expired_ohlc')->upsert(
                 $chunk,
                 ['instrument_key', 'interval', 'timestamp'],
-                [
-                    'open',
-                    'high',
-                    'low',
-                    'close',
-                    'volume',
-                    'open_interest',
-                    'expiry',
-                    'strike',
-                    'updated_at',
-                ]
+                ['open', 'high', 'low', 'close', 'volume', 'open_interest', 'expiry', 'strike', 'updated_at']
             );
         }
     }

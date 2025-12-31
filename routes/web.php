@@ -51,3 +51,10 @@ Route::get('/api/ohlc', [App\Http\Controllers\OhlcChartController::class, 'ohlc'
 
 
 Route::get('/strangle-profit', [App\Http\Controllers\StrangleController::class, 'index'])->name('strangle.profit');
+
+
+
+
+Route::get('/entry', [App\Http\Controllers\EntryController::class, 'index'])->name('entries.index');   // show form + P&L table
+Route::post('/entries', [App\Http\Controllers\EntryController::class, 'store'])->name('entries.store'); // save entry
+Route::get('/pnl-data', [App\Http\Controllers\EntryController::class, 'pnlData'])->name('entries.pnl'); // ajax P&L refresh

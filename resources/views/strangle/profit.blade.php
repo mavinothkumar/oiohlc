@@ -39,7 +39,7 @@
                 <div class="flex items-end lg:pt-9">
                     <button
                         onclick="updateURL()"
-                        class="bg-primary hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-lg"
+                        class="bg-primary bg-blue-600 font-semibold px-8 py-3 rounded-xl shadow-lg text-lg"
                     >
                         Analyze Month
                     </button>
@@ -147,129 +147,129 @@
         </div>
 
 
-        @if (!empty($data['strikes']))
-            <!-- Monthly Summary -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                @foreach($data['strikes'] as $strikeKey => $strikeData)
-                    <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-xl font-bold text-gray-900">
-                                {{ $strikeData['strike'] }} {{ $strikeData['instrument_type'] }}
-                            </h3>
-                            <span class="px-3 py-1 rounded-full text-sm font-semibold
-                        {{ $strikeData['total_pnl_pct'] >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                        {{ $strikeData['trading_days'] }} days
-                    </span>
-                        </div>
-                        <div class="space-y-2 text-center">
-                            <div class="text-3xl font-bold {{ $strikeData['total_pnl_pct'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                {{ $strikeData['total_pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($strikeData['total_pnl_pct'], 1) }}%
-                            </div>
-                            <div class="text-2xl font-bold {{ $strikeData['total_pnl_abs'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                ₹{{ number_format($strikeData['total_pnl_abs'], 2) }}
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+{{--        @if (!empty($data['strikes']))--}}
+{{--            <!-- Monthly Summary -->--}}
+{{--            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">--}}
+{{--                @foreach($data['strikes'] as $strikeKey => $strikeData)--}}
+{{--                    <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">--}}
+{{--                        <div class="flex items-center justify-between mb-4">--}}
+{{--                            <h3 class="text-xl font-bold text-gray-900">--}}
+{{--                                {{ $strikeData['strike'] }} {{ $strikeData['instrument_type'] }}--}}
+{{--                            </h3>--}}
+{{--                            <span class="px-3 py-1 rounded-full text-sm font-semibold--}}
+{{--                        {{ $strikeData['total_pnl_pct'] >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">--}}
+{{--                        {{ $strikeData['trading_days'] }} days--}}
+{{--                    </span>--}}
+{{--                        </div>--}}
+{{--                        <div class="space-y-2 text-center">--}}
+{{--                            <div class="text-3xl font-bold {{ $strikeData['total_pnl_pct'] >= 0 ? 'text-green-600' : 'text-red-600' }}">--}}
+{{--                                {{ $strikeData['total_pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($strikeData['total_pnl_pct'], 1) }}%--}}
+{{--                            </div>--}}
+{{--                            <div class="text-2xl font-bold {{ $strikeData['total_pnl_abs'] >= 0 ? 'text-green-600' : 'text-red-600' }}">--}}
+{{--                                ₹{{ number_format($strikeData['total_pnl_abs'], 2) }}--}}
+{{--                            </div>--}}
+{{--                        </div>--}}
+{{--                    </div>--}}
+{{--                @endforeach--}}
+{{--            </div>--}}
 
-            <!-- Daily P&L Table -->
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                <div class="bg-gradient-to-r from-primary to-blue-600 px-8 py-6">
-                    <h2 class="text-2xl font-bold text-white">Daily Open-to-Open P&L</h2>
-                    <p class="text-blue-100 mt-1">Positive = Profit for Short Strangle</p>
-                </div>
+{{--            <!-- Daily P&L Table -->--}}
+{{--            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">--}}
+{{--                <div class="bg-gradient-to-r from-primary to-blue-600 px-8 py-6">--}}
+{{--                    <h2 class="text-2xl font-bold text-white">Daily Open-to-Open P&L</h2>--}}
+{{--                    <p class="text-blue-100 mt-1">Positive = Profit for Short Strangle</p>--}}
+{{--                </div>--}}
 
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
-                            @foreach($data['strikes'] as $strikeKey => $strikeData)
-                                <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                    {{ $strikeData['strike'] }}<br><span class="text-xs text-gray-500">{{ $strikeData['instrument_type'] }}</span>
-                                </th>
-                            @endforeach
-                        </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                        @foreach($data['strikes'][array_key_first($data['strikes'])]['daily_data'] ?? [] as $dayIndex => $dayData)
-                            <tr class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="px-6 py-4 font-mono font-semibold text-sm bg-gray-50">
-                                    {{ \Carbon\Carbon::parse($dayData['date'])->format('M d') }}
-                                    <div class="text-xs text-gray-500">{{ $dayData['timestamp'] }}</div>
-                                </td>
-                                @foreach($data['strikes'] as $strikeKey => $strikeData)
-                                    @php
-                                        $daily = $strikeData['daily_data'][$dayIndex] ?? null;
-                                    @endphp
-                                    <td class="px-4 py-4">
-                                        @if($daily)
-                                            <div class="font-mono text-sm">
-                                                <div class="font-semibold text-lg {{ $daily['pnl_pct'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                                    {{ $daily['pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($daily['pnl_pct'], 1) }}%
-                                                </div>
-                                                <div class="text-xs text-gray-500">₹{{ number_format($daily['pnl_abs'], 2) }}</div>
-                                                <div class="text-xs opacity-75">{{ number_format($daily['open'], 1) }}</div>
-                                            </div>
-                                        @else
-                                            <div class="text-xs text-gray-400 italic">No data</div>
-                                        @endif
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+{{--                <div class="overflow-x-auto">--}}
+{{--                    <table class="w-full">--}}
+{{--                        <thead class="bg-gray-50">--}}
+{{--                        <tr>--}}
+{{--                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>--}}
+{{--                            @foreach($data['strikes'] as $strikeKey => $strikeData)--}}
+{{--                                <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">--}}
+{{--                                    {{ $strikeData['strike'] }}<br><span class="text-xs text-gray-500">{{ $strikeData['instrument_type'] }}</span>--}}
+{{--                                </th>--}}
+{{--                            @endforeach--}}
+{{--                        </tr>--}}
+{{--                        </thead>--}}
+{{--                        <tbody class="divide-y divide-gray-100">--}}
+{{--                        @foreach($data['strikes'][array_key_first($data['strikes'])]['daily_data'] ?? [] as $dayIndex => $dayData)--}}
+{{--                            <tr class="hover:bg-gray-50 transition-colors duration-150">--}}
+{{--                                <td class="px-6 py-4 font-mono font-semibold text-sm bg-gray-50">--}}
+{{--                                    {{ \Carbon\Carbon::parse($dayData['date'])->format('M d') }}--}}
+{{--                                    <div class="text-xs text-gray-500">{{ $dayData['timestamp'] }}</div>--}}
+{{--                                </td>--}}
+{{--                                @foreach($data['strikes'] as $strikeKey => $strikeData)--}}
+{{--                                    @php--}}
+{{--                                        $daily = $strikeData['daily_data'][$dayIndex] ?? null;--}}
+{{--                                    @endphp--}}
+{{--                                    <td class="px-4 py-4">--}}
+{{--                                        @if($daily)--}}
+{{--                                            <div class="font-mono text-sm">--}}
+{{--                                                <div class="font-semibold text-lg {{ $daily['pnl_pct'] >= 0 ? 'text-green-600' : 'text-red-600' }}">--}}
+{{--                                                    {{ $daily['pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($daily['pnl_pct'], 1) }}%--}}
+{{--                                                </div>--}}
+{{--                                                <div class="text-xs text-gray-500">₹{{ number_format($daily['pnl_abs'], 2) }}</div>--}}
+{{--                                                <div class="text-xs opacity-75">{{ number_format($daily['open'], 1) }}</div>--}}
+{{--                                            </div>--}}
+{{--                                        @else--}}
+{{--                                            <div class="text-xs text-gray-400 italic">No data</div>--}}
+{{--                                        @endif--}}
+{{--                                    </td>--}}
+{{--                                @endforeach--}}
+{{--                            </tr>--}}
+{{--                        @endforeach--}}
+{{--                        </tbody>--}}
+{{--                    </table>--}}
+{{--                </div>--}}
+{{--            </div>--}}
 
-            <!-- Individual Strike Details -->
-            @foreach($data['strikes'] as $strikeKey => $strikeData)
-                <div class="mt-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                        <span class="w-3 h-3 rounded-full mr-3 {{ $strikeData['total_pnl_pct'] >= 0 ? 'bg-green-500' : 'bg-red-500' }}"></span>
-                        Detailed: {{ $strikeData['strike'] }} {{ $strikeData['instrument_type'] }}
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Date</th>
-                                <th class="px-4 py-3 text-left">O</th>
-                                <th class="px-4 py-3 text-left">H</th>
-                                <th class="px-4 py-3 text-left">L</th>
-                                <th class="px-4 py-3 text-left">C</th>
-                                <th class="px-4 py-3 text-left">Vol</th>
-                                <th class="px-4 py-3 text-left">OI</th>
-                                <th class="px-4 py-3 text-left">P&L %</th>
-                                <th class="px-4 py-3 text-left">P&L ₹</th>
-                            </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                            @foreach($strikeData['daily_data'] as $daily)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 font-mono">{{ \Carbon\Carbon::parse($daily['date'])->format('M d') }}</td>
-                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['open'], 1) }}</td>
-                                    <td class="px-4 py-3 font-mono text-green-600">{{ number_format($daily['high'], 1) }}</td>
-                                    <td class="px-4 py-3 font-mono text-red-600">{{ number_format($daily['low'], 1) }}</td>
-                                    <td class="px-4 py-3 font-mono font-semibold">{{ number_format($daily['close'], 1) }}</td>
-                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['volume']/1000000, 1) }}M</td>
-                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['oi']/1000, 0) }}K</td>
-                                    <td class="px-4 py-3 font-mono {{ $daily['pnl_pct'] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">
-                                        {{ $daily['pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($daily['pnl_pct'], 1) }}%
-                                    </td>
-                                    <td class="px-4 py-3 font-mono {{ $daily['pnl_abs'] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">
-                                        {{ $daily['pnl_abs'] >= 0 ? '+' : '' }}₹{{ number_format($daily['pnl_abs'], 1) }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            @endforeach
-        @endif
+{{--            <!-- Individual Strike Details -->--}}
+{{--            @foreach($data['strikes'] as $strikeKey => $strikeData)--}}
+{{--                <div class="mt-8 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">--}}
+{{--                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">--}}
+{{--                        <span class="w-3 h-3 rounded-full mr-3 {{ $strikeData['total_pnl_pct'] >= 0 ? 'bg-green-500' : 'bg-red-500' }}"></span>--}}
+{{--                        Detailed: {{ $strikeData['strike'] }} {{ $strikeData['instrument_type'] }}--}}
+{{--                    </h3>--}}
+{{--                    <div class="overflow-x-auto">--}}
+{{--                        <table class="w-full text-sm">--}}
+{{--                            <thead class="bg-gray-50">--}}
+{{--                            <tr>--}}
+{{--                                <th class="px-4 py-3 text-left">Date</th>--}}
+{{--                                <th class="px-4 py-3 text-left">O</th>--}}
+{{--                                <th class="px-4 py-3 text-left">H</th>--}}
+{{--                                <th class="px-4 py-3 text-left">L</th>--}}
+{{--                                <th class="px-4 py-3 text-left">C</th>--}}
+{{--                                <th class="px-4 py-3 text-left">Vol</th>--}}
+{{--                                <th class="px-4 py-3 text-left">OI</th>--}}
+{{--                                <th class="px-4 py-3 text-left">P&L %</th>--}}
+{{--                                <th class="px-4 py-3 text-left">P&L ₹</th>--}}
+{{--                            </tr>--}}
+{{--                            </thead>--}}
+{{--                            <tbody class="divide-y divide-gray-100">--}}
+{{--                            @foreach($strikeData['daily_data'] as $daily)--}}
+{{--                                <tr class="hover:bg-gray-50">--}}
+{{--                                    <td class="px-4 py-3 font-mono">{{ \Carbon\Carbon::parse($daily['date'])->format('M d') }}</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['open'], 1) }}</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono text-green-600">{{ number_format($daily['high'], 1) }}</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono text-red-600">{{ number_format($daily['low'], 1) }}</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono font-semibold">{{ number_format($daily['close'], 1) }}</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['volume']/1000000, 1) }}M</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono">{{ number_format($daily['oi']/1000, 0) }}K</td>--}}
+{{--                                    <td class="px-4 py-3 font-mono {{ $daily['pnl_pct'] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">--}}
+{{--                                        {{ $daily['pnl_pct'] >= 0 ? '+' : '' }}{{ number_format($daily['pnl_pct'], 1) }}%--}}
+{{--                                    </td>--}}
+{{--                                    <td class="px-4 py-3 font-mono {{ $daily['pnl_abs'] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">--}}
+{{--                                        {{ $daily['pnl_abs'] >= 0 ? '+' : '' }}₹{{ number_format($daily['pnl_abs'], 1) }}--}}
+{{--                                    </td>--}}
+{{--                                </tr>--}}
+{{--                            @endforeach--}}
+{{--                            </tbody>--}}
+{{--                        </table>--}}
+{{--                    </div>--}}
+{{--                </div>--}}
+{{--            @endforeach--}}
+{{--        @endif--}}
     </div>
 
     <script>

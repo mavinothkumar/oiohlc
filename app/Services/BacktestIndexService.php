@@ -37,7 +37,7 @@ class BacktestIndexService
         $strikes = [];
 
         // Buffer +/- 500 or more as needed
-        for ($strike = $atm - 500; $strike <= $atm + 500; $strike += 50) {
+        for ($strike = $atm - 2000; $strike <= $atm + 2000; $strike += 50) {
             $strikes[] = (int) $strike;
         }
 
