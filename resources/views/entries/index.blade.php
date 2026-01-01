@@ -6,15 +6,23 @@
 
 @section('content')
     {{-- Controls --}}
+
     <div class="flex items-center gap-2 mb-4">
         <button id="startBtn" class="px-3 py-1 rounded bg-emerald-600 text-white text-sm">Start</button>
         <button id="pauseBtn" class="px-3 py-1 rounded bg-amber-500 text-white text-sm">Pause</button>
-        <button id="stopBtn" class="px-3 py-1 rounded bg-rose-600 text-white text-sm">Stop</button>
-        <span id="statusText" class="ml-3 text-xs text-slate-400">Status: Paused</span>
-        <span id="currentTimeText" class="ml-4 text-2xl">
-        Time: --
-    </span>
+        <button id="stopBtn"  class="px-3 py-1 rounded bg-rose-600 text-white text-sm">Stop</button>
+
+        <label class="ml-4 text-xs flex items-center gap-1">
+            From:
+            <input type="datetime-local" id="startDateTime"
+                class="px-2 py-1 rounded border text-xs">
+        </label>
+
+        <span id="statusText" class="ml-3 text-xs">Status: Paused</span>
+        <span id="currentTimeText" class="ml-4 text-xs">Time: --</span>
     </div>
+
+
 
     {{-- Entry form --}}
     <form method="POST" action="{{ route('entries.store') }}"
@@ -111,10 +119,10 @@
             </thead>
             <tbody id="pnlBody">
             @foreach($entries as $e)
-                <tr class="border-t border-slate-700">
+                <tr class="border-t border-slate-700 text-xs">
                     <td class="px-3 py-1">{{ $e->underlying_symbol }} {{ $e->expiry }} {{ $e->strike }} {{ $e->instrument_type }}</td>
                     <td class="px-3 py-1 text-center">
-                        <span class="inline-flex items-center px-2 rounded-full text-[10px] text-white
+                        <span class="inline-flex items-center px-2 rounded-full text-white
                             {{ $e->side === 'BUY' ? 'bg-green-700' : 'bg-red-700' }}">
                             {{ $e->side }}
                         </span>
@@ -128,7 +136,7 @@
                             onsubmit="return confirm('Delete this entry?')">
                             @csrf
                             @method('DELETE')
-                            <button class="px-2 py-1 bg-rose-600 text-white rounded text-[11px]">
+                            <button class="px-2 py-1 bg-rose-600 text-white rounded">
                                 Delete
                             </button>
                         </form>
@@ -151,6 +159,7 @@
         let stepIndex = 0;
         let timer = null;
         let seriesData = null;
+        let loaded = false;
 
         const bodyEl = document.getElementById('pnlBody');
         const totalEl = document.getElementById('totalPnl');
@@ -185,12 +194,12 @@
 
                 const tr = document.createElement('tr');
                 tr.className = 'border-t border-slate-700';
-                const pnlColor = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+                const pnlColor = pnl >= 0 ? 'text-green-700' : 'text-red-700';
 
                 tr.innerHTML = `
             <td class="px-3 py-1">${row.script}</td>
             <td class="px-3 py-1 text-center">
-                <span class="inline-flex px-2 rounded-full text-[10px] ${
+                <span class="inline-flex px-2 rounded-full  text-white ${
                     row.side === 'BUY' ? 'bg-green-700' : 'bg-red-700'
                 }">${row.side}</span>
             </td>
@@ -215,23 +224,39 @@
         }
 
         async function startReplay() {
-            if (running) return;
+            if (loaded && !running) {
+                running = true;
+                statusText.textContent = 'Status: Running';
+                if (timer) clearInterval(timer);
+                timer = setInterval(renderStep, 300);
+                return;
+            }
 
+            const raw = document.getElementById('startDateTime').value; // "" or "2024-10-30T09:45"
             statusText.textContent = 'Status: Loading...';
 
-            const res = await fetch('{{ route('entries.pnlSeries') }}', {
-                headers: { 'Accept': 'application/json' }
-            });
+            const url = new URL('{{ route('entries.pnlSeries') }}', window.location.origin);
+
+            if (raw) {
+                // convert "2024-10-30T09:45" -> "2024-10-30 09:45:00"
+                const formatted = raw.replace('T', ' ') + ':00';
+                url.searchParams.set('from', formatted);
+            }
+
+            const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
             seriesData = await res.json();
 
             stepIndex = 0;
+            loaded = true;          // mark as loaded
             running = true;
             statusText.textContent = 'Status: Running';
 
             if (timer) clearInterval(timer);
-            renderStep();                         // first frame
-            timer = setInterval(renderStep, 1000); // 0.5 second per step
+            renderStep();
+            timer = setInterval(renderStep, 300);
         }
+
+
 
         function pauseReplay() {
             running = false;

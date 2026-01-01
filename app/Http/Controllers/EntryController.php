@@ -36,18 +36,24 @@ class EntryController extends Controller
         return redirect()->route('entries.index');
     }
 
-    public function pnlSeries()
+    public function pnlSeries(Request $request)
     {
         $entries = Entry::all();
-
-        $series = [];
+        $series  = [];
         $maxSteps = 0;
 
+        $from = $request->query('from'); // e.g. "2024-10-30 09:45:00"
+
         foreach ($entries as $entry) {
-            // select all 5‑min candles from entry start to expiry
+            // default start = entry date + time
             $date = $entry->entry_date->format('Y-m-d');
             $time = \Carbon\Carbon::parse($entry->entry_time)->format('H:i:s');
             $entryStart = \Carbon\Carbon::parse("$date $time");
+
+            // if user provided datetime, override start
+            if ($from) {
+                $entryStart = \Carbon\Carbon::parse($from);
+            }
 
             $candles = ExpiredOhlc::where('underlying_symbol', $entry->underlying_symbol)
                                   ->where('exchange', $entry->exchange)
@@ -73,12 +79,12 @@ class EntryController extends Controller
             $maxSteps = max($maxSteps, count($points));
 
             $series[] = [
-                'id'      => $entry->id,
-                'script'  => "{$entry->underlying_symbol} {$entry->expiry} {$entry->strike} {$entry->instrument_type}",
-                'side'    => $entry->side,
-                'qty'     => $entry->quantity,
-                'entry'   => (float) $entry->entry_price,
-                'points'  => $points,   // full path for this entry
+                'id'     => $entry->id,
+                'script' => "{$entry->underlying_symbol} {$entry->expiry} {$entry->strike} {$entry->instrument_type}",
+                'side'   => $entry->side,
+                'qty'    => $entry->quantity,
+                'entry'  => (float) $entry->entry_price,
+                'points' => $points,
             ];
         }
 
@@ -87,6 +93,7 @@ class EntryController extends Controller
             'maxSteps' => $maxSteps,
         ]);
     }
+
 
 
     public function destroy(Entry $entry)
