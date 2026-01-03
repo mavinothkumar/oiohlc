@@ -24,20 +24,103 @@ class OhlcChartController extends Controller
 
         $symbol = $request->underlying_symbol;
         $date   = $request->date;
+        [$prevDay, $spot] = $this->getPrevDayAndSpot($symbol, $date);
 
-        // List expiries that have data on/after this date
+        // build full-day range for the selected date
+        $startOfDay = $date.' 00:00:00';
+        $endOfDay   = $date.' 23:59:59';
+
         $expiries = DB::table('expired_ohlc')
                       ->where('underlying_symbol', $symbol)
-                      ->whereNotNull('expiry')
-                      ->whereDate('timestamp', $date)
-                      ->distinct()
-                      ->orderBy('expiry')
+                      ->where('expiry', '>=', $startOfDay)
+                      ->where('timestamp', '>=', $startOfDay)
+                      ->where('timestamp', '<=', $endOfDay)
+                      ->limit(1)
                       ->pluck('expiry');
+
+        $atmStrike = null;
+        $expiryForAtm = $expiries->first();
+        if ($expiryForAtm) {
+            // use same date (or $prevDay) depending on how you define ATM day
+            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
+        }
 
         return response()->json([
             'expiries' => $expiries,
+            'spot'      => $spot,
+            'atm_strike'=> $atmStrike,
         ]);
     }
+
+    protected function getPrevDayAndSpot(string $symbol, string $date): array
+    {
+        // previous working day from nse_working_days
+        $prevDay = DB::table('nse_working_days')
+                     ->where('working_date', '<', $date)
+                     ->orderBy('working_date', 'desc')
+                     ->value('working_date');
+
+        if (! $prevDay) {
+            return [null, null];
+        }
+
+        // spot = previous day close of index (interval 'day')
+        $spot = DB::table('expired_ohlc')
+                  ->where('underlying_symbol', $symbol)
+                  ->where('instrument_type', 'INDEX')
+                  ->where('interval', 'day')
+                  ->whereDate('timestamp', $prevDay)
+                  ->value('close');
+
+        return [$prevDay, $spot ? (float) $spot : null];
+    }
+
+    protected function getAtmStrikeForDay(string $symbol, string $expiry, string $date): ?int
+    {
+        // all CE daily bars for that day
+        $ceRows = DB::table('expired_ohlc')
+                    ->where('underlying_symbol', $symbol)
+                    ->whereDate('expiry', $expiry)
+                    ->where('instrument_type', 'CE')
+                    ->where('interval', 'day')
+                    ->whereDate('timestamp', $date)
+                    ->get(['strike', 'close']);
+
+        if ($ceRows->isEmpty()) {
+            return null;
+        }
+
+        // all PE daily bars for that day, keyed by strike
+        $peRows = DB::table('expired_ohlc')
+                    ->where('underlying_symbol', $symbol)
+                    ->whereDate('expiry', $expiry)
+                    ->where('instrument_type', 'PE')
+                    ->where('interval', 'day')
+                    ->whereDate('timestamp', $date)
+                    ->get(['strike', 'close'])
+                    ->keyBy('strike');
+
+        $bestStrike = null;
+        $bestDiff   = null;
+
+        foreach ($ceRows as $ce) {
+            $strike = (int) $ce->strike;
+            $pe     = $peRows->get($strike);
+            if (! $pe) {
+                continue; // no matching PE for this strike
+            }
+
+            $diff = abs((float)$ce->close - (float)$pe->close);
+            if ($bestDiff === null || $diff < $bestDiff) {
+                $bestDiff   = $diff;
+                $bestStrike = $strike;
+            }
+        }
+
+        return $bestStrike;
+    }
+
+
 
     public function ohlc(Request $request)
     {
@@ -55,38 +138,91 @@ class OhlcChartController extends Controller
         $ceKey  = $request->ce_instrument_key;
         $peKey  = $request->pe_instrument_key;
 
-        $base = DB::table('expired_ohlc')
-                  ->where('underlying_symbol', $symbol)
-                  ->whereDate('expiry', $expiry)
-                  ->where('interval', '5minute')
-                  ->whereDate('timestamp', $date)
-                  ->where([
-                      ['strike', $ceKey],
-                      ['strike', $peKey],
-                  ])
-                  ->orderBy('timestamp', 'asc');
+        // previous working day (for backtesting – ignore `current`/`previous` flags)
+        $prevDate = DB::table('nse_working_days')
+                      ->where('working_date', '<', $date)
+                      ->orderBy('working_date', 'desc')
+                      ->value('working_date');   // null if no earlier day
 
-        $ce = (clone $base)
-            // ->where('instrument_key', $ceKey)
+        // base for selected day
+        $baseToday = DB::table('expired_ohlc')
+                       ->where('underlying_symbol', $symbol)
+                       ->where('expiry', $expiry)
+                       ->where('interval', '5minute')
+                       ->whereDate('timestamp', $date)
+                       ->where([
+                           ['strike', $ceKey],
+                           ['strike', $peKey],
+                       ])
+                       ->orderBy('timestamp', 'asc');
+
+        $ceToday = (clone $baseToday)
             ->where('instrument_type', 'CE')
             ->get(['open', 'high', 'low', 'close', 'timestamp']);
 
-        $pe = (clone $base)
-            //->where('instrument_key', $peKey)
+        $peToday = (clone $baseToday)
             ->where('instrument_type', 'PE')
             ->get(['open', 'high', 'low', 'close', 'timestamp']);
+        // previous working day data
+        $cePrev = collect();
+        $pePrev = collect();
+
+        if ($prevDate) {
+            $basePrev = DB::table('expired_ohlc')
+                          ->where('underlying_symbol', $symbol)
+                          ->whereDate('expiry', $expiry)
+                          ->where('interval', '5minute')
+                          ->whereDate('timestamp', $prevDate)
+                          ->where([
+                              ['strike', $ceKey],
+                              ['strike', $peKey],
+                          ])
+                          ->orderBy('timestamp', 'asc');
+
+            $cePrev = (clone $basePrev)
+                ->where('instrument_type', 'CE')
+                ->get(['open', 'high', 'low', 'close', 'timestamp']);
+
+            $pePrev = (clone $basePrev)
+                ->where('instrument_type', 'PE')
+                ->get(['open', 'high', 'low', 'close', 'timestamp']);
+        }
 
         $map = fn($row) => [
-            'time'  => strtotime($row->timestamp),  // strictly increasing
+            'time'  => strtotime($row->timestamp),
             'open'  => (float) $row->open,
             'high'  => (float) $row->high,
             'low'   => (float) $row->low,
             'close' => (float) $row->close,
         ];
 
+        // previous‑day OHLC for marking lines
+        $prevOhlcCe = $cePrev->isNotEmpty()
+            ? [
+                'open'  => (float) $cePrev->first()->open,
+                'high'  => (float) $cePrev->max('high'),
+                'low'   => (float) $cePrev->min('low'),
+                'close' => (float) $cePrev->last()->close,
+            ]
+            : null;
+
+        $prevOhlcPe = $pePrev->isNotEmpty()
+            ? [
+                'open'  => (float) $pePrev->first()->open,
+                'high'  => (float) $pePrev->max('high'),
+                'low'   => (float) $pePrev->min('low'),
+                'close' => (float) $pePrev->last()->close,
+            ]
+            : null;
+
         return response()->json([
-            'ce' => $ce->map($map)->values(),
-            'pe' => $pe->map($map)->values(),
+            'prev_date'    => $prevDate,
+            'ce_today'     => $ceToday->map($map)->values(),
+            'pe_today'     => $peToday->map($map)->values(),
+            'ce_prev'      => $cePrev->map($map)->values(),
+            'pe_prev'      => $pePrev->map($map)->values(),
+            'ce_prev_ohlc' => $prevOhlcCe,
+            'pe_prev_ohlc' => $prevOhlcPe,
         ]);
     }
 }

@@ -48,6 +48,7 @@
                         <a href="{{ route('analysis.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">ATM Analysis</a>
                         <a href="{{ route('strangle.profit') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Monthly Strangle</a>
                         <a href="{{ route('entries.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Entry</a>
+                        <a href="{{ route('options.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Chart</a>
                     </div>
                 </div>
             </div>

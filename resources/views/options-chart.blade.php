@@ -26,20 +26,26 @@
                     <option value="">Select date first</option>
                 </select>
             </div>
+
             <div>
                 <label class="block text-sm mb-1">CE Strike</label>
-                <input id="ce_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="CE Strike">
+                <input id="ce_instrument_key" type="text"
+                    class="border rounded px-3 py-1 text-sm"
+                    placeholder="CE Strike">
             </div>
+
             <div>
                 <label class="block text-sm mb-1">PE Strike</label>
-                <input id="pe_instrument_key" type="text" class="border rounded px-3 py-1 text-sm" placeholder="PE Strike">
+                <input id="pe_instrument_key" type="text"
+                    class="border rounded px-3 py-1 text-sm"
+                    placeholder="PE Strike">
             </div>
-            <div>
 
-            <button id="loadChartBtn"
-                class="bg-blue-600 text-white px-4 py-2 rounded text-sm">
-                Load chart
-            </button>
+            <div>
+                <button id="loadChartBtn"
+                    class="bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                    Load chart
+                </button>
             </div>
         </div>
 
@@ -55,30 +61,28 @@
         </div>
     </div>
 
-    {{-- TradingView Lightweight Charts --}}
-    {{-- put this at the bottom of resources/views/options-chart.blade.php --}}
-
-    {{-- Lightweight Charts v4 (has addCandlestickSeries) --}}
+    {{-- Lightweight Charts v5 --}}
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-
     <script src="https://unpkg.com/lightweight-charts-line-tools@1.0.5/dist/lightweight-charts-line-tools.umd.js"></script>
-
-
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const underlyingEl = document.getElementById('underlying');
-            const dateEl = document.getElementById('date');
-            const expiryEl = document.getElementById('expiry');
-            const ceKeyEl = document.getElementById('ce_instrument_key');
-            const peKeyEl = document.getElementById('pe_instrument_key');
-            const loadBtn = document.getElementById('loadChartBtn');
+            const dateEl       = document.getElementById('date');
+            const expiryEl     = document.getElementById('expiry');
+            const ceKeyEl      = document.getElementById('ce_instrument_key');
+            const peKeyEl      = document.getElementById('pe_instrument_key');
+            const loadBtn      = document.getElementById('loadChartBtn');
 
-            const ceContainer = document.getElementById('ce-chart-container');
-            const peContainer = document.getElementById('pe-chart-container');
+            const ceContainer  = document.getElementById('ce-chart-container');
+            const peContainer  = document.getElementById('pe-chart-container');
 
             let ceChart = null, ceSeries = null;
             let peChart = null, peSeries = null;
+
+            // line series for previous-day OHLC (created lazily)
+            let cePrevLines = null;
+            let pePrevLines = null;
 
             function createChart(container, upColor) {
                 const rect = container.getBoundingClientRect();
@@ -93,6 +97,10 @@
                         timeVisible: true,
                         secondsVisible: false,
                         timezone: 'Asia/Kolkata',
+                    },
+                    grid: {
+                        vertLines:  { color: '#ffffff', visible: false },  // hide vertical grid
+                        horzLines:  { color: '#ffffff', visible: false },  // hide horizontal grid
                     },
                     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 });
@@ -115,49 +123,110 @@
                 return { chart, series };
             }
 
-            function cleanOhlc (data) {
-                const map = {};
-                for (const c of ( data || [] )) {
-                    if ( ! c) continue;
-                    if (c.time == null) continue;
-                    if ([c.open, c.high, c.low, c.close].some(v => v == null)) continue;
-
-                    const t = Number(c.time);
-                    map[ t ] = {
-                        time: t,
-                        open: Number(c.open),
-                        high: Number(c.high),
-                        low: Number(c.low),
-                        close: Number(c.close)
-                    };
-                }
-
-                // IMPORTANT: ascending by time
-                return Object.values(map).sort((a, b) => a.time - b.time);
+            function timeToLocal(originalTime) {
+                const d = new Date(originalTime * 1000);
+                return Date.UTC(
+                    d.getFullYear(),
+                    d.getMonth(),
+                    d.getDate(),
+                    d.getHours(),
+                    d.getMinutes(),
+                    d.getSeconds(),
+                    d.getMilliseconds()
+                ) / 1000;
             }
 
-            function timeToLocal (originalTime) {
-                const d = new Date(originalTime * 1000);
-                return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()) / 1000;
+            function normalize(data) {
+                if (!Array.isArray(data)) return [];
+                const out = data
+                    .filter(c => c && c.time != null)
+                    .map(c => ({
+                        time: timeToLocal(c.time),
+                        open: Number(c.open),
+                        high: Number(c.high),
+                        low:  Number(c.low),
+                        close:Number(c.close),
+                    }))
+                    .sort((a, b) => a.time - b.time);
+                return out;
+            }
+
+            function ensurePrevLines() {
+                if (!cePrevLines && ceChart) {
+                    cePrevLines = {
+                        open:  ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#22c55e',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        high:  ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ef4444',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        low:   ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#3b82f6',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        close: ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#f97316',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                    };
+                }
+                if (!pePrevLines && peChart) {
+                    pePrevLines = {
+                        open:  peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#22c55e',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        high:  peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ef4444',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        low:   peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#3b82f6',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                        close: peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#f97316',
+                            lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: false,
+                        }),
+                    };
+                }
             }
 
             // Auto-load expiries when date changes
             dateEl.addEventListener('change', async () => {
-                const date = dateEl.value;
+                const date       = dateEl.value;
                 const underlying = underlyingEl.value;
 
-                if ( ! date || ! underlying) return;
+                if (!date || !underlying) return;
 
                 const url = new URL("{{ route('api.expiries') }}", window.location.origin);
                 url.searchParams.set('underlying_symbol', underlying);
                 url.searchParams.set('date', date);
 
-                const res = await fetch(url);
+                const res  = await fetch(url);
                 const json = await res.json();
 
                 expiryEl.innerHTML = '';
 
-                if ( ! json.expiries || ! json.expiries.length) {
+                if (!json.expiries || !json.expiries.length) {
                     const opt = document.createElement('option');
                     opt.value = '';
                     opt.textContent = 'No expiries';
@@ -172,19 +241,29 @@
                     expiryEl.appendChild(opt);
                 });
 
-                // auto-select first expiry
-                expiryEl.value = json.expiries[ 0 ];
+                expiryEl.value = json.expiries[0];
+
+                if (json.atm_strike) {
+                    ceKeyEl.value = json.atm_strike;
+                    peKeyEl.value = json.atm_strike;
+
+                }
+                console.log('Spot (prev day close):', json.spot);
             });
 
-            // Load CE + PE candles
+
+
+
+
+            // Load CE + PE candles (+ previous day)
             loadBtn.addEventListener('click', async () => {
                 const underlying = underlyingEl.value;
-                const date = dateEl.value;
-                const expiry = expiryEl.value;
-                const ceKey = ceKeyEl.value;
-                const peKey = peKeyEl.value;
+                const date       = dateEl.value;
+                const expiry     = expiryEl.value;
+                const ceKey      = ceKeyEl.value;
+                const peKey      = peKeyEl.value;
 
-                if ( ! underlying || ! date || ! expiry || ! ceKey || ! peKey) {
+                if (!underlying || !date || !expiry || !ceKey || !peKey) {
                     alert('Please fill underlying, date, expiry, CE key & PE key.');
                     return;
                 }
@@ -196,58 +275,69 @@
                 url.searchParams.set('ce_instrument_key', ceKey);
                 url.searchParams.set('pe_instrument_key', peKey);
 
-                const res = await fetch(url);
+                const res  = await fetch(url);
                 const json = await res.json();
 
-                if ( ! ceChart) {
+                if (!ceChart) {
                     const ce = createChart(ceContainer, '#16a34a');
-                    ceChart = ce.chart;
+                    ceChart  = ce.chart;
                     ceSeries = ce.series;
                 }
-                if ( ! peChart) {
+                if (!peChart) {
                     const pe = createChart(peContainer, '#3b82f6');
-                    peChart = pe.chart;
+                    peChart  = pe.chart;
                     peSeries = pe.series;
                 }
 
-                const normalizeAndSort = (data) => {
-                    if ( ! Array.isArray(data)) return [];
+                const cePrev  = normalize(json.ce_prev);
+                const ceToday = normalize(json.ce_today);
+                const pePrev  = normalize(json.pe_prev);
+                const peToday = normalize(json.pe_today);
 
-                    const out = data
-                        .filter(c => c && c.time != null)
-                        .map(c => ( {
-                            time: timeToLocal(c.time),                 // 1734320700, 1734321000, ...
-                            open: Number(c.open),
-                            high: Number(c.high),
-                            low: Number(c.low),
-                            close: Number(c.close)
-                        } ))
-                        .sort((a, b) => a.time - b.time);        // ASCENDING
+                const ceAll = [...cePrev, ...ceToday];
+                const peAll = [...pePrev, ...peToday];
 
-                    console.log('FIRST:', out[ 0 ]);
-                    console.log('LAST :', out[ out.length - 1 ]);
-                    return out;
-                };
+                ceSeries.setData(ceAll);
+                peSeries.setData(peAll);
 
-                const ceData = normalizeAndSort(json.ce);
-                const peData = normalizeAndSort(json.pe);
-
-                ceSeries.setData(ceData);
-                peSeries.setData(peData);
-
-                const ceFirst = ceData[ 0 ]?.time;
-                const ceLast = ceData[ ceData.length - 1 ]?.time;
-                if (ceFirst && ceLast) {
-                    ceChart.timeScale().setVisibleRange({ from: ceFirst, to: ceLast });
+                if (ceAll.length) {
+                    ceChart.timeScale().setVisibleRange({
+                        from: ceAll[0].time,
+                        to:   ceAll[ceAll.length - 1].time,
+                    });
+                }
+                if (peAll.length) {
+                    peChart.timeScale().setVisibleRange({
+                        from: peAll[0].time,
+                        to:   peAll[peAll.length - 1].time,
+                    });
                 }
 
-                console.log('First 5 CE times:', ceData.slice(0, 5).map(c => c.time));
-                console.log('Last 5  CE times:', ceData.slice(-5).map(c => c.time));
+                // previous-day OHLC lines over today's session
+                ensurePrevLines();
 
-                //ceChart.timeScale().fitContent();
-                //peChart.timeScale().fitContent();
+                const cePrevOhlc = json.ce_prev_ohlc || null;
+                const pePrevOhlc = json.pe_prev_ohlc || null;
+
+                const todayStart = ceToday.length ? ceToday[0].time : null;
+                const todayEnd   = ceToday.length ? ceToday[ceToday.length - 1].time : null;
+
+                if (todayStart && todayEnd && cePrevOhlc && cePrevLines) {
+                    const times = [todayStart, todayEnd];
+                    //cePrevLines.open.setData(times.map(t => ({ time: t, value: cePrevOhlc.open })));
+                    cePrevLines.high.setData(times.map(t => ({ time: t, value: cePrevOhlc.high })));
+                    cePrevLines.low.setData(times.map(t => ({ time: t, value: cePrevOhlc.low })));
+                    cePrevLines.close.setData(times.map(t => ({ time: t, value: cePrevOhlc.close })));
+                }
+
+                if (todayStart && todayEnd && pePrevOhlc && pePrevLines) {
+                    const times = [todayStart, todayEnd];
+                    //pePrevLines.open.setData(times.map(t => ({ time: t, value: pePrevOhlc.open })));
+                    pePrevLines.high.setData(times.map(t => ({ time: t, value: pePrevOhlc.high })));
+                    pePrevLines.low.setData(times.map(t => ({ time: t, value: pePrevOhlc.low })));
+                    pePrevLines.close.setData(times.map(t => ({ time: t, value: pePrevOhlc.close })));
+                }
             });
         });
     </script>
-
 @endsection
