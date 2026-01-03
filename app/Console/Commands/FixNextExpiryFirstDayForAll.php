@@ -22,6 +22,7 @@ class FixNextExpiryFirstDayForAll extends Command
         // Get all expiries for this symbol, sorted ascending
         $expiries = ExpiredExpiry::query()
                                  ->where('underlying_symbol', $symbol)
+                                 ->where('instrument_type', 'OPT')
                                  ->orderBy('expiry_date')
                                  ->pluck('expiry_date')
                                  ->values()
@@ -78,6 +79,7 @@ class FixNextExpiryFirstDayForAll extends Command
 //                $currentExpiry,
 //                $nextExpiry
 //            ]);
+
 
             // Call existing command: from/to = CURRENT_EXPIRY_DAY, expiry = NEXT_EXPIRY, skip 5m
             Artisan::call('upstox:sync-nifty-option-ohlc', [

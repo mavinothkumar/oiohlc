@@ -3,8 +3,6 @@
 
 @section('content')
     <div class="max-w-full mx-auto p-4 space-y-4">
-        <h1 class="text-xl font-semibold">Options 5m Chart</h1>
-
         <div class="flex flex-wrap gap-4 items-end">
             <div>
                 <label class="block text-sm mb-1">Underlying</label>
@@ -52,11 +50,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
             <div>
                 <h2 class="text-sm font-medium mb-1">CE</h2>
-                <div id="ce-chart-container" class="border rounded h-[600px]"></div>
+                <div id="ce-chart-container" class="border rounded h-[700px]"></div>
             </div>
             <div>
                 <h2 class="text-sm font-medium mb-1">PE</h2>
-                <div id="pe-chart-container" class="border rounded h-[600px]"></div>
+                <div id="pe-chart-container" class="border rounded h-[700px]"></div>
             </div>
         </div>
     </div>
@@ -234,19 +232,19 @@
                 if (!ceMirrorPeLines) {
                     ceMirrorPeLines = {
                         high:  ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',              // grey
+                            color: '#1265e7',              // grey
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
                         }),
                         low:   ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',
+                            color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
                         }),
                         close: ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',
+                            color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
@@ -257,19 +255,19 @@
                 if (!peMirrorCeLines) {
                     peMirrorCeLines = {
                         high:  peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',
+                            color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
                         }),
                         low:   peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',
+                            color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
                         }),
                         close: peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af',
+                            color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
                             priceLineVisible: true,
@@ -435,7 +433,7 @@
                 } catch (error) {
                     console.error('Error loading chart:', error);
                 } finally {
-                    hideLoader();  // <<< ALWAYS HIDE LOADER
+                    hideLoader();
                 }
             });
         });
