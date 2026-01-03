@@ -61,11 +61,30 @@
         </div>
     </div>
 
+    {{-- Loader overlay --}}
+    <div id="loader" class="fixed inset-0 bg-gray bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-8 shadow-lg text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700 font-medium">Loading...</p>
+        </div>
+    </div>
+
+
     {{-- Lightweight Charts v5 --}}
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://unpkg.com/lightweight-charts-line-tools@1.0.5/dist/lightweight-charts-line-tools.umd.js"></script>
 
     <script>
+
+        function showLoader() {
+            const loader = document.getElementById('loader');
+            if (loader) loader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loader');
+            if (loader) loader.classList.add('hidden');
+        }
         document.addEventListener('DOMContentLoaded', () => {
             const underlyingEl = document.getElementById('underlying');
             const dateEl       = document.getElementById('date');
@@ -83,6 +102,9 @@
             // line series for previous-day OHLC (created lazily)
             let cePrevLines = null;
             let pePrevLines = null;
+
+            let ceMirrorPeLines = null; // PE prev OHLC on CE chart (grey)
+            let peMirrorCeLines = null; // CE prev OHLC on PE chart (grey)
 
             function createChart(container, upColor) {
                 const rect = container.getBoundingClientRect();
@@ -156,27 +178,27 @@
                     cePrevLines = {
                         open:  ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#22c55e',
-                            lineWidth: 2,
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         high:  ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ef4444',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         low:   ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#3b82f6',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         close: ceChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                     };
                 }
@@ -184,27 +206,73 @@
                     pePrevLines = {
                         open:  peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#22c55e',
-                            lineWidth: 2,
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         high:  peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ef4444',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         low:   peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#3b82f6',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
                         }),
                         close: peChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316',
-                            lineWidth: 2,
+                            color: '#000',
+                            lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: false,
+                            priceLineVisible: true,
+                        }),
+                    };
+                }
+                // NEW: mirrored grey lines
+                if (!ceMirrorPeLines) {
+                    ceMirrorPeLines = {
+                        high:  ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',              // grey
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
+                        }),
+                        low:   ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
+                        }),
+                        close: ceChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
+                        }),
+                    };
+                }
+
+                if (!peMirrorCeLines) {
+                    peMirrorCeLines = {
+                        high:  peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
+                        }),
+                        low:   peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
+                        }),
+                        close: peChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#9ca3af',
+                            lineWidth: 1,
+                            lineStyle: LightweightCharts.LineStyle.Solid,
+                            priceLineVisible: true,
                         }),
                     };
                 }
@@ -217,38 +285,48 @@
 
                 if (!date || !underlying) return;
 
+                showLoader();
+
                 const url = new URL("{{ route('api.expiries') }}", window.location.origin);
                 url.searchParams.set('underlying_symbol', underlying);
                 url.searchParams.set('date', date);
 
-                const res  = await fetch(url);
-                const json = await res.json();
+                try {
+                    const res  = await fetch(url);
+                    const json = await res.json();
 
-                expiryEl.innerHTML = '';
+                    expiryEl.innerHTML = '';
 
-                if (!json.expiries || !json.expiries.length) {
-                    const opt = document.createElement('option');
-                    opt.value = '';
-                    opt.textContent = 'No expiries';
-                    expiryEl.appendChild(opt);
-                    return;
+                    if (!json.expiries || !json.expiries.length) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'No expiries';
+                        expiryEl.appendChild(opt);
+                        hideLoader();  // <<< HIDE LOADER
+                        return;
+                    }
+
+                    json.expiries.forEach(exp => {
+                        const opt = document.createElement('option');
+                        opt.value = exp;
+                        opt.textContent = exp;
+                        expiryEl.appendChild(opt);
+                    });
+                    expiryEl.value = json.expiries[0];
+
+                    // prefill ATM strikes
+                    if (json.atm_strike) {
+                        ceKeyEl.value = json.atm_strike;
+                        peKeyEl.value = json.atm_strike;
+                        loadBtn.click();
+                    }
+
+                    console.log('Spot (prev day close):', json.spot);
+                } catch (error) {
+                    console.error('Error fetching expiries:', error);
+                } finally {
+                    hideLoader();
                 }
-
-                json.expiries.forEach(exp => {
-                    const opt = document.createElement('option');
-                    opt.value = exp;
-                    opt.textContent = exp;
-                    expiryEl.appendChild(opt);
-                });
-
-                expiryEl.value = json.expiries[0];
-
-                if (json.atm_strike) {
-                    ceKeyEl.value = json.atm_strike;
-                    peKeyEl.value = json.atm_strike;
-
-                }
-                console.log('Spot (prev day close):', json.spot);
             });
 
 
@@ -268,6 +346,8 @@
                     return;
                 }
 
+                showLoader();
+
                 const url = new URL("{{ route('api.ohlc') }}", window.location.origin);
                 url.searchParams.set('underlying_symbol', underlying);
                 url.searchParams.set('date', date);
@@ -275,69 +355,90 @@
                 url.searchParams.set('ce_instrument_key', ceKey);
                 url.searchParams.set('pe_instrument_key', peKey);
 
-                const res  = await fetch(url);
-                const json = await res.json();
+                try {
+                    const res  = await fetch(url);
+                    const json = await res.json();
 
-                if (!ceChart) {
-                    const ce = createChart(ceContainer, '#16a34a');
-                    ceChart  = ce.chart;
-                    ceSeries = ce.series;
-                }
-                if (!peChart) {
-                    const pe = createChart(peContainer, '#3b82f6');
-                    peChart  = pe.chart;
-                    peSeries = pe.series;
-                }
+                    if (!ceChart) {
+                        const ce = createChart(ceContainer, '#16a34a');
+                        ceChart  = ce.chart;
+                        ceSeries = ce.series;
+                    }
+                    if (!peChart) {
+                        const pe = createChart(peContainer, '#3b82f6');
+                        peChart  = pe.chart;
+                        peSeries = pe.series;
+                    }
 
-                const cePrev  = normalize(json.ce_prev);
-                const ceToday = normalize(json.ce_today);
-                const pePrev  = normalize(json.pe_prev);
-                const peToday = normalize(json.pe_today);
+                    const cePrev  = normalize(json.ce_prev);
+                    const ceToday = normalize(json.ce_today);
+                    const pePrev  = normalize(json.pe_prev);
+                    const peToday = normalize(json.pe_today);
 
-                const ceAll = [...cePrev, ...ceToday];
-                const peAll = [...pePrev, ...peToday];
+                    const ceAll = [...cePrev, ...ceToday];
+                    const peAll = [...pePrev, ...peToday];
 
-                ceSeries.setData(ceAll);
-                peSeries.setData(peAll);
+                    ceSeries.setData(ceAll);
+                    peSeries.setData(peAll);
 
-                if (ceAll.length) {
-                    ceChart.timeScale().setVisibleRange({
-                        from: ceAll[0].time,
-                        to:   ceAll[ceAll.length - 1].time,
-                    });
-                }
-                if (peAll.length) {
-                    peChart.timeScale().setVisibleRange({
-                        from: peAll[0].time,
-                        to:   peAll[peAll.length - 1].time,
-                    });
-                }
+                    if (ceAll.length) {
+                        ceChart.timeScale().setVisibleRange({
+                            from: ceAll[0].time,
+                            to:   ceAll[ceAll.length - 1].time,
+                        });
+                    }
+                    if (peAll.length) {
+                        peChart.timeScale().setVisibleRange({
+                            from: peAll[0].time,
+                            to:   peAll[peAll.length - 1].time,
+                        });
+                    }
 
-                // previous-day OHLC lines over today's session
-                ensurePrevLines();
+                    // previous-day OHLC lines
+                    ensurePrevLines();
 
-                const cePrevOhlc = json.ce_prev_ohlc || null;
-                const pePrevOhlc = json.pe_prev_ohlc || null;
+                    const cePrevOhlc = json.ce_prev_ohlc || null;
+                    const pePrevOhlc = json.pe_prev_ohlc || null;
 
-                const todayStart = ceToday.length ? ceToday[0].time : null;
-                const todayEnd   = ceToday.length ? ceToday[ceToday.length - 1].time : null;
+                    const todayStart = ceToday.length ? ceToday[0].time : null;
+                    const todayEnd   = ceToday.length ? ceToday[ceToday.length - 1].time : null;
 
-                if (todayStart && todayEnd && cePrevOhlc && cePrevLines) {
-                    const times = [todayStart, todayEnd];
-                    //cePrevLines.open.setData(times.map(t => ({ time: t, value: cePrevOhlc.open })));
-                    cePrevLines.high.setData(times.map(t => ({ time: t, value: cePrevOhlc.high })));
-                    cePrevLines.low.setData(times.map(t => ({ time: t, value: cePrevOhlc.low })));
-                    cePrevLines.close.setData(times.map(t => ({ time: t, value: cePrevOhlc.close })));
-                }
+                    if (todayStart && todayEnd && cePrevOhlc && cePrevLines) {
+                        const times = [todayStart, todayEnd];
+                        //cePrevLines.open.setData(times.map(t => ({ time: t, value: cePrevOhlc.open })));
+                        cePrevLines.high.setData(times.map(t => ({ time: t, value: cePrevOhlc.high })));
+                        cePrevLines.low.setData(times.map(t => ({ time: t, value: cePrevOhlc.low })));
+                        cePrevLines.close.setData(times.map(t => ({ time: t, value: cePrevOhlc.close })));
+                    }
 
-                if (todayStart && todayEnd && pePrevOhlc && pePrevLines) {
-                    const times = [todayStart, todayEnd];
-                    //pePrevLines.open.setData(times.map(t => ({ time: t, value: pePrevOhlc.open })));
-                    pePrevLines.high.setData(times.map(t => ({ time: t, value: pePrevOhlc.high })));
-                    pePrevLines.low.setData(times.map(t => ({ time: t, value: pePrevOhlc.low })));
-                    pePrevLines.close.setData(times.map(t => ({ time: t, value: pePrevOhlc.close })));
+                    if (todayStart && todayEnd && pePrevOhlc && pePrevLines) {
+                        const times = [todayStart, todayEnd];
+                        //pePrevLines.open.setData(times.map(t => ({ time: t, value: pePrevOhlc.open })));
+                        pePrevLines.high.setData(times.map(t => ({ time: t, value: pePrevOhlc.high })));
+                        pePrevLines.low.setData(times.map(t => ({ time: t, value: pePrevOhlc.low })));
+                        pePrevLines.close.setData(times.map(t => ({ time: t, value: pePrevOhlc.close })));
+                    }
+
+                    if (todayStart && todayEnd && pePrevOhlc && ceMirrorPeLines) {
+                        const times = [todayStart, todayEnd];
+                        ceMirrorPeLines.high.setData(times.map(t => ({ time: t, value: pePrevOhlc.high })));
+                        ceMirrorPeLines.low.setData(times.map(t => ({ time: t, value: pePrevOhlc.low })));
+                        ceMirrorPeLines.close.setData(times.map(t => ({ time: t, value: pePrevOhlc.close })));
+                    }
+
+                    if (todayStart && todayEnd && cePrevOhlc && peMirrorCeLines) {
+                        const times = [todayStart, todayEnd];
+                        peMirrorCeLines.high.setData(times.map(t => ({ time: t, value: cePrevOhlc.high })));
+                        peMirrorCeLines.low.setData(times.map(t => ({ time: t, value: cePrevOhlc.low })));
+                        peMirrorCeLines.close.setData(times.map(t => ({ time: t, value: cePrevOhlc.close })));
+                    }
+                } catch (error) {
+                    console.error('Error loading chart:', error);
+                } finally {
+                    hideLoader();  // <<< ALWAYS HIDE LOADER
                 }
             });
         });
     </script>
+
 @endsection
