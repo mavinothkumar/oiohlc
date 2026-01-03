@@ -365,7 +365,7 @@
                         ceSeries = ce.series;
                     }
                     if (!peChart) {
-                        const pe = createChart(peContainer, '#3b82f6');
+                        const pe = createChart(peContainer, '#16a34a');
                         peChart  = pe.chart;
                         peSeries = pe.series;
                     }

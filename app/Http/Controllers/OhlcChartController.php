@@ -38,17 +38,17 @@ class OhlcChartController extends Controller
                       ->limit(1)
                       ->pluck('expiry');
 
-        $atmStrike = null;
+        $atmStrike    = null;
         $expiryForAtm = $expiries->first();
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
+            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $prevDay);
         }
 
         return response()->json([
-            'expiries' => $expiries,
-            'spot'      => $spot,
-            'atm_strike'=> $atmStrike,
+            'expiries'   => $expiries,
+            'spot'       => $spot,
+            'atm_strike' => $atmStrike,
         ]);
     }
 
@@ -60,7 +60,7 @@ class OhlcChartController extends Controller
                      ->orderBy('working_date', 'desc')
                      ->value('working_date');
 
-        if (! $prevDay) {
+        if ( ! $prevDay) {
             return [null, null];
         }
 
@@ -106,11 +106,11 @@ class OhlcChartController extends Controller
         foreach ($ceRows as $ce) {
             $strike = (int) $ce->strike;
             $pe     = $peRows->get($strike);
-            if (! $pe) {
+            if ( ! $pe) {
                 continue; // no matching PE for this strike
             }
 
-            $diff = abs((float)$ce->close - (float)$pe->close);
+            $diff = abs((float) $ce->close - (float) $pe->close);
             if ($bestDiff === null || $diff < $bestDiff) {
                 $bestDiff   = $diff;
                 $bestStrike = $strike;
@@ -119,7 +119,6 @@ class OhlcChartController extends Controller
 
         return $bestStrike;
     }
-
 
 
     public function ohlc(Request $request)
@@ -150,17 +149,15 @@ class OhlcChartController extends Controller
                        ->where('expiry', $expiry)
                        ->where('interval', '5minute')
                        ->whereDate('timestamp', $date)
-                       ->where([
-                           ['strike', $ceKey],
-                           ['strike', $peKey],
-                       ])
                        ->orderBy('timestamp', 'asc');
 
         $ceToday = (clone $baseToday)
+            ->where('strike', $ceKey)
             ->where('instrument_type', 'CE')
             ->get(['open', 'high', 'low', 'close', 'timestamp']);
 
         $peToday = (clone $baseToday)
+            ->where('strike', $peKey)
             ->where('instrument_type', 'PE')
             ->get(['open', 'high', 'low', 'close', 'timestamp']);
         // previous working day data
@@ -173,17 +170,15 @@ class OhlcChartController extends Controller
                           ->whereDate('expiry', $expiry)
                           ->where('interval', '5minute')
                           ->whereDate('timestamp', $prevDate)
-                          ->where([
-                              ['strike', $ceKey],
-                              ['strike', $peKey],
-                          ])
                           ->orderBy('timestamp', 'asc');
 
             $cePrev = (clone $basePrev)
+                ->where('strike', $ceKey)
                 ->where('instrument_type', 'CE')
                 ->get(['open', 'high', 'low', 'close', 'timestamp']);
 
             $pePrev = (clone $basePrev)
+                ->where('strike', $peKey)
                 ->where('instrument_type', 'PE')
                 ->get(['open', 'high', 'low', 'close', 'timestamp']);
         }
