@@ -38,11 +38,12 @@ class EntryController extends Controller
 
     public function pnlSeries(Request $request)
     {
-        $entries = Entry::all();
-        $series  = [];
+        $entries  = Entry::all();
+        $series   = [];
         $maxSteps = 0;
 
-        $from = $request->query('from'); // e.g. "2024-10-30 09:45:00"
+        $from = $request->query('from'); // "Y-m-d H:i:s" or null
+        $to   = $request->query('to');   // "Y-m-d H:i:s" or null
 
         foreach ($entries as $entry) {
             // default start = entry date + time
@@ -50,20 +51,27 @@ class EntryController extends Controller
             $time = \Carbon\Carbon::parse($entry->entry_time)->format('H:i:s');
             $entryStart = \Carbon\Carbon::parse("$date $time");
 
-            // if user provided datetime, override start
+            // override with UI "from" if provided
             if ($from) {
                 $entryStart = \Carbon\Carbon::parse($from);
             }
 
-            $candles = ExpiredOhlc::where('underlying_symbol', $entry->underlying_symbol)
-                                  ->where('exchange', $entry->exchange)
-                                  ->where('expiry', $entry->expiry)
-                                  ->where('instrument_type', $entry->instrument_type)
-                                  ->where('strike', $entry->strike)
-                                  ->where('interval', '5minute')
-                                  ->where('timestamp', '>=', $entryStart)
-                                  ->orderBy('timestamp')
-                                  ->get(['timestamp', 'close']);
+            $candlesQuery = ExpiredOhlc::where('underlying_symbol', $entry->underlying_symbol)
+                                       ->where('exchange', $entry->exchange)
+                                       ->where('expiry', $entry->expiry)
+                                       ->where('instrument_type', $entry->instrument_type)
+                                       ->where('strike', $entry->strike)
+                                       ->where('interval', '5minute')
+                                       ->where('timestamp', '>=', $entryStart)
+                                       ->orderBy('timestamp');
+
+            // apply optional end time
+            if ($to) {
+                $endTime = \Carbon\Carbon::parse($to);
+                $candlesQuery->where('timestamp', '<=', $endTime);
+            }
+
+            $candles = $candlesQuery->get(['timestamp', 'close']);
 
             $points = [];
             foreach ($candles as $c) {
@@ -93,6 +101,7 @@ class EntryController extends Controller
             'maxSteps' => $maxSteps,
         ]);
     }
+
 
 
 

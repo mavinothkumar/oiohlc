@@ -1,6 +1,9 @@
 {{-- resources/views/options-chart.blade.php --}}
 @extends('layouts.app')
 
+@section('title')
+    Chart
+@endsection
 @section('content')
     <div class="max-w-full mx-auto p-4 space-y-4">
         <div class="flex flex-wrap gap-4 items-end">

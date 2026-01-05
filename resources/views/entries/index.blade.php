@@ -12,15 +12,22 @@
         <button id="pauseBtn" class="px-3 py-1 rounded bg-amber-500 text-white text-sm">Pause</button>
         <button id="stopBtn"  class="px-3 py-1 rounded bg-rose-600 text-white text-sm">Stop</button>
 
-        <label class="ml-4 text-xs flex items-center gap-1">
+        <label class="ml-4 text-xs text-slate-300 flex items-center gap-1">
             From:
             <input type="datetime-local" id="startDateTime"
-                class="px-2 py-1 rounded border text-xs">
+                class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-xs">
         </label>
 
-        <span id="statusText" class="ml-3 text-xs">Status: Paused</span>
-        <span id="currentTimeText" class="ml-4 text-xs">Time: --</span>
+        <label class="ml-2 text-xs text-slate-300 flex items-center gap-1">
+            To:
+            <input type="datetime-local" id="endDateTime"
+                class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-xs">
+        </label>
+
+        <span id="statusText" class="ml-3 text-xs text-slate-400">Status: Paused</span>
+        <span id="currentTimeText" class="ml-4 text-xs text-slate-300">Time: --</span>
     </div>
+
 
 
 
@@ -228,33 +235,40 @@
                 running = true;
                 statusText.textContent = 'Status: Running';
                 if (timer) clearInterval(timer);
-                timer = setInterval(renderStep, 300);
+                timer = setInterval(renderStep, 500);
                 return;
             }
 
-            const raw = document.getElementById('startDateTime').value; // "" or "2024-10-30T09:45"
+            const rawFrom = document.getElementById('startDateTime').value; // "2024-10-30T09:45"
+            const rawTo   = document.getElementById('endDateTime').value;   // maybe ""
+
             statusText.textContent = 'Status: Loading...';
 
             const url = new URL('{{ route('entries.pnlSeries') }}', window.location.origin);
 
-            if (raw) {
-                // convert "2024-10-30T09:45" -> "2024-10-30 09:45:00"
-                const formatted = raw.replace('T', ' ') + ':00';
-                url.searchParams.set('from', formatted);
+            if (rawFrom) {
+                const formattedFrom = rawFrom.replace('T', ' ') + ':00';
+                url.searchParams.set('from', formattedFrom);
+            }
+
+            if (rawTo) {
+                const formattedTo = rawTo.replace('T', ' ') + ':00';
+                url.searchParams.set('to', formattedTo);
             }
 
             const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
             seriesData = await res.json();
 
             stepIndex = 0;
-            loaded = true;          // mark as loaded
+            loaded = true;
             running = true;
             statusText.textContent = 'Status: Running';
 
             if (timer) clearInterval(timer);
             renderStep();
-            timer = setInterval(renderStep, 300);
+            timer = setInterval(renderStep, 500);
         }
+
 
 
 
