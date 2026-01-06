@@ -145,11 +145,11 @@ class CollectOhlcForIndices extends Command
             $instrumentKey = $instrument->instrument_key;
             $apiDate       = $this->workingDay->working_date;
             $fromDate      = $apiDate;
-            $toDate        = $apiDate;
+            $toDate        = Carbon::parse($apiDate)->addDay()->format('Y-m-d');
 
             // Correct API endpoint as per documentation/reference
             $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$toDate}/{$fromDate}";
-            $apiToken = config('services.upstox.api_token'); // Store/update this in config/services.php
+            $apiToken = config('services.upstox.access_token'); // Store/update this in config/services.php
 
             $response = Http::withToken($apiToken)->get($apiUrl);
 

@@ -181,25 +181,25 @@
                             color: '#22c55e',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         high:  ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         low:   ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         close: ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                     };
                 }
@@ -209,25 +209,25 @@
                             color: '#22c55e',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         high:  peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         low:   peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         close: peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000',
                             lineWidth: 3,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                     };
                 }
@@ -238,19 +238,19 @@
                             color: '#1265e7',              // grey
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         low:   ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         close: ceChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                     };
                 }
@@ -261,19 +261,19 @@
                             color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         low:   peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                         close: peChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#1265e7',
                             lineWidth: 1,
                             lineStyle: LightweightCharts.LineStyle.Solid,
-                            priceLineVisible: true,
+                            priceLineVisible: false,
                         }),
                     };
                 }

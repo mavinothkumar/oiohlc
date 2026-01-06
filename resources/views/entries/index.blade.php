@@ -12,20 +12,20 @@
         <button id="pauseBtn" class="px-3 py-1 rounded bg-amber-500 text-white text-sm">Pause</button>
         <button id="stopBtn"  class="px-3 py-1 rounded bg-rose-600 text-white text-sm">Stop</button>
 
-        <label class="ml-4 text-xs text-slate-300 flex items-center gap-1">
+        <label class="ml-4 text-xs flex items-center gap-1">
             From:
             <input type="datetime-local" id="startDateTime"
-                class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-xs">
+                class="px-2 py-1 rounded   border border-slate-600 text-xs">
         </label>
 
-        <label class="ml-2 text-xs text-slate-300 flex items-center gap-1">
+        <label class="ml-2 text-xs flex items-center gap-1">
             To:
             <input type="datetime-local" id="endDateTime"
-                class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-xs">
+                class="px-2 py-1 rounded  border border-slate-600 text-xs">
         </label>
 
-        <span id="statusText" class="ml-3 text-xs text-slate-400">Status: Paused</span>
-        <span id="currentTimeText" class="ml-4 text-xs text-slate-300">Time: --</span>
+        <span id="statusText" class="ml-3 text-xs">Status: Paused</span>
+        <span id="currentTimeText" class="ml-4 text-xs">Time: --</span>
     </div>
 
 
@@ -126,30 +126,81 @@
             </thead>
             <tbody id="pnlBody">
             @foreach($entries as $e)
-                <tr class="border-t border-slate-700 text-xs">
-                    <td class="px-3 py-1">{{ $e->underlying_symbol }} {{ $e->expiry }} {{ $e->strike }} {{ $e->instrument_type }}</td>
-                    <td class="px-3 py-1 text-center">
-                        <span class="inline-flex items-center px-2 rounded-full text-white
-                            {{ $e->side === 'BUY' ? 'bg-green-700' : 'bg-red-700' }}">
-                            {{ $e->side }}
-                        </span>
-                    </td>
-                    <td class="px-3 py-1 text-right">{{ $e->quantity }}</td>
-                    <td class="px-3 py-1 text-right">{{ number_format($e->entry_price, 2) }}</td>
-                    <td class="px-3 py-1 text-right">-</td>
-                    <td class="px-3 py-1 text-right">-</td>
-                    <td class="px-3 py-1 text-right">
-                        <form method="POST" action="{{ route('entries.destroy', $e) }}"
-                            onsubmit="return confirm('Delete this entry?')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="px-2 py-1 bg-rose-600 text-white rounded">
-                                Delete
-                            </button>
-                        </form>
-                    </td>
+                <tr class="border-t border-slate-700">
+                    <form method="POST" action="{{ route('entries.update', $e) }}">
+                        @csrf
+                        @method('PUT')
+
+                        <td class="px-3 py-1">
+                            <div class="flex gap-1">
+                                <input name="underlying_symbol" value="{{ $e->underlying_symbol }}"
+                                    class="w-16 px-1 py-0.5 border border-slate-700 text-[11px]">
+                                <input type="date" name="expiry" value="{{ $e->expiry->format('Y-m-d') }}"
+                                    class="w-28 px-1 py-0.5 border border-slate-700 text-[11px]">
+                                <input type="number" name="strike" value="{{ $e->strike }}"
+                                    class="w-20 px-1 py-0.5 border border-slate-700 text-[11px]">
+                                <select name="instrument_type"
+                                    class="w-14 px-1 py-0.5 border border-slate-700 text-[11px]">
+                                    <option value="CE" @selected($e->instrument_type=='CE')>CE</option>
+                                    <option value="PE" @selected($e->instrument_type=='PE')>PE</option>
+                                </select>
+                            </div>
+                        </td>
+
+                        <td class="px-3 py-1 text-center">
+                            <select name="side"
+                                class="px-2 py-0.5 rounded text-[11px] border border-slate-700">
+                                <option value="BUY"  @selected($e->side=='BUY')>Buy</option>
+                                <option value="SELL" @selected($e->side=='SELL')>Sell</option>
+                            </select>
+                        </td>
+
+                        <td class="px-3 py-1 text-right">
+                            <input type="number" name="quantity" value="{{ $e->quantity }}"
+                                class="w-16 text-right px-1 py-0.5 border border-slate-700 text-[11px]">
+                        </td>
+
+                        <td class="px-3 py-1 text-right">
+                            <input type="number" step="0.05" name="entry_price" value="{{ $e->entry_price }}"
+                                class="w-20 text-right px-1 py-0.5 border border-slate-700 text-[11px]">
+                        </td>
+
+                        <td class="px-3 py-1 text-right"><span class="ltp-cell">-</span></td>
+                        <td class="px-3 py-1 text-right"><span class="pnl-cell">-</span></td>
+
+                        <td class="px-3 py-1 text-right">
+                            <input type="date" name="entry_date" value="{{ $e->entry_date->format('Y-m-d') }}"
+                                class="w-28 mb-1 px-1 py-0.5 border border-slate-700 text-[11px]">
+                            <input type="time" name="entry_time"
+                                value="{{ $e->entry_time instanceof \Carbon\Carbon ? $e->entry_time->format('H:i') : $e->entry_time }}"
+                                class="w-20 mb-1 px-1 py-0.5 border border-slate-700 text-[11px]">
+
+                            <div class="flex justify-end gap-1 mt-1">
+                                {{-- Save updates this row --}}
+                                <button type="submit"
+                                    class="px-2 py-0.5 bg-indigo-600 text-white rounded text-[11px]">
+                                    Save
+                                </button>
+
+                                {{-- Delete uses a separate hidden form (see below) --}}
+                                <button type="button"
+                                    onclick="if(confirm('Delete this entry?')) document.getElementById('delete-entry-{{ $e->id }}').submit();"
+                                    class="px-2 py-0.5 bg-rose-600 text-white rounded text-[11px]">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </form>
                 </tr>
+
+                {{-- hidden delete form OUTSIDE the update form --}}
+                <form id="delete-entry-{{ $e->id }}" method="POST"
+                    action="{{ route('entries.destroy', $e) }}">
+                    @csrf
+                    @method('DELETE')
+                </form>
             @endforeach
+
             </tbody>
             <tfoot>
             <tr class=" font-semibold">
@@ -162,15 +213,14 @@
 
     {{-- JS polling: calls /pnl-data every 0.5s and updates the table --}}
     <script>
-        let running = false;
-        let stepIndex = 0;
-        let timer = null;
+        let running    = false;
+        let stepIndex  = 0;
+        let timer      = null;
         let seriesData = null;
-        let loaded = false;
 
-        const bodyEl = document.getElementById('pnlBody');
-        const totalEl = document.getElementById('totalPnl');
-        const statusText = document.getElementById('statusText');
+        const bodyEl          = document.getElementById('pnlBody');
+        const totalEl         = document.getElementById('totalPnl');
+        const statusText      = document.getElementById('statusText');
         const currentTimeText = document.getElementById('currentTimeText');
 
         function renderStep() {
@@ -219,7 +269,6 @@
             });
 
             if (stepTime) {
-                // optional: format nicer client-side
                 currentTimeText.textContent = 'Time: ' + stepTime;
             }
 
@@ -231,16 +280,9 @@
         }
 
         async function startReplay() {
-            if (loaded && !running) {
-                running = true;
-                statusText.textContent = 'Status: Running';
-                if (timer) clearInterval(timer);
-                timer = setInterval(renderStep, 500);
-                return;
-            }
-
-            const rawFrom = document.getElementById('startDateTime').value; // "2024-10-30T09:45"
-            const rawTo   = document.getElementById('endDateTime').value;   // maybe ""
+            // always reload when Start is clicked (so From/To changes apply)
+            const rawFrom = document.getElementById('startDateTime').value;
+            const rawTo   = document.getElementById('endDateTime').value;
 
             statusText.textContent = 'Status: Loading...';
 
@@ -250,7 +292,6 @@
                 const formattedFrom = rawFrom.replace('T', ' ') + ':00';
                 url.searchParams.set('from', formattedFrom);
             }
-
             if (rawTo) {
                 const formattedTo = rawTo.replace('T', ' ') + ':00';
                 url.searchParams.set('to', formattedTo);
@@ -259,18 +300,15 @@
             const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
             seriesData = await res.json();
 
+            // reset replay state
             stepIndex = 0;
-            loaded = true;
-            running = true;
+            running   = true;
             statusText.textContent = 'Status: Running';
 
             if (timer) clearInterval(timer);
-            renderStep();
-            timer = setInterval(renderStep, 500);
+            renderStep();                 // draw first step → updates Time label
+            timer = setInterval(renderStep, 300);
         }
-
-
-
 
         function pauseReplay() {
             running = false;
@@ -279,9 +317,10 @@
 
         function stopReplay() {
             running = false;
-            seriesData = null;
             stepIndex = 0;
+            seriesData = null;
             statusText.textContent = 'Status: Stopped';
+            currentTimeText.textContent = 'Time: --';
             if (timer) clearInterval(timer);
         }
 

@@ -48,6 +48,7 @@ class BuildExpiredDailyTrend extends Command
             foreach ($symbols as $symbol) {
 
                 $prevDate = $this->getPreviousWorkingDate($d);
+
                 if (! $prevDate) {
                     $this->warn("No previous working day for {$d}");
                     continue;
@@ -115,6 +116,8 @@ class BuildExpiredDailyTrend extends Command
 
         // 2) current week expiry as on prevDate
         $currentExpiry = $this->getCurrentWeekExpiry($symbol, $prevDate);
+        $this->info($currentExpiry);
+        exit;
         if (! $currentExpiry) {
             return null;
         }

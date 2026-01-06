@@ -16,6 +16,31 @@ class EntryController extends Controller
         return view('entries.index', compact('entries'));
     }
 
+    public function update(Request $request, Entry $entry)
+    {
+        $data = $request->validate([
+            'underlying_symbol' => 'required',
+            'expiry'            => 'required|date',
+            'instrument_type'   => 'required|in:CE,PE',
+            'strike'            => 'required|integer',
+            'side'              => 'required|in:BUY,SELL',
+            'entry_date'        => 'required|date',
+            'entry_time'        => 'required',
+            'quantity'          => 'required|integer',
+            'entry_price'       => 'required|numeric',
+        ]);
+        $entry->update($data);   // Eloquent update[web:5][web:17]
+
+        // for normal form submit
+        if (! $request->wantsJson()) {
+            return redirect()->route('entries.index');
+        }
+
+        // for ajax in future
+        return response()->json(['success' => true]);
+    }
+
+
     public function store(Request $request)
     {
         $data = $request->validate([

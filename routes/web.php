@@ -57,6 +57,11 @@ Route::get('/strangle-profit', [App\Http\Controllers\StrangleController::class, 
 
 Route::get('/entry', [App\Http\Controllers\EntryController::class, 'index'])->name('entries.index');   // show form + P&L table
 Route::post('/entries', [App\Http\Controllers\EntryController::class, 'store'])->name('entries.store'); // save entry
+Route::put('/entries/{entry}', [App\Http\Controllers\EntryController::class, 'update'])->name('entries.update'); // new
 Route::get('/pnl-data', [App\Http\Controllers\EntryController::class, 'pnlData'])->name('entries.pnl'); // ajax P&L refresh
 Route::delete('/entries/{entry}', [App\Http\Controllers\EntryController::class, 'destroy'])->name('entries.destroy');
 Route::get('/pnl-series', [App\Http\Controllers\EntryController::class, 'pnlSeries'])->name('entries.pnlSeries');
+
+
+Route::get('/index-futures-chart', [App\Http\Controllers\IndexFuturesChartController::class, 'index'])->name('index.futures.chart');
+Route::get('/api/index-futures-daily', [App\Http\Controllers\IndexFuturesChartController::class, 'dailyTrend'])->name('api.index.futures.daily');
