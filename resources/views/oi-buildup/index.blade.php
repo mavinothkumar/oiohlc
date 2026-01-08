@@ -75,48 +75,106 @@
                                 No data for this interval.
                             </p>
                         @else
-                            <table class="min-w-full text-xs">
-                                <thead>
-                                <tr class="text-gray-500">
-                                    <th class="text-left py-1">Strike</th>
-                                    <th class="text-right py-1">ΔOI</th>
-                                    <th class="text-right py-1">ΔPx</th>
-                                    <th class="text-center py-1">Type</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($rows as $row)
-                                    @php
-                                        $color = match($row['buildup']) {
-                                            'Long'   => 'text-green-600',
-                                            'Short'  => 'text-red-600',
-                                            'Cover'  => 'text-blue-600',
-                                            'Unwind' => 'text-yellow-600',
-                                            default  => 'text-gray-600',
-                                        };
-                                    @endphp
-                                    <tr class="border-t border-gray-100">
-                                        <td class="py-1 pr-2 text-gray-900">
-                                            {{ $row['strike'] .' '.$row['instrument_type'] }}
-                                        </td>
-                                        <td class="py-1 text-right {{ $row['delta_oi'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                            {{ number_format($row['delta_oi']) }}
-                                        </td>
-                                        <td class="py-1 text-right {{ $row['delta_price'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                            {{ number_format($row['delta_price'], 2) }}
-                                        </td>
-                                        <td class="py-1 text-center font-semibold {{ $color }}">
-                                            {{ $row['buildup'] }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+                            <div id="chart-{{ $i }}" class="h-64"></div>
                         @endif
                     </div>
                 </div>
             @endforeach
         </div>
 
+
     </div>
+
+    <script>
+        window.oiBuildupData = @json($datasets);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        (function () {
+            const datasets = window.oiBuildupData || {};
+
+            const colorByType = {
+                Long:   '#16a34a', // green 600
+                Short:  '#dc2626', // red 600
+                Cover:  '#1d4ed8', // blue 700 (navy-ish)
+                Unwind: '#facc15', // yellow 400
+                Neutral: '#6b7280'
+            };
+
+            [5, 10, 15, 30].forEach(interval => {
+                const rows = datasets[interval] || [];
+                if (!rows.length) {
+                    return;
+                }
+
+                const categories = rows.map(r => `${r.strike} ${r.instrument_type}`);
+
+// use absolute value so everything is plotted to the right
+                const values     = rows.map(r => Math.abs(r.delta_oi));
+
+                const colors     = rows.map(r => colorByType[r.buildup] || colorByType.Neutral);
+
+                const options = {
+                    chart: {
+                        type: 'bar',
+                        height: 260,
+                        toolbar: { show: false }
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: true,
+                            distributed: true, // color each bar individually
+                            barHeight: '70%'
+                        }
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
+                    xaxis: {
+                        categories: categories,
+                        labels: {
+                            formatter: val => Number(val).toLocaleString()
+                        },
+                        title: {
+                            text: 'ΔOI'
+                        }
+                    },
+                    yaxis: {
+                        labels: {
+                            style: { fontSize: '10px' }
+                        }
+                    },
+                    series: [{
+                        name: 'ΔOI',
+                        data: values
+                    }],
+                    colors: colors,
+                    tooltip: {
+                        y: {
+                            formatter: (val, opts) => {
+                                const row = rows[opts.dataPointIndex];
+                                const signed = row.delta_oi; // original signed value
+                                return [
+                                    `ΔOI: ${signed.toLocaleString()}`,
+                                    `ΔPx: ${row.delta_price.toFixed(2)}`,
+                                    `Type: ${row.buildup}`
+                                ].join(' | ');
+                            }
+                        }
+                    },
+                    grid: {
+                        borderColor: '#e5e7eb'
+                    }
+                };
+
+                const el = document.querySelector(`#chart-${interval}`);
+                if (el) {
+                    const chart = new ApexCharts(el, options);
+                    chart.render();
+                }
+            });
+        })();
+    </script>
+
 @endsection

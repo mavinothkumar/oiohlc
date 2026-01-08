@@ -20,7 +20,6 @@ class OiBuildupController extends Controller
         $hasFilters = filled($validated['at'] ?? null) || filled($validated['expiry'] ?? null);
 
         if ( ! $hasFilters) {
-            // Just show form, no processing, NO redirect
 
             return view('oi-buildup.index', [
                 'no_filter' => true,
@@ -44,7 +43,6 @@ class OiBuildupController extends Controller
         } else {
             $atDateTime = now()->seconds(0);
         }
-        //$atDateTime = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $at)->seconds(0);
 
         $baseWhere = [];
         if ( ! empty($validated['underlying_symbol'])) {
@@ -73,10 +71,6 @@ class OiBuildupController extends Controller
                              ->where('timestamp', $atDateTimeString)
                              ->orderBy('open_interest', 'desc')
                              ->limit($limit)->get();
-//                             ->groupBy('instrument_key')
-//                             ->map(fn($rows) => $rows->sortByDesc('timestamp')->first());
-
-            // dd($currentRows->toRawSql());
 
             $instrumentKeys = $currentRows->pluck('instrument_key')->all();
 
@@ -91,11 +85,7 @@ class OiBuildupController extends Controller
                                   ->where('timestamp', $fromTimeString)
                                   ->orderBy('timestamp', 'desc')
                                   ->limit($limit)->get();
-//                                  ->groupBy('instrument_key')
-//                                  ->map(fn($rows) => $rows->sortByDesc('timestamp')->first());
             }
-
-            //dd([$currentRows, $previousRows]);
 
             $rows = [];
             foreach ($currentRows as $ik => $current) {
