@@ -65,3 +65,7 @@ Route::get('/pnl-series', [App\Http\Controllers\EntryController::class, 'pnlSeri
 
 Route::get('/index-futures-chart', [App\Http\Controllers\IndexFuturesChartController::class, 'index'])->name('index.futures.chart');
 Route::get('/api/index-futures-daily', [App\Http\Controllers\IndexFuturesChartController::class, 'dailyTrend'])->name('api.index.futures.daily');
+
+
+
+Route::get('/oi-buildup', [App\Http\Controllers\OiBuildupController::class, 'index'])->name('oi-buildup.index');
