@@ -39,7 +39,7 @@
         @endif
 
         {{-- Results --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
             @foreach([5, 10, 15, 30] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
@@ -59,7 +59,7 @@
                                 No data for this interval.
                             </p>
                         @else
-                            <div id="chart-{{ $i }}" class="h-64"></div>
+                            <div id="chart-{{ $i }}" class="h-100"></div>
                         @endif
                     </div>
                 </div>
@@ -92,7 +92,7 @@
                     return;
                 }
 
-                const categories = rows.map(r => `${r.strike} ${r.option_type}`);
+                const categories = rows.map(r => `${parseInt(r.strike)} ${r.option_type}`);
 
 // use absolute value so everything is plotted to the right
                 const values     = rows.map(r => Math.abs(r.delta_oi));
@@ -102,8 +102,8 @@
                 const options = {
                     chart: {
                         type: 'bar',
-                        height: 260,
-                        toolbar: { show: false }
+                        height: 400,
+                        toolbar: { show: true }
                     },
                     plotOptions: {
                         bar: {
@@ -113,7 +113,7 @@
                         }
                     },
                     dataLabels: {
-                        enabled: false
+                        enabled: true
                     },
                     xaxis: {
                         categories: categories,
@@ -126,7 +126,7 @@
                     },
                     yaxis: {
                         labels: {
-                            style: { fontSize: '10px' }
+                            style: { fontSize: '14px', fontWeight: 'bold' }
                         }
                     },
                     series: [{

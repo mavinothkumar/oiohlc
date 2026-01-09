@@ -47,8 +47,8 @@ class OiBuildupLiveController extends Controller
             $currentRows = DB::table('option_chains')
                              ->where('expiry', $expiry)
                              ->where('captured_at', $atDateTimeString)
-                             ->orderBy('oi', 'desc')
-                             ->limit($limit)->get();
+                             //->orderBy('diff_oi', 'desc')
+                             ->get();
 
             $instrument_key = $currentRows->pluck('instrument_key')->all();
 
@@ -59,8 +59,8 @@ class OiBuildupLiveController extends Controller
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
                                   ->where('captured_at', $fromTimeString)
-                                  ->orderBy('captured_at', 'desc')
-                                  ->limit($limit)->get();
+                                  //->orderBy('diff_oi', 'desc')
+                                  ->get();
             }
 
             $rows = [];
