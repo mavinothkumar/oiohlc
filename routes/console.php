@@ -58,11 +58,11 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
 //        ->withoutOverlapping()
 //        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
 
-Schedule::job(new \App\Jobs\CollectOhlcJob(), 'ohlc')
-        ->weekdays()
-        ->everyMinute()
-        ->between('9:15', '15:30')
-        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
+//Schedule::job(new \App\Jobs\CollectOhlcJob(), 'ohlc')
+//        ->weekdays()
+//        ->everyMinute()
+//        ->between('9:15', '15:30')
+//        ->appendOutputTo(storage_path('logs/collect-ohlc.log'));
 
 //Schedule::command('trend:process-5m')->weekdays()  // php artisan trend:process-5m
 //        ->everyFiveMinutes()
@@ -70,11 +70,17 @@ Schedule::job(new \App\Jobs\CollectOhlcJob(), 'ohlc')
 //        ->withoutOverlapping()
 //        ->appendOutputTo(storage_path('logs/process-5m.log'));
 
-Schedule::job(new \App\Jobs\ProcessTrend5mJob(), 'trend5m')->weekdays()  // php artisan trend:process-5m
+
+Schedule::command('optionchain:fetch') // php artisan trend:update-index-open
         ->everyFiveMinutes()
         ->between('9:15', '15:30')
-        ->withoutOverlapping()
-        ->appendOutputTo(storage_path('logs/process-5m.log'));
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+//Schedule::job(new \App\Jobs\ProcessTrend5mJob(), 'trend5m')->weekdays()  // php artisan trend:process-5m
+//        ->everyFiveMinutes()
+//        ->between('9:15', '15:30')
+//        ->withoutOverlapping()
+//        ->appendOutputTo(storage_path('logs/process-5m.log'));
 
 //Schedule::command('optionchain:fetch')->weekdays()  // php artisan optionchain:fetch
 //        ->everyThreeMinutes()
@@ -82,15 +88,15 @@ Schedule::job(new \App\Jobs\ProcessTrend5mJob(), 'trend5m')->weekdays()  // php 
 //        ->appendOutputTo(storage_path('logs/optionchain.log'));
 
 
-Schedule::job(new \App\Jobs\FetchOptionChainJob(), 'optionchain')  // php artisan optionchain:fetch
-        ->everyMinute()
-        ->between('9:15', '15:33')
-        ->appendOutputTo(storage_path('logs/optionchain.log'));
+//Schedule::job(new \App\Jobs\FetchOptionChainJob(), 'optionchain')  // php artisan optionchain:fetch
+//        ->everyMinute()
+//        ->between('9:15', '15:33')
+//        ->appendOutputTo(storage_path('logs/optionchain.log'));
 
 
-Schedule::command('ohlc:cleanup-daily')
-        ->dailyAt('15:45')
-        ->appendOutputTo(storage_path('logs/cleanup-daily.log'));
+//Schedule::command('ohlc:cleanup-daily')
+//        ->dailyAt('15:45')
+//        ->appendOutputTo(storage_path('logs/cleanup-daily.log'));
 
 //php artisan queue:work --queue=default --sleep=1 --tries=1
 

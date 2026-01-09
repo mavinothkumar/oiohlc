@@ -69,3 +69,4 @@ Route::get('/api/index-futures-daily', [App\Http\Controllers\IndexFuturesChartCo
 
 
 Route::get('/oi-buildup', [App\Http\Controllers\OiBuildupController::class, 'index'])->name('oi-buildup.index');
+Route::get('/oi-buildup-live', [App\Http\Controllers\OiBuildupLiveController::class, 'index'])->name('oi-buildup.live');

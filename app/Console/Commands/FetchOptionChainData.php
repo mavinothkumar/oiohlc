@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use function Laravel\Prompts\table;
 
 class FetchOptionChainData extends Command
 {
@@ -21,17 +22,18 @@ class FetchOptionChainData extends Command
         $this->fetchAndStoreOptionChain();
 
         // Step 2. Determine if current time is within market hours (9:15–15:30)
-        $now          = now();
-        $start        = now()->copy()->setTime(9, 15);
-        $end          = now()->copy()->setTime(15, 30);
-        $isMarketTime = $now->between($start, $end);
-
-        // Step 3. Check if it’s a 3-minute interval
-        if ($isMarketTime && $now->second < 5 && $now->minute % 3 === 0) {
-            info('inside 3-minute interval '.$now->minute);
-            $this->aggregateThreeMinuteData();
-        }
+//        $now          = now();
+//        $start        = now()->copy()->setTime(9, 15);
+//        $end          = now()->copy()->setTime(15, 30);
+//        $isMarketTime = $now->between($start, $end);
+//
+//        // Step 3. Check if it’s a 3-minute interval
+//        if ($isMarketTime && $now->second < 5 && $now->minute % 3 === 0) {
+//            info('inside 3-minute interval '.$now->minute);
+//            $this->aggregateThreeMinuteData();
+//        }
         Log::info('Completed option chain data from Upstox API at '.Carbon::now());
+
         return Command::SUCCESS;
     }
 
@@ -73,15 +75,26 @@ class FetchOptionChainData extends Command
             ]);
 
             $data = $response->json('data') ?? [];
+            //info('$data',[$data]);
             if (empty($data)) {
                 Log::error("Empty data for {$inst['symbol']}");
                 continue;
             }
 
-            $records = [];
+            $records          = [];
+            $latestCapturedAt = DB::table('option_chains')->limit(1)
+                                  ->latest('captured_at')  // or orderBy('captured_at', 'desc')
+                                  ->value('captured_at');  // Gets just the scalar value
+
+            $prevData = DB::table('option_chains')
+                          ->where('captured_at', $latestCapturedAt)
+                          ->get()
+                          ->keyBy('instrument_key')
+                          ->toArray();
+
             foreach ($data as $item) {
-                $records[] = $this->buildRecord($item, $inst['symbol'], 'CE');
-                $records[] = $this->buildRecord($item, $inst['symbol'], 'PE');
+                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'CE');
+                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'PE');
             }
 
             DB::table('option_chains')->insert($records);
@@ -181,14 +194,23 @@ class FetchOptionChainData extends Command
         Log::info('3-min snapshot completed at '.$capturedAt);
     }
 
-    private function buildRecord(array $item, string $symbol, string $type)
+    private function buildRecord(array $item, $prevData, string $symbol, string $type)
     {
-        $optData = $type === 'CE' ? $item['call_options'] : $item['put_options'];
-        $m       = $optData['market_data'];
-        $g       = $optData['option_greeks'];
+        $optData        = $type === 'CE' ? $item['call_options'] : $item['put_options'];
+        $m              = $optData['market_data'];
+        $g              = $optData['option_greeks'];
+        $instrument_key = $optData['instrument_key'];
+
+        $prevRecord = $prevData[$instrument_key] ?? null;
+
+        // Calculate differences
+        $diff_oi        = $prevRecord ? $m['oi'] - $prevRecord->oi : null;
+        $diff_volume    = $prevRecord ? $m['volume'] - $prevRecord->volume : null;
+        $diff_ltp       = $prevRecord ? $m['ltp'] - $prevRecord->ltp : null;
 
         return [
             'underlying_key'        => $item['underlying_key'],
+            'instrument_key'        => $instrument_key,
             'trading_symbol'        => $symbol,
             'expiry'                => $item['expiry'],
             'strike_price'          => $item['strike_price'],
@@ -213,6 +235,11 @@ class FetchOptionChainData extends Command
             'captured_at'           => now()->copy()->second(0),
             'created_at'            => now(),
             'updated_at'            => now(),
+
+            // New diff columns
+            'diff_oi'               => $diff_oi,
+            'diff_volume'           => $diff_volume,
+            'diff_ltp'              => $diff_ltp,
         ];
     }
 }

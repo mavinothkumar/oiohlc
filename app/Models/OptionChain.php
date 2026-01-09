@@ -13,6 +13,7 @@ class OptionChain extends Model
 
     protected $fillable = [
         'underlying_key',
+        'instrument_key',
         'trading_symbol',
         'expiry',
         'strike_price',
@@ -35,5 +36,8 @@ class OptionChain extends Model
         'underlying_spot_price',
         'pcr',
         'captured_at',
+        'diff_oi',
+        'diff_volume',
+        'diff_ltp',
     ];
 }
