@@ -81,7 +81,7 @@
             const colorByType = {
                 Long:   '#16a34a', // green 600
                 Short:  '#dc2626', // red 600
-                Cover:  '#1d4ed8', // blue 700 (navy-ish)
+                Cover:  '#0d2a7c', // blue 700 (navy-ish)
                 Unwind: '#facc15', // yellow 400
                 Neutral: '#6b7280'
             };
@@ -102,7 +102,7 @@
                 const options = {
                     chart: {
                         type: 'bar',
-                        height: 400,
+                        height: 500,
                         toolbar: { show: true }
                     },
                     plotOptions: {
