@@ -146,4 +146,35 @@ class OiBuildupController extends Controller
         ]);
     }
 
+
+    public function expiries(Request $request)
+    {
+        $request->validate([
+            'underlying_symbol' => 'required|string',
+            'at'                => 'required|date_format:Y-m-d\TH:i',
+        ]);
+
+        $symbol = $request->underlying_symbol;
+        $at     = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $request->at);
+
+        $date = $at->toDateString();
+        $startOfDay = $date.' 00:00:00';
+        $endOfDay   = $date.' 23:59:59';
+
+        $expiry = DB::table('expired_expiries')
+                    ->where('instrument_type', 'OPT')
+                    ->whereDate('expiry_date', '>=', $date)
+                    //->whereBetween('timestamp', [$startOfDay, $endOfDay])
+                    ->orderBy('expiry_date')
+                    ->limit(1)
+                    ->value('expiry_date');   // returns string 'YYYY-MM-DD' or null
+
+        info('$expiry',[$expiry]);
+
+        return response()->json([
+            'expiry' => $expiry,
+        ]);
+    }
+
+
 }
