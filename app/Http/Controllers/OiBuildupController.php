@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class OiBuildupController extends Controller
@@ -16,6 +17,7 @@ class OiBuildupController extends Controller
             'at'                => 'nullable|date_format:Y-m-d\TH:i',
             'limit'             => 'nullable|integer|min:1|max:100',
         ]);
+        $datasets  = [];
 
         $hasFilters = filled($validated['at'] ?? null) || filled($validated['expiry'] ?? null);
 
@@ -31,18 +33,18 @@ class OiBuildupController extends Controller
                     'at'                => now()->format('Y-m-d\TH:i'),
                     'limit'             => 5,
                 ],
-                'rows'      => [],
+                'datasets' => $datasets,
             ]);
         }
 
         $limit = (int) ($validated['limit'] ?? 5);
-        $at    = $validated['at'] ?? null;
+        $at    = ! empty($validated['at']) ? $validated['at'] :  null;
+        $at    = $at
+            ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
+            : Carbon::now();
 
-        if ($at) {
-            $atDateTime = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $at);
-        } else {
-            $atDateTime = now()->seconds(0);
-        }
+        $minutes = floor($at->minute / 5) * 5;
+        $atDateTime = $at->setTime($at->hour, $minutes, 0);
 
         $baseWhere = [];
         if ( ! empty($validated['underlying_symbol'])) {
@@ -57,7 +59,7 @@ class OiBuildupController extends Controller
         }
 
         $intervals = [5, 10, 15, 30];
-        $datasets  = [];
+
 
         foreach ($intervals as $intervalMinutes) {
             $fromTime   = $atDateTime->copy()->subMinutes($intervalMinutes);
@@ -69,10 +71,12 @@ class OiBuildupController extends Controller
                              ->where('strike', '>', 0)
                              ->where('interval', '5minute')
                              ->where('timestamp', $atDateTimeString)
-                             ->orderBy('open_interest', 'desc')
-                             ->limit($limit)->get();
-
+                             //->orderBy('open_interest', 'desc')
+                             ->get();
+ //dd($currentRows->toRawSql());
             $instrumentKeys = $currentRows->pluck('instrument_key')->all();
+
+           // dd($instrumentKeys);
 
             $previousRows = collect();
             if ( ! empty($instrumentKeys)) {
@@ -83,8 +87,8 @@ class OiBuildupController extends Controller
                                   ->where('interval', '5minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
                                   ->where('timestamp', $fromTimeString)
-                                  ->orderBy('timestamp', 'desc')
-                                  ->limit($limit)->get();
+                                  //->orderBy('timestamp', 'desc')
+                                  ->get();
             }
 
             $rows = [];
@@ -127,7 +131,7 @@ class OiBuildupController extends Controller
             usort($rows, fn($a, $b) => abs($b['delta_oi']) <=> abs($a['delta_oi']));
             $datasets[$intervalMinutes] = array_slice($rows, 0, $limit);
         }
-
+//dd($datasets);
 
         return view('oi-buildup.index', [
             'filters'  => [

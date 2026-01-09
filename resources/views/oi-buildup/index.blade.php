@@ -28,7 +28,7 @@
                     type="datetime-local"
                     name="at"
                     value="{{ $filters['at']
-        ? \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $filters['at'])->format('Y-m-d\TH:i')
+        ? \Carbon\Carbon::parse($filters['at'])->format('Y-m-d\TH:i')
         : now()->format('Y-m-d\TH:i') }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
@@ -55,7 +55,7 @@
         @endif
 
         {{-- Results --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
             @foreach([5, 10, 15, 30] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
@@ -75,7 +75,7 @@
                                 No data for this interval.
                             </p>
                         @else
-                            <div id="chart-{{ $i }}" class="h-64"></div>
+                            <div id="chart-{{ $i }}" class="h-100"></div>
                         @endif
                     </div>
                 </div>
@@ -97,7 +97,7 @@
             const colorByType = {
                 Long:   '#16a34a', // green 600
                 Short:  '#dc2626', // red 600
-                Cover:  '#1d4ed8', // blue 700 (navy-ish)
+                Cover:  '#102559', // blue 700 (navy-ish)
                 Unwind: '#facc15', // yellow 400
                 Neutral: '#6b7280'
             };
@@ -109,8 +109,6 @@
                 }
 
                 const categories = rows.map(r => `${r.strike} ${r.instrument_type}`);
-
-// use absolute value so everything is plotted to the right
                 const values     = rows.map(r => Math.abs(r.delta_oi));
 
                 const colors     = rows.map(r => colorByType[r.buildup] || colorByType.Neutral);
@@ -118,8 +116,8 @@
                 const options = {
                     chart: {
                         type: 'bar',
-                        height: 260,
-                        toolbar: { show: false }
+                        height: 400,
+                        toolbar: { show: true }
                     },
                     plotOptions: {
                         bar: {
@@ -129,7 +127,7 @@
                         }
                     },
                     dataLabels: {
-                        enabled: false
+                        enabled: true
                     },
                     xaxis: {
                         categories: categories,
@@ -142,7 +140,7 @@
                     },
                     yaxis: {
                         labels: {
-                            style: { fontSize: '10px' }
+                            style: { fontSize: '14px' }
                         }
                     },
                     series: [{
