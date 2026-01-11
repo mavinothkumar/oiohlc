@@ -6,11 +6,7 @@ Route::get('/111', function () {
     return now()->second(0);
 })->name('home');
 
-Route::get('test', function () {
-    $expiryValue = 1761848999000;
-   $expiryDate = Carbon\Carbon::createFromTimestampMs($expiryValue)->format('Y-m-d');
-   dd($expiryDate);
-});
+Route::get('test', ['\App\Http\Controllers\OhlcChartController', 'ohlc']);
 
 Route::get('/snipper-point', [App\Http\Controllers\SnipperPointController::class, 'index'])->name('snipper-point');
 Route::get('/market-flow', [App\Http\Controllers\MarketFlowController::class, 'index'])->name('market-flow.index');

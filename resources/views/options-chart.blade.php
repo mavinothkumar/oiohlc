@@ -303,7 +303,7 @@
                         opt.value = '';
                         opt.textContent = 'No expiries';
                         expiryEl.appendChild(opt);
-                        hideLoader();  // <<< HIDE LOADER
+                       // hideLoader();  // <<< HIDE LOADER
                         return;
                     }
 
@@ -319,6 +319,7 @@
                     if (json.atm_strike) {
                         ceKeyEl.value = json.atm_strike;
                         peKeyEl.value = json.atm_strike;
+                        hideLoader();
                         loadBtn.click();
                     }
 
@@ -326,7 +327,7 @@
                 } catch (error) {
                     console.error('Error fetching expiries:', error);
                 } finally {
-                    hideLoader();
+                   //hideLoader();
                 }
             });
 

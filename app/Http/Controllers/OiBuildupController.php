@@ -158,13 +158,10 @@ class OiBuildupController extends Controller
         $at     = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $request->at);
 
         $date = $at->toDateString();
-        $startOfDay = $date.' 00:00:00';
-        $endOfDay   = $date.' 23:59:59';
 
         $expiry = DB::table('expired_expiries')
                     ->where('instrument_type', 'OPT')
                     ->whereDate('expiry_date', '>=', $date)
-                    //->whereBetween('timestamp', [$startOfDay, $endOfDay])
                     ->orderBy('expiry_date')
                     ->limit(1)
                     ->value('expiry_date');   // returns string 'YYYY-MM-DD' or null

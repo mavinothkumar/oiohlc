@@ -38,11 +38,12 @@ class OhlcChartController extends Controller
                       ->limit(1)
                       ->pluck('expiry');
 
+
         $atmStrike    = null;
         $expiryForAtm = $expiries->first();
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $prevDay);
+            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
         }
 
         return response()->json([
@@ -77,6 +78,11 @@ class OhlcChartController extends Controller
 
     protected function getAtmStrikeForDay(string $symbol, string $expiry, string $date): ?int
     {
+        return DB::table('daily_trend')
+            ->where('symbol_name', $symbol)
+            ->where('expiry_date', $expiry)
+            ->where('quote_date', $date)->value('strike');
+
         // all CE daily bars for that day
         $ceRows = DB::table('expired_ohlc')
                     ->where('underlying_symbol', $symbol)
@@ -121,7 +127,7 @@ class OhlcChartController extends Controller
     }
 
 
-    public function ohlc(Request $request)
+    public function ohlc(Request $request )
     {
         $request->validate([
             'underlying_symbol' => 'required|string',
@@ -130,6 +136,12 @@ class OhlcChartController extends Controller
             'ce_instrument_key' => 'required|string',
             'pe_instrument_key' => 'required|string',
         ]);
+
+//        $symbol = 'NIFTY';
+//        $expiry = '2025-11-25';
+//        $date   = '2025-11-19';
+//        $ceKey  = 26000;
+//        $peKey  = 26000;
 
         $symbol = $request->underlying_symbol;
         $expiry = $request->expiry;
@@ -164,10 +176,11 @@ class OhlcChartController extends Controller
         $cePrev = collect();
         $pePrev = collect();
 
+
         if ($prevDate) {
             $basePrev = DB::table('expired_ohlc')
                           ->where('underlying_symbol', $symbol)
-                          ->whereDate('expiry', $expiry)
+                          ->where('expiry', $expiry)
                           ->where('interval', '5minute')
                           ->whereDate('timestamp', $prevDate)
                           ->orderBy('timestamp', 'asc');
@@ -182,6 +195,7 @@ class OhlcChartController extends Controller
                 ->where('instrument_type', 'PE')
                 ->get(['open', 'high', 'low', 'close', 'timestamp']);
         }
+
 
         $map = fn($row) => [
             'time'  => strtotime($row->timestamp),
