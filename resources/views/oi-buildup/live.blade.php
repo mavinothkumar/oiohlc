@@ -11,9 +11,12 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">At</label>
                 <input
+                    id="at_input"
                     type="datetime-local"
                     name="at"
-                    value=""
+                    value="{{ $filters['at']
+                ? \Carbon\Carbon::parse($filters['at'])->format('Y-m-d\TH:i')
+                : now()->format('Y-m-d\TH:i') }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
             </div>
