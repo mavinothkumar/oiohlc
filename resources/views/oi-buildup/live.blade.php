@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="max-w-full mx-auto px-4 py-6">
         <h1 class="text-2xl font-semibold text-gray-900 mb-6">
             OI Live Buildup ({{ $filters['date'] }})
         </h1>
@@ -39,7 +39,7 @@
         @endif
 
         {{-- Results --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-2">
             @foreach([5, 10, 15, 30] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
@@ -154,7 +154,7 @@
                                 const row = rows[opts.dataPointIndex];
                         const signed = row.delta_oi;
                                 return [
-                            `ΔOI: ${formatIndianNumber(signed)}`,
+                            `ΔOI: ${signed}`,
                                     `ΔPx: ${row.delta_price.toFixed(2)}`,
                                     `Type: ${row.buildup}`
                                 ].join(' | ');
