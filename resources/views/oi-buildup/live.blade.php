@@ -78,6 +78,19 @@
         (function () {
             const datasets = window.oiBuildupData || {};
 
+    // Indian number formatter (K/L/C)
+    function formatIndianNumber(num) {
+        const n = Math.abs(num);
+        if (n >= 1e7) {           // crore
+            return (num / 1e7).toFixed(1).replace(/\.0$/, '') + ' C';
+        } else if (n >= 1e5) {    // lakh
+            return (num / 1e5).toFixed(1).replace(/\.0$/, '') + ' L';
+        } else if (n >= 1e3) {    // thousand -> full value
+            return Math.round(num).toString();
+        }
+        return num.toString();
+    }
+
             const colorByType = {
                 Long:   '#16a34a', // green 600
                 Short:  '#dc2626', // red 600
@@ -113,12 +126,13 @@
                         }
                     },
                     dataLabels: {
-                        enabled: true
+                enabled: true,
+                formatter: (val) => formatIndianNumber(val)  // Inside bar labels
                     },
                     xaxis: {
                         categories: categories,
                         labels: {
-                            formatter: val => Number(val).toLocaleString()
+                    formatter: (val) => formatIndianNumber(val)  // Axis scale
                         },
                         title: {
                             text: 'ΔOI'
@@ -138,9 +152,9 @@
                         y: {
                             formatter: (val, opts) => {
                                 const row = rows[opts.dataPointIndex];
-                                const signed = row.delta_oi; // original signed value
+                        const signed = row.delta_oi;
                                 return [
-                                    `ΔOI: ${signed.toLocaleString()}`,
+                            `ΔOI: ${formatIndianNumber(signed)}`,
                                     `ΔPx: ${row.delta_price.toFixed(2)}`,
                                     `Type: ${row.buildup}`
                                 ].join(' | ');

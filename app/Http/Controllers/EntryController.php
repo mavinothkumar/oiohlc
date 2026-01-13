@@ -73,6 +73,7 @@ class EntryController extends Controller
         foreach ($entries as $entry) {
             // default start = entry date + time
             $date = $entry->entry_date->format('Y-m-d');
+            $expiry = $entry->expiry->format('Y-m-d');
             $time = \Carbon\Carbon::parse($entry->entry_time)->format('H:i:s');
             $entryStart = \Carbon\Carbon::parse("$date $time");
 
@@ -83,7 +84,7 @@ class EntryController extends Controller
 
             $candlesQuery = ExpiredOhlc::where('underlying_symbol', $entry->underlying_symbol)
                                        ->where('exchange', $entry->exchange)
-                                       ->where('expiry', $entry->expiry)
+                                       ->where('expiry', $expiry)
                                        ->where('instrument_type', $entry->instrument_type)
                                        ->where('strike', $entry->strike)
                                        ->where('interval', '5minute')
@@ -95,8 +96,9 @@ class EntryController extends Controller
                 $endTime = \Carbon\Carbon::parse($to);
                 $candlesQuery->where('timestamp', '<=', $endTime);
             }
-
             $candles = $candlesQuery->get(['timestamp', 'close']);
+
+
 
             $points = [];
             foreach ($candles as $c) {

@@ -166,7 +166,6 @@ class OiBuildupController extends Controller
                     ->limit(1)
                     ->value('expiry_date');   // returns string 'YYYY-MM-DD' or null
 
-        info('$expiry',[$expiry]);
 
         return response()->json([
             'expiry' => $expiry,

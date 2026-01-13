@@ -71,7 +71,7 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
 //        ->appendOutputTo(storage_path('logs/process-5m.log'));
 
 
-Schedule::command('optionchain:fetch') // php artisan trend:update-index-open
+Schedule::command('optionchain:fetch') // php artisan optionchain:fetch
         ->everyFiveMinutes()
         ->between('9:15', '15:30')
         ->timezone('Asia/Kolkata')
