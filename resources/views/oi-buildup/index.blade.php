@@ -57,7 +57,7 @@
 
         {{-- Results --}}
         <div class="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-6">
-            @foreach([5, 10, 15, 30] as $i)
+            @foreach([5, 10, 15, 30, 375 ] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-sm font-semibold text-gray-800">
@@ -129,21 +129,36 @@
         (function () {
             const datasets = window.oiBuildupData || {};
 
+            // Indian number formatter (K/L/C)
+            function formatIndianNumber(num) {
+                const n = Math.abs(num);
+                if (n >= 1e7) {           // crore
+                    return (num / 1e7).toFixed(1).replace(/\.0$/, '') + ' C';
+                } else if (n >= 1e5) {    // lakh
+                    return (num / 1e5).toFixed(1).replace(/\.0$/, '') + ' L';
+                } else if (n >= 1e3) {    // thousand -> full value
+                    return Math.round(num).toString();
+                }
+                return num.toString();
+            }
+
             const colorByType = {
                 Long:   '#16a34a', // green 600
                 Short:  '#dc2626', // red 600
-                Cover:  '#102559', // blue 700 (navy-ish)
+                Cover:  '#0d2a7c', // blue 700 (navy-ish)
                 Unwind: '#facc15', // yellow 400
                 Neutral: '#6b7280'
             };
 
-            [5, 10, 15, 30].forEach(interval => {
+            [5, 10, 15, 30, 375].forEach(interval => {
                 const rows = datasets[interval] || [];
                 if (!rows.length) {
                     return;
                 }
 
-                const categories = rows.map(r => `${r.strike} ${r.instrument_type}`);
+                const categories = rows.map(r => `${parseInt(r.strike)} ${r.instrument_type}`);
+
+// use absolute value so everything is plotted to the right
                 const values     = rows.map(r => Math.abs(r.delta_oi));
 
                 const colors     = rows.map(r => colorByType[r.buildup] || colorByType.Neutral);
@@ -151,7 +166,7 @@
                 const options = {
                     chart: {
                         type: 'bar',
-                        height: 400,
+                        height: 500,
                         toolbar: { show: true }
                     },
                     plotOptions: {
@@ -162,12 +177,13 @@
                         }
                     },
                     dataLabels: {
-                        enabled: true
+                        enabled: true,
+                        formatter: (val) => formatIndianNumber(val)  // Inside bar labels
                     },
                     xaxis: {
                         categories: categories,
                         labels: {
-                            formatter: val => Number(val).toLocaleString()
+                            formatter: (val) => formatIndianNumber(val)  // Axis scale
                         },
                         title: {
                             text: 'ΔOI'
@@ -187,9 +203,9 @@
                         y: {
                             formatter: (val, opts) => {
                                 const row = rows[opts.dataPointIndex];
-                                const signed = row.delta_oi; // original signed value
+                                const signed = row.delta_oi;
                                 return [
-                                    `ΔOI: ${signed.toLocaleString()}`,
+                                    `ΔOI: ${signed}`,
                                     `ΔPx: ${row.delta_price.toFixed(2)}`,
                                     `Type: ${row.buildup}`
                                 ].join(' | ');

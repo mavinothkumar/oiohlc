@@ -25,7 +25,7 @@ class OiBuildupLiveController extends Controller
         //dd($expiry);
 
         $limit = (int) ($validated['limit'] ?? 5);
-        $at    = ! empty($validated['at']) ? $validated['at'] :  null;
+        $at    = ! empty($validated['at']) ? $validated['at'] : null;
         $at    = $at
             ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
             : Carbon::now();
@@ -34,7 +34,7 @@ class OiBuildupLiveController extends Controller
 
         $atDateTime = $at->setTime($at->hour, $minutes, 0);
 
-        $intervals = [5, 10, 15, 30];
+        $intervals = [5, 10, 15, 30, 375];
         $datasets  = [];
 
         foreach ($intervals as $intervalMinutes) {
@@ -47,7 +47,7 @@ class OiBuildupLiveController extends Controller
             $currentRows = DB::table('option_chains')
                              ->where('expiry', $expiry)
                              ->where('captured_at', $atDateTimeString)
-                             //->orderBy('diff_oi', 'desc')
+                //->orderBy('diff_oi', 'desc')
                              ->get();
 
             $instrument_key = $currentRows->pluck('instrument_key')->all();
@@ -58,9 +58,13 @@ class OiBuildupLiveController extends Controller
                 $previousRows = DB::table('option_chains')
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
-                                  ->where('captured_at', $fromTimeString)
-                                  //->orderBy('diff_oi', 'desc')
-                                  ->get();
+                                  //->where('captured_at', $fromTimeString)
+                                  ->when(375 === $intervalMinutes, function ($query) use ($fromTime) {
+                                      return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
+                                  }, function ($query) use ($fromTimeString) {
+                                      return $query->where('captured_at', $fromTimeString);
+                                  })->get();
+                //->orderBy('diff_oi', 'desc')
             }
 
             $rows = [];
@@ -103,11 +107,12 @@ class OiBuildupLiveController extends Controller
             $datasets[$intervalMinutes] = array_slice($rows, 0, $limit);
         }
 
+
         return view('oi-buildup.live', [
             'filters'  => [
                 'at'    => $at,
                 'limit' => $limit,
-                'date' => $atDateTimeString,
+                'date'  => $atDateTimeString,
             ],
             'datasets' => $datasets,
         ]);
