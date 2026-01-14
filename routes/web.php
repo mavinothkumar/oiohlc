@@ -69,3 +69,5 @@ Route::get('/oi-buildup', [App\Http\Controllers\OiBuildupController::class, 'ind
 Route::get('/oi-buildup-live', [App\Http\Controllers\OiBuildupLiveController::class, 'index'])->name('oi-buildup.live');
 Route::get('/oi-buildup/expiries', [App\Http\Controllers\OiBuildupController::class, 'expiries'])
      ->name('oi-buildup.expiries');
+
+Route::get('/volume-buildup-live', [App\Http\Controllers\VolumeBuildupLiveController::class, 'index'])->name('volume-buildup.live');

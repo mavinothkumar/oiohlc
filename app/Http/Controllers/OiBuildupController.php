@@ -86,8 +86,8 @@ class OiBuildupController extends Controller
                                   ->where('strike', '>', 0)
                                   ->where('interval', '5minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
-                                  ->when(375 === $intervalMinutes, function ($query) use ($fromTime) {
-                                      return $query->whereDate('timestamp', '>=', $fromTime->format('Y-m-d'));
+                                  ->when(375 === $intervalMinutes, function ($query) use ($fromTimeString) {
+                                      return $query->where('timestamp', '>=', $fromTimeString);
                                   }, function ($query) use ($fromTimeString) {
                                       return $query->where('timestamp', $fromTimeString);
                                   })->get();

@@ -79,14 +79,14 @@ class BuildUpSummaryController extends Controller
         $nearToStart = $dayEnd->copy()->subMinutes(15);
         if ($nearToStart->lt($dayStart)) $nearToStart = $dayStart->copy();
 
-        $anchorEndTs = DB::table('option_chains_3m')
+        $anchorEndTs = DB::table('option_chains')
                          ->where('trading_symbol', $symbol)
                          ->where('expiry', $expiry)
                          ->whereBetween('captured_at', [$nearToStart, $dayEnd])
                          ->max('captured_at');
 
         if (!$anchorEndTs) {
-            $anchorEndTs = DB::table('option_chains_3m')
+            $anchorEndTs = DB::table('option_chains')
                              ->where('trading_symbol', $symbol)
                              ->where('expiry', $expiry)
                              ->whereBetween('captured_at', [$dayStart, $dayEnd])
@@ -105,7 +105,7 @@ class BuildUpSummaryController extends Controller
         $filters['to'] = $anchorEnd->format('Y-m-d\TH:i');
 
         /* ───────────── Latest underlying price ───────────── */
-        $underlying = DB::table('option_chains_3m')
+        $underlying = DB::table('option_chains')
                         ->where('trading_symbol', $symbol)
                         ->where('expiry', $expiry)
                         ->whereBetween('captured_at', [$dayStart, $anchorEnd])
@@ -120,7 +120,7 @@ class BuildUpSummaryController extends Controller
         $maxStrike = ceil( ($underlying + $band) / $defaultStep[$symbol]) * $defaultStep[$symbol];
 
         /* ───────────── Aggregate ΔOI totals + 5 m / 15 m windows ───────────── */
-        $rows = DB::table('option_chains_3m')
+        $rows = DB::table('option_chains')
                   ->selectRaw(
                       'strike_price, option_type, build_up,
                  SUM(diff_oi)                                                   AS total_oi,
@@ -322,14 +322,14 @@ class BuildUpSummaryController extends Controller
         $nearToStart = $dayEnd->copy()->subMinutes(15);
         if ($nearToStart->lt($dayStart)) $nearToStart = $dayStart->copy();
 
-        $anchorEndTs = DB::table('option_chains_3m')
+        $anchorEndTs = DB::table('option_chains')
                          ->where('trading_symbol', $symbol)
                          ->where('expiry', $expiry)
                          ->whereBetween('captured_at', [$nearToStart, $dayEnd])
                          ->max('captured_at');
 
         if (!$anchorEndTs) {
-            $anchorEndTs = DB::table('option_chains_3m')
+            $anchorEndTs = DB::table('option_chains')
                              ->where('trading_symbol', $symbol)
                              ->where('expiry', $expiry)
                              ->whereBetween('captured_at', [$dayStart, $dayEnd])
@@ -348,7 +348,7 @@ class BuildUpSummaryController extends Controller
         $filters['to'] = $anchorEnd->format('Y-m-d\TH:i');
 
         /* ───────────── Latest underlying price ───────────── */
-        $underlying = DB::table('option_chains_3m')
+        $underlying = DB::table('option_chains')
                         ->where('trading_symbol', $symbol)
                         ->where('expiry', $expiry)
                         ->whereBetween('captured_at', [$dayStart, $anchorEnd])
@@ -363,7 +363,7 @@ class BuildUpSummaryController extends Controller
         $maxStrike = ceil( ($underlying + $band) / $defaultStep[$symbol]) * $defaultStep[$symbol];
 
         /* ───────────── Aggregate ΔOI totals + 5 m / 15 m windows ───────────── */
-        $rows = DB::table('option_chains_3m')
+        $rows = DB::table('option_chains')
                   ->selectRaw(
                       'strike_price, option_type, build_up,
                  SUM(diff_oi)                                                   AS total_oi,

@@ -39,5 +39,6 @@ class OptionChain extends Model
         'diff_oi',
         'diff_volume',
         'diff_ltp',
+        'build_up',
     ];
 }

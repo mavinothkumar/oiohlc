@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
-class OiBuildupLiveController extends Controller
+class VolumeBuildupLiveController extends Controller
 {
     public function index(Request $request)
     {
@@ -47,7 +47,7 @@ class OiBuildupLiveController extends Controller
             $currentRows = DB::table('option_chains')
                              ->where('expiry', $expiry)
                              ->where('captured_at', $atDateTimeString)
-                //->orderBy('diff_oi', 'desc')
+                //->orderBy('diff_volume', 'desc')
                              ->get();
 
             $instrument_key = $currentRows->pluck('instrument_key')->all();
@@ -58,13 +58,13 @@ class OiBuildupLiveController extends Controller
                 $previousRows = DB::table('option_chains')
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
-                                  //->where('captured_at', $fromTimeString)
+                    //->where('captured_at', $fromTimeString)
                                   ->when(375 === $intervalMinutes, function ($query) use ($fromTime) {
-                                      return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
-                                  }, function ($query) use ($fromTimeString) {
-                                      return $query->where('captured_at', $fromTimeString);
-                                  })->get();
-                //->orderBy('diff_oi', 'desc')
+                        return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
+                    }, function ($query) use ($fromTimeString) {
+                        return $query->where('captured_at', $fromTimeString);
+                    })->get();
+                //->orderBy('diff_volume', 'desc')
             }
 
             $rows = [];
@@ -74,41 +74,41 @@ class OiBuildupLiveController extends Controller
                 }
                 $prev = $previousRows[$ik];
 
-                $deltaOi    = (int) $current->oi - (int) $prev->oi;
-                $deltaClose = (float) $current->ltp - (float) $prev->ltp;
+                $deltaVolume = (int) $current->volume - (int) $prev->volume;
+                $deltaClose  = (float) $current->ltp - (float) $prev->ltp;
 
-                if ($deltaOi === 0 || $deltaClose === 0) {
+                if ($deltaVolume === 0 || $deltaClose === 0) {
                     $buildup = 'Neutral';
-                } elseif ($deltaClose > 0 && $deltaOi > 0) {
+                } elseif ($deltaClose > 0 && $deltaVolume > 0) {
                     $buildup = 'Long';
-                } elseif ($deltaClose < 0 && $deltaOi > 0) {
+                } elseif ($deltaClose < 0 && $deltaVolume > 0) {
                     $buildup = 'Short';
-                } elseif ($deltaClose > 0 && $deltaOi < 0) {
+                } elseif ($deltaClose > 0 && $deltaVolume < 0) {
                     $buildup = 'Cover';
                 } else {
                     $buildup = 'Unwind';
                 }
 
                 $rows[] = [
-                    'strike'        => $current->strike_price,
-                    'option_type'   => $current->option_type,
-                    'current_close' => (float) $current->ltp,
-                    'prev_close'    => (float) $prev->ltp,
-                    'current_oi'    => (int) $current->oi,
-                    'prev_oi'       => (int) $prev->oi,
-                    'delta_price'   => $deltaClose,
-                    'delta_oi'      => $deltaOi,
-                    'buildup'       => $buildup,
-                    'timestamp'     => $current->captured_at,
+                    'strike'         => $current->strike_price,
+                    'option_type'    => $current->option_type,
+                    'current_close'  => (float) $current->ltp,
+                    'prev_close'     => (float) $prev->ltp,
+                    'current_volume' => (int) $current->volume,
+                    'prev_volume'    => (int) $prev->volume,
+                    'delta_price'    => $deltaClose,
+                    'delta_volume'   => $deltaVolume,
+                    'buildup'        => $buildup,
+                    'timestamp'      => $current->captured_at,
                 ];
             }
 
-            usort($rows, fn($a, $b) => abs($b['delta_oi']) <=> abs($a['delta_oi']));
+            usort($rows, fn($a, $b) => abs($b['delta_volume']) <=> abs($a['delta_volume']));
             $datasets[$intervalMinutes] = array_slice($rows, 0, $limit);
         }
 
 
-        return view('oi-buildup.live', [
+        return view('volume-buildup.live', [
             'filters'  => [
                 'at'    => $at,
                 'limit' => $limit,

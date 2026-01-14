@@ -86,6 +86,8 @@ class FetchOptionChainData extends Command
                                   ->latest('captured_at')  // or orderBy('captured_at', 'desc')
                                   ->value('captured_at');  // Gets just the scalar value
 
+            Log::info('$latestCapturedAt '.$latestCapturedAt);
+
             $prevData = DB::table('option_chains')
                           ->where('captured_at', $latestCapturedAt)
                           ->get()
@@ -208,6 +210,21 @@ class FetchOptionChainData extends Command
         $diff_volume    = $prevRecord ? $m['volume'] - $prevRecord->volume : null;
         $diff_ltp       = $prevRecord ? $m['ltp'] - $prevRecord->ltp : null;
 
+        // Derive build_up from diff_oi and diff_ltp
+        $buildUp = null;
+
+        if (!is_null($diff_oi) && !is_null($diff_ltp) && $diff_oi != 0 && $diff_ltp != 0) {
+            if ($diff_ltp > 0 && $diff_oi > 0) {
+                $buildUp = 'Long Build';      // Price ↑, OI ↑  => Long Build-up [web:11]
+            } elseif ($diff_ltp < 0 && $diff_oi > 0) {
+                $buildUp = 'Short Build';     // Price ↓, OI ↑  => Short Build-up [web:11]
+            } elseif ($diff_ltp > 0 && $diff_oi < 0) {
+                $buildUp = 'Short Cover';     // Price ↑, OI ↓  => Short Covering [web:11]
+            } elseif ($diff_ltp < 0 && $diff_oi < 0) {
+                $buildUp = 'Long Unwind';     // Price ↓, OI ↓  => Long Unwinding [web:11]
+            }
+        }
+
         return [
             'underlying_key'        => $item['underlying_key'],
             'instrument_key'        => $instrument_key,
@@ -240,6 +257,8 @@ class FetchOptionChainData extends Command
             'diff_oi'               => $diff_oi,
             'diff_volume'           => $diff_volume,
             'diff_ltp'              => $diff_ltp,
+
+            'build_up'              => $buildUp,
         ];
     }
 }
