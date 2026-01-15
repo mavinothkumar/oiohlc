@@ -87,11 +87,11 @@ class OiBuildupController extends Controller
                                   ->where('strike', '>', 0)
                                   ->where('interval', '3minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
-                                  ->when(375 === $intervalMinutes, function ($query) use ($atDateTime, $fromDateString) {
-                                      return $query->whereBetween('timestamp', [$fromDateString, $atDateTime]);
+                                  ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
+                                      return $query->where('timestamp', $fromDateString);
                                   }, function ($query) use ($fromTimeString) {
                                       return $query->where('timestamp', $fromTimeString);
-                                  })
+                                  })//;
                // dd($previousRows->toRawSql());
                            ->get();
                 //$temp[$intervalMinutes] = $previousRows->toRawSql();

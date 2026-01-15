@@ -159,7 +159,7 @@ class OhlcChartController extends Controller
         $baseToday = DB::table('expired_ohlc')
                        ->where('underlying_symbol', $symbol)
                        ->where('expiry', $expiry)
-                       ->where('interval', '5minute')
+                       ->where('interval', '3minute')
                        ->whereDate('timestamp', $date)
                        ->orderBy('timestamp', 'asc');
 
@@ -181,7 +181,7 @@ class OhlcChartController extends Controller
             $basePrev = DB::table('expired_ohlc')
                           ->where('underlying_symbol', $symbol)
                           ->where('expiry', $expiry)
-                          ->where('interval', '5minute')
+                          ->where('interval', '3minute')
                           ->whereDate('timestamp', $prevDate)
                           ->orderBy('timestamp', 'asc');
 

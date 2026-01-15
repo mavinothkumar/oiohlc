@@ -41,6 +41,7 @@ class OiBuildupLiveController extends Controller
             $fromTime         = $atDateTime->copy()->subMinutes($intervalMinutes);
             $atDateTimeString = $atDateTime->format('Y-m-d H:i:s');
             $fromTimeString   = $fromTime->format('Y-m-d H:i:s');
+            $fromDateString   = $fromTime->format('Y-m-d').' 09:15:00';
 
             //dd([$atDateTimeString, $fromTimeString]);
 
@@ -59,8 +60,9 @@ class OiBuildupLiveController extends Controller
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
                                   //->where('captured_at', $fromTimeString)
-                                  ->when(375 === $intervalMinutes, function ($query) use ($fromTime) {
-                                      return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
+                                  ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
+                                      //return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
+                                      return $query->where('captured_at', $fromDateString);
                                   }, function ($query) use ($fromTimeString) {
                                       return $query->where('captured_at', $fromTimeString);
                                   })->get();
