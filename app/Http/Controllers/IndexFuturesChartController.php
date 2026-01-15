@@ -62,8 +62,8 @@ class IndexFuturesChartController extends Controller
         ];
 
         // Fetch 5-minute candles from expired_ohlc
-        $startOfDay = $date . ' 00:00:00';
-        $endOfDay   = $date . ' 23:59:59';
+        $startOfDay = $date . ' 09:15:00';
+        $endOfDay   = $date . ' 15:30:00';
 
         $index5m = DB::table('expired_ohlc')
                      ->where('underlying_symbol', $symbol)
