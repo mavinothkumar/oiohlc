@@ -49,7 +49,8 @@ class OiBuildupLiveController extends Controller
                              ->where('expiry', $expiry)
                              ->where('captured_at', $atDateTimeString)
                 //->orderBy('diff_oi', 'desc')
-                             ->get();
+                             ->get()
+                             ->keyBy('instrument_key');
 
             $instrument_key = $currentRows->pluck('instrument_key')->all();
 
@@ -59,13 +60,15 @@ class OiBuildupLiveController extends Controller
                 $previousRows = DB::table('option_chains')
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
-                                  //->where('captured_at', $fromTimeString)
+                    //->where('captured_at', $fromTimeString)
                                   ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
-                                      //return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
-                                      return $query->where('captured_at', $fromDateString);
-                                  }, function ($query) use ($fromTimeString) {
-                                      return $query->where('captured_at', $fromTimeString);
-                                  })->get();
+                        //return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
+                        return $query->where('captured_at', $fromDateString);
+                    }, function ($query) use ($fromTimeString) {
+                        return $query->where('captured_at', $fromTimeString);
+                    })
+                                  ->get()
+                                  ->keyBy('instrument_key');
                 //->orderBy('diff_oi', 'desc')
             }
 

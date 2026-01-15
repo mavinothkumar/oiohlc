@@ -72,8 +72,9 @@ class OiBuildupController extends Controller
                              ->where('strike', '>', 0)
                              ->where('interval', '3minute')
                              ->where('timestamp', $atDateTimeString)
-                //->orderBy('open_interest', 'desc')
-                             ->get();
+                             //->orderBy('instrument_key', 'desc')
+                             ->get()
+                             ->keyBy('instrument_key');
             //dd($currentRows->toRawSql());
             $instrumentKeys = $currentRows->pluck('instrument_key')->all();
 
@@ -84,7 +85,7 @@ class OiBuildupController extends Controller
                 //dump([$atDateTimeString,$fromTime]);
                 $previousRows = DB::table('expired_ohlc')
                                   ->where($baseWhere)
-                                  ->where('strike', '>', 0)
+                    //->where('strike', '>', 0)
                                   ->where('interval', '3minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
                                   ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
@@ -92,8 +93,10 @@ class OiBuildupController extends Controller
                                   }, function ($query) use ($fromTimeString) {
                                       return $query->where('timestamp', $fromTimeString);
                                   })//;
-               // dd($previousRows->toRawSql());
-                           ->get();
+                                  //->orderBy('instrument_key', 'desc')
+                    //dd($previousRows->toRawSql());
+                                  ->get()
+                                  ->keyBy('instrument_key');
                 //$temp[$intervalMinutes] = $previousRows->toRawSql();
 
             }
@@ -140,6 +143,8 @@ class OiBuildupController extends Controller
         }
 
 //dd($temp);
+
+        info('$datasets', [$datasets]);
 
         return view('oi-buildup.index', [
             'filters'  => [
