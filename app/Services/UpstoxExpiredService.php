@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Arr;
 
 class UpstoxExpiredService
 {
@@ -11,8 +12,15 @@ class UpstoxExpiredService
 
     public function __construct()
     {
+
+        $token = Arr::random([
+            config('services.upstox.history_access_token'),
+            config('services.upstox.history_access_token_1'),
+            config('services.upstox.access_token'),
+        ]);
+
         $this->baseUrl ='https://api.upstox.com/v2';
-        $this->token   = config('services.upstox.history_access_token');
+        $this->token   = $token;
     }
 
     protected function client()

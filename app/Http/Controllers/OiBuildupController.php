@@ -29,21 +29,21 @@ class OiBuildupController extends Controller
                     'underlying_symbol' => '',
                     'expiry'            => '',
                     'instrument_type'   => '',
-                    'interval'          => 5,
+                    'interval'          => 3,
                     'at'                => now()->format('Y-m-d\TH:i'),
-                    'limit'             => 5,
+                    'limit'             => 6,
                 ],
                 'datasets'  => $datasets,
             ]);
         }
 
-        $limit = (int) ($validated['limit'] ?? 5);
+        $limit = (int) ($validated['limit'] ?? 6);
         $at    = ! empty($validated['at']) ? $validated['at'] : null;
         $at    = $at
             ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
             : Carbon::now();
 
-        $minutes    = floor($at->minute / 5) * 5;
+        $minutes    = floor($at->minute / 3) * 3;
         $atDateTime = $at->setTime($at->hour, $minutes, 0);
 
         $baseWhere = [];
@@ -58,18 +58,19 @@ class OiBuildupController extends Controller
             $baseWhere[] = ['instrument_type', '=', $validated['instrument_type']];
         }
 
-        $intervals = [5, 10, 15, 30, 375];
+        $intervals = [3, 6, 9, 15, 30, 375];
 
 
         foreach ($intervals as $intervalMinutes) {
             $fromTime         = $atDateTime->copy()->subMinutes($intervalMinutes);
             $atDateTimeString = $atDateTime->format('Y-m-d H:i:s');
             $fromTimeString   = $fromTime->format('Y-m-d H:i:s');
+            $fromDateString   = $fromTime->format('Y-m-d').' 09:15:00';
 
             $currentRows = DB::table('expired_ohlc')
                              ->where($baseWhere)
                              ->where('strike', '>', 0)
-                             ->where('interval', '5minute')
+                             ->where('interval', '3minute')
                              ->where('timestamp', $atDateTimeString)
                 //->orderBy('open_interest', 'desc')
                              ->get();
@@ -84,13 +85,15 @@ class OiBuildupController extends Controller
                 $previousRows = DB::table('expired_ohlc')
                                   ->where($baseWhere)
                                   ->where('strike', '>', 0)
-                                  ->where('interval', '5minute')
+                                  ->where('interval', '3minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
-                                  ->when(375 === $intervalMinutes, function ($query) use ($fromTimeString) {
-                                      return $query->where('timestamp', '>=', $fromTimeString);
+                                  ->when(375 !== $intervalMinutes, function ($query) use ($atDateTimeString, $fromDateString) {
+                                      return $query->whereBetween('timestamp', [$fromDateString, $atDateTimeString]);
                                   }, function ($query) use ($fromTimeString) {
                                       return $query->where('timestamp', $fromTimeString);
-                                  })->get();
+                                  })
+               // dd($previousRows->toRawSql());
+                                  ->get();
 
             }
 
