@@ -25,6 +25,10 @@
             </button>
         </div>
 
+        <div id="trend-container"
+            class="flex gap-2 p-2 overflow-x-auto whitespace-nowrap bg-gray-50 rounded shadow-sm border">
+
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
             <div>
@@ -287,6 +291,34 @@
                 try {
                     const res = await fetch(url);
                     const json = await res.json();
+
+                    // Update trend data rows
+                    const trendContainer = document.getElementById('trend-container');
+                    trendContainer.innerHTML = '';
+
+                    Object.entries(json.trend_data).forEach(([label, value]) => {
+                        if (value === null || Number.isNaN(value)) return;
+
+                        const card = document.createElement('div');
+                        card.className =
+                            'inline-flex flex-col items-center justify-center px-3 py-2 bg-white border rounded ' +
+                            'shadow-sm hover:shadow-md transition-shadow min-w-[110px]';
+
+                        card.innerHTML = `
+        <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1 text-center">
+            ${label.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+        </div>
+        <div class="text-sm font-bold text-blue-600 text-center">
+            ${typeof value === 'number'
+                            ? value.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                            : value}
+        </div>
+    `;
+
+                        trendContainer.appendChild(card);
+                    });
+
+
 
                     if ( ! indexChart) {
                         const idx = createChart(indexContainer, '#16a34a');
