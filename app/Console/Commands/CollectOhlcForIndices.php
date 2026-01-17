@@ -36,6 +36,8 @@ class CollectOhlcForIndices extends Command
                                ->whereIn('instrument_key', $this->index_instruments)
                                ->get()->toArray();
 
+
+
         $this->update($index_instruments);
 
 
@@ -147,12 +149,12 @@ class CollectOhlcForIndices extends Command
             $fromDate      = $apiDate;
             $toDate        = Carbon::parse($apiDate)->addDay()->format('Y-m-d');
 
+
             // Correct API endpoint as per documentation/reference
-            $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$toDate}/{$fromDate}";
+            $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$fromDate}/{$fromDate}";
             $apiToken = config('services.upstox.access_token'); // Store/update this in config/services.php
 
             $response = Http::withToken($apiToken)->get($apiUrl);
-
 
 
             if ($response->failed()) {

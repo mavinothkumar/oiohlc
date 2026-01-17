@@ -23,7 +23,6 @@
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
             </div>
-
             <div>
                 <label class="block text-sm font-medium text-gray-700">Expiry</label>
                 <input
@@ -33,22 +32,19 @@
                     value="{{ $filters['expiry'] }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             </div>
-
-
-
             <div>
                 <label class="block text-sm font-medium text-gray-700">Top N</label>
                 <input type="number" name="limit" min="1" max="100"
                     value="{{ $filters['limit'] }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             </div>
-
-            <div class="md:col-span-3 lg:col-span-6 flex items-end justify-end">
+            <div>
                 <button type="submit"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Apply Filters
                 </button>
             </div>
+
         </form>
 
         @isset($no_filter)

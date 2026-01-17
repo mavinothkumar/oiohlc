@@ -15,6 +15,7 @@ class FetchUpstoxInstruments extends Command
 
     public function handle()
     {
+        ini_set('memory_limit', '2G');
         // 1. Download file
         $url      = 'https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz';
         $gzFile   = storage_path('app/complete.json.gz');
