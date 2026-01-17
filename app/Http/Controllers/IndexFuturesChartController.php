@@ -60,8 +60,16 @@ class IndexFuturesChartController extends Controller
             'atm_s'                  => (float) $trend->atm_s,
             'atm_r_avg'              => (float) $trend->atm_r_avg,
             'atm_s_avg'              => (float) $trend->atm_s_avg,
-            'open_type'              => $trend->open_type,
-            'open_value'             => (float) $trend->open_value,
+            'atm_index_open'         => (float) $trend->atm_index_open,
+            'show'                   => [
+                'open_type'              => $trend->open_type,
+                'open_value'             => (float) $trend->open_value,
+                'atm_index_open'         => (float) $trend->atm_index_open,
+                'current_day_index_open' => (float) $trend->current_day_index_open,
+                'previous_day_atm'       => (float) $trend->strike,
+                'atm_ce'                 => (float) $trend->atm_ce,
+                'atm_pe'                 => (float) $trend->atm_pe,
+            ],
         ];
 
         // Fetch 5-minute candles from expired_ohlc

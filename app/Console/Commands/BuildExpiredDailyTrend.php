@@ -280,7 +280,7 @@ class BuildExpiredDailyTrend extends Command
             $data['atm_s_3'] = $atm_index_open - $atm_pe_close - $atm_pe_close;
 
             $data['open_type']  = $this->buildOpenType($indexClose, $indexHigh, $indexLow, $this->openPrice);
-            $data['open_value'] = $indexClose - $this->openPrice;
+            $data['open_value'] = $this->openPrice - $indexClose;
 
         }
 
