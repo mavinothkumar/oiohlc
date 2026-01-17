@@ -11,6 +11,32 @@ class TrendController extends Controller
     public function index()
     {
         // 1. Working days (previous + current)
+        $previousDay = DB::table('nse_working_days')
+                         ->where('previous', 1)
+                         ->value('working_date');
+
+        if ( ! $previousDay) {
+            die('Working days not configured');
+        }
+
+        // 2. Precomputed daily trends (static yesterday data)
+        $dailyTrends = DailyTrend::whereDate('quote_date', $previousDay)
+                                 ->whereIn('symbol_name', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // add FINNIFTY when ready
+                                 ->get();
+
+        if ($dailyTrends->isEmpty()) {
+            die('Daily trends not populated for previous day');
+        }
+
+        return view('trend.index', [
+            'previousDay' => $previousDay,
+            'dailyTrends' => $dailyTrends,
+        ]);
+    }
+
+    public function index2()
+    {
+        // 1. Working days (previous + current)
         $days = DB::table('nse_working_days')
                   ->where(function ($q) {
                       $q->where('previous', 1)
@@ -34,7 +60,7 @@ class TrendController extends Controller
                                  ->keyBy('symbol_name');
 
         if ($dailyTrends->isEmpty()) {
-            die( 'Daily trends not populated for previous day');
+            die('Daily trends not populated for previous day');
         }
 
         // 3. Minimal option contracts (one CE + one PE per symbol+strike)
@@ -297,7 +323,7 @@ class TrendController extends Controller
                     'low'             => $low,
                     'close'           => $close,
                     'index_close'     => $trend->index_close,
-                    'index_open'     => $trend->current_day_index_open,
+                    'index_open'      => $trend->current_day_index_open,
                     'high_close_diff' => $highCloseDiff,
                     'close_low_diff'  => $closeLowDiff,
                     'type'            => $type,

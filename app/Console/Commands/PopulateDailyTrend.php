@@ -79,7 +79,7 @@ class PopulateDailyTrend extends Command
             return null;
         }
 
-        $bestPair = $buildExpiredDailyTrend->findBestPair($options);
+        $bestPair = $buildExpiredDailyTrend->findBestPair($options, $symbol, true);
         if ( ! $bestPair) {
             return null;
         }
@@ -92,7 +92,7 @@ class PopulateDailyTrend extends Command
         $sumClose = $ceClose + $peClose;
 
 
-        $atmData      = $buildExpiredDailyTrend->findNearestAtmPair($options, $strike);
+        $atmData      = $buildExpiredDailyTrend->findNearestAtmPair($options, $strike, $symbol, true);
         $atm_ce       = $atmData['atm_ce'];
         $atm_pe       = $atmData['atm_pe'];
         $atm_ce_close = $atmData['atm_ce_close'];

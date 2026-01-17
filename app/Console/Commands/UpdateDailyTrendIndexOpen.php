@@ -102,29 +102,30 @@ class UpdateDailyTrendIndexOpen extends Command
 
             if ('NIFTY' === $symbolName) {
                 // Round to nearest 50 for NIFTY
-                $atm_index_open       = round($openPrice / 50) * 50;
-                $trend->atm_index_open = $atm_index_open;
-
-                // ATM R/S levels
-                $trend->atm_r_avg = $atm_index_open + (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
-                $trend->atm_s_avg = $atm_index_open - (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
-
-                $trend->atm_r = $atm_index_open + ($trend->atm_ce_close / 2);
-                $trend->atm_s = $atm_index_open - ($trend->atm_pe_close / 2);
-
-                $trend->atm_r_1 = $atm_index_open + $trend->atm_ce_close;
-                $trend->atm_s_1 = $atm_index_open - $trend->atm_pe_close;
-
-                $trend->atm_r_2 = $atm_index_open + $trend->atm_ce_close + ($trend->atm_ce_close / 2);
-                $trend->atm_s_2 = $atm_index_open - $trend->atm_pe_close - ($trend->atm_pe_close / 2);
-
-                $trend->atm_r_3 = $atm_index_open + $trend->atm_ce_close + $trend->atm_ce_close;
-                $trend->atm_s_3 = $atm_index_open - $trend->atm_pe_close - $trend->atm_pe_close;
-
-                $trend->open_type  = (new BuildExpiredDailyTrend())->buildOpenType($trend->index_close, $trend->index_high, $trend->index_low, $openPrice);
-                $trend->open_value = $openPrice - $trend->index_close;
-
+                $atm_index_open = round($openPrice / 50) * 50;
+            } else {
+                $atm_index_open = round($openPrice / 100) * 100;
             }
+            $trend->atm_index_open = $atm_index_open;
+
+            // ATM R/S levels
+            $trend->atm_r_avg = $atm_index_open + (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
+            $trend->atm_s_avg = $atm_index_open - (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
+
+            $trend->atm_r = $atm_index_open + ($trend->atm_ce_close / 2);
+            $trend->atm_s = $atm_index_open - ($trend->atm_pe_close / 2);
+
+            $trend->atm_r_1 = $atm_index_open + $trend->atm_ce_close;
+            $trend->atm_s_1 = $atm_index_open - $trend->atm_pe_close;
+
+            $trend->atm_r_2 = $atm_index_open + $trend->atm_ce_close + ($trend->atm_ce_close / 2);
+            $trend->atm_s_2 = $atm_index_open - $trend->atm_pe_close - ($trend->atm_pe_close / 2);
+
+            $trend->atm_r_3 = $atm_index_open + $trend->atm_ce_close + $trend->atm_ce_close;
+            $trend->atm_s_3 = $atm_index_open - $trend->atm_pe_close - $trend->atm_pe_close;
+
+            $trend->open_type  = (new BuildExpiredDailyTrend())->buildOpenType($trend->index_close, $trend->index_high, $trend->index_low, $openPrice);
+            $trend->open_value = $openPrice - $trend->index_close;
 
 
             $earthValue = (float) $trend->earth_value;

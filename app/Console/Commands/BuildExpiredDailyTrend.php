@@ -323,9 +323,10 @@ class BuildExpiredDailyTrend extends Command
                  ->value('working_date'); // returns string date or null
     }
 
-    public function findBestPair($options): ?array
+    public function findBestPair($options, $symbol = 'NIFTY', $live = false): ?array
     {
-        $groupedByStrike = collect($options)->groupBy('strike');
+        $symbol_name     = $live ? 'symbol_name' : 'underlying_symbol';
+        $groupedByStrike = collect($options)->where($symbol_name, $symbol)->groupBy('strike');
         $bestPair        = null;
         $bestDiff        = null;
 
@@ -418,11 +419,11 @@ class BuildExpiredDailyTrend extends Command
     /**
      * Find ATM CE strike and nearest PE strike based on CE close price
      */
-    public function findNearestAtmPair($options, $strike): array
+    public function findNearestAtmPair($options, $strike, $symbol = 'NIFTY', $live = false): array
     {
-
+        $symbol_name = $live ? 'symbol_name' : 'underlying_symbol';
         // Group options by strike - value is Collection of contracts at that strike
-        $groupedByStrike = collect($options)->where('symbol_name', 'NIFTY')->groupBy('strike');
+        $groupedByStrike = collect($options)->where($symbol_name, $symbol)->groupBy('strike');
 
         // Find ATM CE contract (use first available CE as ATM CE)
         $atmCe = null;
