@@ -30,6 +30,12 @@ class DailyTrend extends Model
         'atm_s_1',
         'atm_s_2',
         'atm_s_3',
+        'atm_r',
+        'atm_s',
+        'atm_r_avg',
+        'atm_s_avg',
+        'open_type',
+        'open_value',
         'atm_index_open',
     ];
 

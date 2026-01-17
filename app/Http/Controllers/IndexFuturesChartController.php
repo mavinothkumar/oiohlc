@@ -26,44 +26,42 @@ class IndexFuturesChartController extends Controller
         $trend = DB::table('daily_trend')
                    ->where('symbol_name', $symbol)
                    ->whereDate('quote_date', $date)
-                   ->first([
-                       'index_high',
-                       'index_low',
-                       'index_close',
-                       'current_day_index_open',
-                       'earth_high',
-                       'earth_low',
-                       'min_r',
-                       'min_s',
-                       'max_r',
-                       'max_s',
-                   ]);
+                   ->first();
 
-        if (!$trend) {
+        if ( ! $trend) {
             return response()->json([
-                'index_data' => [],
+                'index_data'  => [],
                 'future_data' => [],
-                'trend_data' => null,
+                'trend_data'  => null,
             ]);
         }
 
         // Convert to floats for chart consumption
         $trendData = [
-            'index_high' => (float) $trend->index_high,
-            'index_low'  => (float) $trend->index_low,
-            'index_close'=> (float) $trend->index_close,
+            'index_high'             => (float) $trend->index_high,
+            'index_low'              => (float) $trend->index_low,
+            'index_close'            => (float) $trend->index_close,
             'current_day_index_open' => (float) $trend->current_day_index_open,
-            'earth_high' => (float) $trend->earth_high,
-            'earth_low'  => (float) $trend->earth_low,
-            'min_r'      => (float) $trend->min_r,
-            'min_s'      => (float) $trend->min_s,
-            'max_r'      => (float) $trend->max_r,
-            'max_s'      => (float) $trend->max_s,
+            'earth_high'             => (float) $trend->earth_high,
+            'earth_low'              => (float) $trend->earth_low,
+            'min_r'                  => (float) $trend->min_r,
+            'min_s'                  => (float) $trend->min_s,
+            'max_r'                  => (float) $trend->max_r,
+            'max_s'                  => (float) $trend->max_s,
+            'atm_ce'                 => (float) $trend->atm_ce,
+            'atm_pe'                 => (float) $trend->atm_pe,
+            'atm_r_1'                => (float) $trend->atm_r_1,
+            'atm_r_2'                => (float) $trend->atm_r_2,
+            'atm_r_3'                => (float) $trend->atm_r_3,
+            'atm_s_1'                => (float) $trend->atm_s_1,
+            'atm_s_2'                => (float) $trend->atm_s_2,
+            'atm_s_3'                => (float) $trend->atm_s_3,
+            'atm_index_open'         => (float) $trend->atm_index_open,
         ];
 
         // Fetch 5-minute candles from expired_ohlc
-        $startOfDay = $date . ' 09:15:00';
-        $endOfDay   = $date . ' 15:30:00';
+        $startOfDay = $date.' 09:15:00';
+        $endOfDay   = $date.' 15:30:00';
 
         $index5m = DB::table('expired_ohlc')
                      ->where('underlying_symbol', $symbol)
@@ -90,8 +88,8 @@ class IndexFuturesChartController extends Controller
         ];
 
         return response()->json([
-            'trend_data' => $trendData,
-            'index_data' => $index5m->map($map)->values(),
+            'trend_data'  => $trendData,
+            'index_data'  => $index5m->map($map)->values(),
             'future_data' => $fut5m->map($map)->values(),
         ]);
     }

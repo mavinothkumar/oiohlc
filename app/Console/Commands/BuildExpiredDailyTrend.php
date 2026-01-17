@@ -264,6 +264,12 @@ class BuildExpiredDailyTrend extends Command
             $data['atm_index_open'] = $atm_index_open;
 
             // ATM R/S levels
+            $data['atm_r_avg'] = $atm_index_open + (($atm_ce_close + $atm_pe_close) / 2);
+            $data['atm_s_avg'] = $atm_index_open - (($atm_ce_close + $atm_pe_close) / 2);
+
+            $data['atm_r'] = $atm_index_open + ($atm_ce_close / 2);
+            $data['atm_s'] = $atm_index_open - ($atm_pe_close / 2);
+
             $data['atm_r_1'] = $atm_index_open + $atm_ce_close;
             $data['atm_s_1'] = $atm_index_open - $atm_pe_close;
 
@@ -272,6 +278,10 @@ class BuildExpiredDailyTrend extends Command
 
             $data['atm_r_3'] = $atm_index_open + $atm_ce_close + $atm_ce_close;
             $data['atm_s_3'] = $atm_index_open - $atm_pe_close - $atm_pe_close;
+
+            $data['open_type']  = $this->buildOpenType($indexClose, $indexHigh, $indexLow, $this->openPrice);
+            $data['open_value'] = $indexClose - $this->openPrice;
+
         }
 
         return $data;
@@ -473,5 +483,28 @@ class BuildExpiredDailyTrend extends Command
             'atm_pe_low'   => $atm_pe_low,
         ];
     }
+
+    /**
+     * Determine option type based on open vs previous day OHLC
+     */
+    private function buildOpenType(float $indexClose, float $indexHigh, float $indexLow, float $openPrice): string|null
+    {
+        if ($openPrice === null) {
+            return 'Unknown';
+        }
+
+        if ($openPrice > $indexHigh) {
+            return 'Gap Up';
+        } elseif ($openPrice < $indexLow) {
+            return 'Gap Down';
+        } elseif ($openPrice > $indexClose && $openPrice <= $indexHigh) {
+            return 'Positive Open';
+        } elseif ($openPrice < $indexClose && $openPrice >= $indexLow) {
+            return 'Negative Open';
+        }
+
+        return null;
+    }
+
 
 }

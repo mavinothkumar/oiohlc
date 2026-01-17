@@ -50,20 +50,20 @@
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
     <script>
-        function showLoader() {
+        function showLoader () {
             const loader = document.getElementById('loader');
             if (loader) loader.classList.remove('hidden');
         }
 
-        function hideLoader() {
+        function hideLoader () {
             const loader = document.getElementById('loader');
             if (loader) loader.classList.add('hidden');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const symbolEl       = document.getElementById('symbol');
-            const dateEl         = document.getElementById('quote_date');
-            const loadBtn        = document.getElementById('loadChartBtn');
+            const symbolEl = document.getElementById('symbol');
+            const dateEl = document.getElementById('quote_date');
+            const loadBtn = document.getElementById('loadChartBtn');
             const indexContainer = document.getElementById('index-chart-container');
             const futureContainer = document.getElementById('future-chart-container');
 
@@ -74,7 +74,7 @@
             let indexTrendLines = null;
             let futureTrendLines = null;
 
-            function createChart(container, color) {
+            function createChart (container, color) {
                 const rect = container.getBoundingClientRect();
 
                 const chart = LightweightCharts.createChart(container, {
@@ -86,13 +86,13 @@
                         borderColor: '#e5e7eb',
                         timeVisible: true,
                         secondsVisible: false,
-                        timezone: 'Asia/Kolkata',
+                        timezone: 'Asia/Kolkata'
                     },
                     grid: {
-                        vertLines:  { color: '#ffffff', visible: false },
-                        horzLines:  { color: '#ffffff', visible: false },
+                        vertLines: { color: '#ffffff', visible: false },
+                        horzLines: { color: '#ffffff', visible: false }
                     },
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
                 });
 
                 const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
@@ -101,19 +101,19 @@
                     borderUpColor: color,
                     borderDownColor: '#dc2626',
                     wickUpColor: color,
-                    wickDownColor: '#dc2626',
+                    wickDownColor: '#dc2626'
                 });
 
                 new ResizeObserver(entries => {
-                    if (!entries.length) return;
-                    const cr = entries[0].contentRect;
+                    if ( ! entries.length) return;
+                    const cr = entries[ 0 ].contentRect;
                     chart.applyOptions({ width: cr.width, height: cr.height });
                 }).observe(container);
 
                 return { chart, series };
             }
 
-            function timeToLocal(originalTime) {
+            function timeToLocal (originalTime) {
                 const d = new Date(originalTime * 1000);
                 return Date.UTC(
                     d.getFullYear(),
@@ -126,102 +126,144 @@
                 ) / 1000;
             }
 
-            function normalize(data) {
-                if (!Array.isArray(data)) return [];
+            function normalize (data) {
+                if ( ! Array.isArray(data)) return [];
                 return data
                     .filter(c => c && c.time != null)
-                    .map(c => ({
+                    .map(c => ( {
                         time: timeToLocal(c.time),
                         open: Number(c.open),
                         high: Number(c.high),
-                        low:  Number(c.low),
-                        close:Number(c.close),
-                    }))
+                        low: Number(c.low),
+                        close: Number(c.close)
+                    } ))
                     .sort((a, b) => a.time - b.time);
             }
 
-            function ensureTrendLines() {
-                if (!indexTrendLines && indexChart) {
+            function ensureTrendLines () {
+                if ( ! indexTrendLines && indexChart) {
                     indexTrendLines = {
                         index_high: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0000', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ff0000', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         index_low: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#02b843', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#02b843', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         index_close: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         current_day_index_open: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         earth_high: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         earth_low: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         min_r: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         min_s: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         max_r: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         max_s: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
+                        atm_ce: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#810aff', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }),
+                        atm_pe: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#810aff', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }),
+                        atm_r_1: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_r_2: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_r_3: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_1: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_2: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_3: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_index_open: indexChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#cdcdcd', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        })
                     };
                 }
 
-                if (!futureTrendLines && futureChart) {
+                if ( ! futureTrendLines && futureChart) {
                     futureTrendLines = {
                         index_high: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0000', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ff0000', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         index_low: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#02b843', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#02b843', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         index_close: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         current_day_index_open: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         earth_high: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         earth_low: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#f97316', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         min_r: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         min_s: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         max_r: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         max_s: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false,
+                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
+                        atm_ce: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#810aff', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }),
+                        atm_pe: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#810aff', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }),
+                        atm_r_1: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_r_2: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_r_3: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_1: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_2: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_s_3: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        }), atm_index_open: futureChart.addSeries(LightweightCharts.LineSeries, {
+                            color: '#cdcdcd', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        })
                     };
                 }
             }
 
-            function setTrendLines(chart, trendLines, trendData, timeRange) {
-                if (!trendData || !timeRange || !trendLines) return;
+            function setTrendLines (chart, trendLines, trendData, timeRange) {
+                if ( ! trendData || ! timeRange || ! trendLines) return;
 
                 const [startTime, endTime] = timeRange;
                 const times = [startTime, endTime];
 
                 Object.keys(trendData).forEach(key => {
-                    if (trendLines[key] && trendData[key] != null) {
-                        trendLines[key].setData(
-                            times.map(t => ({ time: t, value: trendData[key] }))
+                    if (trendLines[ key ] && trendData[ key ] != null) {
+                        trendLines[ key ].setData(
+                            times.map(t => ( { time: t, value: trendData[ key ] } ))
                         );
                     }
                 });
@@ -229,9 +271,9 @@
 
             loadBtn.addEventListener('click', async () => {
                 const symbol = symbolEl.value;
-                const date   = dateEl.value;
+                const date = dateEl.value;
 
-                if (!symbol || !date) {
+                if ( ! symbol || ! date) {
                     alert('Please fill symbol and date.');
                     return;
                 }
@@ -243,17 +285,17 @@
                 url.searchParams.set('quote_date', date);
 
                 try {
-                    const res  = await fetch(url);
+                    const res = await fetch(url);
                     const json = await res.json();
 
-                    if (!indexChart) {
+                    if ( ! indexChart) {
                         const idx = createChart(indexContainer, '#16a34a');
-                        indexChart  = idx.chart;
+                        indexChart = idx.chart;
                         indexSeries = idx.series;
                     }
-                    if (!futureChart) {
+                    if ( ! futureChart) {
                         const fut = createChart(futureContainer, '#16a34a');
-                        futureChart  = fut.chart;
+                        futureChart = fut.chart;
                         futureSeries = fut.series;
                     }
 
@@ -266,14 +308,14 @@
                     // set visible range
                     if (indexData.length) {
                         indexChart.timeScale().setVisibleRange({
-                            from: indexData[0].time,
-                            to:   indexData[indexData.length - 1].time,
+                            from: indexData[ 0 ].time,
+                            to: indexData[ indexData.length - 1 ].time
                         });
                     }
                     if (futureData.length) {
                         futureChart.timeScale().setVisibleRange({
-                            from: futureData[0].time,
-                            to:   futureData[futureData.length - 1].time,
+                            from: futureData[ 0 ].time,
+                            to: futureData[ futureData.length - 1 ].time
                         });
                     }
 
@@ -284,12 +326,12 @@
 
                     // set trend lines on both charts
                     if (indexData.length && trendData) {
-                        const indexTimeRange = [indexData[0].time, indexData[indexData.length - 1].time];
+                        const indexTimeRange = [indexData[ 0 ].time, indexData[ indexData.length - 1 ].time];
                         setTrendLines(indexChart, indexTrendLines, trendData, indexTimeRange);
                     }
 
                     if (futureData.length && trendData) {
-                        const futureTimeRange = [futureData[0].time, futureData[futureData.length - 1].time];
+                        const futureTimeRange = [futureData[ 0 ].time, futureData[ futureData.length - 1 ].time];
                         setTrendLines(futureChart, futureTrendLines, trendData, futureTimeRange);
                     }
 
