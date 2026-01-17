@@ -16,8 +16,8 @@ class PopulateDailyTrend extends Command
     {
 
         $targetDate = DB::table('nse_working_days')
-                  ->where('previous', 1)
-                  ->value('working_date');
+                        ->where('previous', 1)
+                        ->value('working_date');
 
         if ( ! $targetDate) {
             $this->error("No working day found for {$targetDate}");
@@ -46,6 +46,7 @@ class PopulateDailyTrend extends Command
 
     private function calculateTrendData($quoteDate, $symbol)
     {
+        $buildExpiredDailyTrend = new BuildExpiredDailyTrend();
         // Same logic as original controller for yesterday's static data
         $indexRow = DailyOhlcQuote::where('option_type', 'INDEX')
                                   ->where('quote_date', $quoteDate)
@@ -56,11 +57,17 @@ class PopulateDailyTrend extends Command
             return null;
         }
 
-        $currentExpiry = DailyOhlcQuote::where('quote_date', $quoteDate)
-                                       ->where('symbol_name', $symbol)
-                                       ->whereIn('option_type', ['CE', 'PE'])
-                                       ->orderBy('expiry_date')
-                                       ->value('expiry_date');
+//        $currentExpiry = DailyOhlcQuote::where('quote_date', $quoteDate)
+//                                       ->where('symbol_name', $symbol)
+//                                       ->whereIn('option_type', ['CE', 'PE'])
+//                                       ->orderBy('expiry_date')
+//                                       ->value('expiry_date');
+
+        $currentExpiry = DB::table('expiries')
+                           ->where('is_current', 1)
+                           ->where('instrument_type', 'OPT')
+                           ->where('trading_symbol', $symbol)
+                           ->value('expiry_date');
 
         $options = DailyOhlcQuote::where('quote_date', $quoteDate)
                                  ->where('symbol_name', $symbol)
@@ -72,7 +79,7 @@ class PopulateDailyTrend extends Command
             return null;
         }
 
-        $bestPair = $this->findBestPair($options);
+        $bestPair = $buildExpiredDailyTrend->findBestPair($options);
         if ( ! $bestPair) {
             return null;
         }
@@ -84,14 +91,25 @@ class PopulateDailyTrend extends Command
         $peClose  = $pe->close;
         $sumClose = $ceClose + $peClose;
 
+
+        $atmData      = $buildExpiredDailyTrend->findNearestAtmPair($options, $strike);
+        $atm_ce       = $atmData['atm_ce'];
+        $atm_pe       = $atmData['atm_pe'];
+        $atm_ce_close = $atmData['atm_ce_close'];
+        $atm_pe_close = $atmData['atm_pe_close'];
+        $atm_ce_high  = $atmData['atm_ce_high'];
+        $atm_pe_high  = $atmData['atm_pe_high'];
+        $atm_ce_low   = $atmData['atm_ce_low'];
+        $atm_pe_low   = $atmData['atm_pe_low'];
+
         $earthValue = ($indexRow->high - $indexRow->low) * 0.2611;
 
         // ---- Type logic per side (same as controller) ----
-        $ceType = $this->computeType($ce, $symbol);
-        $peType = $this->computeType($pe, $symbol);
+        $ceType = $buildExpiredDailyTrend->computeType($ce, $symbol);
+        $peType = $buildExpiredDailyTrend->computeType($pe, $symbol);
 
         // Optional aggregate market_type (e.g. CE/PE combination)
-        $marketType = $this->computeMarketType($ceType, $peType);
+        $marketType = $buildExpiredDailyTrend->computeMarketType($ceType, $peType);
 
         return [
             'quote_date'  => $quoteDate,
@@ -115,6 +133,15 @@ class PopulateDailyTrend extends Command
             'market_type' => $marketType,
             'ce_type'     => $ceType,
             'pe_type'     => $peType,
+
+            'atm_ce'       => $atm_ce,
+            'atm_pe'       => $atm_pe,
+            'atm_ce_close' => $atm_ce_close,
+            'atm_pe_close' => $atm_pe_close,
+            'atm_ce_high'  => $atm_ce_high,
+            'atm_pe_high'  => $atm_pe_high,
+            'atm_ce_low'   => $atm_ce_low,
+            'atm_pe_low'   => $atm_pe_low,
         ];
     }
 
@@ -199,4 +226,5 @@ class PopulateDailyTrend extends Command
 
         return 'Side';
     }
+
 }

@@ -8,19 +8,19 @@ use App\Models\DailyTrend;
 
 class BuildExpiredDailyTrend extends Command
 {
-    protected $signature = 'trend:build
+    public $signature = 'trend:build
                             {--from= : Backtest start date YYYY-MM-DD}
                             {--to= : Backtest end date YYYY-MM-DD}';
 
-    protected $description = 'Populate / backfill daily_trend and compute earth levels from live or expired OHLC';
+    public $description = 'Populate / backfill daily_trend and compute earth levels from live or expired OHLC';
 
-    protected $expiry_days;
-    protected $from;
-    protected $to;
-    protected $current_date;
-    protected $currentExpiry;
-    protected $previous_date;
-    protected $openPrice;
+    public $expiry_days;
+    public $from;
+    public $to;
+    public $current_date;
+    public $currentExpiry;
+    public $previous_date;
+    public $openPrice;
 
     public function handle(): int
     {
@@ -31,7 +31,7 @@ class BuildExpiredDailyTrend extends Command
      * BACKTEST MODE (using expired_ohlc only)
      * ============================================================
      */
-    private function runBacktest(): int
+    public function runBacktest(): int
     {
         $this->from        = $this->option('from');
         $this->to          = $this->option('to') ?: $this->from;
@@ -100,7 +100,7 @@ class BuildExpiredDailyTrend extends Command
         return 0;
     }
 
-    private function getCurrentWeekExpiry(string $symbol): ?string
+    public function getCurrentWeekExpiry(string $symbol): ?string
     {
         $condition = '>=';
         if (in_array($this->previous_date, $this->expiry_days)) {
@@ -124,7 +124,7 @@ class BuildExpiredDailyTrend extends Command
                  ->value('expiry_date');
     }
 
-    private function buildFromPreviousDay(string $symbol): ?array
+    public function buildFromPreviousDay(string $symbol): ?array
     {
         // 1) previous day index OHLC (daily candle)
         $indexRow = DB::table('expired_ohlc')
@@ -182,7 +182,7 @@ class BuildExpiredDailyTrend extends Command
         );
     }
 
-    private function buildTrendFromOhlc(
+    public function buildTrendFromOhlc(
         float $indexHigh,
         float $indexLow,
         float $indexClose,
@@ -288,7 +288,7 @@ class BuildExpiredDailyTrend extends Command
     }
 
 
-    private function getBacktestOpenFromExpired(string $symbol): ?float
+    public function getBacktestOpenFromExpired(string $symbol): ?float
     {
         // Option 1: daily open
         $row = DB::table('expired_ohlc')
@@ -315,7 +315,7 @@ class BuildExpiredDailyTrend extends Command
         return $row5 ? (float) $row5->open : null;
     }
 
-    private function getPreviousWorkingDate(): ?string
+    public function getPreviousWorkingDate(): ?string
     {
         return DB::table('nse_working_days')
                  ->where('working_date', '<', $this->current_date)
@@ -323,13 +323,12 @@ class BuildExpiredDailyTrend extends Command
                  ->value('working_date'); // returns string date or null
     }
 
-    private function findBestPair($options): ?array
+    public function findBestPair($options): ?array
     {
         $groupedByStrike = collect($options)->groupBy('strike');
         $bestPair        = null;
         $bestDiff        = null;
 
-        info('$groupedByStrike ', [$groupedByStrike]);
         foreach ($groupedByStrike as $strike => $contracts) {
             $ce = $contracts->firstWhere('instrument_type', 'CE') ?? $contracts->firstWhere('option_type', 'CE');
             $pe = $contracts->firstWhere('instrument_type', 'PE') ?? $contracts->firstWhere('option_type', 'PE');
@@ -352,7 +351,7 @@ class BuildExpiredDailyTrend extends Command
         return $bestPair;
     }
 
-    private function computeType($contract, string $symbol): string
+    public function computeType($contract, string $symbol): string
     {
         $high  = $contract->high;
         $low   = $contract->low;
@@ -384,7 +383,7 @@ class BuildExpiredDailyTrend extends Command
         return $type;
     }
 
-    private function computeMarketType(string $ceType, string $peType): string
+    public function computeMarketType(string $ceType, string $peType): string
     {
         if (str_starts_with($ceType, 'Panic') && str_starts_with($peType, 'Panic')) {
             return 'Both Panic';
@@ -405,7 +404,7 @@ class BuildExpiredDailyTrend extends Command
         return 'Side';
     }
 
-    private function dateRange(string $from, string $to): array
+    public function dateRange(string $from, string $to): array
     {
         return DB::table('nse_working_days')
                  ->whereBetween('working_date', [$from, $to])
@@ -416,23 +415,21 @@ class BuildExpiredDailyTrend extends Command
 
     }
 
-
     /**
      * Find ATM CE strike and nearest PE strike based on CE close price
      */
-    /**
-     * Find ATM CE strike and nearest PE strike based on CE close price
-     */
-    private function findNearestAtmPair($options, $strike): array
+    public function findNearestAtmPair($options, $strike): array
     {
+
         // Group options by strike - value is Collection of contracts at that strike
-        $groupedByStrike = collect($options)->groupBy('strike');
+        $groupedByStrike = collect($options)->where('symbol_name', 'NIFTY')->groupBy('strike');
 
         // Find ATM CE contract (use first available CE as ATM CE)
         $atmCe = null;
         foreach ($groupedByStrike as $contracts) {
             foreach ($contracts as $contract) {
-                if ((($contract->instrument_type ?? $contract->option_type) === 'CE') && $contract->strike === $strike) {
+                $contract_type = $contract->instrument_type ?? $contract->option_type;
+                if ($contract_type === 'CE' && (int) $contract->strike === $strike) {
                     $atmCe = $contract;
                     break 2; // Break both loops
                 }
@@ -457,7 +454,8 @@ class BuildExpiredDailyTrend extends Command
 
         foreach ($groupedByStrike as $contracts) {
             foreach ($contracts as $contract) {
-                if (($contract->instrument_type ?? $contract->option_type) === 'PE') {
+                $contract_type = $contract->instrument_type ?? $contract->option_type;
+                if ($contract_type === 'PE') {
                     $diff = abs((float) $contract->close - $atm_ce_close);
                     if ($bestPeDiff === null || $diff < $bestPeDiff) {
                         $bestPeDiff    = $diff;
@@ -487,7 +485,7 @@ class BuildExpiredDailyTrend extends Command
     /**
      * Determine option type based on open vs previous day OHLC
      */
-    private function buildOpenType(float $indexClose, float $indexHigh, float $indexLow, float $openPrice): string|null
+    public function buildOpenType(float $indexClose, float $indexHigh, float $indexLow, float $openPrice): string|null
     {
         if ($openPrice === null) {
             return 'Unknown';

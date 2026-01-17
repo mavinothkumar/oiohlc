@@ -29,8 +29,9 @@ class UpdateDailyTrendIndexOpen extends Command
         $currentDay = $currentDayRow->working_date ?? null;
         $quoteDate  = $previousDayRow->working_date ?? null;
 
-        if (! $currentDay || ! $quoteDate) {
+        if ( ! $currentDay || ! $quoteDate) {
             $this->error('Working days not configured (previous/current missing in nse_working_days)');
+
             return 1;
         }
 
@@ -44,7 +45,7 @@ class UpdateDailyTrendIndexOpen extends Command
             'SENSEX'    => 'BSE_INDEX|SENSEX',     // example placeholder
         ];
 
-        $interval = '1d';
+        $interval    = '1d';
         $accessToken = config('services.upstox.access_token'); // or however you store it
 
         $instrumentKeyParam = implode(',', $instrumentKeys);
@@ -53,7 +54,7 @@ class UpdateDailyTrendIndexOpen extends Command
         $response = Http::withHeaders([
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
-            'Authorization' => 'Bearer ' . $accessToken,
+            'Authorization' => 'Bearer '.$accessToken,
         ])
                         ->timeout(10)
                         ->get('https://api.upstox.com/v3/market-quote/ohlc', [
@@ -61,8 +62,9 @@ class UpdateDailyTrendIndexOpen extends Command
                             'interval'       => $interval,
                         ]);
 
-        if (! $response->ok()) {
-            $this->error('Upstox API error: HTTP ' . $response->status());
+        if ( ! $response->ok()) {
+            $this->error('Upstox API error: HTTP '.$response->status());
+
             return 1;
         }
 
@@ -73,15 +75,16 @@ class UpdateDailyTrendIndexOpen extends Command
 
         if (empty($data)) {
             $this->error('Upstox API: no data field in response');
+
             return 1;
         }
 
         $updated = 0;
 
         foreach ($instrumentKeys as $symbolName => $instrumentKey) {
-            $escapePipe = str_ireplace('|',':', $instrumentKey);
-            $item = $data[$escapePipe] ?? null;
-            if (! $item || empty($item['live_ohlc']['open'])) {
+            $escapePipe = str_ireplace('|', ':', $instrumentKey);
+            $item       = $data[$escapePipe] ?? null;
+            if ( ! $item || empty($item['live_ohlc']['open'])) {
                 $this->warn("No open value for {$symbolName} ({$instrumentKey}) in API response");
                 continue;
             }
@@ -92,10 +95,38 @@ class UpdateDailyTrendIndexOpen extends Command
                                ->where('symbol_name', $symbolName)
                                ->first();
 
-            if (! $trend) {
+            if ( ! $trend) {
                 $this->warn("No DailyTrend row found for {$symbolName} on {$quoteDate}");
                 continue;
             }
+
+            if ('NIFTY' === $symbolName) {
+                // Round to nearest 50 for NIFTY
+                $atm_index_open       = round($openPrice / 50) * 50;
+                $trend->atm_index_open = $atm_index_open;
+
+                // ATM R/S levels
+                $trend->atm_r_avg = $atm_index_open + (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
+                $trend->atm_s_avg = $atm_index_open - (($trend->atm_ce_close + $trend->atm_pe_close) / 2);
+
+                $trend->atm_r = $atm_index_open + ($trend->atm_ce_close / 2);
+                $trend->atm_s = $atm_index_open - ($trend->atm_pe_close / 2);
+
+                $trend->atm_r_1 = $atm_index_open + $trend->atm_ce_close;
+                $trend->atm_s_1 = $atm_index_open - $trend->atm_pe_close;
+
+                $trend->atm_r_2 = $atm_index_open + $trend->atm_ce_close + ($trend->atm_ce_close / 2);
+                $trend->atm_s_2 = $atm_index_open - $trend->atm_pe_close - ($trend->atm_pe_close / 2);
+
+                $trend->atm_r_3 = $atm_index_open + $trend->atm_ce_close + $trend->atm_ce_close;
+                $trend->atm_s_3 = $atm_index_open - $trend->atm_pe_close - $trend->atm_pe_close;
+
+                $trend->open_type  = (new BuildExpiredDailyTrend())->buildOpenType($trend->index_close, $trend->index_high, $trend->index_low, $openPrice);
+                $trend->open_value = $openPrice - $trend->index_close;
+
+            }
+
+
             $earthValue = (float) $trend->earth_value;
 
             $trend->current_day_index_open = $openPrice;
@@ -106,8 +137,8 @@ class UpdateDailyTrendIndexOpen extends Command
             $updated++;
 
             $this->info(
-                "Updated {$symbolName}: open={$openPrice}, earth_value={$earthValue}, " .
-                'EH=' . ($openPrice + $earthValue) . ', EL=' . ($openPrice - $earthValue)
+                "Updated {$symbolName}: open={$openPrice}, earth_value={$earthValue}, ".
+                'EH='.($openPrice + $earthValue).', EL='.($openPrice - $earthValue)
             );
         }
 
