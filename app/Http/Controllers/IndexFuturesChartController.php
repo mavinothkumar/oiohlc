@@ -69,6 +69,9 @@ class IndexFuturesChartController extends Controller
                 'previous_day_atm'       => (float) $trend->strike,
                 'atm_ce'                 => (float) $trend->atm_ce,
                 'atm_pe'                 => (float) $trend->atm_pe,
+                'index_high'             => (float) $trend->index_high,
+                'index_low'              => (float) $trend->index_low,
+                'index_close'            => (float) $trend->index_close,
             ],
         ];
 
