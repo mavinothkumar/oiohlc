@@ -7,9 +7,27 @@
 {{--                ? \Carbon\Carbon::parse($filters['at'])->format('Y-m-d\TH:i')--}}
 {{--                : now()->format('Y-m-d\TH:i') }}--}}
 @section('content')
+
+    @if(!empty($datasets[3]))
+        @php
+            $threshold = $oiThreshold ?? 1500000; // fallback
+            $triggerRows = collect($datasets[3])->filter(function ($row) use ($threshold) {
+                return abs($row['delta_oi']) >= $threshold;
+            });
+        @endphp
+
+        @if($triggerRows->isNotEmpty())
+            {{-- Hidden element to pass data to JS --}}
+            <div id="oi-alert-data"
+                data-threshold="{{ $threshold }}"
+                data-count="{{ $triggerRows->count() }}"
+                data-details='@json($triggerRows->values())'>
+            </div>
+        @endif
+    @endif
+
+
     <div class="max-w-full mx-auto px-4">
-
-
         {{-- Filters --}}
         <form method="GET" action="{{ route('oi-buildup.live') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-4">
             <div>
@@ -78,6 +96,25 @@
 
 
     </div>
+
+    {{-- Simple popup modal --}}
+    <div id="oiAlertModal"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="bg-white rounded-lg shadow-lg max-w-lg w-full p-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-semibold">OI Buildup Alert</h2>
+                <button id="oiAlertClose" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="oiAlertContent" class="text-sm text-gray-800 space-y-2">
+                {{-- Filled by JS --}}
+            </div>
+        </div>
+    </div>
+
+    <audio id="oiAlertSound">
+        <source src="{{ asset('sounds/beep.mp3') }}" type="audio/mpeg">
+    </audio>
+
 
     <script>
         window.oiBuildupData = @json($datasets);
@@ -183,6 +220,63 @@
                 }
             });
         } )();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const alertDataEl = document.getElementById('oi-alert-data');
+            if (!alertDataEl) {
+                return;
+            }
+
+            const threshold = parseInt(alertDataEl.dataset.threshold, 10);
+            const rows = JSON.parse(alertDataEl.dataset.details || '[]');
+
+            if (!rows.length) {
+                return;
+            }
+
+            const modal = document.getElementById('oiAlertModal');
+            const closeBtn = document.getElementById('oiAlertClose');
+            const contentEl = document.getElementById('oiAlertContent');
+            const audio = document.getElementById('oiAlertSound');
+
+            console.log(rows);
+
+            // Build details HTML
+            let html = `<p>Found ${rows.length} contracts with |ΔOI| ≥ ${threshold.toLocaleString()} in 3‑minute data.</p>`;
+            html += '<ul class="list-disc pl-5 space-y-1">';
+            rows.slice(0, 5).forEach(r => {
+                html += `<li>
+            <span class="font-semibold">${r.strike} ${r.option_type}</span>
+            &nbsp;(${r.buildup}) |
+            ΔOI: ${r.delta_oi.toLocaleString()} |
+            ΔPrice: ${r.delta_price}
+        </li>`;
+            });
+            html += '</ul>';
+
+            contentEl.innerHTML = html;
+
+            // Show modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Play sound (may be blocked until user interacts at least once)
+            if (audio) {
+                audio.play().catch(() => {});
+            }
+
+            const hideModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+
+            closeBtn.addEventListener('click', hideModal);
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) hideModal();
+            });
+        });
     </script>
 
 @endsection

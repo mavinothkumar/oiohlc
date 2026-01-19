@@ -156,6 +156,7 @@ class OiBuildupController extends Controller
                 'limit'             => $limit,
             ],
             'datasets' => $datasets,
+            'oiThreshold' => 1500000,
         ]);
     }
 
