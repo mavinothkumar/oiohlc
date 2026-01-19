@@ -120,6 +120,7 @@ class OiBuildupLiveController extends Controller
                 'date'  => $atDateTimeString,
             ],
             'datasets' => $datasets,
+            'oiThreshold' => 1000000, //1500000,
         ]);
     }
 

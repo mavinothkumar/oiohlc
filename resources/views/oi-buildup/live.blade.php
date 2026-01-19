@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title')
-    OI Builup
+    OI Builup Live
 @endsection
 {{--{{ $filters['at']--}}
 {{--                ? \Carbon\Carbon::parse($filters['at'])->format('Y-m-d\TH:i')--}}
@@ -11,6 +11,7 @@
     @if(!empty($datasets[3]))
         @php
             $threshold = $oiThreshold ?? 1500000; // fallback
+
             $triggerRows = collect($datasets[3])->filter(function ($row) use ($threshold) {
                 return abs($row['delta_oi']) >= $threshold;
             });
@@ -251,7 +252,7 @@
             <span class="font-semibold">${r.strike} ${r.option_type}</span>
             &nbsp;(${r.buildup}) |
             ΔOI: ${r.delta_oi.toLocaleString()} |
-            ΔPrice: ${r.delta_price}
+            ΔPrice: ${r.delta_price.toFixed(2)}
         </li>`;
             });
             html += '</ul>';

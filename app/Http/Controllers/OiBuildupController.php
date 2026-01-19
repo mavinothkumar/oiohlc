@@ -144,8 +144,6 @@ class OiBuildupController extends Controller
 
 //dd($temp);
 
-        info('$datasets', [$datasets]);
-
         return view('oi-buildup.index', [
             'filters'  => [
                 'underlying_symbol' => $validated['underlying_symbol'] ?? '',
@@ -156,7 +154,7 @@ class OiBuildupController extends Controller
                 'limit'             => $limit,
             ],
             'datasets' => $datasets,
-            'oiThreshold' => 1500000,
+            'oiThreshold' => 1000000,
         ]);
     }
 
