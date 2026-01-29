@@ -35,6 +35,12 @@ class IndexFuturesChartController extends Controller
                 'trend_data'  => null,
             ]);
         }
+        $dailyTrendFuture = DB::table('expired_ohlc')
+                              ->where('interval', 'day')
+                              ->where('instrument_type', 'FUT')
+                              ->whereDate('timestamp', $date)
+                              ->first(['open', 'high', 'low', 'close']);
+        $futureATM        = round((float) $dailyTrendFuture->open / 50) * 50;
 
         // Convert to floats for chart consumption
         $trendData = [
@@ -61,6 +67,9 @@ class IndexFuturesChartController extends Controller
             'atm_r_avg'              => (float) $trend->atm_r_avg,
             'atm_s_avg'              => (float) $trend->atm_s_avg,
             'atm_index_open'         => (float) $trend->atm_index_open,
+            'future_atm'             => (float) $futureATM,
+            'future_open'            => (float) $dailyTrendFuture->open,
+            'future_close'            => (float) $dailyTrendFuture->close,
             'show'                   => [
                 'open_type'              => $trend->open_type,
                 'open_value'             => (float) $trend->open_value,
@@ -72,6 +81,8 @@ class IndexFuturesChartController extends Controller
                 'index_high'             => (float) $trend->index_high,
                 'index_low'              => (float) $trend->index_low,
                 'index_close'            => (float) $trend->index_close,
+                'future_atm'             => (float) $futureATM,
+                'future_open'            => (float) $dailyTrendFuture->open,
             ],
         ];
 
@@ -94,6 +105,14 @@ class IndexFuturesChartController extends Controller
                    ->whereBetween('timestamp', [$startOfDay, $endOfDay])
                    ->orderBy('timestamp', 'asc')
                    ->get(['open', 'high', 'low', 'close', 'timestamp']);
+
+
+        $highestHigh = $index5m->max('high');
+        $lowestLow   = $index5m->min('low');
+        $open        = optional($index5m->first())->open;
+
+        $trendData['show']['low_point']  = $open - $lowestLow;
+        $trendData['show']['high_point'] = $highestHigh - $open;
 
         $map = fn($row) => [
             'time'  => strtotime($row->timestamp),

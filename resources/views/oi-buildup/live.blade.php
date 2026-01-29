@@ -10,22 +10,22 @@
 
     @if(!empty($datasets[3]))
         @php
-            $threshold = $oiThreshold ?? 1500000; // fallback
-
+            $threshold = $oiThreshold ?? 1500000;
             $triggerRows = collect($datasets[3])->filter(function ($row) use ($threshold) {
                 return abs($row['delta_oi']) >= $threshold;
             });
         @endphp
 
         @if($triggerRows->isNotEmpty())
-            {{-- Hidden element to pass data to JS --}}
             <div id="oi-alert-data"
                 data-threshold="{{ $threshold }}"
                 data-count="{{ $triggerRows->count() }}"
+                data-timestamp="{{ $triggerRows->first()['timestamp'] }}"
                 data-details='@json($triggerRows->values())'>
             </div>
         @endif
     @endif
+
 
 
     <div class="max-w-full mx-auto px-4">
@@ -33,7 +33,7 @@
         <form method="GET" action="{{ route('oi-buildup.live') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 mb-6">
-                    OI Live Buildup ({{ $filters['date'] }})
+                    OI Live Buildup ({{ $filters['date'] }}) <span id="underlying_spot_price">({{$underlying_spot}})</span>
                 </h1>
             </div>
             <div>
@@ -226,14 +226,21 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const alertDataEl = document.getElementById('oi-alert-data');
-            if (!alertDataEl) {
-                return;
-            }
+            if (!alertDataEl) return;
 
             const threshold = parseInt(alertDataEl.dataset.threshold, 10);
             const rows = JSON.parse(alertDataEl.dataset.details || '[]');
+            const barTimestamp = alertDataEl.dataset.timestamp; // 3‑min bar time
 
-            if (!rows.length) {
+            if (!rows.length || !barTimestamp) return;
+
+            // Build a unique key, you can include symbol/expiry if needed
+            const symbol = "{{ $filters['underlying_symbol'] ?? '' }}";
+            const expiry = "{{ $filters['expiry'] ?? '' }}";
+            const key = `oiAlert:${symbol}:${expiry}:${barTimestamp}:thr:${threshold}`;
+
+            // If this bar has already triggered an alert on this browser, skip
+            if (window.localStorage.getItem(key) === '1') {
                 return;
             }
 
@@ -242,9 +249,6 @@
             const contentEl = document.getElementById('oiAlertContent');
             const audio = document.getElementById('oiAlertSound');
 
-            console.log(rows);
-
-            // Build details HTML
             let html = `<p>Found ${rows.length} contracts with |ΔOI| ≥ ${threshold.toLocaleString()} in 3‑minute data.</p>`;
             html += '<ul class="list-disc pl-5 space-y-1">';
             rows.slice(0, 5).forEach(r => {
@@ -256,14 +260,11 @@
         </li>`;
             });
             html += '</ul>';
-
             contentEl.innerHTML = html;
 
-            // Show modal
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
-            // Play sound (may be blocked until user interacts at least once)
             if (audio) {
                 audio.play().catch(() => {});
             }
@@ -277,6 +278,9 @@
             modal.addEventListener('click', function (e) {
                 if (e.target === modal) hideModal();
             });
+
+            // Mark this bar as alerted so next 2 auto‑reloads do NOT alert again
+            window.localStorage.setItem(key, '1');
         });
     </script>
 

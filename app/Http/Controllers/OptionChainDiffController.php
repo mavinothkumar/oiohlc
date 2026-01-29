@@ -24,7 +24,7 @@ class OptionChainDiffController extends Controller
 
         // Get current expiry if not provided
         if (!$expiryDate) {
-            $expiryDate = DB::table('expiries')
+            $expiryDate = DB::table('nse_expiries')
                             ->where('trading_symbol', $tradingSymbol)
                             ->where('is_current', 1)
                             ->where('instrument_type', 'OPT')

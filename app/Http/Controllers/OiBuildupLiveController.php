@@ -16,7 +16,7 @@ class OiBuildupLiveController extends Controller
         ]);
 
 
-        $expiry = DB::table('expiries')
+        $expiry = DB::table('nse_expiries')
                     ->where('instrument_type', 'OPT')
                     ->where('is_current', 1)
                     ->where('trading_symbol', 'NIFTY')
@@ -36,6 +36,7 @@ class OiBuildupLiveController extends Controller
 
         $intervals = [3, 6, 9, 15, 30, 375]; // Updated intervals to 3-minute multiples
         $datasets  = [];
+        $underlying_spot = 0;
 
         foreach ($intervals as $intervalMinutes) {
             $fromTime         = $atDateTime->copy()->subMinutes($intervalMinutes);
@@ -62,8 +63,8 @@ class OiBuildupLiveController extends Controller
                                   ->whereIn('instrument_key', $instrument_key)
                     //->where('captured_at', $fromTimeString)
                                   ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
-                        //return $query->whereDate('captured_at', '>=', $fromTime->format('Y-m-d'));
-                        return $query->where('captured_at', $fromDateString);
+                        $first_tick = DB::table('option_chains')->where('captured_at','>=', $fromDateString)->first()->captured_at;
+                        return $query->where('captured_at',$first_tick);
                     }, function ($query) use ($fromTimeString) {
                         return $query->where('captured_at', $fromTimeString);
                     })
@@ -71,7 +72,6 @@ class OiBuildupLiveController extends Controller
                                   ->keyBy('instrument_key');
                 //->orderBy('diff_oi', 'desc')
             }
-
             $rows = [];
             foreach ($currentRows as $ik => $current) {
                 if ( ! isset($previousRows[$ik])) {
@@ -81,6 +81,8 @@ class OiBuildupLiveController extends Controller
 
                 $deltaOi    = (int) $current->oi - (int) $prev->oi;
                 $deltaClose = (float) $current->ltp - (float) $prev->ltp;
+
+                $underlying_spot = (float) $current->underlying_spot_price;
 
                 if ($deltaOi === 0 || $deltaClose === 0) {
                     $buildup = 'Neutral';
@@ -111,8 +113,6 @@ class OiBuildupLiveController extends Controller
             usort($rows, fn($a, $b) => abs($b['delta_oi']) <=> abs($a['delta_oi']));
             $datasets[$intervalMinutes] = array_slice($rows, 0, $limit);
         }
-
-
         return view('oi-buildup.live', [
             'filters'  => [
                 'at'    => $at,
@@ -120,6 +120,7 @@ class OiBuildupLiveController extends Controller
                 'date'  => $atDateTimeString,
             ],
             'datasets' => $datasets,
+            'underlying_spot' => $underlying_spot,
             'oiThreshold' => 1000000, //1500000,
         ]);
     }

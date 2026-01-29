@@ -16,7 +16,7 @@ class VolumeBuildupLiveController extends Controller
         ]);
 
 
-        $expiry = DB::table('expiries')
+        $expiry = DB::table('nse_expiries')
                     ->where('instrument_type', 'OPT')
                     ->where('is_current', 1)
                     ->where('trading_symbol', 'NIFTY')

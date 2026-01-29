@@ -24,7 +24,7 @@ class HlcCloseController extends Controller
         }
 
         // Get current NIFTY expiry
-        $expiryData = DB::table('expiries')
+        $expiryData = DB::table('nse_expiries')
                         ->where('trading_symbol', $symbol)
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)

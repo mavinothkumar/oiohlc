@@ -20,7 +20,7 @@ class OptionChainController extends Controller
 
         /* current-series expiry if none provided */
         if (! $expiry) {
-            $expiry = DB::table('expiries')
+            $expiry = DB::table('nse_expiries')
                         ->where('trading_symbol', $symbol)
                         ->where('is_current', 1)
                         ->where('instrument_type', 'OPT')
@@ -251,7 +251,7 @@ class OptionChainController extends Controller
         $strikeWindow = (int) $request->input('strike_window', 7); // Odd number only!
 
         // 1. Get expiry for the selected symbol
-        $expiry = DB::table('expiries')
+        $expiry = DB::table('nse_expiries')
                     ->where('trading_symbol', $symbol)
                     ->where('instrument_type', 'OPT')
                     ->where('is_current', 1)
@@ -362,7 +362,7 @@ class OptionChainController extends Controller
         $onlyWithBoth = $request->boolean('only_with_both', false);
 
         // 1. Get all current expiries for all symbols
-        $expiries = DB::table('expiries')
+        $expiries = DB::table('nse_expiries')
                       ->whereIn('trading_symbol', $symbols)
                       ->where('instrument_type', 'OPT')
                       ->where('is_current', 1)

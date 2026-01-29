@@ -3,27 +3,33 @@
 
 @section('content')
     <div class="max-w-full mx-auto p-4 space-y-4">
-        <h1 class="text-xl font-semibold">Index & Futures Daily Chart</h1>
-
-        <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex flex-wrap gap-4" >
             <div>
-                <label class="block text-sm mb-1">Symbol</label>
-                <input id="symbol" type="text"
-                    value="NIFTY"
-                    class="border rounded px-3 py-1 text-sm">
+                <h1 class="text-xl font-semibold">Index & Futures Daily Chart</h1>
             </div>
+            <div class="flex flex-wrap gap-4 items-end">
+                <div>
+                    <label class="block text-sm mb-1">Symbol</label>
+                    <input id="symbol" type="text"
+                        value="NIFTY"
+                        class="border rounded px-3 py-1 text-sm">
+                </div>
 
-            <div>
-                <label class="block text-sm mb-1">Date</label>
-                <input id="quote_date" type="date"
-                    class="border rounded px-3 py-1 text-sm">
+                <div>
+                    <label class="block text-sm mb-1">Date</label>
+                    <input id="quote_date" type="date"
+                        class="border rounded px-3 py-1 text-sm">
+                </div>
+
+                <button id="loadChartBtn"
+                    class="bg-blue-600 text-white px-4 py-2 rounded text-sm">
+                    Load Chart
+                </button>
             </div>
-
-            <button id="loadChartBtn"
-                class="bg-blue-600 text-white px-4 py-2 rounded text-sm">
-                Load Chart
-            </button>
         </div>
+
+
+
 
         <div id="trend-container"
             class="flex gap-2 p-2 overflow-x-auto whitespace-nowrap bg-gray-50 rounded shadow-sm border">
@@ -31,6 +37,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+{{--        <div class="gap-4 mt-4">--}}
             <div>
                 <h2 class="text-sm font-medium mb-1">Index</h2>
                 <div id="index-chart-container" class="border rounded h-[600px]"></div>
@@ -159,18 +166,18 @@
                         current_day_index_open: indexChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
-                        earth_high: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        earth_low: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        min_r: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        min_s: indexChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
+                        // earth_high: indexChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // earth_low: indexChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // min_r: indexChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // min_s: indexChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
                         max_r: indexChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
@@ -182,7 +189,8 @@
                         }),
                         atm_pe: indexChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#810aff', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),atm_r: indexChart.addSeries(LightweightCharts.LineSeries, {
+                        }),
+                        atm_r: indexChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
                         atm_r_1: indexChart.addSeries(LightweightCharts.LineSeries, {
@@ -218,53 +226,54 @@
                         // index_low: futureChart.addSeries(LightweightCharts.LineSeries, {
                         //     color: '#02b843', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         // }),
-                        index_close: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        future_close: futureChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
-                        current_day_index_open: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        future_open: futureChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#9ca3af', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         }),
-                        earth_high: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        earth_low: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        min_r: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        min_s: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        max_r: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        max_s: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        atm_ce: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#810aff', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        atm_pe: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#810aff', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),atm_r: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),
-                        atm_r_1: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_r_2: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_r_3: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_s_1: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_s_2: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_s_3: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }),atm_s: futureChart.addSeries(LightweightCharts.LineSeries, {
-                            color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
-                        }), atm_index_open: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        // earth_high: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // earth_low: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#f97316', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // min_r: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // min_s: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ec4899', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // max_r: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // max_s: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#000000', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // atm_ce: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#810aff', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // atm_pe: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#810aff', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),atm_r: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),
+                        // atm_r_1: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }), atm_r_2: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }), atm_r_3: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#ff0202', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }), atm_s_1: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }), atm_s_2: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }), atm_s_3: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        // }),atm_s: futureChart.addSeries(LightweightCharts.LineSeries, {
+                        //     color: '#278100', lineWidth: 5, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
+                        //}),
+                    future_atm: futureChart.addSeries(LightweightCharts.LineSeries, {
                             color: '#cdcdcd', lineWidth: 7, lineStyle: LightweightCharts.LineStyle.Solid, priceLineVisible: false
                         })
                         // , atm_r_avg: futureChart.addSeries(LightweightCharts.LineSeries, {

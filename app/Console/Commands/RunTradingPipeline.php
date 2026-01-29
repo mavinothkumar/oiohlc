@@ -26,19 +26,24 @@ class RunTradingPipeline extends Command
      */
     public function handle()
     {
+        $this->info('Started: Working day flags.');
         Artisan::call('nse:update-working-day-flags');
         $this->info('Working day flags updated.');
 
+        $this->info('Started: Instruments fetch.');
         Artisan::call('upstox:fetch-instruments');
         $this->info('Instruments fetched.');
 
         // Repeat for others...
+        $this->info('Started: Benchmarks');
         Artisan::call('expiries:update-benchmarks');
         $this->info('Benchmarks updated.');
 
+        $this->info('Started: Daily OHLC');
         Artisan::call('indices:collect-daily-ohlc');
         $this->info('Daily OHLC collected.');
 
+        $this->info('Started: Trend Daily');
         Artisan::call('trend:populate-daily');
         $this->info('Daily trends populated.');
     }

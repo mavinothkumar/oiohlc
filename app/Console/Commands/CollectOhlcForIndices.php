@@ -43,7 +43,7 @@ class CollectOhlcForIndices extends Command
 
         foreach ($this->indices as $index) {
             // 1. Get current expiry for the instrument
-            $expiry = DB::table('expiries')
+            $expiry = DB::table('nse_expiries')
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)
                         ->where('trading_symbol', $index)

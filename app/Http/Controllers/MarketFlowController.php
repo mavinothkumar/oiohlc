@@ -24,7 +24,7 @@ class MarketFlowController extends Controller
         // Which table to use
        $table = $duration === '1' ? 'full_market_quotes' : 'three_min_quotes';
 
-        $currentExpiry = DB::table('expiries')
+        $currentExpiry = DB::table('nse_expiries')
                            ->where('trading_symbol', strtoupper($market))
                            ->where('instrument_type', strtoupper($type))
                            ->where('is_current', 1)

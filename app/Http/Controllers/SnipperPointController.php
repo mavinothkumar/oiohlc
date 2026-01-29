@@ -20,7 +20,7 @@ class SnipperPointController extends Controller
 
         // Get previous working day, latest expiry and spot price
         $prevDay         = DB::table('nse_working_days')->where('previous', 1)->limit(1)->value('working_date');
-        $expiry          = DB::table('expiries')
+        $expiry          = DB::table('nse_expiries')
                              ->where('instrument_type', 'OPT')
                              ->where('is_current', 1)
                              ->where('trading_symbol', $index)->limit(1)

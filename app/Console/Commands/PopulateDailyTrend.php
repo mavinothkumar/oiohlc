@@ -63,7 +63,7 @@ class PopulateDailyTrend extends Command
 //                                       ->orderBy('expiry_date')
 //                                       ->value('expiry_date');
 
-        $currentExpiry = DB::table('expiries')
+        $currentExpiry = DB::table('nse_expiries')
                            ->where('is_current', 1)
                            ->where('instrument_type', 'OPT')
                            ->where('trading_symbol', $symbol)

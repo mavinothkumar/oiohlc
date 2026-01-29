@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Expiry extends Model
 {
-    protected $table = 'expiries';
+    protected $table = 'nse_expiries';
 
     protected $fillable = [
         'exchange',

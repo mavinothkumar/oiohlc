@@ -7,9 +7,26 @@
 @section('content')
     <div class="w-full px-2 py-4">
         <div class="flex items-baseline justify-between mb-4">
-            <h1 class="text-xl font-semibold">
-                Index Option Trend – {{ $previousDay ?? '' }}
-            </h1>
+            <div class="flex items-baseline justify-between mb-4">
+                <div>
+                <h1 class="text-xl font-semibold">
+                    Index Option Trend – {{ $previousDay ?? '' }}
+                </h1>
+                </div>
+                <div class="ml-4">
+                    <form>
+                        <input type="date" value="{{request()->input('date')}}" name="date" placeholder="Date" />
+                        <button class="inline-flex items-center justify-center
+         px-4 py-2
+         rounded-md
+         bg-blue-600 text-white
+         text-sm font-medium
+         hover:bg-blue-700
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+         disabled:opacity-50 disabled:cursor-not-allowed" type="submit">Submit</button>
+                    </form>
+                </div>
+            </div>
 
             @if(!empty($previousDay))
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
@@ -109,14 +126,18 @@
                                     <th class="px-3 py-2">Type</th>
                                 </tr>
                                 <tr>
-                                    <td class="px-3 py-2"><strong>CE:</strong></td>
+                                    <td class="px-3 py-2">
+                                        <strong>CE:</strong>
+                                    </td>
                                     <td class="px-3 py-2"> {{ number_format($row['ce_high'], 2) }}</td>
                                     <td class="px-3 py-2"> {{ number_format($row['ce_low'], 2) }}</td>
                                     <td class="px-3 py-2"> {{ number_format($row['ce_close'], 2) }}</td>
                                     <td class="px-3 py-2"> {{ $row['ce_type']}}</td>
                                 </tr>
                                 <tr>
-                                    <td class="px-3 py-2"><strong>PE:</strong></td>
+                                    <td class="px-3 py-2">
+                                        <strong>PE:</strong>
+                                    </td>
                                     <td class="px-3 py-2"> {{ number_format($row['pe_high'], 2) }}</td>
                                     <td class="px-3 py-2"> {{ number_format($row['pe_low'], 2) }}</td>
                                     <td class="px-3 py-2"> {{ number_format($row['pe_close'], 2) }}</td>

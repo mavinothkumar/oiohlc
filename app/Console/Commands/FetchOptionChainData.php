@@ -53,7 +53,7 @@ class FetchOptionChainData extends Command
         foreach ($instruments as $index => $inst) {
             Log::info('Fetching option chain for '.$inst['symbol'].' at '.Carbon::now());
 
-            $expiry = DB::table('expiries')
+            $expiry = DB::table('nse_expiries')
                         ->where('trading_symbol', $inst['symbol'])
                         ->where('is_current', 1)
                         ->where('instrument_type', 'OPT')

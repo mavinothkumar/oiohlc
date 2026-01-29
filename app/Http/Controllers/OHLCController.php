@@ -16,7 +16,7 @@ class OHLCController extends Controller
         $symbol = $request->input('symbol', 'NIFTY');
 
         // Step 1: Get current expiry date for NIFTY options
-        $expiryData = DB::table('expiries')
+        $expiryData = DB::table('nse_expiries')
                         ->where('trading_symbol', $symbol)
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)

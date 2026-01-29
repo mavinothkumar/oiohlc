@@ -10,11 +10,16 @@ class TrendController extends Controller
 {
     public function index()
     {
-        // 1. Working days (previous + current)
-        $previousDay = DB::table('nse_working_days')
-                         ->where('previous', 1)
-                         ->value('working_date');
+        $date = request()->input('date');
 
+        if ($date) {
+            $previousDay = $date;
+        } else {
+            // 1. Working days (previous + current)
+            $previousDay = DB::table('nse_working_days')
+                             ->where('previous', 1)
+                             ->value('working_date');
+        }
         if ( ! $previousDay) {
             die('Working days not configured');
         }
@@ -67,7 +72,7 @@ class TrendController extends Controller
         $optionContracts = [];
         foreach ($dailyTrends as $symbol => $trend) {
 
-            $expiry = DB::table('expiries')
+            $expiry = DB::table('nse_expiries')
                         ->where('instrument_type', 'OPT')
                         ->where('is_current', 1)
                         ->where('trading_symbol', $symbol)->limit(1)
