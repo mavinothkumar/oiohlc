@@ -88,6 +88,13 @@
             function createChart (container, color) {
                 const rect = container.getBoundingClientRect();
 
+                // OHLC tooltip element
+                const tooltip = document.createElement('div');
+                tooltip.className = 'absolute bg-black text-white text-xs px-2 py-1 rounded opacity-0 transition-opacity z-50 pointer-events-none';
+                tooltip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                container.style.position = 'relative';
+                container.appendChild(tooltip);
+
                 const chart = LightweightCharts.createChart(container, {
                     width: rect.width,
                     height: rect.height,
@@ -106,6 +113,7 @@
                     crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
                 });
 
+                // v5+ API
                 const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
                     upColor: color,
                     downColor: '#dc2626',
@@ -115,9 +123,43 @@
                     wickDownColor: '#dc2626'
                 });
 
+                // OHLC tooltip on hover
+                chart.subscribeCrosshairMove((param) => {
+                    if (
+                        !param.time ||
+                        !param.point ||
+                        param.point.x < 0 ||
+                        param.point.y < 0 ||
+                        param.point.x > container.clientWidth ||
+                        param.point.y > container.clientHeight
+                    ) {
+                        tooltip.style.opacity = '0';
+                        return;
+                    }
+
+                    const data = param.seriesData.get(series);
+                    if (!data) {
+                        tooltip.style.opacity = '0';
+                        return;
+                    }
+
+                    const { open, high, low, close } = data;
+
+                    tooltip.innerHTML = `
+            <div>O: ${open.toFixed(2)}</div>
+            <div>H: ${high.toFixed(2)}</div>
+            <div>L: ${low.toFixed(2)}</div>
+            <div>C: ${close.toFixed(2)}</div>
+        `;
+
+                    tooltip.style.left = (param.point.x + 10) + 'px';
+                    tooltip.style.top  = (param.point.y + 10) + 'px';
+                    tooltip.style.opacity = '1';
+                });
+
                 new ResizeObserver(entries => {
-                    if ( ! entries.length) return;
-                    const cr = entries[ 0 ].contentRect;
+                    if (!entries.length) return;
+                    const cr = entries[0].contentRect;
                     chart.applyOptions({ width: cr.width, height: cr.height });
                 }).observe(container);
 
@@ -323,13 +365,33 @@
                     const trendContainer = document.getElementById('trend-container');
                     trendContainer.innerHTML = '';
 
-                    Object.entries(json.trend_data.show).forEach(([label, value]) => {
-                        if (value === null || Number.isNaN(value)) return;
+                    const show = json.trend_data.show;
+
+// normalize to numbers (in case they come as strings)
+                    const prevAtm  = Number(show.previous_day_atm);
+                    const atmCe    = Number(show.atm_ce);
+                    const atmPe    = Number(show.atm_pe);
+
+// check if all three are equal and valid numbers
+                    const allEqual =
+                        !Number.isNaN(prevAtm) &&
+                        prevAtm === atmCe &&
+                        prevAtm === atmPe;
+
+                    Object.entries(show).forEach(([label, value]) => {
+                        if (value === null || Number.isNaN(Number(value))) return;
+
+                        const isTriple =
+                            allEqual &&
+                            (label === 'previous_day_atm' ||
+                                label === 'atm_ce' ||
+                                label === 'atm_pe');
 
                         const card = document.createElement('div');
                         card.className =
-                            'inline-flex flex-col items-center justify-center px-3 py-2 bg-white border rounded ' +
-                            'shadow-sm hover:shadow-md transition-shadow min-w-[110px]';
+                            'inline-flex flex-col items-center justify-center px-3 py-2 border rounded ' +
+                            'shadow-sm hover:shadow-md transition-shadow min-w-[110px] ' +
+                            (isTriple ? 'bg-green-100' : 'bg-white'); // Tailwind example
 
                         card.innerHTML = `
         <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1 text-center">

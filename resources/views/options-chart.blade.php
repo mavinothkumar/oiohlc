@@ -99,6 +99,8 @@
 
             let ceChart = null, ceSeries = null;
             let peChart = null, peSeries = null;
+            let ceTooltip = null;
+            let peTooltip = null;
 
             // line series for previous-day OHLC (created lazily)
             let cePrevLines = null;
@@ -109,6 +111,13 @@
 
             function createChart(container, upColor) {
                 const rect = container.getBoundingClientRect();
+
+                // local tooltip variable — only used inside this function
+                const tooltip = document.createElement('div');
+                tooltip.className = 'absolute bg-black text-white text-xs px-2 py-1 rounded opacity-0 transition-opacity z-50 pointer-events-none';
+                tooltip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                container.style.position = 'relative';
+                container.appendChild(tooltip);
 
                 const chart = LightweightCharts.createChart(container, {
                     width: rect.width,
@@ -122,12 +131,13 @@
                         timezone: 'Asia/Kolkata',
                     },
                     grid: {
-                        vertLines:  { color: '#ffffff', visible: false },  // hide vertical grid
-                        horzLines:  { color: '#ffffff', visible: false },  // hide horizontal grid
+                        vertLines:  { color: '#ffffff', visible: false },
+                        horzLines:  { color: '#ffffff', visible: false },
                     },
                     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 });
 
+                // v5+ API: addSeries instead of addCandlestickSeries
                 const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
                     upColor: upColor,
                     downColor: '#dc2626',
@@ -137,14 +147,50 @@
                     wickDownColor: '#dc2626',
                 });
 
+                // OHLC tooltip on hover
+                chart.subscribeCrosshairMove((param) => {
+                    if (
+                        !param.time ||
+                        !param.point ||
+                        param.point.x < 0 ||
+                        param.point.y < 0 ||
+                        param.point.x > container.clientWidth ||
+                        param.point.y > container.clientHeight
+                    ) {
+                        tooltip.style.opacity = '0';
+                        return;
+                    }
+
+                    const data = param.seriesData.get(series);
+                    if (!data) {
+                        tooltip.style.opacity = '0';
+                        return;
+                    }
+
+                    const { open, high, low, close } = data;
+
+                    tooltip.innerHTML = `
+            <div>O: ${open.toFixed(2)}</div>
+            <div>H: ${high.toFixed(2)}</div>
+            <div>L: ${low.toFixed(2)}</div>
+            <div>C: ${close.toFixed(2)}</div>
+        `;
+
+                    tooltip.style.left = (param.point.x + 10) + 'px';
+                    tooltip.style.top  = (param.point.y + 10) + 'px';
+                    tooltip.style.opacity = '1';
+                });
+
                 new ResizeObserver(entries => {
                     if (!entries.length) return;
                     const cr = entries[0].contentRect;
                     chart.applyOptions({ width: cr.width, height: cr.height });
                 }).observe(container);
 
+                // you only need chart & series outside
                 return { chart, series };
             }
+
 
             function timeToLocal(originalTime) {
                 const d = new Date(originalTime * 1000);

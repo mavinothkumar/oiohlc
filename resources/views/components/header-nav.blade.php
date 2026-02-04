@@ -52,6 +52,7 @@
                         <a href="{{ route('entries.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Entry</a>
                         <a href="{{ route('options.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Chart</a>
                         <a href="{{ route('index.futures.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Index Chart</a>
+                        <a href="{{ route('options.multi.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Chart</a>
                     </div>
                 </div>
             </div>

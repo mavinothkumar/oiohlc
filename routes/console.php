@@ -52,7 +52,7 @@ Schedule::command('nse:populate-working-days') // php artisan nse:populate-worki
 //
 
 Schedule::command('trend:update-index-open') // php artisan trend:update-index-open
-        ->dailyAt('09:09')
+        ->dailyAt('09:08')
         ->timezone('Asia/Kolkata')
         ->appendOutputTo(storage_path('logs/update-index-open.log'));
 

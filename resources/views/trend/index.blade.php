@@ -9,13 +9,13 @@
         <div class="flex items-baseline justify-between mb-4">
             <div class="flex items-baseline justify-between mb-4">
                 <div>
-                <h1 class="text-xl font-semibold">
-                    Index Option Trend – {{ $previousDay ?? '' }}
-                </h1>
+                    <h1 class="text-xl font-semibold">
+                        Index Option Trend – {{ $previousDay ?? '' }}
+                    </h1>
                 </div>
                 <div class="ml-4">
                     <form>
-                        <input type="date" value="{{request()->input('date')}}" name="date" placeholder="Date" />
+                        <input type="date" value="{{request()->input('date')}}" name="date" placeholder="Date"/>
                         <button class="inline-flex items-center justify-center
          px-4 py-2
          rounded-md
@@ -23,7 +23,8 @@
          text-sm font-medium
          hover:bg-blue-700
          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-         disabled:opacity-50 disabled:cursor-not-allowed" type="submit">Submit</button>
+         disabled:opacity-50 disabled:cursor-not-allowed" type="submit">Submit
+                        </button>
                     </form>
                 </div>
             </div>
@@ -46,10 +47,9 @@
                     <th class="px-3 py-2 w-24">Open Type</th>
                     <th class="px-3 py-2 w-24">Open Val</th>
                     <th class="px-3 py-2 w-86"></th>
+                    <th class="px-3 py-2 w-20">Avg CE/PE</th>
                     <th class="px-3 py-2 w-34">ATM Res</th>
                     <th class="px-3 py-2 w-34">ATM Sup</th>
-                    <th class="px-3 py-2 w-20">Avg Res</th>
-                    <th class="px-3 py-2 w-20">Avg Sup</th>
                     <th class="px-3 py-2 w-34">Res</th>
                     <th class="px-3 py-2 w-34">Sup</th>
                     <th class="px-3 py-2 w-34">Earth</th>
@@ -146,6 +146,9 @@
                             </table>
                         </td>
 
+                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
+                            {{ number_format(($row['ce_close'] + $row['pe_close'])/2, 2) }}
+                        </td>
 
                         <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
                             <div class=" py-2">
@@ -175,12 +178,6 @@
                                 <strong>S4:</strong> {{ number_format($row['atm_s_3'], 2) }}
                             </div>
 
-                        </td>
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            {{ number_format($row['atm_r_avg'], 2) }}
-                        </td>
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            {{ number_format($row['atm_s_avg'], 2) }}
                         </td>
                         <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
                             <div class=" py-2">

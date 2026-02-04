@@ -219,10 +219,13 @@
 
                 ceInputs.forEach((el, i) => el.value = strikes[i] ?? '');
                 peInputs.forEach((el, i) => el.value = strikes[i] ?? '');
+                // no chart loading here
             } finally {
                 hideLoader();
             }
         }
+
+
 
         async function loadAllCharts(symbol, expiry, date, strikes, avgAtm, avgAll) {
             showLoader();
@@ -262,15 +265,27 @@
                 return;
             }
 
+            // make container a positioning context for tooltip
+            container.style.position = 'relative';
+
+            // tooltip div
+            const tooltip = document.createElement('div');
+            tooltip.className = 'absolute bg-black text-white text-xs px-2 py-1 rounded opacity-0 transition-opacity z-50 pointer-events-none';
+            tooltip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            container.appendChild(tooltip);
+
             const chart = LightweightCharts.createChart(container, {
                 width: container.clientWidth || 400,
                 height: container.clientHeight || 250,
                 layout: { background: { color: 'white' }, textColor: '#000' },
                 timeScale: { timeVisible: true, secondsVisible: false },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             });
 
             const seriesData = normalizeData(type === 'CE' ? data.ce_today : data.pe_today);
-            const series = chart.addCandlestickSeries();   // v4 API
+
+            // v4 API
+            const series = chart.addCandlestickSeries();
             series.setData(seriesData);
 
             if (!seriesData.length) return;
@@ -278,17 +293,7 @@
             const tFirst = seriesData[0].time;
             const tLast  = seriesData[seriesData.length - 1].time;
 
-            const atmLine = chart.addLineSeries({        // v4 API
-                color: 'red',
-                lineWidth: 2,
-                priceLineVisible: false,
-            });
-            atmLine.setData([
-                { time: tFirst, value: avgAtm },
-                { time: tLast,  value: avgAtm },
-            ]);
-
-            const allLine = chart.addLineSeries({        // v4 API
+            const allLine = chart.addLineSeries({
                 color: 'green',
                 lineWidth: 2,
                 priceLineVisible: false,
@@ -297,7 +302,42 @@
                 { time: tFirst, value: avgAll },
                 { time: tLast,  value: avgAll },
             ]);
+
+            // OHLC tooltip on hover
+            chart.subscribeCrosshairMove((param) => {
+                if (
+                    !param.time ||
+                    !param.point ||
+                    param.point.x < 0 ||
+                    param.point.y < 0 ||
+                    param.point.x > container.clientWidth ||
+                    param.point.y > container.clientHeight
+                ) {
+                    tooltip.style.opacity = '0';
+                    return;
+                }
+
+                const dataPoint = param.seriesData.get(series);
+                if (!dataPoint) {
+                    tooltip.style.opacity = '0';
+                    return;
+                }
+
+                const { open, high, low, close } = dataPoint;
+
+                tooltip.innerHTML = `
+            <div>O: ${open.toFixed(2)}</div>
+            <div>H: ${high.toFixed(2)}</div>
+            <div>L: ${low.toFixed(2)}</div>
+            <div>C: ${close.toFixed(2)}</div>
+        `;
+
+                tooltip.style.left = (param.point.x + 10) + 'px';
+                tooltip.style.top  = (param.point.y + 10) + 'px';
+                tooltip.style.opacity = '1';
+            });
         }
+
 
 
         document.addEventListener('DOMContentLoaded', () => {

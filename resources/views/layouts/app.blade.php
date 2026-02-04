@@ -24,7 +24,8 @@
 <div class="fixed top-0 right-0 m-4 text-sm font-medium">
     {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
 </div>
-@if(! request()->has('nr'))
+{{--@if(! request()->has('nr'))--}}
+@if(request()->has('nr'))
     <script>
         (function () {
             function isWithinTradingHours() {

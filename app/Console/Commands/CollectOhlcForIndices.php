@@ -12,13 +12,13 @@ class CollectOhlcForIndices extends Command
     protected $signature = 'indices:collect-daily-ohlc';
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
     public $index_instruments = [
-       //'BSE_INDEX|BANKEX',
-       'BSE_INDEX|SENSEX',
-       'NSE_INDEX|Nifty 50',
-       'NSE_INDEX|Nifty Bank',
-      // 'NSE_INDEX|Nifty Fin Service',
+        //'BSE_INDEX|BANKEX',
+        'BSE_INDEX|SENSEX',
+        'NSE_INDEX|Nifty 50',
+        'NSE_INDEX|Nifty Bank',
+        // 'NSE_INDEX|Nifty Fin Service',
     ];
-    public $indices = ['NIFTY','BANKNIFTY', 'SENSEX' ]; //, 'FINNIFTY'
+    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
     public $quoteDate;
     public $workingDay;
 
@@ -35,7 +35,6 @@ class CollectOhlcForIndices extends Command
         $index_instruments = DB::table('instruments')
                                ->whereIn('instrument_key', $this->index_instruments)
                                ->get()->toArray();
-
 
 
         $this->update($index_instruments);
@@ -150,6 +149,7 @@ class CollectOhlcForIndices extends Command
             $toDate        = Carbon::parse($apiDate)->addDay()->format('Y-m-d');
 
 
+            info('date', [$fromDate, $toDate]);
             // Correct API endpoint as per documentation/reference
             $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$fromDate}/{$fromDate}";
             $apiToken = config('services.upstox.access_token'); // Store/update this in config/services.php
@@ -176,6 +176,7 @@ class CollectOhlcForIndices extends Command
             foreach ($candles as $candle) {
                 // Expected candle array: [datetime, open, high, low, close, volume, open_interest]
                 if (count($candle) < 7) {
+                   info('Data missing for '.$instrumentKey);
                     continue;
                 }
 
