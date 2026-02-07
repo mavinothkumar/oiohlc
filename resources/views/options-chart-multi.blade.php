@@ -32,8 +32,8 @@
                     <label class="block text-sm font-medium text-gray-700">CE strikes / PE strikes</label>
 
                     {{-- CE row --}}
-                    <div class="mt-1 grid grid-cols-5 gap-2 text-xs">
-                        @for($i = 0; $i < 5; $i++)
+                    <div class="mt-1 grid grid-cols-7 gap-2 text-xs">
+                        @for($i = 0; $i < 7; $i++)
                             @php
                                 $strike = isset($ceStrikes[$i]) ? $ceStrikes[$i] : '';
                             @endphp
@@ -46,8 +46,8 @@
                     </div>
 
                     {{-- PE row --}}
-                    <div class="mt-1 grid grid-cols-5 gap-2 text-xs">
-                        @for($i = 0; $i < 5; $i++)
+                    <div class="mt-1 grid grid-cols-7 gap-2 text-xs">
+                        @for($i = 0; $i < 7; $i++)
                             @php
                                 $strike = isset($peStrikes[$i]) ? $peStrikes[$i] : '';
                             @endphp
@@ -95,7 +95,7 @@
 
         <div class="flex flex-col lg:flex-row gap-4">
             {{-- LEFT 70%: filters + multi chart --}}
-            <div class="w-full lg:w-[70%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
+            <div class="w-full lg:w-[60%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
                 {{-- 10 charts: top 5 CE, bottom 5 PE --}}
                 @if(!empty($ceStrikes) && !empty($peStrikes))
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -117,106 +117,129 @@
                     </div>
                 @endif
             </div>
-            <div class="w-full lg:w-[30%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-semibold text-gray-700">
-                        CE–PE Saturation Grid (5 min)
-                    </h2>
+            <div class="w-full lg:w-[40%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
+                <div class="sticky top-4 bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-gray-700">
+                            CE–PE Saturation Grid (5 min)
+                        </h2>
 
-                    {{-- small form to tweak saturation threshold --}}
-                    @if($symbol && $quoteDate && $expiryDate)
-                        <form method="GET" action="{{ route('options.multi.chart') }}" class="flex items-center gap-1 text-xs">
-                            <input type="hidden" name="symbol" value="{{ $symbol }}">
-                            <input type="hidden" name="quote_date" value="{{ $quoteDate }}">
-                            <input type="hidden" name="expiry_date" value="{{ $expiryDate }}">
-                            @foreach($ceStrikes as $s)
-                                <input type="hidden" name="ce_strikes[]" value="{{ $s }}">
-                            @endforeach
-                            @foreach($peStrikes as $s)
-                                <input type="hidden" name="pe_strikes[]" value="{{ $s }}">
-                            @endforeach
-
-                            <span class="text-gray-500">Sat.</span>
-                            <input
-                                type="number"
-                                name="saturation"
-                                class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
-                                value="{{ $saturation ?? 10 }}"
-                                step="0.5"
-                            >
-                            <button
-                                type="submit"
-                                class="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
-                            >
-                                Apply
-                            </button>
-                        </form>
-                    @endif
-                </div>
-
-                @if(!empty($diffMatrix) && !empty($timeSlots) && !empty($allStrikes))
-                    <div class="overflow-x-auto max-h-[1000px] border border-gray-100 rounded">
-                        <table class="min-w-full text-[10px] md:text-xs">
-                            <thead class="bg-gray-50 sticky top-0 z-10">
-                            <tr>
-                                <th class="px-2 py-1 border-b border-gray-200 text-left font-semibold text-gray-600 w-14">
-                                    Time
-                                </th>
-                                @foreach($allStrikes as $strike)
-                                    <th class="px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-600">
-                                        {{ (int)$strike }}
-                                    </th>
+                        {{-- small form to tweak saturation threshold --}}
+                        @if($symbol && $quoteDate && $expiryDate)
+                            <form method="GET" action="{{ route('options.multi.chart') }}" class="flex items-center gap-1 text-xs">
+                                <input type="hidden" name="symbol" value="{{ $symbol }}">
+                                <input type="hidden" name="quote_date" value="{{ $quoteDate }}">
+                                <input type="hidden" name="expiry_date" value="{{ $expiryDate }}">
+                                @foreach($ceStrikes as $s)
+                                    <input type="hidden" name="ce_strikes[]" value="{{ $s }}">
                                 @endforeach
-                            </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($timeSlots as $time)
-                                @php
-                                    $row = $diffMatrix[$time] ?? [];
-                                @endphp
-                                <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                    <td class="px-2 py-1 text-gray-600 font-medium">
-                                        {{ $time }}
-                                    </td>
+                                @foreach($peStrikes as $s)
+                                    <input type="hidden" name="pe_strikes[]" value="{{ $s }}">
+                                @endforeach
+
+                                <span class="text-gray-500">Sat.</span>
+                                <input
+                                    type="number"
+                                    name="saturation"
+                                    class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
+                                    value="{{ $saturation ?? 5 }}"
+                                    step="1"
+                                >
+                                <button
+                                    type="submit"
+                                    class="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                                >
+                                    Apply
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+
+                    @if(!empty($diffMatrix) && !empty($timeSlots) && !empty($allStrikes))
+
+                        <div class="overflow-x-auto border border-gray-100 rounded">
+                            <table class="min-w-full text-[10px] md:text-xs">
+                                <thead class="bg-gray-50 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-2 py-1 border-b border-gray-200 text-left font-semibold text-gray-600 w-14">
+                                        Time
+                                    </th>
                                     @foreach($allStrikes as $strike)
-                                        @php
-                                            $cell = $row[(float)$strike] ?? null;
-                                        @endphp
-                                        <td class="px-1 py-1 text-center align-top">
-                                            @if($cell)
-                                                @php
-                                                    $color = abs($cell['diff']) <= 3
-                                                        ? 'bg-red-100 border-red-300 text-red-700'
-                                                        : 'bg-yellow-100 border-yellow-300 text-yellow-700';
-                                                @endphp
-                                                <div class="inline-flex flex-col px-1 py-0.5 rounded border {{ $color }}">
-                                                    <span class="font-semibold">
-                                                        {{ number_format($cell['diff'], 2) }}
-                                                    </span>
-                                                    <span class="text-[9px] text-gray-600">
-                                                        H/L CE: {{ number_format($cell['ce_high'], 1) }}/{{ number_format($cell['ce_low'], 1) }}
-                                                    </span>
-                                                    <span class="text-[9px] text-gray-600">
-                                                        H/L PE: {{ number_format($cell['pe_high'], 1) }}/{{ number_format($cell['pe_low'], 1) }}
-                                                    </span>
-                                                </div>
-                                            @endif
-                                        </td>
+                                        <th class="px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-600">
+                                            {{ (int)$strike }}
+                                        </th>
                                     @endforeach
                                 </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <p class="mt-2 text-[10px] text-gray-500 leading-tight">
-                        Each cell shows the lowest CE/PE high‑low difference for that strike and 5‑minute candle within
-                        ±{{ $saturation }}. Values closer to zero are highlighted more strongly.
-                    </p>
-                @else
-                    <p class="text-xs text-gray-500">
-                        No CE/PE saturation data for the current selection. Adjust strikes or date and try again.
-                    </p>
-                @endif
+                                </thead>
+                                <tbody>
+                                @foreach($timeSlots as $time)
+                                    @php
+                                        $row = $diffMatrix[$time] ?? [];
+                                    @endphp
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="px-2 py-1 text-gray-600 font-medium">
+                                            {{ $time }}
+                                        </td>
+                                        @foreach($allStrikes as $strike)
+                                            @php
+                                                $cell = $row[(float)$strike] ?? null;
+                                            @endphp
+                                            <td class="px-1 py-1 text-center align-top">
+                                                @if($cell)
+                                                    @php
+                                                        // Decide style and label based on which leg matched
+                                                        if (($cell['type'] ?? null) === 'CEH-PEL') {
+                                                            // CE high vs PE low => CE Sell (red)
+                                                            $boxClass = 'bg-red-100 border-red-300 text-red-800';
+                                                            $signal   = 'CE Sell';
+                                                        } elseif (($cell['type'] ?? null) === 'PEH-CEL') {
+                                                            // CE low vs PE high => PE Sell (green)
+                                                            $boxClass = 'bg-green-100 border-green-300 text-green-800';
+                                                            $signal   = 'PE Sell';
+                                                        } else {
+                                                            // fallback / unknown type
+                                                            $boxClass = 'bg-yellow-100 border-yellow-300 text-yellow-800';
+                                                            $signal   = '';
+                                                        }
+                                                    @endphp
+
+                                                    <div class="inline-flex flex-col px-1.5 py-1 rounded border {{ $boxClass }}">
+                                                        <div class="gap-1">
+                                                            <span class="font-semibold text-[11px]">
+                                                                {{ number_format($cell['diff'], 2) }}
+                                                            </span>
+                                                        </div>
+                                                        @if($signal)
+                                                            <div class="text-[10px] font-semibold uppercase">
+                                                                {{ $signal }}
+                                                            </div>
+                                                        @endif
+                                                        <span class="text-[9px] text-gray-700">
+            H/L CE: {{ number_format($cell['ce_high'], 1) }}/{{ number_format($cell['ce_low'], 1) }}
+        </span>
+                                                        <span class="text-[9px] text-gray-700">
+            H/L PE: {{ number_format($cell['pe_high'], 1) }}/{{ number_format($cell['pe_low'], 1) }}
+        </span>
+                                                    </div>
+                                                @endif
+
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-2 text-[10px] text-gray-500 leading-tight">
+                            Each cell shows the lowest CE/PE high‑low difference for that strike and 5‑minute candle within
+                            ±{{ $saturation }}. Values closer to zero are highlighted more strongly.
+                        </p>
+                    @else
+                        <p class="text-xs text-gray-500">
+                            No CE/PE saturation data for the current selection. Adjust strikes or date and try again.
+                        </p>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
@@ -313,11 +336,13 @@
 
                 const step = 50;
                 const strikes = [
+                    atm - 3 * step,
                     atm - 2 * step,
                     atm - 1 * step,
                     atm,
                     atm + 1 * step,
-                    atm + 2 * step
+                    atm + 2 * step,
+                    atm + 3 * step
                 ];
 
                 const ceInputs = getStrikeInputs('ce');

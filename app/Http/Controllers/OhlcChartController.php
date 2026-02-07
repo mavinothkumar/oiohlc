@@ -393,7 +393,7 @@ class OhlcChartController extends Controller
         $avgAll        = null;
 
         // new data for right‑side table
-        $saturation    = (float) $request->input('saturation', 10);   // adjustable +/- X
+        $saturation    = (float) $request->input('saturation', 5);   // adjustable +/- X
         $diffMatrix    = [];   // [time => [strike => ['diff' => float, 'ce_high' => ..., ...]]]
         $timeSlots     = [];   // ordered unique 5‑minute times (Carbon strings)
         $allStrikes    = [];   // merged CE + PE strikes for header
@@ -411,11 +411,13 @@ class OhlcChartController extends Controller
 
                 // default ±2 strikes around atm_index_open
                 $baseStrikes = [
+                    $atmIndexOpen - 3 * $step,
                     $atmIndexOpen - 2 * $step,
                     $atmIndexOpen - 1 * $step,
                     $atmIndexOpen,
                     $atmIndexOpen + 1 * $step,
                     $atmIndexOpen + 2 * $step,
+                    $atmIndexOpen + 3 * $step,
                 ];
 
                 // apply your validation / override logic
