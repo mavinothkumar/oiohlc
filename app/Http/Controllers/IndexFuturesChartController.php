@@ -36,12 +36,13 @@ class IndexFuturesChartController extends Controller
             ]);
         }
         $dailyTrendFuture = DB::table('expired_ohlc')
+                              ->where('underlying_symbol', 'NIFTY')
                               ->where('interval', 'day')
                               ->where('instrument_type', 'FUT')
                               ->whereDate('timestamp', $date)
                               ->first(['open', 'high', 'low', 'close']);
         $futureATM        = round((float) $dailyTrendFuture->open / 50) * 50;
-
+        
         // Convert to floats for chart consumption
         $trendData = [
             'index_high'             => (float) $trend->index_high,
@@ -89,6 +90,7 @@ class IndexFuturesChartController extends Controller
         // Fetch 5-minute candles from expired_ohlc
         $startOfDay = $date.' 09:15:00';
         $endOfDay   = $date.' 15:30:00';
+
 
         $index5m = DB::table('expired_ohlc')
                      ->where('underlying_symbol', $symbol)

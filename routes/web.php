@@ -84,3 +84,7 @@ Route::get('/api/multi-chart-expiries', [App\Http\Controllers\OhlcChartControlle
 // AJAX: get OHLC for CE & PE
 Route::get('/api/multi-chart-ohlc', [App\Http\Controllers\OhlcChartController::class, 'multiOhlc'])->name('api.multi-chart-ohlc');
 
+
+Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::class, 'index'])
+     ->name('daily_trend.view');
+

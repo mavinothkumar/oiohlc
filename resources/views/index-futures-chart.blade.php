@@ -428,17 +428,27 @@
 
                     // set visible range
                     if (indexData.length) {
+                        const first = indexData[0].time;
+                        const last  = indexData[indexData.length - 1].time;
+                        const pad   = Math.round((last - first) * 0.1); // 10% padding on each side
+
                         indexChart.timeScale().setVisibleRange({
-                            from: indexData[ 0 ].time,
-                            to: indexData[ indexData.length - 1 ].time
+                            from: first - pad,
+                            to:   last + pad,
                         });
                     }
+
                     if (futureData.length) {
+                        const first = futureData[0].time;
+                        const last  = futureData[futureData.length - 1].time;
+                        const pad   = Math.round((last - first) * 0.1);
+
                         futureChart.timeScale().setVisibleRange({
-                            from: futureData[ 0 ].time,
-                            to: futureData[ futureData.length - 1 ].time
+                            from: first - pad,
+                            to:   last + pad,
                         });
                     }
+
 
                     // ensure trend lines exist
                     ensureTrendLines();

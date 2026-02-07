@@ -236,7 +236,7 @@ class OhlcChartController extends Controller
         ]);
     }
 
-    public function multiIndex(Request $request)
+    public function multiIndex2(Request $request)
     {
         // allow empty filters (empty page with just filters)
         $request->validate([
@@ -368,5 +368,219 @@ class OhlcChartController extends Controller
 
 
     }
+
+    public function multiIndex(Request $request)
+    {
+        // allow empty filters (empty page with just filters)
+        $request->validate([
+            'symbol' => 'nullable|string',
+            'quote_date' => 'nullable|date',
+            'expiry_date' => 'nullable|date',
+            'ce_strikes' => 'nullable|array',
+            'pe_strikes' => 'nullable|array',
+        ]);
+
+        $symbol     = $request->input('symbol');
+        $quoteDate  = $request->input('quote_date');
+        $expiryDate = $request->input('expiry_date');
+
+        $trend         = null;
+        $atmIndexOpen  = null;
+        $baseStrikes   = [];
+        $ceStrikes     = [];
+        $peStrikes     = [];
+        $avgAtm        = null;
+        $avgAll        = null;
+
+        // new data for right‑side table
+        $saturation    = (float) $request->input('saturation', 10);   // adjustable +/- X
+        $diffMatrix    = [];   // [time => [strike => ['diff' => float, 'ce_high' => ..., ...]]]
+        $timeSlots     = [];   // ordered unique 5‑minute times (Carbon strings)
+        $allStrikes    = [];   // merged CE + PE strikes for header
+
+        if ($symbol && $quoteDate && $expiryDate) {
+            $trend = DB::table('daily_trend')
+                       ->where('symbol_name', $symbol)
+                       ->where('quote_date', $quoteDate)
+                       ->where('expiry_date', $expiryDate)
+                       ->first();
+
+            if ($trend) {
+                $atmIndexOpen = (float) $trend->atm_index_open;
+                $step = 50;
+
+                // default ±2 strikes around atm_index_open
+                $baseStrikes = [
+                    $atmIndexOpen - 2 * $step,
+                    $atmIndexOpen - 1 * $step,
+                    $atmIndexOpen,
+                    $atmIndexOpen + 1 * $step,
+                    $atmIndexOpen + 2 * $step,
+                ];
+
+                // apply your validation / override logic
+                $ceStrikes = $request->has('ce_strikes')
+                    ? array_map(
+                        'floatval',
+                        array_filter(
+                            $request->input('ce_strikes'),
+                            fn($v) => $v !== null && $v !== ''
+                        )
+                    )
+                    : $baseStrikes;
+
+                $peStrikes = $request->has('pe_strikes')
+                    ? array_map(
+                        'floatval',
+                        array_filter(
+                            $request->input('pe_strikes'),
+                            fn($v) => $v !== null && $v !== ''
+                        )
+                    )
+                    : $baseStrikes;
+
+                // if user partially cleared all inputs, fall back to defaults
+                if (empty($ceStrikes)) {
+                    $ceStrikes = $baseStrikes;
+                }
+                if (empty($peStrikes)) {
+                    $peStrikes = $baseStrikes;
+                }
+
+                $avgAtm = ((float) $trend->atm_ce_close + (float) $trend->atm_pe_close) / 2;
+                $avgAll = ((float) $trend->ce_close + (float) $trend->pe_close) / 2;
+
+                /**
+                 * NEW LOGIC:
+                 * For each common strike in CE + PE, and for each 5‑minute candle,
+                 * compute:
+                 *   diff1 = CE_high - PE_low
+                 *   diff2 = PE_high - CE_low
+                 * Keep the smallest absolute diff that is within +/- saturation.
+                 */
+                $allStrikes = array_values(array_unique(array_merge($ceStrikes, $peStrikes)));
+                sort($allStrikes);
+
+                if (!empty($allStrikes)) {
+                    $base = DB::table('expired_ohlc')
+                              ->where('underlying_symbol', $symbol)
+                              ->where('expiry', $expiryDate)
+                              ->where('interval', '5minute')
+                              ->whereDate('timestamp', $quoteDate)
+                              ->orderBy('timestamp', 'asc');
+
+                    // pull all CE rows for relevant strikes
+                    $ceRows = (clone $base)
+                        ->where('instrument_type', 'CE')
+                        ->whereIn('strike', $allStrikes)
+                        ->get(['strike', 'high', 'low', 'timestamp']);
+
+                    // pull all PE rows for relevant strikes
+                    $peRows = (clone $base)
+                        ->where('instrument_type', 'PE')
+                        ->whereIn('strike', $allStrikes)
+                        ->get(['strike', 'high', 'low', 'timestamp']);
+
+                    // group by [time => [strike => row]]
+                    $ceGrouped = [];
+                    foreach ($ceRows as $row) {
+                        $timeKey = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
+                        $ceGrouped[$timeKey][(float)$row->strike] = $row;
+                    }
+
+                    $peGrouped = [];
+                    foreach ($peRows as $row) {
+                        $timeKey = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
+                        $peGrouped[$timeKey][(float)$row->strike] = $row;
+                    }
+
+                    // we care only about trading time window 09:15–15:30
+                    $start = \Carbon\Carbon::parse($quoteDate . ' 09:15:00');
+                    $end   = \Carbon\Carbon::parse($quoteDate . ' 15:30:00');
+
+                    $cursor = $start->copy();
+                    while ($cursor <= $end) {
+                        $timeKey = $cursor->format('H:i');
+                        $timeSlots[] = $timeKey;
+
+                        foreach ($allStrikes as $strike) {
+                            $strike = (float)$strike;
+                            $ce = $ceGrouped[$timeKey][$strike] ?? null;
+                            $pe = $peGrouped[$timeKey][$strike] ?? null;
+
+                            if (!$ce || !$pe) {
+                                continue;
+                            }
+
+                            $ceHigh = (float)$ce->high;
+                            $ceLow  = (float)$ce->low;
+                            $peHigh = (float)$pe->high;
+                            $peLow  = (float)$pe->low;
+
+                            // diff1: CE high - PE low
+                            $d1 = $ceHigh - $peLow;
+                            // diff2: PE high - CE low
+                            $d2 = $peHigh - $ceLow;
+
+                            $candidates = [];
+
+                            if (abs($d1) <= $saturation) {
+                                $candidates[] = [
+                                    'diff'    => $d1,
+                                    'ce_high' => $ceHigh,
+                                    'ce_low'  => $ceLow,
+                                    'pe_high' => $peHigh,
+                                    'pe_low'  => $peLow,
+                                    'type'    => 'CEH-PEL',
+                                ];
+                            }
+
+                            if (abs($d2) <= $saturation) {
+                                $candidates[] = [
+                                    'diff'    => $d2,
+                                    'ce_high' => $ceHigh,
+                                    'ce_low'  => $ceLow,
+                                    'pe_high' => $peHigh,
+                                    'pe_low'  => $peLow,
+                                    'type'    => 'PEH-CEL',
+                                ];
+                            }
+
+                            if (!empty($candidates)) {
+                                // pick the one with lowest absolute difference
+                                usort($candidates, fn($a, $b) => abs($a['diff']) <=> abs($b['diff']));
+                                $best = $candidates[0];
+
+                                $diffMatrix[$timeKey][$strike] = $best;
+                            }
+                        }
+
+                        $cursor->addMinutes(5);
+                    }
+
+                    // ensure unique ordered time slots
+                    $timeSlots = array_values(array_unique($timeSlots));
+                }
+            }
+        }
+
+        return view('options-chart-multi', [
+            'symbol'        => $symbol,
+            'quoteDate'     => $quoteDate,
+            'expiryDate'    => $expiryDate,
+            'atmIndexOpen'  => $atmIndexOpen,
+            'ceStrikes'     => $ceStrikes,
+            'peStrikes'     => $peStrikes,
+            'avgAtm'        => $avgAtm,
+            'avgAll'        => $avgAll,
+
+            // new variables for right‑side 30% panel
+            'saturation'    => $saturation,
+            'diffMatrix'    => $diffMatrix,
+            'timeSlots'     => $timeSlots,
+            'allStrikes'    => $allStrikes,
+        ]);
+    }
+
 
 }

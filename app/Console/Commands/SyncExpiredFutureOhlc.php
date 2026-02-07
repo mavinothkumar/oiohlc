@@ -11,7 +11,8 @@ use Carbon\Carbon;
 
 class SyncExpiredFutureOhlc extends Command
 {
-    protected $signature = 'upstox:sync-expired-future-ohlc';
+    protected $signature = 'upstox:sync-expired-future-ohlc
+                             {--expiry= : Optional explicit expiry date YYYY-MM-DD}';
     protected $description = 'Fetch expired OHLC (day & 5minute) for FUT monthly expiries and store in expired_ohlc';
 
     protected string $baseUrl;
@@ -27,25 +28,40 @@ class SyncExpiredFutureOhlc extends Command
 
     public function handle(): int
     {
-        if (! $this->token) {
+        if ( ! $this->token) {
             $this->error('Upstox access token not configured.');
+
             return self::FAILURE;
         }
 
+        $expiry = $this->option('expiry');
+
         // 1) Get all FUT expiries sorted
-        $futExpiries = ExpiredExpiry::query()
-                                    ->where('instrument_type', 'FUT')
-                                    ->orderBy('expiry_date')
-                                    ->get();
+        $futExpiriesQuery = ExpiredExpiry::query()
+                                    ->where('instrument_type', 'FUT');
+        if ($expiry) {
+            $futExpiriesQuery->whereDate('expiry_date', $expiry);
+        }
+        $futExpiries = $futExpiriesQuery->orderBy('expiry_date')->get();
 
         if ($futExpiries->isEmpty()) {
             $this->info('No FUT expiries found.');
+
             return self::SUCCESS;
         }
 
         // Manual first "from" date for the very first FUT expiry in your dataset
         // Example given: for 2024-10-31 you want from 2024-09-27
-        $manualFirstFrom = Carbon::parse('2024-09-27'); // adjust as needed
+        if ($expiry) {
+            $manualFirstFrom =  ExpiredExpiry::query()
+                                             ->where('instrument_type', 'FUT')
+                                             ->whereDate('expiry_date','<', $expiry)
+                                             ->orderBy('expiry_date','desc')
+                                             ->value('expiry_date');
+            $manualFirstFrom = Carbon::parse($manualFirstFrom);
+        } else {
+            $manualFirstFrom = Carbon::parse('2024-09-27'); // adjust as needed
+        }
 
         $previousExpiryDate = null;
 
@@ -74,7 +90,7 @@ class SyncExpiredFutureOhlc extends Command
                                              ->where('instrument_type', 'FUT')
                                              ->first();
 
-            if (! $contract) {
+            if ( ! $contract) {
                 $this->warn("No FUT contract row found for expired_expiry_id={$expiryRow->id}");
                 continue;
             }
@@ -102,6 +118,7 @@ class SyncExpiredFutureOhlc extends Command
         }
 
         $this->info('Expired FUT OHLC synced for day & 5minute.');
+
         return self::SUCCESS;
     }
 
@@ -134,7 +151,8 @@ class SyncExpiredFutureOhlc extends Command
                         ->get($url);
 
         if ($response->failed()) {
-            $this->error("Failed for {$expiredInstrumentKey} {$interval}: " . $response->body());
+            $this->error("Failed for {$expiredInstrumentKey} {$interval}: ".$response->body());
+
             return [];
         }
 
