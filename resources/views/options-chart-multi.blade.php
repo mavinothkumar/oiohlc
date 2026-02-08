@@ -187,42 +187,54 @@
                                             <td class="px-1 py-1 text-center align-top">
                                                 @if($cell)
                                                     @php
-                                                        // Decide style and label based on which leg matched
-                                                        if (($cell['type'] ?? null) === 'CEH-PEL') {
-                                                            // CE high vs PE low => CE Sell (red)
+                                                        if (($cell['direction'] ?? null) === 'CE_SELL') {
                                                             $boxClass = 'bg-red-100 border-red-300 text-red-800';
                                                             $signal   = 'CE Sell';
-                                                        } elseif (($cell['type'] ?? null) === 'PEH-CEL') {
-                                                            // CE low vs PE high => PE Sell (green)
+                                                        } elseif (($cell['direction'] ?? null) === 'PE_SELL') {
                                                             $boxClass = 'bg-green-100 border-green-300 text-green-800';
                                                             $signal   = 'PE Sell';
                                                         } else {
-                                                            // fallback / unknown type
                                                             $boxClass = 'bg-yellow-100 border-yellow-300 text-yellow-800';
                                                             $signal   = '';
                                                         }
+
+                                                        $leftSrc  = $cell['left_src']  ?? '';
+                                                        $rightSrc = $cell['right_src'] ?? '';
+                                                        $leftVal  = $cell['left_val']  ?? null;
+                                                        $rightVal = $cell['right_val'] ?? null;
                                                     @endphp
 
                                                     <div class="inline-flex flex-col px-1.5 py-1 rounded border {{ $boxClass }}">
-                                                        <div class="gap-1">
-                                                            <span class="font-semibold text-[11px]">
-                                                                {{ number_format($cell['diff'], 2) }}
-                                                            </span>
+                                                        <div class="flex items-center justify-between gap-1">
+            <span class="font-semibold text-[11px]">
+                {{ number_format($cell['diff'], 2) }}
+            </span>
+                                                            @if($signal)
+                                                                <span class="text-[10px] font-semibold uppercase">
+                    {{ $signal }}
+                </span>
+                                                            @endif
                                                         </div>
-                                                        @if($signal)
-                                                            <div class="text-[10px] font-semibold uppercase">
-                                                                {{ $signal }}
-                                                            </div>
-                                                        @endif
+                                                        @php
+                                                            $leftSrc  = $cell['left_src']  ?? '';
+                                                            $rightSrc = $cell['right_src'] ?? '';
+                                                            $leftVal  = $cell['left_val']  ?? null;
+                                                            $rightVal = $cell['right_val'] ?? null;
+
+                                                            $ceSide = $cell['ce_side'] ?? '';
+                                                            $peSide = $cell['pe_side'] ?? '';
+                                                        @endphp
+
+                                                        <span class="text-[9px]">
+                                                            {{ $leftSrc }}({{ number_format($leftVal, 1) }})
+                                                            vs
+                                                            {{ $rightSrc }}({{ number_format($rightVal, 1) }})
+                                                        </span>
                                                         <span class="text-[9px] text-gray-700">
-            H/L CE: {{ number_format($cell['ce_high'], 1) }}/{{ number_format($cell['ce_low'], 1) }}
-        </span>
-                                                        <span class="text-[9px] text-gray-700">
-            H/L PE: {{ number_format($cell['pe_high'], 1) }}/{{ number_format($cell['pe_low'], 1) }}
-        </span>
+                                                            CE: {{ $ceSide }} | PE: {{ $peSide }}
+                                                        </span>
                                                     </div>
                                                 @endif
-
                                             </td>
                                         @endforeach
                                     </tr>
@@ -403,7 +415,7 @@
             container.appendChild(tooltip);
 
             const chart = LightweightCharts.createChart(container, {
-                width: container.clientWidth || 400,
+                width: container.clientWidth || 350,
                 height: container.clientHeight || 250,
                 layout: { background: { color: 'white' }, textColor: '#000' },
                 timeScale: { timeVisible: true, secondsVisible: false },
@@ -464,6 +476,8 @@
                 tooltip.style.top = ( param.point.y + 10 ) + 'px';
                 tooltip.style.opacity = '1';
             });
+
+            chart.timeScale().fitContent();
         }
 
         document.addEventListener('DOMContentLoaded', () => {

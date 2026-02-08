@@ -475,13 +475,13 @@ class OhlcChartController extends Controller
                     $ceRows = (clone $base)
                         ->where('instrument_type', 'CE')
                         ->whereIn('strike', $allStrikes)
-                        ->get(['strike', 'high', 'low', 'timestamp']);
+                        ->get(['strike', 'open', 'high', 'low', 'close', 'timestamp']);
 
                     // pull all PE rows for relevant strikes
                     $peRows = (clone $base)
                         ->where('instrument_type', 'PE')
                         ->whereIn('strike', $allStrikes)
-                        ->get(['strike', 'high', 'low', 'timestamp']);
+                        ->get(['strike', 'open', 'high', 'low', 'close', 'timestamp']);
 
                     // group by [time => [strike => row]]
                     $ceGrouped = [];
@@ -506,7 +506,8 @@ class OhlcChartController extends Controller
                         $timeSlots[] = $timeKey;
 
                         foreach ($allStrikes as $strike) {
-                            $strike = (float)$strike;
+                            $strike = (float) $strike;
+
                             $ce = $ceGrouped[$timeKey][$strike] ?? null;
                             $pe = $peGrouped[$timeKey][$strike] ?? null;
 
@@ -514,48 +515,268 @@ class OhlcChartController extends Controller
                                 continue;
                             }
 
-                            $ceHigh = (float)$ce->high;
-                            $ceLow  = (float)$ce->low;
-                            $peHigh = (float)$pe->high;
-                            $peLow  = (float)$pe->low;
+                            // CE OHLC
+                            $ceOpen  = (float) $ce->open;
+                            $ceHigh  = (float) $ce->high;
+                            $ceLow   = (float) $ce->low;
+                            $ceClose = (float) $ce->close;
 
-                            // diff1: CE high - PE low
-                            $d1 = $ceHigh - $peLow;
-                            // diff2: PE high - CE low
-                            $d2 = $peHigh - $ceLow;
+                            // PE OHLC
+                            $peOpen  = (float) $pe->open;
+                            $peHigh  = (float) $pe->high;
+                            $peLow   = (float) $pe->low;
+                            $peClose = (float) $pe->close;
+
+                            // Candle color
+                            $ceSide = $ceClose >= $ceOpen ? 'green' : 'red';
+                            $peSide = $peClose >= $peOpen ? 'green' : 'red';
 
                             $candidates = [];
 
-                            if (abs($d1) <= $saturation) {
-                                $candidates[] = [
-                                    'diff'    => $d1,
-                                    'ce_high' => $ceHigh,
-                                    'ce_low'  => $ceLow,
-                                    'pe_high' => $peHigh,
-                                    'pe_low'  => $peLow,
-                                    'type'    => 'CEH-PEL',
-                                ];
+                            /**
+                             * CASE 1: CE open > PE open  (CE is "higher")
+                             *
+                             * Your rules:
+                             *  2. If CE higher and CE green:
+                             *     - use CE Low & Open
+                             *     - for PE use Open & High
+                             *     (we will form several combinations from those legs)
+                             *  3. If CE higher and CE red:
+                             *     - use CE Close & Low
+                             *     - for PE use High & Close
+                             */
+
+                            if ($ceOpen > $peOpen) {
+                                if ($ceSide === 'green') {
+                                    // CE higher, CE green
+                                    // Build all combinations you care about:
+                                    $combos = [
+                                        // CE L vs PE O
+                                        [
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peOpen,
+                                            'left_src'  => 'Cl',   // CE low
+                                            'right_src' => 'Po',   // PE open
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE L vs PE H
+                                        [
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peHigh,
+                                            'left_src'  => 'Cl',
+                                            'right_src' => 'Ph',
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE O vs PE O
+                                        [
+                                            'left_val'  => $ceOpen,
+                                            'right_val' => $peOpen,
+                                            'left_src'  => 'Co',   // CE open
+                                            'right_src' => 'Po',
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE O vs PE H
+                                        [
+                                            'left_val'  => $ceOpen,
+                                            'right_val' => $peHigh,
+                                            'left_src'  => 'Co',
+                                            'right_src' => 'Ph',
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                    ];
+                                } else {
+                                    // CE higher, CE red
+                                    // From your rule: CE (Close & Low) vs PE (High & Close)
+                                    $combos = [
+                                        // CE C vs PE H
+                                        [
+                                            'left_val'  => $ceClose,
+                                            'right_val' => $peHigh,
+                                            'left_src'  => 'Cc',   // CE close
+                                            'right_src' => 'Ph',   // PE high
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE C vs PE C
+                                        [
+                                            'left_val'  => $ceClose,
+                                            'right_val' => $peClose,
+                                            'left_src'  => 'Cc',
+                                            'right_src' => 'Pc',   // PE close
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE L vs PE H
+                                        [
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peHigh,
+                                            'left_src'  => 'Cl',
+                                            'right_src' => 'Ph',
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                        // CE L vs PE C
+                                        [
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peClose,
+                                            'left_src'  => 'Cl',
+                                            'right_src' => 'Pc',
+                                            'direction' => 'CE_SELL',
+                                        ],
+                                    ];
+                                }
+
+                                // evaluate all CE‑higher combos
+                                foreach ($combos as $c) {
+                                    $diff = $c['left_val'] - $c['right_val'];
+
+                                    if (abs($diff) > $saturation) {
+                                        continue;
+                                    }
+
+                                    $candidates[] = [
+                                        'diff'        => $diff,
+                                        'left_val'    => $c['left_val'],
+                                        'right_val'   => $c['right_val'],
+                                        'left_src'    => $c['left_src'],
+                                        'right_src'   => $c['right_src'],
+                                        'direction'   => $c['direction'],   // CE_SELL
+
+                                        'ce_open'     => $ceOpen,
+                                        'ce_close'    => $ceClose,
+                                        'ce_high'     => $ceHigh,
+                                        'ce_low'      => $ceLow,
+                                        'pe_open'     => $peOpen,
+                                        'pe_close'    => $peClose,
+                                        'pe_high'     => $peHigh,
+                                        'pe_low'      => $peLow,
+                                        'ce_side'     => $ceSide,
+                                        'pe_side'     => $peSide,
+                                    ];
+                                }
                             }
 
-                            if (abs($d2) <= $saturation) {
-                                $candidates[] = [
-                                    'diff'    => $d2,
-                                    'ce_high' => $ceHigh,
-                                    'ce_low'  => $ceLow,
-                                    'pe_high' => $peHigh,
-                                    'pe_low'  => $peLow,
-                                    'type'    => 'PEH-CEL',
-                                ];
+                            /**
+                             * CASE 2: PE open > CE open  (PE is "higher")
+                             *
+                             * "Vice versa for PE":
+                             *  - PE higher & PE green: use PE Low & Open, CE Close & High
+                             *  - PE higher & PE red:   use PE Close & Low, CE High & Close
+                             */
+
+                            if ($peOpen > $ceOpen) {
+                                if ($peSide === 'green') {
+                                    // PE higher, PE green
+                                    // Your requested combinations for this case:
+                                    //  PE L vs CE O
+                                    //  PE L vs CE H
+                                    //  PE O vs CE O
+                                    //  PE O vs CE H
+                                    $combos = [
+                                        [
+                                            'left_val'  => $peLow,
+                                            'right_val' => $ceOpen,
+                                            'left_src'  => 'Pl',   // PE low
+                                            'right_src' => 'Co',   // CE open
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        [
+                                            'left_val'  => $peLow,
+                                            'right_val' => $ceHigh,
+                                            'left_src'  => 'Pl',
+                                            'right_src' => 'Ch',   // CE high
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        [
+                                            'left_val'  => $peOpen,
+                                            'right_val' => $ceOpen,
+                                            'left_src'  => 'Po',   // PE open
+                                            'right_src' => 'Co',
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        [
+                                            'left_val'  => $peOpen,
+                                            'right_val' => $ceHigh,
+                                            'left_src'  => 'Po',
+                                            'right_src' => 'Ch',
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                    ];
+                                } else {
+                                    // PE higher, PE red
+                                    // Mirror of CE‑red logic: PE (Close & Low) vs CE (High & Close)
+                                    $combos = [
+                                        // PE C vs CE H
+                                        [
+                                            'left_val'  => $peClose,
+                                            'right_val' => $ceHigh,
+                                            'left_src'  => 'Pc',   // PE close
+                                            'right_src' => 'Ch',   // CE high
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        // PE C vs CE C
+                                        [
+                                            'left_val'  => $peClose,
+                                            'right_val' => $ceClose,
+                                            'left_src'  => 'Pc',
+                                            'right_src' => 'Cc',   // CE close
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        // PE L vs CE H
+                                        [
+                                            'left_val'  => $peLow,
+                                            'right_val' => $ceHigh,
+                                            'left_src'  => 'Pl',   // PE low
+                                            'right_src' => 'Ch',
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                        // PE L vs CE C
+                                        [
+                                            'left_val'  => $peLow,
+                                            'right_val' => $ceClose,
+                                            'left_src'  => 'Pl',
+                                            'right_src' => 'Cc',
+                                            'direction' => 'PE_SELL',
+                                        ],
+                                    ];
+                                }
+
+                                // evaluate all PE‑higher combos
+                                foreach ($combos as $c) {
+                                    $diff = $c['left_val'] - $c['right_val'];
+
+                                    if (abs($diff) > $saturation) {
+                                        continue;
+                                    }
+
+                                    $candidates[] = [
+                                        'diff'        => $diff,
+                                        'left_val'    => $c['left_val'],
+                                        'right_val'   => $c['right_val'],
+                                        'left_src'    => $c['left_src'],
+                                        'right_src'   => $c['right_src'],
+                                        'direction'   => $c['direction'],   // PE_SELL
+
+                                        'ce_open'     => $ceOpen,
+                                        'ce_close'    => $ceClose,
+                                        'ce_high'     => $ceHigh,
+                                        'ce_low'      => $ceLow,
+                                        'pe_open'     => $peOpen,
+                                        'pe_close'    => $peClose,
+                                        'pe_high'     => $peHigh,
+                                        'pe_low'      => $peLow,
+                                        'ce_side'     => $ceSide,
+                                        'pe_side'     => $peSide,
+                                    ];
+                                }
                             }
 
+                            // pick best candidate (lowest abs diff) for this time & strike
                             if (!empty($candidates)) {
-                                // pick the one with lowest absolute difference
-                                usort($candidates, fn($a, $b) => abs($a['diff']) <=> abs($b['diff']));
+                                usort($candidates, fn ($a, $b) => abs($a['diff']) <=> abs($b['diff']));
                                 $best = $candidates[0];
 
                                 $diffMatrix[$timeKey][$strike] = $best;
                             }
                         }
+
 
                         $cursor->addMinutes(5);
                     }
