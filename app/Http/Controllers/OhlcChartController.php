@@ -359,12 +359,11 @@ class OhlcChartController extends Controller
         $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $request->date)->first();
 
         return response()->json([
-            'expiries'   => $expiries,
-            'spot'       => $spot,
-            'atm_strike' => $atmStrike,
+            'expiries'        => $expiries,
+            'spot'            => $spot,
+            'atm_strike'      => $atmStrike,
             'open_atm_strike' => $trend->atm_index_open,
         ]);
-
 
 
     }
@@ -373,30 +372,30 @@ class OhlcChartController extends Controller
     {
         // allow empty filters (empty page with just filters)
         $request->validate([
-            'symbol' => 'nullable|string',
-            'quote_date' => 'nullable|date',
+            'symbol'      => 'nullable|string',
+            'quote_date'  => 'nullable|date',
             'expiry_date' => 'nullable|date',
-            'ce_strikes' => 'nullable|array',
-            'pe_strikes' => 'nullable|array',
+            'ce_strikes'  => 'nullable|array',
+            'pe_strikes'  => 'nullable|array',
         ]);
 
         $symbol     = $request->input('symbol');
         $quoteDate  = $request->input('quote_date');
         $expiryDate = $request->input('expiry_date');
 
-        $trend         = null;
-        $atmIndexOpen  = null;
-        $baseStrikes   = [];
-        $ceStrikes     = [];
-        $peStrikes     = [];
-        $avgAtm        = null;
-        $avgAll        = null;
+        $trend        = null;
+        $atmIndexOpen = null;
+        $baseStrikes  = [];
+        $ceStrikes    = [];
+        $peStrikes    = [];
+        $avgAtm       = null;
+        $avgAll       = null;
 
         // new data for right‑side table
-        $saturation    = (float) $request->input('saturation', 5);   // adjustable +/- X
-        $diffMatrix    = [];   // [time => [strike => ['diff' => float, 'ce_high' => ..., ...]]]
-        $timeSlots     = [];   // ordered unique 5‑minute times (Carbon strings)
-        $allStrikes    = [];   // merged CE + PE strikes for header
+        $saturation = (float) $request->input('saturation', 5);   // adjustable +/- X
+        $diffMatrix = [];   // [time => [strike => ['diff' => float, 'ce_high' => ..., ...]]]
+        $timeSlots  = [];   // ordered unique 5‑minute times (Carbon strings)
+        $allStrikes = [];   // merged CE + PE strikes for header
 
         if ($symbol && $quoteDate && $expiryDate) {
             $trend = DB::table('daily_trend')
@@ -407,7 +406,10 @@ class OhlcChartController extends Controller
 
             if ($trend) {
                 $atmIndexOpen = (float) $trend->atm_index_open;
-                $step = 50;
+                $step         = 50;
+
+                $snipperPoint      = ($trend->ce_close + $trend->pe_close) / 2;
+                $snipperSaturation = (float) $request->input('snipper_saturation', 10);
 
                 // default ±2 strikes around atm_index_open
                 $baseStrikes = [
@@ -463,7 +465,7 @@ class OhlcChartController extends Controller
                 $allStrikes = array_values(array_unique(array_merge($ceStrikes, $peStrikes)));
                 sort($allStrikes);
 
-                if (!empty($allStrikes)) {
+                if ( ! empty($allStrikes)) {
                     $base = DB::table('expired_ohlc')
                               ->where('underlying_symbol', $symbol)
                               ->where('expiry', $expiryDate)
@@ -486,23 +488,23 @@ class OhlcChartController extends Controller
                     // group by [time => [strike => row]]
                     $ceGrouped = [];
                     foreach ($ceRows as $row) {
-                        $timeKey = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
-                        $ceGrouped[$timeKey][(float)$row->strike] = $row;
+                        $timeKey                                   = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
+                        $ceGrouped[$timeKey][(float) $row->strike] = $row;
                     }
 
                     $peGrouped = [];
                     foreach ($peRows as $row) {
-                        $timeKey = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
-                        $peGrouped[$timeKey][(float)$row->strike] = $row;
+                        $timeKey                                   = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
+                        $peGrouped[$timeKey][(float) $row->strike] = $row;
                     }
 
                     // we care only about trading time window 09:15–15:30
-                    $start = \Carbon\Carbon::parse($quoteDate . ' 09:15:00');
-                    $end   = \Carbon\Carbon::parse($quoteDate . ' 15:30:00');
+                    $start = \Carbon\Carbon::parse($quoteDate.' 09:15:00');
+                    $end   = \Carbon\Carbon::parse($quoteDate.' 15:30:00');
 
                     $cursor = $start->copy();
                     while ($cursor <= $end) {
-                        $timeKey = $cursor->format('H:i');
+                        $timeKey     = $cursor->format('H:i');
                         $timeSlots[] = $timeKey;
 
                         foreach ($allStrikes as $strike) {
@@ -511,7 +513,7 @@ class OhlcChartController extends Controller
                             $ce = $ceGrouped[$timeKey][$strike] ?? null;
                             $pe = $peGrouped[$timeKey][$strike] ?? null;
 
-                            if (!$ce || !$pe) {
+                            if ( ! $ce || ! $pe) {
                                 continue;
                             }
 
@@ -554,35 +556,49 @@ class OhlcChartController extends Controller
                                         // CE L vs PE O
                                         [
                                             'left_val'  => $ceLow,
-                                            'right_val' => $peOpen,
-                                            'left_src'  => 'Cl',   // CE low
-                                            'right_src' => 'Po',   // PE open
-                                            'direction' => 'CE_SELL',
+                                            'right_val' => $peHigh,
+                                            'left_src'  => 'C-L',   // CE low
+                                            'right_src' => 'P-H',   // PE open
+                                            'direction' => 'PE_SELL',
                                         ],
-                                        // CE L vs PE H
                                         [
                                             'left_val'  => $ceLow,
-                                            'right_val' => $peHigh,
-                                            'left_src'  => 'Cl',
-                                            'right_src' => 'Ph',
-                                            'direction' => 'CE_SELL',
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-L',   // CE low
+                                            'right_src' => 'P-L',   // PE open
+                                            'direction' => 'PE_SELL',
                                         ],
-                                        // CE O vs PE O
-                                        [
-                                            'left_val'  => $ceOpen,
-                                            'right_val' => $peOpen,
-                                            'left_src'  => 'Co',   // CE open
-                                            'right_src' => 'Po',
-                                            'direction' => 'CE_SELL',
-                                        ],
-                                        // CE O vs PE H
-                                        [
-                                            'left_val'  => $ceOpen,
-                                            'right_val' => $peHigh,
-                                            'left_src'  => 'Co',
-                                            'right_src' => 'Ph',
-                                            'direction' => 'CE_SELL',
-                                        ],
+//                                        [
+//                                            'left_val'  => $ceLow,
+//                                            'right_val' => $peOpen,
+//                                            'left_src'  => 'Cl',   // CE low
+//                                            'right_src' => 'Po',   // PE open
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // CE L vs PE H
+//                                        [
+//                                            'left_val'  => $ceLow,
+//                                            'right_val' => $peHigh,
+//                                            'left_src'  => 'Cl',
+//                                            'right_src' => 'Ph',
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // CE O vs PE O
+//                                        [
+//                                            'left_val'  => $ceOpen,
+//                                            'right_val' => $peOpen,
+//                                            'left_src'  => 'Co',   // CE open
+//                                            'right_src' => 'Po',
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // CE O vs PE H
+//                                        [
+//                                            'left_val'  => $ceOpen,
+//                                            'right_val' => $peHigh,
+//                                            'left_src'  => 'Co',
+//                                            'right_src' => 'Ph',
+//                                            'direction' => 'PE_SELL',
+//                                        ],
                                     ];
                                 } else {
                                     // CE higher, CE red
@@ -590,36 +606,50 @@ class OhlcChartController extends Controller
                                     $combos = [
                                         // CE C vs PE H
                                         [
-                                            'left_val'  => $ceClose,
-                                            'right_val' => $peHigh,
-                                            'left_src'  => 'Cc',   // CE close
-                                            'right_src' => 'Ph',   // PE high
-                                            'direction' => 'CE_SELL',
-                                        ],
-                                        // CE C vs PE C
-                                        [
-                                            'left_val'  => $ceClose,
-                                            'right_val' => $peClose,
-                                            'left_src'  => 'Cc',
-                                            'right_src' => 'Pc',   // PE close
-                                            'direction' => 'CE_SELL',
-                                        ],
-                                        // CE L vs PE H
-                                        [
                                             'left_val'  => $ceLow,
                                             'right_val' => $peHigh,
-                                            'left_src'  => 'Cl',
-                                            'right_src' => 'Ph',
+                                            'left_src'  => 'C-L',   // CE close
+                                            'right_src' => 'P-H',   // PE high
                                             'direction' => 'CE_SELL',
                                         ],
-                                        // CE L vs PE C
                                         [
                                             'left_val'  => $ceLow,
-                                            'right_val' => $peClose,
-                                            'left_src'  => 'Cl',
-                                            'right_src' => 'Pc',
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-L',   // CE close
+                                            'right_src' => 'P-L',   // PE high
                                             'direction' => 'CE_SELL',
                                         ],
+//                                        [
+//                                            'left_val'  => $ceClose,
+//                                            'right_val' => $peHigh,
+//                                            'left_src'  => 'Cc',   // CE close
+//                                            'right_src' => 'Ph',   // PE high
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        // CE C vs PE C
+//                                        [
+//                                            'left_val'  => $ceClose,
+//                                            'right_val' => $peClose,
+//                                            'left_src'  => 'Cc',
+//                                            'right_src' => 'Pc',   // PE close
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        // CE L vs PE H
+//                                        [
+//                                            'left_val'  => $ceLow,
+//                                            'right_val' => $peHigh,
+//                                            'left_src'  => 'Cl',
+//                                            'right_src' => 'Ph',
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        // CE L vs PE C
+//                                        [
+//                                            'left_val'  => $ceLow,
+//                                            'right_val' => $peClose,
+//                                            'left_src'  => 'Cl',
+//                                            'right_src' => 'Pc',
+//                                            'direction' => 'CE_SELL',
+//                                        ],
                                     ];
                                 }
 
@@ -632,23 +662,23 @@ class OhlcChartController extends Controller
                                     }
 
                                     $candidates[] = [
-                                        'diff'        => $diff,
-                                        'left_val'    => $c['left_val'],
-                                        'right_val'   => $c['right_val'],
-                                        'left_src'    => $c['left_src'],
-                                        'right_src'   => $c['right_src'],
-                                        'direction'   => $c['direction'],   // CE_SELL
+                                        'diff'      => $diff,
+                                        'left_val'  => $c['left_val'],
+                                        'right_val' => $c['right_val'],
+                                        'left_src'  => $c['left_src'],
+                                        'right_src' => $c['right_src'],
+                                        'direction' => $c['direction'],   // CE_SELL
 
-                                        'ce_open'     => $ceOpen,
-                                        'ce_close'    => $ceClose,
-                                        'ce_high'     => $ceHigh,
-                                        'ce_low'      => $ceLow,
-                                        'pe_open'     => $peOpen,
-                                        'pe_close'    => $peClose,
-                                        'pe_high'     => $peHigh,
-                                        'pe_low'      => $peLow,
-                                        'ce_side'     => $ceSide,
-                                        'pe_side'     => $peSide,
+                                        'ce_open'  => $ceOpen,
+                                        'ce_close' => $ceClose,
+                                        'ce_high'  => $ceHigh,
+                                        'ce_low'   => $ceLow,
+                                        'pe_open'  => $peOpen,
+                                        'pe_close' => $peClose,
+                                        'pe_high'  => $peHigh,
+                                        'pe_low'   => $peLow,
+                                        'ce_side'  => $ceSide,
+                                        'pe_side'  => $peSide,
                                     ];
                                 }
                             }
@@ -671,33 +701,47 @@ class OhlcChartController extends Controller
                                     //  PE O vs CE H
                                     $combos = [
                                         [
-                                            'left_val'  => $peLow,
-                                            'right_val' => $ceOpen,
-                                            'left_src'  => 'Pl',   // PE low
-                                            'right_src' => 'Co',   // CE open
-                                            'direction' => 'PE_SELL',
+                                            'left_val'  => $ceHigh,
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-H',   // CE close
+                                            'right_src' => 'P-L',   // PE high
+                                            'direction' => 'CE_SELL',
                                         ],
                                         [
-                                            'left_val'  => $peLow,
-                                            'right_val' => $ceHigh,
-                                            'left_src'  => 'Pl',
-                                            'right_src' => 'Ch',   // CE high
-                                            'direction' => 'PE_SELL',
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-L',   // CE close
+                                            'right_src' => 'P-L',   // PE high
+                                            'direction' => 'CE_SELL',
                                         ],
-                                        [
-                                            'left_val'  => $peOpen,
-                                            'right_val' => $ceOpen,
-                                            'left_src'  => 'Po',   // PE open
-                                            'right_src' => 'Co',
-                                            'direction' => 'PE_SELL',
-                                        ],
-                                        [
-                                            'left_val'  => $peOpen,
-                                            'right_val' => $ceHigh,
-                                            'left_src'  => 'Po',
-                                            'right_src' => 'Ch',
-                                            'direction' => 'PE_SELL',
-                                        ],
+//                                        [
+//                                            'left_val'  => $peLow,
+//                                            'right_val' => $ceOpen,
+//                                            'left_src'  => 'Pl',   // PE low
+//                                            'right_src' => 'Co',   // CE open
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        [
+//                                            'left_val'  => $peLow,
+//                                            'right_val' => $ceHigh,
+//                                            'left_src'  => 'Pl',
+//                                            'right_src' => 'Ch',   // CE high
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        [
+//                                            'left_val'  => $peOpen,
+//                                            'right_val' => $ceOpen,
+//                                            'left_src'  => 'Po',   // PE open
+//                                            'right_src' => 'Co',
+//                                            'direction' => 'CE_SELL',
+//                                        ],
+//                                        [
+//                                            'left_val'  => $peOpen,
+//                                            'right_val' => $ceHigh,
+//                                            'left_src'  => 'Po',
+//                                            'right_src' => 'Ch',
+//                                            'direction' => 'CE_SELL',
+//                                        ],
                                     ];
                                 } else {
                                     // PE higher, PE red
@@ -705,75 +749,132 @@ class OhlcChartController extends Controller
                                     $combos = [
                                         // PE C vs CE H
                                         [
-                                            'left_val'  => $peClose,
-                                            'right_val' => $ceHigh,
-                                            'left_src'  => 'Pc',   // PE close
-                                            'right_src' => 'Ch',   // CE high
+                                            'left_val'  => $ceHigh,
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-H',   // CE close
+                                            'right_src' => 'P-L',   // PE high
+                                            'direction' => 'PE_SELL',
+                                        ], [
+                                            'left_val'  => $ceLow,
+                                            'right_val' => $peLow,
+                                            'left_src'  => 'C-L',   // CE close
+                                            'right_src' => 'P-L',   // PE high
                                             'direction' => 'PE_SELL',
                                         ],
-                                        // PE C vs CE C
-                                        [
-                                            'left_val'  => $peClose,
-                                            'right_val' => $ceClose,
-                                            'left_src'  => 'Pc',
-                                            'right_src' => 'Cc',   // CE close
-                                            'direction' => 'PE_SELL',
-                                        ],
-                                        // PE L vs CE H
-                                        [
-                                            'left_val'  => $peLow,
-                                            'right_val' => $ceHigh,
-                                            'left_src'  => 'Pl',   // PE low
-                                            'right_src' => 'Ch',
-                                            'direction' => 'PE_SELL',
-                                        ],
-                                        // PE L vs CE C
-                                        [
-                                            'left_val'  => $peLow,
-                                            'right_val' => $ceClose,
-                                            'left_src'  => 'Pl',
-                                            'right_src' => 'Cc',
-                                            'direction' => 'PE_SELL',
-                                        ],
+//                                        [
+//                                            'left_val'  => $peClose,
+//                                            'right_val' => $ceHigh,
+//                                            'left_src'  => 'Pc',   // PE close
+//                                            'right_src' => 'Ch',   // CE high
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // PE C vs CE C
+//                                        [
+//                                            'left_val'  => $peClose,
+//                                            'right_val' => $ceClose,
+//                                            'left_src'  => 'Pc',
+//                                            'right_src' => 'Cc',   // CE close
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // PE L vs CE H
+//                                        [
+//                                            'left_val'  => $peLow,
+//                                            'right_val' => $ceHigh,
+//                                            'left_src'  => 'Pl',   // PE low
+//                                            'right_src' => 'Ch',
+//                                            'direction' => 'PE_SELL',
+//                                        ],
+//                                        // PE L vs CE C
+//                                        [
+//                                            'left_val'  => $peLow,
+//                                            'right_val' => $ceClose,
+//                                            'left_src'  => 'Pl',
+//                                            'right_src' => 'Cc',
+//                                            'direction' => 'PE_SELL',
+//                                        ],
                                     ];
                                 }
 
                                 // evaluate all PE‑higher combos
                                 foreach ($combos as $c) {
-                                    $diff = $c['left_val'] - $c['right_val'];
+                                    $leftVal  = $c['left_val'];   // e.g. 71.9
+                                    $rightVal = $c['right_val'];  // e.g. 72.2
+                                    $diff     = $leftVal - $rightVal;
 
+// main saturation filter
                                     if (abs($diff) > $saturation) {
                                         continue;
                                     }
 
-                                    $candidates[] = [
-                                        'diff'        => $diff,
-                                        'left_val'    => $c['left_val'],
-                                        'right_val'   => $c['right_val'],
-                                        'left_src'    => $c['left_src'],
-                                        'right_src'   => $c['right_src'],
-                                        'direction'   => $c['direction'],   // PE_SELL
+// snipper distances from snipperPoint (94.83)
+                                    $leftValSnipper  = $leftVal - $snipperPoint;
+                                    $rightValSnipper = $rightVal - $snipperPoint;
 
-                                        'ce_open'     => $ceOpen,
-                                        'ce_close'    => $ceClose,
-                                        'ce_high'     => $ceHigh,
-                                        'ce_low'      => $ceLow,
-                                        'pe_open'     => $peOpen,
-                                        'pe_close'    => $peClose,
-                                        'pe_high'     => $peHigh,
-                                        'pe_low'      => $peLow,
-                                        'ce_side'     => $ceSide,
-                                        'pe_side'     => $peSide,
+// require at least ONE side to be within snipper band
+                                    if (
+                                        abs($leftValSnipper) > $snipperSaturation &&
+                                        abs($rightValSnipper) > $snipperSaturation
+                                    ) {
+                                        // both far from snipperPoint -> skip cell entirely
+                                        continue;
+                                    }
+
+                                    info('looo');
+
+                                    $candidates[] = [
+                                        'diff'      => $diff,
+                                        'left_val'  => $c['left_val'],
+                                        'right_val' => $c['right_val'],
+                                        'left_src'  => $c['left_src'],
+                                        'right_src' => $c['right_src'],
+                                        'direction' => $c['direction'],   // PE_SELL
+
+                                        'left_snipper'  => $leftValSnipper,
+                                        'right_snipper' => $rightValSnipper,
+                                        'snipper_point' => $snipperPoint,
+                                        'snipper_sat'   => $snipperSaturation,
+
+                                        'ce_open'  => $ceOpen,
+                                        'ce_close' => $ceClose,
+                                        'ce_high'  => $ceHigh,
+                                        'ce_low'   => $ceLow,
+                                        'pe_open'  => $peOpen,
+                                        'pe_close' => $peClose,
+                                        'pe_high'  => $peHigh,
+                                        'pe_low'   => $peLow,
+                                        'ce_side'  => $ceSide,
+                                        'pe_side'  => $peSide,
                                     ];
                                 }
                             }
 
                             // pick best candidate (lowest abs diff) for this time & strike
-                            if (!empty($candidates)) {
-                                usort($candidates, fn ($a, $b) => abs($a['diff']) <=> abs($b['diff']));
+                            if ( ! empty($candidates)) {
+                                usort($candidates, fn($a, $b) => abs($a['diff']) <=> abs($b['diff']));
                                 $best = $candidates[0];
 
-                                $diffMatrix[$timeKey][$strike] = $best;
+                                // MAIN + SNIPPER FILTER (runs for ALL branches)
+                                $leftVal  = $best['left_val'];
+                                $rightVal = $best['right_val'];
+
+                                $leftValSnipper  = $leftVal - $snipperPoint;
+                                $rightValSnipper = $rightVal - $snipperPoint;
+
+                                if (
+                                    abs($best['diff']) <= $saturation &&
+                                    (
+                                        abs($leftValSnipper) <= $snipperSaturation ||
+                                        abs($rightValSnipper) <= $snipperSaturation
+                                    )
+                                ) {
+                                    // only cells passing both conditions are stored
+                                    $best['left_snipper']  = $leftValSnipper;
+                                    $best['right_snipper'] = $rightValSnipper;
+                                    $best['snipper_point'] = $snipperPoint;
+                                    $best['snipper_sat']   = $snipperSaturation;
+
+                                    $diffMatrix[$timeKey][$strike] = $best;
+                                }
                             }
                         }
 
@@ -788,20 +889,21 @@ class OhlcChartController extends Controller
         }
 
         return view('options-chart-multi', [
-            'symbol'        => $symbol,
-            'quoteDate'     => $quoteDate,
-            'expiryDate'    => $expiryDate,
-            'atmIndexOpen'  => $atmIndexOpen,
-            'ceStrikes'     => $ceStrikes,
-            'peStrikes'     => $peStrikes,
-            'avgAtm'        => $avgAtm,
-            'avgAll'        => $avgAll,
+            'symbol'            => $symbol,
+            'quoteDate'         => $quoteDate,
+            'expiryDate'        => $expiryDate,
+            'atmIndexOpen'      => $atmIndexOpen,
+            'ceStrikes'         => $ceStrikes,
+            'peStrikes'         => $peStrikes,
+            'avgAtm'            => $avgAtm,
+            'avgAll'            => $avgAll,
 
             // new variables for right‑side 30% panel
-            'saturation'    => $saturation,
-            'diffMatrix'    => $diffMatrix,
-            'timeSlots'     => $timeSlots,
-            'allStrikes'    => $allStrikes,
+            'saturation'        => $saturation,
+            'snipperSaturation' => $snipperSaturation,
+            'diffMatrix'        => $diffMatrix,
+            'timeSlots'         => $timeSlots,
+            'allStrikes'        => $allStrikes,
         ]);
     }
 

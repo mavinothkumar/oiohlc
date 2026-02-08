@@ -137,7 +137,17 @@
                                     <input type="hidden" name="pe_strikes[]" value="{{ $s }}">
                                 @endforeach
 
+                                <span class="text-gray-500">Snipper Sat.</span>
+                                <input
+                                    type="number"
+                                    name="snipper_saturation"
+                                    class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
+                                    value="{{ $snipperSaturation ?? 10 }}"
+                                    step="1"
+                                >
+
                                 <span class="text-gray-500">Sat.</span>
+
                                 <input
                                     type="number"
                                     name="saturation"
@@ -215,24 +225,21 @@
                 </span>
                                                             @endif
                                                         </div>
-                                                        @php
-                                                            $leftSrc  = $cell['left_src']  ?? '';
-                                                            $rightSrc = $cell['right_src'] ?? '';
-                                                            $leftVal  = $cell['left_val']  ?? null;
-                                                            $rightVal = $cell['right_val'] ?? null;
-
-                                                            $ceSide = $cell['ce_side'] ?? '';
-                                                            $peSide = $cell['pe_side'] ?? '';
-                                                        @endphp
-
                                                         <span class="text-[9px]">
-                                                            {{ $leftSrc }}({{ number_format($leftVal, 1) }})
-                                                            vs
-                                                            {{ $rightSrc }}({{ number_format($rightVal, 1) }})
-                                                        </span>
+            {{ $leftSrc }}({{ number_format($leftVal, 1) }})
+            vs
+            {{ $rightSrc }}({{ number_format($rightVal, 1) }})
+        </span>
                                                         <span class="text-[9px] text-gray-700">
-                                                            CE: {{ $ceSide }} | PE: {{ $peSide }}
-                                                        </span>
+            CE: {{ $cell['ce_side'] }} | PE: {{ $cell['pe_side'] }}
+        </span>
+                                                        @if(isset($cell['left_snipper'], $cell['right_snipper']))
+                                                            <span class="text-[9px] text-gray-500">
+                S: {{ number_format($cell['left_snipper'], 1) }}
+                /
+                {{ number_format($cell['right_snipper'], 1) }}
+            </span>
+                                                        @endif
                                                     </div>
                                                 @endif
                                             </td>
