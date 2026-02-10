@@ -398,17 +398,29 @@ class OhlcChartController extends Controller
         $allStrikes = [];   // merged CE + PE strikes for header
 
         if ($symbol && $quoteDate && $expiryDate) {
-            $trend = DB::table('daily_trend')
-                       ->where('symbol_name', $symbol)
-                       ->where('quote_date', $quoteDate)
-                       ->where('expiry_date', $expiryDate)
-                       ->first();
+            $previousDateOfQuoteDate = DB::table('nse_working_days')
+                                         ->where('working_date', '<', $quoteDate)
+                                         ->orderBy('working_date', 'desc')
+                                         ->value('working_date');
+
+            $trends                  = DB::table('daily_trend')
+                                         ->where('symbol_name', $symbol)
+                                         ->whereIn('quote_date', [$quoteDate, $previousDateOfQuoteDate])
+                                         ->where('expiry_date', $expiryDate)
+                                         ->get();
+
+            $trend     = $trends[1] ?? $trends[0];
+            $prevTrend = isset($trends[1]) ?  $trends[0] : $trend;
+
+
 
             if ($trend) {
                 $atmIndexOpen = (float) $trend->atm_index_open;
                 $step         = 50;
 
-                $snipperPoint      = ($trend->ce_close + $trend->pe_close) / 2;
+                $snipperPoint     = $trend->mid_point;
+                $prevSnipperPoint = $prevTrend->mid_point;
+
                 $snipperSaturation = (float) $request->input('snipper_saturation', 10);
 
                 // default ±2 strikes around atm_index_open
@@ -452,7 +464,7 @@ class OhlcChartController extends Controller
                 }
 
                 $avgAtm = ((float) $trend->atm_ce_close + (float) $trend->atm_pe_close) / 2;
-                $avgAll = ((float) $trend->ce_close + (float) $trend->pe_close) / 2;
+                $avgAll = (float) $snipperPoint;
 
                 /**
                  * NEW LOGIC:
@@ -819,8 +831,6 @@ class OhlcChartController extends Controller
                                         continue;
                                     }
 
-                                    info('looo');
-
                                     $candidates[] = [
                                         'diff'      => $diff,
                                         'left_val'  => $c['left_val'],
@@ -897,6 +907,7 @@ class OhlcChartController extends Controller
             'peStrikes'         => $peStrikes,
             'avgAtm'            => $avgAtm,
             'avgAll'            => $avgAll,
+            'prevSnipperPoint'  => $prevSnipperPoint,
 
             // new variables for right‑side 30% panel
             'saturation'        => $saturation,

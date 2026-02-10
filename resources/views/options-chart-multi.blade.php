@@ -80,14 +80,15 @@
                     {{ number_format($atmIndexOpen, 2) }}
                 </span>
                 </div>
-                <div>Avg (ATM CE + ATM PE) / 2:
-                    <span class="font-semibold text-red-600">
-                    {{ number_format($avgAtm, 2) }}
-                </span>
-                </div>
-                <div>Avg (CE close + PE close) / 2:
+                <div>Current Day Mid Point:
                     <span class="font-semibold text-green-600">
                     {{ number_format($avgAll, 2) }}
+                </span>
+                </div>
+                <div>
+                    Prevs Day Mid Point:
+                    <span class="font-semibold text-red-600">
+                    {{ number_format($prevSnipperPoint, 2) }}
                 </span>
                 </div>
             </div>
@@ -440,6 +441,16 @@
             const tFirst = seriesData[ 0 ].time;
             const tLast = seriesData[ seriesData.length - 1 ].time;
 
+            const atmLine = chart.addLineSeries({
+                color: 'red',
+                lineWidth: 2,
+                priceLineVisible: false,
+            });
+            atmLine.setData([
+                { time: tFirst, value: avgAtm },
+                { time: tLast,  value: avgAtm },
+            ]);
+
             const allLine = chart.addLineSeries({
                 color: 'green',
                 lineWidth: 2,
@@ -499,9 +510,11 @@
             const ceStrikesPhp = @json($ceStrikes ?? []);
             const avgAtmPhp = @json($avgAtm);
             const avgAllPhp = @json($avgAll);
+            const prevSnipperPoint = @json($prevSnipperPoint);
 
-            if (symbol && date && expiry && ceStrikesPhp.length && avgAtmPhp && avgAllPhp) {
-                loadAllCharts(symbol, expiry, date, ceStrikesPhp, avgAtmPhp, avgAllPhp);
+
+            if (symbol && date && expiry && ceStrikesPhp.length && prevSnipperPoint && avgAllPhp) {
+                loadAllCharts(symbol, expiry, date, ceStrikesPhp, prevSnipperPoint, avgAllPhp);
             }
         });
     </script>
