@@ -426,6 +426,9 @@
                     indexSeries.setData(indexData);
                     futureSeries.setData(futureData);
 
+                    indexChart.timeScale().fitContent();
+                    futureChart.timeScale().fitContent();
+
                     // set visible range
                     if (indexData.length) {
                         const first = indexData[0].time;

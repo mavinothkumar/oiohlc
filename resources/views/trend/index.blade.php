@@ -47,7 +47,7 @@
                     <th class="px-3 py-2 w-24">Open Type</th>
                     <th class="px-3 py-2 w-24">Open Val</th>
                     <th class="px-3 py-2 w-86"></th>
-                    <th class="px-3 py-2 w-20">Avg CE/PE</th>
+                    <th class="px-3 py-2 w-20">Mid Pt</th>
                     <th class="px-3 py-2 w-34">ATM Res</th>
                     <th class="px-3 py-2 w-34">ATM Sup</th>
                     <th class="px-3 py-2 w-34">Res</th>
@@ -147,7 +147,7 @@
                         </td>
 
                         <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            {{ number_format(($row['ce_close'] + $row['pe_close'])/2, 2) }}
+                            {{ number_format($row['mid_point'] , 2) }}
                         </td>
 
                         <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">

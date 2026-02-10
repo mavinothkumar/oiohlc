@@ -900,7 +900,7 @@ class OhlcChartController extends Controller
 
             // new variables for right‑side 30% panel
             'saturation'        => $saturation,
-            'snipperSaturation' => $snipperSaturation,
+            'snipperSaturation' => $snipperSaturation ?? null,
             'diffMatrix'        => $diffMatrix,
             'timeSlots'         => $timeSlots,
             'allStrikes'        => $allStrikes,
