@@ -111,6 +111,8 @@ class PopulateDailyTrend extends Command
         // Optional aggregate market_type (e.g. CE/PE combination)
         $marketType = $buildExpiredDailyTrend->computeMarketType($ceType, $peType);
 
+        $midPoint = $sumClose/2;
+
         return [
             'quote_date'  => $quoteDate,
             'symbol_name' => $symbol,
@@ -133,6 +135,8 @@ class PopulateDailyTrend extends Command
             'market_type' => $marketType,
             'ce_type'     => $ceType,
             'pe_type'     => $peType,
+
+            'mid_point'    => $midPoint,
 
             'atm_ce'       => $atm_ce,
             'atm_pe'       => $atm_pe,

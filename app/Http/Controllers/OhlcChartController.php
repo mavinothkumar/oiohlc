@@ -390,6 +390,7 @@ class OhlcChartController extends Controller
         $peStrikes    = [];
         $avgAtm       = null;
         $avgAll       = null;
+        $prevSnipperPoint = null;
 
         // new data for right‑side table
         $saturation = (float) $request->input('saturation', 5);   // adjustable +/- X
@@ -411,7 +412,7 @@ class OhlcChartController extends Controller
 
             $trend     = $trends[1] ?? $trends[0];
             $prevTrend = isset($trends[1]) ?  $trends[0] : $trend;
-
+            $prevSnipperPoint = $prevTrend->mid_point;
 
 
             if ($trend) {
@@ -419,7 +420,7 @@ class OhlcChartController extends Controller
                 $step         = 50;
 
                 $snipperPoint     = $trend->mid_point;
-                $prevSnipperPoint = $prevTrend->mid_point;
+
 
                 $snipperSaturation = (float) $request->input('snipper_saturation', 10);
 
