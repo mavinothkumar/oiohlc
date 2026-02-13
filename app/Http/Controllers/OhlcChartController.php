@@ -383,13 +383,13 @@ class OhlcChartController extends Controller
         $quoteDate  = $request->input('quote_date');
         $expiryDate = $request->input('expiry_date');
 
-        $trend        = null;
-        $atmIndexOpen = null;
-        $baseStrikes  = [];
-        $ceStrikes    = [];
-        $peStrikes    = [];
-        $avgAtm       = null;
-        $avgAll       = null;
+        $trend            = null;
+        $atmIndexOpen     = null;
+        $baseStrikes      = [];
+        $ceStrikes        = [];
+        $peStrikes        = [];
+        $avgAtm           = null;
+        $avgAll           = null;
         $prevSnipperPoint = null;
 
         // new data for right‑side table
@@ -399,27 +399,36 @@ class OhlcChartController extends Controller
         $allStrikes = [];   // merged CE + PE strikes for header
 
         if ($symbol && $quoteDate && $expiryDate) {
-            $previousDateOfQuoteDate = DB::table('nse_working_days')
-                                         ->where('working_date', '<', $quoteDate)
-                                         ->orderBy('working_date', 'desc')
-                                         ->value('working_date');
+            $getExpiryFromDate = DB::table('expired_expiries')
+                                   ->where('underlying_symbol', $symbol)
+                                   ->where('instrument_type', 'OPT')
+                                   ->where('expiry_date', '<', $expiryDate)
+                                   ->orderByDesc('expiry_date')->value('expiry_date');
 
-            $trends                  = DB::table('daily_trend')
-                                         ->where('symbol_name', $symbol)
-                                         ->whereIn('quote_date', [$quoteDate, $previousDateOfQuoteDate])
-                                         ->where('expiry_date', $expiryDate)
-                                         ->get();
+            $trends        = DB::table('daily_trend')
+                               ->where('symbol_name', $symbol)
+                               ->whereBetween('quote_date', [$getExpiryFromDate, $quoteDate])
+                               ->where('expiry_date', $expiryDate)->orderByDesc('id')
+                               ->get();
+            $prevMidPoints = [];
+            foreach ($trends as $index => $_trend) {
+                if (0 === $index) {
+                    $trend = $_trend;
+                } else {
+                    $prevMidPoints[] = $_trend->mid_point;
+                }
+            }
 
-            $trend     = $trends[1] ?? $trends[0];
-            $prevTrend = isset($trends[1]) ?  $trends[0] : $trend;
-            $prevSnipperPoint = $prevTrend->mid_point;
+            //$trend            = $trends[1] ?? $trends[0];
+//            $prevTrend        = isset($trends[1]) ? $trends[0] : $trend;
+//            $prevSnipperPoint = $prevTrend->mid_point;
 
 
             if ($trend) {
                 $atmIndexOpen = (float) $trend->atm_index_open;
                 $step         = 50;
 
-                $snipperPoint     = $trend->mid_point;
+                $snipperPoint = $trend->mid_point;
 
 
                 $snipperSaturation = (float) $request->input('snipper_saturation', 10);
@@ -908,7 +917,7 @@ class OhlcChartController extends Controller
             'peStrikes'         => $peStrikes,
             'avgAtm'            => $avgAtm,
             'avgAll'            => $avgAll,
-            'prevSnipperPoint'  => $prevSnipperPoint,
+            'prevMidPoints'     => $prevMidPoints,
 
             // new variables for right‑side 30% panel
             'saturation'        => $saturation,

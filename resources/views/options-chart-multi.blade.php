@@ -74,8 +74,9 @@
 
         {{-- ATM and average info (guard for nulls) --}}
         @if(!is_null($atmIndexOpen))
-            <div class="mb-4 text-sm text-gray-700">
-                <div>ATM index open:
+            <div class="mb-4 text-sm text-gray-700 flex gap-4">
+                <div>
+                    ATM index open:
                     <span class="font-semibold">
                     {{ number_format($atmIndexOpen, 2) }}
                 </span>
@@ -86,11 +87,28 @@
                 </span>
                 </div>
                 <div>
-                    Prevs Day Mid Point:
-                    <span class="font-semibold text-red-600">
-                    {{ number_format($prevSnipperPoint, 2) }}
+                    Prev Day Mid Points:
+                    <span class="font-semibold">
+        @if(is_array($prevMidPoints) && count($prevMidPoints) > 0)
+                            @foreach(array_slice($prevMidPoints, 0, 5) as $index => $point)
+                                @php
+                                    $colors = ['text-[#FFB3B3]', 'text-[#FF9999]', 'text-[#FF6666]', 'text-[#FF3333]', 'text-[#CC0000]'];
+                                @endphp
+                                <span class="{{ $colors[$index] ?? 'text-red-600' }}">
+                    {{ number_format($point, 2) }}
                 </span>
+                                @if(!$loop->last)
+                                    <span class="mx-1">|</span>
+                                @endif
+                            @endforeach
+                        @else
+                            <span class="text-red-600">
+                {{ number_format($prevMidPoints ?? 0, 2) }}
+            </span>
+                        @endif
+    </span>
                 </div>
+
             </div>
         @endif
 
@@ -441,6 +459,32 @@
             const tFirst = seriesData[ 0 ].time;
             const tLast = seriesData[ seriesData.length - 1 ].time;
 
+    // Handle avgAtm as array (1-5 values) - create multiple red lines from light to dark
+    if (Array.isArray(avgAtm) && avgAtm.length > 0) {
+        // Red color gradient: light to dark for 1-5 lines
+        const redShades = [
+            '#FFB3B3', // very light red
+            '#FF9999',
+            '#FF6666',
+            '#FF3333',
+            '#CC0000'  // dark red
+        ];
+
+        avgAtm.slice(0, 5).forEach((avgValue, index) => {
+            if (avgValue != null && !isNaN(avgValue)) {
+                const atmLine = chart.addLineSeries({
+                    color: redShades[index] || '#FF0000',
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                });
+                atmLine.setData([
+                    { time: tFirst, value: avgValue },
+                    { time: tLast,  value: avgValue },
+                ]);
+            }
+        });
+    } else if (avgAtm != null && !isNaN(avgAtm)) {
+        // Backward compatibility for single value
             const atmLine = chart.addLineSeries({
                 color: 'red',
                 lineWidth: 2,
@@ -450,6 +494,7 @@
                 { time: tFirst, value: avgAtm },
                 { time: tLast,  value: avgAtm },
             ]);
+    }
 
             const allLine = chart.addLineSeries({
                 color: 'green',
@@ -510,11 +555,11 @@
             const ceStrikesPhp = @json($ceStrikes ?? []);
             const avgAtmPhp = @json($avgAtm);
             const avgAllPhp = @json($avgAll);
-            const prevSnipperPoint = @json($prevSnipperPoint);
+            const prevMidPoints = @json($prevMidPoints);
 
 
-            if (symbol && date && expiry && ceStrikesPhp.length && prevSnipperPoint && avgAllPhp) {
-                loadAllCharts(symbol, expiry, date, ceStrikesPhp, prevSnipperPoint, avgAllPhp);
+            if (symbol && date && expiry && ceStrikesPhp.length && prevMidPoints && avgAllPhp) {
+                loadAllCharts(symbol, expiry, date, ceStrikesPhp, prevMidPoints, avgAllPhp);
             }
         });
     </script>

@@ -154,7 +154,7 @@ class OiBuildupController extends Controller
                 'limit'             => $limit,
             ],
             'datasets' => $datasets,
-            'oiThreshold' => 1000000,
+            'oiThreshold' => $this->amountForToday(),
         ]);
     }
 
@@ -182,6 +182,20 @@ class OiBuildupController extends Controller
         return response()->json([
             'expiry' => $expiry,
         ]);
+    }
+
+    public function amountForToday(): int
+    {
+        $day = Carbon::now()->format('l');
+
+        return match ($day) {
+            'Monday'    => 800000,
+            'Tuesday'   => 1000000,
+            'Wednesday' => 500000,
+            'Thursday'  => 600000,
+            'Friday'    => 700000,
+            default     => 1000000,
+        };
     }
 
 
