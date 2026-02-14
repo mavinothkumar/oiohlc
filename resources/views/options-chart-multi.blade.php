@@ -62,7 +62,7 @@
 
 
                 <div>
-                    <button type="submit"
+                    <button type="submit" id="submit_multi_strike"
                         class="inline-flex items-center px-4 py-2 border border-transparent
                                text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600
                                hover:bg-indigo-700">
@@ -384,7 +384,9 @@
                 height: 260,
                 layout: { background: { color: '#ffffff' }, textColor: '#333' },
                 rightPriceScale: { borderVisible: false },
-                timeScale: { borderVisible: false }
+                timeScale: {   borderVisible: false,
+                    timeVisible: true,      // show hh:mm
+                    secondsVisible: false  }
             });
 
             const ceLineData = ceData.map(row => ( {
@@ -456,6 +458,14 @@
 
                 ceInputs.forEach((el, i) => el.value = strikes[ i ] ?? '');
                 peInputs.forEach((el, i) => el.value = strikes[ i ] ?? '');
+
+                const btn = document.getElementById('submit_multi_strike');
+                console.log('s');
+                if (btn){
+                    console.log('t');
+                    btn.click();
+                }
+
             } finally {
                 hideLoader();
             }
