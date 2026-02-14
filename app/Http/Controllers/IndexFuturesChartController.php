@@ -42,7 +42,7 @@ class IndexFuturesChartController extends Controller
                               ->whereDate('timestamp', $date)
                               ->first(['open', 'high', 'low', 'close']);
         $futureATM        = round((float) $dailyTrendFuture->open / 50) * 50;
-        
+
         // Convert to floats for chart consumption
         $trendData = [
             'index_high'             => (float) $trend->index_high,
@@ -74,16 +74,18 @@ class IndexFuturesChartController extends Controller
             'show'                   => [
                 'open_type'              => $trend->open_type,
                 'open_value'             => (float) $trend->open_value,
-                'atm_index_open'         => (float) $trend->atm_index_open,
                 'current_day_index_open' => (float) $trend->current_day_index_open,
+                'future_open'            => (float) $dailyTrendFuture->open,
+                'atm_index_open'         => (float) $trend->atm_index_open,
+                'future_atm'             => (float) $futureATM,
                 'previous_day_atm'       => (float) $trend->strike,
                 'atm_ce'                 => (float) $trend->atm_ce,
                 'atm_pe'                 => (float) $trend->atm_pe,
                 'index_high'             => (float) $trend->index_high,
                 'index_low'              => (float) $trend->index_low,
                 'index_close'            => (float) $trend->index_close,
-                'future_atm'             => (float) $futureATM,
-                'future_open'            => (float) $dailyTrendFuture->open,
+
+
             ],
         ];
 

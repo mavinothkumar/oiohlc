@@ -379,7 +379,7 @@
                         prevAtm === atmPe;
 
                     Object.entries(show).forEach(([label, value]) => {
-                        if (value === null || Number.isNaN(Number(value))) return;
+                        if (value === null) return;
 
                         const isTriple =
                             allEqual &&
@@ -398,6 +398,7 @@
             ${label.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
         </div>
         <div class="text-sm font-bold text-blue-600 text-center">
+
             ${typeof value === 'number'
                             ? value.toLocaleString('en-IN', { maximumFractionDigits: 2 })
                             : value}

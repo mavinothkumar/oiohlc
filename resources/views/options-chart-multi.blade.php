@@ -102,9 +102,7 @@
                                 @endif
                             @endforeach
                         @else
-                            <span class="text-red-600">
-                {{ number_format($prevMidPoints ?? 0, 2) }}
-            </span>
+                            <span class="text-red-600">First Day of the Expiry</span>
                         @endif
     </span>
                 </div>
@@ -112,13 +110,25 @@
             </div>
         @endif
 
-        <div class="flex flex-col lg:flex-row gap-4">
+        <div class="flex flex-col gap-4">
             {{-- LEFT 70%: filters + multi chart --}}
-            <div class="w-full lg:w-[60%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
-                {{-- 10 charts: top 5 CE, bottom 5 PE --}}
+            <div class="w-full bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
                 @if(!empty($ceStrikes) && !empty($peStrikes))
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <div class="flex justify-end mb-2">
+                        <button
+                            id="toggle-saturation-btn"
+                            type="button"
+                            class="px-2 py-1 text-xs rounded bg-gray-200 hover:bg-gray-300"
+                        >
+                            Show saturation grid
+                        </button>
+                    </div>
+
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         @foreach($ceStrikes as $strike)
+                            {{-- CE --}}
                             <div class="bg-white rounded-lg shadow p-2">
                                 <div class="text-xs font-semibold mb-1">
                                     CE {{ $strike }}
@@ -126,160 +136,181 @@
                                 <div id="chart-ce-{{ $strike }}" class="h-64"></div>
                             </div>
 
+                            {{-- PE --}}
                             <div class="bg-white rounded-lg shadow p-2">
                                 <div class="text-xs font-semibold mb-1">
                                     PE {{ $strike }}
                                 </div>
                                 <div id="chart-pe-{{ $strike }}" class="h-64"></div>
                             </div>
+
+                            {{-- Combined CE+PE line --}}
+                            <div class="bg-white rounded-lg shadow p-2">
+                                <div class="text-xs font-semibold mb-1">
+                                    CE + PE {{ $strike }}
+                                </div>
+                                <div id="combo-line-chart-{{ (int)$strike }}" class="h-64"></div>
+                            </div>
                         @endforeach
                     </div>
                 @endif
             </div>
-            <div class="w-full lg:w-[40%] bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4">
-                <div class="sticky top-4 bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-sm font-semibold text-gray-700">
-                            CE–PE Saturation Grid (5 min)
-                        </h2>
+            <div
+                id="saturation-wrapper"
+                class="hidden fixed top-4 right-4 z-40 w-full max-w-5xl
+           bg-white border border-gray-200 rounded-lg shadow-lg p-3 md:p-4"
+            >
+                {{-- existing content stays the same --}}
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-sm font-semibold text-gray-700">
+                        CE–PE Saturation Grid (5 min)
+                    </h2>
+                    <button
+                        type="button"
+                        id="close-saturation-btn"
+                        class="text-xs px-2 py-0.5 rounded bg-gray-200 hover:bg-gray-300"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <div class="max-h-[calc(100vh-6rem)] overflow-y-auto">
+                    {{-- small form to tweak saturation threshold --}}
+                    @if($symbol && $quoteDate && $expiryDate)
+                        <form method="GET" action="{{ route('options.multi.chart') }}" class="flex items-center gap-1 text-xs">
+                            <input type="hidden" name="symbol" value="{{ $symbol }}">
+                            <input type="hidden" name="quote_date" value="{{ $quoteDate }}">
+                            <input type="hidden" name="expiry_date" value="{{ $expiryDate }}">
+                            @foreach($ceStrikes as $s)
+                                <input type="hidden" name="ce_strikes[]" value="{{ $s }}">
+                            @endforeach
+                            @foreach($peStrikes as $s)
+                                <input type="hidden" name="pe_strikes[]" value="{{ $s }}">
+                            @endforeach
 
-                        {{-- small form to tweak saturation threshold --}}
-                        @if($symbol && $quoteDate && $expiryDate)
-                            <form method="GET" action="{{ route('options.multi.chart') }}" class="flex items-center gap-1 text-xs">
-                                <input type="hidden" name="symbol" value="{{ $symbol }}">
-                                <input type="hidden" name="quote_date" value="{{ $quoteDate }}">
-                                <input type="hidden" name="expiry_date" value="{{ $expiryDate }}">
-                                @foreach($ceStrikes as $s)
-                                    <input type="hidden" name="ce_strikes[]" value="{{ $s }}">
-                                @endforeach
-                                @foreach($peStrikes as $s)
-                                    <input type="hidden" name="pe_strikes[]" value="{{ $s }}">
-                                @endforeach
+                            <span class="text-gray-500">Snipper Sat.</span>
+                            <input
+                                type="number"
+                                name="snipper_saturation"
+                                class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
+                                value="{{ $snipperSaturation ?? 10 }}"
+                                step="1"
+                            >
 
-                                <span class="text-gray-500">Snipper Sat.</span>
-                                <input
-                                    type="number"
-                                    name="snipper_saturation"
-                                    class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
-                                    value="{{ $snipperSaturation ?? 10 }}"
-                                    step="1"
-                                >
+                            <span class="text-gray-500">Sat.</span>
 
-                                <span class="text-gray-500">Sat.</span>
+                            <input
+                                type="number"
+                                name="saturation"
+                                class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
+                                value="{{ $saturation ?? 5 }}"
+                                step="1"
+                            >
+                            <button
+                                type="submit"
+                                class="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                            >
+                                Apply
+                            </button>
+                        </form>
+                    @endif
+                </div>
 
-                                <input
-                                    type="number"
-                                    name="saturation"
-                                    class="w-14 border-gray-300 rounded px-1 py-0.5 text-right text-xs"
-                                    value="{{ $saturation ?? 5 }}"
-                                    step="1"
-                                >
-                                <button
-                                    type="submit"
-                                    class="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
-                                >
-                                    Apply
-                                </button>
-                            </form>
-                        @endif
-                    </div>
+                @if(!empty($diffMatrix) && !empty($timeSlots) && !empty($allStrikes))
 
-                    @if(!empty($diffMatrix) && !empty($timeSlots) && !empty($allStrikes))
-
-                        <div class="overflow-x-auto border border-gray-100 rounded">
-                            <table class="min-w-full text-[10px] md:text-xs">
-                                <thead class="bg-gray-50 sticky top-0 z-10">
-                                <tr>
-                                    <th class="px-2 py-1 border-b border-gray-200 text-left font-semibold text-gray-600 w-14">
-                                        Time
+                    <div class="overflow-x-auto border border-gray-100 rounded">
+                        <table class="min-w-full text-[10px] md:text-xs">
+                            <thead class="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-2 py-1 border-b border-gray-200 text-left font-semibold text-gray-600 w-14">
+                                    Time
+                                </th>
+                                @foreach($allStrikes as $strike)
+                                    <th class="px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-600">
+                                        {{ (int)$strike }}
                                     </th>
+                                @endforeach
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach($timeSlots as $time)
+                                @php
+                                    $row = $diffMatrix[$time] ?? [];
+                                @endphp
+                                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                    <td class="px-2 py-1 text-gray-600 font-medium">
+                                        {{ $time }}
+                                    </td>
                                     @foreach($allStrikes as $strike)
-                                        <th class="px-2 py-1 border-b border-gray-200 text-center font-semibold text-gray-600">
-                                            {{ (int)$strike }}
-                                        </th>
-                                    @endforeach
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($timeSlots as $time)
-                                    @php
-                                        $row = $diffMatrix[$time] ?? [];
-                                    @endphp
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                        <td class="px-2 py-1 text-gray-600 font-medium">
-                                            {{ $time }}
-                                        </td>
-                                        @foreach($allStrikes as $strike)
-                                            @php
-                                                $cell = $row[(float)$strike] ?? null;
-                                            @endphp
-                                            <td class="px-1 py-1 text-center align-top">
-                                                @if($cell)
-                                                    @php
-                                                        if (($cell['direction'] ?? null) === 'CE_SELL') {
-                                                            $boxClass = 'bg-red-100 border-red-300 text-red-800';
-                                                            $signal   = 'CE Sell';
-                                                        } elseif (($cell['direction'] ?? null) === 'PE_SELL') {
-                                                            $boxClass = 'bg-green-100 border-green-300 text-green-800';
-                                                            $signal   = 'PE Sell';
-                                                        } else {
-                                                            $boxClass = 'bg-yellow-100 border-yellow-300 text-yellow-800';
-                                                            $signal   = '';
-                                                        }
+                                        @php
+                                            $cell = $row[(float)$strike] ?? null;
+                                        @endphp
+                                        <td class="px-1 py-1 text-center align-top">
+                                            @if($cell)
+                                                @php
+                                                    if (($cell['direction'] ?? null) === 'CE_SELL') {
+                                                        $boxClass = 'bg-red-100 border-red-300 text-red-800';
+                                                        $signal   = 'CE Sell';
+                                                    } elseif (($cell['direction'] ?? null) === 'PE_SELL') {
+                                                        $boxClass = 'bg-green-100 border-green-300 text-green-800';
+                                                        $signal   = 'PE Sell';
+                                                    } else {
+                                                        $boxClass = 'bg-yellow-100 border-yellow-300 text-yellow-800';
+                                                        $signal   = '';
+                                                    }
 
-                                                        $leftSrc  = $cell['left_src']  ?? '';
-                                                        $rightSrc = $cell['right_src'] ?? '';
-                                                        $leftVal  = $cell['left_val']  ?? null;
-                                                        $rightVal = $cell['right_val'] ?? null;
-                                                    @endphp
+                                                    $leftSrc  = $cell['left_src']  ?? '';
+                                                    $rightSrc = $cell['right_src'] ?? '';
+                                                    $leftVal  = $cell['left_val']  ?? null;
+                                                    $rightVal = $cell['right_val'] ?? null;
+                                                @endphp
 
-                                                    <div class="inline-flex flex-col px-1.5 py-1 rounded border {{ $boxClass }}">
-                                                        <div class="flex items-center justify-between gap-1">
+                                                <div class="inline-flex flex-col px-1.5 py-1 rounded border {{ $boxClass }}">
+                                                    <div class="flex items-center justify-between gap-1">
             <span class="font-semibold text-[11px]">
                 {{ number_format($cell['diff'], 2) }}
             </span>
-                                                            @if($signal)
-                                                                <span class="text-[10px] font-semibold uppercase">
+                                                        @if($signal)
+                                                            <span class="text-[10px] font-semibold uppercase">
                     {{ $signal }}
                 </span>
-                                                            @endif
-                                                        </div>
-                                                        <span class="text-[9px]">
+                                                        @endif
+                                                    </div>
+                                                    <span class="text-[9px]">
             {{ $leftSrc }}({{ number_format($leftVal, 1) }})
             vs
             {{ $rightSrc }}({{ number_format($rightVal, 1) }})
         </span>
-                                                        <span class="text-[9px] text-gray-700">
+                                                    <span class="text-[9px] text-gray-700">
             CE: {{ $cell['ce_side'] }} | PE: {{ $cell['pe_side'] }}
         </span>
-                                                        @if(isset($cell['left_snipper'], $cell['right_snipper']))
-                                                            <span class="text-[9px] text-gray-500">
+                                                    @if(isset($cell['left_snipper'], $cell['right_snipper']))
+                                                        <span class="text-[9px] text-gray-500">
                 S: {{ number_format($cell['left_snipper'], 1) }}
                 /
                 {{ number_format($cell['right_snipper'], 1) }}
             </span>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <p class="mt-2 text-[10px] text-gray-500 leading-tight">
-                            Each cell shows the lowest CE/PE high‑low difference for that strike and 5‑minute candle within
-                            ±{{ $saturation }}. Values closer to zero are highlighted more strongly.
-                        </p>
-                    @else
-                        <p class="text-xs text-gray-500">
-                            No CE/PE saturation data for the current selection. Adjust strikes or date and try again.
-                        </p>
-                    @endif
-                </div>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-2 text-[10px] text-gray-500 leading-tight">
+                        Each cell shows the lowest CE/PE high‑low difference for that strike and 5‑minute candle within
+                        ±{{ $saturation }}. Values closer to zero are highlighted more strongly.
+                    </p>
+                @else
+                    <p class="text-xs text-gray-500">
+                        No CE/PE saturation data for the current selection. Adjust strikes or date and try again.
+                    </p>
+                @endif
             </div>
         </div>
+    </div>
     </div>
 
     {{-- Loader overlay --}}
@@ -295,15 +326,14 @@
     <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
 
     <script>
-        const expiriesUrl = "{{ route('api.multi-chart-expiries') }}"; // same endpoint as single-chart page [file:2]
-        const ohlcUrl = "{{ route('api.ohlc') }}";     // same OHLC JSON route       [file:1]
+        const expiriesUrl = "{{ route('api.multi-chart-expiries') }}";
+        const ohlcUrl = "{{ route('api.ohlc') }}";
 
         const symbolInput = document.querySelector('input[name="symbol"]');
         const quoteDateInput = document.querySelector('input[name="quote_date"]');
         const expiryDateInput = document.querySelector('input[name="expiry_date"]');
 
         function getStrikeInputs (type) {
-            // type must be 'ce' or 'pe'
             return Array.from(document.querySelectorAll(`input[name="${ type }_strikes[]"]`));
         }
 
@@ -318,7 +348,7 @@
         }
 
         function timeToLocal (originalTime) {
-            const d = new Date(originalTime * 1000); // originalTime = UNIX seconds
+            const d = new Date(originalTime * 1000);
             return Date.UTC(
                 d.getFullYear(),
                 d.getMonth(),
@@ -342,6 +372,44 @@
                     close: Number(c.close)
                 } ))
                 .sort((a, b) => a.time - b.time);
+        }
+
+        // NEW: combined CE+PE line chart per strike (expects normalized data)
+        function renderComboLineChart (strike, ceData, peData) {
+            const containerId = 'combo-line-chart-' + strike;
+            const container = document.getElementById(containerId);
+            if ( ! container) return;
+
+            const comboChart = LightweightCharts.createChart(container, {
+                height: 260,
+                layout: { background: { color: '#ffffff' }, textColor: '#333' },
+                rightPriceScale: { borderVisible: false },
+                timeScale: { borderVisible: false }
+            });
+
+            const ceLineData = ceData.map(row => ( {
+                time: row.time,
+                value: row.close
+            } ));
+
+            const peLineData = peData.map(row => ( {
+                time: row.time,
+                value: row.close
+            } ));
+
+            const ceLineSeries = comboChart.addLineSeries({
+                color: '#2563eb',
+                lineWidth: 2,
+                title: 'CE'
+            });
+            ceLineSeries.setData(ceLineData);
+
+            const peLineSeries = comboChart.addLineSeries({
+                color: '#f97316',
+                lineWidth: 2,
+                title: 'PE'
+            });
+            peLineSeries.setData(peLineData);
         }
 
         async function onQuoteDateChange () {
@@ -388,9 +456,26 @@
 
                 ceInputs.forEach((el, i) => el.value = strikes[ i ] ?? '');
                 peInputs.forEach((el, i) => el.value = strikes[ i ] ?? '');
-                // no chart loading here
             } finally {
                 hideLoader();
+            }
+        }
+
+        // NEW: keep CE & PE data per strike so we can render combo chart
+        const ceCache = {};
+        const peCache = {};
+
+        // NEW: helper to load both CE and PE for one strike and then draw combo
+        async function loadStrikeCharts (symbol, expiry, date, strike, avgAtm, avgAll) {
+            await Promise.all([
+                loadSingleChart(symbol, expiry, date, strike, 'CE', avgAtm, avgAll),
+                loadSingleChart(symbol, expiry, date, strike, 'PE', avgAtm, avgAll)
+            ]);
+
+            const ceData = ceCache[ strike ];
+            const peData = peCache[ strike ];
+            if (ceData && peData) {
+                renderComboLineChart(strike, ceData, peData);
             }
         }
 
@@ -398,10 +483,7 @@
             showLoader();
             try {
                 for (const strike of strikes) {
-                    await Promise.all([
-                        loadSingleChart(symbol, expiry, date, strike, 'CE', avgAtm, avgAll),
-                        loadSingleChart(symbol, expiry, date, strike, 'PE', avgAtm, avgAll)
-                    ]);
+                    await loadStrikeCharts(symbol, expiry, date, strike, avgAtm, avgAll);
                 }
             } finally {
                 hideLoader();
@@ -431,10 +513,8 @@
                 return;
             }
 
-            // make container a positioning context for tooltip
             container.style.position = 'relative';
 
-            // tooltip div
             const tooltip = document.createElement('div');
             tooltip.className = 'absolute bg-black text-white text-xs px-2 py-1 rounded opacity-0 transition-opacity z-50 pointer-events-none';
             tooltip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -448,9 +528,16 @@
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
             });
 
-            const seriesData = normalizeData(type === 'CE' ? data.ce_today : data.pe_today);
+            const raw = type === 'CE' ? data.ce_today : data.pe_today;
+            const seriesData = normalizeData(raw);
 
-            // v4 API
+            // cache normalized data for combo line chart
+            if (type === 'CE') {
+                ceCache[ strike ] = seriesData;
+            } else {
+                peCache[ strike ] = seriesData;
+            }
+
             const series = chart.addCandlestickSeries();
             series.setData(seriesData);
 
@@ -459,42 +546,39 @@
             const tFirst = seriesData[ 0 ].time;
             const tLast = seriesData[ seriesData.length - 1 ].time;
 
-    // Handle avgAtm as array (1-5 values) - create multiple red lines from light to dark
-    if (Array.isArray(avgAtm) && avgAtm.length > 0) {
-        // Red color gradient: light to dark for 1-5 lines
-        const redShades = [
-            '#FFB3B3', // very light red
-            '#FF9999',
-            '#FF6666',
-            '#FF3333',
-            '#CC0000'  // dark red
-        ];
+            if (Array.isArray(avgAtm) && avgAtm.length > 0) {
+                const redShades = [
+                    '#FFB3B3',
+                    '#FF9999',
+                    '#FF6666',
+                    '#FF3333',
+                    '#CC0000'
+                ];
 
-        avgAtm.slice(0, 5).forEach((avgValue, index) => {
-            if (avgValue != null && !isNaN(avgValue)) {
+                avgAtm.slice(0, 5).forEach((avgValue, index) => {
+                    if (avgValue != null && ! isNaN(avgValue)) {
+                        const atmLine = chart.addLineSeries({
+                            color: redShades[ index ] || '#FF0000',
+                            lineWidth: 2,
+                            priceLineVisible: false
+                        });
+                        atmLine.setData([
+                            { time: tFirst, value: avgValue },
+                            { time: tLast, value: avgValue }
+                        ]);
+                    }
+                });
+            } else if (avgAtm != null && ! isNaN(avgAtm)) {
                 const atmLine = chart.addLineSeries({
-                    color: redShades[index] || '#FF0000',
+                    color: 'red',
                     lineWidth: 2,
-                    priceLineVisible: false,
+                    priceLineVisible: false
                 });
                 atmLine.setData([
-                    { time: tFirst, value: avgValue },
-                    { time: tLast,  value: avgValue },
+                    { time: tFirst, value: avgAtm },
+                    { time: tLast, value: avgAtm }
                 ]);
             }
-        });
-    } else if (avgAtm != null && !isNaN(avgAtm)) {
-        // Backward compatibility for single value
-            const atmLine = chart.addLineSeries({
-                color: 'red',
-                lineWidth: 2,
-                priceLineVisible: false,
-            });
-            atmLine.setData([
-                { time: tFirst, value: avgAtm },
-                { time: tLast,  value: avgAtm },
-            ]);
-    }
 
             const allLine = chart.addLineSeries({
                 color: 'green',
@@ -506,7 +590,6 @@
                 { time: tLast, value: avgAll }
             ]);
 
-            // OHLC tooltip on hover
             chart.subscribeCrosshairMove((param) => {
                 if (
                     ! param.time ||
@@ -529,11 +612,11 @@
                 const { open, high, low, close } = dataPoint;
 
                 tooltip.innerHTML = `
-            <div>O: ${ open.toFixed(2) }</div>
-            <div>H: ${ high.toFixed(2) }</div>
-            <div>L: ${ low.toFixed(2) }</div>
-            <div>C: ${ close.toFixed(2) }</div>
-        `;
+        <div>O: ${ open.toFixed(2) }</div>
+        <div>H: ${ high.toFixed(2) }</div>
+        <div>L: ${ low.toFixed(2) }</div>
+        <div>C: ${ close.toFixed(2) }</div>
+    `;
 
                 tooltip.style.left = ( param.point.x + 10 ) + 'px';
                 tooltip.style.top = ( param.point.y + 10 ) + 'px';
@@ -557,10 +640,40 @@
             const avgAllPhp = @json($avgAll);
             const prevMidPoints = @json($prevMidPoints);
 
-
             if (symbol && date && expiry && ceStrikesPhp.length && prevMidPoints && avgAllPhp) {
+                // avgAtm is prevMidPoints, avgAll is avgAllPhp
                 loadAllCharts(symbol, expiry, date, ceStrikesPhp, prevMidPoints, avgAllPhp);
+            }
+
+            const toggleBtn = document.getElementById('toggle-saturation-btn');
+            const satWrapper = document.getElementById('saturation-wrapper');
+            const closeBtn = document.getElementById('close-saturation-btn');
+
+            if (toggleBtn && satWrapper) {
+                const hidePanel = () => {
+                    satWrapper.classList.add('hidden');
+                    toggleBtn.textContent = 'Show saturation grid';
+                };
+
+                const showPanel = () => {
+                    satWrapper.classList.remove('hidden');
+                    toggleBtn.textContent = 'Hide saturation grid';
+                };
+
+                toggleBtn.addEventListener('click', () => {
+                    const isHidden = satWrapper.classList.contains('hidden');
+                    if (isHidden) {
+                        showPanel();
+                    } else {
+                        hidePanel();
+                    }
+                });
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', hidePanel);
+                }
             }
         });
     </script>
+
 @endsection

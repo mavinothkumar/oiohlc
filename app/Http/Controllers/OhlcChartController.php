@@ -42,6 +42,7 @@ class OhlcChartController extends Controller
 
         $atmStrike    = null;
         $expiryForAtm = $expiries->first();
+
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
             $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
@@ -340,17 +341,22 @@ class OhlcChartController extends Controller
         $startOfDay = $date.' 00:00:00';
         $endOfDay   = $date.' 23:59:59';
 
-        $expiries = DB::table('expired_ohlc')
-                      ->where('underlying_symbol', $symbol)
-                      ->where('expiry', '>=', $startOfDay)
-                      ->where('timestamp', '>=', $startOfDay)
-                      ->where('timestamp', '<=', $endOfDay)
-                      ->limit(1)
-                      ->pluck('expiry');
+//        $expiries = DB::table('expired_ohlc')
+//                      ->where('underlying_symbol', $symbol)
+//                      ->where('expiry', '>=', $startOfDay)
+//                      ->where('timestamp', '>=', $startOfDay)
+//                      ->where('timestamp', '<=', $endOfDay)
+//                      ->limit(1)
+//                      ->pluck('expiry');
 
+        $expiryForAtm = DB::table('expired_expiries')
+                      ->where('underlying_symbol', $symbol)
+                      ->where('instrument_type', 'OPT')
+                      ->where('expiry_date', '>=', $date)
+                      ->orderBy('expiry_date')
+                      ->value('expiry_date');
 
         $atmStrike    = null;
-        $expiryForAtm = $expiries->first();
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
             $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
@@ -359,7 +365,7 @@ class OhlcChartController extends Controller
         $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $request->date)->first();
 
         return response()->json([
-            'expiries'        => $expiries,
+            'expiries'        => [$expiryForAtm],
             'spot'            => $spot,
             'atm_strike'      => $atmStrike,
             'open_atm_strike' => $trend->atm_index_open,
@@ -390,7 +396,7 @@ class OhlcChartController extends Controller
         $peStrikes        = [];
         $avgAtm           = null;
         $avgAll           = null;
-        $prevSnipperPoint = null;
+        $prevMidPoints = [];
 
         // new data for right‑side table
         $saturation = (float) $request->input('saturation', 5);   // adjustable +/- X
@@ -410,7 +416,7 @@ class OhlcChartController extends Controller
                                ->whereBetween('quote_date', [$getExpiryFromDate, $quoteDate])
                                ->where('expiry_date', $expiryDate)->orderByDesc('id')
                                ->get();
-            $prevMidPoints = [];
+
             foreach ($trends as $index => $_trend) {
                 if (0 === $index) {
                     $trend = $_trend;
@@ -418,10 +424,6 @@ class OhlcChartController extends Controller
                     $prevMidPoints[] = $_trend->mid_point;
                 }
             }
-
-            //$trend            = $trends[1] ?? $trends[0];
-//            $prevTrend        = isset($trends[1]) ? $trends[0] : $trend;
-//            $prevSnipperPoint = $prevTrend->mid_point;
 
 
             if ($trend) {
@@ -590,43 +592,9 @@ class OhlcChartController extends Controller
                                             'right_src' => 'P-L',   // PE open
                                             'direction' => 'PE_SELL',
                                         ],
-//                                        [
-//                                            'left_val'  => $ceLow,
-//                                            'right_val' => $peOpen,
-//                                            'left_src'  => 'Cl',   // CE low
-//                                            'right_src' => 'Po',   // PE open
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // CE L vs PE H
-//                                        [
-//                                            'left_val'  => $ceLow,
-//                                            'right_val' => $peHigh,
-//                                            'left_src'  => 'Cl',
-//                                            'right_src' => 'Ph',
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // CE O vs PE O
-//                                        [
-//                                            'left_val'  => $ceOpen,
-//                                            'right_val' => $peOpen,
-//                                            'left_src'  => 'Co',   // CE open
-//                                            'right_src' => 'Po',
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // CE O vs PE H
-//                                        [
-//                                            'left_val'  => $ceOpen,
-//                                            'right_val' => $peHigh,
-//                                            'left_src'  => 'Co',
-//                                            'right_src' => 'Ph',
-//                                            'direction' => 'PE_SELL',
-//                                        ],
                                     ];
                                 } else {
-                                    // CE higher, CE red
-                                    // From your rule: CE (Close & Low) vs PE (High & Close)
                                     $combos = [
-                                        // CE C vs PE H
                                         [
                                             'left_val'  => $ceLow,
                                             'right_val' => $peHigh,
@@ -641,37 +609,7 @@ class OhlcChartController extends Controller
                                             'right_src' => 'P-L',   // PE high
                                             'direction' => 'CE_SELL',
                                         ],
-//                                        [
-//                                            'left_val'  => $ceClose,
-//                                            'right_val' => $peHigh,
-//                                            'left_src'  => 'Cc',   // CE close
-//                                            'right_src' => 'Ph',   // PE high
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        // CE C vs PE C
-//                                        [
-//                                            'left_val'  => $ceClose,
-//                                            'right_val' => $peClose,
-//                                            'left_src'  => 'Cc',
-//                                            'right_src' => 'Pc',   // PE close
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        // CE L vs PE H
-//                                        [
-//                                            'left_val'  => $ceLow,
-//                                            'right_val' => $peHigh,
-//                                            'left_src'  => 'Cl',
-//                                            'right_src' => 'Ph',
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        // CE L vs PE C
-//                                        [
-//                                            'left_val'  => $ceLow,
-//                                            'right_val' => $peClose,
-//                                            'left_src'  => 'Cl',
-//                                            'right_src' => 'Pc',
-//                                            'direction' => 'CE_SELL',
-//                                        ],
+//
                                     ];
                                 }
 
@@ -715,12 +653,6 @@ class OhlcChartController extends Controller
 
                             if ($peOpen > $ceOpen) {
                                 if ($peSide === 'green') {
-                                    // PE higher, PE green
-                                    // Your requested combinations for this case:
-                                    //  PE L vs CE O
-                                    //  PE L vs CE H
-                                    //  PE O vs CE O
-                                    //  PE O vs CE H
                                     $combos = [
                                         [
                                             'left_val'  => $ceHigh,
@@ -736,38 +668,9 @@ class OhlcChartController extends Controller
                                             'right_src' => 'P-L',   // PE high
                                             'direction' => 'CE_SELL',
                                         ],
-//                                        [
-//                                            'left_val'  => $peLow,
-//                                            'right_val' => $ceOpen,
-//                                            'left_src'  => 'Pl',   // PE low
-//                                            'right_src' => 'Co',   // CE open
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        [
-//                                            'left_val'  => $peLow,
-//                                            'right_val' => $ceHigh,
-//                                            'left_src'  => 'Pl',
-//                                            'right_src' => 'Ch',   // CE high
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        [
-//                                            'left_val'  => $peOpen,
-//                                            'right_val' => $ceOpen,
-//                                            'left_src'  => 'Po',   // PE open
-//                                            'right_src' => 'Co',
-//                                            'direction' => 'CE_SELL',
-//                                        ],
-//                                        [
-//                                            'left_val'  => $peOpen,
-//                                            'right_val' => $ceHigh,
-//                                            'left_src'  => 'Po',
-//                                            'right_src' => 'Ch',
-//                                            'direction' => 'CE_SELL',
-//                                        ],
+//
                                     ];
                                 } else {
-                                    // PE higher, PE red
-                                    // Mirror of CE‑red logic: PE (Close & Low) vs CE (High & Close)
                                     $combos = [
                                         // PE C vs CE H
                                         [
@@ -783,37 +686,7 @@ class OhlcChartController extends Controller
                                             'right_src' => 'P-L',   // PE high
                                             'direction' => 'PE_SELL',
                                         ],
-//                                        [
-//                                            'left_val'  => $peClose,
-//                                            'right_val' => $ceHigh,
-//                                            'left_src'  => 'Pc',   // PE close
-//                                            'right_src' => 'Ch',   // CE high
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // PE C vs CE C
-//                                        [
-//                                            'left_val'  => $peClose,
-//                                            'right_val' => $ceClose,
-//                                            'left_src'  => 'Pc',
-//                                            'right_src' => 'Cc',   // CE close
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // PE L vs CE H
-//                                        [
-//                                            'left_val'  => $peLow,
-//                                            'right_val' => $ceHigh,
-//                                            'left_src'  => 'Pl',   // PE low
-//                                            'right_src' => 'Ch',
-//                                            'direction' => 'PE_SELL',
-//                                        ],
-//                                        // PE L vs CE C
-//                                        [
-//                                            'left_val'  => $peLow,
-//                                            'right_val' => $ceClose,
-//                                            'left_src'  => 'Pl',
-//                                            'right_src' => 'Cc',
-//                                            'direction' => 'PE_SELL',
-//                                        ],
+//
                                     ];
                                 }
 
