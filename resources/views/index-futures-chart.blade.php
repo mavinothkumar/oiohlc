@@ -85,6 +85,10 @@
             let indexTrendLines = null;
             let futureTrendLines = null;
 
+            dateEl.addEventListener('change', function () {
+                loadBtn.click();
+            });
+
             function createChart (container, color) {
                 const rect = container.getBoundingClientRect();
 

@@ -106,6 +106,7 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                 $fiveMinCandles = $expiredService->getExpiredHistoricalCandles(
                     $instrumentKey, '3minute', $from, $to
                 );
+
                 $this->storeOptionCandles($fiveMinCandles, $contract, '3minute');
             }
         }

@@ -375,43 +375,101 @@
         }
 
         // NEW: combined CE+PE line chart per strike (expects normalized data)
-        function renderComboLineChart (strike, ceData, peData) {
+        // expects normalized ceData / peData, plus avgAtm (array or number) and avgAll (number)
+        function renderComboLineChart(strike, ceData, peData, avgAtm, avgAll) {
             const containerId = 'combo-line-chart-' + strike;
             const container = document.getElementById(containerId);
-            if ( ! container) return;
+            if (!container) return;
 
             const comboChart = LightweightCharts.createChart(container, {
                 height: 260,
                 layout: { background: { color: '#ffffff' }, textColor: '#333' },
                 rightPriceScale: { borderVisible: false },
-                timeScale: {   borderVisible: false,
-                    timeVisible: true,      // show hh:mm
-                    secondsVisible: false  }
+                timeScale: {
+                    borderVisible: false,
+                    timeVisible: true,
+                    secondsVisible: false
+                }
             });
 
-            const ceLineData = ceData.map(row => ( {
+            // main CE/PE lines
+            const ceLineData = ceData.map(row => ({
                 time: row.time,
-                value: row.close
-            } ));
+                value: row.close,
+            }));
 
-            const peLineData = peData.map(row => ( {
+            const peLineData = peData.map(row => ({
                 time: row.time,
-                value: row.close
-            } ));
+                value: row.close,
+            }));
 
             const ceLineSeries = comboChart.addLineSeries({
                 color: '#2563eb',
                 lineWidth: 2,
-                title: 'CE'
+                title: 'CE',
             });
             ceLineSeries.setData(ceLineData);
 
             const peLineSeries = comboChart.addLineSeries({
                 color: '#f97316',
                 lineWidth: 2,
-                title: 'PE'
+                title: 'PE',
             });
             peLineSeries.setData(peLineData);
+
+            if (!ceLineData.length) return;
+
+            const tFirst = ceLineData[0].time;
+            const tLast  = ceLineData[ceLineData.length - 1].time;
+
+            // same avgAtm logic as loadSingleChart
+            if (Array.isArray(avgAtm) && avgAtm.length > 0) {
+                const redShades = [
+                    '#FFB3B3',
+                    '#FF9999',
+                    '#FF6666',
+                    '#FF3333',
+                    '#CC0000'
+                ];
+
+                avgAtm.slice(0, 5).forEach((avgValue, index) => {
+                    if (avgValue != null && !isNaN(avgValue)) {
+                        const atmLine = comboChart.addLineSeries({
+                            color: redShades[index] || '#FF0000',
+                            lineWidth: 2,
+                            priceLineVisible: false
+                        });
+                        atmLine.setData([
+                            { time: tFirst, value: avgValue },
+                            { time: tLast,  value: avgValue }
+                        ]);
+                    }
+                });
+            } else if (avgAtm != null && !isNaN(avgAtm)) {
+                const atmLine = comboChart.addLineSeries({
+                    color: 'red',
+                    lineWidth: 2,
+                    priceLineVisible: false
+                });
+                atmLine.setData([
+                    { time: tFirst, value: avgAtm },
+                    { time: tLast,  value: avgAtm }
+                ]);
+            }
+
+            if (avgAll != null && !isNaN(avgAll)) {
+                const allLine = comboChart.addLineSeries({
+                    color: 'green',
+                    lineWidth: 2,
+                    priceLineVisible: false
+                });
+                allLine.setData([
+                    { time: tFirst, value: avgAll },
+                    { time: tLast,  value: avgAll }
+                ]);
+            }
+
+            comboChart.timeScale().fitContent();
         }
 
         async function onQuoteDateChange () {
@@ -485,7 +543,7 @@
             const ceData = ceCache[ strike ];
             const peData = peCache[ strike ];
             if (ceData && peData) {
-                renderComboLineChart(strike, ceData, peData);
+                renderComboLineChart(strike, ceData, peData, avgAtm, avgAll);
             }
         }
 
@@ -535,7 +593,11 @@
                 height: container.clientHeight || 250,
                 layout: { background: { color: 'white' }, textColor: '#000' },
                 timeScale: { timeVisible: true, secondsVisible: false },
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                grid: {
+                    vertLines: { visible: false },
+                    horzLines: { visible: false }
+                }
             });
 
             const raw = type === 'CE' ? data.ce_today : data.pe_today;
