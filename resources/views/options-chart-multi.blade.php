@@ -414,6 +414,10 @@
                     borderVisible: false,
                     timeVisible: true,
                     secondsVisible: false
+                },
+                grid: {
+                    vertLines: { visible: false },
+                    horzLines: { visible: false }
                 }
             });
 
@@ -783,14 +787,14 @@
                 const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
                 if (!chartDiv || !window.LightweightCharts) return;
 
-                const width = card.clientWidth || window.innerWidth;
-                const height = card.clientHeight ? card.clientHeight - 60 : window.innerHeight * 0.8;
-
-                // we stored chart instances on the element when creating them (recommended)
                 const chart = chartDiv._chartInstance;
-                if (chart) {
-                    chart.applyOptions({ width, height });
-                }
+                if (!chart) return;
+
+                const width  = card.clientWidth  || window.innerWidth;
+                const height = card.clientHeight ? card.clientHeight - 60 : window.innerHeight * 0.85;
+
+                chart.applyOptions({ width, height });
+                chart.timeScale().fitContent();   // <=== important so data fills the width
             }
 
             function enterFullscreen(card) {
@@ -800,23 +804,21 @@
 
                 currentFullscreenCard = card;
 
-                card.classList.add(
-                    'fixed', 'inset-0', 'z-50',
-                    'bg-white', 'p-4', 'overflow-auto'
-                );
-                card.style.width = '100vw';
+                card.classList.add('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4', 'overflow-auto');
+                card.style.width  = '100vw';
                 card.style.height = '100vh';
 
-                body.classList.add('overflow-hidden');
+                document.body.classList.add('overflow-hidden');
 
                 const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
                 if (chartDiv) {
                     chartDiv.classList.remove('h-64');
-                    chartDiv.classList.add('h-[80vh]');
+                    chartDiv.classList.add('h-[85vh]');
                 }
 
                 resizeChartInCard(card);
             }
+
 
             function exitFullscreen(card) {
                 card.classList.remove(
