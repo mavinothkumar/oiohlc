@@ -157,8 +157,7 @@
             </div>
             <div
                 id="saturation-wrapper"
-                class="hidden fixed top-4 right-4 z-40 w-full max-w-5xl
-           bg-white border border-gray-200 rounded-lg shadow-lg p-3 md:p-4"
+                class="hidden fixed inset-y-0 right-0 z-40 min-w-[600px] max-w-[600px] h-screen bg-white border border-gray-200 rounded-lg shadow-lg p-3 md:p-4 overflow-y-auto"
             >
                 {{-- existing content stays the same --}}
                 <div class="flex items-center justify-between mb-2">

@@ -7,7 +7,7 @@
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
 <header class="bg-white shadow p-4 flex items-center">
-    <x-header-nav />
+    <x-header-nav/>
 </header>
 
 <main class="p-6 w-full">
@@ -24,11 +24,11 @@
 <div class="fixed top-0 right-0 m-4 text-sm font-medium">
     {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
 </div>
-{{--@if(! request()->has('nr'))--}}
-@if(request()->has('nr'))
+{{--@if(!Str::startsWith(request()->route()->getName(), 'test.'))--}}
+    @if(!request()->has('nr'))
     <script>
-        (function () {
-            function isWithinTradingHours() {
+        ( function () {
+            function isWithinTradingHours () {
                 const now = new Date();
                 const hours = now.getHours();
                 const minutes = now.getMinutes();
@@ -41,19 +41,19 @@
                 return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
             }
 
-            function msUntilNextNineSeconds() {
+            function msUntilNextNineSeconds () {
                 const now = new Date();
                 const seconds = now.getSeconds();
                 const ms = now.getMilliseconds();
 
                 if (seconds < 9) {
-                    return ((9 - seconds) * 1000) - ms;
+                    return ( ( 9 - seconds ) * 1000 ) - ms;
                 } else {
-                    return ((60 - seconds + 9) * 1000) - ms;
+                    return ( ( 60 - seconds + 9 ) * 1000 ) - ms;
                 }
             }
 
-            function scheduleReload() {
+            function scheduleReload () {
                 const initialDelay = msUntilNextNineSeconds();
 
                 setTimeout(() => {
@@ -70,7 +70,7 @@
             }
 
             scheduleReload();
-        })();
+        } )();
     </script>
 @endif
 

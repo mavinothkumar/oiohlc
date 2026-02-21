@@ -88,3 +88,7 @@ Route::get('/api/multi-chart-ohlc', [App\Http\Controllers\OhlcChartController::c
 Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::class, 'index'])
      ->name('daily_trend.view');
 
+
+Route::prefix('test')->name('test.')->group(function () {
+    Route::get('/zones', [App\Http\Controllers\OhlcZoneController::class, 'index'])->name('zones.index');
+});

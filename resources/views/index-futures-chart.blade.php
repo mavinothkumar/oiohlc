@@ -435,27 +435,27 @@
                     futureChart.timeScale().fitContent();
 
                     // set visible range
-                    if (indexData.length) {
-                        const first = indexData[0].time;
-                        const last  = indexData[indexData.length - 1].time;
-                        const pad   = Math.round((last - first) * 0.1); // 10% padding on each side
+                    // if (indexData.length) {
+                    //     const first = indexData[0].time;
+                    //     const last  = indexData[indexData.length - 1].time;
+                    //     const pad   = Math.round((last - first) * 0.1); // 10% padding on each side
+                    //
+                    //     indexChart.timeScale().setVisibleRange({
+                    //         from: first - pad,
+                    //         to:   last + pad,
+                    //     });
+                    // }
 
-                        indexChart.timeScale().setVisibleRange({
-                            from: first - pad,
-                            to:   last + pad,
-                        });
-                    }
-
-                    if (futureData.length) {
-                        const first = futureData[0].time;
-                        const last  = futureData[futureData.length - 1].time;
-                        const pad   = Math.round((last - first) * 0.1);
-
-                        futureChart.timeScale().setVisibleRange({
-                            from: first - pad,
-                            to:   last + pad,
-                        });
-                    }
+                    // if (futureData.length) {
+                    //     const first = futureData[0].time;
+                    //     const last  = futureData[futureData.length - 1].time;
+                    //     const pad   = Math.round((last - first) * 0.1);
+                    //
+                    //     futureChart.timeScale().setVisibleRange({
+                    //         from: first - pad,
+                    //         to:   last + pad,
+                    //     });
+                    // }
 
 
                     // ensure trend lines exist
