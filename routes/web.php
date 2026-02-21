@@ -76,8 +76,7 @@ Route::get('/oi-buildup/expiries', [App\Http\Controllers\OiBuildupController::cl
 
 Route::get('/volume-buildup-live', [App\Http\Controllers\VolumeBuildupLiveController::class, 'index'])->name('volume-buildup.live');
 
-Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])
-     ->name('options.multi.chart');
+Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
 // AJAX: get expiries for a date + underlying
 Route::get('/api/multi-chart-expiries', [App\Http\Controllers\OhlcChartController::class, 'multiExpiries'])->name('api.multi-chart-expiries');
 
@@ -90,5 +89,6 @@ Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::clas
 
 
 Route::prefix('test')->name('test.')->group(function () {
-    Route::get('/zones', [App\Http\Controllers\OhlcZoneController::class, 'index'])->name('zones.index');
+    Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
+    Route::get('/index-futures-chart', [App\Http\Controllers\IndexFuturesChartController::class, 'index'])->name('index.futures.chart');
 });

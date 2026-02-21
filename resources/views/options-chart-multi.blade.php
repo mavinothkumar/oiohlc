@@ -125,29 +125,55 @@
                         </button>
                     </div>
 
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div  id="charts-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         @foreach($ceStrikes as $strike)
                             {{-- CE --}}
-                            <div class="bg-white rounded-lg shadow p-2">
-                                <div class="text-xs font-semibold mb-1">
-                                    CE {{ $strike }}
+                            <div class="chart-card bg-white rounded-lg shadow p-2" data-strike="{{ $strike }}" data-kind="ce">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-xs font-semibold">
+                                        CE {{ $strike }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="chart-fullscreen-btn px-2 py-1 text-[10px] rounded bg-gray-200 hover:bg-gray-300"
+                                        data-target="chart-ce-{{ $strike }}"
+                                    >
+                                        Full
+                                    </button>
                                 </div>
                                 <div id="chart-ce-{{ $strike }}" class="h-64"></div>
                             </div>
 
                             {{-- PE --}}
-                            <div class="bg-white rounded-lg shadow p-2">
-                                <div class="text-xs font-semibold mb-1">
-                                    PE {{ $strike }}
+                            <div class="chart-card bg-white rounded-lg shadow p-2" data-strike="{{ $strike }}" data-kind="pe">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-xs font-semibold">
+                                        PE {{ $strike }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="chart-fullscreen-btn px-2 py-1 text-[10px] rounded bg-gray-200 hover:bg-gray-300"
+                                        data-target="chart-pe-{{ $strike }}"
+                                    >
+                                        Full
+                                    </button>
                                 </div>
                                 <div id="chart-pe-{{ $strike }}" class="h-64"></div>
                             </div>
 
-                            {{-- Combined CE+PE line --}}
-                            <div class="bg-white rounded-lg shadow p-2">
-                                <div class="text-xs font-semibold mb-1">
-                                    CE + PE {{ $strike }}
+                            {{-- Combined --}}
+                            <div class="chart-card bg-white rounded-lg shadow p-2" data-strike="{{ $strike }}" data-kind="combo">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="text-xs font-semibold">
+                                        CE + PE {{ $strike }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="chart-fullscreen-btn px-2 py-1 text-[10px] rounded bg-gray-200 hover:bg-gray-300"
+                                        data-target="combo-line-chart-{{ (int)$strike }}"
+                                    >
+                                        Full
+                                    </button>
                                 </div>
                                 <div id="combo-line-chart-{{ (int)$strike }}" class="h-64"></div>
                             </div>
@@ -391,6 +417,8 @@
                 }
             });
 
+            container._chartInstance = comboChart;
+
             // main CE/PE lines
             const ceLineData = ceData.map(row => ({
                 time: row.time,
@@ -599,6 +627,8 @@
                 }
             });
 
+            container._chartInstance = chart;
+
             const raw = type === 'CE' ? data.ce_today : data.pe_today;
             const seriesData = normalizeData(raw);
 
@@ -744,6 +774,92 @@
                     closeBtn.addEventListener('click', hidePanel);
                 }
             }
+
+
+            const body = document.body;
+            let currentFullscreenCard = null;
+
+            function resizeChartInCard(card) {
+                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                if (!chartDiv || !window.LightweightCharts) return;
+
+                const width = card.clientWidth || window.innerWidth;
+                const height = card.clientHeight ? card.clientHeight - 60 : window.innerHeight * 0.8;
+
+                // we stored chart instances on the element when creating them (recommended)
+                const chart = chartDiv._chartInstance;
+                if (chart) {
+                    chart.applyOptions({ width, height });
+                }
+            }
+
+            function enterFullscreen(card) {
+                if (currentFullscreenCard) {
+                    exitFullscreen(currentFullscreenCard);
+                }
+
+                currentFullscreenCard = card;
+
+                card.classList.add(
+                    'fixed', 'inset-0', 'z-50',
+                    'bg-white', 'p-4', 'overflow-auto'
+                );
+                card.style.width = '100vw';
+                card.style.height = '100vh';
+
+                body.classList.add('overflow-hidden');
+
+                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                if (chartDiv) {
+                    chartDiv.classList.remove('h-64');
+                    chartDiv.classList.add('h-[80vh]');
+                }
+
+                resizeChartInCard(card);
+            }
+
+            function exitFullscreen(card) {
+                card.classList.remove(
+                    'fixed', 'inset-0', 'z-50',
+                    'bg-white', 'p-4', 'overflow-auto'
+                );
+                card.style.width = '';
+                card.style.height = '';
+
+                body.classList.remove('overflow-hidden');
+
+                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                if (chartDiv) {
+                    chartDiv.classList.remove('h-[80vh]');
+                    chartDiv.classList.add('h-64');
+                }
+
+                resizeChartInCard(card);
+                currentFullscreenCard = null;
+            }
+
+            document.querySelectorAll('.chart-fullscreen-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const card = btn.closest('.chart-card');
+                    if (!card) return;
+
+                    const isFull = card.classList.contains('fixed');
+
+                    if (isFull) {
+                        exitFullscreen(card);
+                        btn.textContent = 'Full';
+                    } else {
+                        enterFullscreen(card);
+                        btn.textContent = 'Close';
+                    }
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                if (currentFullscreenCard) {
+                    resizeChartInCard(currentFullscreenCard);
+                }
+            });
         });
     </script>
 
