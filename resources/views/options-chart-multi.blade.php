@@ -7,7 +7,7 @@
 @section('content')
     <div class="w-full mx-auto px-4 py-4">
         {{-- Filters header --}}
-        <form method="GET" action="{{ route('options.multi.chart') }}" class="mb-4">
+        <form method="GET" action="{{ route('test.options.multi.chart') }}" class="mb-4">
             <div class="flex flex-wrap items-end gap-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Symbol</label>
@@ -201,7 +201,7 @@
                 <div class="max-h-[calc(100vh-6rem)] overflow-y-auto">
                     {{-- small form to tweak saturation threshold --}}
                     @if($symbol && $quoteDate && $expiryDate)
-                        <form method="GET" action="{{ route('options.multi.chart') }}" class="flex items-center gap-1 text-xs">
+                        <form method="GET" action="{{ route('test.options.multi.chart') }}" class="flex items-center gap-1 text-xs">
                             <input type="hidden" name="symbol" value="{{ $symbol }}">
                             <input type="hidden" name="quote_date" value="{{ $quoteDate }}">
                             <input type="hidden" name="expiry_date" value="{{ $expiryDate }}">
@@ -549,9 +549,7 @@
                 peInputs.forEach((el, i) => el.value = strikes[ i ] ?? '');
 
                 const btn = document.getElementById('submit_multi_strike');
-                console.log('s');
                 if (btn){
-                    console.log('t');
                     btn.click();
                 }
 

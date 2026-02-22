@@ -76,7 +76,7 @@ Route::get('/oi-buildup/expiries', [App\Http\Controllers\OiBuildupController::cl
 
 Route::get('/volume-buildup-live', [App\Http\Controllers\VolumeBuildupLiveController::class, 'index'])->name('volume-buildup.live');
 
-Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
+
 // AJAX: get expiries for a date + underlying
 Route::get('/api/multi-chart-expiries', [App\Http\Controllers\OhlcChartController::class, 'multiExpiries'])->name('api.multi-chart-expiries');
 
