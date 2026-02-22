@@ -141,7 +141,7 @@
                                         Full
                                     </button>
                                 </div>
-                                <div id="chart-ce-{{ $strike }}" class="h-64"></div>
+                                <div id="chart-ce-{{ $strike }}" class="chart-inner h-64"></div>
                             </div>
 
                             {{-- PE --}}
@@ -158,7 +158,7 @@
                                         Full
                                     </button>
                                 </div>
-                                <div id="chart-pe-{{ $strike }}" class="h-64"></div>
+                                <div id="chart-pe-{{ $strike }}" class="chart-inner h-64"></div>
                             </div>
 
                             {{-- Combined --}}
@@ -175,7 +175,7 @@
                                         Full
                                     </button>
                                 </div>
-                                <div id="combo-line-chart-{{ (int)$strike }}" class="h-64"></div>
+                                <div id="combo-line-chart-{{ (int)$strike }}" class="chart-inner h-64"></div>
                             </div>
                         @endforeach
                     </div>
@@ -782,17 +782,17 @@
             let currentFullscreenCard = null;
 
             function resizeChartInCard(card) {
-                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                const chartDiv = card.querySelector('.chart-inner');
                 if (!chartDiv || !window.LightweightCharts) return;
 
                 const chart = chartDiv._chartInstance;
                 if (!chart) return;
 
-                const width  = card.clientWidth  || window.innerWidth;
-                const height = card.clientHeight ? card.clientHeight - 60 : window.innerHeight * 0.85;
+                const width  = window.innerWidth;
+                const height = window.innerHeight;
 
                 chart.applyOptions({ width, height });
-                chart.timeScale().fitContent();   // <=== important so data fills the width
+                chart.timeScale().fitContent();
             }
 
             function enterFullscreen(card) {
@@ -802,48 +802,47 @@
 
                 currentFullscreenCard = card;
 
-                card.classList.add('fixed', 'inset-0', 'z-50', 'bg-white', 'p-4', 'overflow-auto');
-                card.style.width  = '100vw';
-                card.style.height = '100vh';
+                card.classList.add('chart-fullscreen');
+                body.classList.add('overflow-hidden');
 
-                document.body.classList.add('overflow-hidden');
-
-                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                const chartDiv = card.querySelector('.chart-inner');
                 if (chartDiv) {
-                    chartDiv.classList.remove('h-64');
-                    chartDiv.classList.add('h-[85vh]');
+                    chartDiv.classList.add('chart-inner-full');
                 }
 
                 resizeChartInCard(card);
             }
-
 
             function exitFullscreen(card) {
-                card.classList.remove(
-                    'fixed', 'inset-0', 'z-50',
-                    'bg-white', 'p-4', 'overflow-auto'
-                );
-                card.style.width = '';
-                card.style.height = '';
-
+                card.classList.remove('chart-fullscreen');
                 body.classList.remove('overflow-hidden');
 
-                const chartDiv = card.querySelector('div[id^="chart-"], div[id^="combo-line-chart-"]');
+                const chartDiv = card.querySelector('.chart-inner');
                 if (chartDiv) {
-                    chartDiv.classList.remove('h-[80vh]');
-                    chartDiv.classList.add('h-64');
+                    chartDiv.classList.remove('chart-inner-full');
                 }
 
-                resizeChartInCard(card);
+                // restore small size using container width/height
+                const chartDiv2 = card.querySelector('.chart-inner');
+                if (chartDiv2 && chartDiv2._chartInstance) {
+                    chartDiv2._chartInstance.applyOptions({
+                        width: card.clientWidth,
+                        height: 250
+                    });
+                    chartDiv2._chartInstance.timeScale().fitContent();
+                }
+
                 currentFullscreenCard = null;
             }
+
+
 
             document.querySelectorAll('.chart-fullscreen-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const card = btn.closest('.chart-card');
                     if (!card) return;
 
-                    const isFull = card.classList.contains('fixed');
+                    const isFull = card.classList.contains('chart-fullscreen');
 
                     if (isFull) {
                         exitFullscreen(card);
@@ -862,5 +861,24 @@
             });
         });
     </script>
+
+    <style>
+        .chart-fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: #fff;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .chart-inner {
+            height: 16rem; /* h-64 */
+        }
+
+        .chart-inner-full {
+            height: 100vh;
+        }
+    </style>
 
 @endsection
