@@ -409,12 +409,12 @@
             const comboChart = LightweightCharts.createChart(container, {
                 height: 260,
                 layout: { background: { color: '#ffffff' }, textColor: '#333' },
-                rightPriceScale: { borderVisible: false },
                 timeScale: {
                     borderVisible: false,
                     timeVisible: true,
                     secondsVisible: false
                 },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 grid: {
                     vertLines: { visible: false },
                     horzLines: { visible: false }
@@ -499,6 +499,47 @@
                     { time: tLast,  value: avgAll }
                 ]);
             }
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'absolute bg-black text-white text-xs px-2 py-1 rounded opacity-0 ' +
+                'transition-opacity z-50 pointer-events-none';
+            tooltip.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            container.style.position = 'relative';
+            container.appendChild(tooltip);
+
+            comboChart.subscribeCrosshairMove(param => {
+                if (
+                    !param.time ||
+                    !param.point ||
+                    param.point.x < 0 ||
+                    param.point.y < 0 ||
+                    param.point.x > container.clientWidth ||
+                    param.point.y > container.clientHeight
+                ) {
+                    tooltip.style.opacity = '0';
+                    return;
+                }
+
+                const cePoint = param.seriesData.get(ceLineSeries);
+                const pePoint = param.seriesData.get(peLineSeries);
+
+                if (!cePoint && !pePoint) {
+                    tooltip.style.opacity = '0';
+                    return;
+                }
+
+                const ceVal = cePoint ? cePoint.value : null;
+                const peVal = pePoint ? pePoint.value : null;
+
+                tooltip.innerHTML = `
+        ${ceVal != null ? `<div>CE: ${ceVal.toFixed(2)}</div>` : ''}
+        ${peVal != null ? `<div>PE: ${peVal.toFixed(2)}</div>` : ''}
+    `;
+
+                tooltip.style.left = (param.point.x + 10) + 'px';
+                tooltip.style.top  = (param.point.y + 10) + 'px';
+                tooltip.style.opacity = '1';
+            });
 
             comboChart.timeScale().fitContent();
         }
@@ -783,73 +824,83 @@
 
             function resizeChartInCard(card) {
                 const chartDiv = card.querySelector('.chart-inner');
-                if (!chartDiv || !window.LightweightCharts) return;
+                if (!chartDiv || !chartDiv._chartInstance) return;
 
                 const chart = chartDiv._chartInstance;
-                if (!chart) return;
 
+                // leave some space for axis and header (~60px)
                 const width  = window.innerWidth;
-                const height = window.innerHeight;
+                const height = window.innerHeight - 60;
 
                 chart.applyOptions({ width, height });
-                chart.timeScale().fitContent();
+                chart.timeScale().fitContent(); // do NOT change timeScale options here
             }
 
-            function enterFullscreen(card) {
-                if (currentFullscreenCard) {
-                    exitFullscreen(currentFullscreenCard);
+            function enterFullscreen(card, btn) {
+                if (currentFullscreenCard && currentFullscreenCard !== card) {
+                    // close previous fullscreen card if any
+                    const prevBtn = currentFullscreenCard.querySelector('.chart-fullscreen-btn');
+                    exitFullscreen(currentFullscreenCard, prevBtn);
                 }
 
                 currentFullscreenCard = card;
 
-                card.classList.add('chart-fullscreen');
+                // make card cover viewport
+                card.classList.add('fixed', 'top-0', 'left-0', 'right-0', 'bottom-0', 'z-50', 'bg-white');
+                card.classList.remove('p-2', 'rounded-lg', 'shadow');
+                card.style.overflow = 'hidden';
+
                 body.classList.add('overflow-hidden');
 
                 const chartDiv = card.querySelector('.chart-inner');
                 if (chartDiv) {
-                    chartDiv.classList.add('chart-inner-full');
+                    chartDiv.classList.remove('h-64');
+                    chartDiv.style.height = (window.innerHeight - 60) + 'px';
                 }
+
+                if (btn) btn.textContent = 'Close';
 
                 resizeChartInCard(card);
             }
 
-            function exitFullscreen(card) {
-                card.classList.remove('chart-fullscreen');
+            function exitFullscreen(card, btn) {
+                card.classList.remove('fixed', 'top-0', 'left-0', 'right-0', 'bottom-0', 'z-50', 'bg-white');
+                card.classList.add('p-2', 'rounded-lg', 'shadow');
+                card.style.overflow = '';
+
                 body.classList.remove('overflow-hidden');
 
                 const chartDiv = card.querySelector('.chart-inner');
                 if (chartDiv) {
-                    chartDiv.classList.remove('chart-inner-full');
+                    chartDiv.style.height = '';
+                    chartDiv.classList.add('h-64');
                 }
 
-                // restore small size using container width/height
-                const chartDiv2 = card.querySelector('.chart-inner');
-                if (chartDiv2 && chartDiv2._chartInstance) {
-                    chartDiv2._chartInstance.applyOptions({
-                        width: card.clientWidth,
+                // resize chart back to card size
+                if (chartDiv && chartDiv._chartInstance) {
+                    chartDiv._chartInstance.applyOptions({
+                        width: card.clientWidth || 350,
                         height: 250
                     });
-                    chartDiv2._chartInstance.timeScale().fitContent();
+                    chartDiv._chartInstance.timeScale().fitContent();
                 }
+
+                if (btn) btn.textContent = 'Full';
 
                 currentFullscreenCard = null;
             }
-
-
 
             document.querySelectorAll('.chart-fullscreen-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const card = btn.closest('.chart-card');
                     if (!card) return;
 
-                    const isFull = card.classList.contains('chart-fullscreen');
+                    const isFull = card.classList.contains('fixed');
 
                     if (isFull) {
-                        exitFullscreen(card);
-                        btn.textContent = 'Full';
+                        exitFullscreen(card, btn);
                     } else {
-                        enterFullscreen(card);
-                        btn.textContent = 'Close';
+                        enterFullscreen(card, btn);
                     }
                 });
             });
@@ -877,7 +928,7 @@
         }
 
         .chart-inner-full {
-            height: 100vh;
+            height: 90vh;
         }
     </style>
 
