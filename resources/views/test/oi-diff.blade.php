@@ -14,8 +14,11 @@
                 </h1>
                 <p class="text-slate-400 text-xs mt-0.5">
                     Track open-interest and volume changes across 6 strike prices.
-                    Top-3 positive <span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500 align-middle"></span>
-                    and negative <span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-500 align-middle"></span> diffs are highlighted.
+                    Top-3 positive
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500 align-middle"></span>
+                    and negative
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm bg-red-500 align-middle"></span>
+                    diffs are highlighted.
                 </p>
             </div>
             <div class="flex items-center gap-4 text-xs text-slate-400">
@@ -130,7 +133,7 @@
                             Time
                         </th>
                         @foreach($allStrikes as $strike)
-                            <th colspan="6"
+                            <th colspan="8"
                                 class="px-2 py-2 text-center font-bold text-white tracking-widest
                                border-l border-slate-600 bg-slate-700">
                                 {{ number_format((int)$strike) }}
@@ -139,10 +142,10 @@
                     </tr>
 
                     {{-- Row 2: CE / PE --}}
-                    <tr class="sticky z-30 bg-slate-600 border-b-2 border-slate-500">
+                    <tr class="sticky  top-[30px] z-30 bg-slate-600 border-b-2 border-slate-500">
                         @foreach($allStrikes as $strike)
                             @foreach(['CE','PE'] as $type)
-                                <th colspan="3"
+                                <th colspan="4"
                                     class="px-2 py-1.5 text-center font-bold border-l border-slate-500 whitespace-nowrap bg-slate-600
                                    {{ $type === 'CE' ? 'text-sky-300' : 'text-rose-300' }}">
                                     {{ $type }}
@@ -152,15 +155,14 @@
                     </tr>
 
                     {{-- Row 3: Column labels --}}
-                    <tr class="sticky top-[73px] z-30 bg-slate-100 border-b border-slate-300 text-slate-500">
+                    <tr class="sticky top-[57px] z-30 bg-slate-600 border-b-2 border-slate-500 text-white">
+                        <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600"></th>
                         @foreach($allStrikes as $_)
                             @foreach(['CE','PE'] as $__)
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap
-                                   font-semibold bg-slate-100 text-slate-500">Close Δ</th>
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap
-                                   font-semibold bg-slate-100 text-slate-500">OI Δ</th>
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap
-                                   font-semibold bg-slate-100 text-slate-500">Vol Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">Close Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">OI Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">Vol Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">BU</th>
                             @endforeach
                         @endforeach
                     </tr>
@@ -186,32 +188,61 @@
                                         $cell    = $tableData[$ts][$strike][$type] ?? [];
                                         $cellKey = "{$ts}|{$strike}|{$type}";
 
-                                        // Close diff
+                                        // ── Close diff ───────────────────────────────────────────────────────
                                         $closeDiff  = $cell['close_diff'] ?? null;
                                         $closeClass = $closeDiff === null ? 'text-slate-300'
                                             : ($closeDiff > 0 ? 'text-emerald-600 font-semibold'
                                             : ($closeDiff < 0 ? 'text-red-500 font-semibold' : 'text-slate-400'));
 
-                                        // OI diff
+                                        // ── OI diff ──────────────────────────────────────────────────────────
                                         $oiDiff = $cell['oi_diff'] ?? null;
+
                                         if (isset($highlight['oi_pos'][$cellKey]))
-                                            $oiBg = 'bg-emerald-100 text-emerald-700 font-bold ring-1 ring-emerald-400';
+                                            // Overall top 3 positive — solid fill
+                                            $oiBg = 'bg-emerald-500 text-white font-bold ring-2 ring-emerald-400 ring-offset-1';
                                         elseif (isset($highlight['oi_neg'][$cellKey]))
-                                            $oiBg = 'bg-red-100 text-red-700 font-bold ring-1 ring-red-400';
+                                            // Overall top 3 negative — solid fill
+                                            $oiBg = 'bg-red-500 text-white font-bold ring-2 ring-red-400 ring-offset-1';
+                                        elseif (isset($highlight['strike_oi_pos'][$cellKey]))
+                                            // Per-strike top 3 positive — outlined style
+                                            $oiBg = 'border-2 border-emerald-400 text-emerald-700 font-bold underline decoration-emerald-400 decoration-2';
+                                        elseif (isset($highlight['strike_oi_neg'][$cellKey]))
+                                            // Per-strike top 3 negative — outlined style
+                                            $oiBg = 'border-2 border-red-400 text-red-700 font-bold underline decoration-red-400 decoration-2';
                                         else
                                             $oiBg = $oiDiff === null ? 'text-slate-300'
                                                 : ($oiDiff > 0 ? 'text-emerald-600' : ($oiDiff < 0 ? 'text-red-500' : 'text-slate-400'));
 
-                                        // Vol diff
+                                        // ── Vol diff ─────────────────────────────────────────────────────────
                                         $volDiff = $cell['vol_diff'] ?? null;
+
                                         if (isset($highlight['vol_pos'][$cellKey]))
-                                            $volBg = 'bg-sky-100 text-sky-700 font-bold ring-1 ring-sky-400';
+                                            // Overall top 3 positive — solid fill
+                                            $volBg = 'bg-sky-500 text-white font-bold ring-2 ring-sky-400 ring-offset-1';
                                         elseif (isset($highlight['vol_neg'][$cellKey]))
-                                            $volBg = 'bg-orange-100 text-orange-700 font-bold ring-1 ring-orange-400';
+                                            // Overall top 3 negative — solid fill
+                                            $volBg = 'bg-orange-500 text-white font-bold ring-2 ring-orange-400 ring-offset-1';
+                                        elseif (isset($highlight['strike_vol_pos'][$cellKey]))
+                                            // Per-strike top 3 positive — outlined style
+                                            $volBg = 'border-2 border-sky-400 text-sky-700 font-bold underline decoration-sky-400 decoration-2';
+                                        elseif (isset($highlight['strike_vol_neg'][$cellKey]))
+                                            // Per-strike top 3 negative — outlined style
+                                            $volBg = 'border-2 border-orange-400 text-orange-700 font-bold underline decoration-orange-400 decoration-2';
                                         else
                                             $volBg = $volDiff === null ? 'text-slate-300'
                                                 : ($volDiff > 0 ? 'text-sky-600' : ($volDiff < 0 ? 'text-orange-500' : 'text-slate-400'));
+
+                                         // ── Build-up badge ───────────────────────────────────────────────────
+                                        $buildUp = $cell['build_up'] ?? null;
+                                        $buStyle = match($buildUp) {
+                                            'LB' => ['bg' => 'bg-emerald-500 text-white',      'title' => 'Long Build'],
+                                            'SB' => ['bg' => 'bg-red-500 text-white',           'title' => 'Short Build'],
+                                            'LU' => ['bg' => 'bg-yellow-400 text-yellow-900',   'title' => 'Long Unwind'],
+                                            'SC' => ['bg' => 'bg-blue-900 text-white',          'title' => 'Short Cover'],
+                                            default => ['bg' => '', 'title' => ''],
+                                        };
                                     @endphp
+
 
                                     {{-- Close Δ --}}
                                     <td class="px-2 py-2 text-center border-l border-slate-100 whitespace-nowrap
@@ -244,6 +275,18 @@
                                 @endif
                             </span>
                                     </td>
+                                    {{-- Build Up --}}
+                                    <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap">
+                                        @if($buildUp)
+                                            <span class="inline-block px-1.5 py-0.5 rounded text-xs font-bold tracking-wide
+                     {{ $buStyle['bg'] }}"
+                                                title="{{ $buStyle['title'] }}">
+            {{ $buildUp }}
+        </span>
+                                        @else
+                                            <span class="text-slate-200">—</span>
+                                        @endif
+                                    </td>
 
                                 @endforeach
                             @endforeach
@@ -268,26 +311,27 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const dateInput    = document.getElementById('dateInput');
+            const dateInput = document.getElementById('dateInput');
             const expirySelect = document.getElementById('expirySelect');
             const strikeInputs = document.querySelectorAll('.strike-input');
-            const suggestions  = document.getElementById('strikeSuggestions');
-            const toggleBtn    = document.getElementById('toggleStrikes');
+            const suggestions = document.getElementById('strikeSuggestions');
+            const toggleBtn = document.getElementById('toggleStrikes');
             const strikesPanel = document.getElementById('strikesPanel');
-            const strikeCount  = document.getElementById('strikeCount');
+            const strikeCount = document.getElementById('strikeCount');
 
             // ── Helper: build URL with query params ──────────────────────────────────
-            function buildUrl(base, params) {
+            function buildUrl (base, params) {
                 const url = new URL(base, window.location.origin);
                 Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
                 return url.toString();
             }
 
             // ── Strike count badge ────────────────────────────────────────────────────
-            function updateStrikeCount() {
+            function updateStrikeCount () {
                 const filled = Array.from(strikeInputs).filter(i => i.value.trim() !== '').length;
-                strikeCount.textContent = filled ? `(${filled})` : '';
+                strikeCount.textContent = filled ? `(${ filled })` : '';
             }
+
             strikeInputs.forEach(input => input.addEventListener('input', updateStrikeCount));
             updateStrikeCount();
 
@@ -299,7 +343,7 @@
             // ── On date change → fetch expiry + strikes + ATM in one call ────────────
             dateInput.addEventListener('change', function () {
                 const date = this.value;
-                if (!date) return;
+                if ( ! date) return;
 
                 expirySelect.innerHTML = '<option value="">Loading…</option>';
                 suggestions.classList.add('hidden');
@@ -312,20 +356,20 @@
                     .then(function (data) {
                         expirySelect.innerHTML = '';
 
-                        if (!data.expiry) {
+                        if ( ! data.expiry) {
                             expirySelect.innerHTML = '<option value="">— no expiry found —</option>';
                             return;
                         }
 
                         // Populate single expiry and auto-select
                         const option = document.createElement('option');
-                        option.value       = data.expiry;
+                        option.value = data.expiry;
                         option.textContent = data.expiry;
-                        option.selected    = true;
+                        option.selected = true;
                         expirySelect.appendChild(option);
 
-                        const strikes = (data.strikes || []).map(s => String(Math.round(Number(s))));
-                        const atm     = data.atm ? String(Math.round(Number(data.atm))) : null;
+                        const strikes = ( data.strikes || [] ).map(s => String(Math.round(Number(s))));
+                        const atm = data.atm ? String(Math.round(Number(data.atm))) : null;
 
                         // Auto-fill 6 boxes around ATM
                         if (atm && strikes.length) {
@@ -335,22 +379,22 @@
                             const start = atmIdx >= 0 ? Math.max(0, atmIdx - 2) : 0;
                             const slice = strikes.slice(start, start + 6);
                             strikeInputs.forEach(function (input, i) {
-                                input.value = slice[i] !== undefined ? slice[i] : '';
+                                input.value = slice[ i ] !== undefined ? slice[ i ] : '';
                             });
                             updateStrikeCount();
                         }
 
                         // Suggestion pills
                         strikes.slice(0, 40).forEach(function (s) {
-                            const pill     = document.createElement('button');
-                            pill.type      = 'button';
+                            const pill = document.createElement('button');
+                            pill.type = 'button';
                             pill.className = 'strike-pill bg-white border border-slate-300 hover:border-indigo-400 ' +
                                 'hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 ' +
                                 'text-xs px-2 py-1 rounded transition-colors duration-100 font-mono';
                             pill.textContent = s;
                             pill.addEventListener('click', function () {
                                 for (const input of strikeInputs) {
-                                    if (!input.value) {
+                                    if ( ! input.value) {
                                         input.value = s;
                                         updateStrikeCount();
                                         break;

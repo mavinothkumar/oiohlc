@@ -69,14 +69,25 @@ class OiDiffController extends Controller
 
                     $oiDiff  = ($curr && $prev) ? (int) $curr->open_interest - (int) $prev->open_interest : null;
                     $volDiff = ($curr && $prev) ? (int) $curr->volume - (int) $prev->volume               : null;
+                    $closeDiff = ($curr && $prev) ? round((float) $curr->close - (float) $prev->close, 2)  : null;
+
+// ── Build-up type ─────────────────────────────────────────────────────
+                    $buildUp = null;
+                    if ($oiDiff !== null && $closeDiff !== null) {
+                        if ($oiDiff > 0 && $closeDiff > 0)      $buildUp = 'LB'; // Long Build
+                        elseif ($oiDiff > 0 && $closeDiff < 0)  $buildUp = 'SB'; // Short Build
+                        elseif ($oiDiff < 0 && $closeDiff < 0)  $buildUp = 'LU'; // Long Unwind
+                        elseif ($oiDiff < 0 && $closeDiff > 0)  $buildUp = 'SC'; // Short Cover
+                    }
 
                     $tableData[$ts][$strike][$type] = [
                         'close'      => $curr ? (float) $curr->close : null,
-                        'close_diff' => ($curr && $prev) ? round((float) $curr->close - (float) $prev->close, 2) : null,
+                        'close_diff' => $closeDiff,
                         'oi'         => $curr ? (int) $curr->open_interest : null,
                         'oi_diff'    => $oiDiff,
                         'vol'        => $curr ? (int) $curr->volume : null,
                         'vol_diff'   => $volDiff,
+                        'build_up'   => $buildUp,
                     ];
 
                     $cellKey = "{$ts}|{$strike}|{$type}";
@@ -91,7 +102,7 @@ class OiDiffController extends Controller
             }
         }
 
-        $highlight = $this->computeHighlights($allOiDiffs, $allVolDiffs);
+        $highlight = $this->computeHighlights($allOiDiffs, $allVolDiffs, $strikes);
 
         $allStrikes = $strikes;
 
@@ -152,32 +163,68 @@ class OiDiffController extends Controller
     /**
      * Build highlight keys for top-3 positive/negative OI diff and Vol diff.
      */
-    private function computeHighlights(array $oiDiffs, array $volDiffs): array
+    private function computeHighlights(array $oiDiffs, array $volDiffs, array $strikes): array
     {
         $makeKey = fn($item) => "{$item['ts']}|{$item['strike']}|{$item['type']}";
 
-        // OI top 3 positive
+        // ── Overall top 3 ────────────────────────────────────────────────────────
         usort($oiDiffs, fn($a, $b) => $b['val'] <=> $a['val']);
-        $oiTopPos = array_map($makeKey, array_slice($oiDiffs, 0, 3));
+        $oiTopPos = array_flip(array_map($makeKey, array_slice($oiDiffs, 0, 3)));
 
-        // OI top 3 negative
         usort($oiDiffs, fn($a, $b) => $a['val'] <=> $b['val']);
-        $oiTopNeg = array_map($makeKey, array_slice($oiDiffs, 0, 3));
+        $oiTopNeg = array_flip(array_map($makeKey, array_slice($oiDiffs, 0, 3)));
 
-        // Vol top 3 positive
         usort($volDiffs, fn($a, $b) => $b['val'] <=> $a['val']);
-        $volTopPos = array_map($makeKey, array_slice($volDiffs, 0, 3));
+        $volTopPos = array_flip(array_map($makeKey, array_slice($volDiffs, 0, 3)));
 
-        // Vol top 3 negative
         usort($volDiffs, fn($a, $b) => $a['val'] <=> $b['val']);
-        $volTopNeg = array_map($makeKey, array_slice($volDiffs, 0, 3));
+        $volTopNeg = array_flip(array_map($makeKey, array_slice($volDiffs, 0, 3)));
+
+        // ── Per-strike top 3 ─────────────────────────────────────────────────────
+        $strikeOiPos  = [];
+        $strikeOiNeg  = [];
+        $strikeVolPos = [];
+        $strikeVolNeg = [];
+
+        foreach ($strikes as $strike) {
+            // Filter diffs for this strike only
+            $sOi  = array_values(array_filter($oiDiffs,  fn($x) => $x['strike'] == $strike));
+            $sVol = array_values(array_filter($volDiffs, fn($x) => $x['strike'] == $strike));
+
+            usort($sOi, fn($a, $b) => $b['val'] <=> $a['val']);
+            foreach (array_slice($sOi, 0, 3) as $item) {
+                $strikeOiPos[$makeKey($item)] = true;
+            }
+
+            usort($sOi, fn($a, $b) => $a['val'] <=> $b['val']);
+            foreach (array_slice($sOi, 0, 3) as $item) {
+                $strikeOiNeg[$makeKey($item)] = true;
+            }
+
+            usort($sVol, fn($a, $b) => $b['val'] <=> $a['val']);
+            foreach (array_slice($sVol, 0, 3) as $item) {
+                $strikeVolPos[$makeKey($item)] = true;
+            }
+
+            usort($sVol, fn($a, $b) => $a['val'] <=> $b['val']);
+            foreach (array_slice($sVol, 0, 3) as $item) {
+                $strikeVolNeg[$makeKey($item)] = true;
+            }
+        }
 
         return [
-            'oi_pos'  => array_flip($oiTopPos),
-            'oi_neg'  => array_flip($oiTopNeg),
-            'vol_pos' => array_flip($volTopPos),
-            'vol_neg' => array_flip($volTopNeg),
+            // Overall
+            'oi_pos'        => $oiTopPos,
+            'oi_neg'        => $oiTopNeg,
+            'vol_pos'       => $volTopPos,
+            'vol_neg'       => $volTopNeg,
+            // Per-strike
+            'strike_oi_pos'  => $strikeOiPos,
+            'strike_oi_neg'  => $strikeOiNeg,
+            'strike_vol_pos' => $strikeVolPos,
+            'strike_vol_neg' => $strikeVolNeg,
         ];
     }
+
 
 }
