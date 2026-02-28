@@ -20,21 +20,25 @@
             <div id="oi-alert-data"
                 data-threshold="{{ $threshold }}"
                 data-count="{{ $triggerRows->count() }}"
+                data-timestamp="{{ $triggerRows->first()['timestamp'] }}"
                 data-details='@json($triggerRows->values())'>
             </div>
         @endif
     @endif
 
-    <div class="max-w-full mx-auto px-4 py-6">
-        <h1 class="text-2xl font-semibold text-gray-900 mb-6">
-            OI Buildup Scanner
-        </h1>
 
+
+    <div class="max-w-full mx-auto px-4">
         {{-- Filters --}}
-        <form method="GET" action="{{ route('oi-buildup.index') }}" class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-4">
+        <form method="GET" action="{{ route('oi-buildup.index') }}" class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4 mb-4">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900 mb-6">
+                    OI Live Buildup
+                </h1>
 
-            <input type="hidden" name="underlying_symbol" id="underlying_symbol"
-                value="NIFTY">
+                <input type="hidden" name="underlying_symbol" id="underlying_symbol"
+                    value="NIFTY">
+            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">At</label>
                 <input
@@ -76,8 +80,8 @@
         @endif
 
         {{-- Results --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-4 gap-6">
-            @foreach([3, 6, 9, 15, 30, 375] as $i)
+        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-2">
+            @foreach([15, 3, 6,9, 30, 375] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-sm font-semibold text-gray-800">
@@ -96,7 +100,7 @@
                                 No data for this interval.
                             </p>
                         @else
-                            <div id="chart-{{ $i }}" class="h-100"></div>
+                            <div id="chart-{{ $i }}" class="h-75"></div>
                         @endif
                     </div>
                 </div>
@@ -129,20 +133,20 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const atInput      = document.getElementById('at_input');
-            const expiryInput  = document.getElementById('expiry_input');
+            const atInput = document.getElementById('at_input');
+            const expiryInput = document.getElementById('expiry_input');
             const underlyingEl = document.getElementById('underlying_symbol');
 
             console.log('Init', { atInput, expiryInput, underlyingEl }); // should all be non-null
 
-            if (!atInput || !expiryInput || !underlyingEl) return;
+            if ( ! atInput || ! expiryInput || ! underlyingEl) return;
 
             atInput.addEventListener('change', () => {
-                const at   = atInput.value;              // e.g. 2026-01-09T10:25
-                const sym  = underlyingEl.value;
-                if (!at || !sym) return;
+                const at = atInput.value;              // e.g. 2026-01-09T10:25
+                const sym = underlyingEl.value;
+                if ( ! at || ! sym) return;
 
-                fetch(`{{ route('oi-buildup.expiries') }}?underlying_symbol=${encodeURIComponent(sym)}&at=${encodeURIComponent(at)}`)
+                fetch(`{{ route('oi-buildup.expiries') }}?underlying_symbol=${ encodeURIComponent(sym) }&at=${ encodeURIComponent(at) }`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.expiry) {
@@ -163,16 +167,16 @@
 
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
-        (function () {
+        ( function () {
             const datasets = window.oiBuildupData || {};
 
             // Indian number formatter (K/L/C)
-            function formatIndianNumber(num) {
+            function formatIndianNumber (num) {
                 const n = Math.abs(num);
                 if (n >= 1e7) {           // crore
-                    return (num / 1e7).toFixed(1).replace(/\.0$/, '') + ' C';
+                    return ( num / 1e7 ).toFixed(1).replace(/\.0$/, '') + ' C';
                 } else if (n >= 1e5) {    // lakh
-                    return (num / 1e5).toFixed(1).replace(/\.0$/, '') + ' L';
+                    return ( num / 1e5 ).toFixed(1).replace(/\.0$/, '') + ' L';
                 } else if (n >= 1e3) {    // thousand -> full value
                     return Math.round(num).toString();
                 }
@@ -180,30 +184,30 @@
             }
 
             const colorByType = {
-                Long:   '#16a34a', // green 600
-                Short:  '#dc2626', // red 600
-                Cover:  '#0d2a7c', // blue 700 (navy-ish)
+                Long: '#16a34a', // green 600
+                Short: '#dc2626', // red 600
+                Cover: '#0d2a7c', // blue 700 (navy-ish)
                 Unwind: '#facc15', // yellow 400
                 Neutral: '#6b7280'
             };
 
             [3, 6, 9, 15, 30, 375].forEach(interval => {
-                const rows = datasets[interval] || [];
-                if (!rows.length) {
+                const rows = datasets[ interval ] || [];
+                if ( ! rows.length) {
                     return;
                 }
 
-                const categories = rows.map(r => `${parseInt(r.strike)} ${r.instrument_type}`);
+                const categories = rows.map(r => `${ parseInt(r.strike) } ${ r.instrument_type }`);
 
 // use absolute value so everything is plotted to the right
-                const values     = rows.map(r => Math.abs(r.delta_oi));
+                const values = rows.map(r => Math.abs(r.delta_oi));
 
-                const colors     = rows.map(r => colorByType[r.buildup] || colorByType.Neutral);
+                const colors = rows.map(r => colorByType[ r.buildup ] || colorByType.Neutral);
 
                 const options = {
                     chart: {
                         type: 'bar',
-                        height: 500,
+                        height: 350,
                         toolbar: { show: true }
                     },
                     plotOptions: {
@@ -239,12 +243,12 @@
                     tooltip: {
                         y: {
                             formatter: (val, opts) => {
-                                const row = rows[opts.dataPointIndex];
+                                const row = rows[ opts.dataPointIndex ];
                                 const signed = row.delta_oi;
                                 return [
-                                    `ΔOI: ${signed}`,
-                                    `ΔPx: ${row.delta_price.toFixed(2)}`,
-                                    `Type: ${row.buildup}`
+                                    `ΔOI: ${ signed }`,
+                                    `ΔPx: ${ row.delta_price.toFixed(2) }`,
+                                    `Type: ${ row.buildup }`
                                 ].join(' | ');
                             }
                         }
@@ -254,26 +258,35 @@
                     }
                 };
 
-                const el = document.querySelector(`#chart-${interval}`);
+                const el = document.querySelector(`#chart-${ interval }`);
                 if (el) {
                     const chart = new ApexCharts(el, options);
                     chart.render();
                 }
             });
-        })();
+        } )();
     </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const alertDataEl = document.getElementById('oi-alert-data');
-            if (!alertDataEl) {
+            if ( ! alertDataEl) {
                 return;
             }
 
             const threshold = parseInt(alertDataEl.dataset.threshold, 10);
             const rows = JSON.parse(alertDataEl.dataset.details || '[]');
+            const barTimestamp = alertDataEl.dataset.timestamp; // 3‑min bar time
 
-            if (!rows.length) {
+            if ( ! rows.length || ! barTimestamp) return;
+
+            // Build a unique key, you can include symbol/expiry if needed
+            const symbol = "{{ $filters['underlying_symbol'] ?? '' }}";
+            const expiry = "{{ $filters['expiry'] ?? '' }}";
+            const key = `oiAlert:${ symbol }:${ expiry }:${ barTimestamp }:thr:${ threshold }`;
+
+            // If this bar has already triggered an alert on this browser, skip
+            if (window.localStorage.getItem(key) === '1') {
                 return;
             }
 
@@ -285,14 +298,14 @@
             console.log(rows);
 
             // Build details HTML
-            let html = `<p>Found ${rows.length} contracts with |ΔOI| ≥ ${threshold.toLocaleString()} in 3‑minute data.</p>`;
+            let html = `<p>Found ${ rows.length } contracts with |ΔOI| ≥ ${ threshold.toLocaleString() } in 3‑minute data.</p>`;
             html += '<ul class="list-disc pl-5 space-y-1">';
             rows.slice(0, 5).forEach(r => {
                 html += `<li>
-            <span class="font-semibold">${r.strike} ${r.instrument_type}</span>
-            &nbsp;(${r.buildup}) |
-            ΔOI: ${r.delta_oi.toLocaleString()} |
-            ΔPrice: ${r.delta_price.toFixed(2)}
+            <span class="font-semibold">${ r.strike } ${ r.instrument_type }</span>
+            &nbsp;(${ r.buildup }) |
+            ΔOI: ${ r.delta_oi.toLocaleString() } |
+            ΔPrice: ${ r.delta_price.toFixed(2) }
         </li>`;
             });
             html += '</ul>';
@@ -317,6 +330,9 @@
             modal.addEventListener('click', function (e) {
                 if (e.target === modal) hideModal();
             });
+
+            // Mark this bar as alerted so next 2 auto‑reloads do NOT alert again
+            window.localStorage.setItem(key, '1');
         });
     </script>
 

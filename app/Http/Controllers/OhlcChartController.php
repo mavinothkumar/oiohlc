@@ -152,7 +152,8 @@ class OhlcChartController extends Controller
         $peKey  = $request->pe_instrument_key;
 
         // previous working day (for backtesting – ignore `current`/`previous` flags)
-        $prevDate = DB::table('nse_working_days')
+        $prevDate = $date;
+        DB::table('nse_working_days')
                       ->where('working_date', '<', $date)
                       ->orderBy('working_date', 'desc')
                       ->value('working_date');   // null if no earlier day

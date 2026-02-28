@@ -399,6 +399,21 @@
                 .sort((a, b) => a.time - b.time);
         }
 
+        function getNineThirtyTime(quoteDate) {
+            // your server already passes quoteDate into the blade
+            // we use local date since normalizeData also converts to UTC seconds
+            const d = new Date(quoteDate + 'T09:40:00');
+            return Date.UTC(
+                d.getFullYear(),
+                d.getMonth(),
+                d.getDate(),
+                d.getHours(),
+                d.getMinutes(),
+                d.getSeconds(),
+                d.getMilliseconds()
+            ) / 1000;
+        }
+
         // NEW: combined CE+PE line chart per strike (expects normalized data)
         // expects normalized ceData / peData, plus avgAtm (array or number) and avgAll (number)
         function renderComboLineChart(strike, ceData, peData, avgAtm, avgAll) {
@@ -407,8 +422,9 @@
             if (!container) return;
 
             const comboChart = LightweightCharts.createChart(container, {
-                height: 260,
-                layout: { background: { color: '#ffffff' }, textColor: '#333' },
+                width: container.clientWidth || 350,
+                height: container.clientHeight || 250,
+                layout: { background: { color: '#ffffff' }, textColor: '#000' },
                 timeScale: {
                     borderVisible: false,
                     timeVisible: true,
@@ -452,6 +468,26 @@
 
             const tFirst = ceLineData[0].time;
             const tLast  = ceLineData[ceLineData.length - 1].time;
+
+            const quoteDateJs = "{{ $quoteDate }}";
+            const nineThirty = getNineThirtyTime(quoteDateJs);
+
+            if (nineThirty >= tFirst && nineThirty <= tLast) {
+                const vlineSeries = comboChart.addLineSeries({
+                    color: '#9CA3AF',
+                    lineWidth: 1,
+                    priceLineVisible: false
+                });
+
+                const allValues = ceLineData.concat(peLineData).map(p => p.value);
+                const minVal = Math.min(...allValues);
+                const maxVal = Math.max(...allValues);
+
+                vlineSeries.setData([
+                    { time: nineThirty, value: minVal },
+                    { time: nineThirty, value: maxVal }
+                ]);
+            }
 
             // same avgAtm logic as loadSingleChart
             if (Array.isArray(avgAtm) && avgAtm.length > 0) {
@@ -690,6 +726,25 @@
             const tFirst = seriesData[ 0 ].time;
             const tLast = seriesData[ seriesData.length - 1 ].time;
 
+//             const nineThirty = getNineThirtyTime(date); // 'date' is already a param of loadSingleChart
+// // only draw if it falls inside the data range
+//             if (nineThirty >= tFirst && nineThirty <= tLast) {
+//                 const vlineSeries = chart.addLineSeries({
+//                     color: '#9CA3AF',      // gray
+//                     lineWidth: 1,
+//                     priceLineVisible: false
+//                 });
+//
+//                 // use min/max close as dummy values just to span the full height
+//                 const minClose = Math.min(...seriesData.map(c => c.close));
+//                 const maxClose = Math.max(...seriesData.map(c => c.close));
+//
+//                 vlineSeries.setData([
+//                     { time: nineThirty, value: minClose },
+//                     { time: nineThirty, value: maxClose }
+//                 ]);
+//             }
+
             if (Array.isArray(avgAtm) && avgAtm.length > 0) {
                 const redShades = [
                     '#FFB3B3',
@@ -767,6 +822,9 @@
                 tooltip.style.opacity = '1';
             });
 
+
+
+
             chart.timeScale().fitContent();
         }
 
@@ -778,6 +836,7 @@
             const symbol = symbolInput ? symbolInput.value : null;
             const date = quoteDateInput ? quoteDateInput.value : null;
             const expiry = expiryDateInput ? expiryDateInput.value : null;
+            const nineThirty = getNineThirtyTime(date);
 
             const ceStrikesPhp = @json($ceStrikes ?? []);
             const avgAtmPhp = @json($avgAtm);

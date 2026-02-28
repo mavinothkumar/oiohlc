@@ -152,7 +152,6 @@ class SyncNiftyOptionOhlcFromIndex extends Command
                 'updated_at'        => now(),
             ];
         }
-
         // Bulk upsert in chunks
         foreach (array_chunk($rows, 500) as $chunk) {
             DB::table('expired_ohlc')->upsert(

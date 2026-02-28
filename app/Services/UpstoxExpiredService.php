@@ -72,6 +72,7 @@ class UpstoxExpiredService
         );
 
 
+
         $response = $this->client()->get($this->baseUrl.$path);
         $response->throw();
 
