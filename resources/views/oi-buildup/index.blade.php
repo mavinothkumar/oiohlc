@@ -33,7 +33,7 @@
         <form method="GET" action="{{ route('oi-buildup.index') }}" class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4 mb-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 mb-6">
-                    OI Live Buildup
+                    OI Backtest Buildup
                 </h1>
 
                 <input type="hidden" name="underlying_symbol" id="underlying_symbol"

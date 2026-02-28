@@ -91,4 +91,9 @@ Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::clas
 Route::prefix('test')->name('test.')->group(function () {
     Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
     Route::get('/index-futures-chart', [App\Http\Controllers\IndexFuturesChartController::class, 'index'])->name('index.futures.chart');
+
+
+    Route::get('/oi-diff', [App\Http\Controllers\OiDiffController::class, 'index'])->name('oi.diff');
+    Route::get('/oi-diff/expiries', [App\Http\Controllers\OiDiffController::class, 'fetchExpiries'])->name('oi.diff.expiries');
+
 });
