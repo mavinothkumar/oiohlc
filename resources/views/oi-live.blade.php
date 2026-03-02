@@ -54,8 +54,8 @@
             <div class="flex flex-col gap-1">
                 <label class="text-gray-400 text-[11px] font-semibold uppercase tracking-wider">Strikes <span id="strikes-count" class="text-blue-400">(6)</span></label>
                 <select id="strikesSelect" class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="2">2 each side (5 total)</option>
-                    <option value="3" selected>3 each side (7 total)</option>
+                    <option value="2" selected>2 each side (5 total)</option>
+                    <option value="3">3 each side (7 total)</option>
                     <option value="4">4 each side (9 total)</option>
                     <option value="5">5 each side (11 total)</option>
                 </select>
@@ -382,7 +382,7 @@
         document.getElementById('resetBtn').addEventListener('click', () => {
             document.getElementById('symbolSelect').value  = 'NIFTY';
             document.getElementById('dateInput').value     = new Date().toISOString().slice(0, 10);
-            document.getElementById('strikesSelect').value = '3';
+            document.getElementById('strikesSelect').value = '2';
             document.getElementById('expirySelect').innerHTML = '<option value="">-- Auto --</option>';
             document.getElementById('chain-thead').innerHTML = '';
             document.getElementById('chain-tbody').innerHTML =
