@@ -114,15 +114,42 @@ class OiDiffLiveController extends Controller
         });
 
 
-        // ── 7. Top-3 across entire day ────────────────────────────────────────
-        $top3OiPos  = $allRows->where('diff_oi', '>', 0)->sortByDesc('diff_oi')
-                              ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
-        $top3OiNeg  = $allRows->where('diff_oi', '<', 0)->sortBy('diff_oi')
-                              ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
-        $top3VolPos = $allRows->where('diff_volume', '>', 0)->sortByDesc('diff_volume')
-                              ->take(3)->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray();
+        // ── 7. GLOBAL Top-3: High OI +/- and High Volume +/- across ALL strikes ──
+        $top3OiPos  = $allRows->where('diff_oi', '>', 0)
+                              ->sortByDesc('diff_oi')->take(3)
+                              ->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
 
-        // ── 8. Build rows — KEY FIX: cast strike_price to int ────────────────
+        $top3OiNeg  = $allRows->where('diff_oi', '<', 0)
+                              ->sortBy('diff_oi')->take(3)
+                              ->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
+
+        $top3VolPos = $allRows->where('diff_volume', '>', 0)
+                              ->sortByDesc('diff_volume')->take(3)
+                              ->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray();
+
+        $top3VolNeg = $allRows->where('diff_volume', '<', 0)
+                              ->sortBy('diff_volume')->take(3)
+                              ->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray();
+
+// ── 8. PER-STRIKE Top-3: for border-only highlighting ────────────────────
+// For each strike, find top 3 positive and negative diff_oi and diff_volume
+        $perStrikeHighlights = [];
+        foreach ($strikes as $strike) {
+            $strikeRows = $allRows->filter(fn($r) => (int)(float)$r->strike_price === $strike);
+
+            $perStrikeHighlights[$strike] = [
+                'oi_pos'  => $strikeRows->where('diff_oi', '>', 0)->sortByDesc('diff_oi')
+                                        ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray(),
+                'oi_neg'  => $strikeRows->where('diff_oi', '<', 0)->sortBy('diff_oi')
+                                        ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray(),
+                'vol_pos' => $strikeRows->where('diff_volume', '>', 0)->sortByDesc('diff_volume')
+                                        ->take(3)->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray(),
+                'vol_neg' => $strikeRows->where('diff_volume', '<', 0)->sortBy('diff_volume')
+                                        ->take(3)->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray(),
+            ];
+        }
+
+// ── 9. Build rows ─────────────────────────────────────────────────────────
         $rows = [];
         foreach ($snapshots as $time => $timeRows) {
             $ceData = $timeRows->where('option_type', 'CE')->keyBy(fn($r) => (int)(float)$r->strike_price);
@@ -154,6 +181,7 @@ class OiDiffLiveController extends Controller
             ];
         }
 
+
         return response()->json([
             'symbol'          => $symbol,
             'quote_date'      => $quoteDate,
@@ -163,11 +191,13 @@ class OiDiffLiveController extends Controller
             'atm_index_open'  => $atmIndexOpen,
             'atm'             => $atm,
             'strikes'         => $strikes,       // array of ints
-            'top3_oi_pos'     => $top3OiPos,
-            'top3_oi_neg'     => $top3OiNeg,
-            'top3_vol_pos'    => $top3VolPos,
-            'rows'            => $rows,
-            'last_updated'    => now()->setTimezone('Asia/Kolkata')->format('d M Y, H:i:s'),
+            'top3_oi_pos'          => $top3OiPos,
+            'top3_oi_neg'          => $top3OiNeg,
+            'top3_vol_pos'         => $top3VolPos,
+            'top3_vol_neg'         => $top3VolNeg,            // NEW
+            'per_strike_highlights' => $perStrikeHighlights,  // NEW
+            'rows'                 => $rows,
+            'last_updated'         => now()->format('d M Y, H:i:s'),
             'debug'           => [
                 'underlying_key' => $underlyingKey,
                 'total_rows'     => $allRows->count(),

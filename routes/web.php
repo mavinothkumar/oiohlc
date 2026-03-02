@@ -90,6 +90,9 @@ Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::clas
 Route::get('/oi-diff-live', [\App\Http\Controllers\OiDiffLiveController::class, 'index'])->name('oi-diff-live.index');
 Route::get('/oi-diff-live/data', [\App\Http\Controllers\OiDiffLiveController::class, 'data'])->name('oi-diff-live.data');
 
+Route::get('/build-up-snapshot', [App\Http\Controllers\BuildUpSnapshotController::class, 'index'])->name('buildup.snapshot');
+
+
 Route::prefix('test')->name('test.')->group(function () {
     Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
     Route::get('/index-futures-chart', [App\Http\Controllers\IndexFuturesChartController::class, 'index'])->name('index.futures.chart');

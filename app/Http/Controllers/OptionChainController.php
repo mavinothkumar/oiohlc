@@ -28,7 +28,7 @@ class OptionChainController extends Controller
         }
 
         /* latest underlying strike for the trading day */
-        $underlying = DB::table('option_chains_3m')
+        $underlying = DB::table('option_chains')
                         ->where('trading_symbol', $symbol)
                         ->where('expiry', $expiry)
                         ->whereDate('captured_at', $date)
@@ -75,7 +75,7 @@ class OptionChainController extends Controller
         $largestSkipped = function ($col, $type) use (
             $symbol, $expiry, $minStrike, $maxStrike, $date, $timeList
         ) {
-            return DB::table('option_chains_3m')
+            return DB::table('option_chains')
                      ->select('captured_at','strike_price','option_type','diff_oi','diff_volume')
                      ->where('trading_symbol',  $symbol)
                      ->where('expiry', $expiry)
@@ -259,7 +259,7 @@ class OptionChainController extends Controller
                     ->value('expiry_date');
 
         // 2. Get latest underlying_spot_price for this symbol/expiry
-        $latestSpotRow = DB::table('option_chains_3m')
+        $latestSpotRow = DB::table('option_chains')
                            ->where('trading_symbol', $symbol)
                            ->where('expiry', $expiry)
                            ->orderByDesc('captured_at')
@@ -277,7 +277,7 @@ class OptionChainController extends Controller
         $latestSpot = $latestSpotRow->underlying_spot_price;
 
         // 3. Find the closest ATM strike
-        $strikes = DB::table('option_chains_3m')
+        $strikes = DB::table('option_chains')
                      ->where('trading_symbol', $symbol)
                      ->where('expiry', $expiry)
                      ->pluck('strike_price')
@@ -300,7 +300,7 @@ class OptionChainController extends Controller
 
         // 4. For each timestamp, pull rows within window for CE and PE, group by timestamp
         $result = [];
-        $timestamps = DB::table('option_chains_3m')
+        $timestamps = DB::table('option_chains')
                         ->where('trading_symbol', $symbol)
                         ->where('expiry', $expiry)
                         ->select('captured_at')
@@ -311,7 +311,7 @@ class OptionChainController extends Controller
 
         foreach ($timestamps as $timestamp) {
             foreach (['CE', 'PE'] as $optionType) {
-                $windowRows = DB::table('option_chains_3m')
+                $windowRows = DB::table('option_chains')
                                 ->where('trading_symbol', $symbol)
                                 ->where('expiry', $expiry)
                                 ->where('captured_at', $timestamp)
@@ -378,7 +378,7 @@ class OptionChainController extends Controller
             if (!$expiry) continue;
 
             // 2. Latest spot
-            $latestSpotRow = DB::table('option_chains_3m')
+            $latestSpotRow = DB::table('option_chains')
                                ->where('trading_symbol', $symbol)
                                ->where('expiry', $expiry)
                                ->orderByDesc('captured_at')
@@ -387,7 +387,7 @@ class OptionChainController extends Controller
             $latestSpot = $latestSpotRow->underlying_spot_price;
 
             // 3. All strikes
-            $strikes = DB::table('option_chains_3m')
+            $strikes = DB::table('option_chains')
                          ->where('trading_symbol', $symbol)
                          ->where('expiry', $expiry)
                          ->pluck('strike_price')
@@ -407,7 +407,7 @@ class OptionChainController extends Controller
             $strikeWindowArr = $strikes->slice(max(0, $atmIndex - $halfWindow), $strikeWindow);
 
             // 5. Distinct timestamps (latest first!)
-            $timestamps = DB::table('option_chains_3m')
+            $timestamps = DB::table('option_chains')
                             ->where('trading_symbol', $symbol)
                             ->where('expiry', $expiry)
                             ->select('captured_at')
@@ -425,7 +425,7 @@ class OptionChainController extends Controller
                     'PE' => null
                 ];
                 foreach (['CE', 'PE'] as $optionType) {
-                    $windowRows = DB::table('option_chains_3m')
+                    $windowRows = DB::table('option_chains')
                                     ->where('trading_symbol', $symbol)
                                     ->where('expiry', $expiry)
                                     ->where('captured_at', $timestamp)

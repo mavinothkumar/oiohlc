@@ -8,7 +8,7 @@
         {{-- Title Bar --}}
         <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
-                <h1 class="text-base font-bold text-white tracking-wide" id="page-title">
+                <h1 class="text-base font-bold tracking-wide" id="page-title">
                     NIFTY — OI &amp; Volume Diff
                     <span class="text-gray-400 font-normal text-xs">(3-minute candles)</span>
                 </h1>
@@ -78,7 +78,7 @@
         {{-- Table wrapper --}}
         <div class="overflow-auto rounded-xl border border-gray-700 max-h-[78vh]" id="table-wrapper">
             <table class="chain-table w-full text-[11px]" id="chain-table">
-                <thead id="chain-thead" class="sticky top-0 z-20"></thead>
+                <thead id="chain-thead" class="sticky top-0"></thead>
                 <tbody id="chain-tbody">
                 <tr><td colspan="99" class="py-10 text-center text-gray-500">Select options and click Load Table.</td></tr>
                 </tbody>
@@ -103,7 +103,7 @@
         // ── Formatters ──────────────────────────────────────────────────────────────
         const fmtLtp  = v => v === null || v === undefined ? '—' : (parseFloat(v) >= 0 ? '+' : '') + parseFloat(v).toFixed(2);
         const fmtNum  = v => v === null || v === undefined ? '—' : (parseInt(v) >= 0 ? '+' : '') + parseInt(v).toLocaleString('en-IN');
-        const numVal  = v => v === null || v === undefined ? null : parseFloat(v);
+        const numVal = v => (v === null || v === undefined) ? null : parseFloat(v);
 
         function buClass(bu) {
             if (!bu) return 'bu-blank';
@@ -119,7 +119,7 @@
         // ── Highlight resolver ───────────────────────────────────────────────────────
         function inTop3(val, arr) {
             const v = numVal(val);
-            if (v === null || !arr.length) return false;
+            if (v === null || !arr || !arr.length) return false;
             return arr.some(t => Math.abs(Number(t) - v) < 0.01);
         }
         function oiCellClass(val, top3pos, top3neg) {
@@ -135,10 +135,21 @@
             if (inTop3(val, top3vol)) return 'text-blue-300 font-bold ring-1 ring-blue-400 rounded px-0.5';
             return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
         }
-        function ltpClass(val) {
+
+        function globalOiClass(val, top3pos, top3neg) {
             const v = numVal(val);
             if (v === null) return 'text-gray-600';
-            return v > 0 ? 'text-green-300' : v < 0 ? 'text-red-300' : 'text-gray-400';
+            if (inTop3(val, top3pos)) return 'bg-green-700/60 text-green-100 font-bold rounded px-1 ring-yellow-400 ring-2 ';
+            if (inTop3(val, top3neg)) return 'bg-red-700/60 text-red-100 font-bold rounded px-1 ring-yellow-400 ring-2 ';
+            return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
+        }
+
+        function globalVolClass(val, top3pos, top3neg) {
+            const v = numVal(val);
+            if (v === null) return 'text-gray-600';
+            if (inTop3(val, top3pos)) return 'bg-green-700/60 text-green-100 font-bold rounded px-1 ring-yellow-400 ring-2 ';
+            if (inTop3(val, top3neg)) return 'bg-red-700/60 text-red-100 font-bold rounded px-1 ring-yellow-400 ring-2 ';
+            return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
         }
 
         // ── Build thead ──────────────────────────────────────────────────────────────
@@ -183,50 +194,61 @@
         }
 
         // ── Build tbody ──────────────────────────────────────────────────────────────
-        function buildBody(rows, strikes, top3OiPos, top3OiNeg, top3VolPos) {
+        function buildBody(rows, strikes, top3OiPos, top3OiNeg, top3VolPos, top3VolNeg, perStrikeHighlights) {
             const tbody = document.getElementById('chain-tbody');
+
             if (!rows.length) {
                 tbody.innerHTML = '<tr><td colspan="99" class="py-10 text-center text-gray-500">No data for selected date/expiry.</td></tr>';
                 return;
             }
 
             let html = '';
+
             rows.forEach((row, idx) => {
                 const rowBg = idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-950';
                 html += `<tr class="${rowBg} border-b border-gray-800 hover:bg-gray-800/60 transition-colors">`;
-                // TIME
+
+                // TIME column
                 html += `<td class="col-time px-3 py-1.5 font-semibold text-gray-300 border-r border-gray-700 text-center">${row.time}</td>`;
 
                 strikes.forEach(strike => {
-                    const sd  = row.strike_data[strike] ?? {};
+                    const sd  = row.strike_data[String(strike)] ?? {};
                     const ce  = sd.ce;
                     const pe  = sd.pe;
+                    const psh = perStrikeHighlights[String(strike)] ?? { oi_pos:[], oi_neg:[], vol_pos:[], vol_neg:[] };
 
-                    // CE
-                    const ceLtp  = ce?.diff_ltp;
-                    const ceOi   = ce?.diff_oi;
-                    const ceVol  = ce?.diff_volume;
-                    const ceBu   = ce?.build_up;
-                    html += `
-                <td class="px-2 py-1.5 text-right bg-green-950/10 ${ltpClass(ceLtp)}">${fmtLtp(ceLtp)}</td>
-                <td class="px-2 py-1.5 text-right bg-green-950/10"><span class="${oiCellClass(ceOi, top3OiPos, top3OiNeg)}">${fmtNum(ceOi)}</span></td>
-                <td class="px-2 py-1.5 text-right bg-green-950/10"><span class="${volCellClass(ceVol, top3VolPos)}">${fmtNum(ceVol)}</span></td>
-                <td class="px-2 py-1.5 text-center bg-green-950/10 border-r border-gray-700">
-                    <span class="${buClass(ceBu)} px-1.5 py-0.5 rounded text-[10px] font-bold">${buLabel(ceBu)}</span>
-                </td>`;
+                    ['CE', 'PE'].forEach(type => {
+                        const d       = type === 'CE' ? ce : pe;
+                        const bgBase  = type === 'CE' ? 'bg-green-950/10' : 'bg-red-950/10';
+                        const borderR = type === 'PE'  ? 'border-r border-gray-600' : 'border-r border-gray-700';
 
-                    // PE
-                    const peLtp  = pe?.diff_ltp;
-                    const peOi   = pe?.diff_oi;
-                    const peVol  = pe?.diff_volume;
-                    const peBu   = pe?.build_up;
-                    html += `
-                <td class="px-2 py-1.5 text-right bg-red-950/10 ${ltpClass(peLtp)}">${fmtLtp(peLtp)}</td>
-                <td class="px-2 py-1.5 text-right bg-red-950/10"><span class="${oiCellClass(peOi, top3OiPos, top3OiNeg)}">${fmtNum(peOi)}</span></td>
-                <td class="px-2 py-1.5 text-right bg-red-950/10"><span class="${volCellClass(peVol, top3VolPos)}">${fmtNum(peVol)}</span></td>
-                <td class="px-2 py-1.5 text-center bg-red-950/10 border-r border-gray-600">
-                    <span class="${buClass(peBu)} px-1.5 py-0.5 rounded text-[10px] font-bold">${buLabel(peBu)}</span>
-                </td>`;
+                        const diffLtp = d?.diff_ltp    ?? null;
+                        const diffOi  = d?.diff_oi     ?? null;
+                        const diffVol = d?.diff_volume ?? null;
+                        const bu      = d?.build_up    ?? null;
+
+                        // OI: global BG highlight takes priority, then per-strike border
+                        // Vol: global BG highlight takes priority, then per-strike border
+                        const oiGlobal  = (inTop3(diffOi,  top3OiPos) || inTop3(diffOi,  top3OiNeg));
+                        const volGlobal = (inTop3(diffVol, top3VolPos) || inTop3(diffVol, top3VolNeg));
+
+                        const oiClass  = oiGlobal  ? globalOiClass(diffOi,  top3OiPos,  top3OiNeg)
+                            : strikeOiClass(diffOi,  psh);
+                        const volClass = volGlobal ? globalVolClass(diffVol, top3VolPos, top3VolNeg)
+                            : strikeVolClass(diffVol, psh);
+
+                        html += `
+                    <td class="px-2 py-1.5 text-right ${bgBase} ${ltpClass(diffLtp)}">${fmtLtp(diffLtp)}</td>
+                    <td class="px-2 py-1.5 text-right ${bgBase}">
+                        <span class="${oiClass}">${fmtNum(diffOi)}</span>
+                    </td>
+                    <td class="px-2 py-1.5 text-right ${bgBase}">
+                        <span class="${volClass}">${fmtNum(diffVol)}</span>
+                    </td>
+                    <td class="px-2 py-1.5 text-center ${bgBase} ${borderR}">
+                        <span class="${buClass(bu)} px-1.5 py-0.5 rounded text-[10px] font-bold">${buLabel(bu)}</span>
+                    </td>`;
+                    });
                 });
 
                 html += '</tr>';
@@ -234,6 +256,7 @@
 
             tbody.innerHTML = html;
         }
+
 
         // ── Populate expiry dropdown ─────────────────────────────────────────────────
         function populateExpiries(expiries, selected) {
@@ -246,6 +269,31 @@
                 if (e === selected) opt.selected = true;
                 sel.appendChild(opt);
             });
+        }
+        /**
+         * PER-STRIKE highlight — border only (no background)
+         * Green border for top-3 positive, Red border for top-3 negative within that strike
+         */
+        function strikeOiClass(val, psHighlight) {
+            const v = numVal(val);
+            if (v === null) return 'text-gray-600';
+            if (inTop3(val, psHighlight.oi_pos)) return 'ring-2 ring-green-400 text-green-300 font-semibold rounded px-1';
+            if (inTop3(val, psHighlight.oi_neg)) return 'ring-2 ring-red-400 text-red-300 font-semibold rounded px-1';
+            return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
+        }
+
+        function strikeVolClass(val, psHighlight) {
+            const v = numVal(val);
+            if (v === null) return 'text-gray-600';
+            if (inTop3(val, psHighlight.vol_pos)) return 'ring-2 ring-green-400 text-green-300 font-semibold rounded px-1';
+            if (inTop3(val, psHighlight.vol_neg)) return 'ring-2 ring-red-400 text-red-300 font-semibold rounded px-1';
+            return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
+        }
+
+        function ltpClass(val) {
+            const v = numVal(val);
+            if (v === null) return 'text-gray-600';
+            return v > 0 ? 'text-green-300' : v < 0 ? 'text-red-300' : 'text-gray-400';
         }
 
         // ── Main fetch ───────────────────────────────────────────────────────────────
@@ -287,7 +335,15 @@
                     const top3VolPos = (data.top3_vol_pos || []).map(Number);
 
                     buildHead(data.strikes, data.atm);
-                    buildBody(data.rows, data.strikes, top3OiPos, top3OiNeg, top3VolPos);
+                    buildBody(
+                        data.rows,
+                        data.strikes,
+                        data.top3_oi_pos,
+                        data.top3_oi_neg,
+                        data.top3_vol_pos,
+                        data.top3_vol_neg,          // NEW
+                        data.per_strike_highlights  // NEW
+                    );
 
                     lastPayload = data;
                 })
