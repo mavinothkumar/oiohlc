@@ -4,35 +4,38 @@
 
 @section('content')
 
-        <div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="max-w-7xl mx-auto px-4 py-6">
 
-            <div class="flex items-center justify-between mb-1">
-                <h1 class="text-xl font-bold text-gray-800">
-                    {{ $underlyingLabel }} — Build-Up Snapshot
-                    <span class="text-gray-400 font-normal text-sm">({{ $date }})</span>
-                    <span class="text-gray-500 font-normal text-base ml-2">| Expiry: {{ $expiry }}</span>
-                </h1>
-                <form method="GET" class="flex items-center gap-2 text-sm">
-                    <label class="text-gray-500 font-medium">Top</label>
-                    <select name="top" onchange="this.form.submit()"
-                        class="border border-gray-300 rounded px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400">
-                        @foreach ([5, 10, 15, 20] as $n)
-                            <option value="{{ $n }}" {{ $top == $n ? 'selected' : '' }}>{{ $n }}</option>
-                        @endforeach
-                    </select>
-                    <input type="hidden" name="underlying" value="{{ request('underlying') }}">
-                    <input type="hidden" name="label" value="{{ request('label') }}">
-                    <input type="hidden" name="date" value="{{ $date }}">
-                </form>
-            </div>
+        <div class="flex items-center justify-between mb-1">
+            <h1 class="text-xl font-bold text-gray-800">
+                {{ $underlyingLabel }} — Build-Up Snapshot
+                <span class="text-gray-400 font-normal text-sm">({{ $date }})</span>
+                <span class="text-gray-500 font-normal text-base ml-2">| Expiry: {{ $expiry }}</span>
+            </h1>
+            <form method="GET" class="flex items-center gap-2 text-sm">
+                <label class="text-gray-500 font-medium">Top</label>
+                <select name="top" onchange="this.form.submit()"
+                    class="border border-gray-300 rounded px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400">
+                    @foreach ([5, 10, 15, 20] as $n)
+                        <option value="{{ $n }}" {{ $top == $n ? 'selected' : '' }}>{{ $n }}</option>
+                    @endforeach
+                </select>
+                <input type="hidden" name="underlying" value="{{ request('underlying') }}">
+                <input type="hidden" name="label" value="{{ request('label') }}">
+                <input type="hidden" name="date" value="{{ $date }}">
+            </form>
+        </div>
 
-            <p class="text-sm text-gray-600 mb-4">
-                Underlying: <strong>{{ number_format($spotPrice, 2) }}</strong>
-                &nbsp;|&nbsp;
-                Range: <strong>{{ $allStrikes->min() }} → {{ $allStrikes->max() }}</strong>
-            </p>
+        <p class="text-sm text-gray-600 mb-4">
+            Underlying:
+            <strong>{{ number_format($spotPrice, 2) }}</strong>
+            &nbsp;|&nbsp;
+            Range:
+            <strong>{{ $allStrikes->min() }} → {{ $allStrikes->max() }}</strong>
+        </p>
 
-            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <div class="overflow-y-auto max-h-[75vh]">
                 <table class="min-w-full text-sm text-gray-700 border-collapse">
                     <thead class="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
                     <tr>
@@ -132,5 +135,6 @@
                 </table>
             </div>
         </div>
+    </div>
 
 @endsection

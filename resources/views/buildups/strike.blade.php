@@ -4,7 +4,14 @@
 
 @section('content')
     <div class="max-w mx-auto py-6">
-
+        <style>
+            #snapshot-table thead th {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                background-color: #f3f4f6;
+            }
+        </style>
         {{-- Filter Bar --}}
         <form method="GET" action="{{ url('/buildups') }}" class="mb-6 border p-4 bg-white" lang="en-GB">
             <div class="grid grid-cols-1 md:grid-cols-7 gap-4 text-sm md:auto-rows-min">
@@ -84,190 +91,177 @@
                 — Sorted by: {{ ucfirst(str_replace('_',' ',$result['meta']['sort'])) }} (Total ΔOI)
             </h2>
 
-            <div class="overflow-x-auto mb-8">
-                <table class="min-w-full text-xs border">
-                    <thead class="bg-gray-200">
-                    <tr>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="strike">Strike</th>
-                        <th class="px-2 py-1 border text-left">Type</th>
-
-                        {{-- Long & Short Build --}}
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_lu">LB−LU</th>
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_sc">SB−SC</th>
-
-                        {{-- Long Build --}}
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lb_total">LB Total ΔOI</th>
-
-                        {{-- Long Unwind --}}
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="lu_total">LU Total ΔOI</th>
-
-
-                        {{-- Short Build --}}
-
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sb_total">SB Total ΔOI</th>
-
-                        {{-- Short Cover --}}
-                        <th class="px-2 py-1 border text-left cursor-pointer" data-key="sc_total">SC Total ΔOI</th>
-
-                    </tr>
-                    </thead>
-                    <tbody id="buildups-body">
-                    @php $pairIndex = 0; @endphp
-                    @foreach ($result['strikes'] as $s)
-                        @php
-                            $rowBg   = $pairIndex % 2 ? 'bg-gray-100' : '';
-                            $pairId  = 'p'.$pairIndex++;
-                            $ce      = $s['CE'];      $pe      = $s['PE'];
-                            $ce_lb_lu = $ce['Long Build']  + $ce['Long Unwind'];
-                            $ce_sb_sc = $ce['Short Build'] + $ce['Short Cover'];
-                            $pe_lb_lu = $pe['Long Build']  + $pe['Long Unwind'];
-                            $pe_sb_sc = $pe['Short Build'] + $pe['Short Cover'];
-                        @endphp
-
-                        {{-- ───────── CE row ───────── --}}
-                        <tr class="{{ $rowBg }}" data-pair="{{ $pairId }}">
-                            <td class="px-2 py-1 border" rowspan="2"
-                                data-sort="strike" data-value="{{ $s['strike'] }}">{{ $s['strike'] }}</td>
-                            <td class="px-2 py-1 border">CE</td>
-
-                            {{-- LB-LU diff --}}
-                            @php
-                                $v = $ce_lb_lu;
-                                $c = in_array($v, $result['top3_diff']['lb_lu'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lb_lu"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-                            {{-- SB-SC diff --}}
-                            @php
-                                $v = $ce_sb_sc;
-                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-                            {{-- LB TOTAL --}}
-                            @php
-                                $v = $ce['Long Build'];
-                                $c = in_array($v, $result['top3_total']['Long Build'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-                            {{-- LU TOTAL --}}
-                            @php
-                                $v = $ce['Long Unwind'];
-                                $c = in_array($v, $result['top3_total']['Long Unwind'], true)
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-
-
-                            {{-- SB TOTAL --}}
-                            @php
-                                $v = $ce['Short Build'];
-                                $c = in_array($v, $result['top3_total']['Short Build'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
-
-                            {{-- SC TOTAL --}}
-                            @php
-                                $v = $ce['Short Cover'];
-                                $c = in_array($v, $result['top3_total']['Short Cover'], true)
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-
+            <div class="rounded-lg border border-gray-200 shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                    <table class="min-w-full text-sm text-gray-700 border-separate border-spacing-0">
+                        <thead>
+                        <tr>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Time</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Strike</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Type</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Long Build</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Short Build</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Long Unwind</th>
+                            <th class="sticky top-0 z-20 bg-gray-100 px-4 py-3 border-b border-gray-200 text-center">Short Cover</th>
                         </tr>
+                        </thead>
 
-                        {{-- ───────── PE row ───────── --}}
-                        <tr class="{{ $rowBg }}" data-pair="{{ $pairId }}" data-second="1">
-                            <td class="px-2 py-1 border">PE</td>
-
-                            {{-- identical structure as CE row but with $pe / $pe_* variables --}}
+                        <tbody id="buildups-body">
+                        @php $pairIndex = 0; @endphp
+                        @foreach ($result['strikes'] as $s)
                             @php
-                                $v = $pe_lb_lu;
-                                $c = in_array($v, $result['top3_diff']['lb_lu'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
+                                $rowBg   = $pairIndex % 2 ? 'bg-gray-100' : '';
+                                $pairId  = 'p'.$pairIndex++;
+                                $ce      = $s['CE'];      $pe      = $s['PE'];
+                                $ce_lb_lu = $ce['Long Build']  + $ce['Long Unwind'];
+                                $ce_sb_sc = $ce['Short Build'] + $ce['Short Cover'];
+                                $pe_lb_lu = $pe['Long Build']  + $pe['Long Unwind'];
+                                $pe_sb_sc = $pe['Short Build'] + $pe['Short Cover'];
                             @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lb_lu"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php
-                                $v = $pe_sb_sc;
-                                $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
-                            
+                            {{-- ───────── CE row ───────── --}}
+                            <tr class="{{ $rowBg }}" data-pair="{{ $pairId }}">
+                                <td class="px-2 py-1 border" rowspan="2"
+                                    data-sort="strike" data-value="{{ $s['strike'] }}">{{ $s['strike'] }}</td>
+                                <td class="px-2 py-1 border">CE</td>
 
-                            @php
-                                $v = $pe['Long Build'];
-                                $c = in_array($v, $result['top3_total']['Long Build'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                {{-- LB-LU diff --}}
+                                @php
+                                    $v = $ce_lb_lu;
+                                    $c = in_array($v, $result['top3_diff']['lb_lu'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lb_lu"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                                {{-- SB-SC diff --}}
+                                @php
+                                    $v = $ce_sb_sc;
+                                    $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                                {{-- LB TOTAL --}}
+                                @php
+                                    $v = $ce['Long Build'];
+                                    $c = in_array($v, $result['top3_total']['Long Build'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                                {{-- LU TOTAL --}}
+                                @php
+                                    $v = $ce['Long Unwind'];
+                                    $c = in_array($v, $result['top3_total']['Long Unwind'], true)
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
 
-                            @php
-                                $v = $pe['Long Unwind'];
-                                $c = in_array($v, $result['top3_total']['Long Unwind'], true)
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                {{-- SB TOTAL --}}
+                                @php
+                                    $v = $ce['Short Build'];
+                                    $c = in_array($v, $result['top3_total']['Short Build'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
 
+                                {{-- SC TOTAL --}}
+                                @php
+                                    $v = $ce['Short Cover'];
+                                    $c = in_array($v, $result['top3_total']['Short Cover'], true)
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
 
-                            @php
-                                $v = $pe['Short Build'];
-                                $c = in_array($v, $result['top3_total']['Short Build'], true) && $v!=0
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                            </tr>
 
-                            @php
-                                $v = $pe['Short Cover'];
-                                $c = in_array($v, $result['top3_total']['Short Cover'], true)
-                                     ? 'bg-yellow-200 font-semibold' : '';
-                            @endphp
-                            <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
-                                data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                            {{-- ───────── PE row ───────── --}}
+                            <tr class="{{ $rowBg }}" data-pair="{{ $pairId }}" data-second="1">
+                                <td class="px-2 py-1 border">PE</td>
 
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+                                {{-- identical structure as CE row but with $pe / $pe_* variables --}}
+                                @php
+                                    $v = $pe_lb_lu;
+                                    $c = in_array($v, $result['top3_diff']['lb_lu'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lb_lu"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                                @php
+                                    $v = $pe_sb_sc;
+                                    $c = in_array($v, $result['top3_diff']['sb_sc'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sb_sc"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+
+                                @php
+                                    $v = $pe['Long Build'];
+                                    $c = in_array($v, $result['top3_total']['Long Build'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lb_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+
+                                @php
+                                    $v = $pe['Long Unwind'];
+                                    $c = in_array($v, $result['top3_total']['Long Unwind'], true)
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="lu_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+
+                                @php
+                                    $v = $pe['Short Build'];
+                                    $c = in_array($v, $result['top3_total']['Short Build'], true) && $v!=0
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sb_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                                @php
+                                    $v = $pe['Short Cover'];
+                                    $c = in_array($v, $result['top3_total']['Short Cover'], true)
+                                         ? 'bg-yellow-200 font-semibold' : '';
+                                @endphp
+                                <td class="px-2 py-1 border {{ $c }}" data-sort="sc_total"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         @else
             <div class="border p-4 bg-white">No data for the selected inputs.</div>
         @endif
     </div>
     <script>
-        (function() {
+        ( function () {
             const tbody = document.getElementById('buildups-body');
-            if (!tbody) return;
+            if ( ! tbody) return;
 
             // Map: key -> function(pairId) => numeric value to sort by (max of CE/PE for the key)
-            function valueFor(pairId, key) {
-                const rows = [...tbody.querySelectorAll(`tr[data-pair="${pairId}"]`)];
+            function valueFor (pairId, key) {
+                const rows = [...tbody.querySelectorAll(`tr[data-pair="${ pairId }"]`)];
                 const vals = rows.map(r => {
-                    const td = r.querySelector(`td[data-sort="${key}"]`);
+                    const td = r.querySelector(`td[data-sort="${ key }"]`);
                     return td ? parseFloat(td.getAttribute('data-value') || '0') : 0;
                 });
-                if (key === 'strike') return vals[0] || 0; // strike lives on first row
+                if (key === 'strike') return vals[ 0 ] || 0; // strike lives on first row
                 // default: use max(CE, PE) so a strike pair is ranked by its higher activity
                 return Math.max(...vals);
             }
@@ -280,7 +274,7 @@
                 th.addEventListener('click', () => {
                     const key = th.getAttribute('data-key');
                     // toggle direction if same key; else default desc
-                    current.dir = (current.key === key && current.dir === 'desc') ? 'asc' : 'desc';
+                    current.dir = ( current.key === key && current.dir === 'desc' ) ? 'asc' : 'desc';
                     current.key = key;
 
                     // collect pair ids in order they appear
@@ -296,15 +290,15 @@
                             // tie-break: higher strike first
                             const sa = valueFor(a.pid, 'strike');
                             const sb = valueFor(b.pid, 'strike');
-                            return current.dir === 'desc' ? (sb - sa) : (sa - sb);
+                            return current.dir === 'desc' ? ( sb - sa ) : ( sa - sb );
                         }
-                        return current.dir === 'desc' ? (b.val - a.val) : (a.val - b.val);
+                        return current.dir === 'desc' ? ( b.val - a.val ) : ( a.val - b.val );
                     });
 
                     // re-append as grouped pairs
                     const frag = document.createDocumentFragment();
                     pairs.forEach(p => {
-                        const rows = [...tbody.querySelectorAll(`tr[data-pair="${p.pid}"]`)];
+                        const rows = [...tbody.querySelectorAll(`tr[data-pair="${ p.pid }"]`)];
                         rows.forEach(r => frag.appendChild(r));
                     });
                     tbody.appendChild(frag);
@@ -314,6 +308,6 @@
                     th.classList.add('underline');
                 });
             });
-        })();
+        } )();
     </script>
 @endsection

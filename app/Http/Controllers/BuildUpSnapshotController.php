@@ -91,6 +91,7 @@ class BuildUpSnapshotController extends Controller
                        ->value('underlying_spot_price');
 
         $allStrikes = $rows->pluck('strike_price');
+        $snapshot = array_reverse($snapshot, true);
 
         return view('buildups.snapshot', compact(
             'snapshot', 'expiry', 'spotPrice', 'underlyingLabel',
