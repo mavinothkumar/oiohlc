@@ -126,8 +126,8 @@
                     {{-- ===== THEAD ===== --}}
                     <thead>
                     {{-- Row 1: Strike numbers --}}
-                    <tr class="sticky top-0 z-30 bg-slate-700 border-b border-slate-600">
-                        <th class="sticky left-0 z-40 bg-slate-700 px-3 py-2.5 text-left text-slate-200
+                    <tr class="sticky top-0 bg-slate-700 border-b border-slate-600">
+                        <th class="sticky left-0 bg-slate-700 px-3 py-2.5 text-left text-slate-200
                                font-semibold uppercase tracking-widest whitespace-nowrap min-w-[90px]"
                             rowspan="2">
                             Time
@@ -142,7 +142,7 @@
                     </tr>
 
                     {{-- Row 2: CE / PE --}}
-                    <tr class="sticky  top-[30px] z-30 bg-slate-600 border-b-2 border-slate-500">
+                    <tr class="sticky  top-[30px] bg-slate-600 border-b-2 border-slate-500">
                         @foreach($allStrikes as $strike)
                             @foreach(['CE','PE'] as $type)
                                 <th colspan="4"
@@ -155,7 +155,7 @@
                     </tr>
 
                     {{-- Row 3: Column labels --}}
-                    <tr class="sticky top-[57px] z-30 bg-slate-600 border-b-2 border-slate-500 text-white">
+                    <tr class="sticky top-[57px] bg-slate-600 border-b-2 border-slate-500 text-white">
                         <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600"></th>
                         @foreach($allStrikes as $_)
                             @foreach(['CE','PE'] as $__)
@@ -177,7 +177,7 @@
                         <tr class="{{ $rowBg }} hover:bg-indigo-50 transition-colors duration-75">
 
                             {{-- Time --}}
-                            <td class="sticky left-0 z-10 {{ $rowBg }} px-3 py-2 font-mono font-semibold
+                            <td class="sticky left-0  {{ $rowBg }} px-3 py-2 font-mono font-semibold
                                text-slate-600 whitespace-nowrap border-r border-slate-200 text-xs">
                                 {{ \Carbon\Carbon::parse($ts)->format('H:i') }}
                             </td>

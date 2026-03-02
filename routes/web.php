@@ -87,6 +87,8 @@ Route::get('/api/multi-chart-ohlc', [App\Http\Controllers\OhlcChartController::c
 Route::get('/daily-trend-view', [App\Http\Controllers\DailyTrendController::class, 'index'])
      ->name('daily_trend.view');
 
+Route::get('/oi-diff-live', [\App\Http\Controllers\OiDiffLiveController::class, 'index'])->name('oi-diff-live.index');
+Route::get('/oi-diff-live/data', [\App\Http\Controllers\OiDiffLiveController::class, 'data'])->name('oi-diff-live.data');
 
 Route::prefix('test')->name('test.')->group(function () {
     Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');
