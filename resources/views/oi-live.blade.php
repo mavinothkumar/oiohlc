@@ -105,6 +105,29 @@
         const fmtNum  = v => v === null || v === undefined ? '—' : (parseInt(v) >= 0 ? '+' : '') + parseInt(v).toLocaleString('en-IN');
         const numVal = v => (v === null || v === undefined) ? null : parseFloat(v);
 
+        function formatINRCompact(number) {
+            if (number === null || number === undefined || number === '—') return '—';
+
+            const n = Number(number);
+            if (!Number.isFinite(n)) return '—';
+
+            const abs = Math.abs(n);
+            const sign = n < 0 ? '-' : '';
+
+            const round2 = (x) => Number(x.toFixed(2)); // rounds to 2 decimals, drops trailing zeros [web:7]
+
+            if (abs >= 10_000_000) return `${sign}${round2(abs / 10_000_000)} C`;
+            if (abs >= 100_000)    return `${sign}${round2(abs / 100_000)} L`;
+            if (abs >= 1_000)      return `${sign}${round2(abs / 1_000)} T`;
+
+            // "number_format($abs, 2)" equivalent: always show 2 decimals, no grouping needed
+            return sign + new Intl.NumberFormat('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                useGrouping: false
+            }).format(abs); // Intl.NumberFormat formatting options [web:2]
+        }
+
         function buClass(bu) {
             if (!bu) return 'bu-blank';
             const map = { 'Long Build': 'bu-lb', 'Short Build': 'bu-sb', 'Short Cover': 'bu-sc', 'Long Unwind': 'bu-lu' };
@@ -240,10 +263,10 @@
                         html += `
                     <td class="px-2 py-1.5 text-right ${bgBase} ${ltpClass(diffLtp)}">${fmtLtp(diffLtp)}</td>
                     <td class="px-2 py-1.5 text-right ${bgBase}">
-                        <span class="${oiClass}">${fmtNum(diffOi)}</span>
+                        <span class="${oiClass}">${formatINRCompact(diffOi)}</span>
                     </td>
                     <td class="px-2 py-1.5 text-right ${bgBase}">
-                        <span class="${volClass}">${fmtNum(diffVol)}</span>
+                        <span class="${volClass}">${formatINRCompact(diffVol)}</span>
                     </td>
                     <td class="px-2 py-1.5 text-center ${bgBase} ${borderR}">
                         <span class="${buClass(bu)} px-1.5 py-0.5 rounded text-[10px] font-bold">${buLabel(bu)}</span>
@@ -405,8 +428,8 @@
         /* Build-up badge colors */
         .bu-lb { background:#16a34a; color:#fff; }
         .bu-sb { background:#dc2626; color:#fff; }
-        .bu-sc { background:#1e3a5f; color:#93c5fd; }
-        .bu-lu { background:#78350f; color:#fcd34d; }
+        .bu-sc { background:#1e3a5f; color:#fff; }
+        .bu-lu { background:#ffcc00; color: #000; }
         .bu-blank { background:#374151; color:#9ca3af; }
     </style>
 @endsection

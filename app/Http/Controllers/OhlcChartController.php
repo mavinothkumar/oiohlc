@@ -169,12 +169,18 @@ class OhlcChartController extends Controller
         $ceToday = (clone $baseToday)
             ->where('strike', $ceKey)
             ->where('instrument_type', 'CE')
-            ->get(['open', 'high', 'low', 'close', 'timestamp']);
+            ->select('open','high','low','close','timestamp')
+            ->groupBy('timestamp','open','high','low','close') // or better: groupBy('timestamp') with aggregates
+            ->orderBy('timestamp','asc')
+            ->get();
 
         $peToday = (clone $baseToday)
             ->where('strike', $peKey)
             ->where('instrument_type', 'PE')
-            ->get(['open', 'high', 'low', 'close', 'timestamp']);
+            ->select('open','high','low','close','timestamp')
+            ->groupBy('timestamp','open','high','low','close') // or better: groupBy('timestamp') with aggregates
+            ->orderBy('timestamp','asc')
+            ->get();
         // previous working day data
         $cePrev = collect();
         $pePrev = collect();
@@ -235,95 +241,6 @@ class OhlcChartController extends Controller
             'pe_prev'      => $pePrev->map($map)->values(),
             'ce_prev_ohlc' => $prevOhlcCe,
             'pe_prev_ohlc' => $prevOhlcPe,
-        ]);
-    }
-
-    public function multiIndex2(Request $request)
-    {
-        // allow empty filters (empty page with just filters)
-        $request->validate([
-            'symbol'      => 'nullable|string',
-            'quote_date'  => 'nullable|date',
-            'expiry_date' => 'nullable|date',
-            'ce_strikes'  => 'nullable|array',
-            'pe_strikes'  => 'nullable|array',
-        ]);
-
-        $symbol     = $request->input('symbol');
-        $quoteDate  = $request->input('quote_date');
-        $expiryDate = $request->input('expiry_date');
-
-        $trend        = null;
-        $atmIndexOpen = null;
-        $baseStrikes  = [];
-        $ceStrikes    = [];
-        $peStrikes    = [];
-        $avgAtm       = null;
-        $avgAll       = null;
-
-        if ($symbol && $quoteDate && $expiryDate) {
-            $trend = DB::table('daily_trend')
-                       ->where('symbol_name', $symbol)
-                       ->where('quote_date', $quoteDate)
-                       ->where('expiry_date', $expiryDate)
-                       ->first();
-
-            if ($trend) {
-                $atmIndexOpen = (float) $trend->atm_index_open;
-                $step         = 50;
-
-                // default ±2 strikes around atm_index_open
-                $baseStrikes = [
-                    $atmIndexOpen - 2 * $step,
-                    $atmIndexOpen - 1 * $step,
-                    $atmIndexOpen,
-                    $atmIndexOpen + 1 * $step,
-                    $atmIndexOpen + 2 * $step,
-                ];
-
-                // apply your validation / override logic
-                $ceStrikes = $request->has('ce_strikes')
-                    ? array_map(
-                        'floatval',
-                        array_filter(
-                            $request->input('ce_strikes'),
-                            fn($v) => $v !== null && $v !== ''
-                        )
-                    )
-                    : $baseStrikes;
-
-                $peStrikes = $request->has('pe_strikes')
-                    ? array_map(
-                        'floatval',
-                        array_filter(
-                            $request->input('pe_strikes'),
-                            fn($v) => $v !== null && $v !== ''
-                        )
-                    )
-                    : $baseStrikes;
-
-                // if user partially cleared all inputs, fall back to defaults
-                if (empty($ceStrikes)) {
-                    $ceStrikes = $baseStrikes;
-                }
-                if (empty($peStrikes)) {
-                    $peStrikes = $baseStrikes;
-                }
-
-                $avgAtm = ((float) $trend->atm_ce_close + (float) $trend->atm_pe_close) / 2;
-                $avgAll = ((float) $trend->ce_close + (float) $trend->pe_close) / 2;
-            }
-        }
-
-        return view('options-chart-multi', [
-            'symbol'       => $symbol,
-            'quoteDate'    => $quoteDate,
-            'expiryDate'   => $expiryDate,
-            'atmIndexOpen' => $atmIndexOpen,
-            'ceStrikes'    => $ceStrikes,
-            'peStrikes'    => $peStrikes,
-            'avgAtm'       => $avgAtm,
-            'avgAll'       => $avgAll,
         ]);
     }
 

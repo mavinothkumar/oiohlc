@@ -53,8 +53,8 @@
 
                         {{-- Time slot separator --}}
                         <tr class="border-t-2 border-gray-300 bg-gray-50">
-                            <td colspan="7" class="px-4 py-1 text-xs font-semibold text-gray-400 tracking-widest uppercase">
-                                ── {{ $timeSlot }}
+                            <td colspan="7" class="px-4 py-1 text-xl font-bold tracking-widest uppercase">
+                                {{ $timeSlot }}
                             </td>
                         </tr>
 

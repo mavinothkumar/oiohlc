@@ -258,7 +258,7 @@
                                     <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap tabular-nums">
                             <span class="inline-block px-1.5 py-0.5 rounded text-xs {{ $oiBg }}">
                                 @if($oiDiff !== null)
-                                    {{ $oiDiff > 0 ? '+' : '' }}{{ number_format($oiDiff) }}
+                                    {{ $oiDiff > 0 ? '+' : '' }}{{ format_inr_compact($oiDiff) }}
                                 @else
                                     <span class="text-slate-200">—</span>
                                 @endif
@@ -269,7 +269,7 @@
                                     <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap tabular-nums">
                             <span class="inline-block px-1.5 py-0.5 rounded text-xs {{ $volBg }}">
                                 @if($volDiff !== null)
-                                    {{ $volDiff > 0 ? '+' : '' }}{{ number_format($volDiff) }}
+                                    {{ $volDiff > 0 ? '+' : '' }}{{ format_inr_compact($volDiff) }}
                                 @else
                                     <span class="text-slate-200">—</span>
                                 @endif
