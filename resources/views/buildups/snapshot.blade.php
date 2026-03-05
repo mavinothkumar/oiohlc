@@ -52,7 +52,7 @@
                     @forelse ($snapshot as $timeSlot => $strikes)
 
                         {{-- Time slot separator --}}
-                        <tr class="border-t-2 border-gray-300 bg-gray-50">
+                        <tr class="border-t-2 border-gray-300 bg-gray-50 js-time-row" data-time="{{ $timeSlot }}">
                             <td colspan="7" class="px-4 py-1 text-xl font-bold tracking-widest uppercase">
                                 {{ $timeSlot }}
                             </td>
@@ -136,5 +136,57 @@
             </div>
         </div>
     </div>
+    <audio id="snapshotAlert" preload="auto">
+        <source src="{{ asset('sounds/beep.mp3') }}" type="audio/mpeg">
+    </audio>
+    <script>
+        (() => {
+            const STORAGE_KEY = 'buildup_seen_times_v1';
 
+            function getSeenSet() {
+                try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); }
+                catch { return new Set(); }
+            }
+
+            function saveSeenSet(set) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
+            }
+
+            function getTimesFromDom() {
+                return Array.from(document.querySelectorAll('.js-time-row'))
+                    .map(el => el.dataset.time)
+                    .filter(Boolean);
+            }
+
+            function playAlert() {
+                const audio = document.getElementById('snapshotAlert');
+                if (!audio) return;
+
+                // Browsers may block autoplay until the user interacts once with the page.
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+            }
+
+            function checkForNewTimesAndAlert() {
+                const seen = getSeenSet();
+                const times = getTimesFromDom();
+
+                let foundNew = false;
+                for (const t of times) {
+                    if (!seen.has(t)) {
+                        seen.add(t);
+                        foundNew = true;
+                    }
+                }
+
+                if (foundNew) {
+                    saveSeenSet(seen);
+                    playAlert();
+                }
+            }
+
+            // Run once on load
+            document.addEventListener('DOMContentLoaded', checkForNewTimesAndAlert);
+        })();
+    </script>
 @endsection

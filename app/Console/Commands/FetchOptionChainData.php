@@ -17,7 +17,7 @@ class FetchOptionChainData extends Command
 
     public function handle()
     {
-        info('Fetching option chain data from Upstox API at '.Carbon::now());
+        //info('Fetching option chain data from Upstox API at '.Carbon::now());
         // Step 1. Fetch and store 1-min data into option_chains
         $this->fetchAndStoreOptionChain();
 
