@@ -14,10 +14,17 @@ class OiDiffLiveController extends Controller
 
     public function data(Request $request)
     {
-        $symbol          = $request->get('symbol', 'NIFTY');
+        $symbol = $request->get('symbol', 'NIFTY');
         $strikesEachSide = (int) $request->get('strikes_each_side', 2);
-        $quoteDate       = $request->get('date');
-        $expiry          = $request->get('expiry');
+        $quoteDate = $request->get('date');
+        $expiry = $request->get('expiry');
+
+        // NEW: timeframe (minutes) for delta window, default 3
+        $tf = (int) $request->get('tf', 3);
+        if (!in_array($tf, [3, 6, 15, 30], true)) {
+            $tf = 3;
+        }
+        $step = (int) ($tf / 3); // 3->1, 15->5, 30->10
 
         // ── 1. Resolve dates ─────────────────────────────────────────────────
         if (!$quoteDate) {
@@ -30,14 +37,17 @@ class OiDiffLiveController extends Controller
                       ->get();
 
             $currentDate = null;
-            $prevDate    = null;
+            $prevDate = null;
+
             foreach ($days as $day) {
-                if ($day->current == 1)  $currentDate = $day->working_date;
-                if ($day->previous == 1) $prevDate    = $day->working_date;
+                if ($day->current == 1) $currentDate = $day->working_date;
+                if ($day->previous == 1) $prevDate = $day->working_date;
             }
+
             if (!$currentDate || !$prevDate) {
                 return response()->json(['error' => 'Working days not configured.'], 422);
             }
+
             $quoteDate = $currentDate;
         } else {
             $prevDate = DB::table('nse_working_days')
@@ -56,9 +66,9 @@ class OiDiffLiveController extends Controller
             return response()->json(['error' => "No ATM index open for {$prevDate} / {$symbol}. Check daily_trend table."], 422);
         }
 
-        $atmIndexOpen   = (float) $trend->atm_index_open;
+        $atmIndexOpen = (float) $trend->atm_index_open;
         $strikeInterval = str_contains(strtoupper($symbol), 'BANK') ? 100 : 50;
-        $atm            = (int) (round($atmIndexOpen / $strikeInterval) * $strikeInterval);
+        $atm = (int) (round($atmIndexOpen / $strikeInterval) * $strikeInterval);
 
         $strikes = [];
         for ($i = -$strikesEachSide; $i <= $strikesEachSide; $i++) {
@@ -66,8 +76,7 @@ class OiDiffLiveController extends Controller
         }
 
         // ── 3. Detect underlying_key dynamically ─────────────────────────────
-        // Instead of hardcoding LIKE %NIFTY%, discover the actual key from DB
-      $underlyingKey = DB::table('option_chains')
+        $underlyingKey = DB::table('option_chains')
                            ->where('trading_symbol', 'LIKE', "%{$symbol}%")
                            ->value('underlying_key');
 
@@ -75,8 +84,8 @@ class OiDiffLiveController extends Controller
             return response()->json(['error' => "No underlying_key found for {$symbol} in option_chains."], 422);
         }
 
-        // ── 4. Available expiries ─────────────────────────────────────────────
-       $expiries = DB::table('nse_expiries')
+        // ── 4. Available expiries ────────────────────────────────────────────
+        $expiries = DB::table('nse_expiries')
                       ->where('trading_symbol', 'NIFTY')
                       ->where('instrument_type', 'OPT')
                       ->where('is_current', '1')
@@ -85,18 +94,18 @@ class OiDiffLiveController extends Controller
         if (!$expiry) {
             $expiry = $expiries->first();
         }
+
         if (!$expiry) {
             return response()->json(['error' => "No expiry found for {$symbol}."], 422);
         }
 
-        // ── 5. All snapshots ─────────────────────────────────────────────────
-        // Use DATE() in SQL to avoid timezone issues with TIMESTAMP column
+        // ── 5. All snapshots for that day ────────────────────────────────────
         $allRows = DB::table('option_chains')
                      ->where('underlying_key', $underlyingKey)
                      ->where('expiry', $expiry)
                      ->whereIn('strike_price', $strikes)
                      ->whereRaw('DATE(CONVERT_TZ(captured_at, "+00:00", "+05:30")) = ?', [$quoteDate])
-                     ->orderByDesc('captured_at')
+                     ->orderBy('captured_at')
                      ->get();
 
         if ($allRows->isEmpty()) {
@@ -108,102 +117,183 @@ class OiDiffLiveController extends Controller
 
         // ── 6. Group by 3-min bucket ─────────────────────────────────────────
         $snapshots = $allRows->groupBy(function ($row) {
-            $ts      = strtotime($row->captured_at); // no offset addition
+            $ts = strtotime($row->captured_at);
             $snapped = floor($ts / 180) * 180;
-            return date('H:i', $snapped);
+            return date('Y-m-d H:i', $snapped); // CHANGED
         });
 
+        // Convert to indexed arrays for step-back access
+        $times = $snapshots->keys()->values();
+        $snapshotList = $snapshots->values();
 
-        // ── 7. GLOBAL Top-3: High OI +/- and High Volume +/- across ALL strikes ──
-        $top3OiPos  = $allRows->where('diff_oi', '>', 0)
-                              ->sortByDesc('diff_oi')->take(3)
-                              ->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
+        // ── 7/8. We'll compute top3/highlights from computed deltas (not diff_* columns) ──
+        $computedAllDiffOi = [];
+        $computedAllDiffVol = [];
+        $computedPerStrikeOi = [];
+        $computedPerStrikeVol = [];
 
-        $top3OiNeg  = $allRows->where('diff_oi', '<', 0)
-                              ->sortBy('diff_oi')->take(3)
-                              ->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray();
-
-        $top3VolPos = $allRows->where('diff_volume', '>', 0)
-                              ->sortByDesc('diff_volume')->take(3)
-                              ->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray();
-
-        $top3VolNeg = $allRows->where('diff_volume', '<', 0)
-                              ->sortBy('diff_volume')->take(3)
-                              ->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray();
-
-// ── 8. PER-STRIKE Top-3: for border-only highlighting ────────────────────
-// For each strike, find top 3 positive and negative diff_oi and diff_volume
-        $perStrikeHighlights = [];
-        foreach ($strikes as $strike) {
-            $strikeRows = $allRows->filter(fn($r) => (int)(float)$r->strike_price === $strike);
-
-            $perStrikeHighlights[$strike] = [
-                'oi_pos'  => $strikeRows->where('diff_oi', '>', 0)->sortByDesc('diff_oi')
-                                        ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray(),
-                'oi_neg'  => $strikeRows->where('diff_oi', '<', 0)->sortBy('diff_oi')
-                                        ->take(3)->pluck('diff_oi')->map(fn($v) => (float)$v)->values()->toArray(),
-                'vol_pos' => $strikeRows->where('diff_volume', '>', 0)->sortByDesc('diff_volume')
-                                        ->take(3)->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray(),
-                'vol_neg' => $strikeRows->where('diff_volume', '<', 0)->sortBy('diff_volume')
-                                        ->take(3)->pluck('diff_volume')->map(fn($v) => (float)$v)->values()->toArray(),
-            ];
+        foreach ($strikes as $s) {
+            $computedPerStrikeOi[$s] = [];
+            $computedPerStrikeVol[$s] = [];
         }
+        $anchorTs = strtotime($times[0]);            // first bucket of the day (ex: 2026-03-02 09:15)
+        $tfSeconds = $tf * 60;
 
-// ── 9. Build rows ─────────────────────────────────────────────────────────
+        // ── 9. Build rows with delta from ltp/oi/volume ───────────────────────
         $rows = [];
-        foreach ($snapshots as $time => $timeRows) {
-            $ceData = $timeRows->where('option_type', 'CE')->keyBy(fn($r) => (int)(float)$r->strike_price);
-            $peData = $timeRows->where('option_type', 'PE')->keyBy(fn($r) => (int)(float)$r->strike_price);
+
+        for ($i = 0; $i < $times->count(); $i++) {
+            $time = $times[$i];
+            $timeRows = $snapshotList[$i];
+
+            $time = $times[$i];
+            $bucketTs = strtotime($time);
+
+// NEW: only keep boundary buckets for selected timeframe
+            if ((($bucketTs - $anchorTs) % $tfSeconds) !== 0) {
+                continue;
+            }
+
+            $prevIndex = $i - $step;
+            $prevRows = $prevIndex >= 0 ? $snapshotList[$prevIndex] : collect();
+
+            $ceNow = $timeRows->where('option_type', 'CE')->keyBy(fn ($r) => (int)(float)$r->strike_price);
+            $peNow = $timeRows->where('option_type', 'PE')->keyBy(fn ($r) => (int)(float)$r->strike_price);
+
+            $cePrev = $prevRows->where('option_type', 'CE')->keyBy(fn ($r) => (int)(float)$r->strike_price);
+            $pePrev = $prevRows->where('option_type', 'PE')->keyBy(fn ($r) => (int)(float)$r->strike_price);
 
             $strikeData = [];
+
+
+
             foreach ($strikes as $strike) {
-                $ce = $ceData[$strike] ?? null;
-                $pe = $peData[$strike] ?? null;
+
+                $ce = $ceNow[$strike] ?? null;
+                $pe = $peNow[$strike] ?? null;
+
+                $ceP = $cePrev[$strike] ?? null;
+                $peP = $pePrev[$strike] ?? null;
+
+                $ceDiffLtp = ($ce && $ceP) ? (float)$ce->ltp - (float)$ceP->ltp : null;
+                $ceDiffOi = ($ce && $ceP) ? (int)$ce->oi - (int)$ceP->oi : null;
+                $ceDiffVol = ($ce && $ceP) ? (int)$ce->volume - (int)$ceP->volume : null;
+
+                $peDiffLtp = ($pe && $peP) ? (float)$pe->ltp - (float)$peP->ltp : null;
+                $peDiffOi = ($pe && $peP) ? (int)$pe->oi - (int)$peP->oi : null;
+                $peDiffVol = ($pe && $peP) ? (int)$pe->volume - (int)$peP->volume : null;
+
+                // Collect for top3/highlights (ignore nulls)
+                if ($ceDiffOi !== null) {
+                    $computedAllDiffOi[] = (float)$ceDiffOi;
+                    $computedPerStrikeOi[$strike][] = (float)$ceDiffOi;
+                }
+                if ($peDiffOi !== null) {
+                    $computedAllDiffOi[] = (float)$peDiffOi;
+                    $computedPerStrikeOi[$strike][] = (float)$peDiffOi;
+                }
+                if ($ceDiffVol !== null) {
+                    $computedAllDiffVol[] = (float)$ceDiffVol;
+                    $computedPerStrikeVol[$strike][] = (float)$ceDiffVol;
+                }
+                if ($peDiffVol !== null) {
+                    $computedAllDiffVol[] = (float)$peDiffVol;
+                    $computedPerStrikeVol[$strike][] = (float)$peDiffVol;
+                }
+
                 $strikeData[$strike] = [
                     'ce' => $ce ? [
-                        'diff_ltp'    => $ce->diff_ltp,
-                        'diff_oi'     => $ce->diff_oi,
-                        'diff_volume' => $ce->diff_volume,
-                        'build_up'    => $ce->build_up,
+                        // current values (always available for that snapshot)
+                        'ltp' => (float) $ce->ltp,
+                        'oi' => (int) $ce->oi,
+                        'volume' => (int) $ce->volume,
+
+                        // deltas vs previous boundary (null for first boundary like 09:15)
+                        'diff_ltp' => $ceDiffLtp,
+                        'diff_oi' => $ceDiffOi,
+                        'diff_volume' => $ceDiffVol,
+
+                        'build_up' => $ce->build_up,
                     ] : null,
+
                     'pe' => $pe ? [
-                        'diff_ltp'    => $pe->diff_ltp,
-                        'diff_oi'     => $pe->diff_oi,
-                        'diff_volume' => $pe->diff_volume,
-                        'build_up'    => $pe->build_up,
+                        'ltp' => (float) $pe->ltp,
+                        'oi' => (int) $pe->oi,
+                        'volume' => (int) $pe->volume,
+
+                        'diff_ltp' => $peDiffLtp,
+                        'diff_oi' => $peDiffOi,
+                        'diff_volume' => $peDiffVol,
+
+                        'build_up' => $pe->build_up,
                     ] : null,
                 ];
             }
 
             $rows[] = [
-                'time'        => $time,
+                'time' => date('H:i', strtotime($time)),
                 'strike_data' => $strikeData,
             ];
         }
 
+        // Helper: top 3 positive/negative
+        $top3Pos = function (array $arr) {
+            $pos = array_values(array_filter($arr, fn($v) => $v > 0));
+            rsort($pos);
+            return array_slice($pos, 0, 3);
+        };
+        $top3Neg = function (array $arr) {
+            $neg = array_values(array_filter($arr, fn($v) => $v < 0));
+            sort($neg);
+            return array_slice($neg, 0, 3);
+        };
+
+        // GLOBAL top3 from computed deltas
+        $top3OiPos = $top3Pos($computedAllDiffOi);
+        $top3OiNeg = $top3Neg($computedAllDiffOi);
+        $top3VolPos = $top3Pos($computedAllDiffVol);
+        $top3VolNeg = $top3Neg($computedAllDiffVol);
+
+        // PER-STRIKE top3 from computed deltas
+        $perStrikeHighlights = [];
+        foreach ($strikes as $strike) {
+            $perStrikeHighlights[$strike] = [
+                'oi_pos' => $top3Pos($computedPerStrikeOi[$strike]),
+                'oi_neg' => $top3Neg($computedPerStrikeOi[$strike]),
+                'vol_pos' => $top3Pos($computedPerStrikeVol[$strike]),
+                'vol_neg' => $top3Neg($computedPerStrikeVol[$strike]),
+            ];
+        }
+
+        $rows = array_reverse($rows);
 
         return response()->json([
-            'symbol'          => $symbol,
-            'quote_date'      => $quoteDate,
-            'prev_date'       => $prevDate,
-            'expiry'          => $expiry,
-            'expiries'        => $expiries->values(),
-            'atm_index_open'  => $atmIndexOpen,
-            'atm'             => $atm,
-            'strikes'         => $strikes,       // array of ints
-            'top3_oi_pos'          => $top3OiPos,
-            'top3_oi_neg'          => $top3OiNeg,
-            'top3_vol_pos'         => $top3VolPos,
-            'top3_vol_neg'         => $top3VolNeg,            // NEW
-            'per_strike_highlights' => $perStrikeHighlights,  // NEW
-            'rows'                 => $rows,
-            'last_updated'         => now()->format('d M Y, H:i:s'),
-            'debug'           => [
+            'symbol' => $symbol,
+            'quote_date' => $quoteDate,
+            'prev_date' => $prevDate,
+            'expiry' => $expiry,
+            'expiries' => $expiries->values(),
+            'atm_index_open' => $atmIndexOpen,
+            'atm' => $atm,
+            'strikes' => $strikes,
+
+            // NEW: timeframe info
+            'tf' => $tf,
+
+            'top3_oi_pos' => $top3OiPos,
+            'top3_oi_neg' => $top3OiNeg,
+            'top3_vol_pos' => $top3VolPos,
+            'top3_vol_neg' => $top3VolNeg,
+            'per_strike_highlights' => $perStrikeHighlights,
+            'rows' => $rows,
+            'last_updated' => now()->format('d M Y, H:i:s'),
+            'debug' => [
                 'underlying_key' => $underlyingKey,
-                'total_rows'     => $allRows->count(),
-                'snapshot_times' => $snapshots->keys()->take(5)->values(),
+                'total_rows' => $allRows->count(),
+                'snapshot_times' => $times->take(5)->values(),
             ],
         ]);
     }
+
 
 }

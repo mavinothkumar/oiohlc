@@ -61,6 +61,18 @@
                 </select>
             </div>
 
+            <div class="flex flex-col gap-1">
+                <label class="text-gray-400 text-11px font-semibold uppercase tracking-wider">Timeframe</label>
+                <select id="tfSelect"
+                    class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="3" selected>3 min</option>
+                    <option value="6">6 min</option>
+                    <option value="15">15 min</option>
+                    <option value="30">30 min</option>
+                </select>
+            </div>
+
+
             <button id="loadBtn"
                 class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-lg px-5 py-1.5 text-xs transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -101,8 +113,8 @@
         let lastPayload = null;
 
         // ── Formatters ──────────────────────────────────────────────────────────────
-        const fmtLtp  = v => v === null || v === undefined ? '—' : (parseFloat(v) >= 0 ? '+' : '') + parseFloat(v).toFixed(2);
-        const fmtNum  = v => v === null || v === undefined ? '—' : (parseInt(v) >= 0 ? '+' : '') + parseInt(v).toLocaleString('en-IN');
+        const fmtLtp = v => (v === null || v === undefined) ? '—' : parseFloat(v).toFixed(2);
+        const fmtNum = v => v !== null && v !== undefined ? parseInt(v).toLocaleString('en-IN') : '—';
         const numVal = v => (v === null || v === undefined) ? null : parseFloat(v);
 
         function formatINRCompact(number) {
@@ -245,9 +257,9 @@
                         const bgBase  = type === 'CE' ? 'bg-green-950/10' : 'bg-red-950/10';
                         const borderR = type === 'PE'  ? 'border-r border-gray-600' : 'border-r border-gray-700';
 
-                        const diffLtp = d?.diff_ltp    ?? null;
-                        const diffOi  = d?.diff_oi     ?? null;
-                        const diffVol = d?.diff_volume ?? null;
+                        const diffLtp = (d?.diff_ltp ?? d?.ltp) ?? null;
+                        const diffOi  = (d?.diff_oi ?? d?.oi) ?? null;
+                        const diffVol = (d?.diff_volume ?? d?.volume) ?? null;
                         const bu      = d?.build_up    ?? null;
 
                         // OI: global BG highlight takes priority, then per-strike border
@@ -326,11 +338,18 @@
             const expiry  = document.getElementById('expirySelect').value;
             const sides   = document.getElementById('strikesSelect').value;
 
+
             document.getElementById('loadBtn').disabled = true;
             document.getElementById('loadBtn').textContent = 'Loading…';
 
-            const params = new URLSearchParams({ symbol, strikes_each_side: sides });
-            if (date)   params.append('date', date);
+            const params = new URLSearchParams({
+                symbol,
+                strikes_each_side: sides
+            });
+            const tf = document.getElementById('tfSelect').value;
+            params.append('tf', tf);
+
+            if (date) params.append('date', date);
             if (expiry) params.append('expiry', expiry);
 
             fetch(`${DATA_URL}?${params}`)
@@ -347,8 +366,10 @@
 
                     document.getElementById('error-banner').classList.add('hidden');
                     document.getElementById('last-updated').textContent = data.last_updated;
+                    const tfLabel = data.tf ? `${data.tf}-minute` : '3-minute';
                     document.getElementById('page-title').innerHTML =
-                        `${data.symbol} — OI &amp; Volume Diff <span class="text-gray-400 font-normal text-xs">(3-minute candles)</span>`;
+                        `${data.symbol} OI & Volume Diff <span class="text-gray-400 font-normal text-xs">${tfLabel} candles</span>`;
+
                     document.getElementById('strikes-count').textContent = `(${data.strikes.length})`;
 
                     populateExpiries(data.expiries, data.expiry);
