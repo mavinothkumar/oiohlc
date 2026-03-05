@@ -15,15 +15,18 @@ class BuildUpSnapshotController extends Controller
                     ->where('instrument_type', 'OPT')
                     ->value('expiry_date');
 
-        $underlying      = $request->get('underlying', 'NSE_INDEX|Nifty 50');
+        $underlying      = $request->get('underlying', 'Nifty');
         $underlyingLabel = $request->get('label', 'NIFTY');
         $date            = $request->get('date', Carbon::today()->toDateString());
         $top             = (int) $request->get('top', 10);
+        $snapshot        = [];
+        $spotPrice       = [];
+        $allStrikes      = [];
 
         $rows = DB::table('option_chains')
                   ->whereDate('captured_at', $date)
                   ->where('expiry', $expiry)
-                  ->where('underlying_key', $underlying)
+                  ->where('trading_symbol', $underlying)
                   ->whereNotNull('build_up')
                   ->select(
                       DB::raw("DATE_FORMAT(captured_at, '%H:%i') as time_slot"),
@@ -35,6 +38,13 @@ class BuildUpSnapshotController extends Controller
                   )
                   ->orderBy('captured_at', 'asc')
                   ->get();
+
+        if (empty($rows)) {
+            return view('buildups.snapshot', compact(
+                'snapshot', 'expiry', 'spotPrice', 'underlyingLabel',
+                'date', 'allStrikes', 'top'
+            ));
+        }
 
         // --- Independent top X lists ---
 
@@ -76,7 +86,7 @@ class BuildUpSnapshotController extends Controller
         // Get ordered unique time slots from original rows to preserve asc order
         $orderedTimeSlots = $rows->pluck('time_slot')->unique()->values();
 
-        $snapshot = [];
+
         foreach ($orderedTimeSlots as $timeSlot) {
             $slotRows = $allRows->filter(fn($e) => $e['time_slot'] === $timeSlot)->values();
             if ($slotRows->isNotEmpty()) {
@@ -91,7 +101,7 @@ class BuildUpSnapshotController extends Controller
                        ->value('underlying_spot_price');
 
         $allStrikes = $rows->pluck('strike_price');
-        $snapshot = array_reverse($snapshot, true);
+        $snapshot   = array_reverse($snapshot, true);
 
         return view('buildups.snapshot', compact(
             'snapshot', 'expiry', 'spotPrice', 'underlyingLabel',
