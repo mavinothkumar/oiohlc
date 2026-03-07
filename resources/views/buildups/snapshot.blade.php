@@ -20,9 +20,9 @@
                         <option value="{{ $n }}" {{ $top == $n ? 'selected' : '' }}>{{ $n }}</option>
                     @endforeach
                 </select>
-                <input type="hidden" name="underlying" value="{{ request('underlying') }}">
-                <input type="hidden" name="label" value="{{ request('label') }}">
-                <input type="hidden" name="date" value="{{ $date }}">
+{{--                <input type="hidden" name="underlying" value="{{ request('underlying') }}">--}}
+{{--                <input type="hidden" name="label" value="{{ request('label') }}">--}}
+{{--                <input type="hidden" name="date" value="{{ $date }}">--}}
             </form>
         </div>
 

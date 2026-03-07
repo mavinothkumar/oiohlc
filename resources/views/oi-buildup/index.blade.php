@@ -30,7 +30,7 @@
 
     <div class="max-w-full mx-auto px-4">
         {{-- Filters --}}
-        <form method="GET" action="{{ route('oi-buildup.index') }}" class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4 mb-4">
+        <form method="GET" action="{{ route('test.oi-buildup.index') }}" class="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4 mb-4">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900 mb-6">
                     OI Backtest Buildup
@@ -67,7 +67,7 @@
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             </div>
             <div>
-                <button type="submit"
+                <button type="submit" id="buildup_submit"
                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Apply Filters
                 </button>
@@ -122,10 +122,6 @@
         </div>
     </div>
 
-    <audio id="oiAlertSound">
-        <source src="{{ asset('sounds/beep.mp3') }}" type="audio/mpeg">
-    </audio>
-
 
     <script>
         window.oiBuildupData = @json($datasets);
@@ -136,8 +132,7 @@
             const atInput = document.getElementById('at_input');
             const expiryInput = document.getElementById('expiry_input');
             const underlyingEl = document.getElementById('underlying_symbol');
-
-            console.log('Init', { atInput, expiryInput, underlyingEl }); // should all be non-null
+            const buildup_submit = document.getElementById('buildup_submit');
 
             if ( ! atInput || ! expiryInput || ! underlyingEl) return;
 
@@ -152,6 +147,7 @@
                         if (data.expiry) {
                             // expiry from API is 'YYYY-MM-DD' -> works directly for type=date
                             expiryInput.value = data.expiry;
+                            buildup_submit.click();
                         } else {
                             // optional: clear if nothing found
                             expiryInput.value = '';
@@ -293,9 +289,6 @@
             const modal = document.getElementById('oiAlertModal');
             const closeBtn = document.getElementById('oiAlertClose');
             const contentEl = document.getElementById('oiAlertContent');
-            const audio = document.getElementById('oiAlertSound');
-
-            console.log(rows);
 
             // Build details HTML
             let html = `<p>Found ${ rows.length } contracts with |ΔOI| ≥ ${ threshold.toLocaleString() } in 3‑minute data.</p>`;
@@ -316,11 +309,6 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
-            // Play sound (may be blocked until user interacts at least once)
-            if (audio) {
-                audio.play().catch(() => {});
-            }
-
             const hideModal = () => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
@@ -330,9 +318,6 @@
             modal.addEventListener('click', function (e) {
                 if (e.target === modal) hideModal();
             });
-
-            // Mark this bar as alerted so next 2 auto‑reloads do NOT alert again
-            window.localStorage.setItem(key, '1');
         });
     </script>
 
