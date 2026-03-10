@@ -111,6 +111,7 @@
             </div>
         </div>
     </div>
+    <button onclick="document.getElementById('oiAlertSound').play()">Test sound</button>
 
     <audio id="oiAlertSound">
         <source src="{{ asset('sounds/beep.mp3') }}" type="audio/mpeg">
@@ -253,11 +254,9 @@
             html += '<ul class="list-disc pl-5 space-y-1">';
             rows.slice(0, 5).forEach(r => {
                 html += `<li>
-            <span class="font-semibold">${r.strike} ${r.option_type}</span>
-            &nbsp;(${r.buildup}) |
-            ΔOI: ${r.delta_oi.toLocaleString()} |
-            ΔPrice: ${r.delta_price.toFixed(2)}
-        </li>`;
+        <span class="font-semibold">${parseInt(r.strike, 10)} ${r.option_type}</span>
+        &nbsp;${r.buildup} ΔOI ${safeOi(r)} Px ${safePx(r)}
+    </li>`;
             });
             html += '</ul>';
             contentEl.innerHTML = html;
@@ -283,5 +282,88 @@
             window.localStorage.setItem(key, '1');
         });
     </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const datasets = window.oiBuildupData || {};
+            const rows = datasets[3] || []; // full 3‑min data, no threshold filter
+            if (!rows.length) return;
+
+            const modal = document.getElementById('oiAlertModal');
+            const closeBtn = document.getElementById('oiAlertClose');
+            const contentEl = document.getElementById('oiAlertContent');
+            const audio = document.getElementById('oiAlertSound');
+
+            const hideModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+            closeBtn.addEventListener('click', hideModal);
+            modal.addEventListener('click', e => {
+                if (e.target === modal) hideModal();
+            });
+
+            // Uniform buildup check – independent of threshold
+            const validTypes = ['Long', 'Short', 'Unwind', 'Cover']; // or ['LB','SB','LU','SC'] as per data
+            const buildups = rows.map(r => r.buildup);
+            const filtered = buildups.filter(b => validTypes.includes(b));
+            const uniformType =
+                filtered.length === rows.length && filtered.every(b => b === filtered[0])
+                    ? filtered[0]
+                    : null;
+
+            if (!uniformType) return;
+
+            // Use time from first row if available; otherwise a generic key
+            const barTimestamp = rows[0]?.timestamp || 'no-ts';
+            const symbol = rows[0]?.symbol || '';
+            const expiry = rows[0]?.expiry || '';
+
+            const key = `oiUniformAlert-${symbol}-${expiry}-${barTimestamp}-${uniformType}`;
+            if (window.localStorage.getItem(key) === '1') return;
+
+            function safePx(r) {
+                if (typeof r.deltaprice === 'number') return r.deltaprice.toFixed(2);
+                const v = r.deltaprice;
+                return (v === null || v === undefined || v === '') ? 'NA' : String(v);
+            }
+            function safeOi(r) {
+                if (r && typeof r.delta_oi === 'number' && r.delta_oi.toLocaleString) {
+                    return r.delta_oi.toLocaleString();
+                }
+                return r && r.delta_oi != null ? String(r.delta_oi) : 'NA';
+            }
+
+            let html = `<p>Uniform <span class="font-semibold">${uniformType}</span> buildup across all ${rows.length} contracts in 3‑minute OI data (any OI size).</p>`;
+            html += `<ul class="list-disc pl-5 space-y-1">`;
+            rows.slice(0, 8).forEach(r => {
+                html += `<li>
+            <span class="font-semibold">${parseInt(r.strike,10)} ${r.option_type}</span>
+            &nbsp;ΔOI ${safeOi(r)} Px ${safePx(r)}
+        </li>`;
+            });
+            html += `</ul>`;
+
+            contentEl.innerHTML = html;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (audio) audio.play().catch(() => {});
+            window.localStorage.setItem(key, '1');
+        });
+
+        function safePx(r) {
+            if (typeof r.deltaprice === 'number') return r.deltaprice.toFixed(2);
+            const v = r.deltaprice;
+            return (v === null || v === undefined || v === '') ? 'NA' : String(v);
+        }
+
+        function safeOi(r) {
+            if (r && typeof r.delta_oi === 'number' && r.delta_oi.toLocaleString) {
+                return r.delta_oi.toLocaleString();
+            }
+            return r && r.delta_oi != null ? String(r.delta_oi) : 'NA';
+        }
+    </script>
+
 
 @endsection
