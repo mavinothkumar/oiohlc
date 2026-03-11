@@ -269,6 +269,7 @@ class OiDiffLiveController extends Controller
 
         return response()->json([
             'symbol' => $symbol,
+            'strikesEachSide' => $strikesEachSide,
             'quote_date' => $quoteDate,
             'prev_date' => $prevDate,
             'expiry' => $expiry,

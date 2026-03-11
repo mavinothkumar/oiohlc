@@ -117,6 +117,10 @@
         <source src="{{ asset('sounds/beep.mp3') }}" type="audio/mpeg">
     </audio>
 
+    <audio id="oiAlertSound2">
+        <source src="{{ asset('sounds/execuse.mp3') }}" type="audio/mpeg">
+    </audio>
+
 
     <script>
         window.oiBuildupData = @json($datasets);
@@ -292,7 +296,7 @@
             const modal = document.getElementById('oiAlertModal');
             const closeBtn = document.getElementById('oiAlertClose');
             const contentEl = document.getElementById('oiAlertContent');
-            const audio = document.getElementById('oiAlertSound');
+            const audio2 = document.getElementById('oiAlertSound2');
 
             const hideModal = () => {
                 modal.classList.add('hidden');
@@ -347,7 +351,7 @@
             contentEl.innerHTML = html;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            if (audio) audio.play().catch(() => {});
+            if (audio2) audio2.play().catch(() => {});
             window.localStorage.setItem(key, '1');
         });
 

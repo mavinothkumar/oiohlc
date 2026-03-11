@@ -108,19 +108,19 @@
                     foreach($result['strikes'] as $s) {
                         $chartData[] = [
                             'strike' => $s['strike'],
-                            'ce_lb'  => $s['CE']['Long Build'],
-                            'ce_sb'  => $s['CE']['Short Build'],
-                            'ce_lu'  => $s['CE']['Long Unwind'],
-                            'ce_sc'  => $s['CE']['Short Cover'],
-                            'pe_lb'  => $s['PE']['Long Build'],
-                            'pe_sb'  => $s['PE']['Short Build'],
-                            'pe_lu'  => $s['PE']['Long Unwind'],
-                            'pe_sc'  => $s['PE']['Short Cover'],
+                            'celb'  => $s['CE']['Long Build'],
+                            'cesb'  => $s['CE']['Short Build'],
+                            'celu'  => $s['CE']['Long Unwind'],
+                            'cesc'  => $s['CE']['Short Cover'],
+                            'pelb'  => $s['PE']['Long Build'],
+                            'pesb'  => $s['PE']['Short Build'],
+                            'pelu'  => $s['PE']['Long Unwind'],
+                            'pesc'  => $s['PE']['Short Cover'],
                         ];
                     }
                     usort($chartData, fn($a,$b) => $a['strike'] <=> $b['strike']);
                 @endphp
-                <script>window.__buildupChartData = @json($chartData);</script>
+                <script>window.buildupChartData = @json($chartData);</script>
 
                 {{-- CE / PE / Combined toggle — default: both --}}
                 <div class="flex gap-4 mb-5 items-center">
@@ -136,10 +136,30 @@
                     </label>
                 </div>
 
+                {{-- Overview 2: Combined totals --}}
+                <div class="bg-white border rounded p-4 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">
+                        Overview 2 — Combined Long (LB + LU) vs Short (SB + SC)
+                    </h3>
+                    <div style="position:relative; height:400px;">
+                        <canvas id="chart-overview-2"></canvas>
+                    </div>
+                </div>
+
+                {{-- Overview 3: Net remaining pressure --}}
+                <div class="bg-white border rounded p-4 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">
+                        Overview 3 — Net Remaining Pressure [LB - LU] vs [SB - SC]
+                    </h3>
+                    <div style="position:relative; height:400px;">
+                        <canvas id="chart-overview-3"></canvas>
+                    </div>
+                </div>
+
                 {{-- ─── Combined Overview Chart ─── --}}
                 <div class="bg-white border rounded p-4 mb-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3">📈 Build-Up Overview — All Strikes (LB / SB / LU / SC)</h3>
-                    <div style="position:relative; height:1500px;">
+                    <div style="position:relative; height:400px;">
                         <canvas id="chart-overview"></canvas>
                     </div>
                 </div>
@@ -219,29 +239,37 @@
                                 @php $v = $ce['Long Build']; $c = in_array($v,$result['top3_total']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="lbtotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_5']['Long Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_15']['Long Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $ce['Long Unwind']; $c = in_array($v,$result['top3_total']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="lutotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_5']['Long Unwind'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_15']['Long Unwind'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $cesbsc; $c = in_array($v,$result['top3_diff']['sb_sc'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sbsc" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $ce['Short Build']; $c = in_array($v,$result['top3_total']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sbtotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_5']['Short Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_15']['Short Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $ce['Short Cover']; $c = in_array($v,$result['top3_total']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sctotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_5']['Short Cover'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['CE_15']['Short Cover'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                             </tr>
 
                             {{-- PE row --}}
@@ -252,29 +280,37 @@
                                 @php $v = $pe['Long Build']; $c = in_array($v,$result['top3_total']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="lbtotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_5']['Long Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_15']['Long Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="lb15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $pe['Long Unwind']; $c = in_array($v,$result['top3_total']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="lutotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_5']['Long Unwind'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_15']['Long Unwind'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Long Unwind'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="lu15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $pesbsc; $c = in_array($v,$result['top3_diff']['sb_sc'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sbsc" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $pe['Short Build']; $c = in_array($v,$result['top3_total']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sbtotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_5']['Short Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_15']['Short Build'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Build'],true)&&$v!=0?'bg-yellow-200 font-semibold':'' }}" data-sort="sb15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $pe['Short Cover']; $c = in_array($v,$result['top3_total']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' @endphp
                                 <td class="px-2 py-1 border {{ $c }}" data-sort="sctotal" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_5']['Short Cover'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc5" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_5']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc5"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                                 @php $v = $s['PE_15']['Short Cover'] @endphp
-                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc15" data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
+                                <td class="px-2 py-1 border {{ in_array($v,$result['top3_15']['Short Cover'],true)?'bg-yellow-200 font-semibold':'' }}" data-sort="sc15"
+                                    data-value="{{ $v }}">{{ format_inr_compact($v) }}</td>
                             </tr>
                             @php $pairIndex++; @endphp
                         @endforeach
@@ -286,89 +322,30 @@
         @else
             <div class="border p-4 bg-white">No data for the selected inputs.</div>
         @endif
-
-
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>
-        (function() {
-            const tbody = document.getElementById('buildups-body');
-            if (!tbody) return;
-
-            // Map: key -> function(pairId) => numeric value to sort by (max of CE/PE for the key)
-            function valueFor(pairId, key) {
-                const rows = [...tbody.querySelectorAll(`tr[data-pair="${pairId}"]`)];
-                const vals = rows.map(r => {
-                    const td = r.querySelector(`td[data-sort="${key}"]`);
-                    return td ? parseFloat(td.getAttribute('data-value') || '0') : 0;
-                });
-                if (key === 'strike') return vals[0] || 0; // strike lives on first row
-                // default: use max(CE, PE) so a strike pair is ranked by its higher activity
-                return Math.max(...vals);
-            }
-
-            // Current sort state
-            let current = { key: null, dir: 'desc' };
-
-            // Click handlers on headers
-            document.querySelectorAll('th[data-key]').forEach(th => {
-                th.addEventListener('click', () => {
-                    const key = th.getAttribute('data-key');
-                    // toggle direction if same key; else default desc
-                    current.dir = (current.key === key && current.dir === 'desc') ? 'asc' : 'desc';
-                    current.key = key;
-
-                    // collect pair ids in order they appear
-                    const firstRows = [...tbody.querySelectorAll('tr[data-pair]:not([data-second])')];
-                    const pairs = firstRows.map(fr => {
-                        const pid = fr.getAttribute('data-pair');
-                        return { pid, val: valueFor(pid, key) };
-                    });
-
-                    // sort them
-                    pairs.sort((a, b) => {
-                        if (a.val === b.val) {
-                            // tie-break: higher strike first
-                            const sa = valueFor(a.pid, 'strike');
-                            const sb = valueFor(b.pid, 'strike');
-                            return current.dir === 'desc' ? (sb - sa) : (sa - sb);
-                        }
-                        return current.dir === 'desc' ? (b.val - a.val) : (a.val - b.val);
-                    });
-
-                    // re-append as grouped pairs
-                    const frag = document.createDocumentFragment();
-                    pairs.forEach(p => {
-                        const rows = [...tbody.querySelectorAll(`tr[data-pair="${p.pid}"]`)];
-                        rows.forEach(r => frag.appendChild(r));
-                    });
-                    tbody.appendChild(frag);
-
-                    // simple visual cue
-                    document.querySelectorAll('th[data-key]').forEach(h => h.classList.remove('underline'));
-                    th.classList.add('underline');
-                });
-            });
-        })();
-
-        /* ── Tab Switcher ── */
+        // ── Tab Switcher ──────────────────────────────────────────────────────────
         function switchTab(name) {
             ['chart', 'table'].forEach(t => {
-                document.getElementById('tab-panel-' + t).style.display = (t === name) ? '' : 'none';
-                const btn = document.getElementById('tab-btn-' + t);
-                if (t === name) {
-                    btn.classList.add('border-blue-600', 'text-blue-600');
-                    btn.classList.remove('border-transparent', 'text-gray-500');
-                } else {
-                    btn.classList.remove('border-blue-600', 'text-blue-600');
-                    btn.classList.add('border-transparent', 'text-gray-500');
+                const panel = document.getElementById('tab-panel-' + t);
+                const btn   = document.getElementById('tab-btn-' + t);
+                if (panel) panel.style.display = (t === name) ? '' : 'none';
+                if (btn) {
+                    if (t === name) {
+                        btn.classList.add('border-blue-600', 'text-blue-600');
+                        btn.classList.remove('border-transparent', 'text-gray-500');
+                    } else {
+                        btn.classList.remove('border-blue-600', 'text-blue-600');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    }
                 }
             });
             if (name === 'chart') initBuildupCharts();
         }
 
-        /* ── Table Sort ── */
-        (function () {
+        // ── Table Sort ────────────────────────────────────────────────────────────
+        function initBuildupTableSort() {
             const tbody = document.getElementById('buildups-body');
             if (!tbody) return;
 
@@ -376,7 +353,7 @@
                 const rows = [...tbody.querySelectorAll(`tr[data-pair="${pairId}"]`)];
                 const vals = rows.map(r => {
                     const td = r.querySelector(`td[data-sort="${key}"]`);
-                    return td ? parseFloat(td.getAttribute('data-value')) || 0 : 0;
+                    return td ? parseFloat(td.getAttribute('data-value') || 0) : 0;
                 });
                 if (key === 'strike') return vals[0] || 0;
                 return Math.max(...vals);
@@ -387,160 +364,276 @@
             document.querySelectorAll('th[data-key]').forEach(th => {
                 th.addEventListener('click', () => {
                     const key = th.getAttribute('data-key');
-                    current.dir = (key === current.key && current.dir === 'desc') ? 'asc' : 'desc';
+                    current.dir = (current.key === key && current.dir === 'desc') ? 'asc' : 'desc';
                     current.key = key;
+
                     const firstRows = [...tbody.querySelectorAll('tr[data-pair]:not([data-second])')];
-                    const pairs = firstRows.map(fr => ({ pid: fr.getAttribute('data-pair'), val: valueFor(fr.getAttribute('data-pair'), key) }));
+                    const pairs = firstRows.map(fr => ({
+                        pid: fr.getAttribute('data-pair'),
+                        val: valueFor(fr.getAttribute('data-pair'), key)
+                    }));
+
                     pairs.sort((a, b) => {
                         if (a.val === b.val) {
-                            const sa = valueFor(a.pid, 'strike'), sb = valueFor(b.pid, 'strike');
+                            const sa = valueFor(a.pid, 'strike');
+                            const sb = valueFor(b.pid, 'strike');
                             return current.dir === 'desc' ? sb - sa : sa - sb;
                         }
                         return current.dir === 'desc' ? b.val - a.val : a.val - b.val;
                     });
+
                     const frag = document.createDocumentFragment();
-                    pairs.forEach(p => tbody.querySelectorAll(`tr[data-pair="${p.pid}"]`).forEach(r => frag.appendChild(r)));
+                    pairs.forEach(p => {
+                        tbody.querySelectorAll(`tr[data-pair="${p.pid}"]`)
+                            .forEach(r => frag.appendChild(r));
+                    });
                     tbody.appendChild(frag);
+
                     document.querySelectorAll('th[data-key]').forEach(h => h.classList.remove('underline'));
                     th.classList.add('underline');
                 });
             });
-        })();
+        }
 
-        /* ── Charts ── */
-        let _buildupCharts = {};
-        let _currentChartView = 'both'; // default CE + PE Combined
+        // ── Chart state ───────────────────────────────────────────────────────────
+        let buildupCharts    = {};
+        let currentChartView = 'both';
 
         function switchChartView(view) {
-            _currentChartView = view;
+            currentChartView = view;
             initBuildupCharts();
         }
 
+        // ── Helpers ───────────────────────────────────────────────────────────────
+        function fmtOI(v) {
+            const abs = Math.abs(Number(v) || 0);
+            if (abs >= 1e7) return (abs / 1e7).toFixed(2) + 'Cr';
+            if (abs >= 1e5) return (abs / 1e5).toFixed(2) + 'L';
+            return abs.toLocaleString('en-IN');
+        }
+
+        function destroyIfExists(key) {
+            if (buildupCharts[key]) { buildupCharts[key].destroy(); buildupCharts[key] = null; }
+        }
+
+        // ── Main chart renderer ───────────────────────────────────────────────────
         function initBuildupCharts() {
-            const data = window.__buildupChartData || [];
-            if (!data.length) return;
+            const data = window.buildupChartData || [];
+            if (!Array.isArray(data) || !data.length || typeof Chart === 'undefined') return;
 
-            const labels = data.map(d => d.strike);
-            const configs = {
-                lb: { canvasId:'chart-lb', ceKey:'ce_lb', peKey:'pe_lb', ceColor:'rgba(34,197,94,0.75)',  peColor:'rgba(134,239,172,0.75)' },
-                sb: { canvasId:'chart-sb', ceKey:'ce_sb', peKey:'pe_sb', ceColor:'rgba(239,68,68,0.75)',   peColor:'rgba(252,165,165,0.75)' },
-                lu: { canvasId:'chart-lu', ceKey:'ce_lu', peKey:'pe_lu', ceColor:'rgba(249,115,22,0.75)',  peColor:'rgba(253,186,116,0.75)' },
-                sc: { canvasId:'chart-sc', ceKey:'ce_sc', peKey:'pe_sc', ceColor:'rgba(59,130,246,0.75)',  peColor:'rgba(147,197,253,0.75)' },
-            };
+            const view         = currentChartView;
+            const strikeLabels = data.map(d => d.strike);
 
-            /* ── Overview chart: CE & PE bars per strike, all 4 build types ── */
+            // helper: build flat CE/PE label list + parallel value arrays
+            function buildFlat(ceFn, peFn) {
+                const labels = [], ceVals = [], peVals = [];
+                data.forEach(d => {
+                    if (view === 'ce' || view === 'both') { labels.push(`${d.strike} CE`); ceVals.push(ceFn(d)); }
+                    if (view === 'pe' || view === 'both') { labels.push(`${d.strike} PE`); peVals.push(peFn(d)); }
+                });
+                // merge into single value array in label order
+                const vals = [];
+                let ci = 0, pi = 0;
+                data.forEach(d => {
+                    if (view === 'ce' || view === 'both') vals.push(ceVals[ci++]);
+                    if (view === 'pe' || view === 'both') vals.push(peVals[pi++]);
+                });
+                return { labels, vals };
+            }
+
+            function baseOpts(extraY = {}) {
+                return {
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 12 }, padding: 16 } },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: ctx => {
+                                    const v = ctx.raw || 0;
+                                    if (v === 0) return null;
+                                    const sign = (v > 0) ? '+' : '';
+                                    return `${ctx.dataset.label}: ${sign}${fmtOI(v)}`;
+                                }
+                            },
+                            filter: item => item.raw !== 0
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 10 } } },
+                        y: {
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            ticks: { font: { size: 10 }, callback: v => fmtOI(v) },
+                            ...extraY
+                        }
+                    }
+                };
+            }
+
+            function autoHeight(canvas, labelCount, datasetsCount) {
+                const h = Math.max(400, labelCount * 15 * datasetsCount * 0.45);
+                canvas.parentElement.style.height = h + 'px';
+            }
+
+            // ── Overview 1: LB / SB / LU / SC ────────────────────────────────────
             (function () {
+                destroyIfExists('overview');
                 const canvas = document.getElementById('chart-overview');
                 if (!canvas) return;
-                if (_buildupCharts['overview']) { _buildupCharts['overview'].destroy(); }
 
-                const view = _currentChartView;
-
-                // Build flat labels: ["24500 CE", "24500 PE", "24550 CE", "24550 PE", ...]
                 const flatLabels = [];
-                const vals = { lb: [], sb: [], lu: [], sc: [] };
-
+                const lb = [], sb = [], lu = [], sc = [];
                 data.forEach(d => {
                     if (view === 'ce' || view === 'both') {
-                        flatLabels.push(d.strike + ' CE');
-                        vals.lb.push(d.ce_lb);
-                        vals.sb.push(d.ce_sb);
-                        vals.lu.push(Math.abs(d.ce_lu));  // flip to positive side
-                        vals.sc.push(Math.abs(d.ce_sc));  // flip to positive side
+                        flatLabels.push(`${d.strike} CE`);
+                        lb.push(Number(d.celb) || 0);
+                        sb.push(Number(d.cesb) || 0);
+                        lu.push(Math.abs(Number(d.celu) || 0));
+                        sc.push(Math.abs(Number(d.cesc) || 0));
                     }
                     if (view === 'pe' || view === 'both') {
-                        flatLabels.push(d.strike + ' PE');
-                        vals.lb.push(d.pe_lb);
-                        vals.sb.push(d.pe_sb);
-                        vals.lu.push(Math.abs(d.pe_lu));  // flip to positive side
-                        vals.sc.push(Math.abs(d.pe_sc));  // flip to positive side
+                        flatLabels.push(`${d.strike} PE`);
+                        lb.push(Number(d.pelb) || 0);
+                        sb.push(Number(d.pesb) || 0);
+                        lu.push(Math.abs(Number(d.pelu) || 0));
+                        sc.push(Math.abs(Number(d.pesc) || 0));
                     }
                 });
 
-                const datasets = [
-                    {
-                        label           : 'Long Build',
-                        data            : vals.lb,
-                        backgroundColor : 'rgba(34,197,94,0.85)',
-                        borderColor     : 'rgba(22,163,74,1)',
-                        borderWidth     : 1,
-                        borderSkipped   : false,
-                    },
-                    {
-                        label           : 'Short Build',
-                        data            : vals.sb,
-                        backgroundColor : 'rgba(239,68,68,0.85)',
-                        borderColor     : 'rgba(220,38,38,1)',
-                        borderWidth     : 1,
-                        borderSkipped   : false,
-                    },
-                    {
-                        label           : 'Long Unwind',
-                        data            : vals.lu,
-                        backgroundColor : 'rgba(249,115,22,0.85)',
-                        borderColor     : 'rgba(234,88,12,1)',
-                        borderWidth     : 1,
-                        borderSkipped   : false,
-                    },
-                    {
-                        label           : 'Short Cover',
-                        data            : vals.sc,
-                        backgroundColor : 'rgba(59,130,246,0.85)',
-                        borderColor     : 'rgba(37,99,235,1)',
-                        borderWidth     : 1,
-                        borderSkipped   : false,
-                    },
-                ];
+                autoHeight(canvas, flatLabels.length, 4);
 
-                // Dynamically size height: ~28px per label row
-                const rowHeight  = 40;
-                const chartH     = Math.max(1400, flatLabels.length * rowHeight * datasets.length * 0.38);
-                canvas.parentElement.style.height = chartH + 'px';
+                buildupCharts.overview = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: flatLabels,
+                        datasets: [
+                            { label: 'Long Build',  data: lb, backgroundColor: 'rgba(34,197,94,0.85)',  borderColor: 'rgba(22,163,74,1)',  borderWidth: 1 },
+                            { label: 'Short Build', data: sb, backgroundColor: 'rgba(239,68,68,0.85)',  borderColor: 'rgba(220,38,38,1)', borderWidth: 1 },
+                            { label: 'Long Unwind', data: lu, backgroundColor: 'rgba(249,115,22,0.85)', borderColor: 'rgba(234,88,12,1)', borderWidth: 1 },
+                            { label: 'Short Cover', data: sc, backgroundColor: 'rgba(59,130,246,0.85)', borderColor: 'rgba(37,99,235,1)', borderWidth: 1 },
+                        ]
+                    },
+                    options: baseOpts({ beginAtZero: true })
+                });
+            })();
 
-                _buildupCharts['overview'] = new Chart(canvas, {
-                    type : 'bar',
-                    data : { labels: flatLabels, datasets },
-                    options : {
-                        animation           : false,
-                        indexAxis           : 'y',
-                        responsive          : true,
-                        maintainAspectRatio : false,
-                        plugins : {
-                            legend : {
-                                position : 'top',
-                                labels   : { font: { size: 12 }, padding: 16 }
+            // ── Overview 2: Combined Long (LB+LU) vs Short (SB+SC) ───────────────
+            // ── Overview 2: Stacked Long (LB+LU) vs Short (SB+SC) ─────────────────
+            (function () {
+                destroyIfExists('overview2');
+                const canvas = document.getElementById('chart-overview-2');
+                if (!canvas) return;
+
+                const flatLabels = [], lb = [], lu = [], sb = [], sc = [];
+
+                data.forEach(d => {
+                    if (view === 'ce' || view === 'both') {
+                        flatLabels.push(`${d.strike} CE`);
+                        lb.push(Number(d.celb) || 0);
+                        lu.push(Math.abs(Number(d.celu) || 0));
+                        sb.push(Number(d.cesb) || 0);
+                        sc.push(Math.abs(Number(d.cesc) || 0));
+                    }
+                    if (view === 'pe' || view === 'both') {
+                        flatLabels.push(`${d.strike} PE`);
+                        lb.push(Number(d.pelb) || 0);
+                        lu.push(Math.abs(Number(d.pelu) || 0));
+                        sb.push(Number(d.pesb) || 0);
+                        sc.push(Math.abs(Number(d.pesc) || 0));
+                    }
+                });
+
+                autoHeight(canvas, flatLabels.length, 2);
+
+                buildupCharts.overview2 = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: flatLabels,
+                        datasets: [
+                            {
+                                label: 'Long Build (LB)',
+                                data: lb,
+                                backgroundColor: 'rgba(22,163,74,0.9)',
+                                borderColor: 'rgba(21,128,61,1)',
+                                borderWidth: 1,
+                                stack: 'long',
                             },
-                            tooltip : {
-                                mode      : 'index',
-                                intersect : false,
-                                callbacks : {
-                                    label: ctx => {
-                                        const v = ctx.raw, abs = Math.abs(v);
-                                        if (abs === 0) return null;
-                                        const fmt = abs >= 1e7 ? (v/1e7).toFixed(2)+'Cr'
-                                            : abs >= 1e5 ? (v/1e5).toFixed(2)+'L'
-                                                : v.toLocaleString('en-IN');
-                                        return ` ${ctx.dataset.label}: ${fmt}`;
+                            {
+                                label: 'Long Unwind (LU)',
+                                data: lu,
+                                backgroundColor: 'rgba(234,179,8,0.85)',
+                                borderColor: 'rgba(161,98,7,1)',
+                                borderWidth: 1,
+                                stack: 'long',
+                            },
+                            {
+                                label: 'Short Build (SB)',
+                                data: sb,
+                                backgroundColor: 'rgba(239,68,68,0.9)',
+                                borderColor: 'rgba(220,38,38,1)',
+                                borderWidth: 1,
+                                stack: 'short',
+                            },
+                            {
+                                label: 'Short Cover (SC)',
+                                data: sc,
+                                backgroundColor: 'rgba(30,64,175,0.85)',
+                                borderColor: 'rgba(30,27,75,1)',
+                                borderWidth: 1,
+                                stack: 'short',
+                            },
+                        ]
+                    },
+                    options: {
+                        animation: false,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { font: { size: 12 }, padding: 16 }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(ctx) {
+                                        const v = ctx.raw || 0;
+                                        if (v === 0) return null;
+                                        return `${ctx.dataset.label}: ${fmtOI(v)}`;
                                     },
-                                    filter: item => item.raw !== 0
-                                }
-                            }
-                        },
-                        scales : {
-                            x : {
-                                grid  : { color: 'rgba(0,0,0,0.06)' },
-                                ticks : { font: { size: 10 } },
-                                title : { display: true, text: 'ΔOI', font: { size: 11 } }
-                            },
-                            y : {
-                                grid  : { display: false },
-                                ticks : {
-                                    font      : { size: 10 },
-                                    // Bold the strike+type label for CE rows to visually separate pairs
-                                    callback  : function(val, idx) {
-                                        return flatLabels[idx];
+                                    afterBody: function(ctxArr) {
+                                        const lbVal = ctxArr.find(c => c.dataset.label.includes('Long Build'))?.raw || 0;
+                                        const luVal = ctxArr.find(c => c.dataset.label.includes('Long Unwind'))?.raw || 0;
+                                        const sbVal = ctxArr.find(c => c.dataset.label.includes('Short Build'))?.raw || 0;
+                                        const scVal = ctxArr.find(c => c.dataset.label.includes('Short Cover'))?.raw || 0;
+                                        return [
+                                            `─────────────────`,
+                                            `Total Long : ${fmtOI(lbVal + luVal)}`,
+                                            `Total Short: ${fmtOI(sbVal + scVal)}`,
+                                        ];
                                     }
                                 },
+                                filter: item => item.raw !== 0
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: { font: { size: 10 } }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                ticks: {
+                                    font: { size: 10 },
+                                    callback: function(value) { return fmtOI(value); }
+                                }
                             }
                         }
                     }
@@ -548,51 +641,92 @@
             })();
 
 
+            // ── Overview 3: Net pressure (LB-LU) vs (SB-SC) ──────────────────────
+            (function () {
+                destroyIfExists('overview3');
+                const canvas = document.getElementById('chart-overview-3');
+                if (!canvas) return;
+
+                const flatLabels = [], longNet = [], shortNet = [];
+                data.forEach(d => {
+                    if (view === 'ce' || view === 'both') {
+                        flatLabels.push(`${d.strike} CE`);
+                        longNet.push((Number(d.celb) || 0) - Math.abs(Number(d.celu) || 0));
+                        shortNet.push((Number(d.cesb) || 0) - Math.abs(Number(d.cesc) || 0));
+                    }
+                    if (view === 'pe' || view === 'both') {
+                        flatLabels.push(`${d.strike} PE`);
+                        longNet.push((Number(d.pelb) || 0) - Math.abs(Number(d.pelu) || 0));
+                        shortNet.push((Number(d.pesb) || 0) - Math.abs(Number(d.pesc) || 0));
+                    }
+                });
+
+                autoHeight(canvas, flatLabels.length, 2);
+
+                buildupCharts.overview3 = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: flatLabels,
+                        datasets: [
+                            { label: 'Net Long Pressure (LB − LU)',  data: longNet,  backgroundColor: 'rgba(22,163,74,0.85)',  borderColor: 'rgba(21,128,61,1)',  borderWidth: 1 },
+                            { label: 'Net Short Pressure (SB − SC)', data: shortNet, backgroundColor: 'rgba(220,38,38,0.85)',  borderColor: 'rgba(185,28,28,1)', borderWidth: 1 },
+                        ]
+                    },
+                    options: baseOpts()
+                });
+            })();
+
+            // ── Individual LB / SB / LU / SC charts (horizontal) ─────────────────
+            const configs = {
+                lb: { canvasId: 'chart-lb', ceKey: 'celb', peKey: 'pelb', ceColor: 'rgba(34,197,94,0.75)',   peColor: 'rgba(134,239,172,0.75)' },
+                sb: { canvasId: 'chart-sb', ceKey: 'cesb', peKey: 'pesb', ceColor: 'rgba(239,68,68,0.75)',   peColor: 'rgba(252,165,165,0.75)' },
+                lu: { canvasId: 'chart-lu', ceKey: 'celu', peKey: 'pelu', ceColor: 'rgba(249,115,22,0.75)',  peColor: 'rgba(253,186,116,0.75)' },
+                sc: { canvasId: 'chart-sc', ceKey: 'cesc', peKey: 'pesc', ceColor: 'rgba(59,130,246,0.75)',  peColor: 'rgba(147,197,253,0.75)' },
+            };
+
             Object.entries(configs).forEach(([key, cfg]) => {
+                destroyIfExists(key);
                 const canvas = document.getElementById(cfg.canvasId);
                 if (!canvas) return;
-                if (_buildupCharts[key]) { _buildupCharts[key].destroy(); }
 
                 const datasets = [];
-                if (_currentChartView === 'ce' || _currentChartView === 'both') {
-                    datasets.push({ label:'CE', data: data.map(d => d[cfg.ceKey]), backgroundColor: cfg.ceColor, borderWidth: 1 });
+                if (view === 'ce' || view === 'both') {
+                    datasets.push({ label: 'CE', data: data.map(d => Number(d[cfg.ceKey]) || 0), backgroundColor: cfg.ceColor, borderWidth: 1 });
                 }
-                if (_currentChartView === 'pe' || _currentChartView === 'both') {
-                    datasets.push({ label:'PE', data: data.map(d => d[cfg.peKey]), backgroundColor: cfg.peColor, borderWidth: 1 });
+                if (view === 'pe' || view === 'both') {
+                    datasets.push({ label: 'PE', data: data.map(d => Number(d[cfg.peKey]) || 0), backgroundColor: cfg.peColor, borderWidth: 1 });
                 }
 
-                _buildupCharts[key] = new Chart(canvas, {
+                buildupCharts[key] = new Chart(canvas, {
                     type: 'bar',
-                    data: { labels, datasets },
+                    data: { labels: strikeLabels, datasets },
                     options: {
                         animation: false,
                         indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position:'top', labels:{ font:{ size:11 } } },
+                            legend: { position: 'top', labels: { font: { size: 11 } } },
                             tooltip: {
                                 callbacks: {
-                                    label: ctx => {
-                                        const v = ctx.raw, abs = Math.abs(v);
-                                        const fmt = abs >= 1e7 ? (v/1e7).toFixed(2)+'Cr' : abs >= 1e5 ? (v/1e5).toFixed(2)+'L' : v.toLocaleString('en-IN');
-                                        return ` ${ctx.dataset.label}: ${fmt}`;
-                                    }
+                                    label: ctx => `${ctx.dataset.label}: ${fmtOI(ctx.raw)}`
                                 }
                             }
                         },
                         scales: {
-                            x: { grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ font:{ size:10 } } },
-                            y: { grid:{ display:false }, ticks:{ font:{ size:10 } } }
+                            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 }, callback: v => fmtOI(v) } },
+                            y: { grid: { display: false }, ticks: { font: { size: 10 } } }
                         }
                     }
                 });
             });
         }
 
-        /* ── Init on page load: show chart tab by default ── */
+        // ── Boot ──────────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function () {
+            initBuildupTableSort();
             switchTab('chart');
         });
     </script>
+
 @endsection

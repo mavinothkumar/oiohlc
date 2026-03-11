@@ -103,4 +103,7 @@ Route::prefix('test')->name('test.')->group(function () {
 
     Route::get('/oi-buildup', [App\Http\Controllers\OiBuildupController::class, 'index'])->name('oi-buildup.index');
 
+    Route::get('/short-build-atm', [App\Http\Controllers\ShortBuildController::class, 'index'])
+         ->name('short-build-atm.index');
+
 });

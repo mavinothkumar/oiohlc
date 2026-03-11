@@ -53,11 +53,15 @@
 
             <div class="flex flex-col gap-1">
                 <label class="text-gray-400 text-[11px] font-semibold uppercase tracking-wider">Strikes <span id="strikes-count" class="text-blue-400">(6)</span></label>
-                <select id="strikesSelect" class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="2" selected>2 each side (5 total)</option>
-                    <option value="3">3 each side (7 total)</option>
-                    <option value="4">4 each side (9 total)</option>
-                    <option value="5">5 each side (11 total)</option>
+                @php
+                    $strikesEachSide = (int) request()->get('strikes_each_side', 2);
+                @endphp
+
+                <select id="strikesSelect" name="strikes_each_side" class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="2" {{ $strikesEachSide == '2' ? 'selected' : '' }}>2 each side (5 total)</option>
+                    <option value="3" {{ $strikesEachSide == '3' ? 'selected' : '' }}>3 each side (7 total)</option>
+                    <option value="4" {{ $strikesEachSide == '4' ? 'selected' : '' }}>4 each side (9 total)</option>
+                    <option value="5" {{ $strikesEachSide == '5' ? 'selected' : '' }}>5 each side (11 total)</option>
                 </select>
             </div>
 
