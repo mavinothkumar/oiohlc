@@ -5,74 +5,75 @@
 @section('content')
     <div class="max-w mx-auto">
 
-        {{-- Filter Bar --}}
-        <form method="GET" action="{{ url('/buildups') }}" class="mb-6 border p-4 bg-white" lang="en-GB">
-            <div class="grid grid-cols-1 md:grid-cols-7 gap-4 text-sm md:auto-rows-min">
-                <div>
-                    <label class="block mb-1">Symbol</label>
-                    <select name="symbol" class="w-full border px-2 py-1">
-                        @foreach ($allowed as $sym)
-                            <option value="{{ $sym }}" {{ ($filters['symbol'] ?? 'NIFTY') === $sym ? 'selected' : '' }}>
-                                {{ $sym }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+        {{-- Collapsible Filter Bar --}}
+        <div class="mb-6">
+            <button
+                onclick="toggleFilters()"
+                id="filter-toggle-btn"
+                class="flex items-center gap-2 text-sm font-medium text-white px-4 py-2 rounded"
+                style="background:#2271b1">
+                <span id="filter-toggle-icon">▼</span>
+                <span id="filter-toggle-label">Show Filters</span>
+            </button>
 
-                <div>
-                    <label class="block mb-1">Expiry (override)</label>
-                    <input type="date" name="expiry" class="w-full border px-2 py-1"
-                        value="{{ old('expiry', $filters['expiry'] ?? '') }}">
-                    <p class="text-[11px] text-gray-500 mt-1">Leave blank to use current expiry.</p>
-                </div>
+            <div id="filter-panel" class="hidden mt-2 border p-4 bg-white rounded">
+                <form method="GET" action="{{ url('buildups') }}" lang="en-GB">
+                    <div class="grid grid-cols-1 md:grid-cols-7 gap-4 text-sm md:auto-rows-min">
+                        <div>
+                            <label class="block mb-1">Symbol</label>
+                            <select name="symbol" class="w-full border px-2 py-1">
+                                @foreach($allowed as $sym)
+                                    <option value="{{ $sym }}" {{ ($filters['symbol'] ?? 'NIFTY') === $sym ? 'selected' : '' }}>
+                                        {{ $sym }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                <div>
-                    <label class="block mb-1">From (24-hour, IST)</label>
-                    <input type="datetime-local"
-                        name="from"
-                        class="w-full border px-2 py-1"
-                        lang="en-GB"
-                        step="60"
-                        value="{{ old('from', $filters['from'] ?? '') }}">
-                </div>
+                        <div>
+                            <label class="block mb-1">Expiry (override)</label>
+                            <input type="date" name="expiry" class="w-full border px-2 py-1" value="{{ old('expiry', $filters['expiry'] ?? '') }}">
+                            <p class="text-[11px] text-gray-500 mt-1">Leave blank to use current expiry.</p>
+                        </div>
 
-                <div>
-                    <label class="block mb-1">To (24-hour, IST)</label>
-                    <input type="datetime-local"
-                        name="to"
-                        class="w-full border px-2 py-1"
-                        lang="en-GB"
-                        step="60"
-                        value="{{ old('to', $filters['to'] ?? '') }}">
-                </div>
+                        <div>
+                            <label class="block mb-1">From (24-hour, IST)</label>
+                            <input type="datetime-local" name="from" class="w-full border px-2 py-1" lang="en-GB" step="60" value="{{ old('from', $filters['from'] ?? '') }}">
+                        </div>
 
-                <div>
-                    <label class="block mb-1">± Strike Range</label>
-                    <input type="number" min="0" name="range" class="w-full border px-2 py-1"
-                        placeholder="auto (NIFTY 200 / others 500)"
-                        value="{{ old('range', $filters['range'] ?? '') }}">
-                </div>
+                        <div>
+                            <label class="block mb-1">To (24-hour, IST)</label>
+                            <input type="datetime-local" name="to" class="w-full border px-2 py-1" lang="en-GB" step="60" value="{{ old('to', $filters['to'] ?? '') }}">
+                        </div>
 
-                <div>
-                    <label class="block mb-1">Sort by (Total ΔOI)</label>
-                    @php $sort = $filters['sort'] ?? 'Long Build'; @endphp
-                    <select name="sort" class="w-full border px-2 py-1">
-                        <option value="Long Build" {{ $sort==='Long Build'  ? 'selected':'' }}>Long Build</option>
-                        <option value="Long Unwind" {{ $sort==='Long Unwind' ? 'selected':'' }}>Long Unwind</option>
-                        <option value="Short Build" {{ $sort==='Short Build' ? 'selected':'' }}>Short Build</option>
-                        <option value="Short Cover" {{ $sort==='Short Cover' ? 'selected':'' }}>Short Cover</option>
-                    </select>
-                    <p class="text-[11px] text-gray-500 mt-1">Rows sorted by max(CE, PE) of this column.</p>
-                </div>
+                        <div>
+                            <label class="block mb-1">± Strike Range</label>
+                            <input type="number" min="0" name="range" class="w-full border px-2 py-1" placeholder="auto (NIFTY 200 / others 500)" value="{{ old('range', $filters['range'] ?? '') }}">
+                        </div>
 
-                <div class="flex md:col-span-1">
-                    <div class="flex gap-3 w-full md:w-auto">
-                        <button type="submit" class="px-3 py-2 text-white" style="background:#2271b1">Apply</button>
-                        <a href="{{ url('/buildups') }}" class="inline-flex items-center justify-center border px-3">Reset</a>
+                        <div>
+                            <label class="block mb-1">Sort by (Total ΔOI)</label>
+                            @php $sort = $filters['sort'] ?? 'Long Build'; @endphp
+                            <select name="sort" class="w-full border px-2 py-1">
+                                <option value="Long Build"   {{ $sort === 'Long Build'   ? 'selected' : '' }}>Long Build</option>
+                                <option value="Long Unwind"  {{ $sort === 'Long Unwind'  ? 'selected' : '' }}>Long Unwind</option>
+                                <option value="Short Build"  {{ $sort === 'Short Build'  ? 'selected' : '' }}>Short Build</option>
+                                <option value="Short Cover"  {{ $sort === 'Short Cover'  ? 'selected' : '' }}>Short Cover</option>
+                            </select>
+                            <p class="text-[11px] text-gray-500 mt-1">Rows sorted by max(CE, PE) of this column.</p>
+                        </div>
+
+                        <div class="flex md:col-span-1">
+                            <div class="flex gap-3 w-full md:w-auto">
+                                <button type="submit" class="px-3 py-2 text-white" style="background:#2271b1">Apply</button>
+                                <a href="{{ url('buildups') }}" class="inline-flex items-center justify-center border px-3">Reset</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
-        </form>
+        </div>
+
 
         {{-- ─── Results ─── --}}
         {{-- ─── Results ─── --}}
@@ -159,7 +160,7 @@
                         </div>
                     </div>
                     <div id="npm-loading" class="text-xs text-gray-400 hidden">Loading...</div>
-                    <div id="npm-table-wrap" class="overflow-x-auto overflow-y-auto" style="height:400px;"></div>
+                    <div id="npm-table-wrap" class="overflow-x-auto overflow-y-auto" style="height:300px;"></div>
                 </div>
 
 
@@ -840,6 +841,24 @@
             switchTab('chart');
             loadNetPressureHistory();
         });
+
+        function toggleFilters() {
+            const panel  = document.getElementById('filter-panel');
+            const icon   = document.getElementById('filter-toggle-icon');
+            const label  = document.getElementById('filter-toggle-label');
+            const isOpen = !panel.classList.contains('hidden');
+
+            if (isOpen) {
+                panel.classList.add('hidden');
+                icon.textContent  = '▼';
+                label.textContent = 'Show Filters';
+            } else {
+                panel.classList.remove('hidden');
+                icon.textContent  = '▲';
+                label.textContent = 'Hide Filters';
+            }
+        }
+
     </script>
 
 @endsection
