@@ -91,7 +91,7 @@ Route::get('/oi-diff-live', [\App\Http\Controllers\OiDiffLiveController::class, 
 Route::get('/oi-diff-live/data', [\App\Http\Controllers\OiDiffLiveController::class, 'data'])->name('oi-diff-live.data');
 
 Route::get('/build-up-snapshot', [App\Http\Controllers\BuildUpSnapshotController::class, 'index'])->name('buildup.snapshot');
-
+Route::get('/buildups/net-pressure-history', [App\Http\Controllers\BuildUpSummaryController::class, 'netPressureHistory']);
 
 Route::prefix('test')->name('test.')->group(function () {
     Route::get('/options-multi-chart', [App\Http\Controllers\OhlcChartController::class, 'multiIndex'])->name('options.multi.chart');

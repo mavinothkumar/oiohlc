@@ -10,7 +10,7 @@
     <x-header-nav/>
 </header>
 
-<main class="p-6 w-full">
+<main class="p-2 w-full">
     @yield('filters')
     <div class="mt-4">
         @yield('content')

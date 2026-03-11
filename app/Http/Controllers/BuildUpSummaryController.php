@@ -495,4 +495,128 @@ class BuildUpSummaryController extends Controller
 
         return view('buildups.strike', compact('result', 'filters', 'allowed'));
     }
+
+    public function netPressureHistory(Request $request)
+    {
+        $tz       = 'Asia/Kolkata';
+        $allowed  = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
+        $symbol   = strtoupper($request->input('symbol', 'NIFTY'));
+        if (!in_array($symbol, $allowed, true)) $symbol = 'NIFTY';
+
+        $expiryOverride = $request->input('expiry');
+        $overrideRange  = (int) $request->input('range', 0);
+        $fromQ          = $request->input('from');
+        $toQ            = $request->input('to');
+        $bucketMins     = max(1, (int) $request->input('bucket', 3)); // default 3 min
+
+        // ── Time window (same logic as index) ──────────────────────────────────
+        if ($fromQ && $toQ) {
+            $dayStart = $fromQ ? Carbon::parse($fromQ, $tz) : Carbon::now($tz)->setTime(9, 15, 0);
+            $dayEnd   = $toQ   ? Carbon::parse($toQ,   $tz) : Carbon::now($tz);
+        } else {
+            $now      = Carbon::now($tz);
+            $dayStart = $now->copy()->setTime(9, 15, 0);
+            $dayEnd   = $now->copy();
+        }
+        if ($dayEnd->lt($dayStart)) [$dayStart, $dayEnd] = [$dayEnd, $dayStart];
+
+        // ── Strike band ────────────────────────────────────────────────────────
+        $defaultRange = ['NIFTY' => 200, 'BANKNIFTY' => 500, 'SENSEX' => 500];
+        $defaultStep  = ['NIFTY' => 50,  'BANKNIFTY' => 100, 'SENSEX' => 100];
+        $band         = $overrideRange ?: ($defaultRange[$symbol] ?? 200);
+
+        // ── Expiry ─────────────────────────────────────────────────────────────
+        $expiry = $expiryOverride
+            ? Carbon::parse($expiryOverride, $tz)->toDateString()
+            : \App\Models\Expiry::where('trading_symbol', $symbol)
+                                ->where('is_current', 1)
+                                ->where('instrument_type', 'OPT')
+                                ->value('expiry_date');
+
+        if (!$expiry) return response()->json(['error' => 'No expiry found'], 422);
+
+        // ── Underlying for strike band ─────────────────────────────────────────
+        $underlying = DB::table('option_chains')
+                        ->where('trading_symbol', $symbol)
+                        ->where('expiry', $expiry)
+                        ->whereBetween('captured_at', [$dayStart, $dayEnd])
+                        ->orderByDesc('captured_at')
+                        ->value('underlying_spot_price');
+
+        if (!$underlying) return response()->json(['error' => 'No underlying price'], 422);
+
+        $minStrike = floor(($underlying - $band) / $defaultStep[$symbol]) * $defaultStep[$symbol];
+        $maxStrike = ceil(($underlying  + $band) / $defaultStep[$symbol]) * $defaultStep[$symbol];
+
+        // ── Raw tick data grouped by 3-min bucket ──────────────────────────────
+        // Uses FLOOR(UNIX_TIMESTAMP(capturedat) / (bucketMins*60)) to bucket timestamps
+        $secs = $bucketMins * 60;
+
+        $rows = DB::table('option_chains')
+                  ->selectRaw("
+            FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(captured_at) / ?) * ?, '%H:%i') AS bucket_time,
+            strike_price,
+            option_type,
+            build_up,
+            SUM(diff_oi) AS oi
+        ", [$secs, $secs])
+                  ->where('trading_symbol', $symbol)
+                  ->where('expiry', $expiry)
+                  ->whereBetween('captured_at', [$dayStart, $dayEnd])
+                  ->whereBetween('strike_price', [$minStrike, $maxStrike])
+                  ->whereIn('build_up', ['Long Build', 'Short Build', 'Long Unwind', 'Short Cover'])
+                  ->groupByRaw("bucket_time, strike_price, option_type, build_up")
+                  ->orderByDesc('bucket_time')
+                  ->get();
+
+        // ── Pivot: [time][strike][CE|PE][buildup] = oi ─────────────────────────
+        $pivot = [];   // pivot[time][strike][type] = [lb, lu, sb, sc]
+        $allTimes   = [];
+        $allStrikes = [];
+
+        foreach ($rows as $r) {
+            $t  = $r->bucket_time;
+            $k  = (int) $r->strike_price;
+            $tp = $r->option_type;  // CE or PE
+            $b  = $r->build_up;
+
+            $allTimes[$t]     = true;
+            $allStrikes[$k]   = true;
+
+            $pivot[$t][$k][$tp][$b] = (int) $r->oi;
+        }
+
+        ksort($allTimes);
+        ksort($allStrikes);
+        $times   = array_reverse(array_keys($allTimes));
+        $strikes = array_keys($allStrikes);
+
+        // ── Build output: per time, per strike → net long & net short ──────────
+        $output = [];
+        foreach ($times as $t) {
+            $row = ['time' => $t];
+            foreach ($strikes as $k) {
+                foreach (['CE', 'PE'] as $tp) {
+                    $d   = $pivot[$t][$k][$tp] ?? [];
+                    $lb  = $d['Long Build']   ?? 0;
+                    $lu  = abs($d['Long Unwind']  ?? 0);
+                    $sb  = $d['Short Build']  ?? 0;
+                    $sc  = abs($d['Short Cover']  ?? 0);
+
+                    $row["{$k}_{$tp}_net_long"]  = $lb - $lu;
+                    $row["{$k}_{$tp}_net_short"] = $sb - $sc;
+                }
+            }
+            $output[] = $row;
+        }
+
+        return response()->json([
+            'times'   => $times,
+            'strikes' => $strikes,
+            'rows'    => $output,
+            'symbol'  => $symbol,
+            'expiry'  => $expiry,
+        ]);
+    }
+
 }

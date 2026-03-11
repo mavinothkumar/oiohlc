@@ -3,7 +3,7 @@
 @section('title','Build Up')
 
 @section('content')
-    <div class="max-w mx-auto py-6">
+    <div class="max-w mx-auto">
 
         {{-- Filter Bar --}}
         <form method="GET" action="{{ url('/buildups') }}" class="mb-6 border p-4 bg-white" lang="en-GB">
@@ -136,6 +136,33 @@
                     </label>
                 </div>
 
+                {{-- Overview 3 History Table --}}
+                <div class="bg-white border rounded p-4 mb-6" id="net-pressure-history-section">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-700">
+                            Net Pressure History — [LB−LU] vs [SB−SC] per 3-min Bucket
+                        </h3>
+                        <div class="flex gap-2 items-center">
+                            <select id="npm-bucket" class="border text-xs px-2 py-1 rounded">
+                                <option value="3" selected>3 min</option>
+                                <option value="5">5 min</option>
+                                <option value="15">15 min</option>
+                            </select>
+                            <select id="npm-type" class="border text-xs px-2 py-1 rounded">
+                                <option value="both">CE + PE</option>
+                                <option value="ce">CE only</option>
+                                <option value="pe">PE only</option>
+                            </select>
+                            <button onclick="loadNetPressureHistory()"
+                                class="px-3 py-1 text-xs text-white rounded"
+                                style="background:#2271b1">Load</button>
+                        </div>
+                    </div>
+                    <div id="npm-loading" class="text-xs text-gray-400 hidden">Loading...</div>
+                    <div id="npm-table-wrap" class="overflow-x-auto overflow-y-auto" style="height:400px;"></div>
+                </div>
+
+
                 {{-- Overview 2: Combined totals --}}
                 <div class="bg-white border rounded p-4 mb-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3">
@@ -156,6 +183,8 @@
                     </div>
                 </div>
 
+
+
                 {{-- ─── Combined Overview Chart ─── --}}
                 <div class="bg-white border rounded p-4 mb-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3">📈 Build-Up Overview — All Strikes (LB / SB / LU / SC)</h3>
@@ -164,7 +193,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
                     <div class="bg-white border rounded p-4">
                         <h3 class="text-sm font-semibold text-green-700 mb-2">🟢 Long Build (LB) — Bullish Accumulation</h3>
                         <div style="position:relative; height:400px;">
@@ -722,10 +751,94 @@
             });
         }
 
+        function loadNetPressureHistory() {
+            const wrap    = document.getElementById('npm-table-wrap');
+            const loading = document.getElementById('npm-loading');
+            const bucket  = document.getElementById('npm-bucket').value;
+            const typeFilter = document.getElementById('npm-type').value;
+
+            // Reuse filters from the current page URL
+            const params  = new URLSearchParams(window.location.search);
+            params.set('bucket', bucket);
+
+            wrap.innerHTML = '';
+            loading.classList.remove('hidden');
+
+            fetch(`/buildups/net-pressure-history?${params.toString()}`)
+                .then(r => r.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    if (data.error) { wrap.innerHTML = `<p class="text-red-500">${data.error}</p>`; return; }
+
+                    const { times, strikes, rows } = data;
+
+                    // Build column headers: one col per strike per type (CE/PE), two sub-cols (net long / net short)
+                    let html = '<table class="min-w-full border text-xs whitespace-nowrap">';
+                    html += '<thead class="bg-gray-100"><tr>';
+                    html += '<th class="border px-2 py-1 sticky left-0 bg-gray-100 z-10">Time</th>';
+
+                    strikes.forEach(k => {
+                        const types = typeFilter === 'both' ? ['CE', 'PE']
+                            : typeFilter === 'ce'   ? ['CE']
+                                : ['PE'];
+                        types.forEach(tp => {
+                            html += `<th class="border px-2 py-1 text-center" colspan="2">${k} ${tp}</th>`;
+                        });
+                    });
+                    html += '</tr>';
+
+                    // Sub-header: LB-LU / SB-SC
+                    html += '<tr>';
+                    html += '<th class="border px-2 py-1 sticky left-0 bg-gray-100 z-10"></th>';
+                    strikes.forEach(k => {
+                        const types = typeFilter === 'both' ? ['CE', 'PE']
+                            : typeFilter === 'ce'   ? ['CE'] : ['PE'];
+                        types.forEach(() => {
+                            html += `<th class="border px-2 py-1 text-green-700">LB−LU</th>`;
+                            html += `<th class="border px-2 py-1 text-red-700">SB−SC</th>`;
+                        });
+                    });
+                    html += '</tr></thead><tbody>';
+
+                    // Rows
+                    rows.forEach(row => {
+                        html += '<tr class="hover:bg-yellow-50">';
+                        html += `<td class="border px-2 py-1 font-mono sticky left-0 bg-white z-10">${row.time}</td>`;
+
+                        strikes.forEach(k => {
+                            const types = typeFilter === 'both' ? ['CE', 'PE']
+                                : typeFilter === 'ce'   ? ['CE'] : ['PE'];
+                            types.forEach(tp => {
+                                const nl = row[`${k}_${tp}_net_long`]  || 0;
+                                const ns = row[`${k}_${tp}_net_short`] || 0;
+
+                                const nlFmt  = fmtOI(Math.abs(nl));
+                                const nsFmt  = fmtOI(Math.abs(ns));
+                                const nlCls  = nl > 0 ? 'text-green-700 font-semibold' : nl < 0 ? 'text-red-500' : 'text-gray-400';
+                                const nsCls  = ns > 0 ? 'text-red-700 font-semibold'   : ns < 0 ? 'text-green-600' : 'text-gray-400';
+
+                                html += `<td class="border px-2 py-1 text-right ${nlCls}">${nl !== 0 ? (nl > 0 ? '+' : '−') + nlFmt : '—'}</td>`;
+                                html += `<td class="border px-2 py-1 text-right ${nsCls}">${ns !== 0 ? (ns > 0 ? '+' : '−') + nsFmt : '—'}</td>`;
+                            });
+                        });
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    wrap.innerHTML = html;
+                })
+                .catch(() => {
+                    loading.classList.add('hidden');
+                    wrap.innerHTML = '<p class="text-red-500 text-xs">Failed to load history.</p>';
+                });
+        }
+
+
         // ── Boot ──────────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function () {
             initBuildupTableSort();
             switchTab('chart');
+            loadNetPressureHistory();
         });
     </script>
 
