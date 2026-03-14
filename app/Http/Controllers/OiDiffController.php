@@ -21,6 +21,7 @@ class OiDiffController extends Controller
 
         $date    = $request->input('date');
         $expiry  = $request->input('expiry');
+        $minutes  = $request->input('minutes', '3minute');
         $strikes = array_filter((array) $request->input('strikes', []), fn($v) => $v !== null && $v !== '');
         $strikes = array_map('floatval', array_values($strikes));
 
@@ -41,7 +42,7 @@ class OiDiffController extends Controller
         $rows = DB::table('expired_ohlc')
                   ->where('underlying_symbol', 'NIFTY')
                   ->where('expiry', $expiry)
-                  ->where('interval', '3minute')
+                  ->where('interval', $minutes)
                   ->whereDate('timestamp', $date)
                   ->whereIn('strike', $strikes)
                   ->whereIn('instrument_type', ['CE', 'PE'])

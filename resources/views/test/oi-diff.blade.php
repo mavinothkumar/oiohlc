@@ -60,6 +60,17 @@
                     </select>
                 </div>
 
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Minutes</label>
+                    <select name="minutes" id="minutes"
+                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800
+                               focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
+                               bg-white w-36">
+                        <option value="3minute" {{request('minutes') === '3minute' ? 'selected' : ''}}>3 Minute</option>
+                        <option value="5minute" {{request('minutes') === '5minute' ? 'selected' : ''}}>5 Minute</option>
+                    </select>
+                </div>
+
                 {{-- Toggle strikes --}}
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider opacity-0">·</label>
