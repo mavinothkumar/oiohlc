@@ -9,7 +9,8 @@ use App\Models\ExpiredOptionContract;
 
 class SyncExpiredFutureContracts extends Command
 {
-    protected $signature = 'upstox:sync-expired-futures-to-options';
+    protected $signature = 'upstox:sync-expired-futures-to-options
+                            {--expiry= : Optional explicit expiry date YYYY-MM-DD}';
     protected $description = 'Fetch expired future contracts for FUT expiries and store details in expired_option_contracts';
 
     protected string $baseUrl;
@@ -30,10 +31,13 @@ class SyncExpiredFutureContracts extends Command
             return self::FAILURE;
         }
 
+        $expiry = $this->option('expiry');
         // 1. Get all FUT expiries
         $futExpiries = ExpiredExpiry::query()
                                     ->where('instrument_type', 'FUT')
+                                    ->where('expiry_date', $expiry)
                                     ->get();
+
 
         if ($futExpiries->isEmpty()) {
             $this->info('No FUT expiries found.');
