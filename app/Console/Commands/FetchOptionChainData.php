@@ -32,14 +32,13 @@ class FetchOptionChainData extends Command
 //            info('inside 3-minute interval '.$now->minute);
 //            $this->aggregateThreeMinuteData();
 //        }
-        Log::info('Completed option chain data from Upstox API at '.Carbon::now());
 
         return Command::SUCCESS;
     }
 
     private function fetchAndStoreOptionChain()
     {
-        Log::info('Fetching option chain data from Upstox API at '.Carbon::now());
+        //Log::info('Fetching option chain data from Upstox API at '.Carbon::now());
 
         $instruments = [
             ['key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY'],
@@ -51,13 +50,14 @@ class FetchOptionChainData extends Command
         $token = config('services.upstox.access_token');
 
         foreach ($instruments as $index => $inst) {
-            Log::info('Fetching option chain for '.$inst['symbol'].' at '.Carbon::now());
 
             $expiry = DB::table('nse_expiries')
                         ->where('trading_symbol', $inst['symbol'])
                         ->where('is_current', 1)
                         ->where('instrument_type', 'OPT')
                         ->value('expiry_date');
+
+            //Log::info('$expiry '.Carbon::now());
 
             if ( ! $expiry) {
                 Log::warning("No current expiry found for {$inst['symbol']}");
@@ -75,6 +75,8 @@ class FetchOptionChainData extends Command
             ]);
 
             $data = $response->json('data') ?? [];
+
+            //Log::info('$data '.Carbon::now());
             //info('$data',[$data]);
             if (empty($data)) {
                 Log::error("Empty data for {$inst['symbol']}");
@@ -86,24 +88,25 @@ class FetchOptionChainData extends Command
                                   ->latest('captured_at')  // or orderBy('captured_at', 'desc')
                                   ->value('captured_at');  // Gets just the scalar value
 
-            Log::info('$latestCapturedAt '.$latestCapturedAt);
+            //Log::info('$latestCapturedAt '.Carbon::now());
 
+            $now = now()->copy()->second(0);
             $prevData = DB::table('option_chains')
                           ->where('captured_at', $latestCapturedAt)
-                          ->get()
-                          ->keyBy('instrument_key')
+                          ->select(['instrument_key', 'oi', 'ltp', 'volume'])
+                          ->get()                        // ← converts to Collection
+                          ->keyBy('instrument_key')      // ← now valid on Collection
                           ->toArray();
+            // Log::info('$prevData '.Carbon::now());
 
             foreach ($data as $item) {
-                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'CE');
-                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'PE');
+                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'CE', $now);
+                $records[] = $this->buildRecord($item, $prevData, $inst['symbol'], 'PE', $now);
             }
 
             DB::table('option_chains')->insert($records);
-            Log::info('Inserted '.count($records).' records for '.$inst['symbol']);
+//            Log::info('insert '.Carbon::now());
         }
-
-        Log::info('Completed option chain fetch cycle at '.Carbon::now());
     }
 
     private function aggregateThreeMinuteData()
@@ -196,7 +199,7 @@ class FetchOptionChainData extends Command
         Log::info('3-min snapshot completed at '.$capturedAt);
     }
 
-    private function buildRecord(array $item, $prevData, string $symbol, string $type)
+    private function buildRecord(array $item, $prevData, string $symbol, string $type, $now)
     {
         $optData        = $type === 'CE' ? $item['call_options'] : $item['put_options'];
         $m              = $optData['market_data'];
@@ -206,14 +209,14 @@ class FetchOptionChainData extends Command
         $prevRecord = $prevData[$instrument_key] ?? null;
 
         // Calculate differences
-        $diff_oi        = $prevRecord ? $m['oi'] - $prevRecord->oi : null;
-        $diff_volume    = $prevRecord ? $m['volume'] - $prevRecord->volume : null;
-        $diff_ltp       = $prevRecord ? $m['ltp'] - $prevRecord->ltp : null;
+        $diff_oi     = $prevRecord ? $m['oi'] - $prevRecord->oi : null;
+        $diff_volume = $prevRecord ? $m['volume'] - $prevRecord->volume : null;
+        $diff_ltp    = $prevRecord ? $m['ltp'] - $prevRecord->ltp : null;
 
         // Derive build_up from diff_oi and diff_ltp
         $buildUp = null;
 
-        if (!is_null($diff_oi) && !is_null($diff_ltp) && $diff_oi != 0 && $diff_ltp != 0) {
+        if ( ! is_null($diff_oi) && ! is_null($diff_ltp) && $diff_oi != 0 && $diff_ltp != 0) {
             if ($diff_ltp > 0 && $diff_oi > 0) {
                 $buildUp = 'Long Build';      // Price ↑, OI ↑  => Long Build-up [web:11]
             } elseif ($diff_ltp < 0 && $diff_oi > 0) {
@@ -249,16 +252,16 @@ class FetchOptionChainData extends Command
             'pop'                   => $g['pop'],
             'underlying_spot_price' => $item['underlying_spot_price'],
             'pcr'                   => $item['pcr'] ?? null,
-            'captured_at'           => now()->copy()->second(0),
-            'created_at'            => now(),
-            'updated_at'            => now(),
+            'captured_at'           => $now,
+            'created_at'            => $now,
+            'updated_at'            => $now,
 
             // New diff columns
             'diff_oi'               => $diff_oi,
             'diff_volume'           => $diff_volume,
             'diff_ltp'              => $diff_ltp,
 
-            'build_up'              => $buildUp,
+            'build_up' => $buildUp,
         ];
     }
 }

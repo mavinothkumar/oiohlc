@@ -10,7 +10,7 @@
             <div>
                 <h1 class="text-base font-bold tracking-wide" id="page-title">
                     NIFTY — OI &amp; Volume Diff
-                    <span class="text-gray-400 font-normal text-xs">(3-minute candles)</span>
+                    <span class="text-gray-400 font-normal text-xs">(5-minute candles)</span>
                 </h1>
                 <p class="text-gray-500 text-[11px] mt-0.5">
                     Track open-interest and volume changes across strike prices.
@@ -69,8 +69,8 @@
                 <label class="text-gray-400 text-11px font-semibold uppercase tracking-wider">Timeframe</label>
                 <select id="tfSelect"
                     class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="3" selected>3 min</option>
-                    <option value="6">6 min</option>
+                    <option value="5" selected>5 min</option>
+                    <option value="10">10 min</option>
                     <option value="15">15 min</option>
                     <option value="30">30 min</option>
                 </select>
@@ -115,6 +115,16 @@
         const DATA_URL = "{{ route('oi-diff-live.data') }}";
         let refreshTimer = null;
         let lastPayload = null;
+
+        // ── Strike color palette (one per strike, CE/PE pair) ─────────────────
+        const STRIKE_PALETTE = [
+            { ce: 'bg-indigo-950/40',  pe: 'bg-violet-950/40'  },
+            { ce: 'bg-teal-950/40',    pe: 'bg-cyan-950/40'    },
+            { ce: 'bg-yellow-950/40',  pe: 'bg-amber-950/40'   },
+            { ce: 'bg-rose-950/40',    pe: 'bg-pink-950/40'    },
+            { ce: 'bg-lime-950/40',    pe: 'bg-emerald-950/40' },
+            { ce: 'bg-sky-950/40',     pe: 'bg-blue-950/40'    },
+        ];
 
         // ── Formatters ──────────────────────────────────────────────────────────────
         const fmtLtp = v => (v === null || v === undefined) ? '—' : parseFloat(v).toFixed(2);
@@ -191,58 +201,59 @@
             return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
         }
 
-        // ── Build thead ──────────────────────────────────────────────────────────────
+        // ── Build thead ───────────────────────────────────────────────────────
         function buildHead(strikes, atm) {
-            const strikeCols = strikes.length; // each strike = 8 cols (CE:4 + PE:4)
-
+            // Row 1 — strike numbers
             let r1 = `<tr class="bg-gray-900 border-b border-gray-700">
         <th rowspan="3" class="col-time px-3 py-2 text-gray-400 font-semibold text-left border-r border-gray-700 bg-gray-900">TIME</th>`;
-
-            strikes.forEach(s => {
+            strikes.forEach((s, sIdx) => {
                 const isAtm = s === atm;
-                r1 += `<th colspan="8" class="px-2 py-2 text-center font-bold tracking-wider border-r border-gray-600
-            ${isAtm ? 'text-yellow-300 bg-yellow-900/20' : 'text-gray-200 bg-gray-800'}">
-            ${Number(s).toLocaleString('en-IN')}${isAtm ? ' <span class="text-yellow-400 text-[9px]">ATM</span>' : ''}
+                const p = STRIKE_PALETTE[sIdx % STRIKE_PALETTE.length];
+                r1 += `<th colspan="4" class="px-2 py-2 text-center font-bold tracking-wider border-r border-gray-600 ${p.ce} ${isAtm ? 'text-yellow-300' : 'text-gray-200'}">
+            ${Number(s).toLocaleString('en-IN')}${isAtm ? `<span class="text-yellow-400 text-9px">ATM</span>` : ''}
+        </th>`;
+                r1 += `<th colspan="4" class="px-2 py-2 text-center font-bold tracking-wider border-r border-gray-600 ${p.pe} ${isAtm ? 'text-yellow-300' : 'text-gray-200'}">
+            ${Number(s).toLocaleString('en-IN')}${isAtm ? `<span class="text-yellow-400 text-9px">ATM</span>` : ''}
         </th>`;
             });
-            r1 += '</tr>';
+            r1 += `</tr>`;
 
+            // Row 2 — CE / PE labels
             let r2 = `<tr class="bg-gray-900 border-b border-gray-700">`;
-            strikes.forEach(() => {
-                r2 += `
-            <th colspan="4" class="py-1.5 text-center text-green-400 font-semibold text-[10px] tracking-widest border-r border-gray-700 bg-green-950/20">CE</th>
-            <th colspan="4" class="py-1.5 text-center text-red-400 font-semibold text-[10px] tracking-widest border-r border-gray-600 bg-red-950/20">PE</th>`;
+            strikes.forEach((s, sIdx) => {
+                const p = STRIKE_PALETTE[sIdx % STRIKE_PALETTE.length];
+                r2 += `<th colspan="4" class="py-1.5 text-center text-green-400 font-semibold text-10px tracking-widest border-r border-gray-700 ${p.ce}">CE</th>`;
+                r2 += `<th colspan="4" class="py-1.5 text-center text-red-400 font-semibold text-10px tracking-widest border-r border-gray-600 ${p.pe}">PE</th>`;
             });
-            r2 += '</tr>';
+            r2 += `</tr>`;
 
+            // Row 3 — Close / OI / Vol / BU sub-headers
             let r3 = `<tr class="bg-gray-800 border-b border-gray-700 text-gray-400">`;
-            strikes.forEach(() => {
-                ['CE','PE'].forEach(type => {
-                    const bgBase = type === 'CE' ? 'bg-green-950/10' : 'bg-red-950/10';
+            strikes.forEach((s, sIdx) => {
+                const p = STRIKE_PALETTE[sIdx % STRIKE_PALETTE.length];
+                ['CE', 'PE'].forEach(type => {
+                    const bg     = type === 'CE' ? p.ce : p.pe;
                     const border = type === 'PE' ? 'border-r border-gray-600' : '';
-                    r3 += `
-                <th class="px-2 py-1.5 ${bgBase}">Close Δ</th>
-                <th class="px-2 py-1.5 ${bgBase}">OI Δ</th>
-                <th class="px-2 py-1.5 ${bgBase}">Vol Δ</th>
-                <th class="px-2 py-1.5 ${bgBase} ${border} border-r border-gray-700">BU</th>`;
+                    r3 += `<th class="px-2 py-1.5 ${bg}">Close</th>`;
+                    r3 += `<th class="px-2 py-1.5 ${bg}">OI</th>`;
+                    r3 += `<th class="px-2 py-1.5 ${bg}">Vol</th>`;
+                    r3 += `<th class="px-2 py-1.5 ${bg} ${border} border-r border-gray-700">BU</th>`;
                 });
             });
-            r3 += '</tr>';
+            r3 += `</tr>`;
 
             document.getElementById('chain-thead').innerHTML = r1 + r2 + r3;
         }
 
-        // ── Build tbody ──────────────────────────────────────────────────────────────
+        // ── Build tbody ───────────────────────────────────────────────────────
         function buildBody(rows, strikes, top3OiPos, top3OiNeg, top3VolPos, top3VolNeg, perStrikeHighlights) {
             const tbody = document.getElementById('chain-tbody');
-
             if (!rows.length) {
-                tbody.innerHTML = '<tr><td colspan="99" class="py-10 text-center text-gray-500">No data for selected date/expiry.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="99" class="py-10 text-center text-gray-500">No data for selected date/expiry.</td></tr>`;
                 return;
             }
 
             let html = '';
-
             rows.forEach((row, idx) => {
                 const rowBg = idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-950';
                 html += `<tr class="${rowBg} border-b border-gray-800 hover:bg-gray-800/60 transition-colors">`;
@@ -250,47 +261,37 @@
                 // TIME column
                 html += `<td class="col-time px-3 py-1.5 font-semibold text-gray-300 border-r border-gray-700 text-center">${row.time}</td>`;
 
-                strikes.forEach(strike => {
-                    const sd  = row.strike_data[String(strike)] ?? {};
+                strikes.forEach((strike, sIdx) => {
+                    const p   = STRIKE_PALETTE[sIdx % STRIKE_PALETTE.length];
+                    const sd  = row.strike_data?.[String(strike)] ?? {};
                     const ce  = sd.ce;
                     const pe  = sd.pe;
-                    const psh = perStrikeHighlights[String(strike)] ?? { oi_pos:[], oi_neg:[], vol_pos:[], vol_neg:[] };
+                    const psh = perStrikeHighlights?.[String(strike)] ?? { oipos: [], oineg: [], volpos: [], volneg: [] };
 
                     ['CE', 'PE'].forEach(type => {
                         const d       = type === 'CE' ? ce : pe;
-                        const bgBase  = type === 'CE' ? 'bg-green-950/10' : 'bg-red-950/10';
-                        const borderR = type === 'PE'  ? 'border-r border-gray-600' : 'border-r border-gray-700';
+                        const bg      = type === 'CE' ? p.ce : p.pe;
+                        const borderR = type === 'PE' ? 'border-r border-gray-600' : 'border-r border-gray-700';
 
-                        const diffLtp = (d?.diff_ltp ?? d?.ltp) ?? null;
-                        const diffOi  = (d?.diff_oi ?? d?.oi) ?? null;
-                        const diffVol = (d?.diff_volume ?? d?.volume) ?? null;
-                        const bu      = d?.build_up    ?? null;
+                        const diffLtp = d?.diff_ltp   ?? d?.ltp    ?? null;
+                        const diffOi  = d?.diff_oi    ?? d?.oi     ?? null;
+                        const diffVol = d?.diff_volume ?? d?.volume ?? null;
+                        const bu      = d?.build_up   ?? null;
 
-                        // OI: global BG highlight takes priority, then per-strike border
-                        // Vol: global BG highlight takes priority, then per-strike border
-                        const oiGlobal  = (inTop3(diffOi,  top3OiPos) || inTop3(diffOi,  top3OiNeg));
-                        const volGlobal = (inTop3(diffVol, top3VolPos) || inTop3(diffVol, top3VolNeg));
+                        const oiGlobal  = inTop3(diffOi,  top3OiPos)  || inTop3(diffOi,  top3OiNeg);
+                        const volGlobal = inTop3(diffVol, top3VolPos) || inTop3(diffVol, top3VolNeg);
 
-                        const oiClass  = oiGlobal  ? globalOiClass(diffOi,  top3OiPos,  top3OiNeg)
-                            : strikeOiClass(diffOi,  psh);
-                        const volClass = volGlobal ? globalVolClass(diffVol, top3VolPos, top3VolNeg)
-                            : strikeVolClass(diffVol, psh);
+                        const oiClass  = oiGlobal  ? globalOiClass(diffOi,   top3OiPos,  top3OiNeg)  : strikeOiClass(diffOi,  psh);
+                        const volClass = volGlobal ? globalVolClass(diffVol, top3VolPos, top3VolNeg) : strikeVolClass(diffVol, psh);
 
-                        html += `
-                    <td class="px-2 py-1.5 text-right ${bgBase} ${ltpClass(diffLtp)}">${fmtLtp(diffLtp)}</td>
-                    <td class="px-2 py-1.5 text-right ${bgBase}">
-                        <span class="${oiClass}">${formatINRCompact(diffOi)}</span>
-                    </td>
-                    <td class="px-2 py-1.5 text-right ${bgBase}">
-                        <span class="${volClass}">${formatINRCompact(diffVol)}</span>
-                    </td>
-                    <td class="px-2 py-1.5 text-center ${bgBase} ${borderR}">
-                        <span class="${buClass(bu)} px-1.5 py-0.5 rounded text-[10px] font-bold">${buLabel(bu)}</span>
-                    </td>`;
+                        html += `<td class="px-2 py-1.5 text-right ${bg} ${ltpClass(diffLtp)}">${fmtLtp(diffLtp)}</td>`;
+                        html += `<td class="px-2 py-1.5 text-right ${bg}"><span class="${oiClass}">${formatINRCompact(diffOi)}</span></td>`;
+                        html += `<td class="px-2 py-1.5 text-right ${bg}"><span class="${volClass}">${formatINRCompact(diffVol)}</span></td>`;
+                        html += `<td class="px-2 py-1.5 text-center ${bg} ${borderR}"><span class="${buClass(bu)} px-1.5 py-0.5 rounded text-10px font-bold">${buLabel(bu)}</span></td>`;
                     });
                 });
 
-                html += '</tr>';
+                html += `</tr>`;
             });
 
             tbody.innerHTML = html;
@@ -442,7 +443,7 @@
 
         // Initial load
         loadData();
-        startTimer();
+        //startTimer();
     </script>
     <style>
         /* Compact scrollable table */

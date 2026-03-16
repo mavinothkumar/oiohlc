@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('option_chains', function (Blueprint $table) {
-            $table->bigInteger('diff_oi')->index()->nullable()->after('oi');
-            $table->bigInteger('diff_volume')->index()->nullable()->after('volume');
+            $table->bigInteger('diff_oi')->nullable()->after('oi');
+            $table->bigInteger('diff_volume')->nullable()->after('volume');
             $table->decimal('diff_ltp', 10, 2)->nullable()->after('ltp');
         });
     }
@@ -24,7 +24,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('option_chains', function (Blueprint $table) {
-            $table->dropIndex(['diff_oi', 'diff_volume', 'diff_ltp']);
             $table->dropColumn(['diff_oi', 'diff_volume', 'diff_ltp']);
         });
     }

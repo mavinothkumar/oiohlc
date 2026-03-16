@@ -69,7 +69,7 @@
 
         {{-- Results --}}
         <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-2">
-            @foreach([15, 3, 6,9, 30, 375] as $i)
+            @foreach([15, 5, 10 ,30, 60, 375] as $i)
                 <div class="bg-white shadow rounded-lg p-4 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-sm font-semibold text-gray-800">
@@ -152,7 +152,7 @@
                 Neutral: '#6b7280'
             };
 
-            [3, 6, 9, 15, 30, 375].forEach(interval => {
+            [15, 5, 10 ,30, 60, 375].forEach(interval => {
                 const rows = datasets[ interval ] || [];
                 if ( ! rows.length) {
                     return;

@@ -58,10 +58,19 @@ Schedule::command('trend:update-index-open') // php artisan trend:update-index-o
 
 
 Schedule::command('optionchain:fetch') // php artisan optionchain:fetch
-        ->everyThreeMinutes()
+        ->everyFiveMinutes()
         ->between('9:15', '15:30')
         ->timezone('Asia/Kolkata')
         ->appendOutputTo(storage_path('logs/update-index-open.log'));
+
+Schedule::call(function () {
+    DB::table('option_chains')
+      ->where('captured_at', '<', now()->subDays(14))
+      ->delete();
+})->dailyAt('16:00')
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/option-chains-cleanup.log'));
+
 
 
 //Schedule::command('market:collect-ohlc')->weekdays()  // php artisan market:collect-ohlc

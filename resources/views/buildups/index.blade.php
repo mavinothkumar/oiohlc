@@ -141,12 +141,12 @@
                 <div class="bg-white border rounded p-4 mb-6" id="net-pressure-history-section">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-sm font-semibold text-gray-700">
-                            Net Pressure History — [LB−LU] vs [SB−SC] per 3-min Bucket
+                            Net Pressure History — [LB−LU] vs [SB−SC] per 5-min Bucket
                         </h3>
                         <div class="flex gap-2 items-center">
                             <select id="npm-bucket" class="border text-xs px-2 py-1 rounded">
-                                <option value="3" selected>3 min</option>
-                                <option value="5">5 min</option>
+                                <option value="3">3 min</option>
+                                <option value="5" selected>5 min</option>
                                 <option value="15">15 min</option>
                             </select>
                             <select id="npm-type" class="border text-xs px-2 py-1 rounded">

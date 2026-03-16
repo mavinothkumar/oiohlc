@@ -30,11 +30,13 @@ class OiBuildupLiveController extends Controller
             ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
             : Carbon::now();
 
-        $minutes = floor($at->minute / 3) * 3; // Changed from 5 to 3 minutes
+        $minutes = floor($at->minute / 5) * 5; // Changed from 5 to 3 minutes
+        //$minutes = floor($at->minute / 3) * 3; // Changed from 5 to 3 minutes
 
         $atDateTime = $at->setTime($at->hour, $minutes, 0);
 
-        $intervals = [3, 6, 9, 15, 30, 375]; // Updated intervals to 3-minute multiples
+        //$intervals = [3, 6, 9, 15, 30, 375]; // Updated intervals to 3-minute multiples
+        $intervals = [5, 10, 15, 30, 60, 375]; // Updated intervals to 3-minute multiples
         $datasets  = [];
         $underlying_spot = 0;
 

@@ -507,7 +507,7 @@ class BuildUpSummaryController extends Controller
         $overrideRange  = (int) $request->input('range', 0);
         $fromQ          = $request->input('from');
         $toQ            = $request->input('to');
-        $bucketMins     = max(1, (int) $request->input('bucket', 3)); // default 3 min
+        $bucketMins     = max(1, (int) $request->input('bucket', 5)); // default 3 min
 
         // ── Time window (same logic as index) ──────────────────────────────────
         if ($fromQ && $toQ) {
