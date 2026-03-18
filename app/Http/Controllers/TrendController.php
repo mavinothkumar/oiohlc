@@ -21,7 +21,10 @@ class TrendController extends Controller
                              ->value('working_date');
         }
         if ( ! $previousDay) {
-            die('Working days not configured');
+            return view('trend.index', [
+                'previousDay' => '',
+                'dailyTrends' => []
+            ]);
         }
 
         // 2. Precomputed daily trends (static yesterday data)
@@ -30,7 +33,10 @@ class TrendController extends Controller
                                  ->get();
 
         if ($dailyTrends->isEmpty()) {
-            die('Daily trends not populated for previous day');
+            return view('trend.index', [
+                'previousDay' => '',
+                'dailyTrends' => []
+            ]);
         }
 
         return view('trend.index', [

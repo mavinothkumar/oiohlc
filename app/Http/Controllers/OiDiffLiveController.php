@@ -15,7 +15,7 @@ class OiDiffLiveController extends Controller
     public function data(Request $request)
     {
         $symbol          = $request->get('symbol', 'NIFTY');
-        $strikesEachSide = (int) $request->get('strikes_each_side', 2);
+        $strikesEachSide = (int) $request->get('strikes_each_side', 3);
         $quoteDate       = $request->get('date');
         $expiry          = $request->get('expiry');
 

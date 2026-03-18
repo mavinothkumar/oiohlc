@@ -13,4 +13,3 @@ php artisan upstox:sync-expired-future-ohlc --expiry=2026-02-24
 
 
 
-
