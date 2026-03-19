@@ -106,4 +106,8 @@ Route::prefix('test')->name('test.')->group(function () {
     Route::get('/short-build-atm', [App\Http\Controllers\ShortBuildController::class, 'index'])
          ->name('short-build-atm.index');
 
+
+    Route::get( '/buildup-report', [ App\Http\Controllers\BuildUpReportController::class, 'index' ] )->name( 'buildup.report' );
+
+
 });
