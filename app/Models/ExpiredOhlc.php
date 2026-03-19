@@ -26,6 +26,10 @@ class ExpiredOhlc extends Model
         'interval',
         'volume',
         'open_interest',
+        'build_up',
+        'diff_oi',
+        'diff_volume',
+        'diff_ltp',
         'timestamp',
     ];
 

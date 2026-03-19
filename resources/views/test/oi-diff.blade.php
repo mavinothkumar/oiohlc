@@ -134,6 +134,17 @@
             <div class="overflow-x-auto overflow-y-auto max-h-[78vh] rounded-xl border border-slate-200 shadow-sm">
                 <table class="min-w-max w-full text-xs border-collapse">
 
+                    @php
+                        $strikeColorMap = [
+                            0 => ['head' => 'bg-indigo-900',  'sub'  => 'bg-indigo-900',  'cell' => 'bg-indigo-50',  'border' => 'border-indigo-500'],
+                            1 => ['head' => 'bg-teal-900',    'sub'  => 'bg-teal-900',    'cell' => 'bg-teal-50',    'border' => 'border-teal-500'],
+                            2 => ['head' => 'bg-violet-900',  'sub'  => 'bg-violet-900',  'cell' => 'bg-violet-50',  'border' => 'border-violet-500'],
+                            3 => ['head' => 'bg-amber-900',   'sub'  => 'bg-amber-900',   'cell' => 'bg-amber-50',   'border' => 'border-amber-500'],
+                            4 => ['head' => 'bg-rose-900',    'sub'  => 'bg-rose-900',    'cell' => 'bg-rose-50',    'border' => 'border-rose-500'],
+                            5 => ['head' => 'bg-cyan-900',    'sub'  => 'bg-cyan-900',    'cell' => 'bg-cyan-50',    'border' => 'border-cyan-500'],
+                        ];
+                    @endphp
+
                     {{-- ===== THEAD ===== --}}
                     <thead>
                     {{-- Row 1: Strike numbers --}}
@@ -144,38 +155,43 @@
                             Time
                         </th>
                         @foreach($allStrikes as $strike)
+                            @php $sc = $strikeColorMap[$loop->index % 6]; @endphp
                             <th colspan="8"
-                                class="px-2 py-2 text-center font-bold text-white tracking-widest
-                               border-l border-slate-600 bg-slate-700">
+                                class="px-2 py-2 text-center font-bold text-white tracking-widest border-l {{ $sc['border'] }} {{ $sc['head'] }}">
                                 {{ number_format((int)$strike) }}
                             </th>
                         @endforeach
+
                     </tr>
 
                     {{-- Row 2: CE / PE --}}
                     <tr class="sticky  top-[30px] bg-slate-600 border-b-2 border-slate-500">
                         @foreach($allStrikes as $strike)
+                            @php $sc = $strikeColorMap[$loop->index % 6]; @endphp
                             @foreach(['CE','PE'] as $type)
                                 <th colspan="4"
-                                    class="px-2 py-1.5 text-center font-bold border-l border-slate-500 whitespace-nowrap bg-slate-600
-                                   {{ $type === 'CE' ? 'text-sky-300' : 'text-rose-300' }}">
+                                    class="px-2 py-1.5 text-center font-bold border-l {{ $sc['border'] }} whitespace-nowrap {{ $sc['sub'] }}
+                   {{ $type === 'CE' ? 'text-sky-300' : 'text-rose-300' }}">
                                     {{ $type }}
                                 </th>
                             @endforeach
                         @endforeach
+
                     </tr>
 
                     {{-- Row 3: Column labels --}}
                     <tr class="sticky top-[57px] bg-slate-600 border-b-2 border-slate-500 text-white">
                         <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600"></th>
                         @foreach($allStrikes as $_)
+                            @php $sc = $strikeColorMap[$loop->index % 6]; @endphp
                             @foreach(['CE','PE'] as $__)
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">Close Δ</th>
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">OI Δ</th>
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">Vol Δ</th>
-                                <th class="px-2 py-1.5 text-center border-l border-slate-200 whitespace-nowrap font-semibold bg-slate-600">BU</th>
+                                <th class="px-2 py-1.5 text-center border-l {{ $sc['border'] }} whitespace-nowrap font-semibold {{ $sc['sub'] }} text-white">Close Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l {{ $sc['border'] }} whitespace-nowrap font-semibold {{ $sc['sub'] }} text-white">OI Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l {{ $sc['border'] }} whitespace-nowrap font-semibold {{ $sc['sub'] }} text-white">Vol Δ</th>
+                                <th class="px-2 py-1.5 text-center border-l {{ $sc['border'] }} whitespace-nowrap font-semibold {{ $sc['sub'] }} text-white">BU</th>
                             @endforeach
                         @endforeach
+
                     </tr>
                     </thead>
 
@@ -194,6 +210,7 @@
                             </td>
 
                             @foreach($allStrikes as $strike)
+                                @php $sc = $strikeColorMap[$loop->index % 6]; @endphp
                                 @foreach(['CE','PE'] as $type)
                                     @php
                                         $cell    = $tableData[$ts][$strike][$type] ?? [];
@@ -256,8 +273,7 @@
 
 
                                     {{-- Close Δ --}}
-                                    <td class="px-2 py-2 text-center border-l border-slate-100 whitespace-nowrap
-                                   tabular-nums {{ $closeClass }}">
+                                    <td class="px-2 py-2 text-center border-l {{ $sc['border'] }} {{ $sc['cell'] }} {{ $closeClass }}">
                                         @if($closeDiff !== null)
                                             {{ $closeDiff > 0 ? '+' : '' }}{{ number_format($closeDiff, 2) }}
                                         @else
@@ -266,7 +282,7 @@
                                     </td>
 
                                     {{-- OI Δ --}}
-                                    <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap tabular-nums">
+                                    <td class="px-1.5 py-1.5 text-center  {{ $sc['cell'] }}">
                             <span class="inline-block px-1.5 py-0.5 rounded text-xs {{ $oiBg }}">
                                 @if($oiDiff !== null)
                                     {{ $oiDiff > 0 ? '+' : '' }}{{ format_inr_compact($oiDiff) }}
@@ -277,7 +293,7 @@
                                     </td>
 
                                     {{-- Vol Δ --}}
-                                    <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap tabular-nums">
+                                    <td class="px-1.5 py-1.5 text-center {{ $sc['cell'] }}">
                             <span class="inline-block px-1.5 py-0.5 rounded text-xs {{ $volBg }}">
                                 @if($volDiff !== null)
                                     {{ $volDiff > 0 ? '+' : '' }}{{ format_inr_compact($volDiff) }}
@@ -287,7 +303,7 @@
                             </span>
                                     </td>
                                     {{-- Build Up --}}
-                                    <td class="px-1.5 py-1.5 text-center border-l border-slate-100 whitespace-nowrap">
+                                    <td class="px-1.5 py-1.5 text-center {{ $sc['cell'] }}">
                                         @if($buildUp)
                                             <span class="inline-block px-1.5 py-0.5 rounded text-xs font-bold tracking-wide
                      {{ $buStyle['bg'] }}"
