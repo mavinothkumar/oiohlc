@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class OhlcChartController extends Controller
 {
+    // ── Configurable interval ────────────────────────────────────────────────
+    const STEP_INTERVAL    = '5minute';
+    const STEP_MINUTES     = 5;
+    const STEP_MARKET_START = '09:15';
+    const STEP_MARKET_END   = '15:30';
+
     public function index()
     {
         // initial page – you can preload symbols or dates if needed
@@ -717,6 +723,179 @@ class OhlcChartController extends Controller
             'timeSlots'         => $timeSlots,
             'allStrikes'        => $allStrikes,
         ]);
+    }
+
+    /**
+     * Page load — filter form only, no charts yet.
+     */
+    public function chartStepIndex(Request $request)
+    {
+        $request->validate([
+            'symbol'     => 'nullable|string',
+            'quote_date' => 'nullable|date',
+            'expiry'     => 'nullable|date',
+            'strikes'    => 'nullable|array|max:6',
+            'strikes.*'  => 'nullable|numeric',
+            'saturation' => 'nullable|numeric',
+        ]);
+
+        $strikes = array_filter(
+            (array) $request->input('strikes', []),
+            fn($v) => $v !== null && $v !== ''
+        );
+        $strikes = array_map('floatval', array_values($strikes));
+
+        return view('test.options-chart-step', [
+            'symbol'     => $request->input('symbol', 'NIFTY'),
+            'quote_date' => $request->input('quote_date'),
+            'expiry'     => $request->input('expiry'),
+            'strikes'    => $strikes,
+            'saturation' => (float) $request->input('saturation', 5),
+            'slots'      => $this->buildChartSlots(),
+            'interval'   => self::STEP_INTERVAL,
+        ]);
+    }
+
+    /**
+     * AJAX — returns OHLC data for ALL strikes for a single time slot.
+     * Front-end renders a chart per strike.
+     */
+    public function chartStepSlot(Request $request)
+    {
+        $request->validate([
+            'symbol'     => 'required|string',
+            'quote_date' => 'required|date',
+            'expiry'     => 'required|date',
+            'strikes'    => 'required|array',
+            'strikes.*'  => 'required|numeric',
+            'slot_index' => 'required|integer|min:0',
+            'saturation' => 'nullable|numeric',
+        ]);
+
+        $symbol     = $request->input('symbol');
+        $date       = $request->input('quote_date');
+        $expiry     = $request->input('expiry');
+        $strikes    = array_map('floatval', $request->input('strikes'));
+        $slotIdx    = (int) $request->input('slot_index');
+        $saturation = (float) $request->input('saturation', 5);
+
+        $slots = $this->buildChartSlots();
+
+        if (! isset($slots[$slotIdx])) {
+            return response()->json(['error' => 'Invalid slot index'], 422);
+        }
+
+        $currSlot = $slots[$slotIdx]; // e.g. "09:20"
+
+        // ── avgAtm from daily_trend ───────────────────────────────────────────
+        $trend  = DB::table('daily_trend')
+                    ->where('symbol_name', $symbol)
+                    ->where('quote_date', $date)
+                    ->where('expiry_date', $expiry)
+                    ->first();
+
+        $avgAtm       = $trend ? round(((float)$trend->atm_ce_close + (float)$trend->atm_pe_close) / 2, 2) : null;
+        $snipperPoint = $trend ? (float) $trend->mid_point : null;
+        $snipperSat   = (float) $request->input('snipper_saturation', 10);
+
+        // ── Fetch candles from 09:15 up to current slot ───────────────────────
+        $rows = DB::table('expired_ohlc')
+                  ->where('underlying_symbol', $symbol)
+                  ->where('expiry', $expiry)
+                  ->where('interval', self::STEP_INTERVAL)
+                  ->whereDate('timestamp', $date)
+                  ->whereIn('strike', $strikes)
+                  ->whereIn('instrument_type', ['CE', 'PE'])
+                  ->whereRaw("TIME(timestamp) <= ?", [$currSlot . ':00'])
+                  ->orderBy('timestamp', 'asc')
+                  ->get(['strike', 'instrument_type', 'open', 'high', 'low', 'close', 'volume', 'open_interest', 'timestamp']);
+
+        // ── Group: [strike][type][] = candle array ────────────────────────────
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(float)$row->strike][$row->instrument_type][] = [
+                'time'  => strtotime($row->timestamp),
+                'open'  => (float) $row->open,
+                'high'  => (float) $row->high,
+                'low'   => (float) $row->low,
+                'close' => (float) $row->close,
+            ];
+        }
+
+        // ── First candle (09:15) high/low per strike — for reference lines ────
+        $firstSlot   = $slots[0]; // "09:15"
+        $firstCandles = DB::table('expired_ohlc')
+                          ->where('underlying_symbol', $symbol)
+                          ->where('expiry', $expiry)
+                          ->where('interval', self::STEP_INTERVAL)
+                          ->whereDate('timestamp', $date)
+                          ->whereIn('strike', $strikes)
+                          ->whereIn('instrument_type', ['CE', 'PE'])
+                          ->whereRaw("TIME(timestamp) = ?", [$firstSlot . ':00'])
+                          ->get(['strike', 'instrument_type', 'high', 'low']);
+
+        $firstCandleLines = [];
+        foreach ($firstCandles as $fc) {
+            $firstCandleLines[(float)$fc->strike][$fc->instrument_type] = [
+                'high' => (float) $fc->high,
+                'low'  => (float) $fc->low,
+            ];
+        }
+
+        // ── Cell badge data ───────────────────────────────────────────────────
+        $cellData = [];
+        foreach ($strikes as $strike) {
+            $ceCandles = $grouped[$strike]['CE'] ?? [];
+            $peCandles = $grouped[$strike]['PE'] ?? [];
+            $ce = end($ceCandles) ?: null;
+            $pe = end($peCandles) ?: null;
+
+            if ($ce && $pe) {
+                $diff    = round($ce['close'] - $pe['close'], 2);
+                $inBand  = abs($diff) <= $saturation;
+                $cellData[$strike] = [
+                    'ce_close'  => $ce['close'], 'ce_open' => $ce['open'],
+                    'ce_high'   => $ce['high'],  'ce_low'  => $ce['low'],
+                    'pe_close'  => $pe['close'], 'pe_open' => $pe['open'],
+                    'pe_high'   => $pe['high'],  'pe_low'  => $pe['low'],
+                    'ce_side'   => $ce['close'] >= $ce['open'] ? 'green' : 'red',
+                    'pe_side'   => $pe['close'] >= $pe['open'] ? 'green' : 'red',
+                    'diff'      => $diff,
+                    'in_band'   => $inBand,
+                    'direction' => $ce['close'] > $pe['close'] ? 'CE_SELL' : 'PE_SELL',
+                ];
+            }
+        }
+
+        return response()->json([
+            'slot_index'         => $slotIdx,
+            'label'              => $currSlot,
+            'total_slots'        => count($slots),
+            'strikes'            => $strikes,
+            'ohlc'               => $grouped,
+            'cells'              => $cellData,
+            'saturation'         => $saturation,
+            'avg_atm'            => $avgAtm,      // ← horizontal line value
+            'first_candle_lines' => $firstCandleLines, // ← CE/PE high+low of 09:15
+        ]);
+    }
+
+
+    /**
+     * Build ordered slot labels: ["09:15","09:20",...]
+     */
+    private function buildChartSlots(): array
+    {
+        $slots = [];
+        $start = strtotime(self::STEP_MARKET_START);
+        $end   = strtotime(self::STEP_MARKET_END);
+        $step  = self::STEP_MINUTES * 60;
+
+        for ($t = $start; $t <= $end; $t += $step) {
+            $slots[] = date('H:i', $t);
+        }
+
+        return $slots;
     }
 
 

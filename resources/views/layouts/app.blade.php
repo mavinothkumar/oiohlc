@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>@yield('title', 'Market Depth')</title>
     @vite('resources/css/app.css')
+    @stack('styles')
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
 <header class="bg-white shadow p-4 flex items-center">
@@ -73,6 +74,6 @@
         } )();
     </script>
 @endif
-
+@stack('scripts')
 </body>
 </html>

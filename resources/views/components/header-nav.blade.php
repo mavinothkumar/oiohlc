@@ -58,6 +58,8 @@
                         <a href="{{ route('test.options.multi.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Chart</a>
                         <a href="{{ route('test.oi.diff') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI & Volume Diff</a>
                         <a href="{{ route('test.buildup.report') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build Up Report</a>
+                        <a href="{{ route('test.oi.step') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI Step</a>
+                        <a href="{{ route('test.options.chart.step') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chart Step</a>
                     </div>
                 </div>
             </div>

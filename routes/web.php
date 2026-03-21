@@ -114,7 +114,8 @@ Route::prefix('test')->name('test.')->group(function () {
     Route::get('/oi-step/slot', [App\Http\Controllers\OiStepController::class, 'fetchSlot'])->name('oi.step.slot');
     Route::get('/oi-step/expiries', [App\Http\Controllers\OiStepController::class, 'fetchExpiries'])->name('oi.step.expiries');
 
-
+    Route::get('/options-chart-step', [App\Http\Controllers\OhlcChartController::class, 'chartStepIndex'])->name('options.chart.step');
+    Route::get('/api/chart-step-slot',  [App\Http\Controllers\OhlcChartController::class, 'chartStepSlot'])->name('api.chart.step.slot');
 
 
 });

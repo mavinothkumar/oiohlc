@@ -425,11 +425,17 @@
                 width: container.clientWidth || 350,
                 height: container.clientHeight || 250,
                 layout: { background: { color: '#ffffff' }, textColor: '#000' },
+                // In chartOpts(), update timeScale:
                 timeScale: {
-                    borderVisible: false,
-                    timeVisible: true,
-                    secondsVisible: false
+                    timeVisible:    true,
+                    secondsVisible: false,
+                    fixLeftEdge:    true,
+                    fixRightEdge:   false,
+                    localization: {
+                        locale: 'en-IN',
+                    },
                 },
+
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 grid: {
                     vertLines: { visible: false },
@@ -698,7 +704,16 @@
                 width: container.clientWidth || 350,
                 height: container.clientHeight || 250,
                 layout: { background: { color: 'white' }, textColor: '#000' },
-                timeScale: { timeVisible: true, secondsVisible: false },
+                // In chartOpts(), update timeScale:
+                timeScale: {
+                    timeVisible:    true,
+                    secondsVisible: false,
+                    fixLeftEdge:    true,
+                    fixRightEdge:   false,
+                    localization: {
+                        locale: 'en-IN',
+                    },
+                },
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 grid: {
                     vertLines: { visible: false },
