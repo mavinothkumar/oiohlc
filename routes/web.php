@@ -110,4 +110,11 @@ Route::prefix('test')->name('test.')->group(function () {
     Route::get( '/buildup-report', [ App\Http\Controllers\BuildUpReportController::class, 'index' ] )->name( 'buildup.report' );
 
 
+    Route::get('/oi-step', [App\Http\Controllers\OiStepController::class, 'index'])->name('oi.step');
+    Route::get('/oi-step/slot', [App\Http\Controllers\OiStepController::class, 'fetchSlot'])->name('oi.step.slot');
+    Route::get('/oi-step/expiries', [App\Http\Controllers\OiStepController::class, 'fetchExpiries'])->name('oi.step.expiries');
+
+
+
+
 });

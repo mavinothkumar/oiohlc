@@ -444,6 +444,7 @@
         // Row highlight on cell click
         document.querySelector('tbody').addEventListener('click', function (e) {
             const clickedTd = e.target.closest('td');
+            const tbody = document.querySelector('tbody');
             if (!clickedTd) return;
 
             const clickedTr = clickedTd.closest('tr');
@@ -451,6 +452,7 @@
             // If already selected, deselect (toggle off)
             if (clickedTr.classList.contains('row-selected')) {
                 clickedTr.classList.remove('row-selected');
+                tbody.classList.remove('has-selection');
                 return;
             }
 
@@ -460,7 +462,9 @@
 
             // Highlight the clicked row
             clickedTr.classList.add('row-selected');
+            tbody.classList.add('has-selection');
         });
+
 
 
         // Initial load
@@ -487,6 +491,9 @@
         }
         tbody tr.row-selected td:first-child {
             border-left: 3px solid #eab308; /* yellow-500 accent on time column */
+        }
+        tbody.has-selection tr:not(.row-selected) td {
+            opacity: 0.35;
         }
     </style>
 @endsection
