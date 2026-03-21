@@ -441,6 +441,28 @@
             countdown = 180;
         });
 
+        // Row highlight on cell click
+        document.querySelector('tbody').addEventListener('click', function (e) {
+            const clickedTd = e.target.closest('td');
+            if (!clickedTd) return;
+
+            const clickedTr = clickedTd.closest('tr');
+
+            // If already selected, deselect (toggle off)
+            if (clickedTr.classList.contains('row-selected')) {
+                clickedTr.classList.remove('row-selected');
+                return;
+            }
+
+            // Remove highlight from previously selected row
+            const prev = document.querySelector('tbody tr.row-selected');
+            if (prev) prev.classList.remove('row-selected');
+
+            // Highlight the clicked row
+            clickedTr.classList.add('row-selected');
+        });
+
+
         // Initial load
         loadData();
         //startTimer();
@@ -457,6 +479,15 @@
         .bu-sc { background:#1e3a5f; color:#fff; }
         .bu-lu { background:#ffcc00; color: #000; }
         .bu-blank { background:#374151; color:#9ca3af; }
+        /* Row highlight on cell click */
+        tbody tr.row-selected td {
+            background-color: #143ead !important; /* yellow-100 */
+            outline: none;
+            font-weight: bold;
+        }
+        tbody tr.row-selected td:first-child {
+            border-left: 3px solid #eab308; /* yellow-500 accent on time column */
+        }
     </style>
 @endsection
 

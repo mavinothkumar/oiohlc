@@ -336,6 +336,18 @@
         @endif
 
     </div>
+
+    <style>
+        /* Row highlight on cell click */
+        tbody tr.row-selected td {
+            background-color: #fef9c3 !important; /* yellow-100 */
+            outline: none;
+            font-weight: bold;
+        }
+        tbody tr.row-selected td:first-child {
+            border-left: 3px solid #eab308; /* yellow-500 accent on time column */
+        }
+    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const dateInput = document.getElementById('dateInput');
@@ -441,6 +453,28 @@
                         expirySelect.innerHTML = '<option value="">Error loading expiry</option>';
                     });
             });
+
+            // Row highlight on cell click
+            document.querySelector('tbody').addEventListener('click', function (e) {
+                const clickedTd = e.target.closest('td');
+                if (!clickedTd) return;
+
+                const clickedTr = clickedTd.closest('tr');
+
+                // If already selected, deselect (toggle off)
+                if (clickedTr.classList.contains('row-selected')) {
+                    clickedTr.classList.remove('row-selected');
+                    return;
+                }
+
+                // Remove highlight from previously selected row
+                const prev = document.querySelector('tbody tr.row-selected');
+                if (prev) prev.classList.remove('row-selected');
+
+                // Highlight the clicked row
+                clickedTr.classList.add('row-selected');
+            });
+
         });
     </script>
 @endsection
