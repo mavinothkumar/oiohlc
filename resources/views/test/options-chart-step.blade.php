@@ -602,6 +602,12 @@
                     }
                 });
 
+                chart.timeScale().fitContent();
+                chart.timeScale().applyOptions({
+                    barSpacing:  12,
+                    rightOffset: 30,  // fullscreen
+                });
+
                 const ceSeries = chart.addCandlestickSeries({
                     upColor:          '#16a34a',   // green body — bullish CE
                     downColor:        '#dc2626',   // red body   — bearish CE
@@ -651,7 +657,12 @@
                 applyPriceLines(entry, strike, data, true);
 
                 if (isFirst || !state.fsInitialized) {
-                    entry.chart.timeScale().fitContent();
+                    chart.timeScale().fitContent();
+                    chart.timeScale().applyOptions({
+                        barSpacing: 12,
+                        rightOffset: 30,
+                    });
+
                     state.fsInitialized = true;
                 }
 
@@ -660,9 +671,23 @@
 
 
 
-            function fitOnce(chart, isFirst) {
+            // function fitOnce(chart, isFirst) {
+            //     if (isFirst) {
+            //         // Show last N candles instead of all 76 squeezed in
+            //         chart.timeScale().fitContent();
+            //         chart.timeScale().applyOptions({
+            //             barSpacing: 12,   // wider candles — increase for thicker
+            //             rightOffset: 10,
+            //         });
+            //     }
+            // }
+            function fitOnce(chart, isFirst, isFullscreen = false) {
                 if (isFirst) {
                     chart.timeScale().fitContent();
+                    chart.timeScale().applyOptions({
+                        barSpacing:  12,
+                        rightOffset: isFullscreen ? 30 : 10,
+                    });
                 }
             }
 
