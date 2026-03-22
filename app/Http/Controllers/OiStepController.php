@@ -35,6 +35,8 @@ class OiStepController extends Controller
         );
         $strikes = array_map('floatval', array_values($strikes));
 
+        sort($strikes);
+
         // Build ordered slot list for the JS to reference
         $slots = $this->buildSlots();
 
@@ -69,6 +71,7 @@ class OiStepController extends Controller
         $expiry  = $request->input('expiry');
         $strikes = array_map('floatval', $request->input('strikes'));
         $slotIdx = (int) $request->input('slot_index');
+        sort($strikes);
 
         $slots = $this->buildSlots();
 

@@ -154,8 +154,13 @@
                     const atm = parseInt(json.atm);
                     const nearStrikes = json.strikes
                         .map(s => parseFloat(s))
-                        .sort((a, b) => Math.abs(a - atm) - Math.abs(b - atm))
-                        .slice(0, 6);
+                        .sort((a, b) => Math.abs(a - atm) - Math.abs(b - atm))  // closest to ATM first for auto-fill
+                        .slice(0, 6)
+                        .sort((a, b) => a - b);  // ← add this — then re-sort asc for display
+
+                    document.querySelectorAll('.strike-input').forEach((el, i) => {
+                        el.value = nearStrikes[i] ?? '';
+                    });
 
                     document.querySelectorAll('.strike-input').forEach((el, i) => {
                         el.value = nearStrikes[i] ?? '';
