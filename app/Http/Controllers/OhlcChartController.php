@@ -88,8 +88,7 @@ class OhlcChartController extends Controller
     {
         return DB::table('daily_trend')
                  ->where('symbol_name', $symbol)
-                 ->where('expiry_date', $expiry)
-                 ->where('quote_date', $prevDay)->value('strike');
+                 ->where('quote_date', $date)->value('strike');
 
         // all CE daily bars for that day
         $ceRows = DB::table('expired_ohlc')
@@ -286,7 +285,7 @@ class OhlcChartController extends Controller
             $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
         }
 
-        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $prevDay)->first();
+        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $date)->first();
 
         return response()->json([
             'expiries'        => [$expiryForAtm],
@@ -808,6 +807,7 @@ class OhlcChartController extends Controller
                   ->whereIn('instrument_type', ['CE', 'PE'])
                   ->whereRaw("TIME(timestamp) <= ?", [$currSlot . ':00'])
                   ->orderBy('timestamp', 'asc')
+            ->distinct()
                   ->get(['strike', 'instrument_type', 'open', 'high', 'low', 'close', 'volume', 'open_interest', 'timestamp']);
 
         // ── Group: [strike][type][] = candle array ────────────────────────────

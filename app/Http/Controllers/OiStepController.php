@@ -175,7 +175,7 @@ class OiStepController extends Controller
 
             $atmStrike = DB::table('daily_trend')
                            ->where('symbol_name', 'NIFTY')
-                           ->where('quote_date', $prevDay)
+                           ->where('quote_date', $request->date)
                            ->value('atm_index_open');
 
             $atmIndexOpen = (float) $atmStrike;

@@ -261,7 +261,7 @@
 
                 // Row 1 — Time + Strike groups
                 let r1 = '<tr class="text-center">';
-                r1 += '<th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-left whitespace-nowrap">Time</th>';
+                r1 += '<th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-600 text-left whitespace-nowrap sticky left-0 z-20">Time</th>';
                 strikes.forEach((s, i) => {
                     const col = STRIKE_COLORS[i % STRIKE_COLORS.length];
                     r1 += `<th colspan="8" class="px-2 py-1 border border-gray-300 dark:border-gray-600 font-bold ${col}">${numberFormat(s)}</th>`;
@@ -280,7 +280,7 @@
 
                 // Row 3 — column labels
                 let r3 = '<tr class="text-center text-gray-400 dark:text-gray-500 text-[10px]">';
-                r3 += '<th class="px-3 py-1 border border-gray-200 dark:border-gray-700"></th>';
+                r3 += '<th class="px-3 py-1 border border-gray-200 dark:border-gray-700 sticky left-0 z-20"></th>';
                 strikes.forEach(() => {
                     ['CE', 'PE'].forEach(() => {
                         ['Close Δ', 'OI Δ', 'Vol Δ', 'Build'].forEach(col => {
@@ -297,7 +297,7 @@
             function prependRow(slotData) {
                 const timeLabel = slotData.label;
                 let html = `<tr class="text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition">`;
-                html += `<td class="px-3 py-2 border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">${timeLabel}</td>`;
+                html += `<td class="px-3 py-2 border border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-gray-900">${timeLabel}</td>`;
 
                 state.strikes.forEach((strike, si) => {
                     const col = STRIKE_COLORS[si % STRIKE_COLORS.length];
