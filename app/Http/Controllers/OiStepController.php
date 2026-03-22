@@ -165,7 +165,7 @@ class OiStepController extends Controller
 
         $strikes   = collect();
         $atmStrike = null;
-
+        $prevDay = '';
         if ($expiry) {
 
             $prevDay = DB::table('nse_working_days')
@@ -176,7 +176,6 @@ class OiStepController extends Controller
             $atmStrike = DB::table('daily_trend')
                            ->where('symbol_name', 'NIFTY')
                            ->where('quote_date', $prevDay)
-                           ->where('expiry_date', $expiry)
                            ->value('atm_index_open');
 
             $atmIndexOpen = (float) $atmStrike;
@@ -194,6 +193,7 @@ class OiStepController extends Controller
         }
 
         return response()->json([
+            'prevDay'  => $prevDay,
             'expiry'  => $expiry,
             'strikes' => $strikes,
             'atm'     => $atmStrike ? (int)$atmStrike : null,
