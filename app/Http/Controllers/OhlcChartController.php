@@ -51,7 +51,7 @@ class OhlcChartController extends Controller
 
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
+            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
         }
 
         return response()->json([
@@ -84,12 +84,12 @@ class OhlcChartController extends Controller
         return [$prevDay, $spot ? (float) $spot : null];
     }
 
-    protected function getAtmStrikeForDay(string $symbol, string $expiry, string $date): ?int
+    protected function getAtmStrikeForDay(string $symbol, string $expiry, string $date, string $prevDay = ''): ?int
     {
         return DB::table('daily_trend')
                  ->where('symbol_name', $symbol)
                  ->where('expiry_date', $expiry)
-                 ->where('quote_date', $date)->value('strike');
+                 ->where('quote_date', $prevDay)->value('strike');
 
         // all CE daily bars for that day
         $ceRows = DB::table('expired_ohlc')
@@ -283,10 +283,10 @@ class OhlcChartController extends Controller
         $atmStrike    = null;
         if ($expiryForAtm) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date);
+            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
         }
 
-        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $request->date)->first();
+        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $prevDay)->first();
 
         return response()->json([
             'expiries'        => [$expiryForAtm],
