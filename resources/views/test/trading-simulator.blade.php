@@ -43,6 +43,13 @@
                         <h1 class="text-base font-bold text-white leading-tight">Nifty Options Simulator</h1>
                         <p class="text-xs text-gray-500">Lot Size: 75 &nbsp;&nbsp; Paper Trading Mode</p>
                     </div>
+
+                    <div>
+                        <a href="{{ route('test.trading-simulator.report') }}"
+                            class="text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-xl px-4 py-2 transition-colors flex items-center gap-1.5">
+                            Simulator Report
+                        </a>
+                    </div>
                 </div>
                 <div class="text-right">
                     <div id="display-current-time" class="text-2xl font-mono font-bold text-blue-400 leading-tight">--:--</div>
@@ -545,6 +552,7 @@
                 }
 
                 state.positions.forEach(function (pos, idx) {
+                    if (!pos.orders) pos.orders = [];
                     const pnlClass   = pos.pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
                     const typeClass  = pos.type === 'CE'
                         ? 'bg-blue-900/60 text-blue-300 border border-blue-800'
@@ -817,6 +825,34 @@
                 $dd.removeClass('hidden');
             }
 
+            // ── Save entry order to DB ─────────────────────────────────────────────────
+            async function saveEntryOrder({ strike, type, action, avgEntry, entryPrice, lots, qty, orderType }) {
+                try {
+                    await $.ajax({
+                        url:    '{{ route("test.trading-simulator.enter") }}',
+                        method: 'POST',
+                        data: {
+                            _token:          '{{ csrf_token() }}',
+                            session_id:      sessionId,
+                            trade_date:      state.selectedDate,
+                            expiry:          state.selectedExpiry,
+                            strike:          strike,
+                            instrument_type: type,
+                            side:            action,
+                            avg_entry:       avgEntry,
+                            entry_price:     entryPrice,
+                            lots:            lots,
+                            qty:             qty,
+                            order_type:      orderType,
+                            entry_time:      minutesToTime(state.currentMinutes),
+                        }
+                    });
+                } catch (e) {
+                    console.warn('DB entry save failed (non-blocking):', e);
+                }
+            }
+
+
             $('#strike-search-input').on('input', function () {
                 const val = $(this).val().trim();
                 state.newStrike = val ? val : null;
@@ -890,37 +926,65 @@
             // ─── Add Strike ──────────────────────────────────────────────────────────
             $('#btn-add-strike').on('click', async function () {
                 if (!state.newStrike || !state.selectedExpiry) return;
-                const entryPrice = await fetchPrice(state.newStrike, state.newType);
-                if (entryPrice === null) { alert('No data found for this strike at the current candle time.'); return; }
 
-                const existing = state.positions.find(p => p.strike == state.newStrike && p.type === state.newType && p.action === state.newAction);
+                const entryPrice = await fetchPrice(state.newStrike, state.newType);
+                if (entryPrice === null) {
+                    alert('No data found for this strike at the current candle time.');
+                    return;
+                }
+
+                const existing = state.positions.find(p =>
+                    p.strike == state.newStrike &&
+                    p.type === state.newType &&
+                    p.action === state.newAction
+                );
+
                 if (existing) {
                     const oldQty   = existing.lots * LOTSIZE;
                     const newQty   = state.newLots * LOTSIZE;
                     const totalQty = oldQty + newQty;
+
                     existing.avgEntry     = (existing.avgEntry * oldQty + entryPrice * newQty) / totalQty;
                     existing.lots        += state.newLots;
                     existing.currentPrice = entryPrice;
                     existing.pnl          = calcPnl(existing);
-                } else {
-                    state.positions.push({
-                        strike: parseInt(state.newStrike),
-                        type: state.newType,
-                        action: state.newAction,
-                        lots: state.newLots,
-                        avgEntry: entryPrice,
-                        currentPrice: entryPrice,
-                        pnl: 0,
+
+                    if (!existing.orders) existing.orders = [];
+                    existing.orders.push({
+                        type:  'entry',
+                        side:  existing.action,
+                        price: entryPrice,
+                        lots:  state.newLots,
+                        qty:   state.newLots * LOTSIZE,
+                        pnl:   0,
+                        time:  minutesToTime(state.currentMinutes),
                     });
-                    state.newStrike = null;
-                    $('#strike-search-input').val('');
-                    state.newLots = 1;
-                    $('#input-lots').val(1);
 
+                    // ✅ Save averaging entry to DB
+                    await saveEntryOrder({
+                        strike:       existing.strike,
+                        type:         existing.type,
+                        action:       existing.action,
+                        avgEntry:     existing.avgEntry,
+                        entryPrice:   entryPrice,
+                        lots:         state.newLots,
+                        qty:          state.newLots * LOTSIZE,
+                        orderType:    'entry',
+                    });
 
-                    // NEW — initialize orders log with the entry order
-                    const newPos = state.positions[state.positions.length - 1];
-                    if (!newPos.orders) newPos.orders = [];
+                } else {
+                    const newPos = {
+                        strike:       parseInt(state.newStrike),
+                        type:         state.newType,
+                        action:       state.newAction,
+                        lots:         state.newLots,
+                        avgEntry:     entryPrice,
+                        currentPrice: entryPrice,
+                        pnl:          0,
+                        showOrders:   false,
+                        orders:       [],
+                    };
+
                     newPos.orders.push({
                         type:  'entry',
                         side:  state.newAction,
@@ -931,10 +995,30 @@
                         time:  minutesToTime(state.currentMinutes),
                     });
 
+                    state.positions.push(newPos);
 
+                    // ✅ Save new entry to DB
+                    await saveEntryOrder({
+                        strike:     parseInt(state.newStrike),
+                        type:       state.newType,
+                        action:     state.newAction,
+                        avgEntry:   entryPrice,
+                        entryPrice: entryPrice,
+                        lots:       state.newLots,
+                        qty:        state.newLots * LOTSIZE,
+                        orderType:  'entry',
+                    });
                 }
+
+                state.newStrike = null;
+                $('#strike-search-input').val('');
+                state.newLots = 1;
+                $('#input-lots').val(1);
                 render();
             });
+
+
+
 
             // ─── Exit Position ───────────────────────────────────────────────────────
             // function exitPosition(idx) {
@@ -953,10 +1037,76 @@
             // $(document).on('click', '.btn-exit', function () {
             //     exitPosition(parseInt($(this).data('idx')));
             // });
+// NEW ✅
+            $('#btn-square-off-all').on('click', async function () {
+                if (!state.positions.length) return;
 
-            $('#btn-square-off-all').on('click', function () {
-                while (state.positions.length > 0) exitPosition(0);
+                const confirmAll = confirm(`Square off all ${state.positions.length} position(s) at current price?`);
+                if (!confirmAll) return;
+
+                // Process all positions — iterate over a copy since we're modifying the array
+                const toExit = [...state.positions];
+
+                for (const pos of toExit) {
+                    if (!pos.currentPrice) continue;
+
+                    const exitLots  = pos.lots;
+                    const exitQty   = exitLots * LOTSIZE;
+                    const exitPrice = pos.currentPrice;
+                    const multiplier = pos.action === 'BUY' ? 1 : -1;
+                    const pnl = parseFloat(((exitPrice - pos.avgEntry) * exitQty * multiplier).toFixed(2));
+
+                    // Push to Trade History
+                    state.closedTrades.unshift({
+                        strike:    pos.strike,
+                        type:      pos.type,
+                        action:    pos.action,
+                        lots:      exitLots,
+                        avgEntry:  pos.avgEntry,
+                        exitPrice: exitPrice,
+                        pnl:       pnl,
+                        exitTime:  minutesToTime(state.currentMinutes),
+                        exitType:  'full_exit',
+                        outcome:   pnl >= 0 ? 'profit' : 'stoploss',
+                        comment:   '',
+                    });
+
+                    // Save to DB (non-blocking)
+                    try {
+                        await $.ajax({
+                            url:    '{{ route("test.trading-simulator.exit") }}',
+                            method: 'POST',
+                            data: {
+                                _token:          '{{ csrf_token() }}',
+                                session_id:      sessionId,
+                                trade_date:      state.selectedDate,
+                                expiry:          state.selectedExpiry,
+                                strike:          pos.strike,
+                                instrument_type: pos.type,
+                                side:            pos.action,
+                                avg_entry:       pos.avgEntry,
+                                exit_price:      exitPrice,
+                                exit_lots:       exitLots,
+                                exit_qty:        exitQty,
+                                pnl:             pnl,
+                                order_type:      'full_exit',
+                                outcome:         pnl >= 0 ? 'profit' : 'stoploss',
+                                comment:         '',
+                                exit_time:       minutesToTime(state.currentMinutes),
+                                total_lots:      exitLots,
+                                orders:          JSON.stringify(pos.orders || []),
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('DB save failed for square off:', pos.strike, e);
+                    }
+                }
+
+                // Clear all open positions
+                state.positions = [];
+                render();
             });
+
 
             // ─── Average Modal ────────────────────────────────────────────────────────
             function updateAvgModal() {
@@ -1182,16 +1332,17 @@
                 updateAvgModal();
             });
 
-            $('#btn-avg-confirm').on('click', function () {
+            $('#btn-avg-confirm').on('click', async function () {
                 const pos = state.positions[state.averageModal.idx];
                 if (!pos || !pos.currentPrice) return;
-                const oldQty   = pos.lots * LOTSIZE;
-                const newQty   = state.averageModal.lots * LOTSIZE;
-                pos.avgEntry   = (pos.avgEntry * oldQty + pos.currentPrice * newQty) / (oldQty + newQty);
-                pos.lots      += state.averageModal.lots;
-                pos.pnl        = calcPnl(pos);
 
-                // NEW — log avg entry order
+                const oldQty = pos.lots * LOTSIZE;
+                const newQty = state.averageModal.lots * LOTSIZE;
+
+                pos.avgEntry = (pos.avgEntry * oldQty + pos.currentPrice * newQty) / (oldQty + newQty);
+                pos.lots    += state.averageModal.lots;
+                pos.pnl      = calcPnl(pos);
+
                 if (!pos.orders) pos.orders = [];
                 pos.orders.push({
                     type:  'entry',
@@ -1203,9 +1354,23 @@
                     time:  minutesToTime(state.currentMinutes),
                 });
 
+                // ✅ Save avg modal entry to DB
+                await saveEntryOrder({
+                    strike:     pos.strike,
+                    type:       pos.type,
+                    action:     pos.action,
+                    avgEntry:   pos.avgEntry,
+                    entryPrice: pos.currentPrice,
+                    lots:       state.averageModal.lots,
+                    qty:        state.averageModal.lots * LOTSIZE,
+                    orderType:  'entry',
+                });
+
                 $('#average-modal').addClass('hidden');
                 render();
             });
+
+
 
             // Orders sub-row toggle
             $(document).on('click', '.btn-orders-toggle', function () {

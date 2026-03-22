@@ -85,56 +85,63 @@ class TradingSimulatorController extends Controller {
         return response()->json( $row ?? [ 'open' => null ] );
     }
 
-    public function enterPosition( Request $request ) {
-        $sessionId = $request->input( 'session_id' );
-        $strike    = $request->input( 'strike' );
-        $type      = $request->input( 'instrument_type' );
-        $expiry    = $request->input( 'expiry' );
-        $price     = $request->input( 'price' );
-        $qty       = $request->input( 'qty' );
-        $side      = $request->input( 'side' );
-        $date      = $request->input( 'trade_date' );
+    public function enterPosition(Request $request)
+    {
+        $sessionId  = $request->input('session_id');
+        $tradeDate  = $request->input('trade_date');
+        $expiry     = $request->input('expiry');
+        $strike     = $request->input('strike');
+        $type       = $request->input('instrument_type');
+        $side       = $request->input('side');
+        $avgEntry   = $request->input('avg_entry');
+        $entryPrice = $request->input('entry_price');
+        $lots       = $request->input('lots');
+        $qty        = $request->input('qty');
 
-        // Find existing open position or create new
+        // Upsert position — update avg_entry and qty each time
         $position = \App\Models\SimPosition::firstOrCreate(
             [
                 'session_id'      => $sessionId,
+                'trade_date'      => $tradeDate,
                 'strike'          => $strike,
                 'instrument_type' => $type,
                 'expiry'          => $expiry,
-                'status'          => 'open',
             ],
             [
-                'trade_date' => $date,
-                'side'       => $side,
-                'avg_entry'  => $price,
-                'total_qty'  => 0,
-                'open_qty'   => 0,
+                'underlying'   => 'NIFTY',
+                'side'         => $side,
+                'avg_entry'    => $avgEntry,
+                'total_qty'    => 0,
+                'open_qty'     => 0,
+                'realized_pnl' => 0,
+                'status'       => 'open',
             ]
         );
 
-        // Recalculate weighted avg entry
-        $newTotalQty         = $position->open_qty + $qty;
-        $position->avg_entry = ( ( $position->avg_entry * $position->open_qty ) + ( $price * $qty ) ) / $newTotalQty;
-        $position->open_qty  = $newTotalQty;
+        // Update running avg_entry and quantities
+        $position->avg_entry  = $avgEntry;           // JS already computed weighted avg
         $position->total_qty += $qty;
+        $position->open_qty  += $qty;
+        $position->status     = 'open';
         $position->save();
 
-        // Log the order
-        \App\Models\SimOrder::create( [
-            'position_id' => $position->id,
-            'session_id'  => $sessionId,
-            'trade_date'  => $date,
-            'order_type'  => 'entry',
-            'side'        => $side,
-            'price'       => $price,
-            'qty'         => $qty,
-            'pnl'         => 0,
-            'executed_at' => now(),
-        ] );
+        // Log the entry order
+        \App\Models\SimOrder::create([
+            'position_id'  => $position->id,
+            'session_id'   => $sessionId,
+            'trade_date'   => $tradeDate,
+            'order_type'   => 'entry',
+            'side'         => $side,
+            'price'        => $entryPrice,
+            'qty'          => $qty,
+            'lots'         => $lots,
+            'pnl'          => 0,
+            'executed_at'  => now(),
+        ]);
 
-        return response()->json( [ 'position' => $position ] );
+        return response()->json(['success' => true, 'position_id' => $position->id]);
     }
+
 
     public function exitPosition(Request $request)
     {

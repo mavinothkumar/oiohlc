@@ -127,4 +127,6 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::get( '/trading-simulator/report', [ App\Http\Controllers\TradingSimulatorController::class, 'report' ] )->name( 'trading-simulator.report' );
     Route::get( '/trading-simulator/report/{position}', [ App\Http\Controllers\TradingSimulatorController::class, 'reportDetail' ] )->name( 'trading-simulator.report.detail' );
     Route::post( '/trading-simulator/report/{position}/note',[ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
+    Route::post('/trading-simulator/position/enter', [App\Http\Controllers\TradingSimulatorController::class, 'enterPosition'])->name('trading-simulator.enter');
+
 } );
