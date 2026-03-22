@@ -167,21 +167,30 @@ class OiStepController extends Controller
         $atmStrike = null;
 
         if ($expiry) {
-            $strikes = DB::table('expired_ohlc')
-                         ->where('underlying_symbol', 'NIFTY')
-                         ->where('expiry', $expiry)
-                         ->where('interval', self::INTERVAL)
-                         ->whereDate('timestamp', $request->date)
-                         ->whereIn('instrument_type', ['CE', 'PE'])
-                         ->distinct()
-                         ->orderBy('strike')
-                         ->pluck('strike');
+
+            $prevDay = DB::table('nse_working_days')
+                         ->where('working_date', '<', $request->date)
+                         ->orderBy('working_date', 'desc')
+                         ->value('working_date');
 
             $atmStrike = DB::table('daily_trend')
                            ->where('symbol_name', 'NIFTY')
-                           ->where('quote_date', $request->date)
+                           ->where('quote_date', $prevDay)
                            ->where('expiry_date', $expiry)
                            ->value('atm_index_open');
+
+            $atmIndexOpen = (float) $atmStrike;
+            $step         = 50;
+
+            $strikes = [
+                $atmIndexOpen - 3 * $step,
+                $atmIndexOpen - 2 * $step,
+                $atmIndexOpen - 1 * $step,
+                $atmIndexOpen,
+                $atmIndexOpen + 1 * $step,
+                $atmIndexOpen + 2 * $step,
+                $atmIndexOpen + 3 * $step,
+            ];
         }
 
         return response()->json([
