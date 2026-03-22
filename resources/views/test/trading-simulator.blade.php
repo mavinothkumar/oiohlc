@@ -6,6 +6,7 @@
 @section('content')
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
@@ -16,6 +17,14 @@
         input[type=number] { -moz-appearance: textfield; }
         .flatpickr-calendar { font-family: inherit !important; }
         [x-cloak] { display: none !important; }
+
+        /* Override Quill dark theme */
+        .ql-toolbar.ql-snow { background: #1f2937; border-color: #374151 !important; border-radius: 8px 8px 0 0; }
+        .ql-container.ql-snow { background: #111827; border-color: #374151 !important; border-radius: 0 0 8px 8px; color: #e5e7eb; min-height: 80px; }
+        .ql-snow .ql-stroke { stroke: #9ca3af; }
+        .ql-snow .ql-fill { fill: #9ca3af; }
+        .ql-snow .ql-picker { color: #9ca3af; }
+        .ql-snow .ql-picker-options { background: #1f2937; }
     </style>
 
     <div id="trading-simulator-root" class="min-h-screen bg-gray-950 py-5">
@@ -197,10 +206,12 @@
                                 <th class="px-4 py-2.5 text-right font-medium">Lots</th>
                                 <th class="px-4 py-2.5 text-right font-medium">Qty</th>
                                 <th class="px-4 py-2.5 text-right font-medium">Current</th>
+                                <th class="px-4 py-2.5 text-right font-medium text-yellow-500">Diff (pts)</th>  {{-- NEW --}}
                                 <th class="px-4 py-2.5 text-right font-medium">P&amp;L</th>
                                 <th class="px-4 py-2.5 text-center font-medium">Actions</th>
                             </tr>
                             </thead>
+
                             <tbody id="positions-tbody"></tbody>
                         </table>
                     </div>
@@ -231,9 +242,12 @@
                                 <th class="px-4 py-2.5 text-right font-medium">Lots</th>
                                 <th class="px-4 py-2.5 text-right font-medium">Qty</th>
                                 <th class="px-4 py-2.5 text-right font-medium">P&amp;L</th>
+                                <th class="px-4 py-2.5 text-left font-medium">Outcome</th>   {{-- NEW --}}
                                 <th class="px-4 py-2.5 text-right font-medium">Exit Time</th>
+                                <th class="px-4 py-2.5 text-center font-medium">Note</th>    {{-- NEW --}}
                             </tr>
                             </thead>
+
                             <tbody id="trades-tbody"></tbody>
                         </table>
                     </div>
@@ -299,21 +313,123 @@
             </div>
 
         </div>
+
+        {{-- ===== EXIT MODAL ===== --}}
+        <div id="exit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+            <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+
+                {{-- Header --}}
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white">Exit Position</h3>
+                        <p id="exit-modal-subtitle" class="text-xs text-gray-400 mt-0.5 font-mono"></p>
+                    </div>
+                    <button id="btn-exit-modal-close" class="text-gray-600 hover:text-gray-300 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+
+                    {{-- Current Price Info --}}
+                    <div class="bg-gray-800/60 border border-gray-700 rounded-xl p-3 flex justify-between text-xs">
+                        <span class="text-gray-500">Avg Entry</span>
+                        <span id="exit-avg-entry" class="font-mono text-gray-200"></span>
+                        <span class="text-gray-500">Current Price</span>
+                        <span id="exit-current-price" class="font-mono text-yellow-400 font-bold"></span>
+                    </div>
+
+                    {{-- Exit Qty (Lots) --}}
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">
+                            Exit Lots <span class="normal-case text-gray-600">(max: <span id="exit-max-lots"></span> lots)</span>
+                        </label>
+                        <div class="flex items-center bg-gray-800 border border-gray-700 rounded-xl overflow-hidden w-36">
+                            <button id="btn-exit-lots-dec" class="px-4 py-2.5 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors font-bold select-none">−</button>
+                            <input type="number" id="exit-lots-input" min="1" value="1"
+                                class="flex-1 bg-transparent text-center text-sm font-bold text-white focus:outline-none border-x border-gray-700 py-2.5">
+                            <button id="btn-exit-lots-inc" class="px-4 py-2.5 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors font-bold select-none">+</button>
+                        </div>
+                    </div>
+
+                    {{-- Outcome --}}
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">Outcome</label>
+                        <div class="flex gap-2">
+                            <button data-outcome="profit"
+                                class="outcome-toggle flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all
+                         bg-emerald-900/40 text-emerald-400 border-emerald-800/60 hover:bg-emerald-900/70">
+                                ✓ Profit
+                            </button>
+                            <button data-outcome="stoploss"
+                                class="outcome-toggle flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all
+                         text-gray-400 border-gray-700 hover:text-red-400 hover:border-red-800">
+                                ✗ Stoploss
+                            </button>
+                            <button data-outcome="breakeven"
+                                class="outcome-toggle flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all
+                         text-gray-400 border-gray-700 hover:text-yellow-400 hover:border-yellow-800">
+                                ~ Breakeven
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Comment (Quill) --}}
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">
+                            Trade Comment <span class="normal-case text-gray-600">(optional — supports bold, color highlights)</span>
+                        </label>
+                        <div id="exit-comment-editor"></div>
+                    </div>
+
+                </div>
+
+                {{-- Footer Buttons --}}
+                <div class="flex gap-2 mt-5">
+                    <button id="btn-exit-cancel"
+                        class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl py-2.5 text-sm font-medium text-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="btn-exit-confirm"
+                        class="flex-1 bg-red-600 hover:bg-red-500 active:bg-red-700 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors">
+                        Confirm Exit
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
     <script>
         jQuery(document).ready(function ($) {
             const LOTSIZE = 75;
-            const START_MINUTES = 9 * 60 + 15;   // 555 = 09:15
-            const END_MINUTES   = 15 * 60 + 30;  // 930 = 15:30
-            const STEP_MINUTES  = 5;
+            const STARTMINUTES = 9 * 60 + 15;   // 555 = 09:15
+            const ENDMINUTES   = 15 * 60 + 30;  // 930 = 15:30
+            const STEPMINUTES  = 5;
+
+            // ── Session ID (UUID per browser tab, persisted in localStorage) ──────────
+            function generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+                });
+            }
+            const SESSION_KEY = 'sim_session_id';
+            if (!localStorage.getItem(SESSION_KEY)) {
+                localStorage.setItem(SESSION_KEY, generateUUID());
+            }
+            const sessionId = localStorage.getItem(SESSION_KEY);
+
 
             // ─── State ──────────────────────────────────────────────────────────────
             const state = {
                 selectedDate: null,
                 selectedExpiry: null,
                 availableStrikes: [],
-                currentMinutes: START_MINUTES,
+                currentMinutes: STARTMINUTES,
                 newStrike: null,
                 newType: 'CE',
                 newLots: 1,
@@ -321,6 +437,7 @@
                 positions: [],
                 closedTrades: [],
                 averageModal: { open: false, idx: null, lots: 1 },
+                exitModal: { open: false, idx: null, lots: 1, outcome: 'profit' },
             };
 
             // ─── Helpers ────────────────────────────────────────────────────────────
@@ -363,8 +480,8 @@
                 $('#display-current-time, #display-time-pill').text(time);
 
                 // Nav buttons
-                $('#btn-rewind').prop('disabled', !state.selectedDate || state.currentMinutes <= START_MINUTES);
-                $('#btn-forward').prop('disabled', !state.selectedDate || state.currentMinutes >= END_MINUTES);
+                $('#btn-rewind').prop('disabled', !state.selectedDate || state.currentMinutes <= STARTMINUTES);
+                $('#btn-forward').prop('disabled', !state.selectedDate || state.currentMinutes >= ENDMINUTES);
 
                 // Expiry
                 if (state.selectedExpiry) {
@@ -419,72 +536,189 @@
             }
 
             function renderPositions() {
-                const $tbody = $('#positions-tbody').empty();
+                const tbody = $('#positions-tbody').empty();
                 if (state.positions.length === 0) {
                     $('#positions-section').addClass('hidden');
                 } else {
                     $('#positions-section').removeClass('hidden');
                     $('#positions-count').text(state.positions.length);
-                    state.positions.forEach(function (pos, idx) {
-                        const pnlClass  = pos.pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
-                        const typeClass = pos.type === 'CE'
-                            ? 'bg-blue-900/60 text-blue-300 border border-blue-800'
-                            : 'bg-orange-900/60 text-orange-300 border border-orange-800';
-                        const sideClass = pos.action === 'BUY'
-                            ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800'
-                            : 'bg-red-900/60 text-red-300 border border-red-800';
-                        const pnlDisplay = pos.currentPrice
-                            ? (pos.pnl >= 0 ? '+' : '') + pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                            : '—';
-                        const currentDisplay = pos.currentPrice ? pos.currentPrice.toFixed(2) : '—';
-
-                        $tbody.append(`
-                    <tr class="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors" data-idx="${idx}">
-                        <td class="px-4 py-3 font-mono font-semibold text-white">${pos.strike}</td>
-                        <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeClass}">${pos.type}</span></td>
-                        <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${pos.action}</span></td>
-                        <td class="px-4 py-3 text-right font-mono text-gray-200">${pos.avgEntry.toFixed(2)}</td>
-                        <td class="px-4 py-3 text-right text-gray-200">${pos.lots}</td>
-                        <td class="px-4 py-3 text-right text-gray-500 font-mono">${pos.lots * LOTSIZE}</td>
-                        <td class="px-4 py-3 text-right font-mono text-gray-200">${currentDisplay}</td>
-                        <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">${pnlDisplay}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button class="btn-avg-open text-xs bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 border border-yellow-800/60 hover:border-yellow-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Avg</button>
-                                <button class="btn-exit text-xs bg-red-900/40 hover:bg-red-900/70 text-red-400 border border-red-800/60 hover:border-red-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Exit</button>
-                            </div>
-                        </td>
-                    </tr>`);
-                    });
                 }
+
+                state.positions.forEach(function (pos, idx) {
+                    const pnlClass   = pos.pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
+                    const typeClass  = pos.type === 'CE'
+                        ? 'bg-blue-900/60 text-blue-300 border border-blue-800'
+                        : 'bg-orange-900/60 text-orange-300 border border-orange-800';
+                    const sideClass  = pos.action === 'BUY'
+                        ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800'
+                        : 'bg-red-900/60 text-red-300 border border-red-800';
+                    const pnlDisplay = pos.currentPrice
+                        ? (pos.pnl >= 0 ? '+' : '') + pos.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                        : '—';
+                    const currentDisplay = pos.currentPrice ? pos.currentPrice.toFixed(2) : '—';
+
+                    // Diff calculation
+                    const diff = (pos.currentPrice && pos.avgEntry)
+                        ? (pos.currentPrice - pos.avgEntry).toFixed(2)
+                        : null;
+                    const diffDisplay = diff !== null
+                        ? (diff >= 0 ? '+' : '') + diff
+                        : '—';
+                    const diffClass = diff === null ? 'text-gray-600'
+                        : diff >= 15  ? 'text-emerald-400 font-bold'
+                            : diff <= -15 ? 'text-red-400 font-bold'
+                                : 'text-yellow-400';
+
+                    const ordersCount = (pos.orders || []).length;
+
+                    const row = $(`
+            <tr class="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors" data-idx="${idx}">
+              <td class="px-4 py-3 font-mono font-semibold text-white">${pos.strike}</td>
+              <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeClass}">${pos.type}</span></td>
+              <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${pos.action}</span></td>
+              <td class="px-4 py-3 text-right font-mono text-gray-200">${pos.avgEntry.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right text-gray-200">${pos.lots}</td>
+              <td class="px-4 py-3 text-right text-gray-500 font-mono">${pos.lots * LOTSIZE}</td>
+              <td class="px-4 py-3 text-right font-mono text-gray-200">${currentDisplay}</td>
+              <td class="px-4 py-3 text-right font-mono ${diffClass}">${diffDisplay}</td>
+              <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">${pnlDisplay}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-1.5">
+                  <button class="btn-avg-open text-xs bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 border border-yellow-800/60 hover:border-yellow-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Avg</button>
+                  <button class="btn-orders-toggle text-xs bg-gray-800/60 hover:bg-gray-700 text-gray-400 border border-gray-700 hover:border-gray-500 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">
+                    Orders <span class="bg-gray-700 text-gray-300 rounded-full px-1.5 py-0.5 text-xs font-mono">${ordersCount}</span>
+                  </button>
+                  <button class="btn-exit-open text-xs bg-red-900/40 hover:bg-red-900/70 text-red-400 border border-red-800/60 hover:border-red-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Exit</button>
+                </div>
+              </td>
+            </tr>
+        `);
+                    tbody.append(row);
+
+                    // Orders sub-row (collapsed by default)
+                    if (pos.showOrders && ordersCount > 0) {
+                        const ordersHtml = (pos.orders || []).map((o, i) => `
+                <tr class="text-xs text-gray-400">
+                  <td class="py-1 pr-4 font-mono text-gray-600">#${i + 1}</td>
+                  <td class="py-1 pr-4">
+                    <span class="px-2 py-0.5 rounded text-xs font-bold ${
+                            o.type === 'entry' ? 'bg-blue-900/60 text-blue-300'
+                                : o.type === 'partial_exit' ? 'bg-orange-900/60 text-orange-300'
+                                    : 'bg-red-900/60 text-red-300'
+                        }">${o.type.replace('_', ' ').toUpperCase()}</span>
+                  </td>
+                  <td class="py-1 pr-4 font-mono">${o.side}</td>
+                  <td class="py-1 pr-4 font-mono">${o.price.toFixed(2)}</td>
+                  <td class="py-1 pr-4">${o.lots} lots (${o.qty} qty)</td>
+                  <td class="py-1 pr-4 font-mono ${o.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}">${o.pnl !== 0 ? (o.pnl >= 0 ? '+' : '') + o.pnl.toFixed(2) : '—'}</td>
+                  <td class="py-1 text-gray-600">${o.time}</td>
+                </tr>
+            `).join('');
+
+                        tbody.append(`
+                <tr class="bg-gray-950/60 border-b border-gray-800/40">
+                  <td colspan="10" class="px-8 py-2">
+                    <table class="w-full">
+                      <thead><tr class="text-xs text-gray-600 border-b border-gray-800/60">
+                        <th class="py-1 pr-4 text-left font-medium">#</th>
+                        <th class="py-1 pr-4 text-left font-medium">Type</th>
+                        <th class="py-1 pr-4 text-left font-medium">Side</th>
+                        <th class="py-1 pr-4 text-left font-medium">Price</th>
+                        <th class="py-1 pr-4 text-left font-medium">Qty</th>
+                        <th class="py-1 pr-4 text-left font-medium">P&L</th>
+                        <th class="py-1 text-left font-medium">Time</th>
+                      </tr></thead>
+                      <tbody>${ordersHtml}</tbody>
+                    </table>
+                  </td>
+                </tr>
+            `);
+                    }
+                });
             }
 
+
             function renderTrades() {
-                const $tbody = $('#trades-tbody').empty();
+                const tbody = $('#trades-tbody').empty();
                 if (state.closedTrades.length === 0) {
                     $('#trades-section').addClass('hidden');
                 } else {
                     $('#trades-section').removeClass('hidden');
                     $('#trades-count').text(state.closedTrades.length);
-                    state.closedTrades.forEach(function (trade, idx) {
-                        const pnlClass  = trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
-                        const sideClass = trade.action === 'BUY'
-                            ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800'
-                            : 'bg-red-900/60 text-red-300 border border-red-800';
-                        $tbody.append(`
-                    <tr class="border-b border-gray-800/60 hover:bg-gray-800/20 transition-colors">
-                        <td class="px-4 py-3"><span class="font-mono font-semibold text-gray-200">${trade.strike} ${trade.type}</span></td>
-                        <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${trade.action}</span></td>
-                        <td class="px-4 py-3 text-right font-mono text-gray-300">${trade.avgEntry.toFixed(2)}</td>
-                        <td class="px-4 py-3 text-right font-mono text-gray-300">${trade.exitPrice.toFixed(2)}</td>
-                        <td class="px-4 py-3 text-right text-gray-300">${trade.lots}</td>
-                        <td class="px-4 py-3 text-right font-mono text-gray-500">${trade.lots * LOTSIZE}</td>
-                        <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">${(trade.pnl >= 0 ? '+' : '') + trade.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td class="px-4 py-3 text-right font-mono text-xs text-gray-500">${trade.exitTime}</td>
-                    </tr>`);
-                    });
                 }
+
+                state.closedTrades.forEach(function (trade) {
+                    const pnlClass  = trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400';
+                    const sideClass = trade.action === 'BUY'
+                        ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-800'
+                        : 'bg-red-900/60 text-red-300 border border-red-800';
+
+                    const outcomeBadge = {
+                        profit:    'bg-emerald-900/60 text-emerald-400 border-emerald-800/60',
+                        stoploss:  'bg-red-900/60 text-red-400 border-red-800/60',
+                        breakeven: 'bg-yellow-900/60 text-yellow-400 border-yellow-800/60',
+                    }[trade.outcome] || 'bg-gray-800 text-gray-500 border-gray-700';
+
+                    const outcomeLabel = {
+                        profit: '✓ Profit', stoploss: '✗ SL', breakeven: '~ B/E'
+                    }[trade.outcome] || '—';
+
+                    const isPartial = trade.exitType === 'partial_exit';
+                    const typeLabel = isPartial
+                        ? '<span class="text-xs bg-orange-900/60 text-orange-300 border border-orange-800/60 rounded px-1.5 py-0.5 ml-1">PARTIAL</span>'
+                        : '<span class="text-xs bg-red-900/60 text-red-300 border border-red-800/60 rounded px-1.5 py-0.5 ml-1">CLOSED</span>';
+
+                    const noteIcon = trade.comment
+                        ? `<button class="btn-view-note text-blue-400 hover:text-blue-300 transition-colors" title="View Note">
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                     d="M7 8h10M7 12h6m-6 4h10M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                 </svg>
+               </button>`
+                        : '<span class="text-gray-700 text-xs">—</span>';
+
+                    tbody.append(`
+            <tr class="border-b border-gray-800/60 hover:bg-gray-800/20 transition-colors">
+              <td class="px-4 py-3">
+                <span class="font-mono font-semibold text-gray-200">${trade.strike} ${trade.type}</span>
+                ${typeLabel}
+              </td>
+              <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${trade.action}</span></td>
+              <td class="px-4 py-3 text-right font-mono text-gray-300">${trade.avgEntry.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right font-mono text-gray-300">${trade.exitPrice.toFixed(2)}</td>
+              <td class="px-4 py-3 text-right text-gray-300">${trade.lots}</td>
+              <td class="px-4 py-3 text-right font-mono text-gray-500">${trade.lots * LOTSIZE}</td>
+              <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">
+                ${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md border ${outcomeBadge}">${outcomeLabel}</span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono text-xs text-gray-500">${trade.exitTime}</td>
+              <td class="px-4 py-3 text-center">${noteIcon}</td>
+            </tr>
+        `);
+
+                    // Note preview row (hidden by default, shown on note icon click)
+                    if (trade.comment) {
+                        tbody.append(`
+                <tr class="note-preview-row hidden bg-gray-950/80 border-b border-gray-800/40">
+                  <td colspan="10" class="px-6 py-3">
+                    <div class="prose prose-invert prose-sm max-w-none bg-gray-900 border border-gray-700 rounded-xl p-3 text-gray-300 text-sm">
+                      ${trade.comment}
+                    </div>
+                  </td>
+                </tr>
+            `);
+                    }
+                });
+
+                // Toggle note preview rows
+                $('#trades-tbody').on('click', '.btn-view-note', function () {
+                    $(this).closest('tr').next('.note-preview-row').toggleClass('hidden');
+                });
             }
+
 
             // ─── API Calls ──────────────────────────────────────────────────────────
             async function fetchExpiry(date) {
@@ -521,7 +755,7 @@
             }
 
             async function onDateChange() {
-                state.currentMinutes = START_MINUTES;
+                state.currentMinutes = STARTMINUTES;
                 state.selectedExpiry  = null;
                 state.positions   = [];
                 state.closedTrades = [];
@@ -641,14 +875,14 @@
 
             // ─── Time Navigation ─────────────────────────────────────────────────────
             $('#btn-forward').on('click', async function () {
-                if (state.currentMinutes < END_MINUTES) {
-                    state.currentMinutes += STEP_MINUTES;
+                if (state.currentMinutes < ENDMINUTES) {
+                    state.currentMinutes += STEPMINUTES;
                     await refreshPrices();
                 }
             });
             $('#btn-rewind').on('click', async function () {
-                if (state.currentMinutes > START_MINUTES) {
-                    state.currentMinutes -= STEP_MINUTES;
+                if (state.currentMinutes > STARTMINUTES) {
+                    state.currentMinutes -= STEPMINUTES;
                     await refreshPrices();
                 }
             });
@@ -682,27 +916,43 @@
                     $('#strike-search-input').val('');
                     state.newLots = 1;
                     $('#input-lots').val(1);
+
+
+                    // NEW — initialize orders log with the entry order
+                    const newPos = state.positions[state.positions.length - 1];
+                    if (!newPos.orders) newPos.orders = [];
+                    newPos.orders.push({
+                        type:  'entry',
+                        side:  state.newAction,
+                        price: entryPrice,
+                        lots:  state.newLots,
+                        qty:   state.newLots * LOTSIZE,
+                        pnl:   0,
+                        time:  minutesToTime(state.currentMinutes),
+                    });
+
+
                 }
                 render();
             });
 
             // ─── Exit Position ───────────────────────────────────────────────────────
-            function exitPosition(idx) {
-                const pos = state.positions[idx];
-                if (!pos.currentPrice) { alert('No current price available to exit.'); return; }
-                state.closedTrades.push({
-                    strike: pos.strike, type: pos.type, action: pos.action,
-                    lots: pos.lots, avgEntry: pos.avgEntry,
-                    exitPrice: pos.currentPrice, pnl: pos.pnl,
-                    exitTime: minutesToTime(state.currentMinutes),
-                });
-                state.positions.splice(idx, 1);
-                render();
-            }
+            // function exitPosition(idx) {
+            //     const pos = state.positions[idx];
+            //     if (!pos.currentPrice) { alert('No current price available to exit.'); return; }
+            //     state.closedTrades.push({
+            //         strike: pos.strike, type: pos.type, action: pos.action,
+            //         lots: pos.lots, avgEntry: pos.avgEntry,
+            //         exitPrice: pos.currentPrice, pnl: pos.pnl,
+            //         exitTime: minutesToTime(state.currentMinutes),
+            //     });
+            //     state.positions.splice(idx, 1);
+            //     render();
+            // }
 
-            $(document).on('click', '.btn-exit', function () {
-                exitPosition(parseInt($(this).data('idx')));
-            });
+            // $(document).on('click', '.btn-exit', function () {
+            //     exitPosition(parseInt($(this).data('idx')));
+            // });
 
             $('#btn-square-off-all').on('click', function () {
                 while (state.positions.length > 0) exitPosition(0);
@@ -735,6 +985,187 @@
                 if ($(e.target).is('#average-modal')) $('#average-modal').addClass('hidden');
             });
 
+
+
+
+            let exitQuill = null;
+
+            jQuery(document).ready(function () {
+                exitQuill = new Quill('#exit-comment-editor', {
+                    theme: 'snow',
+                    placeholder: 'Why did you exit? What was the setup, emotion, or reason...',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ color: ['#f87171', '#34d399', '#fbbf24', '#60a5fa', '#e5e7eb'] }],
+                            ['clean']
+                        ]
+                    }
+                });
+            });
+
+            // Outcome toggle
+            $(document).on('click', '.outcome-toggle', function () {
+                const outcome = $(this).data('outcome');
+                state.exitModal.outcome = outcome;
+                $('.outcome-toggle').each(function () {
+                    const o = $(this).data('outcome');
+                    $(this).removeClass('bg-emerald-900/40 text-emerald-400 border-emerald-800/60 bg-red-900/40 text-red-400 border-red-800/60 bg-yellow-900/40 text-yellow-400 border-yellow-800/60 text-gray-400 border-gray-700');
+                    if (o === outcome) {
+                        const activeClass = { profit: 'bg-emerald-900/40 text-emerald-400 border-emerald-800/60', stoploss: 'bg-red-900/40 text-red-400 border-red-800/60', breakeven: 'bg-yellow-900/40 text-yellow-400 border-yellow-800/60' }[o];
+                        $(this).addClass(activeClass);
+                    } else {
+                        $(this).addClass('text-gray-400 border-gray-700');
+                    }
+                });
+            });
+
+            // Open Exit Modal
+            $(document).on('click', '.btn-exit-open', function () {
+                const idx = parseInt($(this).data('idx'));
+                const pos = state.positions[idx];
+                if (!pos || !pos.currentPrice) {
+                    alert('No current price available to exit.');
+                    return;
+                }
+                state.exitModal.idx  = idx;
+                state.exitModal.lots = pos.lots; // default to full exit
+                state.exitModal.outcome = 'profit';
+
+                $('#exit-modal-subtitle').text(`${pos.strike} ${pos.type} · ${pos.action}`);
+                $('#exit-avg-entry').text(pos.avgEntry.toFixed(2));
+                $('#exit-current-price').text(pos.currentPrice.toFixed(2));
+                $('#exit-max-lots').text(pos.lots);
+                $('#exit-lots-input').val(pos.lots).attr('max', pos.lots);
+
+                // Reset Quill
+                if (exitQuill) exitQuill.setText('');
+
+                // Reset outcome UI
+                $('.outcome-toggle').removeClass('bg-emerald-900/40 text-emerald-400 border-emerald-800/60 bg-red-900/40 text-red-400 border-red-800/60 bg-yellow-900/40 text-yellow-400 border-yellow-800/60')
+                    .addClass('text-gray-400 border-gray-700');
+                $('[data-outcome="profit"]').removeClass('text-gray-400 border-gray-700')
+                    .addClass('bg-emerald-900/40 text-emerald-400 border-emerald-800/60');
+
+                $('#exit-modal').removeClass('hidden');
+            });
+
+            $('#btn-exit-lots-dec').on('click', function () {
+                const cur = parseInt($('#exit-lots-input').val()) || 1;
+                if (cur > 1) $('#exit-lots-input').val(cur - 1);
+                state.exitModal.lots = parseInt($('#exit-lots-input').val());
+            });
+            $('#btn-exit-lots-inc').on('click', function () {
+                const cur  = parseInt($('#exit-lots-input').val()) || 1;
+                const max  = state.positions[state.exitModal.idx]?.lots || 1;
+                if (cur < max) $('#exit-lots-input').val(cur + 1);
+                state.exitModal.lots = parseInt($('#exit-lots-input').val());
+            });
+            $('#exit-lots-input').on('change input', function () {
+                const max = state.positions[state.exitModal.idx]?.lots || 1;
+                const val = Math.min(Math.max(1, parseInt($(this).val()) || 1), max);
+                $(this).val(val);
+                state.exitModal.lots = val;
+            });
+
+            $('#btn-exit-modal-close, #btn-exit-cancel').on('click', function () {
+                $('#exit-modal').addClass('hidden');
+            });
+            $('#exit-modal').on('click', function (e) {
+                if (e.target === this) $('#exit-modal').addClass('hidden');
+            });
+
+            // Confirm Exit
+            $('#btn-exit-confirm').on('click', async function () {
+                const idx  = state.exitModal.idx;
+                const pos  = state.positions[idx];
+                if (!pos || !pos.currentPrice) return;
+
+                const exitLots  = state.exitModal.lots;
+                const exitQty   = exitLots * LOTSIZE;
+                const exitPrice = pos.currentPrice;
+                const outcome   = state.exitModal.outcome;
+                const comment   = exitQuill ? exitQuill.root.innerHTML.trim() : '';
+                const isPartial = exitLots < pos.lots;
+
+                // P&L calculation
+                const multiplier = pos.action === 'BUY' ? 1 : -1;
+                const pnl = parseFloat(((exitPrice - pos.avgEntry) * exitQty * multiplier).toFixed(2));
+
+                const orderType = isPartial ? 'partial_exit' : 'full_exit';
+                const orderEntry = {
+                    type:  orderType,
+                    side:  pos.action === 'BUY' ? 'SELL' : 'BUY',
+                    price: exitPrice,
+                    lots:  exitLots,
+                    qty:   exitQty,
+                    pnl:   pnl,
+                    time:  minutesToTime(state.currentMinutes),
+                };
+
+                // Push to Trade History
+                state.closedTrades.unshift({
+                    strike:    pos.strike,
+                    type:      pos.type,
+                    action:    pos.action,
+                    lots:      exitLots,
+                    avgEntry:  pos.avgEntry,
+                    exitPrice: exitPrice,
+                    pnl:       pnl,
+                    exitTime:  minutesToTime(state.currentMinutes),
+                    exitType:  orderType,
+                    outcome:   outcome,
+                    comment:   comment !== '<p><br></p>' ? comment : '',
+                });
+
+                // Update or remove position
+                if (isPartial) {
+                    pos.lots  -= exitLots;
+                    pos.pnl    = calcPnl(pos);
+                    if (!pos.orders) pos.orders = [];
+                    pos.orders.push(orderEntry);
+                } else {
+                    state.positions.splice(idx, 1);
+                }
+
+                // Save to DB
+                try {
+                    await $.ajax({
+                        url:    '{{ route("test.trading-simulator.exit") }}',
+                        method: 'POST',
+                        data: {
+                            _token:       '{{ csrf_token() }}',
+                            session_id:   sessionId,
+                            trade_date:   state.selectedDate,
+                            expiry:       state.selectedExpiry,
+                            strike:       pos.strike,
+                            instrument_type: pos.type,
+                            side:         pos.action,
+                            avg_entry:    pos.avgEntry,
+                            exit_price:   exitPrice,
+                            exit_lots:    exitLots,
+                            exit_qty:     exitQty,
+                            pnl:          pnl,
+                            order_type:   orderType,
+                            outcome:      outcome,
+                            comment:      comment !== '<p><br></p>' ? comment : '',
+                            exit_time:    minutesToTime(state.currentMinutes),
+                            // Full position snapshot for DB
+                            total_lots:   isPartial ? pos.lots : pos.lots + exitLots,
+                            orders:       JSON.stringify(pos.orders || []),
+                        }
+                    });
+                } catch (e) {
+                    console.warn('DB save failed (non-blocking):', e);
+                }
+
+                $('#exit-modal').addClass('hidden');
+                render();
+            });
+
+
+
+
             $('#btn-avg-lots-dec').on('click', function () {
                 state.averageModal.lots = Math.max(1, state.averageModal.lots - 1);
                 $('#avg-lots-input').val(state.averageModal.lots);
@@ -759,13 +1190,34 @@
                 pos.avgEntry   = (pos.avgEntry * oldQty + pos.currentPrice * newQty) / (oldQty + newQty);
                 pos.lots      += state.averageModal.lots;
                 pos.pnl        = calcPnl(pos);
+
+                // NEW — log avg entry order
+                if (!pos.orders) pos.orders = [];
+                pos.orders.push({
+                    type:  'entry',
+                    side:  pos.action,
+                    price: pos.currentPrice,
+                    lots:  state.averageModal.lots,
+                    qty:   state.averageModal.lots * LOTSIZE,
+                    pnl:   0,
+                    time:  minutesToTime(state.currentMinutes),
+                });
+
                 $('#average-modal').addClass('hidden');
+                render();
+            });
+
+            // Orders sub-row toggle
+            $(document).on('click', '.btn-orders-toggle', function () {
+                const idx = parseInt($(this).data('idx'));
+                state.positions[idx].showOrders = !state.positions[idx].showOrders;
                 render();
             });
 
             // ─── Initial Render ──────────────────────────────────────────────────────
             render();
         });
-    </script>
 
+    </script>
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 @endsection
