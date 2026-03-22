@@ -118,4 +118,10 @@ Route::prefix('test')->name('test.')->group(function () {
     Route::get('/api/chart-step-slot',  [App\Http\Controllers\OhlcChartController::class, 'chartStepSlot'])->name('api.chart.step.slot');
 
 
+    Route::get('/trading-simulator', [App\Http\Controllers\TradingSimulatorController::class, 'index'])->name('trading-simulator');
+    Route::get('/trading-simulator/expiry', [App\Http\Controllers\TradingSimulatorController::class, 'getExpiry'])->name('trading-simulator.expiry');
+    Route::get('/trading-simulator/strikes', [App\Http\Controllers\TradingSimulatorController::class, 'getStrikes'])->name('trading-simulator.strikes');
+    Route::get('/trading-simulator/price', [App\Http\Controllers\TradingSimulatorController::class, 'getPrice'])->name('trading-simulator.price');
+
+
 });
