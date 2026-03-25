@@ -24,6 +24,7 @@
                         <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
                         <a href="{{ route('daily_trend.view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend View</a>
                         <a href="{{ route('buildups.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Buildups</a>
+                        <a href="{{ route('build-up.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build Up Analysis</a>
                         <a href="{{ route('buildups.strike') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Buildup Strike</a>
                         <a href="{{ route('option-chain-diff') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chain Diff</a>
                         <a href="{{ route('option-chain.build-up') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Buildup</a>
@@ -62,7 +63,7 @@
                         <a href="{{ route('test.options.chart.step') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chart Step</a>
                         <a href="{{ route('test.trading-simulator') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Simulator</a>
                         <a href="{{ route('test.trading-simulator.report') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Report</a>
-                        <a href="{{ route('test.build-up.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build Up Analysis</a>
+
                     </div>
                 </div>
             </div>
