@@ -6,11 +6,18 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\BiasSnapshot;
+use App\Services\SnapshotPredictionService;
 
 class SaveBiasSnapshot extends Command
 {
     protected $signature   = 'bias:snapshot {symbol=NIFTY} {--strikes=3}';
     protected $description = 'Compute bias from option_chains and store in bias_snapshots';
+
+    public function __construct(
+        protected SnapshotPredictionService $predictionService,
+    ) {
+        parent::__construct();
+    }
 
     public function handle(): void
     {
@@ -18,7 +25,7 @@ class SaveBiasSnapshot extends Command
         $strikes = (int) $this->option('strikes');
         $date    = Carbon::today()->toDateString();
 
-        // ── 1. Get current expiry (same as controller) ────────────────
+        // ── 1. Get current expiry ──────────────────────────────────────
         $expiry = DB::table('nse_expiries')
                     ->where('trading_symbol', $symbol)
                     ->where('instrument_type', 'OPT')
@@ -26,25 +33,25 @@ class SaveBiasSnapshot extends Command
                     ->first();
 
         if (! $expiry) {
-            $this->warn("No active expiry found for $symbol. Skipping.");
+            $this->warn("⚠️  No active expiry found for $symbol. Skipping.");
             return;
         }
 
         $expiryDate = $expiry->expiry_date;
 
         // ── 2. Get latest spot price ───────────────────────────────────
-        $latest = DB::table('option_chains')
-                    ->where('trading_symbol', $symbol)
-                    ->where('expiry', $expiryDate)
-                    ->orderByDesc('captured_at')
-                    ->first(['underlying_spot_price']);
+        $latestChain = DB::table('option_chains')
+                         ->where('trading_symbol', $symbol)
+                         ->where('expiry', $expiryDate)
+                         ->orderByDesc('captured_at')
+                         ->first(['underlying_spot_price', 'captured_at']);
 
-        if (! $latest) {
-            $this->warn("No option chain data found for $symbol / $expiryDate. Skipping.");
+        if (! $latestChain) {
+            $this->warn("⚠️  No option chain data found for $symbol / $expiryDate. Skipping.");
             return;
         }
 
-        $spotPrice     = $latest->underlying_spot_price;
+        $spotPrice     = $latestChain->underlying_spot_price;
         $nearestStrike = round($spotPrice / 50) * 50;
 
         // ── 3. Build strike list ───────────────────────────────────────
@@ -53,24 +60,42 @@ class SaveBiasSnapshot extends Command
             $strikeList[] = $nearestStrike + ($i * 50);
         }
 
-        // ── 4. Fetch option_chains rows (same as controller) ──────────
+        // ── 4. Find the latest captured_at within today's session ──────
         $startTime = $date . ' 09:15:00';
         $endTime   = $date . ' 15:30:00';
+
+        $latestCapturedAt = DB::table('option_chains')
+                              ->where('trading_symbol', $symbol)
+                              ->where('expiry', $expiryDate)
+                              ->whereIn('strike_price', $strikeList)
+                              ->whereBetween('captured_at', [$startTime, $endTime])
+                              ->max('captured_at');
+
+        if (! $latestCapturedAt) {
+            $this->warn("⚠️  No option chain data found within market hours for $symbol. Skipping.");
+            return;
+        }
+
+        // ── 5. ✅ Fetch ONLY the latest 5-min candle rows (±30s window) ─
+        $windowStart = Carbon::parse($latestCapturedAt)->subSeconds(30)->toDateTimeString();
+        $windowEnd   = Carbon::parse($latestCapturedAt)->addSeconds(30)->toDateTimeString();
 
         $rows = DB::table('option_chains')
                   ->where('trading_symbol', $symbol)
                   ->where('expiry', $expiryDate)
                   ->whereIn('strike_price', $strikeList)
-                  ->whereBetween('captured_at', [$startTime, $endTime])
+                  ->whereBetween('captured_at', [$windowStart, $windowEnd])
                   ->orderBy('captured_at')
                   ->get(['strike_price', 'option_type', 'diff_oi', 'diff_volume', 'diff_ltp', 'build_up', 'captured_at']);
 
         if ($rows->isEmpty()) {
-            $this->warn("No rows found in option_chains for $symbol. Skipping.");
+            $this->warn("⚠️  No rows found in the latest 5-min window for $symbol. Skipping.");
             return;
         }
 
-        // ── 5. Compute buildUpTotals (exact same logic as controller) ──
+        $this->line("📦 Processing " . $rows->count() . " rows for $symbol @ " . Carbon::parse($latestCapturedAt)->format('H:i:s'));
+
+        // ── 6. Compute buildUpTotals ───────────────────────────────────
         $buildUpTotals = [
             'CE' => [
                 'Long Build'  => ['oi' => 0, 'volume' => 0],
@@ -87,8 +112,8 @@ class SaveBiasSnapshot extends Command
         ];
 
         foreach ($rows as $row) {
-            $diffOi  = $row->diff_oi  ?? 0;
-            $diffLtp = $row->diff_ltp ?? 0;
+            $diffOi  = $row->diff_oi     ?? 0;
+            $diffLtp = $row->diff_ltp    ?? 0;
             $diffVol = $row->diff_volume ?? 0;
             $type    = $row->option_type;
 
@@ -100,7 +125,7 @@ class SaveBiasSnapshot extends Command
             }
         }
 
-        // ── 6. Compute bias score (exact same as controller) ──────────
+        // ── 7. Compute bias score ──────────────────────────────────────
         $bullishOI =
             ($buildUpTotals['CE']['Long Build']['oi']  * 2) +
             ($buildUpTotals['CE']['Short Cover']['oi'] * 1) +
@@ -131,11 +156,12 @@ class SaveBiasSnapshot extends Command
             default               => 'Weak',
         };
 
-        $totalVolume = array_sum(array_column($buildUpTotals['CE'], 'volume'))
-                       + array_sum(array_column($buildUpTotals['PE'], 'volume'));
+        // ── 8. ✅ Fixed totalVolume — collect()->sum() not array_column ─
+        $totalVolume = collect($buildUpTotals['CE'])->sum('volume')
+                       + collect($buildUpTotals['PE'])->sum('volume');
 
-        // ── 7. Save to BiasSnapshot ────────────────────────────────────
-        BiasSnapshot::create([
+        // ── 9. Save BiasSnapshot ───────────────────────────────────────
+        $saved = BiasSnapshot::create([
             'trading_symbol'     => $symbol,
             'date'               => $date,
             'expiry_date'        => $expiryDate,
@@ -169,9 +195,28 @@ class SaveBiasSnapshot extends Command
             'bullish_oi'         => $bullishOI,
             'bearish_oi'         => $bearishOI,
             'total_volume'       => $totalVolume,
-            'captured_at'        => now(),
+
+            // ✅ Use actual candle time, not now()
+            'captured_at'        => Carbon::parse($latestCapturedAt),
         ]);
-        $this->info("✅ Snapshot saved for $symbol | Score: $biasScore | Bias: $bias ($biasStrength) | " . now()->format('H:i:s'));
+
+        $this->info("✅ Snapshot saved  | $symbol | Score: $biasScore | $bias ($biasStrength) | " . Carbon::parse($latestCapturedAt)->format('H:i:s'));
+
+        // ── 10. ✅ Run strategies on saved snapshot ────────────────────
+        $history = BiasSnapshot::where('trading_symbol', $symbol)
+                               ->where('date', $date)
+                               ->orderBy('captured_at')
+                               ->get();
+
+        $strategies  = $this->predictionService->predict($saved, $history);
+        $aggregate   = $this->predictionService->aggregate($strategies);
+        $session     = $this->predictionService->evaluateSession($symbol);
+
+        $triggered = collect($strategies)->where('triggered', true)->count();
+
+        $this->info("📊 Prediction     | Signal: {$aggregate['signal']} | Confidence: {$aggregate['confidence']}% | $triggered/6 triggered");
+        $this->info("📅 Session        | Dominant: {$session['dominant_signal']} | Current: {$session['current_signal']} | State: {$session['trend_state']}");
+        $this->line("📈 Vote Tally     | Bullish: {$session['bullish_count']} | Bearish: {$session['bearish_count']} | Sideways: {$session['sideways_count']} | Phase: {$session['session_phase']}");
     }
 
     private function classifyBuildUp(int|float $diffOi, int|float $diffLtp): ?string

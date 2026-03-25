@@ -50,14 +50,14 @@ class BackfillBiasSnapshot extends Command
                     ->first();
 
         if (! $expiry) {
-            $this->warn("No active expiry found for $symbol. Skipping.");
+            $this->warn("⚠️  No active expiry found for $symbol. Skipping.");
             return;
         }
 
         $expiryDate = $expiry->expiry_date;
 
-        // ── Build strike list (we'll recompute per-slot using spot at that time) ──
-        $slots = [];
+        // ── Build time slots ──────────────────────────────────────────
+        $slots  = [];
         $cursor = $from->copy();
         while ($cursor->lte($to)) {
             $slots[] = $cursor->copy();
@@ -70,11 +70,11 @@ class BackfillBiasSnapshot extends Command
 
         $saved   = 0;
         $skipped = 0;
+        $missed  = 0;
 
         foreach ($slots as $slotTime) {
-            $slotStr = $slotTime->toDateTimeString(); // e.g. 2026-03-25 09:20:00
 
-            // ── Skip if snapshot already exists for this minute ───────
+            // ── Skip if snapshot already exists for this window ───────
             if (! $force) {
                 $exists = BiasSnapshot::where('trading_symbol', $symbol)
                                       ->where('date', $date)
@@ -91,20 +91,21 @@ class BackfillBiasSnapshot extends Command
                 }
             }
 
-            // ── Get spot price at or before this slot ─────────────────
-            $latest = DB::table('option_chains')
-                        ->where('trading_symbol', $symbol)
-                        ->where('expiry', $expiryDate)
-                        ->where('captured_at', '<=', $slotStr)
-                        ->orderByDesc('captured_at')
-                        ->first(['underlying_spot_price']);
+            // ── Get spot price at or just before this slot ────────────
+            $spotRow = DB::table('option_chains')
+                         ->where('trading_symbol', $symbol)
+                         ->where('expiry', $expiryDate)
+                         ->where('captured_at', '<=', $slotTime->toDateTimeString())
+                         ->orderByDesc('captured_at')
+                         ->first(['underlying_spot_price']);
 
-            if (! $latest) {
+            if (! $spotRow) {
+                $missed++;
                 $bar->advance();
                 continue;
             }
 
-            $spotPrice     = $latest->underlying_spot_price;
+            $spotPrice     = $spotRow->underlying_spot_price;
             $nearestStrike = round($spotPrice / 50) * 50;
 
             // ── Build strike list ─────────────────────────────────────
@@ -113,28 +114,57 @@ class BackfillBiasSnapshot extends Command
                 $strikeList[] = $nearestStrike + ($i * 50);
             }
 
-            // ── Fetch rows up to this slot time ───────────────────────
-            $dayStart = $date . ' 09:15:00';
+            // ── ✅ Find the closest actual captured_at to this slot ───
+            //    (option_chains may not be captured at exactly H:i:00)
+            $closestCapturedAt = DB::table('option_chains')
+                                   ->where('trading_symbol', $symbol)
+                                   ->where('expiry', $expiryDate)
+                                   ->whereIn('strike_price', $strikeList)
+                                   ->whereBetween('captured_at', [
+                                       $slotTime->copy()->subMinutes(3)->toDateTimeString(),
+                                       $slotTime->copy()->addMinutes(3)->toDateTimeString(),
+                                   ])
+                                   ->orderByRaw('ABS(TIMESTAMPDIFF(SECOND, captured_at, ?))', [$slotTime->toDateTimeString()])
+                                   ->value('captured_at');
+
+            if (! $closestCapturedAt) {
+                $missed++;
+                $bar->advance();
+                continue;
+            }
+
+            // ── ✅ Fetch ONLY that candle's rows (±30s window) ────────
+            $windowStart = Carbon::parse($closestCapturedAt)->subSeconds(30)->toDateTimeString();
+            $windowEnd   = Carbon::parse($closestCapturedAt)->addSeconds(30)->toDateTimeString();
 
             $rows = DB::table('option_chains')
                       ->where('trading_symbol', $symbol)
                       ->where('expiry', $expiryDate)
                       ->whereIn('strike_price', $strikeList)
-                      ->whereBetween('captured_at', [$dayStart, $slotStr])
+                      ->whereBetween('captured_at', [$windowStart, $windowEnd])
                       ->orderBy('captured_at')
                       ->get(['strike_price', 'option_type', 'diff_oi', 'diff_volume', 'diff_ltp', 'build_up', 'captured_at']);
 
             if ($rows->isEmpty()) {
+                $missed++;
                 $bar->advance();
                 continue;
             }
 
             // ── Compute buildUpTotals ─────────────────────────────────
             $buildUpTotals = [
-                'CE' => ['Long Build' => ['oi' => 0, 'volume' => 0], 'Short Build' => ['oi' => 0, 'volume' => 0],
-                         'Short Cover' => ['oi' => 0, 'volume' => 0], 'Long Unwind' => ['oi' => 0, 'volume' => 0]],
-                'PE' => ['Long Build' => ['oi' => 0, 'volume' => 0], 'Short Build' => ['oi' => 0, 'volume' => 0],
-                         'Short Cover' => ['oi' => 0, 'volume' => 0], 'Long Unwind' => ['oi' => 0, 'volume' => 0]],
+                'CE' => [
+                    'Long Build'  => ['oi' => 0, 'volume' => 0],
+                    'Short Build' => ['oi' => 0, 'volume' => 0],
+                    'Short Cover' => ['oi' => 0, 'volume' => 0],
+                    'Long Unwind' => ['oi' => 0, 'volume' => 0],
+                ],
+                'PE' => [
+                    'Long Build'  => ['oi' => 0, 'volume' => 0],
+                    'Short Build' => ['oi' => 0, 'volume' => 0],
+                    'Short Cover' => ['oi' => 0, 'volume' => 0],
+                    'Long Unwind' => ['oi' => 0, 'volume' => 0],
+                ],
             ];
 
             foreach ($rows as $row) {
@@ -182,8 +212,9 @@ class BackfillBiasSnapshot extends Command
                 default               => 'Weak',
             };
 
-            $totalVolume = array_sum(array_column($buildUpTotals['CE'], 'volume'))
-                           + array_sum(array_column($buildUpTotals['PE'], 'volume'));
+            // ✅ Fixed: collect()->sum() instead of array_column
+            $totalVolume = collect($buildUpTotals['CE'])->sum('volume')
+                           + collect($buildUpTotals['PE'])->sum('volume');
 
             // ── Save snapshot ─────────────────────────────────────────
             BiasSnapshot::create([
@@ -220,7 +251,9 @@ class BackfillBiasSnapshot extends Command
                 'bullish_oi'         => $bullishOI,
                 'bearish_oi'         => $bearishOI,
                 'total_volume'       => $totalVolume,
-                'captured_at'        => $slotTime,  // ← use the historical slot time, not now()
+
+                // ✅ Use actual closest candle time, not the slot time
+                'captured_at'        => Carbon::parse($closestCapturedAt),
             ]);
 
             $saved++;
@@ -228,8 +261,16 @@ class BackfillBiasSnapshot extends Command
         }
 
         $bar->finish();
-        $this->newLine();
-        $this->info("✅ Done! Saved: $saved | Skipped (already exist): $skipped");
+        $this->newLine(2);
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['✅ Saved',                       $saved],
+                ['⏭  Skipped (already existed)',   $skipped],
+                ['⚠️  Missed (no data in window)',  $missed],
+                ['📦 Total slots',                 count($slots)],
+            ]
+        );
     }
 
     private function classifyBuildUp(int|float $diffOi, int|float $diffLtp): ?string

@@ -3,13 +3,24 @@
 namespace App\Services;
 
 use App\Models\BiasSnapshot;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class SnapshotPredictionService
 {
+    private array $phases = [
+        'OPENING'   => ['09:15', '10:00'],
+        'MORNING'   => ['10:00', '12:00'],
+        'AFTERNOON' => ['12:00', '14:00'],
+        'CLOSING'   => ['14:00', '15:30'],
+    ];
+
+    // ══════════════════════════════════════════════
+    //  PUBLIC API
+    // ══════════════════════════════════════════════
+
     /**
      * Run all strategies against the current snapshot and history.
-     * Returns an array of strategy results.
      */
     public function predict(BiasSnapshot $current, Collection $history): array
     {
@@ -24,7 +35,7 @@ class SnapshotPredictionService
     }
 
     /**
-     * Aggregate all strategy signals into a single market prediction.
+     * Aggregate all strategy signals into a single 5-min prediction.
      */
     public function aggregate(array $strategies): array
     {
@@ -39,9 +50,9 @@ class SnapshotPredictionService
             $triggered++;
             $totalConf += $s['confidence'];
 
-            if ($s['signal'] === 'BULLISH')  $bullish++;
-            elseif ($s['signal'] === 'BEARISH') $bearish++;
-            else $sideways++;
+            if ($s['signal'] === 'BULLISH')       $bullish++;
+            elseif ($s['signal'] === 'BEARISH')   $bearish++;
+            else                                   $sideways++;
         }
 
         if ($triggered === 0) {
@@ -64,9 +75,61 @@ class SnapshotPredictionService
         }
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 1 — Score Trend (last N snapshots)
-    // ──────────────────────────────────────────────
+    /**
+     * Derive full day-level session picture from today's BiasSnapshot rows.
+     * No extra table, no scheduler — just reads what's already saved.
+     */
+    public function evaluateSession(string $symbol): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        $snapshots = BiasSnapshot::where('trading_symbol', $symbol)
+                                 ->where('date', $today)
+                                 ->orderBy('captured_at')
+                                 ->get(['bias', 'bias_score', 'captured_at']);
+
+        if ($snapshots->isEmpty()) {
+            return [
+                'dominant_signal' => 'WATCH',
+                'current_signal'  => 'WATCH',
+                'trend_state'     => 'STEADY',
+                'session_phase'   => $this->currentPhase(),
+                'bullish_count'   => 0,
+                'bearish_count'   => 0,
+                'sideways_count'  => 0,
+                'total_snapshots' => 0,
+                'avg_score'       => 0,
+                'signal_log'      => [],
+                'last_updated_at' => null,
+            ];
+        }
+
+        $total         = $snapshots->count();
+        $bullishCount  = $snapshots->where('bias', 'Bullish')->count();
+        $bearishCount  = $snapshots->where('bias', 'Bearish')->count();
+        $sidewaysCount = $snapshots->where('bias', 'Sideways')->count();
+        $avgScore      = round($snapshots->avg('bias_score'), 1);
+        $signalLog     = $this->buildSignalLog($snapshots);
+
+        return [
+            'dominant_signal' => $this->dominantSignal($bullishCount, $bearishCount, $sidewaysCount, $total),
+            'current_signal'  => $this->resolveCurrentSignal($snapshots),
+            'trend_state'     => $this->resolveTrendState(count($signalLog), $total),
+            'session_phase'   => $this->currentPhase(),
+            'bullish_count'   => $bullishCount,
+            'bearish_count'   => $bearishCount,
+            'sideways_count'  => $sidewaysCount,
+            'total_snapshots' => $total,
+            'avg_score'       => $avgScore,
+            'signal_log'      => $signalLog,
+            'last_updated_at' => $snapshots->last()->captured_at->format('H:i:s'),
+        ];
+    }
+
+    // ══════════════════════════════════════════════
+    //  5-MIN STRATEGIES
+    // ══════════════════════════════════════════════
+
     private function strategyScoreTrend(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'ScoreTrend', 'triggered' => false, 'signal' => 'WATCH',
@@ -93,9 +156,6 @@ class SnapshotPredictionService
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 2 — OI Shift
-    // ──────────────────────────────────────────────
     private function strategyOIShift(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'OIShift', 'triggered' => false, 'signal' => 'WATCH',
@@ -127,9 +187,6 @@ class SnapshotPredictionService
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 3 — Volume Spike
-    // ──────────────────────────────────────────────
     private function strategyVolumeSpike(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'VolumeSpike', 'triggered' => false, 'signal' => 'WATCH',
@@ -137,14 +194,13 @@ class SnapshotPredictionService
 
         if ($history->count() < 3) return $base;
 
-        $avgVol = $history->slice(0, -1)->avg('total_volume');
+        // ✅ Fixed: rolling 6-snapshot window instead of all-day average
+        $avgVol = $history->slice(-7, 6)->avg('total_volume');
         if ($avgVol == 0) return $base;
 
         $ratio = $current->total_volume / $avgVol;
-
         if ($ratio < 1.5) return $base;
 
-        // Direction is determined by bias score
         $signal     = $current->bias_score >= 0 ? 'BULLISH' : 'BEARISH';
         $confidence = min(100, (int)(($ratio - 1) * 50));
 
@@ -153,33 +209,39 @@ class SnapshotPredictionService
             'signal'     => $signal,
             'confidence' => $confidence,
             'label'      => '🔥 Volume Spike',
-            'reason'     => "Current volume is " . round($ratio, 1) . "x the recent average, bias " . ($signal === 'BULLISH' ? 'bullish' : 'bearish') . ".",
+            'reason'     => "Current volume is " . round($ratio, 1) . "x the 30-min average, bias " . ($signal === 'BULLISH' ? 'bullish' : 'bearish') . ".",
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 4 — Build-Up Dominance
-    // ──────────────────────────────────────────────
     private function strategyBuildUpDominance(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'BuildUpDominance', 'triggered' => false, 'signal' => 'WATCH',
                  'confidence' => 0, 'label' => '', 'reason' => ''];
 
-        $bullOI = $current->pe_short_build_oi  + $current->pe_long_unwind_oi
-                  + $current->ce_short_cover_oi  + $current->ce_long_build_oi;
+        // ✅ Fixed: use delta vs previous snapshot, not raw cumulative OI
+        if ($history->isEmpty()) return $base;
 
-        $bearOI = $current->ce_short_build_oi  + $current->ce_long_unwind_oi
-                  + $current->pe_long_build_oi   + $current->pe_short_cover_oi;
+        $prev = $history->last();
 
-        $total = $bullOI + $bearOI;
+        $bullOI = ($current->pe_short_build_oi - $prev->pe_short_build_oi)
+                  + ($current->pe_long_unwind_oi  - $prev->pe_long_unwind_oi)
+                  + ($current->ce_short_cover_oi  - $prev->ce_short_cover_oi)
+                  + ($current->ce_long_build_oi   - $prev->ce_long_build_oi);
+
+        $bearOI = ($current->ce_short_build_oi - $prev->ce_short_build_oi)
+                  + ($current->ce_long_unwind_oi  - $prev->ce_long_unwind_oi)
+                  + ($current->pe_long_build_oi   - $prev->pe_long_build_oi)
+                  + ($current->pe_short_cover_oi  - $prev->pe_short_cover_oi);
+
+        $total = abs($bullOI) + abs($bearOI);
         if ($total == 0) return $base;
 
-        $bullPct = ($bullOI / $total) * 100;
-        $bearPct = ($bearOI / $total) * 100;
+        $bullPct = (abs($bullOI) / $total) * 100;
+        $bearPct = (abs($bearOI) / $total) * 100;
 
         if (abs($bullPct - $bearPct) < 15) return $base;
 
-        $signal     = $bullPct > $bearPct ? 'BULLISH' : 'BEARISH';
+        $signal     = $bullOI > $bearOI ? 'BULLISH' : 'BEARISH';
         $confidence = min(100, (int) abs($bullPct - $bearPct));
 
         return array_merge($base, [
@@ -187,13 +249,10 @@ class SnapshotPredictionService
             'signal'     => $signal,
             'confidence' => $confidence,
             'label'      => $signal === 'BULLISH' ? '💪 Bullish Build-Up' : '🐻 Bearish Build-Up',
-            'reason'     => "Bullish OI: " . round($bullPct, 1) . "% vs Bearish OI: " . round($bearPct, 1) . "%.",
+            'reason'     => "This 5-min candle: Bullish OI Δ " . round($bullPct, 1) . "% vs Bearish OI Δ " . round($bearPct, 1) . "%.",
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 5 — Consolidation / Breakout
-    // ──────────────────────────────────────────────
     private function strategyConsolidationBreakout(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'ConsolidationBreakout', 'triggered' => false, 'signal' => 'WATCH',
@@ -201,25 +260,16 @@ class SnapshotPredictionService
 
         if ($history->count() < 3) return $base;
 
-        // Look at last 4 snapshots (20 mins) for tight range
         $scores = $history->pluck('bias_score')->slice(-4)->values();
         $min    = $scores->min();
         $max    = $scores->max();
         $range  = $max - $min;
 
-        // Tight band: market was consolidating
         $isConsolidating = $range <= 10;
-
-        // Current snapshot breaks out of that band
-        $latestScore  = $current->bias_score;
-        $didBreakout  = $latestScore > $max + 3 || $latestScore < $min - 3;
+        $latestScore     = $current->bias_score;
+        $didBreakout     = $latestScore > $max + 3 || $latestScore < $min - 3;
 
         if (! $isConsolidating || ! $didBreakout) return $base;
-
-        // Determine breakout direction using OI confirmation
-        $ceBullOI  = $current->ce_long_build_oi  + $current->ce_short_cover_oi;
-        $peBullOI  = $current->pe_short_build_oi  + $current->pe_long_unwind_oi;
-        $oiBullish = ($peBullOI + $ceBullOI) > 0;
 
         $signal     = ($latestScore > $max + 3) ? 'BULLISH' : 'BEARISH';
         $confidence = min(100, 50 + (int) abs($latestScore - ($signal === 'BULLISH' ? $max : $min)) * 3);
@@ -233,9 +283,6 @@ class SnapshotPredictionService
         ]);
     }
 
-    // ──────────────────────────────────────────────
-    //  STRATEGY 6 — Reversal Detection
-    // ──────────────────────────────────────────────
     private function strategyReversalDetection(BiasSnapshot $current, Collection $history): array
     {
         $base = ['strategy' => 'ReversalDetection', 'triggered' => false, 'signal' => 'WATCH',
@@ -244,21 +291,18 @@ class SnapshotPredictionService
         if ($history->count() < 4) return $base;
 
         $scores = $history->pluck('bias_score')->slice(-5)->values();
-
-        // Detect V-shape (down then up) or inverted V (up then down)
-        $n    = $scores->count();
-        $peak = $scores->max();
+        $n      = $scores->count();
+        $peak   = $scores->max();
         $trough = $scores->min();
 
-        $peakIdx   = $scores->search($peak);
-        $troughIdx = $scores->search($trough);
+        // ✅ Fixed: find LAST occurrence of peak/trough, not first
+        $peakIdx   = $scores->keys()->last(fn($k) => $scores[$k] === $peak);
+        $troughIdx = $scores->keys()->last(fn($k) => $scores[$k] === $trough);
 
-        // Bullish reversal: score was falling (trough near end) then current rises
         $bullishReversal = $troughIdx >= ($n - 2)
                            && $current->bias_score > $trough + 8
                            && ($peak - $trough) >= 10;
 
-        // Bearish reversal: score was rising (peak near end) then current falls
         $bearishReversal = $peakIdx >= ($n - 2)
                            && $current->bias_score < $peak - 8
                            && ($peak - $trough) >= 10;
@@ -277,5 +321,77 @@ class SnapshotPredictionService
                 ? "Score hit trough of $trough recently, now recovering to {$current->bias_score}."
                 : "Score peaked at $peak recently, now declining to {$current->bias_score}.",
         ]);
+    }
+
+    // ══════════════════════════════════════════════
+    //  SESSION EVALUATION HELPERS
+    // ══════════════════════════════════════════════
+
+    private function dominantSignal(int $bull, int $bear, int $side, int $total): string
+    {
+        $counts = ['BULLISH' => $bull, 'BEARISH' => $bear, 'SIDEWAYS' => $side];
+        arsort($counts);
+        $top = array_key_first($counts);
+
+        return ($counts[$top] / $total * 100) >= 40 ? $top : 'SIDEWAYS';
+    }
+
+    private function resolveCurrentSignal(Collection $snapshots): string
+    {
+        $last3 = $snapshots->slice(-3)->pluck('bias')->map(fn($b) => strtoupper($b));
+
+        if ($last3->isEmpty()) return 'WATCH';
+
+        $counts = $last3->countBy()->toArray();
+        arsort($counts);
+        $top = array_key_first($counts);
+
+        return ($counts[$top] >= 2) ? $top : strtoupper($snapshots->last()->bias);
+    }
+
+    private function buildSignalLog(Collection $snapshots): array
+    {
+        $log  = [];
+        $prev = null;
+
+        foreach ($snapshots as $index => $snap) {
+            $signal = strtoupper($snap->bias);
+            if ($signal !== $prev) {
+                $log[] = [
+                    'signal'   => $signal,
+                    'score'    => $snap->bias_score,
+                    'time'     => $snap->captured_at->format('H:i'),
+                    'phase'    => $this->phaseAt($snap->captured_at->format('H:i')),
+                    'snapshot' => $index + 1,
+                ];
+                $prev = $signal;
+            }
+        }
+
+        return $log;
+    }
+
+    private function resolveTrendState(int $changes, int $total): string
+    {
+        if ($total < 5) return 'STEADY';
+
+        return match (true) {
+            ($changes / $total) <= 0.10 => 'STEADY',
+            ($changes / $total) <= 0.30 => 'TRANSITIONING',
+            default                     => 'CHOPPY',
+        };
+    }
+
+    private function currentPhase(): string
+    {
+        return $this->phaseAt(Carbon::now()->format('H:i'));
+    }
+
+    private function phaseAt(string $time): string
+    {
+        foreach ($this->phases as $phase => [$start, $end]) {
+            if ($time >= $start && $time < $end) return $phase;
+        }
+        return 'CLOSING';
     }
 }
