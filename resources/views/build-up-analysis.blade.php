@@ -39,7 +39,7 @@
             </div>
 
             {{-- Try another date --}}
-            <form method="GET" action="{{ route('test.build-up.index') }}"
+            <form method="GET" action="{{ route('build-up.index') }}"
                 class="flex items-end gap-3 bg-gray-900 border border-gray-700 rounded-xl px-5 py-4">
                 <div class="flex flex-col gap-1 text-left">
                     <label class="text-xs text-gray-500 uppercase tracking-wider">Try a different date</label>
@@ -62,7 +62,7 @@
     <div class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased">
         {{-- ── Filter Bar ── --}}
         <div class="px-6 py-4 border-b border-gray-800 bg-gray-900/50">
-            <form method="GET" action="{{ route('test.build-up.index') }}"
+            <form method="GET" action="{{ route('build-up.index') }}"
                 class="flex flex-wrap items-end gap-4">
 
                 {{-- Date --}}

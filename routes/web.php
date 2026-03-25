@@ -87,6 +87,9 @@ Route::get( '/oi-diff-live/data', [ \App\Http\Controllers\OiDiffLiveController::
 
 Route::get( '/build-up-snapshot', [ App\Http\Controllers\BuildUpSnapshotController::class, 'index' ] )->name( 'buildup.snapshot' );
 Route::get( '/buildups/net-pressure-history', [ App\Http\Controllers\BuildUpSummaryController::class, 'netPressureHistory' ] );
+Route::get('/build-up-analysis', [App\Http\Controllers\BuildUpAnalysisController::class, 'index'])->name('build-up.index');
+
+
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::get( '/options-multi-chart', [ App\Http\Controllers\OhlcChartController::class, 'multiIndex' ] )->name( 'options.multi.chart' );
@@ -129,5 +132,5 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::post( '/trading-simulator/report/{position}/note',[ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
     Route::post('/trading-simulator/position/enter', [App\Http\Controllers\TradingSimulatorController::class, 'enterPosition'])->name('trading-simulator.enter');
 
-    Route::get('/build-up-analysis', [App\Http\Controllers\BuildUpAnalysisController::class, 'index'])->name('build-up.index');
+
 } );
