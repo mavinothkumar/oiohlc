@@ -83,39 +83,55 @@ class BuildUpAnalysisController extends Controller
         //    Long Unwind:  diff_oi < 0 && diff_ltp < 0
         //    Short Cover:  diff_oi < 0 && diff_ltp > 0
         $buildUpTotals = [
-            'Long Build'   => ['oi' => 0, 'volume' => 0],
-            'Short Build'  => ['oi' => 0, 'volume' => 0],
-            'Long Unwind'  => ['oi' => 0, 'volume' => 0],
-            'Short Cover'  => ['oi' => 0, 'volume' => 0],
+            'CE' => [
+                'Long Build'  => ['oi' => 0, 'volume' => 0],
+                'Short Build' => ['oi' => 0, 'volume' => 0],
+                'Short Cover' => ['oi' => 0, 'volume' => 0],
+                'Long Unwind' => ['oi' => 0, 'volume' => 0],
+            ],
+            'PE' => [
+                'Long Build'  => ['oi' => 0, 'volume' => 0],
+                'Short Build' => ['oi' => 0, 'volume' => 0],
+                'Short Cover' => ['oi' => 0, 'volume' => 0],
+                'Long Unwind' => ['oi' => 0, 'volume' => 0],
+            ],
         ];
 
         foreach ($rows as $row) {
-            $buildUp = $row->build_up ?? $this->classifyBuildUp($row->diff_oi, $row->diff_ltp);
-            if ($buildUp && isset($buildUpTotals[$buildUp])) {
-                $buildUpTotals[$buildUp]['oi']     += abs($row->diff_oi);
-                $buildUpTotals[$buildUp]['volume'] += abs($row->diff_volume);
+            $diffOi  = $row->diff_oi     ?? 0;
+            $diffLtp = $row->diff_ltp    ?? 0;
+            $diffVol = $row->diff_volume ?? 0;
+            $type    = $row->option_type; // 'CE' or 'PE'
+
+            $buildUp = $row->build_up ?? $this->classifyBuildUp($diffOi, $diffLtp);
+
+            if ($buildUp && isset($buildUpTotals[$type][$buildUp])) {
+                $buildUpTotals[$type][$buildUp]['oi']     += abs($diffOi);
+                $buildUpTotals[$type][$buildUp]['volume'] += abs($diffVol);
             }
         }
 
-        $chartLabels = array_keys($buildUpTotals);
-        $chartOI     = array_column($buildUpTotals, 'oi');
-        $chartVolume = array_column($buildUpTotals, 'volume');
+// ── Market Bias from CE + PE separately ───────────────────────────
+// CE: Long Build=+2, Short Cover=+1, Short Build=-2, Long Unwind=-1
+// PE: Short Build=+2, Long Unwind=+1, Long Build=-2, Short Cover=-1
+        $bullishOI =
+            ($buildUpTotals['CE']['Long Build']['oi']  * 2) +
+            ($buildUpTotals['CE']['Short Cover']['oi'] * 1) +
+            ($buildUpTotals['PE']['Short Build']['oi'] * 2) +
+            ($buildUpTotals['PE']['Long Unwind']['oi'] * 1);
 
-        // ── Market Bias Prediction ──────────────────────────────────────────
-        $bullishOI = ($buildUpTotals['Long Build']['oi']  * 2)
-                     + ($buildUpTotals['Short Cover']['oi'] * 1);
-
-        $bearishOI = ($buildUpTotals['Short Build']['oi']  * 2)
-                     + ($buildUpTotals['Long Unwind']['oi']  * 1);
+        $bearishOI =
+            ($buildUpTotals['CE']['Short Build']['oi']  * 2) +
+            ($buildUpTotals['CE']['Long Unwind']['oi']  * 1) +
+            ($buildUpTotals['PE']['Long Build']['oi']   * 2) +
+            ($buildUpTotals['PE']['Short Cover']['oi']  * 1);
 
         $totalWeightedOI = $bullishOI + $bearishOI;
 
-// Score: +100 fully bullish, -100 fully bearish, 0 neutral
         $biasScore = $totalWeightedOI > 0
             ? round((($bullishOI - $bearishOI) / $totalWeightedOI) * 100)
             : 0;
 
-// Sideways band: within ±20
         $bias = match(true) {
             $biasScore >  20 => 'Bullish',
             $biasScore < -20 => 'Bearish',
@@ -128,16 +144,27 @@ class BuildUpAnalysisController extends Controller
             default               => 'Weak',
         };
 
+// ── Chart data — CE and PE as grouped bars ─────────────────────────
+        $chartLabels = ['Long Build', 'Short Build', 'Short Cover', 'Long Unwind'];
+
+        $chartCE_OI  = array_column($buildUpTotals['CE'], 'oi');
+        $chartPE_OI  = array_column($buildUpTotals['PE'], 'oi');
+        $chartCE_Vol = array_column($buildUpTotals['CE'], 'volume');
+        $chartPE_Vol = array_column($buildUpTotals['PE'], 'volume');
+
         return view('build-up-analysis', compact(
             'date', 'strikes', 'expiry', 'expiryDate',
             'spotPrice', 'nearestStrike', 'strikeList',
-            'buildUpTotals', 'chartLabels', 'chartOI', 'chartVolume',
+            'buildUpTotals', 'chartLabels',
+            'chartCE_OI', 'chartPE_OI', 'chartCE_Vol', 'chartPE_Vol',
             'bias', 'biasScore', 'biasStrength', 'bullishOI', 'bearishOI'
         ));
+
     }
 
     private function classifyBuildUp(int|float $diffOi, int|float $diffLtp): ?string
     {
+        if ($diffOi == 0 || $diffLtp == 0) return null; // skip neutral rows
         if ($diffOi > 0 && $diffLtp > 0) return 'Long Build';
         if ($diffOi > 0 && $diffLtp < 0) return 'Short Build';
         if ($diffOi < 0 && $diffLtp < 0) return 'Long Unwind';
