@@ -10,7 +10,7 @@
 
                 {{-- Date --}}
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Date</label>
+                    <label class="text-xs text-gray-200 uppercase tracking-wider">Date</label>
                     <input type="date" name="date" value="{{ $date }}"
                         class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                           text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500
@@ -19,7 +19,7 @@
 
                 {{-- Strikes --}}
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Strikes ±</label>
+                    <label class="text-xs text-gray-200 uppercase tracking-wider">Strikes ±</label>
                     <select name="strikes"
                         class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                            text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500
@@ -60,17 +60,17 @@
                     {{ $emptyState['title'] }}
                 </h2>
 
-                <p class="text-gray-400 max-w-md mb-1">
+                <p class="text-gray-200 max-w-md mb-1">
                     {{ $emptyState['message'] }}
                 </p>
 
-                <p class="text-sm text-gray-600 max-w-sm mb-8">
+                <p class="text-sm text-gray-200 max-w-sm mb-8">
                     {{ $emptyState['hint'] }}
                 </p>
 
                 {{-- Market hours badge --}}
                 <div class="flex items-center gap-2 px-4 py-2 bg-gray-800/60 border border-gray-700
-                    rounded-full text-sm text-gray-400 mb-8">
+                    rounded-full text-sm text-gray-200 mb-8">
                     <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse inline-block"></span>
                     Market opens at
                     <span class="text-yellow-300 font-semibold">09:15 AM IST</span>
@@ -81,7 +81,7 @@
                 <form method="GET" action="{{ route('build-up.index') }}"
                     class="flex items-end gap-3 bg-gray-900 border border-gray-700 rounded-xl px-5 py-4">
                     <div class="flex flex-col gap-1 text-left">
-                        <label class="text-xs text-gray-500 uppercase tracking-wider">
+                        <label class="text-xs text-gray-200 uppercase tracking-wider">
                             Try a different date
                         </label>
                         <input type="date" name="date" value="{{ $date }}"
@@ -107,19 +107,19 @@
             {{-- ── Info Strip ── --}}
             <div class="px-6 pt-5 pb-2 flex flex-wrap gap-6 text-sm">
                 <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Expiry</span>
+                    <span class="text-gray-200">Expiry</span>
                     <span class="font-semibold text-yellow-400">{{ $expiryDate }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Spot</span>
+                    <span class="text-gray-200">Spot</span>
                     <span class="font-semibold text-blue-400">{{ number_format($spotPrice, 2) }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-gray-500">ATM Strike</span>
+                    <span class="text-gray-200">ATM Strike</span>
                     <span class="font-semibold text-emerald-400">{{ number_format($nearestStrike, 0) }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Selected Strikes</span>
+                    <span class="text-gray-200">Selected Strikes</span>
                     <div class="flex gap-1 flex-wrap">
                         @foreach ($strikeList as $s)
                             <span class="px-2 py-0.5 rounded text-xs font-mono
@@ -132,6 +132,9 @@
                     </div>
                 </div>
             </div>
+
+
+
 
             {{-- ── Market Bias Prediction ── --}}
             @php
@@ -187,7 +190,7 @@
                             {{ $biasConfig['icon'] }}
                         </div>
                         <div>
-                            <div class="text-xs text-gray-500 uppercase tracking-widest mb-0.5">
+                            <div class="text-xs text-gray-200 uppercase tracking-widest mb-0.5">
                                 Market Bias
                             </div>
                             <div class="text-2xl font-extrabold {{ $biasConfig['labelColor'] }} leading-tight">
@@ -200,9 +203,9 @@
 
                     {{-- Sentiment Gauge Bar --}}
                     <div class="flex-1 min-w-[220px]">
-                        <div class="flex justify-between text-xs text-gray-500 mb-1.5">
+                        <div class="flex justify-between text-xs text-gray-200 mb-1.5">
                             <span class="text-red-400 font-medium">◀ Bearish</span>
-                            <span class="text-gray-400">Sentiment Gauge</span>
+                            <span class="text-gray-200">Sentiment Gauge</span>
                             <span class="text-emerald-400 font-medium">Bullish ▶</span>
                         </div>
                         <div class="relative h-4 rounded-full
@@ -224,7 +227,7 @@
 
                     {{-- Weighted OI Split --}}
                     <div class="min-w-[180px]">
-                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                        <div class="text-xs text-gray-200 uppercase tracking-wider mb-2">
                             Weighted OI Split
                         </div>
                         <div class="flex items-center gap-2 mb-1.5">
@@ -253,12 +256,12 @@
 
                     {{-- Contributing Signals --}}
                     <div class="min-w-[220px]">
-                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                        <div class="text-xs text-gray-200 uppercase tracking-wider mb-2">
                             Contributing Signals
                         </div>
                         <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                             {{-- CE signals --}}
-                            <div class="col-span-2 text-gray-600 uppercase tracking-widest text-[10px] mb-0.5">
+                            <div class="col-span-2 text-gray-200 uppercase tracking-widest text-[10px] mb-0.5">
                                 CE
                             </div>
                             <div class="flex justify-between gap-2">
@@ -286,7 +289,7 @@
                     </span>
                             </div>
                             {{-- PE signals --}}
-                            <div class="col-span-2 text-gray-600 uppercase tracking-widest text-[10px] mt-1 mb-0.5">
+                            <div class="col-span-2 text-gray-200 uppercase tracking-widest text-[10px] mt-1 mb-0.5">
                                 PE
                             </div>
                             <div class="flex justify-between gap-2">
@@ -317,11 +320,6 @@
                     </div>
 
                 </div>
-
-                <p class="mt-4 text-xs text-gray-600 border-t border-gray-700/50 pt-3">
-                    ⚠ This bias is derived purely from OI build-up data for the selected strikes and date.
-                    It is indicative only and not financial advice.
-                </p>
             </div>
 
             {{-- ── Main Grid ── --}}
@@ -353,7 +351,7 @@
                     {{ $type }}
                 </span>
                             <div class="flex-1 h-px bg-gray-800"></div>
-                            <span class="text-[10px] text-gray-600">
+                            <span class="text-[10px] text-gray-200">
                     @if ($type === 'CE')
                                     Bullish: Long Build, Short Cover &nbsp;·&nbsp; Bearish: Short Build, Long Unwind
                                 @else
@@ -387,13 +385,13 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-1.5 text-center">
                                         <div class="bg-gray-900/60 rounded-lg p-1.5">
-                                            <div class="text-xs text-gray-500 mb-0.5">OI</div>
+                                            <div class="text-xs text-gray-200 mb-0.5">OI</div>
                                             <div class="text-sm font-bold {{ $cardColor['text'] }}">
                                                 {{ format_inr_compact($vals['oi']) }}
                                             </div>
                                         </div>
                                         <div class="bg-gray-900/60 rounded-lg p-1.5">
-                                            <div class="text-xs text-gray-500 mb-0.5">Vol</div>
+                                            <div class="text-xs text-gray-200 mb-0.5">Vol</div>
                                             <div class="text-sm font-bold {{ $cardColor['text'] }}">
                                                 {{ format_inr_compact($vals['volume']) }}
                                             </div>
@@ -404,6 +402,119 @@
                         </div>
 
                     @endforeach
+
+
+
+                        {{-- Market Prediction Panel --}}
+                        <div class="bg-gray-900 border border-gray-700/50 rounded-xl p-4 mt-4">
+
+                            <h3 class="text-xs font-semibold text-gray-200 uppercase tracking-wider mb-3">
+                                📡 Market Prediction
+                            </h3>
+
+                            {{-- Aggregate Signal --}}
+                            @php
+                                $predConfig = match($prediction['signal']) {
+                                    'BULLISH'  => [
+                                        'border'  => 'border-emerald-700/50',
+                                        'bg'      => 'bg-emerald-900/20',
+                                        'text'    => 'text-emerald-300',
+                                        'badge'   => 'bg-emerald-900/40 text-emerald-400 ring-1 ring-emerald-700/50',
+                                    ],
+                                    'BEARISH'  => [
+                                        'border'  => 'border-red-700/50',
+                                        'bg'      => 'bg-red-900/20',
+                                        'text'    => 'text-red-300',
+                                        'badge'   => 'bg-red-900/40 text-red-400 ring-1 ring-red-700/50',
+                                    ],
+                                    default    => [
+                                        'border'  => 'border-yellow-700/50',
+                                        'bg'      => 'bg-yellow-900/20',
+                                        'text'    => 'text-yellow-300',
+                                        'badge'   => 'bg-yellow-900/40 text-yellow-400 ring-1 ring-yellow-700/50',
+                                    ],
+                                };
+                            @endphp
+
+                            <div class="rounded-xl border {{ $predConfig['border'] }} {{ $predConfig['bg'] }} px-4 py-3 mb-4
+                flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <div class="text-xl font-extrabold {{ $predConfig['text'] }} leading-tight">
+                                        {{ $prediction['label'] }}
+                                    </div>
+                                    <div class="text-xs text-gray-200 mt-0.5">
+                                        {{ $prediction['reason'] }}
+                                    </div>
+                                </div>
+
+                                {{-- Confidence Badge --}}
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-[10px] text-gray-200 uppercase tracking-widest">Confidence</span>
+                                    <span class="px-3 py-1 rounded-full text-sm font-bold {{ $predConfig['badge'] }}">
+                {{ $prediction['confidence'] }}%
+            </span>
+                                </div>
+                            </div>
+
+                            {{-- Individual Strategy Cards --}}
+                            @if(collect($strategies)->where('triggered', true)->isEmpty())
+                                <p class="text-xs text-gray-200 text-center py-3">
+                                    No strategies triggered yet — snapshots are saved every 5 minutes during market hours.
+                                </p>
+                            @else
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach($strategies as $s)
+                                        @if($s['triggered'])
+                                            @php
+                                                $sConfig = match($s['signal']) {
+                                                    'BULLISH' => [
+                                                        'border' => 'border-emerald-700/40',
+                                                        'bg'     => 'bg-emerald-900/20',
+                                                        'title'  => 'text-emerald-300',
+                                                        'text'   => 'text-emerald-400/70',
+                                                        'conf'   => 'text-emerald-400',
+                                                    ],
+                                                    'BEARISH' => [
+                                                        'border' => 'border-red-700/40',
+                                                        'bg'     => 'bg-red-900/20',
+                                                        'title'  => 'text-red-300',
+                                                        'text'   => 'text-red-400/70',
+                                                        'conf'   => 'text-red-400',
+                                                    ],
+                                                    default   => [
+                                                        'border' => 'border-yellow-700/40',
+                                                        'bg'     => 'bg-yellow-900/20',
+                                                        'title'  => 'text-yellow-300',
+                                                        'text'   => 'text-yellow-400/70',
+                                                        'conf'   => 'text-yellow-400',
+                                                    ],
+                                                };
+                                            @endphp
+                                            <div class="rounded-lg border {{ $sConfig['border'] }} {{ $sConfig['bg'] }} px-3 py-2">
+                                                <div class="text-xs font-semibold {{ $sConfig['title'] }}">
+                                                    {{ $s['label'] }}
+                                                </div>
+                                                <div class="text-[11px] {{ $sConfig['text'] }} mt-0.5 leading-snug">
+                                                    {{ $s['reason'] }}
+                                                </div>
+                                                <div class="text-xs font-bold {{ $sConfig['conf'] }} mt-1.5">
+                                                    {{ $s['confidence'] }}% confidence
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <p class="mt-3 text-[10px] border-t border-gray-800 pt-2">
+                                ⚠ Predictions are based on OI snapshot history and are indicative only — not financial advice.
+                            </p>
+                        </div>
+
+
+
+
+
                 </div>
 
                 {{-- ── Charts ── --}}
@@ -411,7 +522,7 @@
 
                     {{-- OI Chart --}}
                     <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                        <h3 class="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">
+                        <h3 class="text-sm font-medium text-gray-200 mb-3 uppercase tracking-wider">
                             Open Interest by Build-Up
                         </h3>
                         <div class="relative h-52">
@@ -421,7 +532,7 @@
 
                     {{-- Volume Chart --}}
                     <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                        <h3 class="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">
+                        <h3 class="text-sm font-medium text-gray-200 mb-3 uppercase tracking-wider">
                             Volume by Build-Up
                         </h3>
                         <div class="relative h-52">
