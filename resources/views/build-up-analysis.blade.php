@@ -34,6 +34,26 @@
                            font-medium transition-colors duration-150 self-end">
                     Apply
                 </button>
+                {{-- View Toggle --}}
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-400 uppercase tracking-wider">View</label>
+                    <div class="flex rounded-lg overflow-hidden border border-gray-700">
+                        <a href="{{ request()->fullUrlWithQuery(['view' => 'snapshot']) }}"
+                            class="px-4 py-2 text-sm font-medium transition-colors
+                  {{ $view === 'snapshot'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700' }}">
+                            📸 Snapshot
+                        </a>
+                        <a href="{{ request()->fullUrlWithQuery(['view' => 'session']) }}"
+                            class="px-4 py-2 text-sm font-medium transition-colors border-l border-gray-700
+                  {{ $view === 'session'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700' }}">
+                            📅 Full Day
+                        </a>
+                    </div>
+                </div>
             </form>
         </div>
 
@@ -104,6 +124,301 @@
                     </div>
                 </div>
             </div>
+            @if($view === 'session')
+
+                {{-- ════════════════════════════════════════════════════════ --}}
+                {{-- ── FULL DAY SESSION VIEW ── --}}
+                {{-- ════════════════════════════════════════════════════════ --}}
+
+                @php
+                    $snapTimes   = $sessionSnapshots->map(fn($s) => $s->captured_at->format('H:i'));
+                    $snapScores  = $sessionSnapshots->pluck('bias_score');
+                    $snapBullOI  = $sessionSnapshots->pluck('bullish_oi');
+                    $snapBearOI  = $sessionSnapshots->pluck('bearish_oi');
+                    $snapVolumes = $sessionSnapshots->pluck('total_volume');
+                    $snapBiases  = $sessionSnapshots->pluck('bias');
+                @endphp
+
+                <div class="px-6 py-4 flex flex-col gap-6">
+
+                    {{-- ── Snapshot Timeline Table ── --}}
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+                            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                📋 Snapshot Timeline — {{ $date }}
+                            </h3>
+                            <span class="text-xs text-gray-500">
+                    {{ $sessionSnapshots->count() }} snapshots
+                </span>
+                        </div>
+
+                        @if($sessionSnapshots->isEmpty())
+                            <div class="px-4 py-8 text-center text-gray-500 text-sm">
+                                No snapshots recorded for this date yet.
+                            </div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                    <tr class="border-b border-gray-800 text-gray-500 uppercase tracking-wider">
+                                        <th class="px-4 py-2 text-left">Time</th>
+                                        <th class="px-4 py-2 text-center">Bias</th>
+                                        <th class="px-4 py-2 text-center">Strength</th>
+                                        <th class="px-4 py-2 text-right">Score</th>
+                                        <th class="px-4 py-2 text-right">Bullish OI</th>
+                                        <th class="px-4 py-2 text-right">Bearish OI</th>
+                                        <th class="px-4 py-2 text-right">Volume</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-800/60">
+                                    @foreach($sessionSnapshots as $snap)
+                                        @php
+                                            $rowColor = match($snap->bias) {
+                                                'Bullish' => 'text-emerald-400',
+                                                'Bearish' => 'text-red-400',
+                                                default   => 'text-yellow-400',
+                                            };
+                                            $rowBg = match($snap->bias) {
+                                                'Bullish' => 'hover:bg-emerald-900/10',
+                                                'Bearish' => 'hover:bg-red-900/10',
+                                                default   => 'hover:bg-yellow-900/10',
+                                            };
+                                        @endphp
+                                        <tr class="transition-colors {{ $rowBg }}">
+                                            <td class="px-4 py-2 font-mono text-gray-300">
+                                                {{ $snap->captured_at->format('H:i') }}
+                                            </td>
+                                            <td class="px-4 py-2 text-center">
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                                            {{ match($snap->bias) {
+                                                'Bullish' => 'bg-emerald-900/40 text-emerald-300',
+                                                'Bearish' => 'bg-red-900/40 text-red-300',
+                                                default   => 'bg-yellow-900/40 text-yellow-300',
+                                            } }}">
+                                            {{ $snap->bias }}
+                                        </span>
+                                            </td>
+                                            <td class="px-4 py-2 text-center text-gray-400">
+                                                {{ $snap->bias_strength }}
+                                            </td>
+                                            <td class="px-4 py-2 text-right font-mono font-bold {{ $rowColor }}">
+                                                {{ $snap->bias_score > 0 ? '+' : '' }}{{ $snap->bias_score }}
+                                            </td>
+                                            <td class="px-4 py-2 text-right font-mono text-emerald-400">
+                                                {{ format_inr_compact($snap->bullish_oi) }}
+                                            </td>
+                                            <td class="px-4 py-2 text-right font-mono text-red-400">
+                                                {{ format_inr_compact($snap->bearish_oi) }}
+                                            </td>
+                                            <td class="px-4 py-2 text-right font-mono text-gray-400">
+                                                {{ format_inr_compact($snap->total_volume) }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- ── Day Charts ── --}}
+                    @if($sessionSnapshots->isNotEmpty())
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+                            {{-- Bias Score Timeline --}}
+                            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                                <h3 class="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wider">
+                                    Bias Score Timeline
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-3">Score range: -100 (full bearish) → +100 (full bullish)</p>
+                                <div class="relative h-56">
+                                    <canvas id="scoreTimelineChart"></canvas>
+                                </div>
+                            </div>
+
+                            {{-- Bullish vs Bearish OI Timeline --}}
+                            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                                <h3 class="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wider">
+                                    Bullish vs Bearish OI
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-3">Weighted OI per 5-min candle</p>
+                                <div class="relative h-56">
+                                    <canvas id="oiTimelineChart"></canvas>
+                                </div>
+                            </div>
+
+                            {{-- Volume Timeline --}}
+                            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 xl:col-span-2">
+                                <h3 class="text-sm font-medium text-gray-400 mb-1 uppercase tracking-wider">
+                                    Volume Timeline
+                                </h3>
+                                <p class="text-xs text-gray-600 mb-3">Total OI volume per 5-min candle</p>
+                                <div class="relative h-48">
+                                    <canvas id="volTimelineChart"></canvas>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                        <script>
+                            const snapTimes   = @json($snapTimes);
+                            const snapScores  = @json($snapScores);
+                            const snapBullOI  = @json($snapBullOI);
+                            const snapBearOI  = @json($snapBearOI);
+                            const snapVolumes = @json($snapVolumes);
+                            const snapBiases  = @json($snapBiases);
+
+                            const gridColor  = 'rgba(255,255,255,0.05)';
+                            const tickColor  = '#64748b';
+                            const baseScales = {
+                                x: {
+                                    ticks: { color: tickColor, font: { size: 10 }, maxTicksLimit: 12 },
+                                    grid:  { color: gridColor }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: tickColor, font: { size: 10 },
+                                        callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M'
+                                            : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v
+                                    },
+                                    grid: { color: gridColor }
+                                }
+                            };
+
+                            const basePlugins = {
+                                legend: { display: true, labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 } },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15,23,42,0.95)',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    titleColor: '#94a3b8',
+                                    bodyColor: '#f1f5f9',
+                                }
+                            };
+
+                            // ── 1. Bias Score Line Chart ───────────────────────────
+                            // Color each point based on bias direction
+                            const pointColors = snapBiases.map(b =>
+                                b === 'Bullish' ? 'rgba(52,211,153,1)' :
+                                    b === 'Bearish' ? 'rgba(248,113,113,1)' :
+                                        'rgba(251,191,36,1)'
+                            );
+
+                            new Chart(document.getElementById('scoreTimelineChart'), {
+                                type: 'line',
+                                data: {
+                                    labels: snapTimes,
+                                    datasets: [{
+                                        label: 'Bias Score',
+                                        data: snapScores,
+                                        borderColor: 'rgba(148,163,184,0.8)',
+                                        borderWidth: 2,
+                                        pointBackgroundColor: pointColors,
+                                        pointBorderColor: pointColors,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6,
+                                        fill: {
+                                            target: { value: 0 },
+                                            above: 'rgba(52,211,153,0.08)',
+                                            below: 'rgba(248,113,113,0.08)',
+                                        },
+                                        tension: 0.3,
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        ...basePlugins,
+                                        annotation: undefined,
+                                    },
+                                    scales: {
+                                        ...baseScales,
+                                        y: {
+                                            ...baseScales.y,
+                                            min: -100,
+                                            max: 100,
+                                            ticks: {
+                                                ...baseScales.y.ticks,
+                                                callback: v => v > 0 ? '+'+v : v,
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            // ── 2. Bullish vs Bearish OI Bars ─────────────────────
+                            new Chart(document.getElementById('oiTimelineChart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: snapTimes,
+                                    datasets: [
+                                        {
+                                            label: 'Bullish OI',
+                                            data: snapBullOI,
+                                            backgroundColor: 'rgba(52, 211, 153, 0.7)',
+                                            borderColor: 'rgba(52, 211, 153, 1)',
+                                            borderWidth: 1,
+                                            borderRadius: 3,
+                                        },
+                                        {
+                                            label: 'Bearish OI',
+                                            data: snapBearOI,
+                                            backgroundColor: 'rgba(248, 113, 113, 0.7)',
+                                            borderColor: 'rgba(248, 113, 113, 1)',
+                                            borderWidth: 1,
+                                            borderRadius: 3,
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: basePlugins,
+                                    scales: baseScales,
+                                }
+                            });
+
+                            // ── 3. Volume Timeline ────────────────────────────────
+                            new Chart(document.getElementById('volTimelineChart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: snapTimes,
+                                    datasets: [{
+                                        label: 'Total Volume',
+                                        data: snapVolumes,
+                                        backgroundColor: snapBiases.map(b =>
+                                            b === 'Bullish' ? 'rgba(52,211,153,0.6)'  :
+                                                b === 'Bearish' ? 'rgba(248,113,113,0.6)' :
+                                                    'rgba(251,191,36,0.6)'
+                                        ),
+                                        borderColor: snapBiases.map(b =>
+                                            b === 'Bullish' ? 'rgba(52,211,153,1)'  :
+                                                b === 'Bearish' ? 'rgba(248,113,113,1)' :
+                                                    'rgba(251,191,36,1)'
+                                        ),
+                                        borderWidth: 1,
+                                        borderRadius: 3,
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: basePlugins,
+                                    scales: baseScales,
+                                }
+                            });
+                        </script>
+                    @endif
+
+                </div>
+
+            @else
+
+
+
+
 
             {{-- ══════════════════════════════════════════════════════════ --}}
             {{-- ── Session Bias Panel (Day-Level) ── --}}
@@ -525,7 +840,7 @@
                 </div>
 
             </div>
-
+            @endif
             {{-- ✅ Chart scripts inside @else — only runs when canvases exist ── --}}
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <script>
@@ -563,11 +878,14 @@
                     }
                 };
 
-                const mkDataset = (data, label, color) => ({
-                    label, data,
-                    backgroundColor: color + ', 0.75)',
-                    borderColor: color + ')',
-                    borderWidth: 1.5, borderRadius: 5, borderSkipped: false
+                const mkDataset = (data, label, rgb, opacity = 0.75) => ({
+                    label,
+                    data,
+                    backgroundColor: `rgba(${rgb}, ${opacity})`,
+                    borderColor:     `rgba(${rgb}, 1)`,
+                    borderWidth: 1.5,
+                    borderRadius: 5,
+                    borderSkipped: false
                 });
 
                 new Chart(document.getElementById('oiChart'), {
@@ -575,8 +893,8 @@
                     data: {
                         labels,
                         datasets: [
-                            mkDataset(ceOI,  'CE OI',     'rgba(96, 165, 250,'),
-                            mkDataset(peOI,  'PE OI',     'rgba(244, 114, 182,'),
+                            mkDataset(ceOI,  'CE OI',     '96, 165, 250'),   // blue-400
+                            mkDataset(peOI,  'PE OI',     '244, 114, 182'),  // pink-400
                         ]
                     },
                     options: sharedOptions
@@ -587,8 +905,8 @@
                     data: {
                         labels,
                         datasets: [
-                            mkDataset(ceVol, 'CE Volume', 'rgba(96, 165, 250,'),
-                            mkDataset(peVol, 'PE Volume', 'rgba(244, 114, 182,'),
+                            mkDataset(ceVol, 'CE Volume', '96, 165, 250'),   // blue-400
+                            mkDataset(peVol, 'PE Volume', '244, 114, 182'),  // pink-400
                         ]
                     },
                     options: sharedOptions

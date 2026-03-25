@@ -18,6 +18,7 @@ class BuildUpAnalysisController extends Controller
     {
         $date    = $request->input('date', Carbon::today()->toDateString());
         $strikes = (int) $request->input('strikes', 2);
+        $view    = $request->input('view', 'snapshot');
 
         $emptyDefaults = [
             'date'          => $date,
@@ -162,8 +163,14 @@ class BuildUpAnalysisController extends Controller
 
         // ── 8. Session-level picture ──────────────────────────────────
         $session = $this->predictionService->evaluateSession('NIFTY');
+        // ✅ Load all snapshots for the day-view chart
+        $sessionSnapshots = BiasSnapshot::where('trading_symbol', 'NIFTY')
+                                        ->whereDate('date', $date)
+                                        ->orderBy('captured_at')
+                                        ->get(['bias_score', 'bias', 'bias_strength', 'bullish_oi', 'bearish_oi',
+                                            'total_volume', 'spot_price', 'captured_at']);
 
-        // ── 9. Return view ────────────────────────────────────────────
+        // ── Step 9. Return view ───────────────────────────────────────────
         return view('build-up-analysis', compact(
             'date', 'strikes', 'expiry', 'expiryDate',
             'spotPrice', 'nearestStrike', 'strikeList',
@@ -172,6 +179,7 @@ class BuildUpAnalysisController extends Controller
             'bias', 'biasScore', 'biasStrength',
             'bullishOI', 'bearishOI',
             'prediction', 'strategies', 'session',
+            'view', 'sessionSnapshots',
         ));
     }
 

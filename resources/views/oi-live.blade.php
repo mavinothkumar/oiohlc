@@ -76,6 +76,19 @@
                 </select>
             </div>
 
+            <div class="flex flex-col gap-1">
+                <label class="text-gray-400 text-[11px] font-semibold uppercase tracking-wider">Close Alert</label>
+                <select id="closeThresholdSelect"
+                    class="bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="0">Off</option>
+                    <option value="10">≥ 10</option>
+                    <option value="15" selected>≥ 15</option>
+                    <option value="20">≥ 20</option>
+                    <option value="30">≥ 30</option>
+                    <option value="50">≥ 50</option>
+                </select>
+            </div>
+
 
             <button id="loadBtn"
                 class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-lg px-5 py-1.5 text-xs transition-colors">
@@ -248,6 +261,7 @@
         // ── Build tbody ───────────────────────────────────────────────────────
         function buildBody(rows, strikes, top3OiPos, top3OiNeg, top3VolPos, top3VolNeg, perStrikeHighlights) {
             const tbody = document.getElementById('chain-tbody');
+            const threshold = Number(document.getElementById('closeThresholdSelect').value) || 0;
             if (!rows.length) {
                 tbody.innerHTML = `<tr><td colspan="99" class="py-10 text-center text-gray-500">No data for selected date/expiry.</td></tr>`;
                 return;
@@ -284,7 +298,9 @@
                         const oiClass  = oiGlobal  ? globalOiClass(diffOi,   top3OiPos,  top3OiNeg)  : strikeOiClass(diffOi,  psh);
                         const volClass = volGlobal ? globalVolClass(diffVol, top3VolPos, top3VolNeg) : strikeVolClass(diffVol, psh);
 
-                        html += `<td class="px-2 py-1.5 text-right ${bg} ${ltpClass(diffLtp)}">${fmtLtp(diffLtp)}</td>`;
+                        const ltpCls   = ltpClass(diffLtp, threshold);
+                        const ltpAlert = (ltpCls === 'ltp-alert-pos' || ltpCls === 'ltp-alert-neg') ? 'ltp-alert-td' : '';
+                        html += `<td class="px-2 py-1.5 text-right ${bg} ${ltpAlert}"><span class="${ltpCls}">${fmtLtp(diffLtp)}</span></td>`;
                         html += `<td class="px-2 py-1.5 text-right ${bg}"><span class="${oiClass}">${formatINRCompact(diffOi)}</span></td>`;
                         html += `<td class="px-2 py-1.5 text-right ${bg}"><span class="${volClass}">${formatINRCompact(diffVol)}</span></td>`;
                         html += `<td class="px-2 py-1.5 text-center ${bg} ${borderR}"><span class="${buClass(bu)} px-1.5 py-0.5 rounded text-10px font-bold">${buLabel(bu)}</span></td>`;
@@ -330,11 +346,34 @@
             return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
         }
 
-        function ltpClass(val) {
+        function ltpClass(val, threshold) {
             const v = numVal(val);
             if (v === null) return 'text-gray-600';
+
+            const abs = Math.abs(v);
+            const th  = Number(threshold) || 0;
+
+            // Big move highlight — takes priority
+            if (th > 0 && abs >= th) {
+                return v > 0
+                    ? 'ltp-alert-pos'   // big positive move
+                    : 'ltp-alert-neg';  // big negative move
+            }
+
             return v > 0 ? 'text-green-300' : v < 0 ? 'text-red-300' : 'text-gray-400';
         }
+        document.getElementById('closeThresholdSelect').addEventListener('change', () => {
+            if (!lastPayload) return; // no data loaded yet
+            buildBody(
+                lastPayload.rows,
+                lastPayload.strikes,
+                lastPayload.top3_oi_pos,
+                lastPayload.top3_oi_neg,
+                lastPayload.top3_vol_pos,
+                lastPayload.top3_vol_neg,
+                lastPayload.per_strike_highlights
+            );
+        });
 
         // ── Main fetch ───────────────────────────────────────────────────────────────
         function loadData() {
@@ -390,8 +429,8 @@
                         data.top3_oi_pos,
                         data.top3_oi_neg,
                         data.top3_vol_pos,
-                        data.top3_vol_neg,          // NEW
-                        data.per_strike_highlights  // NEW
+                        data.top3_vol_neg,
+                        data.per_strike_highlights,
                     );
 
                     lastPayload = data;
@@ -495,6 +534,29 @@
         tbody.has-selection tr:not(.row-selected) td {
             opacity: 0.35;
         }
+        /* LTP big-move alert */
+        .ltp-alert-td {
+            position: relative;
+        }
+        .ltp-alert-pos {
+            background: rgba(22, 163, 74, 0.25);   /* green glow */
+            color: #86efac;                          /* green-300 */
+            font-weight: 700;
+            border-radius: 4px;
+            padding: 1px 5px;
+            outline: 2px solid #22c55e;             /* green-500 ring */
+            outline-offset: -1px;
+        }
+        .ltp-alert-neg {
+            background: rgba(220, 38, 38, 0.25);    /* red glow */
+            color: #fca5a5;                          /* red-300 */
+            font-weight: 700;
+            border-radius: 4px;
+            padding: 1px 5px;
+            outline: 2px solid #ef4444;             /* red-500 ring */
+            outline-offset: -1px;
+        }
+
     </style>
 @endsection
 
