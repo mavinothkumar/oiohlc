@@ -3,6 +3,62 @@
 @section('title', 'Build up Analysis')
 
 @section('content')
+    {{-- ── Empty State ── --}}
+    @isset($emptyState)
+        <div class="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+
+            {{-- Animated pulse ring --}}
+            <div class="relative mb-6">
+                <div class="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center text-5xl
+                        ring-4 ring-gray-700">
+                    {{ $emptyState['icon'] }}
+                </div>
+                {{-- Pulse rings --}}
+                <span class="absolute inset-0 rounded-full ring-4 ring-yellow-500/30 animate-ping"></span>
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-200 mb-2">
+                {{ $emptyState['title'] }}
+            </h2>
+
+            <p class="text-gray-400 max-w-md mb-1">
+                {{ $emptyState['message'] }}
+            </p>
+
+            <p class="text-sm text-gray-600 max-w-sm mb-8">
+                {{ $emptyState['hint'] }}
+            </p>
+
+            {{-- Live clock countdown hint --}}
+            <div class="flex items-center gap-2 px-4 py-2 bg-gray-800/60 border border-gray-700
+                    rounded-full text-sm text-gray-400 mb-8">
+                <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse inline-block"></span>
+                Market opens at
+                <span class="text-yellow-300 font-semibold">09:15 AM IST</span>
+                on trading days
+            </div>
+
+            {{-- Try another date --}}
+            <form method="GET" action="{{ route('test.build-up.index') }}"
+                class="flex items-end gap-3 bg-gray-900 border border-gray-700 rounded-xl px-5 py-4">
+                <div class="flex flex-col gap-1 text-left">
+                    <label class="text-xs text-gray-500 uppercase tracking-wider">Try a different date</label>
+                    <input type="date" name="date" value="{{ $date }}"
+                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                              text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                              focus:border-transparent transition" />
+                </div>
+                <input type="hidden" name="strikes" value="{{ $strikes }}" />
+                <button type="submit"
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm
+                           font-medium transition-colors duration-150 self-end">
+                    Reload
+                </button>
+            </form>
+
+        </div>
+
+    @else
     <div class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased">
         {{-- ── Filter Bar ── --}}
         <div class="px-6 py-4 border-b border-gray-800 bg-gray-900/50">
@@ -331,6 +387,7 @@
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {{-- ── Chart.js Init ── --}}
     <script>
@@ -419,5 +476,5 @@
             options: sharedOptions
         });
     </script>
-
+    @endisset
 @endsection

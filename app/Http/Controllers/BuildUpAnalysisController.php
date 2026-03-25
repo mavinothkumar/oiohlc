@@ -21,7 +21,17 @@ class BuildUpAnalysisController extends Controller
                     ->first();
 
         if (! $expiry) {
-            return back()->with('error', 'No current expiry found for NIFTY.');
+            return view('build-up-analysis', [
+                'emptyState' => [
+                    'icon'    => '🕐',
+                    'title'   => 'Market Not Opened Yet',
+                    'message' => 'No active expiry found for NIFTY. The market may not have opened yet or expiry data is not populated.',
+                    'hint'    => 'Expiry data is usually available from 09:15 AM on trading days.',
+                ],
+                // pass defaults so blade doesn't break
+                'date'    => $date,
+                'strikes' => $strikes,
+            ]);
         }
 
         $expiryDate = $expiry->expiry_date;
@@ -34,7 +44,16 @@ class BuildUpAnalysisController extends Controller
                     ->first(['underlying_spot_price']);
 
         if (! $latest) {
-            return back()->with('error', 'No option chain data found.');
+            return view('build-up-analysis', [
+                'emptyState' => [
+                    'icon'    => '📭',
+                    'title'   => 'No Option Chain Data',
+                    'message' => 'Option chain data for NIFTY has not been populated yet for ' . $expiryDate . '.',
+                    'hint'    => 'Data starts flowing in after market opens at 09:15 AM IST.',
+                ],
+                'date'    => $date,
+                'strikes' => $strikes,
+            ]);
         }
 
         // 3. Round spot to nearest 50 and get surrounding strikes
