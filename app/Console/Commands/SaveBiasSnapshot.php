@@ -14,7 +14,6 @@ class SaveBiasSnapshot extends Command
 
     public function handle(): void
     {
-        info('Running SaveBiasSnapshot');
         $symbol  = strtoupper($this->argument('symbol'));
         $strikes = (int) $this->option('strikes');
         $date    = Carbon::today()->toDateString();
@@ -172,7 +171,6 @@ class SaveBiasSnapshot extends Command
             'total_volume'       => $totalVolume,
             'captured_at'        => now(),
         ]);
-        info('End SaveBiasSnapshot');
         $this->info("✅ Snapshot saved for $symbol | Score: $biasScore | Bias: $bias ($biasStrength) | " . now()->format('H:i:s'));
     }
 
