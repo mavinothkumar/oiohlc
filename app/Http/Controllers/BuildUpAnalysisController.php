@@ -2,24 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BiasSnapshot;
-use App\Services\SnapshotPredictionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class BuildUpAnalysisController extends Controller
-{
-    public function __construct(
-        protected SnapshotPredictionService $predictionService,
-    ) {}
-
-    public function index(Request $request)
-    {
-        $date    = $request->input('date', Carbon::today()->toDateString());
-        $strikes = (int) $request->input('strikes', 2);
-        $view    = $request->input('view', 'snapshot');
-
+class BuildUpAnalysisController extends Controller {
+    public function index( Request $request ) {
+        $date          = $request->input( 'date', Carbon::today()->toDateString() );
+        $strikes       = (int) $request->input( 'strikes', 2 );
         $emptyDefaults = [
             'date'          => $date,
             'strikes'       => $strikes,
@@ -28,177 +18,199 @@ class BuildUpAnalysisController extends Controller
             'spotPrice'     => 0,
             'nearestStrike' => 0,
             'strikeList'    => [],
-            'buildUpTotals' => $this->emptyBuildUpTotals(),
-            'chartLabels'   => ['Long Build', 'Short Build', 'Short Cover', 'Long Unwind'],
-            'chartCE_OI'    => [0, 0, 0, 0],
-            'chartPE_OI'    => [0, 0, 0, 0],
-            'chartCE_Vol'   => [0, 0, 0, 0],
-            'chartPE_Vol'   => [0, 0, 0, 0],
+            'buildUpTotals' => [
+                'CE' => [
+                    'Long Build'  => [ 'oi' => 0, 'volume' => 0 ],
+                    'Short Build' => [ 'oi' => 0, 'volume' => 0 ],
+                    'Short Cover' => [ 'oi' => 0, 'volume' => 0 ],
+                    'Long Unwind' => [ 'oi' => 0, 'volume' => 0 ],
+                ],
+                'PE' => [
+                    'Long Build'  => [ 'oi' => 0, 'volume' => 0 ],
+                    'Short Build' => [ 'oi' => 0, 'volume' => 0 ],
+                    'Short Cover' => [ 'oi' => 0, 'volume' => 0 ],
+                    'Long Unwind' => [ 'oi' => 0, 'volume' => 0 ],
+                ],
+            ],
+            'chartCE_OI'    => [],
+            'chartPE_OI'    => [],
+            'chartCE_Vol'   => [],
+            'chartPE_Vol'   => [],
+            'chartLabels'   => [],
+            'chartOI'       => [],
+            'chartVolume'   => [],
             'bias'          => null,
             'biasScore'     => 0,
             'biasStrength'  => null,
             'bullishOI'     => 0,
             'bearishOI'     => 0,
-            'prediction'    => [
-                'signal'     => 'WATCH',
-                'confidence' => 0,
-                'label'      => '⏳ Watching',
-                'reason'     => 'No snapshots available yet.',
-            ],
-            'strategies'    => [],
-            'session'       => $this->predictionService->evaluateSession('NIFTY'),
         ];
 
-        // ── 1. Get current active expiry ──────────────────────────────
-        $expiry = DB::table('nse_expiries')
-                    ->where('trading_symbol', 'NIFTY')
-                    ->where('instrument_type', 'OPT')
-                    ->where('is_current', 1)
+
+        // 1. Get expiry for the given date
+        $expiry = DB::table( 'nse_expiries' )
+                    ->where( 'trading_symbol', 'NIFTY' )
+                    ->where( 'instrument_type', 'OPT' )
+                    ->where( 'is_current', 1 )
                     ->first();
 
-        if (! $expiry) {
-            return view('build-up-analysis', array_merge($emptyDefaults, [
+        if ( ! $expiry ) {
+            return view( 'build-up-analysis', array_merge( $emptyDefaults, [
                 'emptyState' => [
                     'icon'    => '🕐',
                     'title'   => 'Market Not Opened Yet',
-                    'message' => 'No active expiry found for NIFTY.',
+                    'message' => 'No active expiry found for NIFTY. The market may not have opened yet or expiry data is not populated.',
                     'hint'    => 'Expiry data is usually available from 09:15 AM on trading days.',
                 ],
-            ]));
+            ] ) );
         }
 
         $expiryDate = $expiry->expiry_date;
 
-        // ── 2. Get latest spot price ──────────────────────────────────
-        $latest = DB::table('option_chains')
-                    ->where('trading_symbol', 'NIFTY')
-                    ->where('expiry', $expiryDate)
-                    ->orderByDesc('captured_at')
-                    ->first(['underlying_spot_price']);
+        // 2. Get the latest underlying_spot_price from option_chains
+        $latest = DB::table( 'option_chains' )
+                    ->where( 'trading_symbol', 'NIFTY' )
+                    ->where( 'expiry', $expiryDate )
+                    ->orderByDesc( 'captured_at' )
+                    ->first( [ 'underlying_spot_price' ] );
 
-        if (! $latest) {
-            return view('build-up-analysis', array_merge($emptyDefaults, [
+        if ( ! $latest ) {
+            return view( 'build-up-analysis', array_merge( $emptyDefaults, [
                 'expiryDate' => $expiryDate,
                 'expiry'     => $expiry,
                 'emptyState' => [
                     'icon'    => '📭',
                     'title'   => 'No Option Chain Data',
-                    'message' => "Option chain data for NIFTY has not been populated yet for $expiryDate.",
+                    'message' => 'Option chain data for NIFTY has not been populated yet for ' . $expiryDate . '.',
                     'hint'    => 'Data starts flowing in after market opens at 09:15 AM IST.',
                 ],
-            ]));
+            ] ) );
         }
 
-        // ── 3. Compute ATM strike & strike list ───────────────────────
+        // 3. Round spot to nearest 50 and get surrounding strikes
         $spotPrice     = $latest->underlying_spot_price;
-        $nearestStrike = round($spotPrice / 50) * 50;
+        $nearestStrike = round( $spotPrice / 50 ) * 50;
 
         $strikeList = [];
-        for ($i = -$strikes; $i <= $strikes; $i++) {
-            $strikeList[] = $nearestStrike + ($i * 50);
+        for ( $i = - $strikes; $i <= $strikes; $i ++ ) {
+            $strikeList[] = $nearestStrike + ( $i * 50 );
         }
 
-        // ── 4. Load BiasSnapshot history ──────────────────────────────
-        //      ✅ Read pre-computed snapshots — no OI re-computation here
-        $history = BiasSnapshot::where('trading_symbol', 'NIFTY')
-                               ->whereDate('date', $date)
-                               ->orderBy('captured_at')
-                               ->get();
+        // 4. Fetch option_chains data for selected strikes from 09:15 to 15:30
+        $startTime = $date . ' 09:15:00';
+        $endTime   = $date . ' 15:30:00';
 
-        // ── 5. Build chart data from latest snapshot ──────────────────
-        //      ✅ Use the last saved snapshot for display, not raw chains
-        $buildUpTotals = $this->emptyBuildUpTotals();
-        $bias          = null;
-        $biasScore     = 0;
-        $biasStrength  = null;
-        $bullishOI     = 0;
-        $bearishOI     = 0;
+        $rows = DB::table( 'option_chains' )
+                  ->where( 'trading_symbol', 'NIFTY' )
+                  ->where( 'expiry', $expiryDate )
+                  ->whereIn( 'strike_price', $strikeList )
+                  ->whereBetween( 'captured_at', [ $startTime, $endTime ] )
+                  ->orderBy( 'captured_at' )
+                  ->get( [ 'strike_price', 'option_type', 'diff_oi', 'diff_volume', 'diff_ltp', 'build_up', 'captured_at' ] );
 
-        if ($history->isNotEmpty()) {
-            $latest_snap = $history->last();
-
-            $buildUpTotals = [
-                'CE' => [
-                    'Long Build'  => ['oi' => $latest_snap->ce_long_build_oi,  'volume' => $latest_snap->ce_long_build_vol],
-                    'Short Build' => ['oi' => $latest_snap->ce_short_build_oi, 'volume' => $latest_snap->ce_short_build_vol],
-                    'Short Cover' => ['oi' => $latest_snap->ce_short_cover_oi, 'volume' => $latest_snap->ce_short_cover_vol],
-                    'Long Unwind' => ['oi' => $latest_snap->ce_long_unwind_oi, 'volume' => $latest_snap->ce_long_unwind_vol],
-                ],
-                'PE' => [
-                    'Long Build'  => ['oi' => $latest_snap->pe_long_build_oi,  'volume' => $latest_snap->pe_long_build_vol],
-                    'Short Build' => ['oi' => $latest_snap->pe_short_build_oi, 'volume' => $latest_snap->pe_short_build_vol],
-                    'Short Cover' => ['oi' => $latest_snap->pe_short_cover_oi, 'volume' => $latest_snap->pe_short_cover_vol],
-                    'Long Unwind' => ['oi' => $latest_snap->pe_long_unwind_oi, 'volume' => $latest_snap->pe_long_unwind_vol],
-                ],
-            ];
-
-            $bias         = $latest_snap->bias;
-            $biasScore    = $latest_snap->bias_score;
-            $biasStrength = $latest_snap->bias_strength;
-            $bullishOI    = $latest_snap->bullish_oi;
-            $bearishOI    = $latest_snap->bearish_oi;
-        }
-
-        // ── 6. ✅ Fixed chart data using collect()->pluck() ───────────
-        $chartLabels = ['Long Build', 'Short Build', 'Short Cover', 'Long Unwind'];
-        $chartCE_OI  = collect($buildUpTotals['CE'])->pluck('oi')->values()->toArray();
-        $chartPE_OI  = collect($buildUpTotals['PE'])->pluck('oi')->values()->toArray();
-        $chartCE_Vol = collect($buildUpTotals['CE'])->pluck('volume')->values()->toArray();
-        $chartPE_Vol = collect($buildUpTotals['PE'])->pluck('volume')->values()->toArray();
-
-        // ── 7. Run strategies & prediction ───────────────────────────
-        $prediction = [
-            'signal'     => 'WATCH',
-            'confidence' => 0,
-            'label'      => '⏳ Watching',
-            'reason'     => 'No snapshots saved yet. Snapshots are captured every 5 minutes.',
+        // 5. Classify build_up if null using diff_oi and diff_ltp
+        //    Long Build:   diff_oi > 0 && diff_ltp > 0
+        //    Short Build:  diff_oi > 0 && diff_ltp < 0
+        //    Long Unwind:  diff_oi < 0 && diff_ltp < 0
+        //    Short Cover:  diff_oi < 0 && diff_ltp > 0
+        // 5. Separate CE and PE build-up buckets
+        $buildUpTotals = [
+            'CE' => [
+                'Long Build'  => [ 'oi' => 0, 'volume' => 0 ],
+                'Short Build' => [ 'oi' => 0, 'volume' => 0 ],
+                'Short Cover' => [ 'oi' => 0, 'volume' => 0 ],
+                'Long Unwind' => [ 'oi' => 0, 'volume' => 0 ],
+            ],
+            'PE' => [
+                'Long Build'  => [ 'oi' => 0, 'volume' => 0 ],
+                'Short Build' => [ 'oi' => 0, 'volume' => 0 ],
+                'Short Cover' => [ 'oi' => 0, 'volume' => 0 ],
+                'Long Unwind' => [ 'oi' => 0, 'volume' => 0 ],
+            ],
         ];
-        $strategies = [];
 
-        if ($history->isNotEmpty()) {
-            $current    = $history->last();
-            $strategies = $this->predictionService->predict($current, $history);
-            $prediction = $this->predictionService->aggregate($strategies);
+        foreach ( $rows as $row ) {
+            $diffOi  = $row->diff_oi ?? 0;
+            $diffLtp = $row->diff_ltp ?? 0;
+            $diffVol = $row->diff_volume ?? 0;
+            $type    = $row->option_type; // 'CE' or 'PE'
+
+            $buildUp = $row->build_up ?? $this->classifyBuildUp( $diffOi, $diffLtp );
+
+            if ( $buildUp && isset( $buildUpTotals[ $type ][ $buildUp ] ) ) {
+                $buildUpTotals[ $type ][ $buildUp ]['oi']     += abs( $diffOi );
+                $buildUpTotals[ $type ][ $buildUp ]['volume'] += abs( $diffVol );
+            }
         }
 
-        // ── 8. Session-level picture ──────────────────────────────────
-        $session = $this->predictionService->evaluateSession('NIFTY');
-        // ✅ Load all snapshots for the day-view chart
-        $sessionSnapshots = BiasSnapshot::where('trading_symbol', 'NIFTY')
-                                        ->whereDate('date', $date)
-                                        ->orderBy('captured_at')
-                                        ->get(['bias_score', 'bias', 'bias_strength', 'bullish_oi', 'bearish_oi',
-                                            'total_volume', 'spot_price', 'captured_at']);
+        $bullishOI =
+            ( $buildUpTotals['CE']['Long Build']['oi'] * 2 ) +
+            ( $buildUpTotals['CE']['Short Cover']['oi'] * 1 ) +
+            ( $buildUpTotals['PE']['Short Build']['oi'] * 2 ) +
+            ( $buildUpTotals['PE']['Long Unwind']['oi'] * 1 );
 
-        // ── Step 9. Return view ───────────────────────────────────────────
-        return view('build-up-analysis', compact(
+        $bearishOI =
+            ( $buildUpTotals['CE']['Short Build']['oi'] * 2 ) +
+            ( $buildUpTotals['CE']['Long Unwind']['oi'] * 1 ) +
+            ( $buildUpTotals['PE']['Long Build']['oi'] * 2 ) +
+            ( $buildUpTotals['PE']['Short Cover']['oi'] * 1 );
+
+        $totalWeightedOI = $bullishOI + $bearishOI;
+
+        $biasScore = $totalWeightedOI > 0
+            ? round( ( ( $bullishOI - $bearishOI ) / $totalWeightedOI ) * 100 )
+            : 0;
+
+        $bias = match ( true ) {
+            $biasScore > 20 => 'Bullish',
+            $biasScore < - 20 => 'Bearish',
+            default => 'Sideways',
+        };
+
+        $biasStrength = match ( true ) {
+            abs( $biasScore ) >= 60 => 'Strong',
+            abs( $biasScore ) >= 35 => 'Moderate',
+            default => 'Weak',
+        };
+
+// ── Chart data — CE and PE as grouped bars ─────────────────────────
+        $chartLabels = [ 'Long Build', 'Short Build', 'Short Cover', 'Long Unwind' ];
+
+        $chartCE_OI  = array_column( $buildUpTotals['CE'], 'oi' );
+        $chartPE_OI  = array_column( $buildUpTotals['PE'], 'oi' );
+        $chartCE_Vol = array_column( $buildUpTotals['CE'], 'volume' );
+        $chartPE_Vol = array_column( $buildUpTotals['PE'], 'volume' );
+
+
+        return view( 'build-up-analysis', compact(
             'date', 'strikes', 'expiry', 'expiryDate',
             'spotPrice', 'nearestStrike', 'strikeList',
-            'buildUpTotals',
-            'chartLabels', 'chartCE_OI', 'chartPE_OI', 'chartCE_Vol', 'chartPE_Vol',
-            'bias', 'biasScore', 'biasStrength',
-            'bullishOI', 'bearishOI',
-            'prediction', 'strategies', 'session',
-            'view', 'sessionSnapshots',
-        ));
+            'buildUpTotals', 'chartLabels',
+            'chartCE_OI', 'chartPE_OI', 'chartCE_Vol', 'chartPE_Vol',
+            'bias', 'biasScore', 'biasStrength', 'bullishOI', 'bearishOI'
+        ) );
+
+
     }
 
-    private function emptyBuildUpTotals(): array
-    {
-        $empty = ['oi' => 0, 'volume' => 0];
-        return [
-            'CE' => ['Long Build' => $empty, 'Short Build' => $empty, 'Short Cover' => $empty, 'Long Unwind' => $empty],
-            'PE' => ['Long Build' => $empty, 'Short Build' => $empty, 'Short Cover' => $empty, 'Long Unwind' => $empty],
-        ];
-    }
+    private function classifyBuildUp( int|float $diffOi, int|float $diffLtp ): ?string {
+        if ( $diffOi == 0 || $diffLtp == 0 ) {
+            return null;
+        } // skip neutral rows
+        if ( $diffOi > 0 && $diffLtp > 0 ) {
+            return 'Long Build';
+        }
+        if ( $diffOi > 0 && $diffLtp < 0 ) {
+            return 'Short Build';
+        }
+        if ( $diffOi < 0 && $diffLtp < 0 ) {
+            return 'Long Unwind';
+        }
+        if ( $diffOi < 0 && $diffLtp > 0 ) {
+            return 'Short Cover';
+        }
 
-    private function classifyBuildUp(int|float $diffOi, int|float $diffLtp): ?string
-    {
-        if ($diffOi == 0 || $diffLtp == 0) return null;
-        if ($diffOi > 0 && $diffLtp > 0)   return 'Long Build';
-        if ($diffOi > 0 && $diffLtp < 0)   return 'Short Build';
-        if ($diffOi < 0 && $diffLtp < 0)   return 'Long Unwind';
-        if ($diffOi < 0 && $diffLtp > 0)   return 'Short Cover';
         return null;
     }
+
 }

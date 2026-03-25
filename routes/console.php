@@ -63,11 +63,11 @@ Schedule::command('optionchain:fetch') // php artisan optionchain:fetch
         ->timezone('Asia/Kolkata')
         ->appendOutputTo(storage_path('logs/update-index-open.log'));
 
-Schedule::command('bias:snapshot NIFTY --strikes=3') // php artisan bias:snapshot NIFTY --strikes=3
-        ->everyFiveMinutes()
-        ->between('9:20', '15:30')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/update-snapshop-bias.log'));
+//Schedule::command('bias:snapshot NIFTY --strikes=3') // php artisan bias:snapshot NIFTY --strikes=3
+//        ->everyFiveMinutes()
+//        ->between('9:20', '15:30')
+//        ->timezone('Asia/Kolkata')
+//        ->appendOutputTo(storage_path('logs/update-snapshop-bias.log'));
 
 Schedule::call(function () {
     DB::table('option_chains')
