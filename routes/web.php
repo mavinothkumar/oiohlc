@@ -129,4 +129,5 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::post( '/trading-simulator/report/{position}/note',[ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
     Route::post('/trading-simulator/position/enter', [App\Http\Controllers\TradingSimulatorController::class, 'enterPosition'])->name('trading-simulator.enter');
 
+    Route::get('/build-up-analysis', [App\Http\Controllers\BuildUpAnalysisController::class, 'index'])->name('build-up.index');
 } );
