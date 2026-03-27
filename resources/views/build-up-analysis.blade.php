@@ -3,6 +3,8 @@
 @section('title', 'Build-Up Analysis')
 
 @section('content')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div class="min-h-screen bg-gray-950">
 
         {{-- ══════════════════════════════════════════════
@@ -495,7 +497,6 @@
     ══════════════════════════════════════════════ --}}
     @isset($chartLabels)
         @if(count($chartLabels))
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <script>
                 const chartLabels = @json($chartLabels);
                 const ceOI   = @json($chartCE_OI);
@@ -619,5 +620,166 @@
             </script>
         @endif
     @endisset
+
+
+    {{-- ══════════════════════════════════════════════
+         ③ BUY / SELL BUILDUP SUMMARY CHARTS
+    ══════════════════════════════════════════════ --}}
+    @php
+        function fmtNum(int|float $n): string {
+            $abs = abs($n);
+            if ($abs >= 1_00_00_000) return number_format($n / 1_00_00_000, 2) . 'C';
+            if ($abs >= 1_00_000)    return number_format($n / 1_00_000, 2) . 'L';
+            if ($abs >= 1_000)       return number_format($n / 1_000, 2) . 'T';
+            return number_format($n);
+        }
+
+        function buySellSummary(array $totals, string $type): array {
+            $lb_oi  = $totals[$type]['Long Build']['oi']      ?? 0;
+            $sc_oi  = $totals[$type]['Short Cover']['oi']     ?? 0;
+            $sb_oi  = $totals[$type]['Short Build']['oi']     ?? 0;
+            $lu_oi  = $totals[$type]['Long Unwind']['oi']     ?? 0;
+            $lb_vol = $totals[$type]['Long Build']['volume']  ?? 0;
+            $sc_vol = $totals[$type]['Short Cover']['volume'] ?? 0;
+            $sb_vol = $totals[$type]['Short Build']['volume'] ?? 0;
+            $lu_vol = $totals[$type]['Long Unwind']['volume'] ?? 0;
+            return [
+                'buy_oi'  => $lb_oi + $sc_oi,
+                'sell_oi' => $sb_oi + $lu_oi,
+                'buy_vol' => $lb_vol + $sc_vol,
+                'sell_vol'=> $sb_vol + $lu_vol,
+                'lb_oi'   => $lb_oi,  'sc_oi' => $sc_oi,
+                'sb_oi'   => $sb_oi,  'lu_oi' => $lu_oi,
+                'lb_vol'  => $lb_vol, 'sc_vol'=> $sc_vol,
+                'sb_vol'  => $sb_vol, 'lu_vol'=> $lu_vol,
+            ];
+        }
+
+        $bsWindows = [
+            'Last 15 Min' => $recentWindows['Last 15 Min']['totals'] ?? null,
+            'Last 30 Min' => $recentWindows['Last 30 Min']['totals'] ?? null,
+            'Full Day'    => $buildUpTotals,
+        ];
+    @endphp
+
+    <div class="mt-8" x-data="{ bsTab: 'Full Day' }">
+        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            📊 Buy / Sell Buildup — CE &amp; PE
+            <span class="text-xs font-normal text-slate-400">(OI &amp; Volume · 15min / 30min / Full Day)</span>
+        </h2>
+
+        {{-- Tab strip --}}
+        <div class="flex gap-2 flex-wrap mb-4">
+            @foreach(['Last 15 Min','Last 30 Min','Full Day'] as $tab)
+                <button
+                    @click="bsTab = '{{ $tab }}'"
+                    :class="bsTab === '{{ $tab }}' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'"
+                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors">
+                    {{ $tab }}
+                </button>
+            @endforeach
+        </div>
+
+        @foreach(['Last 15 Min','Last 30 Min','Full Day'] as $windowLabel)
+            @php
+                $wTotals = $bsWindows[$windowLabel];
+                $ce      = $wTotals ? buySellSummary($wTotals, 'CE') : null;
+                $pe      = $wTotals ? buySellSummary($wTotals, 'PE') : null;
+                $cid     = 'bss_' . str_replace(' ', '_', strtolower($windowLabel));
+            @endphp
+
+            <div x-show="bsTab === '{{ $windowLabel }}'" x-cloak class="space-y-4">
+                @if(!$wTotals || !$ce || !$pe)
+                    <div class="text-slate-400 text-sm py-6 text-center">No data available for {{ $windowLabel }}</div>
+                @else
+
+                    {{-- 4 summary cards --}}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        @foreach([
+                            ['label'=>'CE Buy OI',  'val'=>$ce['buy_oi'],  'color'=>'text-emerald-400', 'sub'=>'LB '.fmtNum($ce['lb_oi']).' + SC '.fmtNum($ce['sc_oi'])],
+                            ['label'=>'CE Sell OI', 'val'=>$ce['sell_oi'], 'color'=>'text-rose-400',    'sub'=>'SB '.fmtNum($ce['sb_oi']).' + LU '.fmtNum($ce['lu_oi'])],
+                            ['label'=>'PE Buy OI',  'val'=>$pe['buy_oi'],  'color'=>'text-emerald-400', 'sub'=>'LB '.fmtNum($pe['lb_oi']).' + SC '.fmtNum($pe['sc_oi'])],
+                            ['label'=>'PE Sell OI', 'val'=>$pe['sell_oi'], 'color'=>'text-rose-400',    'sub'=>'SB '.fmtNum($pe['sb_oi']).' + LU '.fmtNum($pe['lu_oi'])],
+                        ] as $card)
+                            <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+                                <div class="text-xs text-slate-400 mb-1">{{ $card['label'] }}</div>
+                                <div class="text-xl font-bold {{ $card['color'] }}">{{ fmtNum($card['val']) }}</div>
+                                <div class="text-[11px] text-slate-500 mt-1">{{ $card['sub'] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- All 4 charts in one row --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                            <div class="text-sm font-semibold text-slate-300 mb-3">OI — Buy vs Sell</div>
+                            <canvas id="{{ $cid }}_oi" height="220"></canvas>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                            <div class="text-sm font-semibold text-slate-300 mb-3">Volume — Buy vs Sell</div>
+                            <canvas id="{{ $cid }}_vol" height="220"></canvas>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                            <div class="text-sm font-semibold text-slate-300 mb-3">CE vs PE — OI Breakdown</div>
+                            <canvas id="{{ $cid }}_ce_pe_oi" height="220"></canvas>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                            <div class="text-sm font-semibold text-slate-300 mb-3">CE vs PE — Volume Breakdown</div>
+                            <canvas id="{{ $cid }}_ce_pe_vol" height="220"></canvas>
+                        </div>
+                    </div>
+
+                    <script>
+                        (function() {
+                            const fmtL = v => {
+                                const a = Math.abs(v);
+                                if (a >= 1e7) return (v/1e7).toFixed(2)+'C';
+                                if (a >= 1e5) return (v/1e5).toFixed(2)+'L';
+                                if (a >= 1e3) return (v/1e3).toFixed(2)+'T';
+                                return String(v);
+                            };
+                            const mkBar = (id, labels, datasets) => {
+                                const el = document.getElementById(id);
+                                if (!el) return;
+                                new Chart(el, {
+                                    type: 'bar',
+                                    data: { labels, datasets },
+                                    options: {
+                                        responsive: true,
+                                        plugins: {
+                                            legend: { labels: { color: '#94a3b8' } },
+                                            tooltip: { callbacks: { label: c => ' '+c.dataset.label+': '+fmtL(c.raw) } }
+                                        },
+                                        scales: {
+                                            x: { ticks: { color:'#94a3b8' }, grid: { color:'#1e293b' } },
+                                            y: { ticks: { color:'#94a3b8', callback: v => fmtL(v) }, grid: { color:'#1e293b' } }
+                                        }
+                                    }
+                                });
+                            };
+
+                            mkBar('{{ $cid }}_oi', ['CE','PE'], [
+                                { label:'Buy OI (LB+SC)',  data:[{{ $ce['buy_oi'] }},{{ $pe['buy_oi'] }}],  backgroundColor:'rgba(52,211,153,0.8)',  borderColor:'#10b981', borderWidth:1.5 },
+                                { label:'Sell OI (SB+LU)', data:[{{ $ce['sell_oi'] }},{{ $pe['sell_oi'] }}], backgroundColor:'rgba(248,113,113,0.8)', borderColor:'#ef4444', borderWidth:1.5 }
+                            ]);
+                            mkBar('{{ $cid }}_vol', ['CE','PE'], [
+                                { label:'Buy Vol (LB+SC)',  data:[{{ $ce['buy_vol'] }},{{ $pe['buy_vol'] }}],  backgroundColor:'rgba(52,211,153,0.8)',  borderColor:'#10b981', borderWidth:1.5 },
+                                { label:'Sell Vol (SB+LU)', data:[{{ $ce['sell_vol'] }},{{ $pe['sell_vol'] }}], backgroundColor:'rgba(248,113,113,0.8)', borderColor:'#ef4444', borderWidth:1.5 }
+                            ]);
+                            mkBar('{{ $cid }}_ce_pe_oi', ['Long Build','Short Build','Short Cover','Long Unwind'], [
+                                { label:'CE OI', data:[{{ $ce['lb_oi'] }},{{ $ce['sb_oi'] }},{{ $ce['sc_oi'] }},{{ $ce['lu_oi'] }}], backgroundColor:'rgba(99,179,237,0.8)',  borderColor:'#3b82f6', borderWidth:1.5 },
+                                { label:'PE OI', data:[{{ $pe['lb_oi'] }},{{ $pe['sb_oi'] }},{{ $pe['sc_oi'] }},{{ $pe['lu_oi'] }}], backgroundColor:'rgba(246,173,85,0.8)',  borderColor:'#f59e0b', borderWidth:1.5 }
+                            ]);
+                            mkBar('{{ $cid }}_ce_pe_vol', ['Long Build','Short Build','Short Cover','Long Unwind'], [
+                                { label:'CE Vol', data:[{{ $ce['lb_vol'] }},{{ $ce['sb_vol'] }},{{ $ce['sc_vol'] }},{{ $ce['lu_vol'] }}], backgroundColor:'rgba(99,179,237,0.8)',  borderColor:'#3b82f6', borderWidth:1.5 },
+                                { label:'PE Vol', data:[{{ $pe['lb_vol'] }},{{ $pe['sb_vol'] }},{{ $pe['sc_vol'] }},{{ $pe['lu_vol'] }}], backgroundColor:'rgba(246,173,85,0.8)',  borderColor:'#f59e0b', borderWidth:1.5 }
+                            ]);
+                        })();
+                    </script>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
 
 @endsection

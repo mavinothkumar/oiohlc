@@ -13,19 +13,21 @@ class CollectOhlcForIndices extends Command
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
     public $index_instruments = [
         //'BSE_INDEX|BANKEX',
-        'BSE_INDEX|SENSEX',
+        //'BSE_INDEX|SENSEX',
         'NSE_INDEX|Nifty 50',
-        'NSE_INDEX|Nifty Bank',
+        //'NSE_INDEX|Nifty Bank',
         // 'NSE_INDEX|Nifty Fin Service',
     ];
-    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
+    public $indices = ['NIFTY'];//, 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
     public $quoteDate;
     public $workingDay;
+    public $currentDay;
 
     public function handle()
     {
         $this->quoteDate  = Carbon::now()->toDateString();
         $this->workingDay = DB::table('nse_working_days')->where('previous', 1)->first();
+        $this->currentDay = DB::table('nse_working_days')->where('current', 1)->first();
         if ( ! $this->workingDay) {
             $this->error("No previous working day found!");
 
@@ -146,7 +148,7 @@ class CollectOhlcForIndices extends Command
             $instrumentKey = $instrument->instrument_key;
             $apiDate       = $this->workingDay->working_date;
             $fromDate      = $apiDate;
-            $toDate        = Carbon::parse($apiDate)->addDay()->format('Y-m-d');
+            $toDate        = $this->currentDay->working_date;//Carbon::parse($apiDate)->addDay()->format('Y-m-d');
 
 
             info('date', [$fromDate, $toDate]);
@@ -215,7 +217,7 @@ class CollectOhlcForIndices extends Command
                     ]
                 );
                 $expiry = $expiry ?? null;
-                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".Carbon::parse($candle[0])->toDateString());
+                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".$this->currentDay->working_date);
             }
         }
 
