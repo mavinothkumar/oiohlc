@@ -495,6 +495,16 @@
     {{-- ══════════════════════════════════════════════
          CHART.JS
     ══════════════════════════════════════════════ --}}
+    <script>
+        const fmtL = v => {
+            const a = Math.abs(v);
+            if (a >= 1e7) return (v/1e7).toFixed(2)+'C';
+            if (a >= 1e5) return (v/1e5).toFixed(2)+'L';
+            if (a >= 1e3) return (v/1e3).toFixed(2)+'T';
+            return String(v);
+        };
+    </script>
+
     @isset($chartLabels)
         @if(count($chartLabels))
             <script>
@@ -523,9 +533,7 @@
                                 bodyColor: '#e2e8f0',
                                 padding: 10,
                                 callbacks: {
-                                    label: ctx =>
-                                        ' ' + ctx.dataset.label + ': ' +
-                                        ctx.parsed.y.toLocaleString('en-IN'),
+                                    label: ctx => ' ' + ctx.dataset.label + ': ' + fmtL(ctx.parsed.y),
                                 },
                             },
                         },
@@ -540,10 +548,7 @@
                                 ticks: {
                                     color: '#475569',
                                     font: { size: 9 },
-                                    callback: v =>
-                                        v >= 1e7 ? (v/1e7).toFixed(1)+'Cr' :
-                                            v >= 1e5 ? (v/1e5).toFixed(1)+'L'  :
-                                                v >= 1e3 ? (v/1e3).toFixed(0)+'K'  : v,
+                                    callback: v => fmtL(v),
                                 },
                                 grid:  { color: 'rgba(255,255,255,0.03)' },
                                 border:{ color: 'rgba(255,255,255,0.05)' },
@@ -731,13 +736,6 @@
 
                     <script>
                         (function() {
-                            const fmtL = v => {
-                                const a = Math.abs(v);
-                                if (a >= 1e7) return (v/1e7).toFixed(2)+'C';
-                                if (a >= 1e5) return (v/1e5).toFixed(2)+'L';
-                                if (a >= 1e3) return (v/1e3).toFixed(2)+'T';
-                                return String(v);
-                            };
                             const mkBar = (id, labels, datasets) => {
                                 const el = document.getElementById(id);
                                 if (!el) return;
