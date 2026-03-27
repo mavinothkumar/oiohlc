@@ -662,7 +662,7 @@
         ];
     @endphp
 
-    <div class="mt-8" x-data="{ bsTab: 'Full Day' }">
+    <div class="mt-8 bg-gray-950/95 backdrop-blur border-b border-gray-800 shadow-lg shadow-black/50" x-data="{ bsTab: 'Full Day' }">
         <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
             📊 Buy / Sell Buildup — CE &amp; PE
             <span class="text-xs font-normal text-slate-400">(OI &amp; Volume · 15min / 30min / Full Day)</span>
