@@ -2,6 +2,8 @@
 @section('title', 'Options Chart Step Reader')
 
 @section('content')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <div class="max-w-full mx-auto px-4 py-6">
 
         <div class="mb-4">
