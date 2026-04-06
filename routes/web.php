@@ -89,6 +89,8 @@ Route::get( '/build-up-snapshot', [ App\Http\Controllers\BuildUpSnapshotControll
 Route::get( '/buildups/net-pressure-history', [ App\Http\Controllers\BuildUpSummaryController::class, 'netPressureHistory' ] );
 Route::get('/build-up-analysis', [App\Http\Controllers\BuildUpAnalysisController::class, 'index'])->name('build-up.index');
 
+Route::get('/option-chain-analysis', [App\Http\Controllers\OptionChainAnalysisController::class, 'index'])->name('option-chain.analysis');
+Route::get('/api/option-chain-analysis', [App\Http\Controllers\OptionChainAnalysisController::class, 'getData'])->name('option-chain.analysis.data');
 
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {
@@ -131,6 +133,12 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::get( '/trading-simulator/report/{position}', [ App\Http\Controllers\TradingSimulatorController::class, 'reportDetail' ] )->name( 'trading-simulator.report.detail' );
     Route::post( '/trading-simulator/report/{position}/note',[ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
     Route::post('/trading-simulator/position/enter', [App\Http\Controllers\TradingSimulatorController::class, 'enterPosition'])->name('trading-simulator.enter');
+
+
+    Route::get('/oi-volume-chart', [App\Http\Controllers\OiVolumeChartController::class, 'index'])->name('oi.volume.chart');
+    Route::get('/api/oi-volume-expiries', [App\Http\Controllers\OiVolumeChartController::class, 'getExpiries'])->name('api.oi.volume.expiries');
+    Route::get('/api/oi-volume-slot', [App\Http\Controllers\OiVolumeChartController::class, 'getSlotData'])->name('api.oi.volume.slot');
+
 
 
 } );
