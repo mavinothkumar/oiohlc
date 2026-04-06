@@ -491,7 +491,7 @@
                     entry.lines = [];
                     applyPriceLines(entry, strike, data, false);
 
-                    fitOnce(entry.chart, isFirst);
+                    fitOnce(entry.chart, isFirst, false);
 
                     updateBadge(`cell-${strike}`, data.cells?.[strike]);
                 });
@@ -645,26 +645,29 @@
             }
 
             function renderFullscreenChart(data, strike, colorIndex, isFirst = false) {
-                const entry     = state.fsChart;
+                const entry = state.fsChart;
+                if (!entry?.chart) return;
 
-                // ── Normalize timestamps before passing to LWC ───────────────────────
                 const ceCandles = normalizeCandles(data.ohlc?.[strike]?.['CE'] ?? []);
                 const peCandles = normalizeCandles(data.ohlc?.[strike]?.['PE'] ?? []);
 
                 entry.ceSeries.setData(ceCandles);
                 entry.peSeries.setData(peCandles);
 
-                entry.lines.forEach(l => { try { entry.ceSeries.removePriceLine(l); } catch(e) {} });
+                entry.lines.forEach(l => {
+                    try { entry.ceSeries.removePriceLine(l); } catch (e) {}
+                });
                 entry.lines = [];
+
                 applyPriceLines(entry, strike, data, true);
 
                 if (isFirst || !state.fsInitialized) {
-                    chart.timeScale().fitContent();
-                    chart.timeScale().applyOptions({
+                    entry.chart.timeScale().fitContent();
+                    entry.chart.timeScale().applyOptions({
                         barSpacing: 12,
                         rightOffset: 30,
                     });
-
+                    fitOnce(entry.chart, isFirst || !state.fsInitialized, true);
                     state.fsInitialized = true;
                 }
 
