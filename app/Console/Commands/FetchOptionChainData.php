@@ -47,7 +47,7 @@ class FetchOptionChainData extends Command
 //            ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
         ];
 
-        $token = config('services.upstox.access_token');
+        $token = config('services.upstox.analytics_token');
 
         foreach ($instruments as $index => $inst) {
 

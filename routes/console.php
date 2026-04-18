@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\CollectLiveOhlcCommand;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -12,15 +13,15 @@ use Illuminate\Support\Facades\Schedule;
  * php artisan queue:work --queue=optionchain
  */
 
-Schedule::command('upstox:fetch-market-holidays') // php artisan upstox:fetch-market-holidays
-        ->yearlyOn(1, 1, '08:57')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/working-days.log'));
+Schedule::command( 'upstox:fetch-market-holidays' ) // php artisan upstox:fetch-market-holidays
+        ->yearlyOn( 1, 1, '08:57' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/working-days.log' ) );
 
-Schedule::command('nse:populate-working-days') // php artisan nse:populate-working-days
-        ->yearlyOn(1, 1, '09:00')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/working-days.log'));
+Schedule::command( 'nse:populate-working-days' ) // php artisan nse:populate-working-days
+        ->yearlyOn( 1, 1, '09:00' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/working-days.log' ) );
 
 
 //Schedule::command('nse:update-working-day-flags') // php artisan nse:update-working-day-flags
@@ -51,17 +52,25 @@ Schedule::command('nse:populate-working-days') // php artisan nse:populate-worki
 //        ->appendOutputTo(storage_path('logs/populate-daily.log'));
 //
 
-Schedule::command('trend:update-index-open') // php artisan trend:update-index-open
-        ->dailyAt('09:08')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+Schedule::command( 'trend:update-index-open' ) // php artisan trend:update-index-open
+        ->dailyAt( '09:08' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
 
 
-Schedule::command('optionchain:fetch') // php artisan optionchain:fetch
+Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
         ->everyFiveMinutes()
-        ->between('9:15', '15:30')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/update-index-open.log'));
+        ->between( '9:15', '15:30' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
+
+Schedule::command( 'ohlc:collect-live' )
+        ->everyFiveMinutes()
+        ->between( '9:15', '15:30' )
+        ->timezone( 'Asia/Kolkata' )
+        ->withoutOverlapping()
+        ->runInBackground()
+        ->appendOutputTo( storage_path( 'logs/live-ohlc.log' ) );
 
 //Schedule::command('bias:snapshot NIFTY --strikes=3') // php artisan bias:snapshot NIFTY --strikes=3
 //        ->everyFiveMinutes()
@@ -69,13 +78,13 @@ Schedule::command('optionchain:fetch') // php artisan optionchain:fetch
 //        ->timezone('Asia/Kolkata')
 //        ->appendOutputTo(storage_path('logs/update-snapshop-bias.log'));
 
-Schedule::call(function () {
-    DB::table('option_chains')
-      ->where('captured_at', '<', now()->subDays(14))
+Schedule::call( function () {
+    DB::table( 'option_chains' )
+      ->where( 'captured_at', '<', now()->subDays( 14 ) )
       ->delete();
-})->dailyAt('16:00')
-        ->timezone('Asia/Kolkata')
-        ->appendOutputTo(storage_path('logs/option-chains-cleanup.log'));
+} )->dailyAt( '16:00' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/option-chains-cleanup.log' ) );
 
 
 

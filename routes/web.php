@@ -70,7 +70,7 @@ Route::get( '/oi-buildup/expiries', [ App\Http\Controllers\OiBuildupController::
      ->name( 'oi-buildup.expiries' );
 
 Route::get( '/volume-buildup-live', [ App\Http\Controllers\VolumeBuildupLiveController::class, 'index' ] )->name( 'volume-buildup.live' );
-
+Route::get( '/live-ohlc', [ App\Http\Controllers\OhlcLiveSnapshotController::class, 'index' ] )->name( 'live-ohlc.index' );
 
 // AJAX: get expiries for a date + underlying
 Route::get( '/api/multi-chart-expiries', [ App\Http\Controllers\OhlcChartController::class, 'multiExpiries' ] )->name( 'api.multi-chart-expiries' );
@@ -87,10 +87,10 @@ Route::get( '/oi-diff-live/data', [ \App\Http\Controllers\OiDiffLiveController::
 
 Route::get( '/build-up-snapshot', [ App\Http\Controllers\BuildUpSnapshotController::class, 'index' ] )->name( 'buildup.snapshot' );
 Route::get( '/buildups/net-pressure-history', [ App\Http\Controllers\BuildUpSummaryController::class, 'netPressureHistory' ] );
-Route::get('/build-up-analysis', [App\Http\Controllers\BuildUpAnalysisController::class, 'index'])->name('build-up.index');
+Route::get( '/build-up-analysis', [ App\Http\Controllers\BuildUpAnalysisController::class, 'index' ] )->name( 'build-up.index' );
 
-Route::get('/option-chain-analysis', [App\Http\Controllers\OptionChainAnalysisController::class, 'index'])->name('option-chain.analysis');
-Route::get('/api/option-chain-analysis', [App\Http\Controllers\OptionChainAnalysisController::class, 'getData'])->name('option-chain.analysis.data');
+Route::get( '/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'index' ] )->name( 'option-chain.analysis' );
+Route::get( '/api/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'getData' ] )->name( 'option-chain.analysis.data' );
 
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {
@@ -131,14 +131,13 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
 // Report
     Route::get( '/trading-simulator/report', [ App\Http\Controllers\TradingSimulatorController::class, 'report' ] )->name( 'trading-simulator.report' );
     Route::get( '/trading-simulator/report/{position}', [ App\Http\Controllers\TradingSimulatorController::class, 'reportDetail' ] )->name( 'trading-simulator.report.detail' );
-    Route::post( '/trading-simulator/report/{position}/note',[ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
-    Route::post('/trading-simulator/position/enter', [App\Http\Controllers\TradingSimulatorController::class, 'enterPosition'])->name('trading-simulator.enter');
+    Route::post( '/trading-simulator/report/{position}/note', [ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
+    Route::post( '/trading-simulator/position/enter', [ App\Http\Controllers\TradingSimulatorController::class, 'enterPosition' ] )->name( 'trading-simulator.enter' );
 
 
-    Route::get('/oi-volume-chart', [App\Http\Controllers\OiVolumeChartController::class, 'index'])->name('oi.volume.chart');
-    Route::get('/api/oi-volume-expiries', [App\Http\Controllers\OiVolumeChartController::class, 'getExpiries'])->name('api.oi.volume.expiries');
-    Route::get('/api/oi-volume-slot', [App\Http\Controllers\OiVolumeChartController::class, 'getSlotData'])->name('api.oi.volume.slot');
-
+    Route::get( '/oi-volume-chart', [ App\Http\Controllers\OiVolumeChartController::class, 'index' ] )->name( 'oi.volume.chart' );
+    Route::get( '/api/oi-volume-expiries', [ App\Http\Controllers\OiVolumeChartController::class, 'getExpiries' ] )->name( 'api.oi.volume.expiries' );
+    Route::get( '/api/oi-volume-slot', [ App\Http\Controllers\OiVolumeChartController::class, 'getSlotData' ] )->name( 'api.oi.volume.slot' );
 
 
 } );
