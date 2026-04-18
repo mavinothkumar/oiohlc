@@ -30,7 +30,7 @@
                 <input type="text" id="expiryInput" value="{{ $expiry }}" readonly
                     class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 w-32" />
             </div>
-            @for($i = 0; $i < 6; $i++)
+            @for($i = 0; $i < 10; $i++)
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Strike {{ $i+1 }}</label>
                     <input type="number" step="50" value="{{ $strikes[$i] ?? '' }}"
@@ -77,6 +77,12 @@
 
             {{-- Badge --}}
             <div id="fsBadge" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 whitespace-nowrap"></div>
+
+            <span id="fsCeLabel" class="text-xs font-semibold text-blue-400">CE</span>
+            <span id="fsCeLtp" class="text-xs font-bold tabular-nums font-mono min-w-[50px]">—</span>
+            <span class="text-gray-600 text-xs">|</span>
+            <span id="fsPeLabel" class="text-xs font-semibold text-orange-400">PE</span>
+            <span id="fsPeLtp" class="text-xs font-bold tabular-nums font-mono min-w-[50px]">—</span>
 
             {{-- Candle label --}}
             <span class="text-gray-400 dark:text-gray-500 text-sm">Candle:</span>
@@ -158,6 +164,8 @@
                 fsStrike: null,           // which strike is in fullscreen
                 initialized: false,
                 fsInitialized: false,
+                lastCandles: {},      // ← ADD THIS
+                fsLastCandles: null,  // ← ADD THIS
             };
 
             // Build-up type colors
@@ -306,7 +314,7 @@
 
                 const atm = parseInt(json.open_atm_strike ?? json.atm_strike ?? 0);
                 if (atm) {
-                    const defaults = [-150,-100,-50,0,50,100].map(o => atm + o);
+                    const defaults = [-250,-200,-150,-100,-50,0,50,100,200,250].map(o => atm + o);
                     document.querySelectorAll('.strike-input').forEach((el, i) => {
                         el.value = defaults[i] ?? '';
                     });
@@ -332,6 +340,8 @@
                 state.lastData      = null;
                 state.initialized  = false;   // ← reset so next render calls fitContent
                 state.fsInitialized = false;
+                state.lastCandles   = {};
+                state.fsLastCandles = null;
 
                 buildChartCards(strikes);
 
@@ -434,6 +444,13 @@
                   </span>
                 </span>
         </div>
+       <div id="ltp-${strike}" class="flex items-center gap-3 px-1 pb-1 text-xs font-mono">
+    <span class="font-semibold text-blue-500">${parseInt(strike).toLocaleString('en-IN')} CE</span>
+    <span id="ce-ltp-${strike}" class="font-bold text-gray-800 dark:text-gray-100 tabular-nums">—</span>
+    <span class="text-gray-300 dark:text-gray-600">|</span>
+    <span class="font-semibold text-orange-500">${parseInt(strike).toLocaleString('en-IN')} PE</span>
+    <span id="pe-ltp-${strike}" class="font-bold text-gray-800 dark:text-gray-100 tabular-nums">—</span>
+</div>
         <div class="flex items-center gap-2">
             <div id="cell-${strike}" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">—</div>
             <button data-strike="${strike}" data-ci="${i}"
@@ -495,6 +512,31 @@
 
                     state.charts[strike] = { chart, ceSeries, peSeries, lines: [] };
 
+                    // CE LTP label
+                    const ceLtpEl  = document.getElementById(`ce-ltp-${strike}`);
+                    const peLtpEl  = document.getElementById(`pe-ltp-${strike}`);
+
+                    chart.subscribeCrosshairMove(param => {
+                        const cePrice = param.seriesData?.get(ceSeries);
+                        const pePrice = param.seriesData?.get(peSeries);
+
+                        const cached = state.lastCandles[strike] ?? { ce: [], pe: [] };
+
+                        if (cePrice) {
+                            ceLtpEl.textContent = cePrice.close?.toFixed(2) ?? '—';
+                        } else {
+                            const last = cached.ce[cached.ce.length - 1];
+                            ceLtpEl.textContent = last ? last.close.toFixed(2) : '—';
+                        }
+
+                        if (pePrice) {
+                            peLtpEl.textContent = pePrice.close?.toFixed(2) ?? '—';
+                        } else {
+                            const last = cached.pe[cached.pe.length - 1];
+                            peLtpEl.textContent = last ? last.close.toFixed(2) : '—';
+                        }
+                    });
+
                     new ResizeObserver(() => chart.applyOptions({ width: container.clientWidth }))
                         .observe(container);
                 });
@@ -521,6 +563,18 @@
 
                     entry.ceSeries.setData(applyBuildupColors(ceCandles));
                     entry.peSeries.setData(applyBuildupColors(peCandles));
+
+                    state.lastCandles[strike] = { ce: ceCandles, pe: peCandles };
+
+                    // After setData calls inside renderCharts:
+                    const ceLtpEl = document.getElementById(`ce-ltp-${strike}`);
+                    const peLtpEl = document.getElementById(`pe-ltp-${strike}`);
+
+                    const lastCe = ceCandles[ceCandles.length - 1];
+                    const lastPe = peCandles[peCandles.length - 1];
+
+                    if (ceLtpEl) ceLtpEl.textContent = lastCe ? lastCe.close.toFixed(2) : '—';
+                    if (peLtpEl) peLtpEl.textContent = lastPe ? lastPe.close.toFixed(2) : '—';
 
                     entry.lines.forEach(l => {
                         try { entry.ceSeries.removePriceLine(l); } catch(e) {}
@@ -637,6 +691,12 @@
                 fsOverlay.classList.remove('hidden');
                 fsTitle.textContent = `Strike ${parseInt(strike).toLocaleString('en-IN')}`;
 
+                const strikeLabel = parseInt(strike).toLocaleString('en-IN');
+                const fsCeLabel = document.getElementById('fsCeLabel');
+                const fsPeLabel = document.getElementById('fsPeLabel');
+                if (fsCeLabel) fsCeLabel.textContent = `${strikeLabel} CE`;
+                if (fsPeLabel) fsPeLabel.textContent = `${strikeLabel} PE`;
+
                 // Destroy previous FS chart
                 if (state.fsChart) {
                     state.fsChart.chart?.remove();
@@ -683,6 +743,23 @@
 
                 state.fsChart = { chart, ceSeries, peSeries, lines: [] };
 
+                const fsCeLtpEl = document.getElementById('fsCeLtp');
+                const fsPeLtpEl = document.getElementById('fsPeLtp');
+
+                // REPLACE the FS crosshair subscription:
+                chart.subscribeCrosshairMove(param => {
+                    const entry = state.fsChart;
+                    if (!entry) return;
+                    const cePrice = param.seriesData?.get(entry.ceSeries);
+                    const pePrice = param.seriesData?.get(entry.peSeries);
+
+                    const fsCeLtpEl = document.getElementById('fsCeLtp');
+                    const fsPeLtpEl = document.getElementById('fsPeLtp');
+
+                    if (fsCeLtpEl) fsCeLtpEl.textContent = cePrice ? cePrice.close.toFixed(2) : (state.fsLastCandles?.ce?.slice(-1)[0]?.close.toFixed(2) ?? '—');
+                    if (fsPeLtpEl) fsPeLtpEl.textContent = pePrice ? pePrice.close.toFixed(2) : (state.fsLastCandles?.pe?.slice(-1)[0]?.close.toFixed(2) ?? '—');
+                });
+
                 new ResizeObserver(() => {
                     chart.applyOptions({
                         width:  fsContainer.clientWidth,
@@ -702,11 +779,27 @@
                 const entry = state.fsChart;
                 if (!entry?.chart) return;
 
+                try {
+                    entry.chart.timeScale();
+                } catch (e) {
+                    state.fsChart = null;
+                    return;
+                }
+
                 const ceCandles = normalizeCandles(data.ohlc?.[strike]?.['CE'] ?? []);
                 const peCandles = normalizeCandles(data.ohlc?.[strike]?.['PE'] ?? []);
 
                 entry.ceSeries.setData(applyBuildupColors(ceCandles));
                 entry.peSeries.setData(applyBuildupColors(peCandles));
+
+                state.fsLastCandles = { ce: ceCandles, pe: peCandles };
+
+                const fsCeLtpEl = document.getElementById('fsCeLtp');
+                const fsPeLtpEl = document.getElementById('fsPeLtp');
+                const lastCe = ceCandles[ceCandles.length - 1];
+                const lastPe = peCandles[peCandles.length - 1];
+                if (fsCeLtpEl) fsCeLtpEl.textContent = lastCe ? lastCe.close.toFixed(2) : '—';
+                if (fsPeLtpEl) fsPeLtpEl.textContent = lastPe ? lastPe.close.toFixed(2) : '—';
 
 
                 entry.lines.forEach(l => {

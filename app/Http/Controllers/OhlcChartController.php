@@ -285,7 +285,7 @@ class OhlcChartController extends Controller
             $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
         }
 
-        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $date)->first();
+        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $prevDay)->first();
 
         return response()->json([
             'expiries'        => [$expiryForAtm],
