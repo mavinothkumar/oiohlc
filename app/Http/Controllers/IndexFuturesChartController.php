@@ -108,7 +108,7 @@ class IndexFuturesChartController extends Controller
                    ->where('interval', '5minute')
                    ->whereBetween('timestamp', [$startOfDay, $endOfDay])
                    ->orderBy('timestamp', 'asc')
-                   ->get(['open', 'high', 'low', 'close', 'timestamp']);
+                   ->get(['open', 'high', 'low', 'close', 'timestamp', 'build_up']);
 
 
         $highestHigh = $index5m->max('high');
@@ -126,10 +126,20 @@ class IndexFuturesChartController extends Controller
             'close' => (float) $row->close,
         ];
 
+        // New futures map (add below $map)
+        $futMap = fn($row) => [
+            'time'     => strtotime($row->timestamp),
+            'open'     => (float) $row->open,
+            'high'     => (float) $row->high,
+            'low'      => (float) $row->low,
+            'close'    => (float) $row->close,
+            'build_up' => $row->build_up ?? null,
+        ];
+
         return response()->json([
             'trend_data'  => $trendData,
             'index_data'  => $index5m->map($map)->values(),
-            'future_data' => $fut5m->map($map)->values(),
+            'future_data' => $fut5m->map($futMap)->values(),
         ]);
     }
 

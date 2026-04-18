@@ -28,9 +28,6 @@
             </div>
         </div>
 
-
-
-
         <div id="trend-container"
             class="flex gap-2 p-2 overflow-x-auto whitespace-nowrap bg-gray-50 rounded shadow-sm border">
 
@@ -183,18 +180,30 @@
                 ) / 1000;
             }
 
-            function normalize (data) {
-                if ( ! Array.isArray(data)) return [];
+            function normalize(data) {
+                if (!Array.isArray(data)) return [];
                 return data
                     .filter(c => c && c.time != null)
-                    .map(c => ( {
-                        time: timeToLocal(c.time),
-                        open: Number(c.open),
-                        high: Number(c.high),
-                        low: Number(c.low),
-                        close: Number(c.close)
-                    } ))
+                    .map(c => ({
+                        time:     timeToLocal(c.time),
+                        open:     Number(c.open),
+                        high:     Number(c.high),
+                        low:      Number(c.low),
+                        close:    Number(c.close),
+                        build_up: c.build_up ?? null,
+                    }))
                     .sort((a, b) => a.time - b.time);
+            }
+
+            // Returns candle color config based on build_up value
+            function buildUpColor(buildUp) {
+                switch ((buildUp || '').trim().toUpperCase()) {  // ← toUpperCase is fine IF cases also match
+                    case 'LONG BUILD':  return { color: '#16a34a', borderColor: '#16a34a', wickColor: '#16a34a' };
+                    case 'SHORT BUILD': return { color: '#dc2626', borderColor: '#dc2626', wickColor: '#dc2626' };
+                    case 'SHORT COVER': return { color: '#1e3a5f', borderColor: '#1e3a5f', wickColor: '#1e3a5f' };
+                    case 'LONG UNWIND': return { color: '#eab308', borderColor: '#eab308', wickColor: '#eab308' };
+                    default: return null;
+                }
             }
 
             function ensureTrendLines () {
@@ -430,7 +439,22 @@
                     const futureData = normalize(json.future_data || []);
 
                     indexSeries.setData(indexData);
-                    futureSeries.setData(futureData);
+                    const futureDataColored = futureData.map(candle => {
+                        const colors = buildUpColor(candle.build_up);
+
+                        if (colors) {
+                            return { ...candle, ...colors };
+                        }
+                        // Fallback to default green/red
+                        const isUp = candle.close >= candle.open;
+                        return {
+                            ...candle,
+                            color:       isUp ? '#16a34a' : '#dc2626',
+                            borderColor: isUp ? '#16a34a' : '#dc2626',
+                            wickColor:   isUp ? '#16a34a' : '#dc2626',
+                        };
+                    });
+                    futureSeries.setData(futureDataColored);
 
                     indexChart.timeScale().fitContent();
                     futureChart.timeScale().fitContent();
