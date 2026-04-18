@@ -160,6 +160,15 @@
                 fsInitialized: false,
             };
 
+            // Build-up type colors
+            const BUILDUP_COLORS = {
+                LB: '#16a34a',      // Long Build-up   → Green
+                SB: '#dc2626',      // Short Build-up  → Red
+                SC: '#1e3a8a',      // Short Covering  → Navy Blue
+                LU: '#eab308',      // Long Unwinding  → Yellow
+                INDECISION: '#111111' // No clear type  → Black
+            };
+
             // ── DOM refs ─────────────────────────────────────────────────────────
             const $ = id => document.getElementById(id);
             const symbolInput     = $('symbolInput');
@@ -197,6 +206,29 @@
                 ['#065f46','#9333ea'],['#1e3a8a','#991b1b'],
             ];
 
+            /**
+             * Determine build-up type for a single candle
+             * compared to the previous candle's OI.
+             * @param {number} close     current close
+             * @param {number} open      current open
+             * @param {number} oi        current OI
+             * @param {number} prevOi    previous candle's OI (null for first candle)
+             */
+            function getBuildupColor(close, open, oi, prevOi) {
+                if (prevOi === null || prevOi === undefined || isNaN(prevOi)) {
+                    return BUILDUP_COLORS.INDECISION;
+                }
+                const priceUp = close >= open;       // bullish candle
+                const oiUp   = oi > prevOi;          // OI increased
+                const oiDown = oi < prevOi;          // OI decreased
+
+                if (priceUp && oiUp)   return BUILDUP_COLORS.LB;   // Long Build-up
+                if (!priceUp && oiUp)  return BUILDUP_COLORS.SB;   // Short Build-up
+                if (priceUp && oiDown) return BUILDUP_COLORS.SC;   // Short Covering
+                if (!priceUp && oiDown)return BUILDUP_COLORS.LU;   // Long Unwinding
+                return BUILDUP_COLORS.INDECISION;
+            }
+
             // LWC expects UTC unix seconds. Your DB timestamps are IST (UTC+5:30).
 // This converts an "HH:MM" slot label on a given date to correct UTC unix seconds.
             function slotToUtc(dateStr, timeStr) {
@@ -231,6 +263,7 @@
                         high:  Number(c.high),
                         low:   Number(c.low),
                         close: Number(c.close),
+                        oi:    Number(c.oi ?? 0),    // ← carry OI through
                     }))
                     .sort((a, b) => a.time - b.time);
             }
@@ -382,19 +415,24 @@
                     card.innerHTML = `
     <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
-            <span class="font-bold text-gray-800 text-sm">${parseInt(strike).toLocaleString('en-IN')}</span>
-            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-                <span class="inline-flex items-center gap-0.5">
-                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#16a34a"></span>
-                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#dc2626"></span>
-                    CE
+           <!-- Replace the legend span inside buildChartCards innerHTML -->
+                <span class="inline-flex items-center gap-1 text-[10px] text-gray-500 flex-wrap">
+                  <span class="inline-flex items-center gap-0.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#16a34a"></span>LB
+                  </span>
+                  <span class="inline-flex items-center gap-0.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#dc2626"></span>SB
+                  </span>
+                  <span class="inline-flex items-center gap-0.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#1e3a8a"></span>SC
+                  </span>
+                  <span class="inline-flex items-center gap-0.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#eab308"></span>LU
+                  </span>
+                  <span class="inline-flex items-center gap-0.5">
+                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#111111"></span>Indecision
+                  </span>
                 </span>
-                <span class="inline-flex items-center gap-0.5 ml-1">
-                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#0ea5e9"></span>
-                    <span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#f97316"></span>
-                    PE
-                </span>
-            </span>
         </div>
         <div class="flex items-center gap-2">
             <div id="cell-${strike}" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">—</div>
@@ -437,23 +475,22 @@
 
                     // CE series — blue up candle, red down candle
                     const ceSeries = chart.addCandlestickSeries({
-                        upColor:          '#16a34a',   // green body — bullish CE
-                        downColor:        '#dc2626',   // red body   — bearish CE
-                        borderUpColor:    '#16a34a',
-                        borderDownColor:  '#dc2626',
-                        wickUpColor:      '#16a34a',
-                        wickDownColor:    '#dc2626',
+                        upColor:        BUILDUP_COLORS.LB,
+                        downColor:      BUILDUP_COLORS.SB,
+                        borderUpColor:  BUILDUP_COLORS.LB,
+                        borderDownColor:BUILDUP_COLORS.SB,
+                        wickUpColor:    BUILDUP_COLORS.LB,
+                        wickDownColor:  BUILDUP_COLORS.SB,
                     });
-
 // PE series — blue up candle, orange down candle
 // Use a different wick/border color so you can tell CE from PE
                     const peSeries = chart.addCandlestickSeries({
-                        upColor:          '#0ea5e9',   // sky-blue body  — bullish PE
-                        downColor:        '#f97316',   // orange body    — bearish PE
-                        borderUpColor:    '#0ea5e9',
-                        borderDownColor:  '#f97316',
-                        wickUpColor:      '#0ea5e9',
-                        wickDownColor:    '#f97316',
+                        upColor:        BUILDUP_COLORS.LB,
+                        downColor:      BUILDUP_COLORS.SB,
+                        borderUpColor:  BUILDUP_COLORS.LB,
+                        borderDownColor:BUILDUP_COLORS.SB,
+                        wickUpColor:    BUILDUP_COLORS.LB,
+                        wickDownColor:  BUILDUP_COLORS.SB,
                     });
 
                     state.charts[strike] = { chart, ceSeries, peSeries, lines: [] };
@@ -482,8 +519,8 @@
                     const ceCandles = normalizeCandles(data.ohlc?.[strike]?.['CE'] ?? []);
                     const peCandles = normalizeCandles(data.ohlc?.[strike]?.['PE'] ?? []);
 
-                    entry.ceSeries.setData(ceCandles);
-                    entry.peSeries.setData(peCandles);
+                    entry.ceSeries.setData(applyBuildupColors(ceCandles));
+                    entry.peSeries.setData(applyBuildupColors(peCandles));
 
                     entry.lines.forEach(l => {
                         try { entry.ceSeries.removePriceLine(l); } catch(e) {}
@@ -501,6 +538,23 @@
                 if (state.fsChart && state.fsStrike !== null) {
                     renderFullscreenChart(data, state.fsStrike, state.fsColorIndex, isFirst);
                 }
+            }
+
+            /**
+             * Takes normalized candles (with .oi) and annotates each candle
+             * with its build-up color.
+             */
+            function applyBuildupColors(candles) {
+                return candles.map((c, i) => {
+                    const prevOi = i > 0 ? candles[i - 1].oi : null;
+                    const col = getBuildupColor(c.close, c.open, c.oi, prevOi);
+                    return {
+                        ...c,
+                        color:       col,
+                        borderColor: col,
+                        wickColor:   col,
+                    };
+                });
             }
 
 
@@ -611,20 +665,20 @@
                 });
 
                 const ceSeries = chart.addCandlestickSeries({
-                    upColor:          '#16a34a',   // green body — bullish CE
-                    downColor:        '#dc2626',   // red body   — bearish CE
-                    borderUpColor:    '#16a34a',
-                    borderDownColor:  '#dc2626',
-                    wickUpColor:      '#16a34a',
-                    wickDownColor:    '#dc2626',
+                    upColor:        BUILDUP_COLORS.LB,
+                    downColor:      BUILDUP_COLORS.SB,
+                    borderUpColor:  BUILDUP_COLORS.LB,
+                    borderDownColor:BUILDUP_COLORS.SB,
+                    wickUpColor:    BUILDUP_COLORS.LB,
+                    wickDownColor:  BUILDUP_COLORS.SB,
                 });
                 const peSeries = chart.addCandlestickSeries({
-                    upColor:          '#0ea5e9',   // sky-blue body  — bullish PE
-                    downColor:        '#f97316',   // orange body    — bearish PE
-                    borderUpColor:    '#0ea5e9',
-                    borderDownColor:  '#f97316',
-                    wickUpColor:      '#0ea5e9',
-                    wickDownColor:    '#f97316',
+                    upColor:        BUILDUP_COLORS.LB,
+                    downColor:      BUILDUP_COLORS.SB,
+                    borderUpColor:  BUILDUP_COLORS.LB,
+                    borderDownColor:BUILDUP_COLORS.SB,
+                    wickUpColor:    BUILDUP_COLORS.LB,
+                    wickDownColor:  BUILDUP_COLORS.SB,
                 });
 
                 state.fsChart = { chart, ceSeries, peSeries, lines: [] };
@@ -651,8 +705,9 @@
                 const ceCandles = normalizeCandles(data.ohlc?.[strike]?.['CE'] ?? []);
                 const peCandles = normalizeCandles(data.ohlc?.[strike]?.['PE'] ?? []);
 
-                entry.ceSeries.setData(ceCandles);
-                entry.peSeries.setData(peCandles);
+                entry.ceSeries.setData(applyBuildupColors(ceCandles));
+                entry.peSeries.setData(applyBuildupColors(peCandles));
+
 
                 entry.lines.forEach(l => {
                     try { entry.ceSeries.removePriceLine(l); } catch (e) {}

@@ -819,6 +819,8 @@ class OhlcChartController extends Controller
                 'high'  => (float) $row->high,
                 'low'   => (float) $row->low,
                 'close' => (float) $row->close,
+                'oi'    => (float) $row->open_interest,
+                'vol'   => (float) $row->volume,
             ];
         }
 
