@@ -25,7 +25,7 @@ class CollectOhlcCommand extends Command
         // 1) Get current expiries for index and options
         $expiries = Expiry::query()
                           ->where('is_current', 1)
-                          ->whereIn('trading_symbol', ['NIFTY', 'BANKNIFTY', 'SENSEX']) // 'FINNIFTY'
+                          ->whereIn('trading_symbol', ['NIFTY']) // 'FINNIFTY', 'BANKNIFTY', 'SENSEX'
                           ->whereIn('instrument_type', ['FUT', 'OPT'])
                           ->get();
 

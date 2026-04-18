@@ -12,41 +12,39 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
-class CollectOhlc5mCommand extends Command
-{
+class CollectOhlc5mCommand extends Command {
     protected $signature = 'market:collect-ohlc-5m';
     protected $description = 'Collect 5-minute live OHLC data from Upstox for current expiry indices and options';
 
-    public function handle(): int
-    {
-        $this->info('Collecting current-expiry instruments...');
+    public function handle(): int {
+        $this->info( 'Collecting current-expiry instruments...' );
 
         // 1) Get current expiries for index and options
         $expiries = Expiry::query()
-                          ->where('is_current', 1)
-                          ->whereIn('trading_symbol', ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY'])
-                          ->whereIn('instrument_type', ['FUT', 'OPT'])
+                          ->where( 'is_current', 1 )
+                          ->whereIn( 'trading_symbol', [ 'NIFTY' ] ) //, 'BANKNIFTY', 'SENSEX', 'FINNIFTY'
+                          ->whereIn( 'instrument_type', [ 'FUT', 'OPT' ] )
                           ->get();
 
-        if ($expiries->isEmpty()) {
-            $this->warn('No current expiries found.');
+        if ( $expiries->isEmpty() ) {
+            $this->warn( 'No current expiries found.' );
 
             return self::SUCCESS;
         }
 
         // 2) Map (trading_symbol, expiry) to expiry_date
         // Assuming expiries table has columns: trading_symbol, instrument_type, expiry, expiry_date
-        $this->info('Resolving instruments for current expiries...');
+        $this->info( 'Resolving instruments for current expiries...' );
 
         $instrumentMeta = []; // instrument_key => [instrument_type, expiry_date]
 
-        foreach ($expiries as $expiry) {
+        foreach ( $expiries as $expiry ) {
             $query = Instrument::query()
-                               ->where('name', $expiry->trading_symbol);
+                               ->where( 'name', $expiry->trading_symbol );
 
             // If both tables share an "expiry" column (string code)
-            if ( ! is_null($expiry->expiry ?? null)) {
-                $query->where('expiry', $expiry->expiry);
+            if ( ! is_null( $expiry->expiry ?? null ) ) {
+                $query->where( 'expiry', $expiry->expiry );
             }
 
             // If instruments also store instrument_type, match it as well
@@ -54,10 +52,10 @@ class CollectOhlc5mCommand extends Command
 //                $query->where('instrument_type', $expiry->instrument_type);
 //            }
 
-            $instruments = $query->get(['instrument_key', 'instrument_type', 'strike_price', 'name']);
+            $instruments = $query->get( [ 'instrument_key', 'instrument_type', 'strike_price', 'name' ] );
 
-            foreach ($instruments as $instrument) {
-                $instrumentMeta[$instrument->instrument_key] = [
+            foreach ( $instruments as $instrument ) {
+                $instrumentMeta[ $instrument->instrument_key ] = [
                     'trading_symbol'  => $instrument->name,
                     'instrument_type' => $instrument->instrument_type,
                     'strike_price'    => $instrument->strike_price,
@@ -68,55 +66,59 @@ class CollectOhlc5mCommand extends Command
             }
         }
 
-        if (empty($instrumentMeta)) {
-            $this->warn('No instruments found for current expiries.');
+        if ( empty( $instrumentMeta ) ) {
+            $this->warn( 'No instruments found for current expiries.' );
 
             return self::SUCCESS;
         }
 
-        $index          = Instrument::where('instrument_type', 'INDEX')->get([
-            'instrument_type', 'expiry as expiry_date', 'instrument_key', 'strike_price', 'name as trading_symbol',
-        ])->keyBy('instrument_key')->toArray();
-        $instrumentMeta = array_merge($index, $instrumentMeta);
-        $instrumentKeys = array_keys($instrumentMeta);
+        $index          = Instrument::where( 'instrument_type', 'INDEX' )->get( [
+            'instrument_type',
+            'expiry as expiry_date',
+            'instrument_key',
+            'strike_price',
+            'name as trading_symbol',
+        ] )->keyBy( 'instrument_key' )->toArray();
+        $instrumentMeta = array_merge( $index, $instrumentMeta );
+        $instrumentKeys = array_keys( $instrumentMeta );
 
-        $this->info('Total instruments to query: '.count($instrumentKeys));
+        $this->info( 'Total instruments to query: ' . count( $instrumentKeys ) );
         $interval = 'I5';
         // 3) Chunk into max 500 instrument keys per request
-        $chunks = array_chunk($instrumentKeys, 500);
+        $chunks = array_chunk( $instrumentKeys, 900 );
 
-        $accessToken = config('services.upstox.access_token');
-        if ( ! $accessToken) {
-            $this->error('Upstox access token not configured (services.upstox.access_token).');
+        $accessToken = config( 'services.upstox.analytics_token' );
+        if ( ! $accessToken ) {
+            $this->error( 'Upstox access token not configured (services.upstox.analytics_token).' );
 
             return self::FAILURE;
         }
 
-        foreach ($chunks as $chunkIndex => $chunkKeys) {
-            $this->info(sprintf('Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count($chunkKeys)));
+        foreach ( $chunks as $chunkIndex => $chunkKeys ) {
+            $this->info( sprintf( 'Fetching OHLC for chunk %d with %d instruments...', $chunkIndex + 1, count( $chunkKeys ) ) );
 
-            $instrumentKeyParam = implode(',', $chunkKeys);
+            $instrumentKeyParam = implode( ',', $chunkKeys );
 
-            $response = Http::withHeaders([
+            $response = Http::withHeaders( [
                 'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
-                'Authorization' => 'Bearer '.$accessToken,
-            ])
-                            ->timeout(10)
-                            ->get('https://api.upstox.com/v3/market-quote/ohlc', [
+                'Authorization' => 'Bearer ' . $accessToken,
+            ] )
+                            ->timeout( 10 )
+                            ->get( 'https://api.upstox.com/v3/market-quote/ohlc', [
                                 'instrument_key' => $instrumentKeyParam,
                                 'interval'       => $interval, // always 5-min interval
-                            ]);
+                            ] );
 
-            if ( ! $response->ok()) {
-                $this->error('Upstox API error: HTTP '.$response->status());
+            if ( ! $response->ok() ) {
+                $this->error( 'Upstox API error: HTTP ' . $response->status() );
                 continue;
             }
 
             $body = $response->json();
 
-            if ( ! isset($body['status']) || $body['status'] !== 'success' || ! isset($body['data'])) {
-                $this->error('Unexpected Upstox response format.');
+            if ( ! isset( $body['status'] ) || $body['status'] !== 'success' || ! isset( $body['data'] ) ) {
+                $this->error( 'Unexpected Upstox response format.' );
                 continue;
             }
 
@@ -124,24 +126,24 @@ class CollectOhlc5mCommand extends Command
 
             DB::beginTransaction();
             try {
-                foreach ($data as $instrumentKey => $quote) {
-                    if ( ! isset($instrumentMeta[$quote['instrument_token']])) {
+                foreach ( $data as $instrumentKey => $quote ) {
+                    if ( ! isset( $instrumentMeta[ $quote['instrument_token'] ] ) ) {
                         // Instrument not in our map, skip
                         continue;
                     }
 
-                    $meta = $instrumentMeta[$quote['instrument_token']];
+                    $meta = $instrumentMeta[ $quote['instrument_token'] ];
 
                     $live = $quote['live_ohlc'] ?? null;
-                    if ( ! $live) {
+                    if ( ! $live ) {
                         // No live data
                         continue;
                     }
 
                     $tsMs = $live['ts'] ?? null;
                     $tsAt = null;
-                    if ($tsMs) {
-                        $tsAt = Carbon::createFromTimestampMs($tsMs)->setTimezone(config('app.timezone'));
+                    if ( $tsMs ) {
+                        $tsAt = Carbon::createFromTimestampMs( $tsMs )->setTimezone( config( 'app.timezone' ) );
                     }
 
                     // Upsert on instrument_key + ts to keep one row per candle
@@ -170,14 +172,14 @@ class CollectOhlc5mCommand extends Command
                 }
 
                 DB::commit();
-            } catch (\Throwable $e) {
+            } catch ( \Throwable $e ) {
                 DB::rollBack();
-                $this->error('DB error: '.$e->getMessage());
+                $this->error( 'DB error: ' . $e->getMessage() );
             }
         }
-        $this->info('OHLC collection of '.$interval.' completed.');
+        $this->info( 'OHLC collection of ' . $interval . ' completed.' );
 
-        $this->info('OHLC collection complete.');
+        $this->info( 'OHLC collection complete.' );
 
         return self::SUCCESS;
     }
