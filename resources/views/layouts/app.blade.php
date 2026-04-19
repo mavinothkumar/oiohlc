@@ -33,6 +33,8 @@
                 const now = new Date();
                 const hours = now.getHours();
                 const minutes = now.getMinutes();
+                const day = now.getDay();
+                if ( day === 0 || day === 6 ) return false;
 
                 // Convert current time to minutes since midnight
                 const currentMinutes = hours * 60 + minutes;

@@ -92,6 +92,11 @@ Route::get( '/build-up-analysis', [ App\Http\Controllers\BuildUpAnalysisControll
 Route::get( '/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'index' ] )->name( 'option-chain.analysis' );
 Route::get( '/api/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'getData' ] )->name( 'option-chain.analysis.data' );
 
+Route::get('/options-charts', [ App\Http\Controllers\OptionsChartController::class, 'index'])->name('options.chart.index');
+Route::get('/options-charts/expiry-range', [ App\Http\Controllers\OptionsChartController::class, 'getExpiryRange'])->name('options.chart.expiry.range');
+Route::get('/options-charts/chart-data', [ App\Http\Controllers\OptionsChartController::class, 'getChartData'])->name('options.chart.chart.data');
+
+
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {
     Route::get( '/options-multi-chart', [ App\Http\Controllers\OhlcChartController::class, 'multiIndex' ] )->name( 'options.multi.chart' );

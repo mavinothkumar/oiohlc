@@ -159,9 +159,9 @@ class OhlcChartController extends Controller
         // previous working day (for backtesting – ignore `current`/`previous` flags)
         $prevDate = $date;
         DB::table('nse_working_days')
-                      ->where('working_date', '<', $date)
-                      ->orderBy('working_date', 'desc')
-                      ->value('working_date');   // null if no earlier day
+          ->where('working_date', '<', $date)
+          ->orderBy('working_date', 'desc')
+          ->value('working_date');   // null if no earlier day
 
         // base for selected day
         $baseToday = DB::table('expired_ohlc')
@@ -273,11 +273,11 @@ class OhlcChartController extends Controller
 //                      ->pluck('expiry');
 
         $expiryForAtm = DB::table('expired_expiries')
-                      ->where('underlying_symbol', $symbol)
-                      ->where('instrument_type', 'OPT')
-                      ->where('expiry_date', '>=', $date)
-                      ->orderBy('expiry_date')
-                      ->value('expiry_date');
+                          ->where('underlying_symbol', $symbol)
+                          ->where('instrument_type', 'OPT')
+                          ->where('expiry_date', '>=', $date)
+                          ->orderBy('expiry_date')
+                          ->value('expiry_date');
 
         $atmStrike    = null;
         if ($expiryForAtm) {
@@ -807,7 +807,7 @@ class OhlcChartController extends Controller
                   ->whereIn('instrument_type', ['CE', 'PE'])
                   ->whereRaw("TIME(timestamp) <= ?", [$currSlot . ':00'])
                   ->orderBy('timestamp', 'asc')
-            ->distinct()
+                  ->distinct()
                   ->get(['strike', 'instrument_type', 'open', 'high', 'low', 'close', 'volume', 'open_interest', 'timestamp']);
 
         // ── Group: [strike][type][] = candle array ────────────────────────────
