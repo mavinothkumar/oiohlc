@@ -132,12 +132,12 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     // Simulator actions (POST)
     Route::post( '/trading-simulator/position/enter', [ App\Http\Controllers\TradingSimulatorController::class, 'enterPosition' ] )->name( 'trading-simulator.enter' );
     Route::post( '/trading-simulator/position/exit', [ App\Http\Controllers\TradingSimulatorController::class, 'exitPosition' ] )->name( 'trading-simulator.exit' );
-
+    Route::delete('/trading-simulator/position/{id}', [App\Http\Controllers\TradingSimulatorController::class, 'deletePosition'])->name('trading-simulator.delete');
 // Report
     Route::get( '/trading-simulator/report', [ App\Http\Controllers\TradingSimulatorController::class, 'report' ] )->name( 'trading-simulator.report' );
     Route::get( '/trading-simulator/report/{position}', [ App\Http\Controllers\TradingSimulatorController::class, 'reportDetail' ] )->name( 'trading-simulator.report.detail' );
     Route::post( '/trading-simulator/report/{position}/note', [ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
-    Route::post( '/trading-simulator/position/enter', [ App\Http\Controllers\TradingSimulatorController::class, 'enterPosition' ] )->name( 'trading-simulator.enter' );
+
 
 
     Route::get( '/oi-volume-chart', [ App\Http\Controllers\OiVolumeChartController::class, 'index' ] )->name( 'oi.volume.chart' );

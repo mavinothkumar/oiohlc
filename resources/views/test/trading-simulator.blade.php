@@ -197,6 +197,20 @@
                             Open Positions
                             <span id="positions-count" class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full font-mono">0</span>
                         </h2>
+
+
+                        <div class="mt-3">
+                            <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">Strategy</label>
+                            <div class="flex flex-wrap gap-1.5" id="strategy-tags">
+                                @foreach(['Trend Follow','Mean Revert','Breakout','Scalp','Hedge','Other'] as $strat)
+                                    <button type="button"
+                                        class="strategy-tag text-xs px-2.5 py-1 rounded-lg border border-gray-700 text-gray-400 bg-gray-800/60 hover:border-purple-700 hover:text-purple-300 transition-all font-medium"
+                                        data-strategy="{{ $strat }}">{{ $strat }}</button>
+                                @endforeach
+                            </div>
+                            <input type="hidden" id="selected-strategy" value="">
+                        </div>
+
                         <button id="btn-square-off-all"
                             class="text-xs text-red-400 hover:text-red-300 border border-red-900 hover:border-red-700 bg-red-950/40 hover:bg-red-950/70 rounded-lg px-3 py-1.5 transition-all font-medium">
                             Square Off All
@@ -213,7 +227,8 @@
                                 <th class="px-4 py-2.5 text-right font-medium">Lots</th>
                                 <th class="px-4 py-2.5 text-right font-medium">Qty</th>
                                 <th class="px-4 py-2.5 text-right font-medium">Current</th>
-                                <th class="px-4 py-2.5 text-right font-medium text-yellow-500">Diff (pts)</th>  {{-- NEW --}}
+                                <th class="px-4 py-2.5 text-right font-medium text-yellow-500">Diff (pts)</th>
+                                <th class="px-4 py-2.5 text-right font-medium text-purple-400">Chg %</th>
                                 <th class="px-4 py-2.5 text-right font-medium">P&amp;L</th>
                                 <th class="px-4 py-2.5 text-center font-medium">Actions</th>
                             </tr>
@@ -383,6 +398,18 @@
                         </div>
                     </div>
 
+                    {{-- Strategy --}}
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">Strategy</label>
+                        <div class="flex flex-wrap gap-1.5" id="exit-strategy-tags">
+                            @foreach(['Trend Follow','Mean Revert','Breakout','Scalp','Hedge','Other'] as $strat)
+                                <button type="button"
+                                    class="exit-strategy-tag text-xs px-2.5 py-1 rounded-lg border border-gray-700 text-gray-400 bg-gray-800/60 hover:border-purple-700 hover:text-purple-300 transition-all font-medium"
+                                    data-strategy="{{ $strat }}">{{ $strat }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+
                     {{-- Comment (Quill) --}}
                     <div>
                         <label class="block text-xs text-gray-400 mb-1.5 font-medium uppercase tracking-wide">
@@ -412,7 +439,7 @@
 
     <script>
         jQuery(document).ready(function ($) {
-            const LOTSIZE = 75;
+            const LOTSIZE = 65;
             const STARTMINUTES = 9 * 60 + 15;   // 555 = 09:15
             const ENDMINUTES   = 15 * 60 + 30;  // 930 = 15:30
             const STEPMINUTES  = 5;
@@ -444,7 +471,7 @@
                 positions: [],
                 closedTrades: [],
                 averageModal: { open: false, idx: null, lots: 1 },
-                exitModal: { open: false, idx: null, lots: 1, outcome: 'profit' },
+                exitModal: { open: false, idx: null, lots: 1, outcome: 'profit', strategy: '' },
             };
 
             // ─── Helpers ────────────────────────────────────────────────────────────
@@ -577,30 +604,45 @@
                             : diff <= -15 ? 'text-red-400 font-bold'
                                 : 'text-yellow-400';
 
+                    const pctChange = (pos.currentPrice && pos.avgEntry)
+                        ? (((pos.currentPrice - pos.avgEntry) / pos.avgEntry) * 100).toFixed(2)
+                        : null;
+                    const pctDisplay = pctChange !== null
+                        ? (pctChange >= 0 ? '+' : '') + pctChange + '%'
+                        : '—';
+                    const pctClass = pctChange === null ? 'text-gray-600'
+                        : pctChange >= 2   ? 'text-emerald-400 font-bold'
+                            : pctChange <= -2  ? 'text-red-400 font-bold'
+                                : 'text-yellow-400';
+
                     const ordersCount = (pos.orders || []).length;
 
                     const row = $(`
-            <tr class="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors" data-idx="${idx}">
-              <td class="px-4 py-3 font-mono font-semibold text-white">${pos.strike}</td>
-              <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeClass}">${pos.type}</span></td>
-              <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${pos.action}</span></td>
-              <td class="px-4 py-3 text-right font-mono text-gray-200">${pos.avgEntry.toFixed(2)}</td>
-              <td class="px-4 py-3 text-right text-gray-200">${pos.lots}</td>
-              <td class="px-4 py-3 text-right text-gray-500 font-mono">${pos.lots * LOTSIZE}</td>
-              <td class="px-4 py-3 text-right font-mono text-gray-200">${currentDisplay}</td>
-              <td class="px-4 py-3 text-right font-mono ${diffClass}">${diffDisplay}</td>
-              <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">${pnlDisplay}</td>
-              <td class="px-4 py-3">
-                <div class="flex items-center justify-center gap-1.5">
-                  <button class="btn-avg-open text-xs bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 border border-yellow-800/60 hover:border-yellow-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Avg</button>
-                  <button class="btn-orders-toggle text-xs bg-gray-800/60 hover:bg-gray-700 text-gray-400 border border-gray-700 hover:border-gray-500 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">
-                    Orders <span class="bg-gray-700 text-gray-300 rounded-full px-1.5 py-0.5 text-xs font-mono">${ordersCount}</span>
-                  </button>
-                  <button class="btn-exit-open text-xs bg-red-900/40 hover:bg-red-900/70 text-red-400 border border-red-800/60 hover:border-red-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Exit</button>
-                </div>
-              </td>
-            </tr>
-        `);
+                          <tr class="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors" data-idx="${idx}">
+                            <td class="px-4 py-3 font-mono font-semibold text-white">${pos.strike}</td>
+                            <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${typeClass}">${pos.type}</span></td>
+                            <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-0.5 rounded-md ${sideClass}">${pos.action}</span></td>
+                            <td class="px-4 py-3 text-right font-mono text-gray-200">${pos.avgEntry.toFixed(2)}</td>
+                            <td class="px-4 py-3 text-right text-gray-200">${pos.lots}</td>
+                            <td class="px-4 py-3 text-right text-gray-500 font-mono">${pos.lots * LOTSIZE}</td>
+                            <td class="px-4 py-3 text-right font-mono text-gray-200">${currentDisplay}</td>
+                            <td class="px-4 py-3 text-right font-mono ${diffClass}">${diffDisplay}</td>
+                            <td class="px-4 py-3 text-right font-mono ${pctClass}">${pctDisplay}</td>
+                            <td class="px-4 py-3 text-right font-mono font-semibold ${pnlClass}">${pnlDisplay}</td>
+                            <td class="px-4 py-3">
+                              <div class="flex items-center justify-center gap-1.5">
+                                <button class="btn-avg-open text-xs bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 border border-yellow-800/60 hover:border-yellow-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Avg</button>
+                                <button class="btn-orders-toggle text-xs bg-gray-800/60 hover:bg-gray-700 text-gray-400 border border-gray-700 hover:border-gray-500 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">
+                                  Orders <span class="bg-gray-700 text-gray-300 rounded-full px-1.5 py-0.5 text-xs font-mono">${ordersCount}</span>
+                                </button>
+                                <button class="btn-exit-open text-xs bg-red-900/40 hover:bg-red-900/70 text-red-400 border border-red-800/60 hover:border-red-700 rounded-lg px-2.5 py-1 transition-all font-medium" data-idx="${idx}">Exit</button>
+                                <button class="btn-delete-pos text-xs bg-gray-800/60 hover:bg-red-900/60 text-gray-500 hover:text-red-400 border border-gray-700 hover:border-red-800/60 rounded-lg px-2 py-1 transition-all" data-idx="${idx}" data-id="${pos.positionId ?? ''}" title="Delete position">
+                                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        `);
                     tbody.append(row);
 
                     // Orders sub-row (collapsed by default)
@@ -948,7 +990,7 @@
                     existing.lots        += state.newLots;
                     existing.currentPrice = entryPrice;
                     existing.pnl          = calcPnl(existing);
-
+                    if (state.currentStrategy) existing.strategy = state.currentStrategy;
                     if (!existing.orders) existing.orders = [];
                     existing.orders.push({
                         type:  'entry',
@@ -983,6 +1025,7 @@
                         pnl:          0,
                         showOrders:   false,
                         orders:       [],
+                        strategy:     state.currentStrategy
                     };
 
                     newPos.orders.push({
@@ -1191,6 +1234,11 @@
                 // Reset Quill
                 if (exitQuill) exitQuill.setText('');
 
+                // Reset strategy
+                state.exitModal.strategy = '';
+                $('.exit-strategy-tag').removeClass('bg-purple-900/50 text-purple-300 border-purple-700')
+                    .addClass('text-gray-400 border-gray-700');
+
                 // Reset outcome UI
                 $('.outcome-toggle').removeClass('bg-emerald-900/40 text-emerald-400 border-emerald-800/60 bg-red-900/40 text-red-400 border-red-800/60 bg-yellow-900/40 text-yellow-400 border-yellow-800/60')
                     .addClass('text-gray-400 border-gray-700');
@@ -1265,6 +1313,7 @@
                     exitTime:  minutesToTime(state.currentMinutes),
                     exitType:  orderType,
                     outcome:   outcome,
+                    strategy:  state.exitModal.strategy,
                     comment:   comment !== '<p><br></p>' ? comment : '',
                 });
 
@@ -1298,6 +1347,7 @@
                             pnl:          pnl,
                             order_type:   orderType,
                             outcome:      outcome,
+                            strategy:     state.exitModal.strategy,
                             comment:      comment !== '<p><br></p>' ? comment : '',
                             exit_time:    minutesToTime(state.currentMinutes),
                             // Full position snapshot for DB
@@ -1377,6 +1427,46 @@
                 const idx = parseInt($(this).data('idx'));
                 state.positions[idx].showOrders = !state.positions[idx].showOrders;
                 render();
+            });
+
+            // ─── Strategy tag selection (exit modal) ──────────────────────────────────
+            $(document).on('click', '.exit-strategy-tag', function () {
+                const strat = $(this).data('strategy');
+                if (state.exitModal.strategy === strat) {
+                    state.exitModal.strategy = '';
+                    $('.exit-strategy-tag').removeClass('bg-purple-900/50 text-purple-300 border-purple-700')
+                        .addClass('text-gray-400 border-gray-700');
+                } else {
+                    state.exitModal.strategy = strat;
+                    $('.exit-strategy-tag').removeClass('bg-purple-900/50 text-purple-300 border-purple-700')
+                        .addClass('text-gray-400 border-gray-700');
+                    $(this).addClass('bg-purple-900/50 text-purple-300 border-purple-700')
+                        .removeClass('text-gray-400 border-gray-700');
+                }
+            });
+
+            // ─── Delete open position ─────────────────────────────────────────────────
+            $(document).on('click', '.btn-delete-pos', function () {
+                const idx  = parseInt($(this).data('idx'));
+                const dbId = $(this).data('id');
+                const pos  = state.positions[idx];
+                if (!pos) return;
+
+                if (!confirm(`Delete open position: ${pos.strike} ${pos.type}? This cannot be undone.`)) return;
+
+                state.positions.splice(idx, 1);
+                render();
+
+                if (dbId) {
+                    $.ajax({
+                        url: `/trading-simulator/position/${dbId}`,
+                        method: 'POST',
+                        data: { _token: '{{ csrf_token() }}', _method: 'DELETE' },
+                        error: function () {
+                            console.warn('Server delete failed for position', dbId);
+                        }
+                    });
+                }
             });
 
             // ─── Initial Render ──────────────────────────────────────────────────────

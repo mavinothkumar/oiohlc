@@ -158,6 +158,7 @@ class TradingSimulatorController extends Controller {
         $pnl        = $request->input('pnl');
         $orderType  = $request->input('order_type'); // partial_exit | full_exit
         $outcome    = $request->input('outcome');
+        $strategy   = $request->input('strategy', '');
         $comment    = $request->input('comment', '');
         $exitTime   = $request->input('exit_time');
 
@@ -185,6 +186,7 @@ class TradingSimulatorController extends Controller {
         $position->avg_entry    = $avgEntry;
         $position->realized_pnl = $position->realized_pnl + $pnl;
         $position->open_qty     = max(0, $position->open_qty - $exitQty);
+        if ($strategy) $position->strategy = $strategy;
         if ($orderType === 'full_exit') {
             $position->status = 'closed';
         }
@@ -204,13 +206,14 @@ class TradingSimulatorController extends Controller {
             'executed_at'  => now(),
         ]);
 
-        // Save comment/note if present
-        if (!empty($comment)) {
+        // Save note if comment, outcome or strategy present
+        if (!empty($comment) || !empty($outcome) || !empty($strategy)) {
             \App\Models\SimTradeNote::create([
                 'position_id' => $position->id,
                 'session_id'  => $sessionId,
-                'comment'     => $comment,
-                'outcome'     => $outcome,
+                'comment'     => $comment ?: null,   // ← null instead of empty string
+                'outcome'     => $outcome ?: null,
+                'strategy'    => $strategy ?: null,
                 'exit_price'  => $exitPrice,
                 'exit_qty'    => $exitQty,
             ]);
@@ -239,6 +242,9 @@ class TradingSimulatorController extends Controller {
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
+        if ($request->filled('strategy')) {
+            $query->where('strategy', $request->input('strategy'));
+        }
 
         $positions = $query->paginate(15)->withQueryString();
 
@@ -253,7 +259,12 @@ class TradingSimulatorController extends Controller {
         MIN(realized_pnl) as worst_trade
     ')->where('status', 'closed')->first();
 
-        return view('test.trading-simulator-report', compact('positions', 'stats'));
+        $strategies = \App\Models\SimPosition::whereNotNull('strategy')
+                                             ->where('strategy', '!=', '')
+                                             ->distinct()
+                                             ->pluck('strategy');
+
+        return view('test.trading-simulator-report', compact('positions', 'stats', 'strategies'));
     }
 
     /**

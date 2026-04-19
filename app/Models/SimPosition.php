@@ -7,18 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 class SimPosition extends Model
 {
     protected $fillable = [
-        'session_id',
-        'trade_date',
-        'expiry',
-        'underlying',
-        'strike',
-        'instrument_type',
-        'side',
-        'avg_entry',
-        'total_qty',
-        'open_qty',
-        'realized_pnl',
-        'status',
+	    'session_id',
+	    'trade_date',
+	    'expiry',
+	    'underlying',
+	    'strike',
+	    'instrument_type',
+	    'side',
+	    'avg_entry',
+	    'total_qty',
+	    'open_qty',
+	    'realized_pnl',
+	    'status',
+	    'strategy',
     ];
 
     protected $casts = [

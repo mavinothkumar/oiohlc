@@ -70,6 +70,12 @@
                     <p class="text-xs text-gray-500 mb-1">Avg Entry</p>
                     <p class="text-xl font-bold font-mono text-white">{{ number_format($position->avg_entry, 2) }}</p>
                 </div>
+                <div class="bg-gray-800/60 rounded-xl p-4 border border-gray-700/50">
+                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Strategy</div>
+                    <div class="text-lg font-bold text-purple-300">
+                        {{ $position->strategy ?: '—' }}
+                    </div>
+                </div>
                 <div class="bg-gray-900 border border-gray-800 rounded-2xl px-4 py-3">
                     <p class="text-xs text-gray-500 mb-1">Total Qty</p>
                     <p class="text-xl font-bold font-mono text-white">

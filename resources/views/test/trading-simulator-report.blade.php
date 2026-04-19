@@ -111,6 +111,18 @@
                             <option value="open"   {{ request('status') === 'open'   ? 'selected' : '' }}>Open</option>
                         </select>
                     </div>
+                    {{-- Strategy filter — NEW --}}
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wide">Strategy</label>
+                        <select name="strategy" class="bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-purple-600">
+                            <option value="">All Strategies</option>
+                            @foreach($strategies as $strat)
+                                <option value="{{ $strat }}" {{ request('strategy') == $strat ? 'selected' : '' }}>
+                                    {{ $strat }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
                     <div class="flex gap-2">
                         <button type="submit"
@@ -144,6 +156,7 @@
                         <tr class="text-xs text-gray-500 border-b border-gray-800 bg-gray-900/60">
                             <th class="px-4 py-2.5 text-left font-medium">Date</th>
                             <th class="px-4 py-2.5 text-left font-medium">Strike / Type</th>
+                            <th class="px-4 py-2.5 text-left font-medium">Strategy</th>
                             <th class="px-4 py-2.5 text-left font-medium">Side</th>
                             <th class="px-4 py-2.5 text-right font-medium">Avg Entry</th>
                             <th class="px-4 py-2.5 text-right font-medium">Lots / Qty</th>
@@ -191,6 +204,15 @@
                                     <span class="text-xs font-bold px-2 py-0.5 rounded-md ml-1 {{ $typeClass }}">
                     {{ $position->instrument_type }}
                   </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if($position->strategy)
+                                        <span class="text-xs font-medium px-2 py-0.5 rounded-md bg-purple-900/40 text-purple-300 border border-purple-800/60">
+            {{ $position->strategy }}
+        </span>
+                                    @else
+                                        <span class="text-gray-700">—</span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                   <span class="text-xs font-bold px-2 py-0.5 rounded-md {{ $sideClass }}">
