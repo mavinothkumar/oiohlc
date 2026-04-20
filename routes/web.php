@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TradingViewController;
 
 Route::get( '/', function () {
     return view( 'welcome' );
@@ -96,6 +97,24 @@ Route::get('/options-charts', [ App\Http\Controllers\OptionsChartController::cla
 Route::get('/options-charts/expiry-range', [ App\Http\Controllers\OptionsChartController::class, 'getExpiryRange'])->name('options.chart.expiry.range');
 Route::get('/options-charts/chart-data', [ App\Http\Controllers\OptionsChartController::class, 'getChartData'])->name('options.chart.chart.data');
 
+
+
+Route::prefix('trading')->name('trading.')->group(function () {
+
+    // Main chart page
+    Route::get('/chart', [TradingViewController::class, 'index'])
+         ->name('chart');
+
+    // AJAX: fetch candle data for submitted strikes
+    Route::post('/chart/data', [TradingViewController::class, 'fetchChartData'])
+         ->name('chart.data');
+
+    // AJAX: expiry dates for a symbol  (reads nse_expiries, is_current = 1)
+    Route::get('/expiries', [TradingViewController::class, 'getExpiries'])
+         ->name('expiries');
+
+    // NOTE: getStrikes removed – strikes are entered manually in the form.
+});
 
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {

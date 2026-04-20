@@ -64,7 +64,7 @@ Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
 
-Schedule::command( 'ohlc:collect-live' )
+Schedule::command( 'ohlc:collect-live' ) // php artisan ohlc:collect-live
         ->everyFiveMinutes()
         ->between( '9:15', '15:30' )
         ->timezone( 'Asia/Kolkata' )

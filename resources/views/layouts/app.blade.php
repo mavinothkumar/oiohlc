@@ -5,6 +5,7 @@
     <title>@yield('title', 'Market Depth')</title>
     @vite('resources/css/app.css')
     @stack('styles')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
 <header class="bg-white shadow p-4 flex items-center">
@@ -20,12 +21,13 @@
 
 @php
     $format = $format ?? 'd M Y, h:i:s'; // e.g. “02 Jun 2025, 10:15 AM”
+$routeName = request()->route()?->getName() ?? '';
 @endphp
 
 <div class="fixed top-0 right-0 m-4 text-sm font-medium">
     {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
 </div>
-@if(!Str::startsWith(request()->route()->getName(), 'test.'))
+@if(!Str::startsWith($routeName, ['test.', 'trading.']))
 {{--    @if(!request()->has('nr'))--}}
     <script>
         ( function () {
