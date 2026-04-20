@@ -10,11 +10,11 @@ return new class extends Migration {
         Schema::create('ohlc_quotes', function (Blueprint $table) {
             $table->bigIncrements('id');
 
-            $table->string('instrument_key', 100)->index();
-            $table->string('instrument_type', 20)->index(); // FUT / OPT etc.
-            $table->string('trading_symbol', 20)->index();
-            $table->date('expiry_date')->index()->nullable();
-            $table->decimal('strike_price', 10, 2)->index()->nullable();
+            $table->string('instrument_key', 100);
+            $table->string('instrument_type', 20); // FUT / OPT etc.
+            $table->string('trading_symbol', 20);
+            $table->date('expiry_date')->nullable();
+            $table->decimal('strike_price', 10, 2)->nullable();
 
             // Live OHLC data from live_ohlc
             $table->decimal('open', 15, 5)->nullable();

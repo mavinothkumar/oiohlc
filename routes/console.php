@@ -58,19 +58,28 @@ Schedule::command( 'trend:update-index-open' ) // php artisan trend:update-index
         ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
 
 
-Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
-        ->everyFiveMinutes()
-        ->between( '9:15', '15:30' )
-        ->timezone( 'Asia/Kolkata' )
-        ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
-
-Schedule::command( 'ohlc:collect-live' ) // php artisan ohlc:collect-live
-        ->everyFiveMinutes()
-        ->between( '9:15', '15:30' )
-        ->timezone( 'Asia/Kolkata' )
+Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
+        ->everyMinute()
+        ->between('9:14', '15:30')
+        ->timezone('Asia/Kolkata')
         ->withoutOverlapping()
         ->runInBackground()
-        ->appendOutputTo( storage_path( 'logs/live-ohlc.log' ) );
+        ->appendOutputTo(storage_path('logs/ohlc-1min.log'));
+
+
+//Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
+//        ->everyFiveMinutes()
+//        ->between( '9:15', '15:30' )
+//        ->timezone( 'Asia/Kolkata' )
+//        ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
+
+//Schedule::command( 'ohlc:collect-live' ) // php artisan ohlc:collect-live
+//        ->everyFiveMinutes()
+//        ->between( '9:15', '15:30' )
+//        ->timezone( 'Asia/Kolkata' )
+//        ->withoutOverlapping()
+//        ->runInBackground()
+//        ->appendOutputTo( storage_path( 'logs/live-ohlc.log' ) );
 
 //Schedule::command('bias:snapshot NIFTY --strikes=3') // php artisan bias:snapshot NIFTY --strikes=3
 //        ->everyFiveMinutes()
