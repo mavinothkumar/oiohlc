@@ -2163,23 +2163,31 @@
                     return '<span class="signal-pill">' + escapeHtml(r) + '</span>';
                 }).join('');
 
-                var bullishBearish = grouped.filter(function (g) {
-                    return g.overallSignal === 'Bullish Buy' || g.overallSignal === 'Bearish Sell';
+                var bullishCount = grouped.filter(function (g) {
+                    return g.overallSignal === 'Bullish Buy';
                 }).length;
 
-                var directional = grouped.filter(function (g) {
-                    return g.overallSignal === 'Buy' || g.overallSignal === 'Sell';
+                var bearishCount = grouped.filter(function (g) {
+                    return g.overallSignal === 'Bearish Sell';
                 }).length;
 
-                var ignore = grouped.filter(function (g) {
+                var buySellBuyCount = grouped.filter(function (g) {
+                    return g.overallSignal === 'Buy' || g.overallSignal === 'Bullish Buy';
+                }).length;
+
+                var buySellSellCount = grouped.filter(function (g) {
+                    return g.overallSignal === 'Sell' || g.overallSignal === 'Bearish Sell';
+                }).length;
+
+                var ignoreCount = grouped.filter(function (g) {
                     return g.overallSignal === 'Ignore';
                 }).length;
 
                 signalStats.innerHTML = [
-                    statCard('Bullish / Bearish', bullishBearish),
-                    statCard('Buy / Sell', directional),
-                    statCard('Ignore', ignore),
-                    statCard('Time blocks', grouped.length)
+                    statCard('Bullish / Bearish', bullishCount + ' / ' + bearishCount),
+                    statCard('Buy / Sell', buySellBuyCount + ' / ' + buySellSellCount),
+                    statCard('Ignore', ignoreCount),
+                    statCard('Time Blocks', grouped.length)
                 ].join('');
 
                 renderGroupedSignalTable(history);
