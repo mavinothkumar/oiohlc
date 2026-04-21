@@ -16,6 +16,6 @@ class TriggerOptionChainOnFiveMin
             return;
         }
 
-        dispatch(new FetchOptionChainJob());
+        dispatch(new FetchOptionChainJob($event->symbol, $event->timestamp));
     }
 }

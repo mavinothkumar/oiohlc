@@ -46,7 +46,7 @@ class UpdateDailyTrendIndexOpen extends Command
         ];
 
         $interval    = '1d';
-        $accessToken = config('services.upstox.access_token'); // or however you store it
+        $accessToken = config('services.upstox.analytics_token'); // or however you store it
 
         $instrumentKeyParam = implode(',', $instrumentKeys);
 

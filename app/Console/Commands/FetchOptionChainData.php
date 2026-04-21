@@ -2,239 +2,317 @@
 
 namespace App\Console\Commands;
 
-use App\Models\OptionChain;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use function Laravel\Prompts\table;
 
 class FetchOptionChainData extends Command {
     protected $signature = 'optionchain:fetch';
-    protected $description = 'Fetch option chain data from Upstox API every 1 minute and aggregate every 3 minutes within market hours';
+    protected $description = 'Fetch option chain data from Upstox API every 1 minute and aggregate every 5 minutes';
 
-    public function handle() {
+    public function handle(): int {
         $this->fetchAndStoreOptionChain();
-        $this->aggregateFiveMinCandle();
+        $this->aggregateFiveMinuteData();
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 
-    private function aggregateFiveMinCandle(): void {
-        $now = now();
-
-        $minute    = (int) $now->format( 'i' );
-        $candleMin = intdiv( $minute, 5 ) * 5;
-        $candleTs  = $now->copy()->minute( $candleMin )->second( 0 );
-
-        $windowStart = $candleTs->copy()->subMinutes( 4 );
-        $windowEnd   = $candleTs->copy();
-
+    private function fetchAndStoreOptionChain(): void {
         $instruments = [
             [ 'key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY' ],
-            // ['key' => 'NSE_INDEX|Nifty Bank',        'symbol' => 'BANKNIFTY'],
-            // ['key' => 'NSE_INDEX|Nifty Fin Service',  'symbol' => 'FINNIFTY'],
-            // ['key' => 'BSE_INDEX|SENSEX',             'symbol' => 'SENSEX'],
-        ];
-
-        info('aggregateFiveMinCandle starts'. now()->toTimeString());
-        foreach ( $instruments as $inst ) {
-            // Pull 5 x 1-min candles to build OHLC
-            $oneMinCandles = DB::table( 'ohlc_quotes' )
-                               ->where( 'trading_symbol', $inst['symbol'] )
-                               ->whereBetween( 'ts_at', [ $windowStart, $windowEnd ] )
-                               ->orderBy( 'ts_at' )
-                               ->get();
-
-            if ( $oneMinCandles->isEmpty() ) {
-                Log::warning( "No 1-min candles for {$inst['symbol']} between {$windowStart} and {$windowEnd}" );
-                continue;
-            }
-
-            $open  = $oneMinCandles->first()->open;
-            $high  = $oneMinCandles->max( 'high' );
-            $low   = $oneMinCandles->min( 'low' );
-            $close = $oneMinCandles->last()->close;
-
-            $latestChain = DB::table( 'option_chains' )
-                             ->where( 'trading_symbol', $inst['symbol'] )
-                             ->where( 'captured_at', '<=', $now )
-                             ->orderByDesc( 'captured_at' )
-                             ->select( [ 'oi', 'volume', 'diff_oi', 'diff_volume', 'diff_ltp', 'build_up' ] )
-                             ->first();
-
-            DB::table( 'ohlc_live_snapshots' )->upsert(
-                [
-                    [
-                        'instrument_key'    => $inst['key'],
-                        'underlying_symbol' => $inst['symbol'],
-                        'expiry_date'       => null,
-                        'strike'            => null,
-                        'instrument_type'   => 'INDEX',
-                        'open'              => $open,
-                        'high'              => $high,
-                        'low'               => $low,
-                        'close'             => $close,
-                        'oi'                => $latestChain?->oi,
-                        'volume'            => $latestChain?->volume,
-                        'exchange'          => str_starts_with( $inst['key'], 'BSE' ) ? 'BSE' : 'NSE',
-                        'interval'          => '5minute',
-                        'timestamp'         => $candleTs,
-                        'diff_oi'           => $latestChain?->diff_oi,
-                        'diff_volume'       => $latestChain?->diff_volume,
-                        'diff_ltp'          => $latestChain?->diff_ltp,
-                        'build_up'          => $latestChain?->build_up,
-                        'created_at'        => $now,
-                        'updated_at'        => $now,
-                    ],
-                ],
-                [ 'instrument_key', 'timestamp' ],
-                [ 'open', 'high', 'low', 'close', 'oi', 'volume', 'build_up', 'diff_oi', 'diff_volume', 'diff_ltp', 'updated_at' ]
-            );
-
-            $this->info( "5-min candle stored for {$inst['symbol']} at {$candleTs->toTimeString()}" );
-        }
-        info('aggregateFiveMinCandle end'. now()->toTimeString());
-    }
-
-    private function fetchAndStoreOptionChain() {
-        //Log::info('Fetching option chain data from Upstox API at '.Carbon::now());
-
-        $instruments = [
-            [ 'key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY' ],
-//            ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
-//            ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
-//            ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
+            // ['key' => 'BSE_INDEX|SENSEX', 'symbol' => 'SENSEX'],
+            // ['key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY'],
+            // ['key' => 'NSE_INDEX|Nifty Fin Service', 'symbol' => 'FINNIFTY'],
         ];
 
         $token = config( 'services.upstox.analytics_token' );
-        info('fetchAndStoreOptionChain starts'. now()->toTimeString());
-        foreach ( $instruments as $index => $inst ) {
+        $now   = now()->copy()->second( 0 );
 
+        foreach ( $instruments as $inst ) {
             $expiry = DB::table( 'nse_expiries' )
                         ->where( 'trading_symbol', $inst['symbol'] )
                         ->where( 'is_current', 1 )
                         ->where( 'instrument_type', 'OPT' )
                         ->value( 'expiry_date' );
 
-            //Log::info('$expiry '.Carbon::now());
-
             if ( ! $expiry ) {
                 Log::warning( "No current expiry found for {$inst['symbol']}" );
                 continue;
             }
 
-            $url      = 'https://api.upstox.com/v2/option/chain';
             $response = Http::withHeaders( [
                 'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
                 'Authorization' => 'Bearer ' . $token,
-            ] )->get( $url, [
+            ] )->get( 'https://api.upstox.com/v2/option/chain', [
                 'instrument_key' => $inst['key'],
                 'expiry_date'    => $expiry,
             ] );
 
-            $data = $response->json( 'data' ) ?? [];
-
-            //Log::info('$data '.Carbon::now());
-            //info('$data',[$data]);
-            if ( empty( $data ) ) {
-                Log::error( "Empty data for {$inst['symbol']}" );
+            if ( ! $response->ok() ) {
+                Log::error( "Option chain API error for {$inst['symbol']}", [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ] );
                 continue;
             }
 
-            $records          = [];
-            $latestCapturedAt = DB::table( 'option_chains' )->limit( 1 )
-                                  ->latest( 'captured_at' )  // or orderBy('captured_at', 'desc')
-                                  ->value( 'captured_at' );  // Gets just the scalar value
+            $data = $response->json( 'data' ) ?? [];
+            if ( empty( $data ) ) {
+                Log::error( "Empty option chain data for {$inst['symbol']}" );
+                continue;
+            }
 
-            //Log::info('$latestCapturedAt '.Carbon::now());
+            $latestCapturedAt = DB::table( 'option_chains' )
+                                  ->max( 'captured_at' );
 
-            $now      = now()->copy()->second( 0 );
-            $prevData = DB::table( 'option_chains' )
-                          ->where( 'captured_at', $latestCapturedAt )
-                          ->select( [ 'instrument_key', 'oi', 'ltp', 'volume' ] )
-                          ->get()                        // ← converts to Collection
-                          ->keyBy( 'instrument_key' )      // ← now valid on Collection
-                          ->toArray();
-            // Log::info('$prevData '.Carbon::now());
+            $prevData = collect();
 
-            info('fetchAndStoreOptionChain buildRecord starts'. now()->toTimeString());
+            if ( $latestCapturedAt ) {
+                $prevData = DB::table( 'option_chains' )
+                              ->where( 'captured_at', $latestCapturedAt )
+                              ->get( [ 'instrument_key', 'oi', 'ltp', 'volume' ] )
+                              ->keyBy( 'instrument_key' );
+            }
+
+            $records = [];
             foreach ( $data as $item ) {
                 $records[] = $this->buildRecord( $item, $prevData, $inst['symbol'], 'CE', $now );
                 $records[] = $this->buildRecord( $item, $prevData, $inst['symbol'], 'PE', $now );
             }
-            info('fetchAndStoreOptionChain buildRecord end'. now()->toTimeString());
-            DB::table( 'option_chains' )->insert( $records );
-            info('fetchAndStoreOptionChain insert complete'. now()->toTimeString());
-//            Log::info('insert '.Carbon::now());
+
+            foreach ( array_chunk( $records, 500 ) as $chunk ) {
+                DB::table( 'option_chains' )->insert( $chunk );
+            }
         }
-        info('fetchAndStoreOptionChain end'. now()->toTimeString());
     }
 
-    private function buildRecord( array $item, $prevData, string $symbol, string $type, $now ) {
-        $optData        = $type === 'CE' ? $item['call_options'] : $item['put_options'];
-        $m              = $optData['market_data'];
-        $g              = $optData['option_greeks'];
-        $instrument_key = $optData['instrument_key'];
+    private function buildRecord( array $item, $prevData, string $symbol, string $type, Carbon $now ): array {
+        $optData = $type === 'CE' ? ( $item['call_options'] ?? null ) : ( $item['put_options'] ?? null );
 
-        $prevRecord = $prevData[ $instrument_key ] ?? null;
+        if ( ! $optData ) {
+            return [];
+        }
 
-        // Calculate differences
-        $diff_oi     = $prevRecord ? $m['oi'] - $prevRecord->oi : null;
-        $diff_volume = $prevRecord ? $m['volume'] - $prevRecord->volume : null;
-        $diff_ltp    = $prevRecord ? $m['ltp'] - $prevRecord->ltp : null;
+        $m             = $optData['market_data'] ?? [];
+        $g             = $optData['option_greeks'] ?? [];
+        $instrumentKey = $optData['instrument_key'] ?? null;
 
-        // Derive build_up from diff_oi and diff_ltp
+        if ( ! $instrumentKey ) {
+            return [];
+        }
+
+        $prevRecord = $prevData[ $instrumentKey ] ?? null;
+
+        $diffOi     = $prevRecord ? ( (int) ( $m['oi'] ?? 0 ) - (int) ( $prevRecord->oi ?? 0 ) ) : null;
+        $diffVolume = $prevRecord ? ( (int) ( $m['volume'] ?? 0 ) - (int) ( $prevRecord->volume ?? 0 ) ) : null;
+        $diffLtp    = $prevRecord ? ( (float) ( $m['ltp'] ?? 0 ) - (float) ( $prevRecord->ltp ?? 0 ) ) : null;
+
         $buildUp = null;
-
-        if ( ! is_null( $diff_oi ) && ! is_null( $diff_ltp ) && $diff_oi != 0 && $diff_ltp != 0 ) {
-            if ( $diff_ltp > 0 && $diff_oi > 0 ) {
-                $buildUp = 'Long Build';      // Price ↑, OI ↑  => Long Build-up [web:11]
-            } elseif ( $diff_ltp < 0 && $diff_oi > 0 ) {
-                $buildUp = 'Short Build';     // Price ↓, OI ↑  => Short Build-up [web:11]
-            } elseif ( $diff_ltp > 0 && $diff_oi < 0 ) {
-                $buildUp = 'Short Cover';     // Price ↑, OI ↓  => Short Covering [web:11]
-            } elseif ( $diff_ltp < 0 && $diff_oi < 0 ) {
-                $buildUp = 'Long Unwind';     // Price ↓, OI ↓  => Long Unwinding [web:11]
+        if ( ! is_null( $diffOi ) && ! is_null( $diffLtp ) && $diffOi != 0 && $diffLtp != 0 ) {
+            if ( $diffLtp > 0 && $diffOi > 0 ) {
+                $buildUp = 'Long Build';
+            } elseif ( $diffLtp < 0 && $diffOi > 0 ) {
+                $buildUp = 'Short Build';
+            } elseif ( $diffLtp > 0 && $diffOi < 0 ) {
+                $buildUp = 'Short Cover';
+            } elseif ( $diffLtp < 0 && $diffOi < 0 ) {
+                $buildUp = 'Long Unwind';
             }
         }
 
         return [
-            'underlying_key'        => $item['underlying_key'],
-            'instrument_key'        => $instrument_key,
+            'underlying_key'        => $item['underlying_key'] ?? null,
+            'instrument_key'        => $instrumentKey,
             'trading_symbol'        => $symbol,
-            'expiry'                => $item['expiry'],
-            'strike_price'          => $item['strike_price'],
+            'expiry'                => $item['expiry'] ?? null,
+            'strike_price'          => $item['strike_price'] ?? null,
             'option_type'           => $type,
-            'ltp'                   => $m['ltp'],
-            'volume'                => $m['volume'],
-            'oi'                    => $m['oi'],
-            'close_price'           => $m['close_price'],
-            'bid_price'             => $m['bid_price'],
-            'bid_qty'               => $m['bid_qty'],
-            'ask_price'             => $m['ask_price'],
-            'ask_qty'               => $m['ask_qty'],
-            'prev_oi'               => $m['prev_oi'],
-            'vega'                  => $g['vega'],
-            'theta'                 => $g['theta'],
-            'gamma'                 => $g['gamma'],
-            'delta'                 => $g['delta'],
-            'iv'                    => $g['iv'],
-            'pop'                   => $g['pop'],
-            'underlying_spot_price' => $item['underlying_spot_price'],
+            'ltp'                   => $m['ltp'] ?? null,
+            'volume'                => $m['volume'] ?? null,
+            'oi'                    => $m['oi'] ?? null,
+            'close_price'           => $m['close_price'] ?? null,
+            'bid_price'             => $m['bid_price'] ?? null,
+            'bid_qty'               => $m['bid_qty'] ?? null,
+            'ask_price'             => $m['ask_price'] ?? null,
+            'ask_qty'               => $m['ask_qty'] ?? null,
+            'prev_oi'               => $m['prev_oi'] ?? null,
+            'vega'                  => $g['vega'] ?? null,
+            'theta'                 => $g['theta'] ?? null,
+            'gamma'                 => $g['gamma'] ?? null,
+            'delta'                 => $g['delta'] ?? null,
+            'iv'                    => $g['iv'] ?? null,
+            'pop'                   => $g['pop'] ?? null,
+            'underlying_spot_price' => $item['underlying_spot_price'] ?? null,
             'pcr'                   => $item['pcr'] ?? null,
             'captured_at'           => $now,
             'created_at'            => $now,
             'updated_at'            => $now,
-
-            // New diff columns
-            'diff_oi'               => $diff_oi,
-            'diff_volume'           => $diff_volume,
-            'diff_ltp'              => $diff_ltp,
-
-            'build_up' => $buildUp,
+            'diff_oi'               => $diffOi,
+            'diff_volume'           => $diffVolume,
+            'diff_ltp'              => $diffLtp,
+            'build_up'              => $buildUp,
         ];
+    }
+
+    private function aggregateFiveMinuteData(): void
+    {
+        info('aggregateFiveMinuteData start');
+
+        $now = now();
+
+        $minute    = (int) $now->format('i');
+        $candleMin = intdiv($minute, 5) * 5;
+        $candleTs  = $now->copy()->minute($candleMin)->second(0);
+
+        $windowStart = $candleTs->copy()->subMinutes(4);
+        $windowEnd   = $candleTs->copy();
+
+        info("CandleTs: {$candleTs->toTimeString()} | Window: {$windowStart->toTimeString()} → {$windowEnd->toTimeString()}");
+
+        $underlyings = [
+            ['symbol' => 'NIFTY', 'exchange' => 'NSE'],
+            // ['symbol' => 'BANKNIFTY', 'exchange' => 'NSE'],
+            // ['symbol' => 'FINNIFTY',  'exchange' => 'NSE'],
+            // ['symbol' => 'SENSEX',    'exchange' => 'BSE'],
+        ];
+
+        foreach ($underlyings as $inst) {
+
+            $optExpiry = DB::table('nse_expiries')
+                           ->where('trading_symbol', $inst['symbol'])
+                           ->where('is_current', 1)
+                           ->where('instrument_type', 'OPT')
+                           ->first();
+
+            $futExpiry = DB::table('nse_expiries')
+                           ->where('trading_symbol', $inst['symbol'])
+                           ->where('is_current', 1)
+                           ->where('instrument_type', 'FUT')
+                           ->first();
+
+            $instrumentRows = collect();
+
+            if ($optExpiry) {
+                $instrumentRows = $instrumentRows->merge(
+                    DB::table('instruments')
+                      ->where('underlying_symbol', $inst['symbol'])
+                      ->where('expiry', $optExpiry->expiry)
+                      ->whereIn('instrument_type', ['CE', 'PE'])
+                      ->get(['instrument_key', 'instrument_type', 'strike_price'])
+                );
+            }
+
+            if ($futExpiry) {
+                $instrumentRows = $instrumentRows->merge(
+                    DB::table('instruments')
+                      ->where('underlying_symbol', $inst['symbol'])
+                      ->where('expiry', $futExpiry->expiry)
+                      ->where('instrument_type', 'FUT')
+                      ->get(['instrument_key', 'instrument_type', 'strike_price'])
+                );
+            }
+
+            if ($instrumentRows->isEmpty()) {
+                Log::warning("No CE/PE/FUT instruments for {$inst['symbol']}");
+                continue;
+            }
+
+            // ── Fetch option_chain snapshot for THIS exact 5-min candle window ──
+            // This gives us the OI/Volume captured during the same 5-min period
+            $chainCapturedAt = DB::table('option_chains')
+                                 ->where('trading_symbol', $inst['symbol'])
+                                 ->whereBetween('captured_at', [$windowStart, $windowEnd])
+                                 ->max('captured_at');
+
+            // Build chainMap keyed by normalized "strike|option_type"
+            // e.g. "23550.00|CE", "23550.00|PE"
+            $chainMap = collect();
+            if ($chainCapturedAt) {
+                $chainMap = DB::table('option_chains')
+                              ->where('trading_symbol', $inst['symbol'])
+                              ->where('captured_at', $chainCapturedAt)
+                              ->get([
+                                  'strike_price',
+                                  'option_type',
+                                  'oi',
+                                  'volume',
+                                  'diff_oi',
+                                  'diff_volume',
+                                  'diff_ltp',
+                                  'build_up',
+                              ])
+                              ->keyBy(fn ($row) => number_format((float) $row->strike_price, 2, '.', '') . '|' . $row->option_type);
+            } else {
+                Log::warning("No option_chain data found for {$inst['symbol']} in window {$windowStart->toTimeString()} → {$windowEnd->toTimeString()}");
+            }
+
+            $rows = [];
+
+            foreach ($instrumentRows as $instrument) {
+
+                // Get 1-min candles for this instrument in the 5-min window
+                $candles = DB::table('ohlc_quotes')
+                             ->where('instrument_key', $instrument->instrument_key)
+                             ->whereBetween('ts_at', [$windowStart, $windowEnd])
+                             ->orderBy('ts_at')
+                             ->get();
+
+                if ($candles->isEmpty()) {
+                    continue;
+                }
+
+                // Match option_chain row by strike + option_type (CE/PE only, not FUT)
+                $chain = null;
+                if (in_array($instrument->instrument_type, ['CE', 'PE'], true)) {
+                    $chainKey = number_format((float) $instrument->strike_price, 2, '.', '') . '|' . $instrument->instrument_type;
+                    $chain    = $chainMap->get($chainKey);
+                }
+
+                $rows[] = [
+                    'instrument_key'    => $instrument->instrument_key,
+                    'underlying_symbol' => $inst['symbol'],
+                    'expiry_date'       => in_array($instrument->instrument_type, ['CE', 'PE'], true)
+                        ? $optExpiry?->expiry_date
+                        : $futExpiry?->expiry_date,
+                    'strike'            => $instrument->strike_price,
+                    'instrument_type'   => $instrument->instrument_type,
+                    // OHLC from 1-min candle aggregation
+                    'open'              => $candles->first()->open,
+                    'high'              => $candles->max('high'),
+                    'low'               => $candles->min('low'),
+                    'close'             => $candles->last()->close,
+                    // OI/Volume from option_chain at same 5-min window
+                    'oi'                => $chain?->oi,
+                    'volume'            => $chain?->volume,
+                    'diff_oi'           => $chain?->diff_oi,
+                    'diff_volume'       => $chain?->diff_volume,
+                    'diff_ltp'          => $chain?->diff_ltp,
+                    'build_up'          => $chain?->build_up,
+                    'exchange'          => $inst['exchange'],
+                    'interval'          => '5minute',
+                    'timestamp'         => $candleTs,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ];
+            }
+
+            if (! empty($rows)) {
+                foreach (array_chunk($rows, 500) as $chunk) {
+                    DB::table('ohlc_live_snapshots')->upsert(
+                        $chunk,
+                        ['instrument_key', 'timestamp'],
+                        ['open', 'high', 'low', 'close', 'oi', 'volume', 'build_up', 'diff_oi', 'diff_volume', 'diff_ltp', 'updated_at']
+                    );
+                }
+                Log::info("5-min candles stored for {$inst['symbol']}: " . count($rows) . " rows | candle: {$candleTs->toTimeString()} | chain captured_at: {$chainCapturedAt}");
+            } else {
+                Log::warning("No 5-min candles built for {$inst['symbol']} | window: {$windowStart->toTimeString()} → {$windowEnd->toTimeString()}");
+            }
+        }
+
+        info('aggregateFiveMinuteData end');
     }
 }

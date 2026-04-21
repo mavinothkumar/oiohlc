@@ -19,6 +19,7 @@
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
+                        <a href="{{ route('trading.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Chart</a>
                         <a href="{{ route('option-chain.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chain Deep Analysis</a>
                         <a href="{{ route('buildup.snapshot') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build up Snapshot</a>
                         <a href="{{ route('oi-diff-live.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI List</a>
