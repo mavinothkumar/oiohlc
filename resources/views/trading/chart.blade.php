@@ -1370,6 +1370,26 @@
                 return wrapper;
             }
 
+            function formatIstTime(time) {
+                if (time === null || time === undefined) return '';
+
+                var ts = typeof time === 'number'
+                    ? time
+                    : (typeof time === 'object' && time.timestamp ? time.timestamp : null);
+
+                if (!ts) return '';
+
+                return new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).format(new Date(ts * 1000));
+            }
+
             // ── Create LightweightChart ───────────────────────────────────────────────
             function createStrikeChart (strike, strikeData, firstCandle, topMarkers, midpoint) {
                 var containerId = 'chart-' + sanitizeStrike(strike);
@@ -1401,6 +1421,9 @@
                     },
                     leftPriceScale: {
                         visible: false
+                    },
+                    localization: {
+                        timeFormatter: formatIstTime,
                     },
                     timeScale: {
                         borderColor: '#e2e8f0',
@@ -1521,7 +1544,7 @@
                     .concat(( strikeData.PE || [] ).map(function (c) { return c.time; }))
                     .sort();
 
-                chart.timeScale().fitContent();
+                //chart.timeScale().fitContent();
 
                 var resizeHandler = function () {
                     if (container) {
