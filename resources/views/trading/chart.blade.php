@@ -5,24 +5,35 @@
 @push('styles')
     <style>
         /* Chart host needs explicit pixel height for LightweightCharts to initialise */
-        .chart-box { height: calc(50vh - 80px); min-height: 320px; width: 100%; }
+        .chart-box { height: calc(58vh - 64px); min-height: 420px; width: 100%; }
 
         /* font-variant-numeric not in Tailwind v3 */
         .tabular-nums { font-variant-numeric: tabular-nums; }
 
-        /* Full-screen overlay */
         .full-screen-chart {
             position: fixed !important;
-            inset: 0 !important;          /* true full-screen – no gap */
+            inset: 0 !important;
             z-index: 9999;
             border-radius: 0 !important;
             background: #fff;
             display: flex !important;
             flex-direction: column;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
         }
+
+        .full-screen-chart > .px-2.py-2 {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
         .full-screen-chart .chart-box {
-            flex: 1;
-            height: 0 !important;         /* flex child fills remaining space */
+            flex: 1 1 auto;
+            width: 100% !important;
+            height: 100% !important;
             min-height: 0 !important;
         }
 
@@ -47,6 +58,70 @@
             background: rgba(34,197,94,.18);
             animation: live-pulse 2s ease-in-out infinite;
         }
+        .chart-summary {
+            border-top: 1px solid #e2e8f0;
+            margin-top: 8px;
+            padding: 8px 4px 0;
+        }
+
+        .chart-summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .chart-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 9999px;
+            padding: 3px 8px;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .chart-chip--ceoi  { background: #ecfeff; color: #0f766e; }
+        .chart-chip--cevol { background: #eff6ff; color: #1d4ed8; }
+        .chart-chip--peoi  { background: #faf5ff; color: #7c3aed; }
+        .chart-chip--pevol { background: #fff7ed; color: #9a3412; }
+
+        .chart-tooltip {
+            position: absolute;
+            z-index: 30;
+            pointer-events: none;
+            min-width: 210px;
+            max-width: 260px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            background: rgba(255,255,255,.96);
+            box-shadow: 0 10px 30px rgba(15,23,42,.12);
+            color: #0f172a;
+            font-size: 12px;
+            line-height: 1.35;
+            display: none;
+        }
+
+        .chart-tooltip-grid {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 3px 10px;
+        }
+
+        .chart-tooltip-label {
+            color: #64748b;
+        }
+
+        .chart-tooltip-value {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
         @keyframes live-pulse {
             0%,100% { opacity:1; transform:scale(1); }
             50%      { opacity:.4; transform:scale(1.5); }
@@ -191,12 +266,13 @@
                 'Long Unwind': '#eab308',
                 'Short Cover': '#1e3a8a',
             };
-            var CE_COLOR  = '#2563eb';   // Blue  – CE first-candle lines
-            var PE_COLOR  = '#7c3aed';   // Purple – PE first-candle lines
+            var CE_COLOR  = '#8f0cbd';   // Blue  – CE first-candle lines
+            var PE_COLOR  = '#07ffab';   // Purple – PE first-candle lines
             var MID_COLOR = '#f97316';   // Orange – midpoint
 
             // ── State ────────────────────────────────────────────────────────────────
             var autoRefreshTimer = null;
+            var autoRefreshTimeout = null;
             var latestPayload    = null;
             var chartRegistry    = {};
 
@@ -258,6 +334,40 @@
                 };
             }
 
+            function clearAutoRefresh() {
+                if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+                if (autoRefreshTimeout) clearTimeout(autoRefreshTimeout);
+                autoRefreshTimer = null;
+                autoRefreshTimeout = null;
+            }
+
+            function msUntilNextFiveMinuteMarkAt09() {
+                var now = new Date();
+                var next = new Date(now);
+
+                next.setSeconds(9, 0);
+
+                var minute = now.getMinutes();
+                var nextMinute = Math.ceil((minute + (now.getSeconds() >= 9 ? 0.0001 : 0)) / 5) * 5;
+
+                if (nextMinute >= 60) {
+                    next.setHours(now.getHours() + 1);
+                    next.setMinutes(0);
+                } else {
+                    next.setMinutes(nextMinute);
+                }
+
+                next.setSeconds(9, 0);
+
+                if (next <= now) {
+                    next = new Date(next.getTime() + 5 * 60 * 1000);
+                }
+
+                return next.getTime() - now.getTime();
+            }
+
+
+
             // ── Fetch candle data ─────────────────────────────────────────────────────
             function loadCharts() {
                 var payload = buildPayload();
@@ -298,10 +408,15 @@
             }
 
             function startAutoRefresh() {
-                clearInterval(autoRefreshTimer);
-                autoRefreshTimer = setInterval(function () {
+                clearAutoRefresh();
+
+                autoRefreshTimeout = setTimeout(function () {
                     if (latestPayload) loadCharts();
-                }, 300000);
+
+                    autoRefreshTimer = setInterval(function () {
+                        if (latestPayload) loadCharts();
+                    }, 5 * 60 * 1000);
+                }, msUntilNextFiveMinuteMarkAt09());
             }
 
             // ── Render charts ─────────────────────────────────────────────────────────
@@ -360,12 +475,13 @@
                     '<div class="px-2 py-2">' +
                     '<div id="chart-' + sanitizeStrike(strike) + '" class="chart-box rounded-xl"></div>' +
                     '<div class="mt-1 flex flex-wrap gap-3 px-1 text-[10px] text-slate-400">' +
-                    '<span>&#9660; teal = top 5 OI</span>' +
-                    '<span>&#9650; brown = top 5 volume</span>' +
+                    '<span>OI1/OI2/OI3 = top OI candles</span>' +
+                    '<span>V1/V2/V3 = top volume candles</span>' +
                     '<span style="color:' + MID_COLOR + '">&#8212; MidPoint</span>' +
                     '<span style="color:' + CE_COLOR + '">&#8212; CE 1st candle</span>' +
                     '<span style="color:' + PE_COLOR + '">&#8212; PE 1st candle</span>' +
                     '</div>' +
+                    '<div class="chart-summary" id="summary-' + sanitizeStrike(strike) + '"></div>'+
                     '</div>';
 
                 wrapper.querySelector('.fullscreen-btn').addEventListener('click', function () {
@@ -384,36 +500,40 @@
                 var chart = LightweightCharts.createChart(container, {
                     layout: {
                         background: { color: '#ffffff' },
-                        textColor:  '#334155',
+                        textColor: '#334155',
                         fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
                     },
                     grid: {
-                        vertLines: { color: '#f1f5f9' },
-                        horzLines: { color: '#f1f5f9' },
+                        vertLines: { color: '#ffffff' },
+                        horzLines: { color: '#ffffff' },
                     },
-                    width:     container.clientWidth,
-                    height:    container.clientHeight,
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-
-                    // FIX: Single shared price scale – CE and PE on the SAME axis
-                    // so candles overlap and you can directly compare price levels.
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                    },
                     rightPriceScale: {
-                        borderColor:  '#e2e8f0',
-                        scaleMargins: { top: 0.06, bottom: 0.06 },
+                        borderColor: '#e2e8f0',
+                        scaleMargins: {
+                            top: 0.08,
+                            bottom: 0.08,
+                        },
+                        autoScale: true,
                     },
                     leftPriceScale: {
-                        visible: false,   // hide left axis entirely
+                        visible: false,
                     },
                     timeScale: {
-                        borderColor:    '#e2e8f0',
-                        timeVisible:    true,
+                        borderColor: '#e2e8f0',
+                        timeVisible: true,
                         secondsVisible: false,
-                        // Force IST timezone offset (+05:30 = 330 minutes)
-                        tickMarkFormatter: function(time) {
+                        rightOffset: 20,
+                        barSpacing: 20,
+                        minBarSpacing: 6,
+                        tickMarkFormatter: function (time) {
                             var d = new Date(time * 1000);
-                            var ist = new Date(d.getTime() + (5.5 * 3600 * 1000));
-                            var h = ist.getUTCHours().toString().padStart(2,'0');
-                            var m = ist.getUTCMinutes().toString().padStart(2,'0');
+                            var h = d.getHours().toString().padStart(2, '0');
+                            var m = d.getMinutes().toString().padStart(2, '0');
                             return h + ':' + m;
                         },
                     },
@@ -421,42 +541,106 @@
 
                 // Both CE and PE use 'right' scale → single axis, candles overlay directly
                 var ceSeries = chart.addCandlestickSeries({
-                    title:            'CE',
-                    priceScaleId:     'right',
-                    lastValueVisible: true,
+                    title: 'CE',
+                    priceScaleId: 'right',
+                    upColor: 'rgba(37,99,235,0.75)',
+                    downColor: 'rgba(37,99,235,0.75)',
+                    borderColor: 'rgba(37,99,235,0.95)',
+                    wickColor: 'rgba(37,99,235,0.95)',
+                    borderVisible: true,
+                    wickVisible: true,
                     priceLineVisible: false,
-                    upColor:          '#16a34a',
-                    downColor:        '#dc2626',
-                    borderVisible:    true,
-                    wickVisible:      true,
-                    priceFormat:      { type: 'price', precision: 2, minMove: 0.05 },
                 });
 
                 var peSeries = chart.addCandlestickSeries({
-                    title:            'PE',
-                    priceScaleId:     'right',   // same scale as CE
-                    lastValueVisible: true,
+                    title: 'PE',
+                    priceScaleId: 'right',
+                    upColor: 'rgba(124,58,237,0.35)',
+                    downColor: 'rgba(124,58,237,0.35)',
+                    borderColor: 'rgba(124,58,237,0.9)',
+                    wickColor: 'rgba(124,58,237,0.9)',
+                    borderVisible: true,
+                    wickVisible: true,
                     priceLineVisible: false,
-                    upColor:          '#16a34a',
-                    downColor:        '#dc2626',
-                    borderVisible:    true,
-                    wickVisible:      true,
-                    priceFormat:      { type: 'price', precision: 2, minMove: 0.05 },
                 });
 
                 ceSeries.setData((strikeData.CE || []).map(candleToSeries));
                 peSeries.setData((strikeData.PE || []).map(candleToSeries));
 
+                renderTopSummary(strike, strikeData, topMarkers);
+
+                var tooltip = document.createElement('div');
+                tooltip.className = 'chart-tooltip';
+                container.style.position = 'relative';
+                container.appendChild(tooltip);
+
+                var ceMap = {};
+                (strikeData.CE || []).forEach(function(c) { ceMap[c.time] = candleToSeries(c); });
+
+                var peMap = {};
+                (strikeData.PE || []).forEach(function(c) { peMap[c.time] = candleToSeries(c); });
+
+                chart.subscribeCrosshairMove(function(param) {
+                    if (!param || !param.point || param.point.x < 0 || param.point.y < 0 || !param.time) {
+                        tooltip.style.display = 'none';
+                        return;
+                    }
+
+                    var ceBar = ceMap[param.time] || null;
+                    var peBar = peMap[param.time] || null;
+
+                    if (!ceBar && !peBar) {
+                        tooltip.style.display = 'none';
+                        return;
+                    }
+
+                    function blockHtml(label, bar, tone) {
+                        if (!bar) return '';
+                        return `
+            <div style="margin-bottom:8px;">
+                <div style="font-weight:700; color:${tone}; margin-bottom:4px;">${label}</div>
+                <div class="chart-tooltip-grid">
+                    <div class="chart-tooltip-label">Time</div><div class="chart-tooltip-value">${bar._rawTime}</div>
+                    <div class="chart-tooltip-label">O</div><div class="chart-tooltip-value">${bar.open}</div>
+                    <div class="chart-tooltip-label">H</div><div class="chart-tooltip-value">${bar.high}</div>
+                    <div class="chart-tooltip-label">L</div><div class="chart-tooltip-value">${bar.low}</div>
+                    <div class="chart-tooltip-label">C</div><div class="chart-tooltip-value">${bar.close}</div>
+                    <div class="chart-tooltip-label">OI</div><div class="chart-tooltip-value">${bar._oi.toLocaleString('en-IN')}</div>
+                    <div class="chart-tooltip-label">Vol</div><div class="chart-tooltip-value">${bar._volume.toLocaleString('en-IN')}</div>
+                    <div class="chart-tooltip-label">dOI</div><div class="chart-tooltip-value">${bar._diffOi.toLocaleString('en-IN')}</div>
+                    <div class="chart-tooltip-label">dVol</div><div class="chart-tooltip-value">${bar._diffVol.toLocaleString('en-IN')}</div>
+                    <div class="chart-tooltip-label">Build</div><div class="chart-tooltip-value">${bar._buildUp}</div>
+                </div>
+            </div>
+        `;
+                    }
+
+                    tooltip.innerHTML =
+                        blockHtml('CE', ceBar, CE_COLOR) +
+                        blockHtml('PE', peBar, PE_COLOR);
+
+                    tooltip.style.display = 'block';
+
+                    var left = param.point.x + 14;
+                    var top  = param.point.y + 14;
+
+                    if (left + 240 > container.clientWidth) left = param.point.x - 250;
+                    if (top + tooltip.offsetHeight > container.clientHeight) top = param.point.y - tooltip.offsetHeight - 14;
+
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top  = top + 'px';
+                });
+
                 // FIX: First 5-min candle lines drawn as price lines on their own series ONLY
                 // (no cross-series bleeding). Use dashed style so they don't look like
                 // regular candle wicks or grid lines.
                 if (firstCandle.CE) {
-                    addPriceLine(ceSeries, firstCandle.CE.high, CE_COLOR, 'CE H', 2, LightweightCharts.LineStyle.Dashed);
-                    addPriceLine(ceSeries, firstCandle.CE.low,  CE_COLOR, 'CE L', 1, LightweightCharts.LineStyle.Dashed);
+                    addPriceLine(ceSeries, firstCandle.CE.high, CE_COLOR, 'CE H', 2, LightweightCharts.LineStyle.Solid);
+                    addPriceLine(ceSeries, firstCandle.CE.low,  CE_COLOR, 'CE L', 1, LightweightCharts.LineStyle.Solid);
                 }
                 if (firstCandle.PE) {
-                    addPriceLine(peSeries, firstCandle.PE.high, PE_COLOR, 'PE H', 2, LightweightCharts.LineStyle.Dashed);
-                    addPriceLine(peSeries, firstCandle.PE.low,  PE_COLOR, 'PE L', 1, LightweightCharts.LineStyle.Dashed);
+                    addPriceLine(peSeries, firstCandle.PE.high, PE_COLOR, 'PE H', 2, LightweightCharts.LineStyle.Solid);
+                    addPriceLine(peSeries, firstCandle.PE.low,  PE_COLOR, 'PE L', 1, LightweightCharts.LineStyle.Solid);
                 }
 
                 // MidPoint – solid thick orange line
@@ -467,6 +651,13 @@
                 // Top OI / Volume markers
                 ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || {}, 'CE'));
                 peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || {}, 'PE'));
+
+                chart.timeScale().fitContent();
+
+                var allTimes = []
+                    .concat((strikeData.CE || []).map(function(c){ return c.time; }))
+                    .concat((strikeData.PE || []).map(function(c){ return c.time; }))
+                    .sort();
 
                 chart.timeScale().fitContent();
 
@@ -483,7 +674,22 @@
             // ── Helpers ───────────────────────────────────────────────────────────────
             function candleToSeries(candle) {
                 var color = BUILDUP_COLORS[candle.build_up] || '#94a3b8';
-                return { time: candle.time, open: candle.open, high: candle.high, low: candle.low, close: candle.close, color: color, borderColor: color, wickColor: color };
+                return {
+                    time: candle.time,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    color: color,
+                    borderColor: color,
+                    wickColor: color,
+                    _rawTime: candle.x || candle.time,
+                    _oi: Number(candle.oi || 0),
+                    _volume: Number(candle.volume || 0),
+                    _diffOi: Number(candle.diff_oi || 0),
+                    _diffVol: Number(candle.diff_vol || 0),
+                    _buildUp: candle.build_up || 'Neutral'
+                };
             }
 
             function addPriceLine(series, price, color, title, lineWidth, lineStyle) {
@@ -498,14 +704,60 @@
             }
 
             function buildMarkers(candles, meta, label) {
-                var oiTimes  = new Set(meta.oi     || []);
-                var volTimes = new Set(meta.volume || []);
-                var markers  = [];
-                candles.forEach(function (c) {
-                    if (oiTimes.has(c.time))  markers.push({ time: c.time, position: 'aboveBar', color: '#0f766e', shape: 'arrowDown', text: label + ' OI'  });
-                    if (volTimes.has(c.time)) markers.push({ time: c.time, position: 'belowBar', color: '#7c2d12', shape: 'arrowUp',   text: label + ' Vol' });
+                var oiTimes  = meta.oi || [];
+                var volTimes = meta.volume || [];
+                var oiRank   = {};
+                var volRank  = {};
+
+                oiTimes.forEach(function(t, i)  { oiRank[t] = i + 1; });
+                volTimes.forEach(function(t, i) { volRank[t] = i + 1; });
+
+                var markers = [];
+                candles.forEach(function(c) {
+                    if (oiRank[c.time]) {
+                        markers.push({
+                            time: c.time,
+                            position: 'aboveBar',
+                            color: label === 'CE' ? '#0f766e' : '#7c3aed',
+                            shape: 'circle',
+                            text: String(oiRank[c.time])
+                        });
+                    }
+                    if (volRank[c.time]) {
+                        markers.push({
+                            time: c.time,
+                            position: 'belowBar',
+                            color: label === 'CE' ? '#2563eb' : '#9a3412',
+                            shape: 'circle',
+                            text: String(volRank[c.time])
+                        });
+                    }
                 });
+
                 return markers;
+            }
+
+            function renderTopSummary(strike, strikeData, topMarkers) {
+                var el = document.getElementById('summary-' + sanitizeStrike(strike));
+                if (!el) return;
+
+                function asMap(arr) {
+                    var map = {};
+                    arr.forEach(function(c) { map[c.time] = c; });
+                    return map;
+                }
+
+                var ceMap = asMap(strikeData.CE || []);
+                var peMap = asMap(strikeData.PE || []);
+
+                function chips(times, map, cls, prefix, field) {
+                    return (times || []).slice(0, 3).map(function(t, i) {
+                        var row = map[t];
+                        var stamp = row && row.x ? row.x.split(' ')[1] : t;
+                        var value = row ? Number(row[field] || 0).toLocaleString('en-IN') : '-';
+                        return '<span class="chart-chip ' + cls + '">' + prefix + (i + 1) + ' ' + stamp + ' · ' + value + '</span>';
+                    }).join('');
+                }
             }
 
             function destroyAllCharts() {
@@ -521,17 +773,29 @@
             // FIX: Full-screen uses inset:0 and flex layout so chart fills 100% viewport
             function toggleFullscreen(card, strike) {
                 var wasFS = card.classList.contains('full-screen-chart');
+
                 card.classList.toggle('full-screen-chart');
                 document.body.classList.toggle('overflow-hidden');
+                document.documentElement.classList.toggle('overflow-hidden');
+
+                if (!wasFS) {
+                    card.style.width = '100vw';
+                    card.style.height = '100vh';
+                } else {
+                    card.style.width = '';
+                    card.style.height = '';
+                }
+
                 var btn = card.querySelector('.fullscreen-btn');
                 btn.textContent = wasFS ? '⛶ Full' : '✕ Exit';
 
                 var entry = chartRegistry[strike];
                 if (entry) {
                     setTimeout(function () {
-                        entry.chart.applyOptions({ width: entry.container.clientWidth, height: entry.container.clientHeight });
+                        var rect = entry.container.getBoundingClientRect();
+                        entry.chart.resize(rect.width, rect.height);
                         entry.chart.timeScale().fitContent();
-                    }, 50);
+                    }, 180);
                 }
             }
 

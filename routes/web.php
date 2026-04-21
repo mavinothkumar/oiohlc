@@ -112,8 +112,6 @@ Route::prefix('trading')->name('trading.')->group(function () {
     // AJAX: expiry dates for a symbol  (reads nse_expiries, is_current = 1)
     Route::get('/expiries', [TradingViewController::class, 'getExpiries'])
          ->name('expiries');
-
-    // NOTE: getStrikes removed – strikes are entered manually in the form.
 });
 
 
