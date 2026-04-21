@@ -4,6 +4,130 @@
 
 @push('styles')
     <style>
+
+        .signal-time-block {
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+            margin-bottom: 12px;
+        }
+
+        .signal-time-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .signal-time-label {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .signal-time-meta {
+            margin-top: 2px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .signal-overall {
+            border-radius: 9999px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .signal-overall--bullish {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .signal-overall--buy {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .signal-overall--sell {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .signal-overall--bearish {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .signal-overall--ignore {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .signal-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 12px;
+        }
+
+        .signal-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: #64748b;
+            font-weight: 700;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .signal-table td {
+            vertical-align: top;
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .signal-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .signal-table-score {
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .signal-table-side {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .signal-table-side--ce {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .signal-table-side--pe {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .signal-table-side--neutral {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .signal-detail-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
         #signalToastHost {
             position: fixed !important;
             top: 16px !important;
@@ -528,6 +652,141 @@
             refreshNowBtn.addEventListener('click', function () {
                 loadCharts();
             });
+
+
+            function signalTone(signal) {
+                if (signal === 'Bullish Buy') return 'bullish';
+                if (signal === 'Buy') return 'buy';
+                if (signal === 'Sell') return 'sell';
+                if (signal === 'Bearish Sell') return 'bearish';
+                return 'ignore';
+            }
+
+            function signalSideTone(side) {
+                if (side === 'CE') return 'ce';
+                if (side === 'PE') return 'pe';
+                return 'neutral';
+            }
+
+            function deriveOverallSignal(items, totalScore) {
+                var ceScore = 0;
+                var peScore = 0;
+
+                items.forEach(function (item) {
+                    if (item.side === 'CE') ceScore += Number(item.score || 0);
+                    if (item.side === 'PE') peScore += Number(item.score || 0);
+                });
+
+                if (totalScore < 25) return 'Ignore';
+                if (ceScore >= peScore + 15 && totalScore >= 45) return 'Bullish Buy';
+                if (ceScore > peScore) return 'Buy';
+                if (peScore >= ceScore + 15 && totalScore >= 45) return 'Bearish Sell';
+                if (peScore > ceScore) return 'Sell';
+                return 'Ignore';
+            }
+
+            function groupSignalsByTime(history) {
+                var grouped = {};
+
+                history.forEach(function (rawItem) {
+                    var item = normalizeSignalEntry(rawItem);
+                    var key = item.candleLabel || item.candleTime || '--';
+
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            time: key,
+                            items: [],
+                            totalScore: 0,
+                            maxScore: 0,
+                            candleTime: item.candleTime || 0
+                        };
+                    }
+
+                    grouped[key].items.push(item);
+                    grouped[key].totalScore += Number(item.score || 0);
+                    grouped[key].maxScore = Math.max(grouped[key].maxScore, Number(item.score || 0));
+                    grouped[key].candleTime = Math.max(grouped[key].candleTime, Number(item.candleTime || 0));
+                });
+
+                var result = Object.keys(grouped).map(function (key) {
+                    var group = grouped[key];
+
+                    group.items.sort(function (a, b) {
+                        return Number(b.score || 0) - Number(a.score || 0);
+                    });
+
+                    group.overallSignal = deriveOverallSignal(group.items, group.totalScore);
+                    group.topStrike = group.items.length ? group.items.strike : '--';
+
+                    return group;
+                });
+
+                result.sort(function (a, b) {
+                    return Number(b.candleTime || 0) - Number(a.candleTime || 0);
+                });
+
+                return result;
+            }
+
+            function renderGroupedSignalTable(history) {
+                var groups = groupSignalsByTime(history);
+
+                if (!groups.length) {
+                    signalHistory.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">No signal history yet.</div>';
+                    return;
+                }
+
+                signalHistory.innerHTML = groups.map(function (group) {
+                    var rowsHtml = group.items.map(function (item) {
+                        var reasons = Array.isArray(item.reasons) ? item.reasons : [];
+
+                        return '<tr>'
+                            + '<td class="font-bold text-slate-900">' + escapeHtml(String(item.strike)) + '</td>'
+                            + '<td><span class="signal-table-score">' + escapeHtml(String(item.score || 0)) + '</span></td>'
+                            + '<td><span class="signal-table-side signal-table-side--' + signalSideTone(item.side) + '">'
+                            + escapeHtml(item.side || 'NEUTRAL')
+                            + '</span></td>'
+                            + '<td><div class="signal-detail-list">'
+                            + reasons.map(function (reason) {
+                                return '<span class="signal-pill">' + escapeHtml(reason) + '</span>';
+                            }).join('')
+                            + '</div></td>'
+                            + '</tr>';
+                    }).join('');
+
+                    return '<div class="signal-time-block">'
+                        + '<div class="signal-time-head">'
+                        +   '<div>'
+                        +     '<div class="signal-time-label">' + escapeHtml(group.time) + '</div>'
+                        +     '<div class="signal-time-meta">Overall score ' + escapeHtml(String(group.totalScore))
+                        +       + ' · ' + escapeHtml(String(group.items.length)) + ' strikes'
+                        +       + ' · Top strike ' + escapeHtml(String(group.topStrike))
+                        +     '</div>'
+                        +   '</div>'
+                        +   '<span class="signal-overall signal-overall--' + signalTone(group.overallSignal) + '">'
+                        +     escapeHtml(group.overallSignal)
+                        +   '</span>'
+                        + '</div>'
+                        + '<div class="mt-3 overflow-x-auto">'
+                        +   '<table class="signal-table">'
+                        +     '<thead>'
+                        +       '<tr>'
+                        +         '<th>Strike</th>'
+                        +         '<th>Score</th>'
+                        +         '<th>Side</th>'
+                        +         '<th>Details</th>'
+                        +       '</tr>'
+                        +     '</thead>'
+                        +     '<tbody>'
+                        +       rowsHtml
+                        +     '</tbody>'
+                        +   '</table>'
+                        + '</div>'
+                        + '</div>';
+                }).join('');
+            }
+
+
 
             // ── Build payload from form ───────────────────────────────────────────────
             function buildPayload () {
@@ -1275,7 +1534,7 @@
 
             function loadSignalStore() {
                 var key = signalStoreKey();
-                lastEvaluatedTradeDate = tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+                lastEvaluatedTradeDate = getActiveTradeDate();
 
                 try {
                     var raw = window.localStorage ? localStorage.getItem(key) : null;
@@ -1284,13 +1543,13 @@
                     signalStore = { history: [], processedKeys: {}, lastBySeries: {} };
                 }
 
-                if (!signalStore.history) signalStore.history = [];
-                if (!signalStore.processedKeys) signalStore.processedKeys = {};
-                if (!signalStore.lastBySeries) signalStore.lastBySeries = {};
-
                 if (!Array.isArray(signalStore.history)) signalStore.history = [];
+                if (!signalStore.processedKeys || typeof signalStore.processedKeys !== 'object') signalStore.processedKeys = {};
+                if (!signalStore.lastBySeries || typeof signalStore.lastBySeries !== 'object') signalStore.lastBySeries = {};
+
                 signalStore.history = signalStore.history.map(normalizeSignalEntry);
 
+                saveSignalStore();
                 renderSignalPanel();
             }
 
@@ -1627,19 +1886,29 @@
 
             function normalizeSignalEntry(item) {
                 item = item || {};
-                item.reasons = Array.isArray(item.reasons) ? item.reasons : [];
-                item.parts = Array.isArray(item.parts) ? item.parts : [];
-                item.call = item.call || 'No Trade / Mixed Zone';
-                item.strike = item.strike || '--';
-                item.score = Number(item.score || 0);
-                item.candleLabel = item.candleLabel || '--';
-                item.tradeDate = item.tradeDate || getActiveTradeDate();
-                item.side = item.side || 'NEUTRAL';
-                return item;
+
+                return {
+                    id: item.id || '',
+                    tradeDate: item.tradeDate || getActiveTradeDate(),
+                    candleTime: Number(item.candleTime || 0),
+                    candleLabel: item.candleLabel || '--',
+                    strike: item.strike || '--',
+                    call: item.call || 'Ignore',
+                    side: item.side || 'NEUTRAL',
+                    score: Number(item.score || 0),
+                    reasons: Array.isArray(item.reasons) ? item.reasons : [],
+                    parts: Array.isArray(item.parts) ? item.parts : [],
+                    ceBuildUp: item.ceBuildUp || null,
+                    peBuildUp: item.peBuildUp || null,
+                    createdAt: item.createdAt || null
+                };
             }
 
             function renderSignalPanel() {
-                var history = Array.isArray(signalStore.history) ? signalStore.history.map(normalizeSignalEntry) : [];
+                var history = Array.isArray(signalStore.history)
+                    ? signalStore.history.map(normalizeSignalEntry)
+                    : [];
+
                 signalStore.history = history;
                 signalHistoryCount.textContent = String(history.length);
 
@@ -1649,53 +1918,61 @@
                     signalHeadlineMeta.textContent = 'No ranked call stored for this day yet';
                     signalHeadlineReasons.innerHTML = '';
                     signalStats.innerHTML = [
-                        statCard('Strong calls', 0),
-                        statCard('Buy calls', 0),
-                        statCard('Watch calls', 0),
-                        statCard('No trade', 0)
+                        statCard('Bullish / Bearish', 0),
+                        statCard('Buy / Sell', 0),
+                        statCard('Ignore', 0),
+                        statCard('Time blocks', 0)
                     ].join('');
-                    signalHistory.innerHTML = '<div class=\"rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500\">No signal history yet.</div>';
+                    renderGroupedSignalTable([]);
                     return;
                 }
 
                 var latest = normalizeSignalEntry(history[0]);
-                var latestReasons = Array.isArray(latest.reasons) ? latest.reasons : [];
+                var grouped = groupSignalsByTime(history);
+                var latestGroup = grouped.length ? grouped[0] : null;
 
-                signalHeadlineCall.textContent = latest.call + ' · ' + latest.strike;
-                signalHeadlineScore.textContent = latest.score;
-                signalHeadlineMeta.textContent = latest.candleLabel + ' · ' + latest.tradeDate;
-                signalHeadlineReasons.innerHTML = latestReasons.slice(0, 5).map(function (r) {
-                    return '<span class=\"signal-pill\">' + escapeHtml(r) + '</span>';
+                var latestReasons = latestGroup
+                    ? latestGroup.items.slice(0, 3).reduce(function (acc, item) {
+                        var reasons = Array.isArray(item.reasons) ? item.reasons : [];
+                        return acc.concat(reasons.slice(0, 2));
+                    }, []).slice(0, 6)
+                    : (Array.isArray(latest.reasons) ? latest.reasons.slice(0, 5) : []);
+
+                signalHeadlineCall.textContent = latestGroup
+                    ? (latestGroup.overallSignal + ' · ' + latestGroup.time)
+                    : (latest.call + ' · ' + latest.strike);
+
+                signalHeadlineScore.textContent = latestGroup ? latestGroup.totalScore : latest.score;
+                signalHeadlineMeta.textContent = latestGroup
+                    ? (latestGroup.items.length + ' strikes · Top ' + latestGroup.topStrike)
+                    : (latest.candleLabel + ' · ' + latest.tradeDate);
+
+                signalHeadlineReasons.innerHTML = latestReasons.map(function (r) {
+                    return '<span class="signal-pill">' + escapeHtml(r) + '</span>';
                 }).join('');
 
-                var strong = history.filter(function (x) { return /^Strong Buy/.test(x.call); }).length;
-                var buy = history.filter(function (x) { return /^Buy /.test(x.call); }).length;
-                var watch = history.filter(function (x) { return /^Watch /.test(x.call) || x.call === 'Breakout Watch'; }).length;
-                var mixed = history.filter(function (x) { return x.call === 'No Trade / Mixed Zone'; }).length;
+                var bullishBearish = grouped.filter(function (g) {
+                    return g.overallSignal === 'Bullish Buy' || g.overallSignal === 'Bearish Sell';
+                }).length;
+
+                var directional = grouped.filter(function (g) {
+                    return g.overallSignal === 'Buy' || g.overallSignal === 'Sell';
+                }).length;
+
+                var ignore = grouped.filter(function (g) {
+                    return g.overallSignal === 'Ignore';
+                }).length;
 
                 signalStats.innerHTML = [
-                    statCard('Strong calls', strong),
-                    statCard('Buy calls', buy),
-                    statCard('Watch calls', watch),
-                    statCard('No trade', mixed)
+                    statCard('Bullish / Bearish', bullishBearish),
+                    statCard('Buy / Sell', directional),
+                    statCard('Ignore', ignore),
+                    statCard('Time blocks', grouped.length)
                 ].join('');
 
-                signalHistory.innerHTML = history.map(function (rawItem) {
-                    var item = normalizeSignalEntry(rawItem);
-                    var reasons = Array.isArray(item.reasons) ? item.reasons : [];
-
-                    return '<div class=\"signal-item\">'
-                        + '<div class=\"signal-item__head\">'
-                        +   '<div><div class=\"signal-item__call\">' + escapeHtml(item.call) + ' · ' + escapeHtml(item.strike) + '</div>'
-                        +   '<div class=\"signal-item__meta\">' + escapeHtml(item.candleLabel) + ' · ' + escapeHtml(item.tradeDate) + '</div></div>'
-                        +   '<span class=\"signal-item__score\">Score ' + escapeHtml(String(item.score)) + '</span>'
-                        + '</div>'
-                        + '<div class=\"signal-item__reasons\">'
-                        +   reasons.slice(0, 6).map(function (r) { return '<span class=\"signal-pill\">' + escapeHtml(r) + '</span>'; }).join('')
-                        + '</div>'
-                        + '</div>';
-                }).join('');
+                renderGroupedSignalTable(history);
             }
+
 
             function statCard(label, value) {
                 return '<div class="signal-stat"><div class="signal-stat-label">' + escapeHtml(label) + '</div><div class="signal-stat-value">' + escapeHtml(String(value)) + '</div></div>';
