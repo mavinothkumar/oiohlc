@@ -5,10 +5,16 @@
 @push('styles')
     <style>
         /* Chart host needs explicit pixel height for LightweightCharts to initialise */
-        .chart-box { height: calc(58vh - 64px); min-height: 420px; width: 100%; }
+        .chart-box {
+            height: calc(58vh - 64px);
+            min-height: 420px;
+            width: 100%;
+        }
 
         /* font-variant-numeric not in Tailwind v3 */
-        .tabular-nums { font-variant-numeric: tabular-nums; }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
 
         .full-screen-chart {
             position: fixed !important;
@@ -42,6 +48,7 @@
             overflow: hidden;
             transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease;
         }
+
         #filterPanel.collapsed {
             max-height: 0 !important;
             opacity: 0;
@@ -55,9 +62,10 @@
             position: absolute;
             inset: -4px;
             border-radius: 9999px;
-            background: rgba(34,197,94,.18);
+            background: rgba(34, 197, 94, .18);
             animation: live-pulse 2s ease-in-out infinite;
         }
+
         .chart-summary {
             border-top: 1px solid #e2e8f0;
             margin-top: 8px;
@@ -84,10 +92,25 @@
             white-space: nowrap;
         }
 
-        .chart-chip--ceoi  { background: #ecfeff; color: #0f766e; }
-        .chart-chip--cevol { background: #eff6ff; color: #1d4ed8; }
-        .chart-chip--peoi  { background: #faf5ff; color: #7c3aed; }
-        .chart-chip--pevol { background: #fff7ed; color: #9a3412; }
+        .chart-chip--ceoi {
+            background: #ecfeff;
+            color: #0f766e;
+        }
+
+        .chart-chip--cevol {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .chart-chip--peoi {
+            background: #faf5ff;
+            color: #7c3aed;
+        }
+
+        .chart-chip--pevol {
+            background: #fff7ed;
+            color: #9a3412;
+        }
 
         .chart-tooltip {
             position: absolute;
@@ -98,8 +121,8 @@
             padding: 10px 12px;
             border-radius: 12px;
             border: 1px solid #cbd5e1;
-            background: rgba(255,255,255,.96);
-            box-shadow: 0 10px 30px rgba(15,23,42,.12);
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
             color: #0f172a;
             font-size: 12px;
             line-height: 1.35;
@@ -123,8 +146,14 @@
         }
 
         @keyframes live-pulse {
-            0%,100% { opacity:1; transform:scale(1); }
-            50%      { opacity:.4; transform:scale(1.5); }
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: .4;
+                transform: scale(1.5);
+            }
         }
     </style>
 @endpush
@@ -170,7 +199,8 @@
                     class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>Refresh
+                    </svg>
+                    Refresh
                 </button>
                 <button id="toggleFilterBtn"
                     class="inline-flex items-center gap-1 rounded-xl border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-100">
@@ -217,13 +247,15 @@
 
                 <div>
                     <p class="mb-2 text-xs font-semibold text-slate-600">Strikes (ATM ±3 pre-filled)</p>
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-                        @for($i = 0; $i < 7; $i++)
-                            <input type="number" step="1" name="strikes[]"
-                                value="{{ $strikes[$i] ?? '' }}"
-                                placeholder="Strike {{ $i+1 }}"
-                                class="strike-field w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-400/10">
-                        @endfor
+                    <div class="overflow-x-auto">
+                        <div class="grid min-w-[1100px] grid-cols-10 gap-3">
+                            @for($i = 0; $i < 10; $i++)
+                                <input type="number" step="1" name="strikes[]"
+                                    value="{{ $strikes[$i] ?? '' }}"
+                                    placeholder="Strike {{ $i+1 }}"
+                                    class="strike-field w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-400/10">
+                            @endfor
+                        </div>
                     </div>
                 </div>
 
@@ -262,12 +294,12 @@
             // ── Constants ────────────────────────────────────────────────────────────
             var BUILDUP_COLORS = {
                 'Short Build': '#dc2626',
-                'Long Build':  '#16a34a',
+                'Long Build': '#16a34a',
                 'Long Unwind': '#eab308',
-                'Short Cover': '#1e3a8a',
+                'Short Cover': '#1e3a8a'
             };
-            var CE_COLOR  = '#8f0cbd';   // Blue  – CE first-candle lines
-            var PE_COLOR  = '#07ffab';   // Purple – PE first-candle lines
+            var CE_COLOR = '#8f0cbd';   // Blue  – CE first-candle lines
+            var PE_COLOR = '#07ffab';   // Purple – PE first-candle lines
             var MID_COLOR = '#f97316';   // Orange – midpoint
 
             var SERIES_COLORS = {
@@ -291,25 +323,25 @@
             // ── State ────────────────────────────────────────────────────────────────
             var autoRefreshTimer = null;
             var autoRefreshTimeout = null;
-            var latestPayload    = null;
-            var chartRegistry    = {};
+            var latestPayload = null;
+            var chartRegistry = {};
 
             // ── DOM refs ─────────────────────────────────────────────────────────────
-            var form            = document.getElementById('chartFilterForm');
-            var tradeDateInput  = document.getElementById('trade_date');
-            var midpointInput   = document.getElementById('midpoint');
-            var chartsGrid      = document.getElementById('chartsGrid');
-            var emptyState      = document.getElementById('emptyState');
-            var refreshNowBtn   = document.getElementById('refreshNowBtn');
+            var form = document.getElementById('chartFilterForm');
+            var tradeDateInput = document.getElementById('trade_date');
+            var midpointInput = document.getElementById('midpoint');
+            var chartsGrid = document.getElementById('chartsGrid');
+            var emptyState = document.getElementById('emptyState');
+            var refreshNowBtn = document.getElementById('refreshNowBtn');
             var lastUpdatedText = document.getElementById('lastUpdatedText');
-            var statusBadge     = document.getElementById('statusBadge');
-            var filterPanel     = document.getElementById('filterPanel');
+            var statusBadge = document.getElementById('statusBadge');
+            var filterPanel = document.getElementById('filterPanel');
             var toggleFilterBtn = document.getElementById('toggleFilterBtn');
-            var toggleLabel     = document.getElementById('toggleFilterLabel');
+            var toggleLabel = document.getElementById('toggleFilterLabel');
 
-            var csrfMeta  = document.querySelector('meta[name="csrf-token"]');
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
             var csrfInput = document.querySelector('input[name="_token"]');
-            var csrfToken = csrfMeta  ? csrfMeta.getAttribute('content') :
+            var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') :
                 csrfInput ? csrfInput.value : '';
 
             // ── Filter panel toggle (default: collapsed) ─────────────────────────────
@@ -338,35 +370,35 @@
             });
 
             // ── Build payload from form ───────────────────────────────────────────────
-            function buildPayload() {
+            function buildPayload () {
                 var strikes = Array.from(document.querySelectorAll('.strike-field'))
                     .map(function (el) { return el.value.trim(); })
                     .filter(Boolean);
 
                 return {
                     underlying_symbol: CFG.symbol,
-                    expiry_date:       document.getElementById('expiry_date').value,
-                    trade_date:        tradeDateInput.value,
-                    midpoint:          midpointInput.value || null,
-                    strikes:           strikes,
+                    expiry_date: document.getElementById('expiry_date').value,
+                    trade_date: tradeDateInput.value,
+                    midpoint: midpointInput.value || null,
+                    strikes: strikes
                 };
             }
 
-            function clearAutoRefresh() {
+            function clearAutoRefresh () {
                 if (autoRefreshTimer) clearInterval(autoRefreshTimer);
                 if (autoRefreshTimeout) clearTimeout(autoRefreshTimeout);
                 autoRefreshTimer = null;
                 autoRefreshTimeout = null;
             }
 
-            function msUntilNextFiveMinuteMarkAt09() {
+            function msUntilNextFiveMinuteMarkAt09 () {
                 var now = new Date();
                 var next = new Date(now);
 
                 next.setSeconds(9, 0);
 
                 var minute = now.getMinutes();
-                var nextMinute = Math.ceil((minute + (now.getSeconds() >= 9 ? 0.0001 : 0)) / 5) * 5;
+                var nextMinute = Math.ceil(( minute + ( now.getSeconds() >= 9 ? 0.0001 : 0 ) ) / 5) * 5;
 
                 if (nextMinute >= 60) {
                     next.setHours(now.getHours() + 1);
@@ -384,13 +416,11 @@
                 return next.getTime() - now.getTime();
             }
 
-
-
             // ── Fetch candle data ─────────────────────────────────────────────────────
-            function loadCharts() {
+            function loadCharts () {
                 var payload = buildPayload();
 
-                if (!payload.expiry_date || !payload.trade_date || payload.strikes.length === 0) {
+                if ( ! payload.expiry_date || ! payload.trade_date || payload.strikes.length === 0) {
                     statusBadge.textContent = 'Missing required fields';
                     return;
                 }
@@ -399,25 +429,25 @@
                 statusBadge.textContent = 'Loading…';
 
                 fetch(CFG.chartDataUrl, {
-                    method:  'POST',
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept':       'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(payload)
                 })
                     .then(function (res) {
-                        if (!res.ok) {
+                        if ( ! res.ok) {
                             return res.text().then(function (t) { throw new Error(res.status + ': ' + t); });
                         }
                         return res.json();
                     })
                     .then(function (result) {
-                        if (!result.success) { throw new Error('Server returned success:false'); }
+                        if ( ! result.success) { throw new Error('Server returned success:false'); }
                         renderCharts(result);
                         lastUpdatedText.textContent = new Date().toLocaleTimeString('en-IN');
-                        statusBadge.textContent     = 'Live';
+                        statusBadge.textContent = 'Live';
                     })
                     .catch(function (err) {
                         statusBadge.textContent = 'Error – see console';
@@ -425,7 +455,7 @@
                     });
             }
 
-            function startAutoRefresh() {
+            function startAutoRefresh () {
                 clearAutoRefresh();
 
                 autoRefreshTimeout = setTimeout(function () {
@@ -438,7 +468,7 @@
             }
 
             // ── Render charts ─────────────────────────────────────────────────────────
-            function renderCharts(result) {
+            function renderCharts (result) {
                 var strikes = Object.keys(result.data || {});
                 var existing = Object.keys(chartRegistry);
 
@@ -457,40 +487,40 @@
                 chartsGrid.classList.add('grid');
 
                 existing.forEach(function (strike) {
-                    if (!strikes.includes(strike)) {
+                    if ( ! strikes.includes(strike)) {
                         destroyChart(strike);
                     }
                 });
 
                 strikes.forEach(function (strike, index) {
-                    if (!chartRegistry[strike]) {
+                    if ( ! chartRegistry[ strike ]) {
                         mountStrikeChart(
                             strike,
                             index,
-                            result.data[strike],
-                            result.firstCandle[strike] || {},
-                            result.topMarkers[strike] || {},
+                            result.data[ strike ],
+                            result.firstCandle[ strike ] || {},
+                            result.topMarkers[ strike ] || {},
                             result.midpoint
                         );
                     } else {
                         updateStrikeChart(
                             strike,
-                            result.data[strike],
-                            result.firstCandle[strike] || {},
-                            result.topMarkers[strike] || {},
+                            result.data[ strike ],
+                            result.firstCandle[ strike ] || {},
+                            result.topMarkers[ strike ] || {},
                             result.midpoint
                         );
                     }
                 });
             }
 
-            function mountStrikeChart(strike, index, strikeData, firstCandle, topMarkers, midpoint) {
+            function mountStrikeChart (strike, index, strikeData, firstCandle, topMarkers, midpoint) {
                 var card = buildChartCard(strike, index);
                 chartsGrid.appendChild(card);
 
                 createStrikeChart(strike, strikeData, firstCandle, topMarkers, midpoint);
 
-                var entry = chartRegistry[strike];
+                var entry = chartRegistry[ strike ];
                 if (entry) {
                     entry.card = card;
                     entry.summaryEl = document.getElementById('summary-' + sanitizeStrike(strike));
@@ -509,7 +539,7 @@
                 }
             }
 
-            function bindChartInteraction(entry) {
+            function bindChartInteraction (entry) {
                 var markInteracted = function () {
                     entry.userInteracted = true;
                 };
@@ -519,8 +549,8 @@
                 entry.container.addEventListener('touchstart', markInteracted, { passive: true });
             }
 
-            function updatePriceLines(entry, firstCandle, midpoint) {
-                if (!entry.priceLines) {
+            function updatePriceLines (entry, firstCandle, midpoint) {
+                if ( ! entry.priceLines) {
                     entry.priceLines = { ceHigh: null, ceLow: null, peHigh: null, peLow: null, midpoint: null };
                 }
 
@@ -538,12 +568,12 @@
 
                 if (firstCandle.CE) {
                     entry.priceLines.ceHigh = addPriceLine(entry.ceSeries, firstCandle.CE.high, SERIES_COLORS.ce.line, 'CE H', 2, LightweightCharts.LineStyle.Dashed);
-                    entry.priceLines.ceLow  = addPriceLine(entry.ceSeries, firstCandle.CE.low,  SERIES_COLORS.ce.line, 'CE L', 1, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.ceLow = addPriceLine(entry.ceSeries, firstCandle.CE.low, SERIES_COLORS.ce.line, 'CE L', 1, LightweightCharts.LineStyle.Dashed);
                 }
 
                 if (firstCandle.PE) {
                     entry.priceLines.peHigh = addPriceLine(entry.peSeries, firstCandle.PE.high, SERIES_COLORS.pe.line, 'PE H', 2, LightweightCharts.LineStyle.Dashed);
-                    entry.priceLines.peLow  = addPriceLine(entry.peSeries, firstCandle.PE.low,  SERIES_COLORS.pe.line, 'PE L', 1, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.peLow = addPriceLine(entry.peSeries, firstCandle.PE.low, SERIES_COLORS.pe.line, 'PE L', 1, LightweightCharts.LineStyle.Dashed);
                 }
 
                 if (midpoint !== null && midpoint !== undefined && midpoint !== '') {
@@ -551,12 +581,12 @@
                 }
             }
 
-            function updateStrikeChart(strike, strikeData, firstCandle, topMarkers, midpoint) {
-                var entry = chartRegistry[strike];
-                if (!entry) return;
+            function updateStrikeChart (strike, strikeData, firstCandle, topMarkers, midpoint) {
+                var entry = chartRegistry[ strike ];
+                if ( ! entry) return;
 
-                entry.ceSeries.setData((strikeData.CE || []).map(candleToSeries));
-                entry.peSeries.setData((strikeData.PE || []).map(candleToSeries));
+                entry.ceSeries.setData(( strikeData.CE || [] ).map(candleToSeries));
+                entry.peSeries.setData(( strikeData.PE || [] ).map(candleToSeries));
 
                 entry.ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE'));
                 entry.peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE'));
@@ -564,14 +594,14 @@
                 updatePriceLines(entry, firstCandle, midpoint);
                 renderTopSummary(strike, strikeData, topMarkers);
 
-                if (!entry.userInteracted) {
+                if ( ! entry.userInteracted) {
                     entry.chart.timeScale().fitContent();
                 }
             }
 
-            function destroyChart(strike) {
-                var entry = chartRegistry[strike];
-                if (!entry) return;
+            function destroyChart (strike) {
+                var entry = chartRegistry[ strike ];
+                if ( ! entry) return;
 
                 window.removeEventListener('resize', entry.resizeHandler);
 
@@ -580,11 +610,11 @@
                 }
 
                 entry.chart.remove();
-                delete chartRegistry[strike];
+                delete chartRegistry[ strike ];
             }
 
             // ── Build chart card ──────────────────────────────────────────────────────
-            function buildChartCard(strike, index) {
+            function buildChartCard (strike, index) {
                 var wrapper = document.createElement('article');
                 wrapper.className = 'overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm';
 
@@ -592,7 +622,7 @@
                     '<div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-4 py-2">' +
                     '<div class="flex items-center gap-2">' +
                     '<span class="tabular-nums text-sm font-bold text-slate-900">Strike ' + strike + '</span>' +
-                    '<span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">Panel ' + (index+1) + '</span>' +
+                    '<span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">Panel ' + ( index + 1 ) + '</span>' +
                     '</div>' +
                     '<div class="flex items-center gap-2">' +
                     '<span class="inline-flex items-center gap-1 text-[11px] text-slate-400">' +
@@ -613,7 +643,7 @@
                     '<span style="color:' + SERIES_COLORS.ce.line + '">&#8212; CE 1st candle</span>' +
                     '<span style="color:' + SERIES_COLORS.pe.line + '">&#8212; PE 1st candle</span>' +
                     '</div>' +
-                    '<div class="chart-summary" id="summary-' + sanitizeStrike(strike) + '"></div>'+
+                    '<div class="chart-summary" id="summary-' + sanitizeStrike(strike) + '"></div>' +
                     '</div>';
 
                 wrapper.querySelector('.fullscreen-btn').addEventListener('click', function () {
@@ -624,36 +654,36 @@
             }
 
             // ── Create LightweightChart ───────────────────────────────────────────────
-            function createStrikeChart(strike, strikeData, firstCandle, topMarkers, midpoint) {
+            function createStrikeChart (strike, strikeData, firstCandle, topMarkers, midpoint) {
                 var containerId = 'chart-' + sanitizeStrike(strike);
-                var container   = document.getElementById(containerId);
-                if (!container) return;
+                var container = document.getElementById(containerId);
+                if ( ! container) return;
 
                 var chart = LightweightCharts.createChart(container, {
                     layout: {
                         background: { color: '#ffffff' },
                         textColor: '#334155',
-                        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+                        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif'
                     },
                     grid: {
                         vertLines: { color: '#ffffff' },
-                        horzLines: { color: '#ffffff' },
+                        horzLines: { color: '#ffffff' }
                     },
                     width: container.clientWidth,
                     height: container.clientHeight,
                     crosshair: {
-                        mode: LightweightCharts.CrosshairMode.Normal,
+                        mode: LightweightCharts.CrosshairMode.Normal
                     },
                     rightPriceScale: {
                         borderColor: '#e2e8f0',
                         scaleMargins: {
                             top: 0.08,
-                            bottom: 0.08,
+                            bottom: 0.08
                         },
-                        autoScale: true,
+                        autoScale: true
                     },
                     leftPriceScale: {
-                        visible: false,
+                        visible: false
                     },
                     timeScale: {
                         borderColor: '#e2e8f0',
@@ -667,8 +697,8 @@
                             var h = d.getHours().toString().padStart(2, '0');
                             var m = d.getMinutes().toString().padStart(2, '0');
                             return h + ':' + m;
-                        },
-                    },
+                        }
+                    }
                 });
 
                 // Both CE and PE use 'right' scale → single axis, candles overlay directly
@@ -681,7 +711,7 @@
                     wickColor: SERIES_COLORS.ce.wick,
                     borderVisible: true,
                     wickVisible: true,
-                    priceLineVisible: false,
+                    priceLineVisible: false
                 });
 
                 var peSeries = chart.addCandlestickSeries({
@@ -693,11 +723,11 @@
                     wickColor: SERIES_COLORS.pe.wick,
                     borderVisible: true,
                     wickVisible: true,
-                    priceLineVisible: false,
+                    priceLineVisible: false
                 });
 
-                ceSeries.setData((strikeData.CE || []).map(candleToSeries));
-                peSeries.setData((strikeData.PE || []).map(candleToSeries));
+                ceSeries.setData(( strikeData.CE || [] ).map(candleToSeries));
+                peSeries.setData(( strikeData.PE || [] ).map(candleToSeries));
 
                 renderTopSummary(strike, strikeData, topMarkers);
 
@@ -707,41 +737,41 @@
                 container.appendChild(tooltip);
 
                 var ceMap = {};
-                (strikeData.CE || []).forEach(function(c) { ceMap[c.time] = candleToSeries(c); });
+                ( strikeData.CE || [] ).forEach(function (c) { ceMap[ c.time ] = candleToSeries(c); });
 
                 var peMap = {};
-                (strikeData.PE || []).forEach(function(c) { peMap[c.time] = candleToSeries(c); });
+                ( strikeData.PE || [] ).forEach(function (c) { peMap[ c.time ] = candleToSeries(c); });
 
-                chart.subscribeCrosshairMove(function(param) {
-                    if (!param || !param.point || param.point.x < 0 || param.point.y < 0 || !param.time) {
+                chart.subscribeCrosshairMove(function (param) {
+                    if ( ! param || ! param.point || param.point.x < 0 || param.point.y < 0 || ! param.time) {
                         tooltip.style.display = 'none';
                         return;
                     }
 
-                    var ceBar = ceMap[param.time] || null;
-                    var peBar = peMap[param.time] || null;
+                    var ceBar = ceMap[ param.time ] || null;
+                    var peBar = peMap[ param.time ] || null;
 
-                    if (!ceBar && !peBar) {
+                    if ( ! ceBar && ! peBar) {
                         tooltip.style.display = 'none';
                         return;
                     }
 
-                    function blockHtml(label, bar, tone) {
-                        if (!bar) return '';
+                    function blockHtml (label, bar, tone) {
+                        if ( ! bar) return '';
                         return `
             <div style="margin-bottom:8px;">
-                <div style="font-weight:700; color:${tone}; margin-bottom:4px;">${label}</div>
+                <div style="font-weight:700; color:${ tone }; margin-bottom:4px;">${ label }</div>
                 <div class="chart-tooltip-grid">
-                    <div class="chart-tooltip-label">Time</div><div class="chart-tooltip-value">${bar._rawTime}</div>
-                    <div class="chart-tooltip-label">O</div><div class="chart-tooltip-value">${bar.open}</div>
-                    <div class="chart-tooltip-label">H</div><div class="chart-tooltip-value">${bar.high}</div>
-                    <div class="chart-tooltip-label">L</div><div class="chart-tooltip-value">${bar.low}</div>
-                    <div class="chart-tooltip-label">C</div><div class="chart-tooltip-value">${bar.close}</div>
-                    <div class="chart-tooltip-label">OI</div><div class="chart-tooltip-value">${bar._oi.toLocaleString('en-IN')}</div>
-                    <div class="chart-tooltip-label">Vol</div><div class="chart-tooltip-value">${bar._volume.toLocaleString('en-IN')}</div>
-                    <div class="chart-tooltip-label">dOI</div><div class="chart-tooltip-value">${bar._diffOi.toLocaleString('en-IN')}</div>
-                    <div class="chart-tooltip-label">dVol</div><div class="chart-tooltip-value">${bar._diffVol.toLocaleString('en-IN')}</div>
-                    <div class="chart-tooltip-label">Build</div><div class="chart-tooltip-value">${bar._buildUp}</div>
+                    <div class="chart-tooltip-label">Time</div><div class="chart-tooltip-value">${ bar._rawTime }</div>
+                    <div class="chart-tooltip-label">O</div><div class="chart-tooltip-value">${ bar.open }</div>
+                    <div class="chart-tooltip-label">H</div><div class="chart-tooltip-value">${ bar.high }</div>
+                    <div class="chart-tooltip-label">L</div><div class="chart-tooltip-value">${ bar.low }</div>
+                    <div class="chart-tooltip-label">C</div><div class="chart-tooltip-value">${ bar.close }</div>
+                    <div class="chart-tooltip-label">OI</div><div class="chart-tooltip-value">${ bar._oi.toLocaleString('en-IN') }</div>
+                    <div class="chart-tooltip-label">Vol</div><div class="chart-tooltip-value">${ bar._volume.toLocaleString('en-IN') }</div>
+                    <div class="chart-tooltip-label">dOI</div><div class="chart-tooltip-value">${ bar._diffOi.toLocaleString('en-IN') }</div>
+                    <div class="chart-tooltip-label">dVol</div><div class="chart-tooltip-value">${ bar._diffVol.toLocaleString('en-IN') }</div>
+                    <div class="chart-tooltip-label">Build</div><div class="chart-tooltip-value">${ bar._buildUp }</div>
                 </div>
             </div>
         `;
@@ -754,13 +784,13 @@
                     tooltip.style.display = 'block';
 
                     var left = param.point.x + 14;
-                    var top  = param.point.y + 14;
+                    var top = param.point.y + 14;
 
                     if (left + 240 > container.clientWidth) left = param.point.x - 250;
                     if (top + tooltip.offsetHeight > container.clientHeight) top = param.point.y - tooltip.offsetHeight - 14;
 
                     tooltip.style.left = left + 'px';
-                    tooltip.style.top  = top + 'px';
+                    tooltip.style.top = top + 'px';
                 });
 
                 // Top OI / Volume markers
@@ -770,8 +800,8 @@
                 chart.timeScale().fitContent();
 
                 var allTimes = []
-                    .concat((strikeData.CE || []).map(function(c){ return c.time; }))
-                    .concat((strikeData.PE || []).map(function(c){ return c.time; }))
+                    .concat(( strikeData.CE || [] ).map(function (c) { return c.time; }))
+                    .concat(( strikeData.PE || [] ).map(function (c) { return c.time; }))
                     .sort();
 
                 chart.timeScale().fitContent();
@@ -783,7 +813,7 @@
                 };
                 window.addEventListener('resize', resizeHandler);
 
-                chartRegistry[strike] = {
+                chartRegistry[ strike ] = {
                     chart: chart,
                     ceSeries: ceSeries,
                     peSeries: peSeries,
@@ -801,8 +831,8 @@
             }
 
             // ── Helpers ───────────────────────────────────────────────────────────────
-            function candleToSeries(candle) {
-                var color = BUILDUP_COLORS[candle.build_up] || '#94a3b8';
+            function candleToSeries (candle) {
+                var color = BUILDUP_COLORS[ candle.build_up ] || '#94a3b8';
                 return {
                     time: candle.time,
                     open: candle.open,
@@ -821,44 +851,44 @@
                 };
             }
 
-            function addPriceLine(series, price, color, title, lineWidth, lineStyle) {
+            function addPriceLine (series, price, color, title, lineWidth, lineStyle) {
                 return series.createPriceLine({
                     price: Number(price),
                     color: color,
                     lineWidth: lineWidth || 2,
                     lineStyle: lineStyle !== undefined ? lineStyle : LightweightCharts.LineStyle.Solid,
                     axisLabelVisible: true,
-                    title: title,
+                    title: title
                 });
             }
 
-            function buildMarkers(candles, meta, label) {
-                var oiTimes  = meta.oi || [];
+            function buildMarkers (candles, meta, label) {
+                var oiTimes = meta.oi || [];
                 var volTimes = meta.volume || [];
-                var oiRank   = {};
-                var volRank  = {};
+                var oiRank = {};
+                var volRank = {};
 
-                oiTimes.forEach(function(t, i)  { oiRank[t] = i + 1; });
-                volTimes.forEach(function(t, i) { volRank[t] = i + 1; });
+                oiTimes.forEach(function (t, i) { oiRank[ t ] = i + 1; });
+                volTimes.forEach(function (t, i) { volRank[ t ] = i + 1; });
 
                 var markers = [];
-                candles.forEach(function(c) {
-                    if (oiRank[c.time]) {
+                candles.forEach(function (c) {
+                    if (oiRank[ c.time ]) {
                         markers.push({
                             time: c.time,
                             position: 'aboveBar',
                             color: label === 'CE' ? '#0f766e' : '#7c3aed',
                             shape: 'circle',
-                            text: String(oiRank[c.time])
+                            text: String(oiRank[ c.time ])
                         });
                     }
-                    if (volRank[c.time]) {
+                    if (volRank[ c.time ]) {
                         markers.push({
                             time: c.time,
                             position: 'belowBar',
                             color: label === 'CE' ? '#2563eb' : '#9a3412',
                             shape: 'circle',
-                            text: String(volRank[c.time])
+                            text: String(volRank[ c.time ])
                         });
                     }
                 });
@@ -866,47 +896,47 @@
                 return markers;
             }
 
-            function renderTopSummary(strike, strikeData, topMarkers) {
+            function renderTopSummary (strike, strikeData, topMarkers) {
                 var el = document.getElementById('summary-' + sanitizeStrike(strike));
-                if (!el) return;
+                if ( ! el) return;
 
-                function asMap(arr) {
+                function asMap (arr) {
                     var map = {};
-                    arr.forEach(function(c) { map[c.time] = c; });
+                    arr.forEach(function (c) { map[ c.time ] = c; });
                     return map;
                 }
 
                 var ceMap = asMap(strikeData.CE || []);
                 var peMap = asMap(strikeData.PE || []);
 
-                function chips(times, map, cls, prefix, field) {
-                    return (times || []).slice(0, 3).map(function(t, i) {
-                        var row = map[t];
-                        var stamp = row && row.x ? row.x.split(' ')[1] : t;
-                        var value = row ? Number(row[field] || 0).toLocaleString('en-IN') : '-';
-                        return '<span class="chart-chip ' + cls + '">' + prefix + (i + 1) + ' ' + stamp + ' · ' + value + '</span>';
+                function chips (times, map, cls, prefix, field) {
+                    return ( times || [] ).slice(0, 3).map(function (t, i) {
+                        var row = map[ t ];
+                        var stamp = row && row.x ? row.x.split(' ')[ 1 ] : t;
+                        var value = row ? Number(row[ field ] || 0).toLocaleString('en-IN') : '-';
+                        return '<span class="chart-chip ' + cls + '">' + prefix + ( i + 1 ) + ' ' + stamp + ' · ' + value + '</span>';
                     }).join('');
                 }
             }
 
-            function destroyAllCharts() {
+            function destroyAllCharts () {
                 Object.keys(chartRegistry).forEach(function (strike) {
                     destroyChart(strike);
                 });
                 chartRegistry = {};
             }
 
-            function sanitizeStrike(s) { return String(s).replace(/\./g, '-'); }
+            function sanitizeStrike (s) { return String(s).replace(/\./g, '-'); }
 
             // FIX: Full-screen uses inset:0 and flex layout so chart fills 100% viewport
-            function toggleFullscreen(card, strike) {
+            function toggleFullscreen (card, strike) {
                 var wasFS = card.classList.contains('full-screen-chart');
 
                 card.classList.toggle('full-screen-chart');
                 document.body.classList.toggle('overflow-hidden');
                 document.documentElement.classList.toggle('overflow-hidden');
 
-                if (!wasFS) {
+                if ( ! wasFS) {
                     card.style.width = '100vw';
                     card.style.height = '100vh';
                 } else {
@@ -917,12 +947,12 @@
                 var btn = card.querySelector('.fullscreen-btn');
                 btn.textContent = wasFS ? '⛶ Full' : '✕ Exit';
 
-                var entry = chartRegistry[strike];
+                var entry = chartRegistry[ strike ];
                 if (entry) {
                     setTimeout(function () {
                         var rect = entry.container.getBoundingClientRect();
                         entry.chart.resize(rect.width, rect.height);
-                        if (!entry.userInteracted) {
+                        if ( ! entry.userInteracted) {
                             entry.chart.timeScale().fitContent();
                         }
                     }, 180);

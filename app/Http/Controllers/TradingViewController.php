@@ -57,7 +57,7 @@ class TradingViewController extends Controller
         if ($currentDayIndexOpen) {
             // Round to nearest 50 for ATM
             $atm = (int) (round($currentDayIndexOpen / 50) * 50);
-            for ($i = -3; $i <= 3; $i++) {
+            for ($i = -4; $i <= 5; $i++) {
                 $strikes[] = $atm + ($i * 50);
             }
         }
@@ -96,7 +96,7 @@ class TradingViewController extends Controller
     public function fetchChartData(Request $request)
     {
         $request->validate([
-            'strikes'           => 'required|array|min:1|max:7',
+            'strikes'           => 'required|array|min:1|max:10',
             'strikes.*'         => 'numeric',
             'underlying_symbol' => 'required|string',
             'expiry_date'       => 'required|date',
