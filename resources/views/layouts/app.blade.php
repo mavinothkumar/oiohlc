@@ -24,7 +24,8 @@
 $routeName = request()->route()?->getName() ?? '';
 @endphp
 
-<div class="fixed top-0 right-0 m-4 text-sm font-medium">
+<div class="fixed top-0 right-0 m-4 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur"
+    id="page-updated-time">
     {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
 </div>
 @if(!Str::startsWith($routeName, ['test.', 'trading.']))

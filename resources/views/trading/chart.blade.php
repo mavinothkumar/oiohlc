@@ -4,6 +4,139 @@
 
 @push('styles')
     <style>
+        #signalToastHost {
+            position: fixed !important;
+            top: 16px !important;
+            right: 16px !important;
+            z-index: 10050 !important;
+            pointer-events: none;
+        }
+
+        #signalToastHost .signal-toast {
+            pointer-events: auto;
+            position: relative;
+            z-index: 10051;
+        }
+
+        #chartsGrid,
+        .chart-box,
+        article {
+            position: relative;
+            z-index: 1;
+        }
+
+
+        #signalPanel,
+        #signalPanelDrawer,
+        #signalPanelToggle,
+        #signalToastHost {
+            z-index: 10000 !important;
+        }
+
+        .chart-tooltip {
+            z-index: 30 !important;
+        }
+
+        .signal-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 9999px;
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 4px 10px;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 700;
+        }
+        .signal-pill--warn {
+            border-color: #fde68a;
+            background: #fefce8;
+            color: #a16207;
+        }
+        .signal-pill--danger {
+            border-color: #fecaca;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+        .signal-stat {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            padding: 10px 12px;
+        }
+        .signal-stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .signal-stat-value {
+            margin-top: 4px;
+            font-size: 18px;
+            line-height: 1;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .signal-item {
+            border-radius: 18px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 8px 24px rgba(15,23,42,.05);
+        }
+        .signal-item__head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .signal-item__call {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .signal-item__meta {
+            margin-top: 2px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .signal-item__score {
+            border-radius: 9999px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+        .signal-item__reasons {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .signal-toast {
+            pointer-events: auto;
+            border-radius: 18px;
+            border: 1px solid #dbeafe;
+            background: rgba(255,255,255,.97);
+            box-shadow: 0 18px 42px rgba(15,23,42,.18);
+            padding: 14px 14px 12px;
+            backdrop-filter: blur(10px);
+            animation: signal-toast-in .28s ease-out;
+        }
+        .signal-toast--buyce { border-color: #93c5fd; }
+        .signal-toast--buype { border-color: #c4b5fd; }
+        .signal-toast--neutral { border-color: #cbd5e1; }
+        @keyframes signal-toast-in {
+            from { opacity: 0; transform: translateY(-8px) translateX(8px); }
+            to   { opacity: 1; transform: translateY(0) translateX(0); }
+        }
+
         /* Chart host needs explicit pixel height for LightweightCharts to initialise */
         .chart-box {
             height: calc(58vh - 64px);
@@ -298,9 +431,20 @@
                 'Long Unwind': '#eab308',
                 'Short Cover': '#1e3a8a'
             };
-            var CE_COLOR = '#8f0cbd';   // Blue  – CE first-candle lines
-            var PE_COLOR = '#07ffab';   // Purple – PE first-candle lines
-            var MID_COLOR = '#f97316';   // Orange – midpoint
+
+            var lastFetchAt = null;
+            var latestCandleAt = null;
+            var pageUpdatedTimer = null;
+            var pageUpdatedEl = document.getElementById('page-updated-time');
+
+            var signalStore = {
+                history: [],
+                processedKeys: {},
+                lastBySeries: {}
+            };
+            var signalDrawerOpen = false;
+            var lastEvaluatedTradeDate = null;
+
 
             var SERIES_COLORS = {
                 ce: {
@@ -343,6 +487,22 @@
             var csrfInput = document.querySelector('input[name="_token"]');
             var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') :
                 csrfInput ? csrfInput.value : '';
+
+            var signalPanel = document.getElementById('signalPanel');
+            var signalPanelDrawer = document.getElementById('signalPanelDrawer');
+            var signalPanelBackdrop = document.getElementById('signalPanelBackdrop');
+            var signalPanelToggle = document.getElementById('signalPanelToggle');
+            var signalPanelClose = document.getElementById('signalPanelClose');
+            var signalHeadlineCall = document.getElementById('signalHeadlineCall');
+            var signalHeadlineScore = document.getElementById('signalHeadlineScore');
+            var signalHeadlineMeta = document.getElementById('signalHeadlineMeta');
+            var signalHeadlineReasons = document.getElementById('signalHeadlineReasons');
+            var signalStats = document.getElementById('signalStats');
+            var signalHistory = document.getElementById('signalHistory');
+            var signalHistoryCount = document.getElementById('signalHistoryCount');
+            var signalToastHost = document.getElementById('signalToastHost');
+            var clearSignalHistoryBtn = document.getElementById('clearSignalHistory');
+
 
             // ── Filter panel toggle (default: collapsed) ─────────────────────────────
             toggleFilterBtn.addEventListener('click', function () {
@@ -390,6 +550,107 @@
                 autoRefreshTimer = null;
                 autoRefreshTimeout = null;
             }
+            function getLatestCandleTimestamp(result) {
+                var latest = null;
+                Object.keys(result.data || {}).forEach(function (strike) {
+                    ['CE', 'PE'].forEach(function (side) {
+                        var candles = (result.data[strike] && result.data[strike][side]) ? result.data[strike][side] : [];
+                        if (candles.length) {
+                            var ts = candles[candles.length - 1].time;
+                            if (!latest || ts > latest) latest = ts;
+                        }
+                    });
+                });
+                return latest;
+            }
+
+            function formatIstDateTime(date) {
+                if (!date) return '--';
+                return new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).format(date);
+            }
+
+            function formatIstTimeFromUnix(ts) {
+                if (!ts) return '--';
+                return new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).format(new Date(ts * 1000));
+            }
+
+            function getNextFetchTime() {
+                var now = new Date();
+                var next = new Date(now);
+
+                next.setSeconds(9, 0);
+
+                var minute = now.getMinutes();
+                var nextMinute = Math.ceil((minute + (now.getSeconds() >= 9 ? 0.0001 : 0)) / 5) * 5;
+
+                if (nextMinute >= 60) {
+                    next.setHours(now.getHours() + 1);
+                    next.setMinutes(0);
+                } else {
+                    next.setMinutes(nextMinute);
+                }
+
+                next.setSeconds(9, 0);
+
+                if (next <= now) {
+                    next = new Date(next.getTime() + 5 * 60 * 1000);
+                }
+
+                return next;
+            }
+
+
+            function formatCountdown(ms) {
+                var total = Math.max(0, Math.floor(ms / 1000));
+                var min = Math.floor(total / 60);
+                var sec = total % 60;
+                return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+            }
+
+            function updatePageUpdatedTime() {
+                if (!pageUpdatedEl) return;
+
+                var now = Date.now();
+                var nextFetch = getNextFetchTime();
+                var countdown = formatCountdown(nextFetch.getTime() - Date.now());
+                var fetchedText = lastFetchAt ? formatIstDateTime(lastFetchAt) : '--';
+                var candleText = latestCandleAt ? formatIstTimeFromUnix(latestCandleAt) : '--';
+
+                pageUpdatedEl.innerHTML =
+                    '<div class="text-right">' +
+                    '<div><span class="font-semibold">Updated:</span> ' + fetchedText + '</div>' +
+                    '<div><span class="font-semibold">Candle:</span> ' + candleText + '</div>' +
+                    '<div><span class="font-semibold text-emerald-600">Next:</span> ' + countdown + '</div>' +
+                    '</div>';
+            }
+
+            function startPageUpdatedClock() {
+                if (pageUpdatedTimer) {
+                    clearInterval(pageUpdatedTimer);
+                }
+
+                updatePageUpdatedTime();
+
+                pageUpdatedTimer = setInterval(function () {
+                    updatePageUpdatedTime();
+                }, 1000);
+            }
+
 
             function msUntilNextFiveMinuteMarkAt09 () {
                 var now = new Date();
@@ -446,8 +707,16 @@
                     .then(function (result) {
                         if ( ! result.success) { throw new Error('Server returned success:false'); }
                         renderCharts(result);
+
+                        lastFetchAt = new Date();
+                        latestCandleAt = getLatestCandleTimestamp(result);
+                        updatePageUpdatedTime();
+
+                        evaluateDaySignals(result);
                         lastUpdatedText.textContent = new Date().toLocaleTimeString('en-IN');
                         statusBadge.textContent = 'Live';
+
+
                     })
                     .catch(function (err) {
                         statusBadge.textContent = 'Error – see console';
@@ -966,6 +1235,575 @@
                 startAutoRefresh();
             }, 100);
 
+
+            function openSignalDrawer() {
+                signalDrawerOpen = true;
+                signalPanel.classList.remove('pointer-events-none');
+                signalPanelBackdrop.classList.remove('hidden');
+                requestAnimationFrame(function () {
+                    signalPanelDrawer.classList.remove('translate-x-full');
+                });
+            }
+
+            function closeSignalDrawer() {
+                signalDrawerOpen = false;
+                signalPanelDrawer.classList.add('translate-x-full');
+                signalPanelBackdrop.classList.add('hidden');
+                setTimeout(function () {
+                    if (!signalDrawerOpen) {
+                        signalPanel.classList.add('pointer-events-none');
+                    }
+                }, 300);
+            }
+
+            signalPanelToggle && signalPanelToggle.addEventListener('click', function () {
+                signalDrawerOpen ? closeSignalDrawer() : openSignalDrawer();
+            });
+            signalPanelClose && signalPanelClose.addEventListener('click', closeSignalDrawer);
+            signalPanelBackdrop && signalPanelBackdrop.addEventListener('click', closeSignalDrawer);
+
+
+            function signalStoreKey() {
+                var expiryEl = document.getElementById('expirydate');
+                var tradeDateEl = document.getElementById('tradedate');
+
+                var expiryValue = expiryEl ? expiryEl.value : (CFG.expiry || '');
+                var tradeDateValue = tradeDateEl ? tradeDateEl.value : (CFG.tradeDate || '');
+
+                return ['trading-signals', CFG.symbol || '', expiryValue, tradeDateValue].join('|');
+            }
+
+            function loadSignalStore() {
+                var key = signalStoreKey();
+                lastEvaluatedTradeDate = tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+
+                try {
+                    var raw = window.localStorage ? localStorage.getItem(key) : null;
+                    signalStore = raw ? JSON.parse(raw) : { history: [], processedKeys: {}, lastBySeries: {} };
+                } catch (e) {
+                    signalStore = { history: [], processedKeys: {}, lastBySeries: {} };
+                }
+
+                if (!signalStore.history) signalStore.history = [];
+                if (!signalStore.processedKeys) signalStore.processedKeys = {};
+                if (!signalStore.lastBySeries) signalStore.lastBySeries = {};
+
+                if (!Array.isArray(signalStore.history)) signalStore.history = [];
+                signalStore.history = signalStore.history.map(normalizeSignalEntry);
+
+                renderSignalPanel();
+            }
+
+
+
+            function saveSignalStore() {
+                try {
+                    if (window.localStorage) {
+                        localStorage.setItem(signalStoreKey(), JSON.stringify(signalStore));
+                    }
+                } catch (e) {}
+            }
+
+            function getActiveExpiry() {
+                var el = document.getElementById('expirydate');
+                return el ? el.value : (CFG.expiry || '');
+            }
+
+            function getActiveTradeDate() {
+                return tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+            }
+
+            function ensureSignalStoreDate() {
+                var activeTradeDate = tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+                if (lastEvaluatedTradeDate !== activeTradeDate) {
+                    loadSignalStore();
+                }
+            }
+
+            clearSignalHistoryBtn && clearSignalHistoryBtn.addEventListener('click', function () {
+                signalStore = { history: [], processedKeys: {}, lastBySeries: {} };
+                saveSignalStore();
+                renderSignalPanel();
+            });
+
+            function toNum(v) { return Number(v || 0); }
+            function abs(v) { return Math.abs(toNum(v)); }
+            function samePrice(a, b, tolerance) { return Math.abs(toNum(a) - toNum(b)) <= (tolerance || 0.15); }
+
+            function nearLevel(price, level, tolerancePct, minAbs) {
+                price = toNum(price);
+                level = toNum(level);
+                if (!level) return false;
+                var tol = Math.max(Math.abs(level) * (tolerancePct || 0.003), minAbs || 2);
+                return Math.abs(price - level) <= tol;
+            }
+
+            function latestCandle(candles) {
+                return candles && candles.length ? candles[candles.length - 1] : null;
+            }
+
+            function previousCandle(candles) {
+                return candles && candles.length > 1 ? candles[candles.length - 2] : null;
+            }
+
+            function getNeighbourStrikes(strike, allStrikes) {
+                var sorted = allStrikes.map(Number).sort(function (a, b) { return a - b; });
+                var idx = sorted.indexOf(Number(strike));
+                return {
+                    prev: idx > 0 ? String(sorted[idx - 1]) : null,
+                    next: idx >= 0 && idx < sorted.length - 1 ? String(sorted[idx + 1]) : null
+                };
+            }
+
+            function countByBuildUp(grouped, time, side, buildUp) {
+                return Object.keys(grouped).reduce(function (acc, strike) {
+                    var arr = grouped[strike] && grouped[strike][side] ? grouped[strike][side] : [];
+                    var row = arr.find(function (c) { return c.time === time; });
+                    return acc + (row && row.buildup === buildUp ? 1 : 0);
+                }, 0);
+            }
+
+            function evaluateMidpointScenario(ctx) {
+                var score = 0, reasons = [];
+                var ce = ctx.ce, pe = ctx.pe;
+                var ceNearMid = ce && nearLevel(ce.close, ctx.midpoint, 0.0025, 3);
+                var peNearMid = pe && nearLevel(pe.close, ctx.midpoint, 0.0025, 3);
+
+                if (ceNearMid && ce.buildup === 'Long Build') {
+                    score += 30;
+                    reasons.push('CE Long Build near midpoint');
+                }
+                if (peNearMid && pe.buildup === 'Long Build') {
+                    score += 30;
+                    reasons.push('PE Long Build near midpoint');
+                }
+                if (ceNearMid && pe && pe.buildup === 'Short Build') {
+                    score += 12;
+                    reasons.push('Opposite PE Short Build confirmation');
+                }
+                if (peNearMid && ce && ce.buildup === 'Short Build') {
+                    score += 12;
+                    reasons.push('Opposite CE Short Build confirmation');
+                }
+                return { name: 'midpoint', score: score, reasons: reasons };
+            }
+
+            function evaluateFirstFiveScenario(ctx) {
+                var score = 0, reasons = [];
+                if (ctx.firstCandle && ctx.firstCandle.CE && ctx.ce) {
+                    if (nearLevel(ctx.ce.low, ctx.firstCandle.CE.low, 0.002, 2) && ctx.ce.buildup === 'Long Build') {
+                        score += 24;
+                        reasons.push('CE Long Build at first 5-min low');
+                    }
+                    if (nearLevel(ctx.ce.high, ctx.firstCandle.CE.high, 0.002, 2) && ctx.ce.buildup === 'Short Build') {
+                        score += 18;
+                        reasons.push('CE Short Build at first 5-min high');
+                    }
+                }
+                if (ctx.firstCandle && ctx.firstCandle.PE && ctx.pe) {
+                    if (nearLevel(ctx.pe.low, ctx.firstCandle.PE.low, 0.002, 2) && ctx.pe.buildup === 'Long Build') {
+                        score += 24;
+                        reasons.push('PE Long Build at first 5-min low');
+                    }
+                    if (nearLevel(ctx.pe.high, ctx.firstCandle.PE.high, 0.002, 2) && ctx.pe.buildup === 'Short Build') {
+                        score += 18;
+                        reasons.push('PE Short Build at first 5-min high');
+                    }
+                }
+                return { name: 'firstFive', score: score, reasons: reasons };
+            }
+
+            function evaluateOiVolumeScenario(ctx) {
+                var score = 0, reasons = [];
+                var topOiCE = (ctx.topMarkers.CE && ctx.topMarkers.CE.oi || []).includes(ctx.time);
+                var topVolCE = (ctx.topMarkers.CE && ctx.topMarkers.CE.volume || []).includes(ctx.time);
+                var topOiPE = (ctx.topMarkers.PE && ctx.topMarkers.PE.oi || []).includes(ctx.time);
+                var topVolPE = (ctx.topMarkers.PE && ctx.topMarkers.PE.volume || []).includes(ctx.time);
+
+                if (ctx.ce && topOiCE) { score += 16; reasons.push('CE highest OI candle'); }
+                if (ctx.ce && topVolCE) { score += 12; reasons.push('CE highest volume candle'); }
+                if (ctx.pe && topOiPE) { score += 16; reasons.push('PE highest OI candle'); }
+                if (ctx.pe && topVolPE) { score += 12; reasons.push('PE highest volume candle'); }
+
+                if (ctx.ce && (topOiCE || topVolCE) && ctx.ce.buildup === 'Long Build' && ctx.pe && ctx.pe.buildup === 'Short Build') {
+                    score += 10;
+                    reasons.push('CE OI/Volume aligned with opposite PE Short Build');
+                }
+                if (ctx.pe && (topOiPE || topVolPE) && ctx.pe.buildup === 'Long Build' && ctx.ce && ctx.ce.buildup === 'Short Build') {
+                    score += 10;
+                    reasons.push('PE OI/Volume aligned with opposite CE Short Build');
+                }
+
+                return { name: 'oiVolume', score: score, reasons: reasons };
+            }
+
+            function evaluatePriceMeetScenario(ctx) {
+                var score = 0, reasons = [];
+                if (ctx.ce && ctx.pe) {
+                    if (samePrice(ctx.ce.close, ctx.pe.close, 2)) {
+                        score += 10;
+                        reasons.push('CE and PE closed near same price');
+                    }
+                    if (samePrice(ctx.ce.high, ctx.pe.high, 2) || samePrice(ctx.ce.low, ctx.pe.low, 2)) {
+                        score += 6;
+                        reasons.push('Shared price decision zone formed');
+                    }
+                }
+                return { name: 'priceMeet', score: score, reasons: reasons };
+            }
+
+            function evaluateBuildUpScenario(ctx) {
+                var score = 0, reasons = [];
+                var ceLB = countByBuildUp(ctx.grouped, ctx.time, 'CE', 'Long Build');
+                var peSB = countByBuildUp(ctx.grouped, ctx.time, 'PE', 'Short Build');
+                var peLB = countByBuildUp(ctx.grouped, ctx.time, 'PE', 'Long Build');
+                var ceSB = countByBuildUp(ctx.grouped, ctx.time, 'CE', 'Short Build');
+
+                if (ceLB >= 2 && peSB >= 2) {
+                    score += 18;
+                    reasons.push('Multi-strike CE LB with PE SB confirmation');
+                }
+                if (peLB >= 2 && ceSB >= 2) {
+                    score += 18;
+                    reasons.push('Multi-strike PE LB with CE SB confirmation');
+                }
+                return { name: 'buildup', score: score, reasons: reasons };
+            }
+
+            function evaluateContinuationScenario(ctx) {
+                var score = 0, reasons = [];
+                if (ctx.prevCe && ctx.ce && ctx.prevPe && ctx.pe) {
+                    if (ctx.prevCe.buildup === 'Long Build' && ctx.ce.buildup === 'Long Build' &&
+                        ctx.prevPe.buildup === 'Short Build' && ctx.pe.buildup === 'Short Build') {
+                        score += 20;
+                        reasons.push('Two-candle CE continuation with opposite PE Short Build');
+                    }
+                    if (ctx.prevPe.buildup === 'Long Build' && ctx.pe.buildup === 'Long Build' &&
+                        ctx.prevCe.buildup === 'Short Build' && ctx.ce.buildup === 'Short Build') {
+                        score += 20;
+                        reasons.push('Two-candle PE continuation with opposite CE Short Build');
+                    }
+                }
+                return { name: 'continuation', score: score, reasons: reasons };
+            }
+
+            function evaluateNeighbourConfirmation(ctx) {
+                var score = 0, reasons = [];
+                var neighbours = getNeighbourStrikes(ctx.strike, ctx.allStrikes);
+
+                function candleAt(strikeKey, side) {
+                    if (!strikeKey || !ctx.grouped[strikeKey] || !ctx.grouped[strikeKey][side]) return null;
+                    var arr = ctx.grouped[strikeKey][side];
+                    return arr.find(function (c) { return c.time === ctx.time; }) || null;
+                }
+
+                var prevCE = candleAt(neighbours.prev, 'CE');
+                var prevPE = candleAt(neighbours.prev, 'PE');
+                var nextCE = candleAt(neighbours.next, 'CE');
+                var nextPE = candleAt(neighbours.next, 'PE');
+
+                if ((prevCE && prevCE.buildup === 'Long Build' && prevPE && prevPE.buildup === 'Short Build') ||
+                    (nextCE && nextCE.buildup === 'Long Build' && nextPE && nextPE.buildup === 'Short Build')) {
+                    score += 14;
+                    reasons.push('Nearest strike confirms CE buy structure');
+                }
+                if ((prevPE && prevPE.buildup === 'Long Build' && prevCE && prevCE.buildup === 'Short Build') ||
+                    (nextPE && nextPE.buildup === 'Long Build' && nextCE && nextCE.buildup === 'Short Build')) {
+                    score += 14;
+                    reasons.push('Nearest strike confirms PE buy structure');
+                }
+                return { name: 'neighbour', score: score, reasons: reasons };
+            }
+
+            function buildFinalCall(ctx, parts) {
+                var total = parts.reduce(function (acc, p) { return acc + p.score; }, 0);
+                var reasonList = parts.reduce(function (acc, p) { return acc.concat(p.reasons); }, []).slice(0, 7);
+
+                var ceBias = 0;
+                var peBias = 0;
+
+                if (ctx.ce && ctx.ce.buildup === 'Long Build') ceBias += 16;
+                if (ctx.ce && ctx.ce.buildup === 'Short Build') ceBias -= 10;
+                if (ctx.pe && ctx.pe.buildup === 'Long Build') peBias += 16;
+                if (ctx.pe && ctx.pe.buildup === 'Short Build') peBias -= 10;
+
+                if (ctx.ce && ctx.pe) {
+                    if (ctx.ce.buildup === 'Long Build' && ctx.pe.buildup === 'Short Build') ceBias += 22;
+                    if (ctx.pe.buildup === 'Long Build' && ctx.ce.buildup === 'Short Build') peBias += 22;
+                }
+
+                var side = 'NEUTRAL';
+                if (ceBias > peBias) side = 'CE';
+                if (peBias > ceBias) side = 'PE';
+
+                var call = 'No Trade / Mixed Zone';
+                if (side === 'CE' && total >= 80) call = 'Strong Buy CE';
+                else if (side === 'CE' && total >= 60) call = 'Buy CE';
+                else if (side === 'CE' && total >= 40) call = 'Watch CE';
+                else if (side === 'PE' && total >= 80) call = 'Strong Buy PE';
+                else if (side === 'PE' && total >= 60) call = 'Buy PE';
+                else if (side === 'PE' && total >= 40) call = 'Watch PE';
+                else if (total >= 30) call = 'Breakout Watch';
+
+                return {
+                    call: call,
+                    side: side,
+                    score: total,
+                    reasons: reasonList,
+                    parts: parts.map(function (p) { return { name: p.name, score: p.score, reasons: p.reasons }; })
+                };
+            }
+
+            function evaluateDaySignals(result) {
+                ensureSignalStoreDate();
+
+                var grouped = result.data || {};
+                var strikes = Object.keys(grouped).sort(function (a, b) { return Number(a) - Number(b); });
+
+                strikes.forEach(function (strike) {
+                    var ceArr = grouped[strike] && grouped[strike].CE ? grouped[strike].CE : [];
+                    var peArr = grouped[strike] && grouped[strike].PE ? grouped[strike].PE : [];
+                    var ce = latestCandle(ceArr);
+                    var pe = latestCandle(peArr);
+                    var prevCe = previousCandle(ceArr);
+                    var prevPe = previousCandle(peArr);
+                    var time = ce ? ce.time : (pe ? pe.time : null);
+                    if (!time) return;
+
+                    var candleKey = [tradeDateInput.value, strike, time].join('|');
+                    if (signalStore.processedKeys[candleKey]) return;
+
+                    var ctx = {
+                        strike: strike,
+                        time: time,
+                        ce: ce,
+                        pe: pe,
+                        prevCe: prevCe,
+                        prevPe: prevPe,
+                        grouped: grouped,
+                        allStrikes: strikes,
+                        midpoint: result.midpoint,
+                        firstCandle: result.firstCandle[strike] || {},
+                        topMarkers: result.topMarkers[strike] || { CE: { oi: [], volume: [] }, PE: { oi: [], volume: [] } }
+                    };
+
+                    var parts = [
+                        evaluateMidpointScenario(ctx),
+                        evaluateFirstFiveScenario(ctx),
+                        evaluateOiVolumeScenario(ctx),
+                        evaluatePriceMeetScenario(ctx),
+                        evaluateBuildUpScenario(ctx),
+                        evaluateContinuationScenario(ctx),
+                        evaluateNeighbourConfirmation(ctx)
+                    ];
+
+                    var finalCall = buildFinalCall(ctx, parts);
+                    if (finalCall.score < 30) return;
+
+                    var entry = {
+                        id: candleKey,
+                        tradeDate: tradeDateInput.value,
+                        candleTime: time,
+                        candleLabel: (ce && ce.timestamp) || (pe && pe.timestamp) || String(time),
+                        strike: strike,
+                        call: finalCall.call,
+                        side: finalCall.side,
+                        score: finalCall.score,
+                        reasons: finalCall.reasons,
+                        parts: finalCall.parts,
+                        ceBuildUp: ce ? ce.buildup : null,
+                        peBuildUp: pe ? pe.buildup : null,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    signalStore.processedKeys[candleKey] = 1;
+                    signalStore.history.unshift(entry);
+                    signalStore.history = signalStore.history.slice(0, 200);
+                    saveSignalStore();
+                    renderSignalPanel();
+                    showSignalToast(entry);
+                });
+            }
+
+            function normalizeSignalEntry(item) {
+                item = item || {};
+                item.reasons = Array.isArray(item.reasons) ? item.reasons : [];
+                item.parts = Array.isArray(item.parts) ? item.parts : [];
+                item.call = item.call || 'No Trade / Mixed Zone';
+                item.strike = item.strike || '--';
+                item.score = Number(item.score || 0);
+                item.candleLabel = item.candleLabel || '--';
+                item.tradeDate = item.tradeDate || getActiveTradeDate();
+                item.side = item.side || 'NEUTRAL';
+                return item;
+            }
+
+            function renderSignalPanel() {
+                var history = Array.isArray(signalStore.history) ? signalStore.history.map(normalizeSignalEntry) : [];
+                signalStore.history = history;
+                signalHistoryCount.textContent = String(history.length);
+
+                if (!history.length) {
+                    signalHeadlineCall.textContent = 'Waiting for new candle';
+                    signalHeadlineScore.textContent = '--';
+                    signalHeadlineMeta.textContent = 'No ranked call stored for this day yet';
+                    signalHeadlineReasons.innerHTML = '';
+                    signalStats.innerHTML = [
+                        statCard('Strong calls', 0),
+                        statCard('Buy calls', 0),
+                        statCard('Watch calls', 0),
+                        statCard('No trade', 0)
+                    ].join('');
+                    signalHistory.innerHTML = '<div class=\"rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500\">No signal history yet.</div>';
+                    return;
+                }
+
+                var latest = normalizeSignalEntry(history[0]);
+                var latestReasons = Array.isArray(latest.reasons) ? latest.reasons : [];
+
+                signalHeadlineCall.textContent = latest.call + ' · ' + latest.strike;
+                signalHeadlineScore.textContent = latest.score;
+                signalHeadlineMeta.textContent = latest.candleLabel + ' · ' + latest.tradeDate;
+                signalHeadlineReasons.innerHTML = latestReasons.slice(0, 5).map(function (r) {
+                    return '<span class=\"signal-pill\">' + escapeHtml(r) + '</span>';
+                }).join('');
+
+                var strong = history.filter(function (x) { return /^Strong Buy/.test(x.call); }).length;
+                var buy = history.filter(function (x) { return /^Buy /.test(x.call); }).length;
+                var watch = history.filter(function (x) { return /^Watch /.test(x.call) || x.call === 'Breakout Watch'; }).length;
+                var mixed = history.filter(function (x) { return x.call === 'No Trade / Mixed Zone'; }).length;
+
+                signalStats.innerHTML = [
+                    statCard('Strong calls', strong),
+                    statCard('Buy calls', buy),
+                    statCard('Watch calls', watch),
+                    statCard('No trade', mixed)
+                ].join('');
+
+                signalHistory.innerHTML = history.map(function (rawItem) {
+                    var item = normalizeSignalEntry(rawItem);
+                    var reasons = Array.isArray(item.reasons) ? item.reasons : [];
+
+                    return '<div class=\"signal-item\">'
+                        + '<div class=\"signal-item__head\">'
+                        +   '<div><div class=\"signal-item__call\">' + escapeHtml(item.call) + ' · ' + escapeHtml(item.strike) + '</div>'
+                        +   '<div class=\"signal-item__meta\">' + escapeHtml(item.candleLabel) + ' · ' + escapeHtml(item.tradeDate) + '</div></div>'
+                        +   '<span class=\"signal-item__score\">Score ' + escapeHtml(String(item.score)) + '</span>'
+                        + '</div>'
+                        + '<div class=\"signal-item__reasons\">'
+                        +   reasons.slice(0, 6).map(function (r) { return '<span class=\"signal-pill\">' + escapeHtml(r) + '</span>'; }).join('')
+                        + '</div>'
+                        + '</div>';
+                }).join('');
+            }
+
+            function statCard(label, value) {
+                return '<div class="signal-stat"><div class="signal-stat-label">' + escapeHtml(label) + '</div><div class="signal-stat-value">' + escapeHtml(String(value)) + '</div></div>';
+            }
+
+            function showSignalToast(entry) {
+                var toneClass = entry.side === 'CE' ? 'signal-toast--buyce' : (entry.side === 'PE' ? 'signal-toast--buype' : 'signal-toast--neutral');
+                var node = document.createElement('div');
+                node.className = 'signal-toast ' + toneClass;
+                node.innerHTML = '<div class="flex items-start justify-between gap-3">'
+                    + '<div>'
+                    + '<div class="text-xs font-semibold uppercase tracking-wide text-slate-500">New candle conclusion</div>'
+                    + '<div class="mt-1 text-sm font-extrabold text-slate-900">' + escapeHtml(entry.call) + ' · ' + escapeHtml(entry.strike) + '</div>'
+                    + '<div class="mt-1 text-xs text-slate-600">' + escapeHtml(entry.candleLabel) + ' · Score ' + escapeHtml(String(entry.score)) + '</div>'
+                    + '</div>'
+                    + '<button type="button" class="rounded-md border border-slate-200 px-2 py-1 text-11px font-semibold text-slate-500">✕</button>'
+                    + '</div>'
+                    + '<div class="mt-3 flex flex-wrap gap-2">'
+                    + entry.reasons.slice(0, 3).map(function (r) { return '<span class="signal-pill">' + escapeHtml(r) + '</span>'; }).join('')
+                    + '</div>';
+
+                var closeBtn = node.querySelector('button');
+                closeBtn.addEventListener('click', function () { node.remove(); });
+                signalToastHost.prepend(node);
+                setTimeout(function () {
+                    if (node.parentNode) node.remove();
+                }, 9000);
+            }
+
+            function escapeHtml(str) {
+                return String(str == null ? '' : str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+
+
+            loadSignalStore();
+            startPageUpdatedClock();
         });
     </script>
+
+    <button id="signalPanelToggle"
+        type="button"
+        class="fixed right-4 top-1/2 z-[9998] -translate-y-1/2 rounded-l-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xl">
+        Signals
+    </button>
+
+    <div id="signalPanel"
+        class="fixed inset-0 z-[9999] pointer-events-none">
+        <div id="signalPanelBackdrop"
+            class="absolute inset-0 hidden bg-slate-900/20"></div>
+
+        <aside id="signalPanelDrawer"
+            class="absolute right-0 top-0 h-screen w-[380px] max-w-[92vw] translate-x-full overflow-hidden border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out pointer-events-auto">
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Signal Conclusion</p>
+                    <p class="text-xs text-slate-500">Stored for selected trade day</p>
+                </div>
+                <button id="signalPanelClose"
+                    type="button"
+                    class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                    Close
+                </button>
+            </div>
+
+            <div class="h-[calc(100vh-65px)] overflow-y-auto px-4 py-4">
+                <div id="signalHeadline" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Latest call</p>
+                            <p id="signalHeadlineCall" class="mt-1 text-lg font-bold text-slate-900">Waiting for new candle</p>
+                        </div>
+                        <span id="signalHeadlineScore" class="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-700">--</span>
+                    </div>
+                    <p id="signalHeadlineMeta" class="mt-2 text-xs text-slate-600">No candle evaluation yet</p>
+                    <div id="signalHeadlineReasons" class="mt-3 flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-bold text-slate-900">Day summary</p>
+                        <button id="clearSignalHistory"
+                            type="button"
+                            class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-11px font-semibold text-slate-600 hover:bg-slate-50">
+                            Clear day
+                        </button>
+                    </div>
+                    <div id="signalStats" class="mt-3 grid grid-cols-2 gap-3"></div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-sm font-bold text-slate-900">Candle timeline</p>
+                        <span id="signalHistoryCount" class="rounded-full bg-slate-100 px-2.5 py-1 text-11px font-semibold text-slate-600">0</span>
+                    </div>
+                    <div id="signalHistory" class="mt-3 space-y-3"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="signalToastHost"
+        class="pointer-events-none fixed right-4 top-4 z-[10050] flex w-[380px] max-w-[calc(100vw-24px)] flex-col gap-3">
+    </div>
+
 @endsection
