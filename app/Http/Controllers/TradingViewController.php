@@ -46,9 +46,11 @@ class TradingViewController extends Controller
                        ->select('mid_point', 'current_day_index_open')
                        ->first();
 
+            $underlying_spot_price = DB::table('option_chains')->orderByDesc('captured_at')->first();
+
             if ($trend) {
                 $midPoint            = $trend->mid_point;
-                $currentDayIndexOpen = $trend->current_day_index_open;
+                $currentDayIndexOpen = $underlying_spot_price->underlying_spot_price;
             }
         }
 
