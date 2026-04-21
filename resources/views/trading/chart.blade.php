@@ -530,7 +530,7 @@
     @endphp
 
     {{-- ── Top bar: minimal, just status + toggle ────────────────────────── --}}
-    <div class="mx-auto max-w-[1800px] px-3 pt-3 pb-1">
+    <div class="mx-auto max-w-full px-3 pt-3 pb-1">
         <div class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
             <div class="flex items-center gap-3">
             <span class="relative flex h-2.5 w-2.5">
@@ -569,7 +569,7 @@
     </div>
 
     {{-- ── Filter panel (collapsed by default) ───────────────────────────── --}}
-    <div class="mx-auto max-w-[1800px] px-3">
+    <div class="mx-auto max-w-full px-3">
         <div id="filterPanel" class="collapsed rounded-2xl border border-slate-200 bg-white shadow-sm"
             style="max-height: 600px;">
             <form id="chartFilterForm" class="space-y-4 px-5 py-5">
@@ -625,7 +625,7 @@
     </div>
 
     {{-- ── Charts area ── --}}
-    <div class="mx-auto max-w-[1800px] px-3 pb-3 pt-2">
+    <div class="mx-auto max-w-full px-3 pb-3 pt-2">
         <div id="emptyState" class="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -1284,17 +1284,17 @@
                 entry.priceLines.midpoint = null;
 
                 if (firstCandle.CE) {
-                    entry.priceLines.ceHigh = addPriceLine(entry.ceSeries, firstCandle.CE.high, SERIES_COLORS.ce.line, 'CE H', 2, LightweightCharts.LineStyle.Dashed);
-                    entry.priceLines.ceLow = addPriceLine(entry.ceSeries, firstCandle.CE.low, SERIES_COLORS.ce.line, 'CE L', 1, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.ceHigh = addPriceLine(entry.ceSeries, firstCandle.CE.high, SERIES_COLORS.ce.line, 'CE H', 2, LightweightCharts.LineStyle.Solid);
+                    entry.priceLines.ceLow = addPriceLine(entry.ceSeries, firstCandle.CE.low, SERIES_COLORS.ce.line, 'CE L', 1, LightweightCharts.LineStyle.Solid);
                 }
 
                 if (firstCandle.PE) {
-                    entry.priceLines.peHigh = addPriceLine(entry.peSeries, firstCandle.PE.high, SERIES_COLORS.pe.line, 'PE H', 2, LightweightCharts.LineStyle.Dashed);
-                    entry.priceLines.peLow = addPriceLine(entry.peSeries, firstCandle.PE.low, SERIES_COLORS.pe.line, 'PE L', 1, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.peHigh = addPriceLine(entry.peSeries, firstCandle.PE.high, SERIES_COLORS.pe.line, 'PE H', 2, LightweightCharts.LineStyle.Solid);
+                    entry.priceLines.peLow = addPriceLine(entry.peSeries, firstCandle.PE.low, SERIES_COLORS.pe.line, 'PE L', 1, LightweightCharts.LineStyle.Solid);
                 }
 
                 if (midpoint !== null && midpoint !== undefined && midpoint !== '') {
-                    entry.priceLines.midpoint = addPriceLine(entry.ceSeries, midpoint, SERIES_COLORS.midpoint, 'Mid', 3, LightweightCharts.LineStyle.Solid);
+                    entry.priceLines.midpoint = addPriceLine(entry.ceSeries, midpoint, SERIES_COLORS.midpoint, 'Mid', 4, LightweightCharts.LineStyle.Solid);
                 }
             }
 
@@ -2240,8 +2240,10 @@
 
     <button id="signalPanelToggle"
         type="button"
-        class="fixed right-4 top-1/2 z-[9998] -translate-y-1/2 rounded-l-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xl">
-        Signals
+        class="fixed right-0 top-1/2 z-[9998] -translate-y-1/2 rounded-l-xl border border-slate-200 bg-white px-1 py-1 text-xs font-bold text-slate-700 shadow-xl">
+        <svg width="20px" height="20px" viewBox="0 0 17 17" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <path d="M11.5 4c0-1.654-1.346-3-3-3s-3 1.346-3 3c0 1.483 1.084 2.71 2.5 2.949v8.051h-2v1h5v-1h-2v-8.051c1.416-0.239 2.5-1.466 2.5-2.949zM6.5 4c0-1.103 0.897-2 2-2s2 0.897 2 2-0.897 2-2 2-2-0.897-2-2zM4.504 2.192c-0.378 0.46-0.577 1.004-0.577 1.574s0.199 1.114 0.577 1.574l-0.774 0.636c-0.525-0.641-0.803-1.405-0.803-2.209s0.278-1.569 0.803-2.209l0.774 0.634zM2 3.767c0 1.079 0.387 2.096 1.119 2.938l-0.754 0.656c-0.881-1.012-1.365-2.29-1.365-3.594s0.484-2.582 1.365-3.595l0.754 0.656c-0.732 0.843-1.119 1.86-1.119 2.939zM14.073 3.767c0 0.805-0.278 1.568-0.804 2.209l-0.773-0.635c0.378-0.46 0.577-1.004 0.577-1.574s-0.199-1.114-0.577-1.574l0.773-0.635c0.526 0.64 0.804 1.404 0.804 2.209zM16 3.767c0 1.305-0.484 2.582-1.365 3.595l-0.754-0.656c0.732-0.844 1.119-1.86 1.119-2.939s-0.387-2.096-1.119-2.938l0.754-0.656c0.881 1.012 1.365 2.289 1.365 3.594z" fill="#000000" />
+        </svg>
     </button>
 
     <div id="signalPanel"
