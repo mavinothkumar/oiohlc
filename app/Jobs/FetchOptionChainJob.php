@@ -2,26 +2,37 @@
 
 namespace App\Jobs;
 
+use DB;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 // FetchOptionChainJob.php
 class FetchOptionChainJob implements ShouldQueue
 {
+    use Queueable;
+
     public function __construct(
         public readonly string $symbol,
-        public readonly string $candleTimestamp, // "2026-04-21 09:20:00"
+        public readonly string $candleTimestamp,
     ) {}
 
     public function handle(): void
     {
-        // Use $this->candleTimestamp to build $candleTs, $windowStart, $windowEnd
-        $candleTs    = Carbon::parse($this->candleTimestamp)->second(0);
-        $windowStart = $candleTs->copy()->subMinutes(4);
-        $windowEnd   = $candleTs->copy();
+        Log::info('FetchOptionChainJob started', [
+            'symbol'    => $this->symbol,
+            'timestamp' => $this->candleTimestamp,
+        ]);
 
-        // fetch option chain → aggregate → store ohlc_live_snapshots
+        // Step 1 — Run the existing command (fetches option chain + stores + aggregates)
+        Artisan::call('optionchain:fetch');
+
+        Log::info('FetchOptionChainJob completed', [
+            'symbol'    => $this->symbol,
+            'timestamp' => $this->candleTimestamp,
+            'output'    => Artisan::output(),
+        ]);
     }
 }

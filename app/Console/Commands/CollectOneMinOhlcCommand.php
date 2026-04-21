@@ -181,11 +181,12 @@ class CollectOneMinOhlcCommand extends Command
             ['open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at']
         );
 
+        info('Event Firing start' . now()->toTimeString());
         event(new \App\Events\OhlcOneMinCollected(
             symbol:    $inst['symbol'],
             timestamp: now()->second(0)->toDateTimeString(),
         ));
-
+        info('Event Firing end' . now()->toTimeString());
         info('fully completed ' . now()->toTimeString());
         $this->info("Upserted " . count($rows) . " 1-min OHLC rows for {$inst['symbol']}.");
     }

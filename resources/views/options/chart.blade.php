@@ -225,7 +225,7 @@
                         // Appending 'Z' forces JS to parse it as UTC, preventing the
                         // browser from applying the local (IST) offset a second time.
                         // Result: LW receives and displays the correct IST time (09:15).
-                        const normalized = c.x.replace(' ', 'T') + 'Z';
+                        const normalized = c.x;
                         time = Math.floor(new Date(normalized).getTime() / 1000);
                     }
 
