@@ -270,6 +270,24 @@
             var PE_COLOR  = '#07ffab';   // Purple – PE first-candle lines
             var MID_COLOR = '#f97316';   // Orange – midpoint
 
+            var SERIES_COLORS = {
+                ce: {
+                    line: '#2563eb',
+                    up: 'rgba(37,99,235,0.75)',
+                    down: 'rgba(37,99,235,0.75)',
+                    border: 'rgba(37,99,235,0.95)',
+                    wick: 'rgba(37,99,235,0.95)'
+                },
+                pe: {
+                    line: '#7c3aed',
+                    up: 'rgba(124,58,237,0.35)',
+                    down: 'rgba(124,58,237,0.35)',
+                    border: 'rgba(124,58,237,0.90)',
+                    wick: 'rgba(124,58,237,0.90)'
+                },
+                midpoint: '#f97316'
+            };
+
             // ── State ────────────────────────────────────────────────────────────────
             var autoRefreshTimer = null;
             var autoRefreshTimeout = null;
@@ -421,12 +439,12 @@
 
             // ── Render charts ─────────────────────────────────────────────────────────
             function renderCharts(result) {
-                destroyAllCharts();
-                chartsGrid.innerHTML = '';
-
-                var strikes = Object.keys(result.data);
+                var strikes = Object.keys(result.data || {});
+                var existing = Object.keys(chartRegistry);
 
                 if (strikes.length === 0) {
+                    destroyAllCharts();
+                    chartsGrid.innerHTML = '';
                     emptyState.classList.remove('hidden');
                     chartsGrid.classList.remove('grid');
                     chartsGrid.classList.add('hidden');
@@ -438,17 +456,131 @@
                 chartsGrid.classList.remove('hidden');
                 chartsGrid.classList.add('grid');
 
-                strikes.forEach(function (strike, index) {
-                    var card = buildChartCard(strike, index);
-                    chartsGrid.appendChild(card);
-                    createStrikeChart(
-                        strike,
-                        result.data[strike],
-                        result.firstCandle[strike]  || {},
-                        result.topMarkers[strike]   || {},
-                        result.midpoint
-                    );
+                existing.forEach(function (strike) {
+                    if (!strikes.includes(strike)) {
+                        destroyChart(strike);
+                    }
                 });
+
+                strikes.forEach(function (strike, index) {
+                    if (!chartRegistry[strike]) {
+                        mountStrikeChart(
+                            strike,
+                            index,
+                            result.data[strike],
+                            result.firstCandle[strike] || {},
+                            result.topMarkers[strike] || {},
+                            result.midpoint
+                        );
+                    } else {
+                        updateStrikeChart(
+                            strike,
+                            result.data[strike],
+                            result.firstCandle[strike] || {},
+                            result.topMarkers[strike] || {},
+                            result.midpoint
+                        );
+                    }
+                });
+            }
+
+            function mountStrikeChart(strike, index, strikeData, firstCandle, topMarkers, midpoint) {
+                var card = buildChartCard(strike, index);
+                chartsGrid.appendChild(card);
+
+                createStrikeChart(strike, strikeData, firstCandle, topMarkers, midpoint);
+
+                var entry = chartRegistry[strike];
+                if (entry) {
+                    entry.card = card;
+                    entry.summaryEl = document.getElementById('summary-' + sanitizeStrike(strike));
+                    entry.priceLines = {
+                        ceHigh: null,
+                        ceLow: null,
+                        peHigh: null,
+                        peLow: null,
+                        midpoint: null
+                    };
+                    entry.userInteracted = false;
+
+                    bindChartInteraction(entry);
+                    updatePriceLines(entry, firstCandle, midpoint);
+                    renderTopSummary(strike, strikeData, topMarkers);
+                }
+            }
+
+            function bindChartInteraction(entry) {
+                var markInteracted = function () {
+                    entry.userInteracted = true;
+                };
+
+                entry.container.addEventListener('wheel', markInteracted, { passive: true });
+                entry.container.addEventListener('mousedown', markInteracted);
+                entry.container.addEventListener('touchstart', markInteracted, { passive: true });
+            }
+
+            function updatePriceLines(entry, firstCandle, midpoint) {
+                if (!entry.priceLines) {
+                    entry.priceLines = { ceHigh: null, ceLow: null, peHigh: null, peLow: null, midpoint: null };
+                }
+
+                if (entry.priceLines.ceHigh) entry.ceSeries.removePriceLine(entry.priceLines.ceHigh);
+                if (entry.priceLines.ceLow) entry.ceSeries.removePriceLine(entry.priceLines.ceLow);
+                if (entry.priceLines.peHigh) entry.peSeries.removePriceLine(entry.priceLines.peHigh);
+                if (entry.priceLines.peLow) entry.peSeries.removePriceLine(entry.priceLines.peLow);
+                if (entry.priceLines.midpoint) entry.ceSeries.removePriceLine(entry.priceLines.midpoint);
+
+                entry.priceLines.ceHigh = null;
+                entry.priceLines.ceLow = null;
+                entry.priceLines.peHigh = null;
+                entry.priceLines.peLow = null;
+                entry.priceLines.midpoint = null;
+
+                if (firstCandle.CE) {
+                    entry.priceLines.ceHigh = addPriceLine(entry.ceSeries, firstCandle.CE.high, SERIES_COLORS.ce.line, 'CE H', 2, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.ceLow  = addPriceLine(entry.ceSeries, firstCandle.CE.low,  SERIES_COLORS.ce.line, 'CE L', 1, LightweightCharts.LineStyle.Dashed);
+                }
+
+                if (firstCandle.PE) {
+                    entry.priceLines.peHigh = addPriceLine(entry.peSeries, firstCandle.PE.high, SERIES_COLORS.pe.line, 'PE H', 2, LightweightCharts.LineStyle.Dashed);
+                    entry.priceLines.peLow  = addPriceLine(entry.peSeries, firstCandle.PE.low,  SERIES_COLORS.pe.line, 'PE L', 1, LightweightCharts.LineStyle.Dashed);
+                }
+
+                if (midpoint !== null && midpoint !== undefined && midpoint !== '') {
+                    entry.priceLines.midpoint = addPriceLine(entry.ceSeries, midpoint, SERIES_COLORS.midpoint, 'Mid', 3, LightweightCharts.LineStyle.Solid);
+                }
+            }
+
+            function updateStrikeChart(strike, strikeData, firstCandle, topMarkers, midpoint) {
+                var entry = chartRegistry[strike];
+                if (!entry) return;
+
+                entry.ceSeries.setData((strikeData.CE || []).map(candleToSeries));
+                entry.peSeries.setData((strikeData.PE || []).map(candleToSeries));
+
+                entry.ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE'));
+                entry.peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE'));
+
+                updatePriceLines(entry, firstCandle, midpoint);
+                renderTopSummary(strike, strikeData, topMarkers);
+
+                if (!entry.userInteracted) {
+                    entry.chart.timeScale().fitContent();
+                }
+            }
+
+            function destroyChart(strike) {
+                var entry = chartRegistry[strike];
+                if (!entry) return;
+
+                window.removeEventListener('resize', entry.resizeHandler);
+
+                if (entry.card && entry.card.parentNode) {
+                    entry.card.parentNode.removeChild(entry.card);
+                }
+
+                entry.chart.remove();
+                delete chartRegistry[strike];
             }
 
             // ── Build chart card ──────────────────────────────────────────────────────
@@ -464,10 +596,10 @@
                     '</div>' +
                     '<div class="flex items-center gap-2">' +
                     '<span class="inline-flex items-center gap-1 text-[11px] text-slate-400">' +
-                    '<span class="h-1.5 w-1.5 rounded-full" style="background:' + CE_COLOR + '"></span>CE right axis' +
+                    '<span class="h-1.5 w-1.5 rounded-full" style="background:' + SERIES_COLORS.ce.line + '"></span>CE right axis' +
                     '</span>' +
                     '<span class="inline-flex items-center gap-1 text-[11px] text-slate-400">' +
-                    '<span class="h-1.5 w-1.5 rounded-full" style="background:' + PE_COLOR + '"></span>PE left axis' +
+                    '<span class="h-1.5 w-1.5 rounded-full" style="background:' + SERIES_COLORS.pe.line + '"></span>PE left axis' +
                     '</span>' +
                     '<button type="button" class="fullscreen-btn rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50" data-strike="' + strike + '">&#x26F6; Full</button>' +
                     '</div>' +
@@ -477,9 +609,9 @@
                     '<div class="mt-1 flex flex-wrap gap-3 px-1 text-[10px] text-slate-400">' +
                     '<span>OI1/OI2/OI3 = top OI candles</span>' +
                     '<span>V1/V2/V3 = top volume candles</span>' +
-                    '<span style="color:' + MID_COLOR + '">&#8212; MidPoint</span>' +
-                    '<span style="color:' + CE_COLOR + '">&#8212; CE 1st candle</span>' +
-                    '<span style="color:' + PE_COLOR + '">&#8212; PE 1st candle</span>' +
+                    '<span style="color:' + SERIES_COLORS.midpoint + '">&#8212; MidPoint</span>' +
+                    '<span style="color:' + SERIES_COLORS.ce.line + '">&#8212; CE 1st candle</span>' +
+                    '<span style="color:' + SERIES_COLORS.pe.line + '">&#8212; PE 1st candle</span>' +
                     '</div>' +
                     '<div class="chart-summary" id="summary-' + sanitizeStrike(strike) + '"></div>'+
                     '</div>';
@@ -543,10 +675,10 @@
                 var ceSeries = chart.addCandlestickSeries({
                     title: 'CE',
                     priceScaleId: 'right',
-                    upColor: 'rgba(37,99,235,0.75)',
-                    downColor: 'rgba(37,99,235,0.75)',
-                    borderColor: 'rgba(37,99,235,0.95)',
-                    wickColor: 'rgba(37,99,235,0.95)',
+                    upColor: SERIES_COLORS.ce.up,
+                    downColor: SERIES_COLORS.ce.down,
+                    borderColor: SERIES_COLORS.ce.border,
+                    wickColor: SERIES_COLORS.ce.wick,
                     borderVisible: true,
                     wickVisible: true,
                     priceLineVisible: false,
@@ -555,10 +687,10 @@
                 var peSeries = chart.addCandlestickSeries({
                     title: 'PE',
                     priceScaleId: 'right',
-                    upColor: 'rgba(124,58,237,0.35)',
-                    downColor: 'rgba(124,58,237,0.35)',
-                    borderColor: 'rgba(124,58,237,0.9)',
-                    wickColor: 'rgba(124,58,237,0.9)',
+                    upColor: SERIES_COLORS.pe.up,
+                    downColor: SERIES_COLORS.pe.down,
+                    borderColor: SERIES_COLORS.pe.border,
+                    wickColor: SERIES_COLORS.pe.wick,
                     borderVisible: true,
                     wickVisible: true,
                     priceLineVisible: false,
@@ -616,8 +748,8 @@
                     }
 
                     tooltip.innerHTML =
-                        blockHtml('CE', ceBar, CE_COLOR) +
-                        blockHtml('PE', peBar, PE_COLOR);
+                        blockHtml('CE', ceBar, SERIES_COLORS.ce.line) +
+                        blockHtml('PE', peBar, SERIES_COLORS.pe.line);
 
                     tooltip.style.display = 'block';
 
@@ -630,23 +762,6 @@
                     tooltip.style.left = left + 'px';
                     tooltip.style.top  = top + 'px';
                 });
-
-                // FIX: First 5-min candle lines drawn as price lines on their own series ONLY
-                // (no cross-series bleeding). Use dashed style so they don't look like
-                // regular candle wicks or grid lines.
-                if (firstCandle.CE) {
-                    addPriceLine(ceSeries, firstCandle.CE.high, CE_COLOR, 'CE H', 2, LightweightCharts.LineStyle.Solid);
-                    addPriceLine(ceSeries, firstCandle.CE.low,  CE_COLOR, 'CE L', 1, LightweightCharts.LineStyle.Solid);
-                }
-                if (firstCandle.PE) {
-                    addPriceLine(peSeries, firstCandle.PE.high, PE_COLOR, 'PE H', 2, LightweightCharts.LineStyle.Solid);
-                    addPriceLine(peSeries, firstCandle.PE.low,  PE_COLOR, 'PE L', 1, LightweightCharts.LineStyle.Solid);
-                }
-
-                // MidPoint – solid thick orange line
-                if (midpoint !== null && midpoint !== undefined && midpoint !== '') {
-                    addPriceLine(ceSeries, midpoint, MID_COLOR, 'Mid', 3, LightweightCharts.LineStyle.Solid);
-                }
 
                 // Top OI / Volume markers
                 ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || {}, 'CE'));
@@ -668,7 +783,21 @@
                 };
                 window.addEventListener('resize', resizeHandler);
 
-                chartRegistry[strike] = { chart: chart, ceSeries: ceSeries, peSeries: peSeries, resizeHandler: resizeHandler, container: container };
+                chartRegistry[strike] = {
+                    chart: chart,
+                    ceSeries: ceSeries,
+                    peSeries: peSeries,
+                    resizeHandler: resizeHandler,
+                    container: container,
+                    userInteracted: false,
+                    priceLines: {
+                        ceHigh: null,
+                        ceLow: null,
+                        peHigh: null,
+                        peLow: null,
+                        midpoint: null
+                    }
+                };
             }
 
             // ── Helpers ───────────────────────────────────────────────────────────────
@@ -693,13 +822,13 @@
             }
 
             function addPriceLine(series, price, color, title, lineWidth, lineStyle) {
-                series.createPriceLine({
-                    price:            Number(price),
-                    color:            color,
-                    lineWidth:        lineWidth || 2,
-                    lineStyle:        lineStyle !== undefined ? lineStyle : LightweightCharts.LineStyle.Solid,
+                return series.createPriceLine({
+                    price: Number(price),
+                    color: color,
+                    lineWidth: lineWidth || 2,
+                    lineStyle: lineStyle !== undefined ? lineStyle : LightweightCharts.LineStyle.Solid,
                     axisLabelVisible: true,
-                    title:            title,
+                    title: title,
                 });
             }
 
@@ -761,9 +890,8 @@
             }
 
             function destroyAllCharts() {
-                Object.values(chartRegistry).forEach(function (e) {
-                    window.removeEventListener('resize', e.resizeHandler);
-                    e.chart.remove();
+                Object.keys(chartRegistry).forEach(function (strike) {
+                    destroyChart(strike);
                 });
                 chartRegistry = {};
             }
@@ -794,7 +922,9 @@
                     setTimeout(function () {
                         var rect = entry.container.getBoundingClientRect();
                         entry.chart.resize(rect.width, rect.height);
-                        entry.chart.timeScale().fitContent();
+                        if (!entry.userInteracted) {
+                            entry.chart.timeScale().fitContent();
+                        }
                     }, 180);
                 }
             }
