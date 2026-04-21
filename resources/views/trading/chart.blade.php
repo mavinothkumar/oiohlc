@@ -22,6 +22,10 @@
             border-bottom: 1px solid #f1f5f9;
         }
 
+        .signal-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
         .signal-strike-cell {
             min-width: 84px;
         }
@@ -789,6 +793,7 @@
                     if (!grouped[key]) {
                         grouped[key] = {
                             time: key,
+                            displayTime: formatSignalTimeLabel(key),
                             items: [],
                             totalScore: 0,
                             maxScore: 0,
@@ -812,7 +817,7 @@
                     });
 
                     group.totalScore = Number(group.totalScore || 0);
-                    group.topStrike = group.items.length ? String(group.items[0].strike || '--') : '--';
+                    group.topStrike = group.items.length ? formatStrike(group.items[0].strike) : '--';
                     group.overallSignal = deriveOverallSignal(group.items, group.totalScore);
 
                     return group;
@@ -828,7 +833,7 @@
             function formatSignalTimeLabel(label) {
                 if (!label || label === '--') return '--';
 
-                var parsed = new Date(label.replace(' ', 'T'));
+                var parsed = new Date(String(label).replace(' ', 'T'));
                 if (isNaN(parsed.getTime())) return label;
 
                 return new Intl.DateTimeFormat('en-IN', {
@@ -852,10 +857,15 @@
                         var reasons = Array.isArray(item.reasons) ? item.reasons : [];
                         var formattedStrike = formatStrike(item.strike);
                         var bias = compactBiasLabel(item);
+
                         var detailHtml = reasons.map(function (reason) {
                             var label = compactReasonLabel(reason);
                             return label ? '<span class="signal-pill">' + escapeHtml(label) + '</span>' : '';
                         }).join('');
+
+                        if (!detailHtml) {
+                            detailHtml = '<span class="text-xs text-slate-400">No details</span>';
+                        }
 
                         return '<tr>'
                             + '<td class="signal-strike-cell">'
@@ -876,25 +886,23 @@
 
                     return '<div class="signal-time-block">'
                         + '<div class="signal-time-head">'
-                        +   '<div>'
-                        +     '<div class="signal-time-label">' + escapeHtml(group.displayTime || group.time || '--') + '</div>'
-                        +     '<div class="signal-time-meta">' + escapeHtml(metaText) + '</div>'
-                        +   '</div>'
-                        +   '<span class="signal-overall signal-overall--' + signalTone(group.overallSignal) + '">'
-                        +     escapeHtml(group.overallSignal || 'Ignore')
-                        +   '</span>'
+                        + '<div>'
+                        + '<div class="signal-time-label">' + escapeHtml(group.displayTime || group.time || '--') + '</div>'
+                        + '<div class="signal-time-meta">' + escapeHtml(metaText) + '</div>'
+                        + '</div>'
+                        + '<span class="signal-overall signal-overall--' + signalTone(group.overallSignal) + '">' + escapeHtml(group.overallSignal || 'Ignore') + '</span>'
                         + '</div>'
                         + '<div class="mt-3 overflow-x-auto">'
-                        +   '<table class="signal-table">'
-                        +     '<thead>'
-                        +       '<tr>'
-                        +         '<th>Strike</th>'
-                        +         '<th>Side</th>'
-                        +         '<th>Details</th>'
-                        +       '</tr>'
-                        +     '</thead>'
-                        +     '<tbody>' + rowsHtml + '</tbody>'
-                        +   '</table>'
+                        + '<table class="signal-table">'
+                        + '<thead>'
+                        + '<tr>'
+                        + '<th>Strike</th>'
+                        + '<th>Bias</th>'
+                        + '<th>Details</th>'
+                        + '</tr>'
+                        + '</thead>'
+                        + '<tbody>' + rowsHtml + '</tbody>'
+                        + '</table>'
                         + '</div>'
                         + '</div>';
                 }).join('');
@@ -911,21 +919,30 @@
             function compactReasonLabel(reason) {
                 if (!reason) return '';
 
-                var text = String(reason);
+                var text = String(reason).trim();
 
-                text = text.replace(/highest OI candle/i, 'OI #1');
-                text = text.replace(/highest volume candle/i, 'VOL #1');
-                text = text.replace(/2nd highest OI candle/i, 'OI #2');
-                text = text.replace(/3rd highest OI candle/i, 'OI #3');
-                text = text.replace(/4th highest OI candle/i, 'OI #4');
-                text = text.replace(/5th highest OI candle/i, 'OI #5');
-                text = text.replace(/2nd highest volume candle/i, 'VOL #2');
-                text = text.replace(/3rd highest volume candle/i, 'VOL #3');
-                text = text.replace(/4th highest volume candle/i, 'VOL #4');
-                text = text.replace(/5th highest volume candle/i, 'VOL #5');
+                text = text.replace(/CE highest OI candle/i, 'CE OI #1');
+                text = text.replace(/PE highest OI candle/i, 'PE OI #1');
+                text = text.replace(/CE highest volume candle/i, 'CE VOL #1');
+                text = text.replace(/PE highest volume candle/i, 'PE VOL #1');
 
-                text = text.replace(/^CE /i, 'CE ');
-                text = text.replace(/^PE /i, 'PE ');
+                text = text.replace(/CE 2nd highest OI candle/i, 'CE OI #2');
+                text = text.replace(/PE 2nd highest OI candle/i, 'PE OI #2');
+                text = text.replace(/CE 3rd highest OI candle/i, 'CE OI #3');
+                text = text.replace(/PE 3rd highest OI candle/i, 'PE OI #3');
+                text = text.replace(/CE 4th highest OI candle/i, 'CE OI #4');
+                text = text.replace(/PE 4th highest OI candle/i, 'PE OI #4');
+                text = text.replace(/CE 5th highest OI candle/i, 'CE OI #5');
+                text = text.replace(/PE 5th highest OI candle/i, 'PE OI #5');
+
+                text = text.replace(/CE 2nd highest volume candle/i, 'CE VOL #2');
+                text = text.replace(/PE 2nd highest volume candle/i, 'PE VOL #2');
+                text = text.replace(/CE 3rd highest volume candle/i, 'CE VOL #3');
+                text = text.replace(/PE 3rd highest volume candle/i, 'PE VOL #3');
+                text = text.replace(/CE 4th highest volume candle/i, 'CE VOL #4');
+                text = text.replace(/PE 4th highest volume candle/i, 'PE VOL #4');
+                text = text.replace(/CE 5th highest volume candle/i, 'CE VOL #5');
+                text = text.replace(/PE 5th highest volume candle/i, 'PE VOL #5');
 
                 text = text.replace(/midpoint/i, 'MID');
                 text = text.replace(/first 5 min high/i, '5M H');
@@ -935,7 +952,7 @@
                 text = text.replace(/short covering/i, 'SC');
                 text = text.replace(/long unwinding/i, 'LU');
 
-                return text.trim();
+                return text;
             }
 
             function compactBiasLabel(item) {
@@ -954,8 +971,9 @@
                 if (Number.isFinite(num)) {
                     return String(Math.round(num));
                 }
-                return String(strike || '--').replace(/\\.00$/, '');
+                return String(strike || '--').replace(/\.00$/, '');
             }
+
 
 
 
