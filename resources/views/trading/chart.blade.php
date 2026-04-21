@@ -5,6 +5,100 @@
 @push('styles')
     <style>
 
+        .signal-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: #64748b;
+            font-weight: 700;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 11px;
+            letter-spacing: .02em;
+        }
+
+        .signal-table td {
+            vertical-align: top;
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .signal-strike-cell {
+            min-width: 84px;
+        }
+
+        .signal-strike-main {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.1;
+        }
+
+        .signal-strike-score {
+            margin-top: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .signal-bias-cell {
+            width: 72px;
+        }
+
+        .signal-bias {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 56px;
+            border-radius: 9999px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: .03em;
+        }
+
+        .signal-bias--bull {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .signal-bias--bear {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .signal-bias--ce {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .signal-bias--pe {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .signal-bias--neutral {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .signal-detail-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .signal-pill {
+            border-radius: 9999px;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.1;
+            background: #eef2ff;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
         .signal-time-block {
             border: 1px solid #e2e8f0;
             border-radius: 18px;
@@ -698,7 +792,9 @@
                             items: [],
                             totalScore: 0,
                             maxScore: 0,
-                            candleTime: item.candleTime || 0
+                            candleTime: Number(item.candleTime || 0),
+                            topStrike: '--',
+                            overallSignal: 'Ignore'
                         };
                     }
 
@@ -715,8 +811,9 @@
                         return Number(b.score || 0) - Number(a.score || 0);
                     });
 
+                    group.totalScore = Number(group.totalScore || 0);
+                    group.topStrike = group.items.length ? String(group.items[0].strike || '--') : '--';
                     group.overallSignal = deriveOverallSignal(group.items, group.totalScore);
-                    group.topStrike = group.items.length ? group.items.strike : '--';
 
                     return group;
                 });
@@ -726,6 +823,20 @@
                 });
 
                 return result;
+            }
+
+            function formatSignalTimeLabel(label) {
+                if (!label || label === '--') return '--';
+
+                var parsed = new Date(label.replace(' ', 'T'));
+                if (isNaN(parsed.getTime())) return label;
+
+                return new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).format(parsed);
             }
 
             function renderGroupedSignalTable(history) {
@@ -739,32 +850,38 @@
                 signalHistory.innerHTML = groups.map(function (group) {
                     var rowsHtml = group.items.map(function (item) {
                         var reasons = Array.isArray(item.reasons) ? item.reasons : [];
+                        var formattedStrike = formatStrike(item.strike);
+                        var bias = compactBiasLabel(item);
+                        var detailHtml = reasons.map(function (reason) {
+                            var label = compactReasonLabel(reason);
+                            return label ? '<span class="signal-pill">' + escapeHtml(label) + '</span>' : '';
+                        }).join('');
 
                         return '<tr>'
-                            + '<td class="font-bold text-slate-900">' + escapeHtml(String(item.strike)) + '</td>'
-                            + '<td><span class="signal-table-score">' + escapeHtml(String(item.score || 0)) + '</span></td>'
-                            + '<td><span class="signal-table-side signal-table-side--' + signalSideTone(item.side) + '">'
-                            + escapeHtml(item.side || 'NEUTRAL')
-                            + '</span></td>'
-                            + '<td><div class="signal-detail-list">'
-                            + reasons.map(function (reason) {
-                                return '<span class="signal-pill">' + escapeHtml(reason) + '</span>';
-                            }).join('')
-                            + '</div></td>'
+                            + '<td class="signal-strike-cell">'
+                            + '<div class="signal-strike-main">' + escapeHtml(formattedStrike) + '</div>'
+                            + '<div class="signal-strike-score">Score ' + escapeHtml(String(item.score || 0)) + '</div>'
+                            + '</td>'
+                            + '<td class="signal-bias-cell">'
+                            + '<span class="signal-bias signal-bias--' + signalBiasTone(bias) + '">' + escapeHtml(bias) + '</span>'
+                            + '</td>'
+                            + '<td><div class="signal-detail-list">' + detailHtml + '</div></td>'
                             + '</tr>';
                     }).join('');
+
+                    var strikeCount = (group.items || []).length;
+                    var metaText = 'Score ' + String(group.totalScore || 0)
+                        + ' · ' + String(strikeCount) + ' strike' + (strikeCount === 1 ? '' : 's')
+                        + ' · Top ' + String(group.topStrike || '--');
 
                     return '<div class="signal-time-block">'
                         + '<div class="signal-time-head">'
                         +   '<div>'
-                        +     '<div class="signal-time-label">' + escapeHtml(group.time) + '</div>'
-                        +     '<div class="signal-time-meta">Overall score ' + escapeHtml(String(group.totalScore))
-                        +       + ' · ' + escapeHtml(String(group.items.length)) + ' strikes'
-                        +       + ' · Top strike ' + escapeHtml(String(group.topStrike))
-                        +     '</div>'
+                        +     '<div class="signal-time-label">' + escapeHtml(group.displayTime || group.time || '--') + '</div>'
+                        +     '<div class="signal-time-meta">' + escapeHtml(metaText) + '</div>'
                         +   '</div>'
                         +   '<span class="signal-overall signal-overall--' + signalTone(group.overallSignal) + '">'
-                        +     escapeHtml(group.overallSignal)
+                        +     escapeHtml(group.overallSignal || 'Ignore')
                         +   '</span>'
                         + '</div>'
                         + '<div class="mt-3 overflow-x-auto">'
@@ -772,18 +889,72 @@
                         +     '<thead>'
                         +       '<tr>'
                         +         '<th>Strike</th>'
-                        +         '<th>Score</th>'
                         +         '<th>Side</th>'
                         +         '<th>Details</th>'
                         +       '</tr>'
                         +     '</thead>'
-                        +     '<tbody>'
-                        +       rowsHtml
-                        +     '</tbody>'
+                        +     '<tbody>' + rowsHtml + '</tbody>'
                         +   '</table>'
                         + '</div>'
                         + '</div>';
                 }).join('');
+            }
+
+            function signalBiasTone(bias) {
+                if (bias === 'BULL') return 'bull';
+                if (bias === 'BEAR') return 'bear';
+                if (bias === 'CE') return 'ce';
+                if (bias === 'PE') return 'pe';
+                return 'neutral';
+            }
+
+            function compactReasonLabel(reason) {
+                if (!reason) return '';
+
+                var text = String(reason);
+
+                text = text.replace(/highest OI candle/i, 'OI #1');
+                text = text.replace(/highest volume candle/i, 'VOL #1');
+                text = text.replace(/2nd highest OI candle/i, 'OI #2');
+                text = text.replace(/3rd highest OI candle/i, 'OI #3');
+                text = text.replace(/4th highest OI candle/i, 'OI #4');
+                text = text.replace(/5th highest OI candle/i, 'OI #5');
+                text = text.replace(/2nd highest volume candle/i, 'VOL #2');
+                text = text.replace(/3rd highest volume candle/i, 'VOL #3');
+                text = text.replace(/4th highest volume candle/i, 'VOL #4');
+                text = text.replace(/5th highest volume candle/i, 'VOL #5');
+
+                text = text.replace(/^CE /i, 'CE ');
+                text = text.replace(/^PE /i, 'PE ');
+
+                text = text.replace(/midpoint/i, 'MID');
+                text = text.replace(/first 5 min high/i, '5M H');
+                text = text.replace(/first 5 min low/i, '5M L');
+                text = text.replace(/long buildup/i, 'LB');
+                text = text.replace(/short buildup/i, 'SB');
+                text = text.replace(/short covering/i, 'SC');
+                text = text.replace(/long unwinding/i, 'LU');
+
+                return text.trim();
+            }
+
+            function compactBiasLabel(item) {
+                var side = String(item.side || '').toUpperCase();
+                var call = String(item.call || '').toUpperCase();
+
+                if (call.indexOf('BULLISH') !== -1 || call.indexOf('BUY') !== -1) return 'BULL';
+                if (call.indexOf('BEARISH') !== -1 || call.indexOf('SELL') !== -1) return 'BEAR';
+                if (side === 'CE') return 'CE';
+                if (side === 'PE') return 'PE';
+                return 'N';
+            }
+
+            function formatStrike(strike) {
+                var num = Number(strike);
+                if (Number.isFinite(num)) {
+                    return String(Math.round(num));
+                }
+                return String(strike || '--').replace(/\\.00$/, '');
             }
 
 
