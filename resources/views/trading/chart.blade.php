@@ -1511,7 +1511,7 @@
                 var peMap = {};
                 ( strikeData.PE || [] ).forEach(function (c) { peMap[ c.time ] = candleToSeries(c); });
 
-                chart.subscribeCrosshairMove(function (param) {
+                chart.subscribeClick(function (param) {
                     if ( ! param || ! param.point || param.point.x < 0 || param.point.y < 0 || ! param.time) {
                         tooltip.style.display = 'none';
                         return;
@@ -1526,11 +1526,11 @@
                     }
 
                     tooltip.innerHTML = `
-    <div style="display:flex; gap:12px; align-items:flex-start;">
-        ${ blockHtml('CE', ceBar, SERIES_COLORS.ce.line) }
-        ${ blockHtml('PE', peBar, SERIES_COLORS.pe.line) }
-    </div>
-`;
+                                        <div style="display:flex; gap:12px; align-items:flex-start;">
+                                            ${ blockHtml('CE', ceBar, SERIES_COLORS.ce.line) }
+                                            ${ blockHtml('PE', peBar, SERIES_COLORS.pe.line) }
+                                        </div>
+                                    `;
 
                     tooltip.style.display = 'block';
 
@@ -1543,6 +1543,13 @@
                     tooltip.style.left = left + 'px';
                     tooltip.style.top = top + 'px';
                 });
+                chart.subscribeCrosshairMove(function(param) {
+                    if (!param || !param.point || !param.time) {
+                        tooltip.style.display = 'none';
+                    }
+                });
+
+
 
                 // Top OI / Volume markers
                 // ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || {}, 'CE'));
@@ -1555,13 +1562,6 @@
                 peSeries.setMarkers(peMarkers);
 
                 chart.timeScale().fitContent();
-
-                var allTimes = []
-                    .concat(( strikeData.CE || [] ).map(function (c) { return c.time; }))
-                    .concat(( strikeData.PE || [] ).map(function (c) { return c.time; }))
-                    .sort();
-
-                //chart.timeScale().fitContent();
 
                 var resizeHandler = function () {
                     if (container) {
