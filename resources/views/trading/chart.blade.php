@@ -5,6 +5,7 @@
 @push('styles')
     <style>
 
+
         .signal-table th {
             text-align: left;
             padding: 8px 10px;
@@ -272,22 +273,26 @@
             line-height: 1;
             font-weight: 700;
         }
+
         .signal-pill--warn {
             border-color: #fde68a;
             background: #fefce8;
             color: #a16207;
         }
+
         .signal-pill--danger {
             border-color: #fecaca;
             background: #fef2f2;
             color: #b91c1c;
         }
+
         .signal-stat {
             border-radius: 16px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
             padding: 10px 12px;
         }
+
         .signal-stat-label {
             font-size: 11px;
             font-weight: 700;
@@ -295,6 +300,7 @@
             text-transform: uppercase;
             letter-spacing: .04em;
         }
+
         .signal-stat-value {
             margin-top: 4px;
             font-size: 18px;
@@ -302,29 +308,34 @@
             font-weight: 800;
             color: #0f172a;
         }
+
         .signal-item {
             border-radius: 18px;
             border: 1px solid #e2e8f0;
             background: #fff;
             padding: 12px;
-            box-shadow: 0 8px 24px rgba(15,23,42,.05);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
         }
+
         .signal-item__head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 10px;
         }
+
         .signal-item__call {
             font-size: 14px;
             font-weight: 800;
             color: #0f172a;
         }
+
         .signal-item__meta {
             margin-top: 2px;
             font-size: 11px;
             color: #64748b;
         }
+
         .signal-item__score {
             border-radius: 9999px;
             background: #f8fafc;
@@ -335,28 +346,46 @@
             color: #0f172a;
             white-space: nowrap;
         }
+
         .signal-item__reasons {
             margin-top: 8px;
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
         }
+
         .signal-toast {
             pointer-events: auto;
             border-radius: 18px;
             border: 1px solid #dbeafe;
-            background: rgba(255,255,255,.97);
-            box-shadow: 0 18px 42px rgba(15,23,42,.18);
+            background: rgba(255, 255, 255, .97);
+            box-shadow: 0 18px 42px rgba(15, 23, 42, .18);
             padding: 14px 14px 12px;
             backdrop-filter: blur(10px);
             animation: signal-toast-in .28s ease-out;
         }
-        .signal-toast--buyce { border-color: #93c5fd; }
-        .signal-toast--buype { border-color: #c4b5fd; }
-        .signal-toast--neutral { border-color: #cbd5e1; }
+
+        .signal-toast--buyce {
+            border-color: #93c5fd;
+        }
+
+        .signal-toast--buype {
+            border-color: #c4b5fd;
+        }
+
+        .signal-toast--neutral {
+            border-color: #cbd5e1;
+        }
+
         @keyframes signal-toast-in {
-            from { opacity: 0; transform: translateY(-8px) translateX(8px); }
-            to   { opacity: 1; transform: translateY(0) translateX(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-8px) translateX(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) translateX(0);
+            }
         }
 
         /* Chart host needs explicit pixel height for LightweightCharts to initialise */
@@ -471,8 +500,8 @@
             position: absolute;
             z-index: 30;
             pointer-events: none;
-            min-width: 210px;
-            max-width: 260px;
+            min-width: 320px;
+            max-width: 720px;
             padding: 10px 12px;
             border-radius: 12px;
             border: 1px solid #cbd5e1;
@@ -667,7 +696,6 @@
             var signalDrawerOpen = false;
             var lastEvaluatedTradeDate = null;
 
-
             var SERIES_COLORS = {
                 ce: {
                     line: '#2563eb',
@@ -725,7 +753,6 @@
             var signalToastHost = document.getElementById('signalToastHost');
             var clearSignalHistoryBtn = document.getElementById('clearSignalHistory');
 
-
             // ── Filter panel toggle (default: collapsed) ─────────────────────────────
             toggleFilterBtn.addEventListener('click', function () {
                 var collapsed = filterPanel.classList.contains('collapsed');
@@ -751,8 +778,7 @@
                 loadCharts();
             });
 
-
-            function signalTone(signal) {
+            function signalTone (signal) {
                 if (signal === 'Bullish Buy') return 'bullish';
                 if (signal === 'Buy') return 'buy';
                 if (signal === 'Sell') return 'sell';
@@ -760,13 +786,13 @@
                 return 'ignore';
             }
 
-            function signalSideTone(side) {
+            function signalSideTone (side) {
                 if (side === 'CE') return 'ce';
                 if (side === 'PE') return 'pe';
                 return 'neutral';
             }
 
-            function deriveOverallSignal(items, totalScore) {
+            function deriveOverallSignal (items, totalScore) {
                 var ceScore = 0;
                 var peScore = 0;
 
@@ -783,15 +809,15 @@
                 return 'Ignore';
             }
 
-            function groupSignalsByTime(history) {
+            function groupSignalsByTime (history) {
                 var grouped = {};
 
                 history.forEach(function (rawItem) {
                     var item = normalizeSignalEntry(rawItem);
                     var key = item.candleLabel || item.candleTime || '--';
 
-                    if (!grouped[key]) {
-                        grouped[key] = {
+                    if ( ! grouped[ key ]) {
+                        grouped[ key ] = {
                             time: key,
                             displayTime: formatSignalTimeLabel(key),
                             items: [],
@@ -803,21 +829,21 @@
                         };
                     }
 
-                    grouped[key].items.push(item);
-                    grouped[key].totalScore += Number(item.score || 0);
-                    grouped[key].maxScore = Math.max(grouped[key].maxScore, Number(item.score || 0));
-                    grouped[key].candleTime = Math.max(grouped[key].candleTime, Number(item.candleTime || 0));
+                    grouped[ key ].items.push(item);
+                    grouped[ key ].totalScore += Number(item.score || 0);
+                    grouped[ key ].maxScore = Math.max(grouped[ key ].maxScore, Number(item.score || 0));
+                    grouped[ key ].candleTime = Math.max(grouped[ key ].candleTime, Number(item.candleTime || 0));
                 });
 
                 var result = Object.keys(grouped).map(function (key) {
-                    var group = grouped[key];
+                    var group = grouped[ key ];
 
                     group.items.sort(function (a, b) {
                         return Number(b.score || 0) - Number(a.score || 0);
                     });
 
                     group.totalScore = Number(group.totalScore || 0);
-                    group.topStrike = group.items.length ? formatStrike(group.items[0].strike) : '--';
+                    group.topStrike = group.items.length ? formatStrike(group.items[ 0 ].strike) : '--';
                     group.overallSignal = deriveOverallSignal(group.items, group.totalScore);
 
                     return group;
@@ -830,8 +856,8 @@
                 return result;
             }
 
-            function formatSignalTimeLabel(label) {
-                if (!label || label === '--') return '--';
+            function formatSignalTimeLabel (label) {
+                if ( ! label || label === '--') return '--';
 
                 var parsed = new Date(String(label).replace(' ', 'T'));
                 if (isNaN(parsed.getTime())) return label;
@@ -844,10 +870,10 @@
                 }).format(parsed);
             }
 
-            function renderGroupedSignalTable(history) {
+            function renderGroupedSignalTable (history) {
                 var groups = groupSignalsByTime(history);
 
-                if (!groups.length) {
+                if ( ! groups.length) {
                     signalHistory.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">No signal history yet.</div>';
                     return;
                 }
@@ -863,7 +889,7 @@
                             return label ? '<span class="signal-pill">' + escapeHtml(label) + '</span>' : '';
                         }).join('');
 
-                        if (!detailHtml) {
+                        if ( ! detailHtml) {
                             detailHtml = '<span class="text-xs text-slate-400">No details</span>';
                         }
 
@@ -879,9 +905,9 @@
                             + '</tr>';
                     }).join('');
 
-                    var strikeCount = (group.items || []).length;
+                    var strikeCount = ( group.items || [] ).length;
                     var metaText = 'Score ' + String(group.totalScore || 0)
-                        + ' · ' + String(strikeCount) + ' strike' + (strikeCount === 1 ? '' : 's')
+                        + ' · ' + String(strikeCount) + ' strike' + ( strikeCount === 1 ? '' : 's' )
                         + ' · Top ' + String(group.topStrike || '--');
 
                     return '<div class="signal-time-block">'
@@ -908,7 +934,7 @@
                 }).join('');
             }
 
-            function signalBiasTone(bias) {
+            function signalBiasTone (bias) {
                 if (bias === 'BULL') return 'bull';
                 if (bias === 'BEAR') return 'bear';
                 if (bias === 'CE') return 'ce';
@@ -916,8 +942,8 @@
                 return 'neutral';
             }
 
-            function compactReasonLabel(reason) {
-                if (!reason) return '';
+            function compactReasonLabel (reason) {
+                if ( ! reason) return '';
 
                 var text = String(reason).trim();
 
@@ -955,7 +981,7 @@
                 return text;
             }
 
-            function compactBiasLabel(item) {
+            function compactBiasLabel (item) {
                 var side = String(item.side || '').toUpperCase();
                 var call = String(item.call || '').toUpperCase();
 
@@ -966,16 +992,13 @@
                 return 'N';
             }
 
-            function formatStrike(strike) {
+            function formatStrike (strike) {
                 var num = Number(strike);
                 if (Number.isFinite(num)) {
                     return String(Math.round(num));
                 }
                 return String(strike || '--').replace(/\.00$/, '');
             }
-
-
-
 
             // ── Build payload from form ───────────────────────────────────────────────
             function buildPayload () {
@@ -998,22 +1021,23 @@
                 autoRefreshTimer = null;
                 autoRefreshTimeout = null;
             }
-            function getLatestCandleTimestamp(result) {
+
+            function getLatestCandleTimestamp (result) {
                 var latest = null;
                 Object.keys(result.data || {}).forEach(function (strike) {
                     ['CE', 'PE'].forEach(function (side) {
-                        var candles = (result.data[strike] && result.data[strike][side]) ? result.data[strike][side] : [];
+                        var candles = ( result.data[ strike ] && result.data[ strike ][ side ] ) ? result.data[ strike ][ side ] : [];
                         if (candles.length) {
-                            var ts = candles[candles.length - 1].time;
-                            if (!latest || ts > latest) latest = ts;
+                            var ts = candles[ candles.length - 1 ].time;
+                            if ( ! latest || ts > latest) latest = ts;
                         }
                     });
                 });
                 return latest;
             }
 
-            function formatIstDateTime(date) {
-                if (!date) return '--';
+            function formatIstDateTime (date) {
+                if ( ! date) return '--';
                 return new Intl.DateTimeFormat('en-IN', {
                     timeZone: 'Asia/Kolkata',
                     day: '2-digit',
@@ -1026,8 +1050,8 @@
                 }).format(date);
             }
 
-            function formatIstTimeFromUnix(ts) {
-                if (!ts) return '--';
+            function formatIstTimeFromUnix (ts) {
+                if ( ! ts) return '--';
                 return new Intl.DateTimeFormat('en-IN', {
                     timeZone: 'Asia/Kolkata',
                     hour: '2-digit',
@@ -1037,14 +1061,14 @@
                 }).format(new Date(ts * 1000));
             }
 
-            function getNextFetchTime() {
+            function getNextFetchTime () {
                 var now = new Date();
                 var next = new Date(now);
 
                 next.setSeconds(9, 0);
 
                 var minute = now.getMinutes();
-                var nextMinute = Math.ceil((minute + (now.getSeconds() >= 9 ? 0.0001 : 0)) / 5) * 5;
+                var nextMinute = Math.ceil(( minute + ( now.getSeconds() >= 9 ? 0.0001 : 0 ) ) / 5) * 5;
 
                 if (nextMinute >= 60) {
                     next.setHours(now.getHours() + 1);
@@ -1062,16 +1086,15 @@
                 return next;
             }
 
-
-            function formatCountdown(ms) {
+            function formatCountdown (ms) {
                 var total = Math.max(0, Math.floor(ms / 1000));
                 var min = Math.floor(total / 60);
                 var sec = total % 60;
                 return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
             }
 
-            function updatePageUpdatedTime() {
-                if (!pageUpdatedEl) return;
+            function updatePageUpdatedTime () {
+                if ( ! pageUpdatedEl) return;
 
                 var now = Date.now();
                 var nextFetch = getNextFetchTime();
@@ -1087,7 +1110,7 @@
                     '</div>';
             }
 
-            function startPageUpdatedClock() {
+            function startPageUpdatedClock () {
                 if (pageUpdatedTimer) {
                     clearInterval(pageUpdatedTimer);
                 }
@@ -1098,7 +1121,6 @@
                     updatePageUpdatedTime();
                 }, 1000);
             }
-
 
             function msUntilNextFiveMinuteMarkAt09 () {
                 var now = new Date();
@@ -1163,7 +1185,6 @@
                         evaluateDaySignals(result);
                         lastUpdatedText.textContent = new Date().toLocaleTimeString('en-IN');
                         statusBadge.textContent = 'Live';
-
 
                     })
                     .catch(function (err) {
@@ -1305,7 +1326,6 @@
                 entry.ceSeries.setData(( strikeData.CE || [] ).map(candleToSeries));
                 entry.peSeries.setData(( strikeData.PE || [] ).map(candleToSeries));
 
-
                 var ceMarkers = buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE');
                 var peMarkers = buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE');
 
@@ -1379,14 +1399,14 @@
                 return wrapper;
             }
 
-            function formatIstTime(time) {
+            function formatIstTime (time) {
                 if (time === null || time === undefined) return '';
 
                 var ts = typeof time === 'number'
                     ? time
-                    : (typeof time === 'object' && time.timestamp ? time.timestamp : null);
+                    : ( typeof time === 'object' && time.timestamp ? time.timestamp : null );
 
-                if (!ts) return '';
+                if ( ! ts) return '';
 
                 return new Intl.DateTimeFormat('en-IN', {
                     timeZone: 'Asia/Kolkata',
@@ -1432,7 +1452,7 @@
                         visible: false
                     },
                     localization: {
-                        timeFormatter: formatIstTime,
+                        timeFormatter: formatIstTime
                     },
                     timeScale: {
                         borderColor: '#e2e8f0',
@@ -1505,30 +1525,12 @@
                         return;
                     }
 
-                    function blockHtml (label, bar, tone) {
-                        if ( ! bar) return '';
-                        return `
-            <div style="margin-bottom:8px;">
-                <div style="font-weight:700; color:${ tone }; margin-bottom:4px;">${ label }</div>
-                <div class="chart-tooltip-grid">
-                    <div class="chart-tooltip-label">Time</div><div class="chart-tooltip-value">${ bar._rawTime }</div>
-                    <div class="chart-tooltip-label">O</div><div class="chart-tooltip-value">${ bar.open }</div>
-                    <div class="chart-tooltip-label">H</div><div class="chart-tooltip-value">${ bar.high }</div>
-                    <div class="chart-tooltip-label">L</div><div class="chart-tooltip-value">${ bar.low }</div>
-                    <div class="chart-tooltip-label">C</div><div class="chart-tooltip-value">${ bar.close }</div>
-                    <div class="chart-tooltip-label">OI</div><div class="chart-tooltip-value">${ bar._oi.toLocaleString('en-IN') }</div>
-                    <div class="chart-tooltip-label">Vol</div><div class="chart-tooltip-value">${ bar._volume.toLocaleString('en-IN') }</div>
-                    <div class="chart-tooltip-label">dOI</div><div class="chart-tooltip-value">${ bar._diffOi.toLocaleString('en-IN') }</div>
-                    <div class="chart-tooltip-label">dVol</div><div class="chart-tooltip-value">${ bar._diffVol.toLocaleString('en-IN') }</div>
-                    <div class="chart-tooltip-label">Build</div><div class="chart-tooltip-value">${ bar._buildUp }</div>
-                </div>
-            </div>
-        `;
-                    }
-
-                    tooltip.innerHTML =
-                        blockHtml('CE', ceBar, SERIES_COLORS.ce.line) +
-                        blockHtml('PE', peBar, SERIES_COLORS.pe.line);
+                    tooltip.innerHTML = `
+    <div style="display:flex; gap:12px; align-items:flex-start;">
+        ${ blockHtml('CE', ceBar, SERIES_COLORS.ce.line) }
+        ${ blockHtml('PE', peBar, SERIES_COLORS.pe.line) }
+    </div>
+`;
 
                     tooltip.style.display = 'block';
 
@@ -1585,6 +1587,26 @@
                 };
             }
 
+            function blockHtml (label, bar, tone) {
+                console.log(bar);
+                if ( ! bar) return '';
+                return `
+    <div style="flex:1; min-width:160px;">
+        <div style="font-weight:700; color:${ tone }; margin-bottom:6px;">${ label }</div>
+                <div class="chart-tooltip-grid">
+                    <div class="chart-tooltip-label">Time</div><div class="chart-tooltip-value">${ formatIstTime(bar.time) }</div>
+                    <div class="chart-tooltip-label">O</div><div class="chart-tooltip-value">${ bar.open }</div>
+                    <div class="chart-tooltip-label">H</div><div class="chart-tooltip-value">${ bar.high }</div>
+                    <div class="chart-tooltip-label">L</div><div class="chart-tooltip-value">${ bar.low }</div>
+                    <div class="chart-tooltip-label">C</div><div class="chart-tooltip-value">${ bar.close }</div>
+            <div class="chart-tooltip-label">dOI</div><div class="chart-tooltip-value">${ Number(bar._diffOi || 0).toLocaleString('en-IN') }</div>
+            <div class="chart-tooltip-label">dVol</div><div class="chart-tooltip-value">${ Number(bar._diffVol || 0).toLocaleString('en-IN') }</div>
+            <div class="chart-tooltip-label">Build</div><div class="chart-tooltip-value">${ bar._buildUp || '-' }</div>
+                </div>
+            </div>
+        `;
+            }
+
             // ── Helpers ───────────────────────────────────────────────────────────────
             function candleToSeries (candle) {
                 var color = BUILDUP_COLORS[ candle.build_up ] || '#94a3b8';
@@ -1617,14 +1639,14 @@
                 });
             }
 
-            function buildMarkers(strikeCandles, topMarkers, side) {
+            function buildMarkers (strikeCandles, topMarkers, side) {
                 var markers = [];
                 var candleList = safeArray(strikeCandles);
                 var oiTimes = safeArray(topMarkers && topMarkers.oi);
                 var volTimes = safeArray(topMarkers && topMarkers.volume);
 
                 candleList.forEach(function (candle, candleIndex) {
-                    if (!shouldPlotOiVolumeMarker(candleIndex)) return;
+                    if ( ! shouldPlotOiVolumeMarker(candleIndex)) return;
 
                     var time = candle.time;
 
@@ -1722,8 +1744,7 @@
                 startAutoRefresh();
             }, 100);
 
-
-            function openSignalDrawer() {
+            function openSignalDrawer () {
                 signalDrawerOpen = true;
                 signalPanel.classList.remove('pointer-events-none');
                 signalPanelBackdrop.classList.remove('hidden');
@@ -1732,12 +1753,12 @@
                 });
             }
 
-            function closeSignalDrawer() {
+            function closeSignalDrawer () {
                 signalDrawerOpen = false;
                 signalPanelDrawer.classList.add('translate-x-full');
                 signalPanelBackdrop.classList.add('hidden');
                 setTimeout(function () {
-                    if (!signalDrawerOpen) {
+                    if ( ! signalDrawerOpen) {
                         signalPanel.classList.add('pointer-events-none');
                     }
                 }, 300);
@@ -1749,18 +1770,17 @@
             signalPanelClose && signalPanelClose.addEventListener('click', closeSignalDrawer);
             signalPanelBackdrop && signalPanelBackdrop.addEventListener('click', closeSignalDrawer);
 
-
-            function signalStoreKey() {
+            function signalStoreKey () {
                 var expiryEl = document.getElementById('expirydate');
                 var tradeDateEl = document.getElementById('tradedate');
 
-                var expiryValue = expiryEl ? expiryEl.value : (CFG.expiry || '');
-                var tradeDateValue = tradeDateEl ? tradeDateEl.value : (CFG.tradeDate || '');
+                var expiryValue = expiryEl ? expiryEl.value : ( CFG.expiry || '' );
+                var tradeDateValue = tradeDateEl ? tradeDateEl.value : ( CFG.tradeDate || '' );
 
                 return ['trading-signals', CFG.symbol || '', expiryValue, tradeDateValue].join('|');
             }
 
-            function loadSignalStore() {
+            function loadSignalStore () {
                 var key = signalStoreKey();
                 lastEvaluatedTradeDate = getActiveTradeDate();
 
@@ -1771,9 +1791,9 @@
                     signalStore = { history: [], processedKeys: {}, lastBySeries: {} };
                 }
 
-                if (!Array.isArray(signalStore.history)) signalStore.history = [];
-                if (!signalStore.processedKeys || typeof signalStore.processedKeys !== 'object') signalStore.processedKeys = {};
-                if (!signalStore.lastBySeries || typeof signalStore.lastBySeries !== 'object') signalStore.lastBySeries = {};
+                if ( ! Array.isArray(signalStore.history)) signalStore.history = [];
+                if ( ! signalStore.processedKeys || typeof signalStore.processedKeys !== 'object') signalStore.processedKeys = {};
+                if ( ! signalStore.lastBySeries || typeof signalStore.lastBySeries !== 'object') signalStore.lastBySeries = {};
 
                 signalStore.history = signalStore.history.map(normalizeSignalEntry);
 
@@ -1781,9 +1801,7 @@
                 renderSignalPanel();
             }
 
-
-
-            function saveSignalStore() {
+            function saveSignalStore () {
                 try {
                     if (window.localStorage) {
                         localStorage.setItem(signalStoreKey(), JSON.stringify(signalStore));
@@ -1791,17 +1809,17 @@
                 } catch (e) {}
             }
 
-            function getActiveExpiry() {
+            function getActiveExpiry () {
                 var el = document.getElementById('expirydate');
-                return el ? el.value : (CFG.expiry || '');
+                return el ? el.value : ( CFG.expiry || '' );
             }
 
-            function getActiveTradeDate() {
-                return tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+            function getActiveTradeDate () {
+                return tradeDateInput ? tradeDateInput.value : ( CFG.tradeDate || '' );
             }
 
-            function ensureSignalStoreDate() {
-                var activeTradeDate = tradeDateInput ? tradeDateInput.value : (CFG.tradeDate || '');
+            function ensureSignalStoreDate () {
+                var activeTradeDate = tradeDateInput ? tradeDateInput.value : ( CFG.tradeDate || '' );
                 if (lastEvaluatedTradeDate !== activeTradeDate) {
                     loadSignalStore();
                 }
@@ -1813,44 +1831,46 @@
                 renderSignalPanel();
             });
 
-            function toNum(v) { return Number(v || 0); }
-            function abs(v) { return Math.abs(toNum(v)); }
-            function samePrice(a, b, tolerance) { return Math.abs(toNum(a) - toNum(b)) <= (tolerance || 0.15); }
+            function toNum (v) { return Number(v || 0); }
 
-            function nearLevel(price, level, tolerancePct, minAbs) {
+            function abs (v) { return Math.abs(toNum(v)); }
+
+            function samePrice (a, b, tolerance) { return Math.abs(toNum(a) - toNum(b)) <= ( tolerance || 0.15 ); }
+
+            function nearLevel (price, level, tolerancePct, minAbs) {
                 price = toNum(price);
                 level = toNum(level);
-                if (!level) return false;
-                var tol = Math.max(Math.abs(level) * (tolerancePct || 0.003), minAbs || 2);
+                if ( ! level) return false;
+                var tol = Math.max(Math.abs(level) * ( tolerancePct || 0.003 ), minAbs || 2);
                 return Math.abs(price - level) <= tol;
             }
 
-            function latestCandle(candles) {
-                return candles && candles.length ? candles[candles.length - 1] : null;
+            function latestCandle (candles) {
+                return candles && candles.length ? candles[ candles.length - 1 ] : null;
             }
 
-            function previousCandle(candles) {
-                return candles && candles.length > 1 ? candles[candles.length - 2] : null;
+            function previousCandle (candles) {
+                return candles && candles.length > 1 ? candles[ candles.length - 2 ] : null;
             }
 
-            function getNeighbourStrikes(strike, allStrikes) {
+            function getNeighbourStrikes (strike, allStrikes) {
                 var sorted = allStrikes.map(Number).sort(function (a, b) { return a - b; });
                 var idx = sorted.indexOf(Number(strike));
                 return {
-                    prev: idx > 0 ? String(sorted[idx - 1]) : null,
-                    next: idx >= 0 && idx < sorted.length - 1 ? String(sorted[idx + 1]) : null
+                    prev: idx > 0 ? String(sorted[ idx - 1 ]) : null,
+                    next: idx >= 0 && idx < sorted.length - 1 ? String(sorted[ idx + 1 ]) : null
                 };
             }
 
-            function countByBuildUp(grouped, time, side, buildUp) {
+            function countByBuildUp (grouped, time, side, buildUp) {
                 return Object.keys(grouped).reduce(function (acc, strike) {
-                    var arr = grouped[strike] && grouped[strike][side] ? grouped[strike][side] : [];
+                    var arr = grouped[ strike ] && grouped[ strike ][ side ] ? grouped[ strike ][ side ] : [];
                     var row = arr.find(function (c) { return c.time === time; });
-                    return acc + (row && row.buildup === buildUp ? 1 : 0);
+                    return acc + ( row && row.buildup === buildUp ? 1 : 0 );
                 }, 0);
             }
 
-            function evaluateMidpointScenario(ctx) {
+            function evaluateMidpointScenario (ctx) {
                 var score = 0, reasons = [];
                 var ce = ctx.ce, pe = ctx.pe;
                 var ceNearMid = ce && nearLevel(ce.close, ctx.midpoint, 0.0025, 3);
@@ -1875,7 +1895,7 @@
                 return { name: 'midpoint', score: score, reasons: reasons };
             }
 
-            function evaluateFirstFiveScenario(ctx) {
+            function evaluateFirstFiveScenario (ctx) {
                 var score = 0, reasons = [];
                 if (ctx.firstCandle && ctx.firstCandle.CE && ctx.ce) {
                     if (nearLevel(ctx.ce.low, ctx.firstCandle.CE.low, 0.002, 2) && ctx.ce.buildup === 'Long Build') {
@@ -1900,23 +1920,35 @@
                 return { name: 'firstFive', score: score, reasons: reasons };
             }
 
-            function evaluateOiVolumeScenario(ctx) {
+            function evaluateOiVolumeScenario (ctx) {
                 var score = 0, reasons = [];
-                var topOiCE = (ctx.topMarkers.CE && ctx.topMarkers.CE.oi || []).includes(ctx.time);
-                var topVolCE = (ctx.topMarkers.CE && ctx.topMarkers.CE.volume || []).includes(ctx.time);
-                var topOiPE = (ctx.topMarkers.PE && ctx.topMarkers.PE.oi || []).includes(ctx.time);
-                var topVolPE = (ctx.topMarkers.PE && ctx.topMarkers.PE.volume || []).includes(ctx.time);
+                var topOiCE = ( ctx.topMarkers.CE && ctx.topMarkers.CE.oi || [] ).includes(ctx.time);
+                var topVolCE = ( ctx.topMarkers.CE && ctx.topMarkers.CE.volume || [] ).includes(ctx.time);
+                var topOiPE = ( ctx.topMarkers.PE && ctx.topMarkers.PE.oi || [] ).includes(ctx.time);
+                var topVolPE = ( ctx.topMarkers.PE && ctx.topMarkers.PE.volume || [] ).includes(ctx.time);
 
-                if (ctx.ce && topOiCE) { score += 16; reasons.push('CE highest OI candle'); }
-                if (ctx.ce && topVolCE) { score += 12; reasons.push('CE highest volume candle'); }
-                if (ctx.pe && topOiPE) { score += 16; reasons.push('PE highest OI candle'); }
-                if (ctx.pe && topVolPE) { score += 12; reasons.push('PE highest volume candle'); }
+                if (ctx.ce && topOiCE) {
+                    score += 16;
+                    reasons.push('CE highest OI candle');
+                }
+                if (ctx.ce && topVolCE) {
+                    score += 12;
+                    reasons.push('CE highest volume candle');
+                }
+                if (ctx.pe && topOiPE) {
+                    score += 16;
+                    reasons.push('PE highest OI candle');
+                }
+                if (ctx.pe && topVolPE) {
+                    score += 12;
+                    reasons.push('PE highest volume candle');
+                }
 
-                if (ctx.ce && (topOiCE || topVolCE) && ctx.ce.buildup === 'Long Build' && ctx.pe && ctx.pe.buildup === 'Short Build') {
+                if (ctx.ce && ( topOiCE || topVolCE ) && ctx.ce.buildup === 'Long Build' && ctx.pe && ctx.pe.buildup === 'Short Build') {
                     score += 10;
                     reasons.push('CE OI/Volume aligned with opposite PE Short Build');
                 }
-                if (ctx.pe && (topOiPE || topVolPE) && ctx.pe.buildup === 'Long Build' && ctx.ce && ctx.ce.buildup === 'Short Build') {
+                if (ctx.pe && ( topOiPE || topVolPE ) && ctx.pe.buildup === 'Long Build' && ctx.ce && ctx.ce.buildup === 'Short Build') {
                     score += 10;
                     reasons.push('PE OI/Volume aligned with opposite CE Short Build');
                 }
@@ -1924,7 +1956,7 @@
                 return { name: 'oiVolume', score: score, reasons: reasons };
             }
 
-            function evaluatePriceMeetScenario(ctx) {
+            function evaluatePriceMeetScenario (ctx) {
                 var score = 0, reasons = [];
                 if (ctx.ce && ctx.pe) {
                     if (samePrice(ctx.ce.close, ctx.pe.close, 2)) {
@@ -1939,7 +1971,7 @@
                 return { name: 'priceMeet', score: score, reasons: reasons };
             }
 
-            function evaluateBuildUpScenario(ctx) {
+            function evaluateBuildUpScenario (ctx) {
                 var score = 0, reasons = [];
                 var ceLB = countByBuildUp(ctx.grouped, ctx.time, 'CE', 'Long Build');
                 var peSB = countByBuildUp(ctx.grouped, ctx.time, 'PE', 'Short Build');
@@ -1957,7 +1989,7 @@
                 return { name: 'buildup', score: score, reasons: reasons };
             }
 
-            function evaluateContinuationScenario(ctx) {
+            function evaluateContinuationScenario (ctx) {
                 var score = 0, reasons = [];
                 if (ctx.prevCe && ctx.ce && ctx.prevPe && ctx.pe) {
                     if (ctx.prevCe.buildup === 'Long Build' && ctx.ce.buildup === 'Long Build' &&
@@ -1974,13 +2006,13 @@
                 return { name: 'continuation', score: score, reasons: reasons };
             }
 
-            function evaluateNeighbourConfirmation(ctx) {
+            function evaluateNeighbourConfirmation (ctx) {
                 var score = 0, reasons = [];
                 var neighbours = getNeighbourStrikes(ctx.strike, ctx.allStrikes);
 
-                function candleAt(strikeKey, side) {
-                    if (!strikeKey || !ctx.grouped[strikeKey] || !ctx.grouped[strikeKey][side]) return null;
-                    var arr = ctx.grouped[strikeKey][side];
+                function candleAt (strikeKey, side) {
+                    if ( ! strikeKey || ! ctx.grouped[ strikeKey ] || ! ctx.grouped[ strikeKey ][ side ]) return null;
+                    var arr = ctx.grouped[ strikeKey ][ side ];
                     return arr.find(function (c) { return c.time === ctx.time; }) || null;
                 }
 
@@ -1989,20 +2021,20 @@
                 var nextCE = candleAt(neighbours.next, 'CE');
                 var nextPE = candleAt(neighbours.next, 'PE');
 
-                if ((prevCE && prevCE.buildup === 'Long Build' && prevPE && prevPE.buildup === 'Short Build') ||
-                    (nextCE && nextCE.buildup === 'Long Build' && nextPE && nextPE.buildup === 'Short Build')) {
+                if (( prevCE && prevCE.buildup === 'Long Build' && prevPE && prevPE.buildup === 'Short Build' ) ||
+                    ( nextCE && nextCE.buildup === 'Long Build' && nextPE && nextPE.buildup === 'Short Build' )) {
                     score += 14;
                     reasons.push('Nearest strike confirms CE buy structure');
                 }
-                if ((prevPE && prevPE.buildup === 'Long Build' && prevCE && prevCE.buildup === 'Short Build') ||
-                    (nextPE && nextPE.buildup === 'Long Build' && nextCE && nextCE.buildup === 'Short Build')) {
+                if (( prevPE && prevPE.buildup === 'Long Build' && prevCE && prevCE.buildup === 'Short Build' ) ||
+                    ( nextPE && nextPE.buildup === 'Long Build' && nextCE && nextCE.buildup === 'Short Build' )) {
                     score += 14;
                     reasons.push('Nearest strike confirms PE buy structure');
                 }
                 return { name: 'neighbour', score: score, reasons: reasons };
             }
 
-            function buildFinalCall(ctx, parts) {
+            function buildFinalCall (ctx, parts) {
                 var total = parts.reduce(function (acc, p) { return acc + p.score; }, 0);
                 var reasonList = parts.reduce(function (acc, p) { return acc.concat(p.reasons); }, []).slice(0, 7);
 
@@ -2041,24 +2073,24 @@
                 };
             }
 
-            function evaluateDaySignals(result) {
+            function evaluateDaySignals (result) {
                 ensureSignalStoreDate();
 
                 var grouped = result.data || {};
                 var strikes = Object.keys(grouped).sort(function (a, b) { return Number(a) - Number(b); });
 
                 strikes.forEach(function (strike) {
-                    var ceArr = grouped[strike] && grouped[strike].CE ? grouped[strike].CE : [];
-                    var peArr = grouped[strike] && grouped[strike].PE ? grouped[strike].PE : [];
+                    var ceArr = grouped[ strike ] && grouped[ strike ].CE ? grouped[ strike ].CE : [];
+                    var peArr = grouped[ strike ] && grouped[ strike ].PE ? grouped[ strike ].PE : [];
                     var ce = latestCandle(ceArr);
                     var pe = latestCandle(peArr);
                     var prevCe = previousCandle(ceArr);
                     var prevPe = previousCandle(peArr);
-                    var time = ce ? ce.time : (pe ? pe.time : null);
-                    if (!time) return;
+                    var time = ce ? ce.time : ( pe ? pe.time : null );
+                    if ( ! time) return;
 
                     var candleKey = [tradeDateInput.value, strike, time].join('|');
-                    if (signalStore.processedKeys[candleKey]) return;
+                    if (signalStore.processedKeys[ candleKey ]) return;
 
                     var ctx = {
                         strike: strike,
@@ -2070,8 +2102,8 @@
                         grouped: grouped,
                         allStrikes: strikes,
                         midpoint: result.midpoint,
-                        firstCandle: result.firstCandle[strike] || {},
-                        topMarkers: result.topMarkers[strike] || { CE: { oi: [], volume: [] }, PE: { oi: [], volume: [] } }
+                        firstCandle: result.firstCandle[ strike ] || {},
+                        topMarkers: result.topMarkers[ strike ] || { CE: { oi: [], volume: [] }, PE: { oi: [], volume: [] } }
                     };
 
                     var parts = [
@@ -2091,7 +2123,7 @@
                         id: candleKey,
                         tradeDate: tradeDateInput.value,
                         candleTime: time,
-                        candleLabel: (ce && ce.timestamp) || (pe && pe.timestamp) || String(time),
+                        candleLabel: ( ce && ce.timestamp ) || ( pe && pe.timestamp ) || String(time),
                         strike: strike,
                         call: finalCall.call,
                         side: finalCall.side,
@@ -2103,7 +2135,7 @@
                         createdAt: new Date().toISOString()
                     };
 
-                    signalStore.processedKeys[candleKey] = 1;
+                    signalStore.processedKeys[ candleKey ] = 1;
                     signalStore.history.unshift(entry);
                     signalStore.history = signalStore.history.slice(0, 200);
                     saveSignalStore();
@@ -2112,7 +2144,7 @@
                 });
             }
 
-            function normalizeSignalEntry(item) {
+            function normalizeSignalEntry (item) {
                 item = item || {};
 
                 return {
@@ -2132,7 +2164,7 @@
                 };
             }
 
-            function renderSignalPanel() {
+            function renderSignalPanel () {
                 var history = Array.isArray(signalStore.history)
                     ? signalStore.history.map(normalizeSignalEntry)
                     : [];
@@ -2140,7 +2172,7 @@
                 signalStore.history = history;
                 signalHistoryCount.textContent = String(history.length);
 
-                if (!history.length) {
+                if ( ! history.length) {
                     signalHeadlineCall.textContent = 'Waiting for new candle';
                     signalHeadlineScore.textContent = '--';
                     signalHeadlineMeta.textContent = 'No ranked call stored for this day yet';
@@ -2155,25 +2187,25 @@
                     return;
                 }
 
-                var latest = normalizeSignalEntry(history[0]);
+                var latest = normalizeSignalEntry(history[ 0 ]);
                 var grouped = groupSignalsByTime(history);
-                var latestGroup = grouped.length ? grouped[0] : null;
+                var latestGroup = grouped.length ? grouped[ 0 ] : null;
 
                 var latestReasons = latestGroup
                     ? latestGroup.items.slice(0, 3).reduce(function (acc, item) {
                         var reasons = Array.isArray(item.reasons) ? item.reasons : [];
                         return acc.concat(reasons.slice(0, 2));
                     }, []).slice(0, 6)
-                    : (Array.isArray(latest.reasons) ? latest.reasons.slice(0, 5) : []);
+                    : ( Array.isArray(latest.reasons) ? latest.reasons.slice(0, 5) : [] );
 
                 signalHeadlineCall.textContent = latestGroup
-                    ? (latestGroup.overallSignal + ' · ' + latestGroup.time)
-                    : (latest.call + ' · ' + latest.strike);
+                    ? ( latestGroup.overallSignal + ' · ' + latestGroup.time )
+                    : ( latest.call + ' · ' + latest.strike );
 
                 signalHeadlineScore.textContent = latestGroup ? latestGroup.totalScore : latest.score;
                 signalHeadlineMeta.textContent = latestGroup
-                    ? (latestGroup.items.length + ' strikes · Top ' + latestGroup.topStrike)
-                    : (latest.candleLabel + ' · ' + latest.tradeDate);
+                    ? ( latestGroup.items.length + ' strikes · Top ' + latestGroup.topStrike )
+                    : ( latest.candleLabel + ' · ' + latest.tradeDate );
 
                 signalHeadlineReasons.innerHTML = latestReasons.map(function (r) {
                     return '<span class="signal-pill">' + escapeHtml(r) + '</span>';
@@ -2209,13 +2241,12 @@
                 renderGroupedSignalTable(history);
             }
 
-
-            function statCard(label, value) {
+            function statCard (label, value) {
                 return '<div class="signal-stat"><div class="signal-stat-label">' + escapeHtml(label) + '</div><div class="signal-stat-value">' + escapeHtml(String(value)) + '</div></div>';
             }
 
-            function showSignalToast(entry) {
-                var toneClass = entry.side === 'CE' ? 'signal-toast--buyce' : (entry.side === 'PE' ? 'signal-toast--buype' : 'signal-toast--neutral');
+            function showSignalToast (entry) {
+                var toneClass = entry.side === 'CE' ? 'signal-toast--buyce' : ( entry.side === 'PE' ? 'signal-toast--buype' : 'signal-toast--neutral' );
                 var node = document.createElement('div');
                 node.className = 'signal-toast ' + toneClass;
                 node.innerHTML = '<div class="flex items-start justify-between gap-3">'
@@ -2238,7 +2269,7 @@
                 }, 9000);
             }
 
-            function escapeHtml(str) {
+            function escapeHtml (str) {
                 return String(str == null ? '' : str)
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
@@ -2247,25 +2278,25 @@
                     .replace(/'/g, '&#039;');
             }
 
-            function shouldPlotOiVolumeMarker(candleIndex) {
+            function shouldPlotOiVolumeMarker (candleIndex) {
                 return candleIndex >= 5;
             }
 
-            function safeArray(value) {
+            function safeArray (value) {
                 return Array.isArray(value) ? value : [];
             }
 
-            function buildMarkersFromResult(result) {
+            function buildMarkersFromResult (result) {
                 var markers = [];
 
                 Object.keys(result.data || {}).forEach(function (strike) {
                     ['CE', 'PE'].forEach(function (side) {
-                        var candles = safeArray(result.data[strike] && result.data[strike][side]);
-                        var topOi = safeArray(result.topMarkers && result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].oi);
-                        var topVol = safeArray(result.topMarkers && result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].volume);
+                        var candles = safeArray(result.data[ strike ] && result.data[ strike ][ side ]);
+                        var topOi = safeArray(result.topMarkers && result.topMarkers[ strike ] && result.topMarkers[ strike ][ side ] && result.topMarkers[ strike ][ side ].oi);
+                        var topVol = safeArray(result.topMarkers && result.topMarkers[ strike ] && result.topMarkers[ strike ][ side ] && result.topMarkers[ strike ][ side ].volume);
 
                         candles.forEach(function (candle, candleIndex) {
-                            if (!shouldPlotOiVolumeMarker(candleIndex)) return;
+                            if ( ! shouldPlotOiVolumeMarker(candleIndex)) return;
 
                             var time = candle.time;
 
@@ -2295,19 +2326,19 @@
                 return markers;
             }
 
-            function buildOverallTopMarkers(result) {
+            function buildOverallTopMarkers (result) {
                 var squares = [];
                 var seen = {};
 
                 Object.keys(result.topMarkers || {}).forEach(function (strike) {
                     ['CE', 'PE'].forEach(function (side) {
-                        var topOi = safeArray(result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].oi);
-                        var topVol = safeArray(result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].volume);
+                        var topOi = safeArray(result.topMarkers[ strike ] && result.topMarkers[ strike ][ side ] && result.topMarkers[ strike ][ side ].oi);
+                        var topVol = safeArray(result.topMarkers[ strike ] && result.topMarkers[ strike ][ side ] && result.topMarkers[ strike ][ side ].volume);
 
                         topOi.slice(0, 5).forEach(function (time) {
                             var key = 'OI|' + strike + '|' + side + '|' + time;
-                            if (seen[key]) return;
-                            seen[key] = true;
+                            if (seen[ key ]) return;
+                            seen[ key ] = true;
 
                             squares.push({
                                 time: time,
@@ -2320,8 +2351,8 @@
 
                         topVol.slice(0, 5).forEach(function (time) {
                             var key = 'VOL|' + strike + '|' + side + '|' + time;
-                            if (seen[key]) return;
-                            seen[key] = true;
+                            if (seen[ key ]) return;
+                            seen[ key ] = true;
 
                             squares.push({
                                 time: time,
@@ -2346,7 +2377,9 @@
         type="button"
         class="fixed right-0 top-1/2 z-[9998] -translate-y-1/2 rounded-l-xl border border-slate-200 bg-white px-1 py-1 text-xs font-bold text-slate-700 shadow-xl">
         <svg width="20px" height="20px" viewBox="0 0 17 17" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-            <path d="M11.5 4c0-1.654-1.346-3-3-3s-3 1.346-3 3c0 1.483 1.084 2.71 2.5 2.949v8.051h-2v1h5v-1h-2v-8.051c1.416-0.239 2.5-1.466 2.5-2.949zM6.5 4c0-1.103 0.897-2 2-2s2 0.897 2 2-0.897 2-2 2-2-0.897-2-2zM4.504 2.192c-0.378 0.46-0.577 1.004-0.577 1.574s0.199 1.114 0.577 1.574l-0.774 0.636c-0.525-0.641-0.803-1.405-0.803-2.209s0.278-1.569 0.803-2.209l0.774 0.634zM2 3.767c0 1.079 0.387 2.096 1.119 2.938l-0.754 0.656c-0.881-1.012-1.365-2.29-1.365-3.594s0.484-2.582 1.365-3.595l0.754 0.656c-0.732 0.843-1.119 1.86-1.119 2.939zM14.073 3.767c0 0.805-0.278 1.568-0.804 2.209l-0.773-0.635c0.378-0.46 0.577-1.004 0.577-1.574s-0.199-1.114-0.577-1.574l0.773-0.635c0.526 0.64 0.804 1.404 0.804 2.209zM16 3.767c0 1.305-0.484 2.582-1.365 3.595l-0.754-0.656c0.732-0.844 1.119-1.86 1.119-2.939s-0.387-2.096-1.119-2.938l0.754-0.656c0.881 1.012 1.365 2.289 1.365 3.594z" fill="#000000" />
+            <path
+                d="M11.5 4c0-1.654-1.346-3-3-3s-3 1.346-3 3c0 1.483 1.084 2.71 2.5 2.949v8.051h-2v1h5v-1h-2v-8.051c1.416-0.239 2.5-1.466 2.5-2.949zM6.5 4c0-1.103 0.897-2 2-2s2 0.897 2 2-0.897 2-2 2-2-0.897-2-2zM4.504 2.192c-0.378 0.46-0.577 1.004-0.577 1.574s0.199 1.114 0.577 1.574l-0.774 0.636c-0.525-0.641-0.803-1.405-0.803-2.209s0.278-1.569 0.803-2.209l0.774 0.634zM2 3.767c0 1.079 0.387 2.096 1.119 2.938l-0.754 0.656c-0.881-1.012-1.365-2.29-1.365-3.594s0.484-2.582 1.365-3.595l0.754 0.656c-0.732 0.843-1.119 1.86-1.119 2.939zM14.073 3.767c0 0.805-0.278 1.568-0.804 2.209l-0.773-0.635c0.378-0.46 0.577-1.004 0.577-1.574s-0.199-1.114-0.577-1.574l0.773-0.635c0.526 0.64 0.804 1.404 0.804 2.209zM16 3.767c0 1.305-0.484 2.582-1.365 3.595l-0.754-0.656c0.732-0.844 1.119-1.86 1.119-2.939s-0.387-2.096-1.119-2.938l0.754-0.656c0.881 1.012 1.365 2.289 1.365 3.594z"
+                fill="#000000"/>
         </svg>
     </button>
 
