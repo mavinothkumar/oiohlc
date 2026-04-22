@@ -1588,7 +1588,6 @@
             }
 
             function blockHtml (label, bar, tone) {
-                console.log(bar);
                 if ( ! bar) return '';
                 return `
     <div style="flex:1; min-width:160px;">
