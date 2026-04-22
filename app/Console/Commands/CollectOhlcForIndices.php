@@ -150,8 +150,6 @@ class CollectOhlcForIndices extends Command
             $fromDate      = $apiDate;
             $toDate        = $this->currentDay->working_date;//Carbon::parse($apiDate)->addDay()->format('Y-m-d');
 
-
-            info('date', [$fromDate, $toDate]);
             // Correct API endpoint as per documentation/reference
             $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$fromDate}/{$fromDate}";
             $apiToken = config('services.upstox.analytics_token'); // Store/update this in config/services.php

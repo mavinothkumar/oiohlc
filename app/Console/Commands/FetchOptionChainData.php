@@ -161,26 +161,25 @@ class FetchOptionChainData extends Command {
     {
         info('aggregateFiveMinuteData start');
 
-        $now = now();
+        $now = now()->copy()->second(0);
 
-        $minute    = (int) $now->format('i');
+        $minute = (int) $now->format('i');
         $candleMin = intdiv($minute, 5) * 5;
-        $candleTs  = $now->copy()->minute($candleMin)->second(0);
+        $candleTs = $now->copy()->minute($candleMin)->second(0);
 
-        $windowStart = $candleTs->copy()->subMinutes(4);
-        $windowEnd   = $candleTs->copy();
+        $windowStart = $candleTs->copy();
+        $windowEnd = $candleTs->copy()->addMinutes(4);
 
         info("CandleTs: {$candleTs->toTimeString()} | Window: {$windowStart->toTimeString()} → {$windowEnd->toTimeString()}");
 
         $underlyings = [
             ['symbol' => 'NIFTY', 'exchange' => 'NSE'],
             // ['symbol' => 'BANKNIFTY', 'exchange' => 'NSE'],
-            // ['symbol' => 'FINNIFTY',  'exchange' => 'NSE'],
-            // ['symbol' => 'SENSEX',    'exchange' => 'BSE'],
+            // ['symbol' => 'FINNIFTY', 'exchange' => 'NSE'],
+            // ['symbol' => 'SENSEX', 'exchange' => 'BSE'],
         ];
 
         foreach ($underlyings as $inst) {
-
             $optExpiry = DB::table('nse_expiries')
                            ->where('trading_symbol', $inst['symbol'])
                            ->where('is_current', 1)
@@ -220,16 +219,13 @@ class FetchOptionChainData extends Command {
                 continue;
             }
 
-            // ── Fetch option_chain snapshot for THIS exact 5-min candle window ──
-            // This gives us the OI/Volume captured during the same 5-min period
             $chainCapturedAt = DB::table('option_chains')
                                  ->where('trading_symbol', $inst['symbol'])
                                  ->whereBetween('captured_at', [$windowStart, $windowEnd])
                                  ->max('captured_at');
 
-            // Build chainMap keyed by normalized "strike|option_type"
-            // e.g. "23550.00|CE", "23550.00|PE"
             $chainMap = collect();
+
             if ($chainCapturedAt) {
                 $chainMap = DB::table('option_chains')
                               ->where('trading_symbol', $inst['symbol'])
@@ -252,8 +248,6 @@ class FetchOptionChainData extends Command {
             $rows = [];
 
             foreach ($instrumentRows as $instrument) {
-
-                // Get 1-min candles for this instrument in the 5-min window
                 $candles = DB::table('ohlc_quotes')
                              ->where('instrument_key', $instrument->instrument_key)
                              ->whereBetween('ts_at', [$windowStart, $windowEnd])
@@ -264,42 +258,39 @@ class FetchOptionChainData extends Command {
                     continue;
                 }
 
-                // Match option_chain row by strike + option_type (CE/PE only, not FUT)
                 $chain = null;
                 if (in_array($instrument->instrument_type, ['CE', 'PE'], true)) {
                     $chainKey = number_format((float) $instrument->strike_price, 2, '.', '') . '|' . $instrument->instrument_type;
-                    $chain    = $chainMap->get($chainKey);
+                    $chain = $chainMap->get($chainKey);
                 }
 
                 $rows[] = [
-                    'instrument_key'    => $instrument->instrument_key,
+                    'instrument_key' => $instrument->instrument_key,
                     'underlying_symbol' => $inst['symbol'],
-                    'expiry_date'       => in_array($instrument->instrument_type, ['CE', 'PE'], true)
+                    'expiry_date' => in_array($instrument->instrument_type, ['CE', 'PE'], true)
                         ? $optExpiry?->expiry_date
                         : $futExpiry?->expiry_date,
-                    'strike'            => $instrument->strike_price,
-                    'instrument_type'   => $instrument->instrument_type,
-                    // OHLC from 1-min candle aggregation
-                    'open'              => $candles->first()->open,
-                    'high'              => $candles->max('high'),
-                    'low'               => $candles->min('low'),
-                    'close'             => $candles->last()->close,
-                    // OI/Volume from option_chain at same 5-min window
-                    'oi'                => $chain?->oi,
-                    'volume'            => $chain?->volume,
-                    'diff_oi'           => $chain?->diff_oi,
-                    'diff_volume'       => $chain?->diff_volume,
-                    'diff_ltp'          => $chain?->diff_ltp,
-                    'build_up'          => $chain?->build_up,
-                    'exchange'          => $inst['exchange'],
-                    'interval'          => '5minute',
-                    'timestamp'         => $candleTs,
-                    'created_at'        => $now,
-                    'updated_at'        => $now,
+                    'strike' => $instrument->strike_price,
+                    'instrument_type' => $instrument->instrument_type,
+                    'open' => $candles->first()->open,
+                    'high' => $candles->max('high'),
+                    'low' => $candles->min('low'),
+                    'close' => $candles->last()->close,
+                    'oi' => $chain?->oi,
+                    'volume' => $chain?->volume,
+                    'diff_oi' => $chain?->diff_oi,
+                    'diff_volume' => $chain?->diff_volume,
+                    'diff_ltp' => $chain?->diff_ltp,
+                    'build_up' => $chain?->build_up,
+                    'exchange' => $inst['exchange'],
+                    'interval' => '5minute',
+                    'timestamp' => $candleTs,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ];
             }
 
-            if (! empty($rows)) {
+            if (!empty($rows)) {
                 foreach (array_chunk($rows, 500) as $chunk) {
                     DB::table('ohlc_live_snapshots')->upsert(
                         $chunk,
@@ -307,6 +298,7 @@ class FetchOptionChainData extends Command {
                         ['open', 'high', 'low', 'close', 'oi', 'volume', 'build_up', 'diff_oi', 'diff_volume', 'diff_ltp', 'updated_at']
                     );
                 }
+
                 Log::info("5-min candles stored for {$inst['symbol']}: " . count($rows) . " rows | candle: {$candleTs->toTimeString()} | chain captured_at: {$chainCapturedAt}");
             } else {
                 Log::warning("No 5-min candles built for {$inst['symbol']} | window: {$windowStart->toTimeString()} → {$windowEnd->toTimeString()}");

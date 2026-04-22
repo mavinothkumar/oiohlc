@@ -14,8 +14,8 @@ class UpstoxExpiredService
     {
 
         $token = Arr::random([
-            config('services.upstox.history_access_token'),
-            config('services.upstox.history_access_token_1'),
+//            config('services.upstox.history_access_token'),
+//            config('services.upstox.history_access_token_1'),
             config('services.upstox.access_token'),
         ]);
 

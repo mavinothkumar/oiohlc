@@ -1305,8 +1305,17 @@
                 entry.ceSeries.setData(( strikeData.CE || [] ).map(candleToSeries));
                 entry.peSeries.setData(( strikeData.PE || [] ).map(candleToSeries));
 
-                entry.ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE'));
-                entry.peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE'));
+
+                var ceMarkers = buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE');
+                var peMarkers = buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE');
+
+                if (entry.ceSeries) {
+                    entry.ceSeries.setMarkers(ceMarkers);
+                }
+
+                if (entry.peSeries) {
+                    entry.peSeries.setMarkers(peMarkers);
+                }
 
                 updatePriceLines(entry, firstCandle, midpoint);
                 renderTopSummary(strike, strikeData, topMarkers);
@@ -1534,8 +1543,14 @@
                 });
 
                 // Top OI / Volume markers
-                ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || {}, 'CE'));
-                peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || {}, 'PE'));
+                // ceSeries.setMarkers(buildMarkers(strikeData.CE || [], topMarkers.CE || {}, 'CE'));
+                // peSeries.setMarkers(buildMarkers(strikeData.PE || [], topMarkers.PE || {}, 'PE'));
+
+                var ceMarkers = buildMarkers(strikeData.CE || [], topMarkers.CE || { oi: [], volume: [] }, 'CE');
+                var peMarkers = buildMarkers(strikeData.PE || [], topMarkers.PE || { oi: [], volume: [] }, 'PE');
+
+                ceSeries.setMarkers(ceMarkers);
+                peSeries.setMarkers(peMarkers);
 
                 chart.timeScale().fitContent();
 
@@ -1602,33 +1617,34 @@
                 });
             }
 
-            function buildMarkers (candles, meta, label) {
-                var oiTimes = meta.oi || [];
-                var volTimes = meta.volume || [];
-                var oiRank = {};
-                var volRank = {};
-
-                oiTimes.forEach(function (t, i) { oiRank[ t ] = i + 1; });
-                volTimes.forEach(function (t, i) { volRank[ t ] = i + 1; });
-
+            function buildMarkers(strikeCandles, topMarkers, side) {
                 var markers = [];
-                candles.forEach(function (c) {
-                    if (oiRank[ c.time ]) {
+                var candleList = safeArray(strikeCandles);
+                var oiTimes = safeArray(topMarkers && topMarkers.oi);
+                var volTimes = safeArray(topMarkers && topMarkers.volume);
+
+                candleList.forEach(function (candle, candleIndex) {
+                    if (!shouldPlotOiVolumeMarker(candleIndex)) return;
+
+                    var time = candle.time;
+
+                    if (oiTimes.includes(time)) {
                         markers.push({
-                            time: c.time,
+                            time: time,
                             position: 'aboveBar',
-                            color: label === 'CE' ? '#0f766e' : '#7c3aed',
+                            color: side === 'CE' ? '#2563eb' : '#7c3aed',
                             shape: 'circle',
-                            text: String(oiRank[ c.time ])
+                            text: side + ' OI'
                         });
                     }
-                    if (volRank[ c.time ]) {
+
+                    if (volTimes.includes(time)) {
                         markers.push({
-                            time: c.time,
+                            time: time,
                             position: 'belowBar',
-                            color: label === 'CE' ? '#2563eb' : '#9a3412',
+                            color: side === 'CE' ? '#2563eb' : '#7c3aed',
                             shape: 'circle',
-                            text: String(volRank[ c.time ])
+                            text: side + ' VOL'
                         });
                     }
                 });
@@ -2231,7 +2247,95 @@
                     .replace(/'/g, '&#039;');
             }
 
+            function shouldPlotOiVolumeMarker(candleIndex) {
+                return candleIndex >= 5;
+            }
 
+            function safeArray(value) {
+                return Array.isArray(value) ? value : [];
+            }
+
+            function buildMarkersFromResult(result) {
+                var markers = [];
+
+                Object.keys(result.data || {}).forEach(function (strike) {
+                    ['CE', 'PE'].forEach(function (side) {
+                        var candles = safeArray(result.data[strike] && result.data[strike][side]);
+                        var topOi = safeArray(result.topMarkers && result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].oi);
+                        var topVol = safeArray(result.topMarkers && result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].volume);
+
+                        candles.forEach(function (candle, candleIndex) {
+                            if (!shouldPlotOiVolumeMarker(candleIndex)) return;
+
+                            var time = candle.time;
+
+                            if (topOi.includes(time)) {
+                                markers.push({
+                                    time: time,
+                                    position: 'aboveBar',
+                                    color: side === 'CE' ? '#2563eb' : '#7c3aed',
+                                    shape: 'circle',
+                                    text: side + ' OI'
+                                });
+                            }
+
+                            if (topVol.includes(time)) {
+                                markers.push({
+                                    time: time,
+                                    position: 'belowBar',
+                                    color: side === 'CE' ? '#2563eb' : '#7c3aed',
+                                    shape: 'circle',
+                                    text: side + ' VOL'
+                                });
+                            }
+                        });
+                    });
+                });
+
+                return markers;
+            }
+
+            function buildOverallTopMarkers(result) {
+                var squares = [];
+                var seen = {};
+
+                Object.keys(result.topMarkers || {}).forEach(function (strike) {
+                    ['CE', 'PE'].forEach(function (side) {
+                        var topOi = safeArray(result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].oi);
+                        var topVol = safeArray(result.topMarkers[strike] && result.topMarkers[strike][side] && result.topMarkers[strike][side].volume);
+
+                        topOi.slice(0, 5).forEach(function (time) {
+                            var key = 'OI|' + strike + '|' + side + '|' + time;
+                            if (seen[key]) return;
+                            seen[key] = true;
+
+                            squares.push({
+                                time: time,
+                                position: 'aboveBar',
+                                color: '#111827',
+                                shape: 'square',
+                                text: 'TOP OI'
+                            });
+                        });
+
+                        topVol.slice(0, 5).forEach(function (time) {
+                            var key = 'VOL|' + strike + '|' + side + '|' + time;
+                            if (seen[key]) return;
+                            seen[key] = true;
+
+                            squares.push({
+                                time: time,
+                                position: 'belowBar',
+                                color: '#111827',
+                                shape: 'square',
+                                text: 'TOP VOL'
+                            });
+                        });
+                    });
+                });
+
+                return squares;
+            }
 
             loadSignalStore();
             startPageUpdatedClock();

@@ -98,23 +98,22 @@ class TradingViewController extends Controller
     public function fetchChartData(Request $request)
     {
         $request->validate([
-            'strikes'           => 'required|array|min:1|max:10',
-            'strikes.*'         => 'numeric',
+            'strikes' => 'required|array|min:1|max:10',
+            'strikes.*' => 'numeric',
             'underlying_symbol' => 'required|string',
-            'expiry_date'       => 'required|date',
-            'trade_date'        => 'required|date',
-            'midpoint'          => 'nullable|numeric',
+            'expiry_date' => 'required|date',
+            'trade_date' => 'required|date',
+            'midpoint' => 'nullable|numeric',
         ]);
 
-        $strikes          = $request->input('strikes');
+        $strikes = $request->input('strikes');
         $underlyingSymbol = $request->input('underlying_symbol');
-        $expiryDate       = $request->input('expiry_date');
-        $tradeDate        = $request->input('trade_date');
-        $midpoint         = $request->input('midpoint');
+        $expiryDate = $request->input('expiry_date');
+        $tradeDate = $request->input('trade_date');
+        $midpoint = $request->input('midpoint');
 
-        // Force trade session window: 09:15 to 15:35 IST
         $start = Carbon::parse($tradeDate . ' 09:15:00', 'Asia/Kolkata');
-        $end   = Carbon::parse($tradeDate . ' 15:35:00', 'Asia/Kolkata');
+        $end = Carbon::parse($tradeDate . ' 15:35:00', 'Asia/Kolkata');
 
         $snapshots = DB::table('ohlc_live_snapshots')
                        ->whereIn('strike', $strikes)
@@ -133,34 +132,72 @@ class TradingViewController extends Controller
                        ->orderBy('timestamp')
                        ->get();
 
-        // Group: strike → CE/PE → candles
-        $grouped = [];
+        $alignTo5MinStart = function (Carbon $dt) {
+            $minute = (int) $dt->minute;
+            $aligned = (int) (floor($minute / 5) * 5);
+            return $dt->copy()->minute($aligned)->second(0);
+        };
+
+        $bucketed = [];
         foreach ($snapshots as $row) {
             $strike = (string) $row->strike;
-            $type   = $row->instrument_type;
+            $type = $row->instrument_type;
 
-            if (!isset($grouped[$strike])) {
-                $grouped[$strike] = ['CE' => [], 'PE' => []];
+            if (!isset($bucketed[$strike])) {
+                $bucketed[$strike] = ['CE' => [], 'PE' => []];
             }
 
-            $grouped[$strike][$type][] = [
-                'id'          => $row->id,
-                'time'        => Carbon::parse($row->timestamp)->timestamp,
-                'open'        => (float) $row->open,
-                'high'        => (float) $row->high,
-                'low'         => (float) $row->low,
-                'close'       => (float) $row->close,
-                'oi'          => (int)   $row->oi,
-                'volume'      => (int)   $row->volume,
-                'build_up'    => $row->build_up,
-                'diff_oi'     => (int)   $row->diff_oi,
-                'diff_volume' => (int)   $row->diff_volume,
-                'diff_ltp'    => (float) $row->diff_ltp,
-                'timestamp'   => $row->timestamp,
+            $bucketTime = $alignTo5MinStart(Carbon::parse($row->timestamp, 'Asia/Kolkata'))->timestamp;
+
+            $bucketed[$strike][$type][] = [
+                'id' => $row->id,
+                'time' => $bucketTime,
+                'open' => (float) $row->open,
+                'high' => (float) $row->high,
+                'low' => (float) $row->low,
+                'close' => (float) $row->close,
+                'oi' => (int) $row->oi,
+                'volume' => (int) $row->volume,
+                'build_up' => $row->build_up,
+                'diff_oi' => (int) $row->diff_oi,
+                'diff_volume' => (int) $row->diff_volume,
+                'diff_ltp' => (float) $row->diff_ltp,
+                'timestamp' => $row->timestamp,
             ];
         }
 
-        // First 5-min candle high / low (index 0 = 09:15 candle)
+        $grouped = [];
+        foreach ($bucketed as $strike => $types) {
+            $grouped[$strike] = ['CE' => [], 'PE' => []];
+
+            foreach (['CE', 'PE'] as $type) {
+                $rows = $types[$type];
+
+                $byBucket = [];
+                foreach ($rows as $row) {
+                    $bucketKey = $row['time'];
+
+                    if (!isset($byBucket[$bucketKey])) {
+                        $byBucket[$bucketKey] = $row;
+                    } else {
+                        $byBucket[$bucketKey]['high'] = max($byBucket[$bucketKey]['high'], $row['high']);
+                        $byBucket[$bucketKey]['low'] = min($byBucket[$bucketKey]['low'], $row['low']);
+                        $byBucket[$bucketKey]['close'] = $row['close'];
+                        $byBucket[$bucketKey]['oi'] = $row['oi'];
+                        $byBucket[$bucketKey]['volume'] = $row['volume'];
+                        $byBucket[$bucketKey]['build_up'] = $row['build_up'];
+                        $byBucket[$bucketKey]['diff_oi'] = $row['diff_oi'];
+                        $byBucket[$bucketKey]['diff_volume'] = $row['diff_volume'];
+                        $byBucket[$bucketKey]['diff_ltp'] = $row['diff_ltp'];
+                        $byBucket[$bucketKey]['timestamp'] = $row['timestamp'];
+                    }
+                }
+
+                ksort($byBucket);
+                $grouped[$strike][$type] = array_values($byBucket);
+            }
+        }
+
         $firstCandle = [];
         foreach ($grouped as $strike => $types) {
             $firstCandle[$strike] = [];
@@ -169,24 +206,23 @@ class TradingViewController extends Controller
                     $f = $types[$type][0];
                     $firstCandle[$strike][$type] = [
                         'high' => $f['high'],
-                        'low'  => $f['low'],
+                        'low' => $f['low'],
                         'time' => $f['time'],
                     ];
                 }
             }
         }
 
-        // Top 5 candles by diff_oi and diff_volume
         $topMarkers = [];
         foreach ($grouped as $strike => $types) {
             $topMarkers[$strike] = [];
             foreach (['CE', 'PE'] as $type) {
-                if (empty($types[$type])) {
-                    $topMarkers[$strike][$type] = ['oi' => [], 'volume' => []];
+                $candles = $types[$type] ?? [];
+                $topMarkers[$strike][$type] = ['oi' => [], 'volume' => []];
+
+                if (empty($candles)) {
                     continue;
                 }
-
-                $candles = $types[$type];
 
                 $byOi = $candles;
                 usort($byOi, fn($a, $b) => abs($b['diff_oi']) <=> abs($a['diff_oi']));
@@ -194,21 +230,19 @@ class TradingViewController extends Controller
                 $byVol = $candles;
                 usort($byVol, fn($a, $b) => $b['diff_volume'] <=> $a['diff_volume']);
 
-                $topMarkers[$strike][$type] = [
-                    'oi'     => array_slice(array_column($byOi,  'time'), 0, 5),
-                    'volume' => array_slice(array_column($byVol, 'time'), 0, 5),
-                ];
+                $topMarkers[$strike][$type]['oi'] = array_slice(array_column($byOi, 'time'), 0, 5);
+                $topMarkers[$strike][$type]['volume'] = array_slice(array_column($byVol, 'time'), 0, 5);
             }
         }
 
         return response()->json([
-            'success'     => true,
-            'data'        => $grouped,
+            'success' => true,
+            'data' => $grouped,
             'firstCandle' => $firstCandle,
-            'topMarkers'  => $topMarkers,
-            'midpoint'    => $midpoint !== null ? (float) $midpoint : null,
-            'tradeDate'   => $tradeDate,
-            'strikes'     => $strikes,
+            'topMarkers' => $topMarkers,
+            'midpoint' => $midpoint !== null ? (float) $midpoint : null,
+            'tradeDate' => $tradeDate,
+            'strikes' => $strikes,
         ]);
     }
 }
