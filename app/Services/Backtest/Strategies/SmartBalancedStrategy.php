@@ -51,7 +51,7 @@ class SmartBalancedStrategy implements BacktestStrategy
         );
 
         if (!$upperResolved || !$lowerResolved) {
-            \Log::debug("Skipped due to $upperResolved and  $lowerResolved");
+            \Log::debug("Skipped due to upperResolved and  lowerResolved");
             return null;
         }
 

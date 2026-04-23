@@ -116,18 +116,17 @@ class RunStrangleBacktest extends Command {
         $skippedDays   = 0;
 
         // ── Load all expiries for the symbol once ──────────────────────────
-//        $allExpiries = DB::table( 'nse_expiries' )
-//                         ->where( 'trading_symbol', $symbol )
-//                         ->where( 'instrument_type', 'OPT' )
-//                         ->orderBy( 'expiry_date' )
-//                         ->pluck( 'expiry_date' )
-//                         ->toArray();
-//
-//        if ( empty( $allExpiries ) ) {
-//            $this->error( "No expiries found for {$symbol} in nse_expiries." );
-//
-//            return self::FAILURE;
-//        }
+        $allExpiries = DB::table('expired_expiries')
+                         ->where('underlying_symbol', $symbol)
+                         ->where('instrument_type', 'OPT')
+                         ->orderBy('expiry_date')
+                         ->pluck('expiry_date')
+                         ->toArray();
+
+        if (empty($allExpiries)) {
+            $this->error("No expiries found for {$symbol} in expired_expiries.");
+            return self::FAILURE;
+        }
 
 
         foreach ( $tradingDates as $tradeDate ) {
@@ -163,16 +162,16 @@ class RunStrangleBacktest extends Command {
             $indexOpen = (float) $indexCandle->open;
 
             // ── Expiry ─────────────────────────────────────────────────────
-            $expiry = DB::table('expired_ohlc')
-                        ->where('underlying_symbol', $symbol)
-                        ->whereIn('instrument_type', ['CE', 'PE'])
-                        ->where('interval', '5minute')
-                        ->whereDate('timestamp', $tradeDate)
-                        ->whereNotNull('expiry')
-                        ->orderByRaw("ABS(DATEDIFF(expiry, ?))", [$tradeDate])
-                        ->value('expiry');
+//            $expiry = DB::table('expired_ohlc')
+//                        ->where('underlying_symbol', $symbol)
+//                        ->whereIn('instrument_type', ['CE', 'PE'])
+//                        ->where('interval', '5minute')
+//                        ->whereDate('timestamp', $tradeDate)
+//                        ->whereNotNull('expiry')
+//                        ->orderByRaw("ABS(DATEDIFF(expiry, ?))", [$tradeDate])
+//                        ->value('expiry');
 
-            //$expiry = resolveExpiry( $tradeDate, $allExpiries );
+            $expiry = resolveExpiry( $tradeDate, $allExpiries );
 
 
             if ( ! $expiry ) {

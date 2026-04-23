@@ -38,6 +38,8 @@ class BacktestController extends Controller
                          ])
                          ->toArray();
 
+        $expiryDateList = array_keys($expiryDates);
+
 
         $query = DB::table('backtest_trades')
                    ->selectRaw('
@@ -106,6 +108,10 @@ class BacktestController extends Controller
             $query->whereDate('trade_date', '<=', $request->to);
         }
 
+        if ($request->skip_expiry == '1' && !empty($expiryDateList)) {
+            $query->whereNotIn('trade_date', $expiryDateList);
+        }
+
         $days = $query->orderByDesc('trade_date')->paginate(30)->withQueryString();
 
         // Stats
@@ -115,6 +121,10 @@ class BacktestController extends Controller
                         ->when($request->filled('outcome'), fn($q) => $q->where('day_outcome', $request->outcome))
                         ->when($request->filled('from'),    fn($q) => $q->whereDate('trade_date', '>=', $request->from))
                         ->when($request->filled('to'),      fn($q) => $q->whereDate('trade_date', '<=', $request->to))
+                        ->when(
+                            $request->skip_expiry == '1' && !empty($expiryDateList),
+                            fn($q) => $q->whereNotIn('trade_date', $expiryDateList)
+                        )
                         ->selectRaw('
             COUNT(DISTINCT day_group_id)                                            AS total_days,
             ROUND(SUM(pnl), 2)                                                     AS total_pnl,

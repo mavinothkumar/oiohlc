@@ -147,6 +147,19 @@
                               text-white focus:outline-none focus:border-indigo-500">
                 </div>
 
+                {{-- Skip Expiry Days --}}
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-400 uppercase tracking-wider">Expiry Days</label>
+                    <label class="inline-flex items-center gap-2 cursor-pointer mt-1">
+                        <input type="hidden" name="skip_expiry" value="0">
+                        <input type="checkbox" name="skip_expiry" value="1"
+                            @checked(request('skip_expiry') == '1')
+                            class="w-4 h-4 rounded bg-gray-800 border-gray-600
+                      text-indigo-500 focus:ring-indigo-500 cursor-pointer">
+                        <span class="text-sm text-gray-300">Skip Expiry Days</span>
+                    </label>
+                </div>
+
                 {{-- Buttons --}}
                 <div class="flex gap-2 pb-0.5">
                     <button type="submit"
@@ -164,7 +177,7 @@
             </div>
 
             {{-- Active filter chips --}}
-            @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to']))
+            @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry']))
                 <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
                     <span class="text-xs text-gray-500 self-center">Active filters:</span>
 
@@ -205,8 +218,41 @@
                     {{ request('from') ?: '—' }} → {{ request('to') ?: '—' }}
                 </span>
                     @endif
+
+                    @if(request('skip_expiry') == '1')
+                        @php
+                            $totalExpiriesInRange = collect($expiryDates)->filter(function($v, $date) {
+                                $from = request('from');
+                                $to   = request('to');
+                                return (!$from || $date >= $from)
+                                    && (!$to   || $date <= $to);
+                            })->count();
+                        @endphp
+                        @if($totalExpiriesInRange > 0)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
+                 text-amber-300 rounded-full text-xs">
+                                <span>⚡</span>
+                                <span>
+                {{ $totalExpiriesInRange }} expiry
+                {{ \Illuminate\Support\Str::plural('day', $totalExpiriesInRange) }} hidden from results
+            </span>
+                                <a href="{{ request()->fullUrlWithQuery(['skip_expiry' => '0']) }}"
+                                    class="underline hover:text-amber-300 ml-1">
+                                    Show them
+                                </a>
+                            </span>
+                        @endif
+                    @endif
+
+                    @if(request('skip_expiry') == '1')
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
+                 text-amber-300 rounded-full text-xs">
+            ⚡ Expiry Days Hidden
+             </span>
+                    @endif
                 </div>
             @endif
+
 
         </form>
 
@@ -322,6 +368,8 @@
                 </div>
             @endif
 
+
+
             {{-- Days Table --}}
             <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -370,7 +418,7 @@
                ? 'bg-amber-950/20 hover:bg-amber-900/30 border-l-2 border-l-amber-500'
                : 'hover:bg-gray-800/40 border-l-2 border-l-transparent' }}"
 
-{{--                                onclick="window.location='{{ route('backtest.trades', ['group_id' => $day->day_group_id]) }}'"--}}
+                                {{--                                onclick="window.location='{{ route('backtest.trades', ['group_id' => $day->day_group_id]) }}'"--}}
                             >
 
                                 {{-- Date --}}
