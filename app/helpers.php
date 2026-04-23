@@ -75,3 +75,13 @@ function getBuildUpLabel($buildUp)
 
     return $labels[$buildUp] ?? null;
 }
+
+function resolveExpiry(string $tradeDate, array $allExpiries): ?string
+{
+    foreach ($allExpiries as $expiry) {
+        if ($expiry >= $tradeDate) {
+            return $expiry;
+        }
+    }
+    return null; // trade date is beyond all known expiries
+}

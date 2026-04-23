@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('expiries', function (Blueprint $table) {
             $table->id();
-            $table->date('expiry_date')->nullable(); // For easy querying
+            $table->date('expiry_date')->index()->nullable(); // For easy querying
             $table->string('instrument_type')->nullable(); // FUT, OPT, etc.
             $table->string('trading_symbol')->nullable(); // Optional
             $table->boolean('is_current')->default(false)->index();
@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->bigInteger('expiry')->index();
             $table->string('exchange')->index();
             $table->string('segment')->index();
+            $table->index(['trading_symbol', 'instrument_type', 'expiry_date']);
 
         });
     }

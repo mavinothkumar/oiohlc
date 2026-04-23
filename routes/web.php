@@ -163,3 +163,9 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
 
 
 } );
+
+
+Route::prefix('backtest')->name('backtest.')->group(function () {
+    Route::get('/',        [App\Http\Controllers\BacktestController::class, 'index'])->name('index');
+    Route::get('/trades',  [App\Http\Controllers\BacktestController::class, 'trades'])->name('trades');
+});
