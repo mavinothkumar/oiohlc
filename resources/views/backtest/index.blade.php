@@ -243,7 +243,6 @@
                             </span>
                         @endif
                     @endif
-
                     @if(request('skip_expiry') == '1')
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
                  text-amber-300 rounded-full text-xs">
