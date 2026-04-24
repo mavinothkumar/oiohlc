@@ -217,6 +217,8 @@ class  CollectOneMinOhlcCommand extends Command
 
             $body = $response->json();
 
+            //info('$body',[$body]);
+
             if (($body['status'] ?? null) !== 'success' || empty($body['data'])) {
                 Log::error('Unexpected 1-min OHLC response', ['body' => $body]);
                 continue;

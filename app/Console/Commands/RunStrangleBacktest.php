@@ -2,6 +2,7 @@
 
 // app/Console/Commands/RunStrangleBacktest.php
 
+// php artisan backtest:strangle first_candle_breakout --from="2025-01-01" --to="2025-01-05" --entry-time="09:15" --target="5000" --stoploss="5000" --lot="130"
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
@@ -62,6 +63,7 @@ class RunStrangleBacktest extends Command {
             return self::FAILURE;
         }
 
+
         // ── Boot ───────────────────────────────────────────────────────────
         $runId     = (string) Str::uuid();
         $symbol    = strtoupper( $this->option( 'symbol' ) );
@@ -81,7 +83,6 @@ class RunStrangleBacktest extends Command {
         $this->printHeader( $symbol, $from, $to, $entryHHMM, $target, $stoploss,
             $qty, $runId, $dryRun, $strategyName,
             $strategy->describe( $options ) );
-
 
 
         // ── Trading dates ──────────────────────────────────────────────────
@@ -116,15 +117,16 @@ class RunStrangleBacktest extends Command {
         $skippedDays   = 0;
 
         // ── Load all expiries for the symbol once ──────────────────────────
-        $allExpiries = DB::table('expired_expiries')
-                         ->where('underlying_symbol', $symbol)
-                         ->where('instrument_type', 'OPT')
-                         ->orderBy('expiry_date')
-                         ->pluck('expiry_date')
+        $allExpiries = DB::table( 'expired_expiries' )
+                         ->where( 'underlying_symbol', $symbol )
+                         ->where( 'instrument_type', 'OPT' )
+                         ->orderBy( 'expiry_date' )
+                         ->pluck( 'expiry_date' )
                          ->toArray();
 
-        if (empty($allExpiries)) {
-            $this->error("No expiries found for {$symbol} in expired_expiries.");
+        if ( empty( $allExpiries ) ) {
+            $this->error( "No expiries found for {$symbol} in expired_expiries." );
+
             return self::FAILURE;
         }
 
@@ -195,6 +197,8 @@ class RunStrangleBacktest extends Command {
                 $legData, $entryTimestamp, $tradeDate, $target, $stoploss, $qty
             );
 
+            $effectiveQty = $result['effectiveQty'] ?? $qty;
+
             $legData          = $result['legData'];
             $dayOutcome       = $result['dayOutcome'];
             $exitReason       = $result['exitReason'];
@@ -238,11 +242,16 @@ class RunStrangleBacktest extends Command {
                 'entry_price'          => $leg['entry_price'],
                 'exit_price'           => $leg['exit_price'],
                 'side'                 => 'SELL',
-                'qty'                  => $qty,
-                'pnl'                  => round( ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $qty, 2 ),
+                'qty'                  => $effectiveQty,
+                'pnl'                  => round(
+                    ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
+                    2
+                ),
+                'lot_size'             => $effectiveQty,
                 'strategy'             => $strategyName,
-                'entry_time'           => $entryTimestamp,
+                'entry_time'          => $leg['actual_entry_ts'] ?? $entryTimestamp,
                 'exit_time'            => $leg['exit_time'],
+                'signal_time'         => $leg['signal_time']     ?? null,
                 'trade_time_duration'  => $leg['exit_time']
                     ? (int) Carbon::parse( $entryTimestamp )->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
                     : null,
@@ -259,14 +268,13 @@ class RunStrangleBacktest extends Command {
                 'index_price_at_entry' => $indexOpen,
                 'target'               => $target,
                 'stoploss'             => $stoploss,
-                'lot_size'             => $qty,
                 'strike_offset'        => (int) ( $options['strike-offset'] ?? 300 ),
                 'created_at'           => $now,
                 'updated_at'           => $now,
             ], $legData );
 
             if ( ! $dryRun ) {
-                BacktestTrade::insert($dayRows);
+                BacktestTrade::insert( $dayRows );
             }
 
             // Console line

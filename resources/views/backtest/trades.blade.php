@@ -183,6 +183,24 @@
                     <p class="text-xs text-gray-500 mt-0.5">across 4 legs</p>
                 </div>
 
+
+                @if($day->signal_time)
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Signal Confirmed</p>
+                        <p class="font-mono text-yellow-300 text-sm mt-0.5">
+                            {{ \Carbon\Carbon::parse($day->signal_time)->format('H:i') }}
+                            <span class="text-gray-500 text-xs ml-1">breakout</span>
+                        </p>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            Entry: {{ \Carbon\Carbon::parse($day->entry_time)->format('H:i') }}
+                            @if($day->signal_time !== $day->entry_time)
+                                <span class="text-yellow-600 ml-1">
+                (+{{ \Carbon\Carbon::parse($day->signal_time)->diffInMinutes(\Carbon\Carbon::parse($day->entry_time)) }} min late)
+            </span>
+                            @endif
+                        </p>
+                    </div>
+                @endif
             </div>
         </div>
 

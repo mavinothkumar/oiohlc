@@ -43,19 +43,21 @@ class BacktestController extends Controller
 
         $query = DB::table('backtest_trades')
                    ->selectRaw('
-            day_group_id, backtest_run_id, underlying_symbol, exchange,
-            strategy, trade_date, expiry, index_price_at_entry,
-            strike_offset, target, stoploss, lot_size,
-            day_total_pnl, day_outcome,
-            MAX(day_max_profit)          AS day_max_profit,
-            MAX(day_max_profit_time)     AS day_max_profit_time,
-            MIN(day_max_loss)            AS day_max_loss,
-            MIN(day_max_loss_time)       AS day_max_loss_time,
-            MIN(entry_time)              AS entry_time,
-            MAX(exit_time)               AS exit_time,
-            MAX(trade_time_duration)     AS trade_time_duration,
-            COUNT(*)                     AS total_legs
-        ')
+        day_group_id, backtest_run_id, underlying_symbol, exchange,
+        strategy, trade_date, expiry, index_price_at_entry,
+        strike_offset, target, stoploss, lot_size,
+        day_total_pnl, day_outcome,
+        MIN(strike)              AS strike,
+        MIN(instrument_type)     AS instrument_type,
+        MAX(day_max_profit)      AS day_max_profit,
+        MAX(day_max_profit_time) AS day_max_profit_time,
+        MIN(day_max_loss)        AS day_max_loss,
+        MIN(day_max_loss_time)   AS day_max_loss_time,
+        MIN(entry_time)          AS entry_time,
+        MAX(exit_time)           AS exit_time,
+        MAX(trade_time_duration) AS trade_time_duration,
+        COUNT(*)                 AS total_legs
+    ')
                    ->groupBy(
                        'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
                        'strategy', 'trade_date', 'expiry', 'index_price_at_entry',
@@ -169,6 +171,7 @@ class BacktestController extends Controller
         lot_size,
         day_total_pnl,
         day_outcome,
+        MIN(signal_time)         AS signal_time,
         MAX(day_max_profit)          AS day_max_profit,
         MAX(day_max_profit_time)     AS day_max_profit_time,
         MIN(day_max_loss)            AS day_max_loss,

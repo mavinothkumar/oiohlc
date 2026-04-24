@@ -398,16 +398,23 @@
                         @foreach($days as $day)
                             @php
                                 $isProfit = $day->day_outcome === 'profit';
-                                 $isExpiry    = isset($expiryDates[\Carbon\Carbon::parse($day->trade_date)->toDateString()]);
-                                $atm      = $day->index_price_at_entry
-                                    ? (int)(round($day->index_price_at_entry / 100) * 100)
-                                    : null;
-                                $upper    = $atm ? $atm + $day->strike_offset : null;
-                                $lower    = $atm ? $atm - $day->strike_offset : null;
-                                $dur      = $day->trade_time_duration;
-                                $durFmt   = $dur
-                                    ? (intdiv($dur,60) > 0 ? intdiv($dur,60).'h ' : '').($dur%60).'m'
+                                $isExpiry = isset($expiryDates[\Carbon\Carbon::parse($day->trade_date)->toDateString()]);
+
+                                // Only compute ATM strikes for strategies that use offset
+                                $atm   = null;
+                                $upper = null;
+                                $lower = null;
+                                if ($day->strategy !== 'first_candle_breakout' && $day->index_price_at_entry && $day->strike_offset) {
+                                    $atm   = (int)(round($day->index_price_at_entry / 100) * 100);
+                                    $upper = $atm + $day->strike_offset;
+                                    $lower = $atm - $day->strike_offset;
+                                }
+
+                                $dur    = $day->trade_time_duration;
+                                $durFmt = $dur
+                                    ? (intdiv($dur, 60) > 0 ? intdiv($dur, 60).'h ' : '').($dur % 60).'m'
                                     : '—';
+
                                 $hasPeakProfit  = !is_null($day->day_max_profit) && $day->day_max_profit > 0;
                                 $hasPeakLoss    = !is_null($day->day_max_loss)   && $day->day_max_loss   < 0;
                                 $reversedToLoss = $hasPeakProfit && $day->day_outcome === 'loss';
@@ -445,15 +452,29 @@
 
                                 {{-- Strikes --}}
                                 <td class="px-4 py-3 text-center">
-                                    @if($lower && $upper)
+                                    @if($day->strategy === 'first_candle_breakout')
+                                        {{-- Single strike with direction indicator --}}
                                         <div class="flex items-center justify-center gap-1 text-xs font-mono">
-                                    <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
-                                        {{ number_format($lower) }}
-                                    </span>
+            <span class="px-1.5 py-0.5 rounded
+                {{ $day->day_outcome === 'profit' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-red-900/50 text-red-300' }}">
+                {{ number_format($day->strike) }}
+            </span>
+                                            {{-- Show CE or PE badge --}}
+                                            <span class="px-1.5 py-0.5 rounded text-xs font-bold
+                {{ $day->instrument_type === 'CE' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300' }}">
+                {{ $day->instrument_type }}
+            </span>
+                                        </div>
+                                    @elseif($lower && $upper)
+                                        {{-- Original 4-leg display --}}
+                                        <div class="flex items-center justify-center gap-1 text-xs font-mono">
+            <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                {{ number_format($lower) }}
+            </span>
                                             <span class="text-gray-600">&</span>
                                             <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
-                                        {{ number_format($upper) }}
-                                    </span>
+                {{ number_format($upper) }}
+            </span>
                                         </div>
                                     @else
                                         <span class="text-gray-600 text-xs">—</span>
