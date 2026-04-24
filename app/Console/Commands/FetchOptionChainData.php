@@ -157,7 +157,7 @@ class FetchOptionChainData extends Command {
         ];
     }
 
-    private function aggregateFiveMinuteData(): void
+    public function aggregateFiveMinuteData(): void
     {
         info('aggregateFiveMinuteData start');
 
@@ -222,7 +222,8 @@ class FetchOptionChainData extends Command {
 
             $startBucket = $startBucket->copy()->minute(intdiv((int) $startBucket->format('i'), 5) * 5)->second(0);
 
-            for ($bucket = $startBucket->copy(); $bucket->lte($currentBucket); $bucket->addMinutes(5)) {
+            $completedBucket = $currentBucket->copy()->subMinutes(5);
+            for ($bucket = $startBucket->copy(); $bucket->lte($completedBucket); $bucket->addMinutes(5)) {
                 $windowStart = $bucket->copy();
                 $windowEnd = $bucket->copy()->addMinutes(4)->endOfMinute();
 

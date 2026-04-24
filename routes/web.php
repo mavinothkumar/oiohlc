@@ -8,7 +8,7 @@ Route::get( '/', function () {
 } )->name( 'home' );
 
 Route::get( '/111', function () {
-    return now()->second( 0 );
+    ( new \App\Console\Commands\FetchOptionChainData() )->aggregateFiveMinuteData();
 } );
 
 Route::get( 'test', [ '\App\Http\Controllers\OhlcChartController', 'ohlc' ] );
@@ -93,26 +93,25 @@ Route::get( '/build-up-analysis', [ App\Http\Controllers\BuildUpAnalysisControll
 Route::get( '/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'index' ] )->name( 'option-chain.analysis' );
 Route::get( '/api/option-chain-analysis', [ App\Http\Controllers\OptionChainAnalysisController::class, 'getData' ] )->name( 'option-chain.analysis.data' );
 
-Route::get('/options-charts', [ App\Http\Controllers\OptionsChartController::class, 'index'])->name('options.chart.index');
-Route::get('/options-charts/expiry-range', [ App\Http\Controllers\OptionsChartController::class, 'getExpiryRange'])->name('options.chart.expiry.range');
-Route::get('/options-charts/chart-data', [ App\Http\Controllers\OptionsChartController::class, 'getChartData'])->name('options.chart.chart.data');
+Route::get( '/options-charts', [ App\Http\Controllers\OptionsChartController::class, 'index' ] )->name( 'options.chart.index' );
+Route::get( '/options-charts/expiry-range', [ App\Http\Controllers\OptionsChartController::class, 'getExpiryRange' ] )->name( 'options.chart.expiry.range' );
+Route::get( '/options-charts/chart-data', [ App\Http\Controllers\OptionsChartController::class, 'getChartData' ] )->name( 'options.chart.chart.data' );
 
 
-
-Route::prefix('trading')->name('trading.')->group(function () {
+Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
     // Main chart page
-    Route::get('/chart', [TradingViewController::class, 'index'])
-         ->name('chart');
+    Route::get( '/chart', [ TradingViewController::class, 'index' ] )
+         ->name( 'chart' );
 
     // AJAX: fetch candle data for submitted strikes
-    Route::post('/chart/data', [TradingViewController::class, 'fetchChartData'])
-         ->name('chart.data');
+    Route::post( '/chart/data', [ TradingViewController::class, 'fetchChartData' ] )
+         ->name( 'chart.data' );
 
     // AJAX: expiry dates for a symbol  (reads nse_expiries, is_current = 1)
-    Route::get('/expiries', [TradingViewController::class, 'getExpiries'])
-         ->name('expiries');
-});
+    Route::get( '/expiries', [ TradingViewController::class, 'getExpiries' ] )
+         ->name( 'expiries' );
+} );
 
 
 Route::prefix( 'test' )->name( 'test.' )->group( function () {
@@ -149,12 +148,11 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
     // Simulator actions (POST)
     Route::post( '/trading-simulator/position/enter', [ App\Http\Controllers\TradingSimulatorController::class, 'enterPosition' ] )->name( 'trading-simulator.enter' );
     Route::post( '/trading-simulator/position/exit', [ App\Http\Controllers\TradingSimulatorController::class, 'exitPosition' ] )->name( 'trading-simulator.exit' );
-    Route::delete('/trading-simulator/position/{id}', [App\Http\Controllers\TradingSimulatorController::class, 'deletePosition'])->name('trading-simulator.delete');
+    Route::delete( '/trading-simulator/position/{id}', [ App\Http\Controllers\TradingSimulatorController::class, 'deletePosition' ] )->name( 'trading-simulator.delete' );
 // Report
     Route::get( '/trading-simulator/report', [ App\Http\Controllers\TradingSimulatorController::class, 'report' ] )->name( 'trading-simulator.report' );
     Route::get( '/trading-simulator/report/{position}', [ App\Http\Controllers\TradingSimulatorController::class, 'reportDetail' ] )->name( 'trading-simulator.report.detail' );
     Route::post( '/trading-simulator/report/{position}/note', [ App\Http\Controllers\TradingSimulatorController::class, 'storeNote' ] )->name( 'trading-simulator.report.note' );
-
 
 
     Route::get( '/oi-volume-chart', [ App\Http\Controllers\OiVolumeChartController::class, 'index' ] )->name( 'oi.volume.chart' );
@@ -165,7 +163,7 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
 } );
 
 
-Route::prefix('backtest')->name('backtest.')->group(function () {
-    Route::get('/',        [App\Http\Controllers\BacktestController::class, 'index'])->name('index');
-    Route::get('/trades',  [App\Http\Controllers\BacktestController::class, 'trades'])->name('trades');
-});
+Route::prefix( 'backtest' )->name( 'backtest.' )->group( function () {
+    Route::get( '/', [ App\Http\Controllers\BacktestController::class, 'index' ] )->name( 'index' );
+    Route::get( '/trades', [ App\Http\Controllers\BacktestController::class, 'trades' ] )->name( 'trades' );
+} );
