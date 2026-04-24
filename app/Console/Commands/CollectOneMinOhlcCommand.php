@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class CollectOneMinOhlcCommand extends Command
+class  CollectOneMinOhlcCommand extends Command
 {
     protected $signature = 'ohlc:collect-1min';
     protected $description = 'Collect 1-minute OHLC from Upstox /market-quote/ohlc and store in ohlc_quotes';
@@ -128,22 +128,23 @@ class CollectOneMinOhlcCommand extends Command
 
             $meta = $metaMap[$instrumentKey];
 
-            $ohlc = $quote['ohlc'] ?? $quote['live_ohlc'] ?? null;
+            $ohlc = $quote['live_ohlc'] ?? null;  // V3: only live_ohlc
             if (! $ohlc) {
                 continue;
             }
 
-            $open  = $ohlc['open'] ?? null;
-            $high  = $ohlc['high'] ?? null;
-            $low   = $ohlc['low'] ?? null;
+            $open  = $ohlc['open']  ?? null;
+            $high  = $ohlc['high']  ?? null;
+            $low   = $ohlc['low']   ?? null;
             $close = $ohlc['close'] ?? null;
 
             if ($open === null || $high === null || $low === null || $close === null) {
                 continue;
             }
 
-            $tsAt = ! empty($quote['last_trade_time'])
-                ? Carbon::createFromTimestampMs((int) $quote['last_trade_time'])
+// V3: ts is the candle start time in milliseconds, inside live_ohlc
+            $tsAt = ! empty($ohlc['ts'])
+                ? Carbon::createFromTimestampMs((int) $ohlc['ts'])
                         ->setTimezone(config('app.timezone'))
                 : now()->setTimezone(config('app.timezone'));
 
@@ -152,21 +153,21 @@ class CollectOneMinOhlcCommand extends Command
             $rows[] = [
                 'instrument_key'  => $instrumentKey,
                 'instrument_type' => $meta['instrument_type'],
-                'trading_symbol'   => $inst['symbol'],
-                'expiry_date'      => in_array($meta['instrument_type'], ['CE', 'PE'], true)
+                'trading_symbol'  => $inst['symbol'],
+                'expiry_date'     => in_array($meta['instrument_type'], ['CE', 'PE'], true)
                     ? $optExpiryDate
                     : $futExpiryDate,
-                'strike_price'     => $meta['strike'],
-                'open'             => $open,
-                'high'             => $high,
-                'low'              => $low,
-                'close'            => $close,
-                'volume'           => $quote['volume'] ?? null,
-                'ts'               => $tsAt->timestamp,
-                'ts_at'            => $tsAt,
-                'last_price'       => $quote['last_price'] ?? null,
-                'created_at'       => $now,
-                'updated_at'       => $now,
+                'strike_price'    => $meta['strike'],
+                'open'            => $open,
+                'high'            => $high,
+                'low'             => $low,
+                'close'           => $close,
+                'volume'          => $ohlc['volume'] ?? null,  // V3: volume is inside live_ohlc
+                'ts'              => $tsAt->timestamp,
+                'ts_at'           => $tsAt,
+                'last_price'      => $quote['last_price'] ?? null,
+                'created_at'      => $now,
+                'updated_at'      => $now,
             ];
         }
 
@@ -201,9 +202,9 @@ class CollectOneMinOhlcCommand extends Command
                 'Accept'        => 'application/json',
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer ' . $token,
-            ])->get('https://api.upstox.com/v2/market-quote/ohlc', [
+            ])->get('https://api.upstox.com/v3/market-quote/ohlc', [  // ← v3
                 'instrument_key' => implode(',', $chunk),
-                'interval' => 'I1',
+                'interval'       => 'I1',
             ]);
 
             if (! $response->ok()) {
@@ -222,7 +223,7 @@ class CollectOneMinOhlcCommand extends Command
             }
 
             foreach ($body['data'] as $key => $quote) {
-                $resolvedKey = $quote['instrument_token'] ?? $key;
+                $resolvedKey          = $quote['instrument_token'] ?? $key;
                 $result[$resolvedKey] = $quote;
             }
         }

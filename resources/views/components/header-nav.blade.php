@@ -65,6 +65,7 @@
                         <a href="{{ route('test.options.chart.step') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chart Step</a>
                         <a href="{{ route('test.trading-simulator') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Simulator</a>
                         <a href="{{ route('test.trading-simulator.report') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Report</a>
+                        <a href="{{ route('backtest.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Back Test</a>
 
                     </div>
                 </div>
