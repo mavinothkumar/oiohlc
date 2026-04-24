@@ -284,6 +284,151 @@
 
         @else
 
+
+            {{-- ── Monthly P&L Grid ──────────────────────────────────────────── --}}
+            @if($monthlyStats->isNotEmpty())
+                @php
+                    $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    $allYears   = $monthlyStats->keys()->sort()->values();
+                @endphp
+
+                <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+
+                    {{-- Title --}}
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                            📅 Monthly Performance
+                        </h2>
+                        <span class="text-xs text-gray-600">P&L · Win Rate · Days</span>
+                    </div>
+
+                    {{-- One table per year --}}
+                    @foreach($allYears as $year)
+                        @php
+                            $yearMonths  = $monthlyStats->get($year)->keyBy('month');
+                            $yearPnl     = $yearMonths->sum('total_pnl');
+                            $yearProfit  = $yearMonths->sum('profit_days');
+                            $yearLoss    = $yearMonths->sum('loss_days');
+                            $yearTotal   = $yearMonths->sum('total_days');
+                            $yearWinRate = $yearTotal > 0 ? round($yearProfit / $yearTotal * 100) : 0;
+                        @endphp
+
+                        <div class="mb-5 last:mb-0">
+
+                            {{-- Year header --}}
+                            <div class="flex items-center gap-4 mb-2">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest w-8">
+                {{ $year }}
+            </span>
+                                <div class="flex items-center gap-3">
+                <span class="text-sm font-bold font-mono
+                    {{ $yearPnl >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                    {{ $yearPnl >= 0 ? '+' : '' }}₹{{ number_format($yearPnl, 0) }}
+                </span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full
+                    {{ $yearWinRate >= 60 ? 'bg-emerald-900/50 text-emerald-300'
+                     : ($yearWinRate >= 45 ? 'bg-yellow-900/50 text-yellow-300'
+                     : 'bg-red-900/50 text-red-300') }}">
+                    {{ $yearWinRate }}% WR
+                </span>
+                                    <span class="text-xs text-gray-600">
+                    {{ $yearProfit }}W / {{ $yearLoss }}L / {{ $yearTotal }} days
+                </span>
+                                </div>
+                                <div class="flex-1 h-px bg-gray-800"></div>
+                            </div>
+
+                            {{-- Month cells --}}
+                            <div class="grid grid-cols-6 md:grid-cols-12 gap-1.5">
+                                @for($m = 1; $m <= 12; $m++)
+                                    @php
+                                        $month    = $yearMonths->get($m);
+                                        $pnl      = $month?->total_pnl ?? null;
+                                        $profit   = $month?->profit_days ?? 0;
+                                        $loss     = $month?->loss_days ?? 0;
+                                        $total    = $month?->total_days ?? 0;
+                                        $winRate  = $total > 0 ? round($profit / $total * 100) : null;
+
+                                        $bgClass  = match(true) {
+                                            $pnl === null              => 'bg-gray-800/40 border-gray-800',
+                                            $pnl > 10000               => 'bg-emerald-900/80 border-emerald-700/50',
+                                            $pnl > 5000                => 'bg-emerald-900/60 border-emerald-800/50',
+                                            $pnl > 0                   => 'bg-emerald-900/30 border-emerald-900/50',
+                                            $pnl < -10000              => 'bg-red-900/80 border-red-700/50',
+                                            $pnl < -5000               => 'bg-red-900/60 border-red-800/50',
+                                            default                    => 'bg-red-900/30 border-red-900/50',
+                                        };
+
+                                        $pnlColor = match(true) {
+                                            $pnl === null => 'text-gray-700',
+                                            $pnl >= 0    => 'text-emerald-300',
+                                            default      => 'text-red-300',
+                                        };
+                                    @endphp
+
+                                    <div class="relative group border rounded-lg p-2 cursor-default
+                        transition-all duration-150 hover:scale-105 {{ $bgClass }}">
+
+                                        {{-- Month name --}}
+                                        <p class="text-xs font-semibold text-gray-400 mb-1">
+                                            {{ $monthNames[$m - 1] }}
+                                        </p>
+
+                                        @if($pnl !== null)
+                                            {{-- P&L --}}
+                                            <p class="text-xs font-bold font-mono leading-tight {{ $pnlColor }}">
+                                                {{ $pnl >= 0 ? '+' : '' }}{{ number_format($pnl / 1000, 1) }}k
+                                            </p>
+
+                                            {{-- Win rate bar --}}
+                                            <div class="mt-1.5 h-1 rounded-full bg-gray-700/50 overflow-hidden">
+                                                <div class="h-full rounded-full transition-all
+                            {{ $winRate >= 60 ? 'bg-emerald-500' : ($winRate >= 45 ? 'bg-yellow-500' : 'bg-red-500') }}"
+                                                    style="width: {{ $winRate }}%">
+                                                </div>
+                                            </div>
+
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                {{ $winRate }}%
+                                                <span class="text-gray-600">· {{ $total }}d</span>
+                                            </p>
+                                        @else
+                                            <p class="text-xs text-gray-700 mt-1">—</p>
+                                        @endif
+
+                                        {{-- Hover tooltip --}}
+                                        @if($pnl !== null)
+                                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20
+                            hidden group-hover:block pointer-events-none">
+                                                <div class="bg-gray-800 border border-gray-700 rounded-lg
+                                px-3 py-2 text-xs whitespace-nowrap shadow-xl">
+                                                    <p class="font-semibold text-white mb-1">
+                                                        {{ $monthNames[$m - 1] }} {{ $year }}
+                                                    </p>
+                                                    <p class="{{ $pnlColor }} font-mono font-bold">
+                                                        {{ $pnl >= 0 ? '+' : '' }}₹{{ number_format($pnl, 0) }}
+                                                    </p>
+                                                    <p class="text-gray-400 mt-0.5">
+                                                        ✓ {{ $profit }} profit · ✗ {{ $loss }} loss
+                                                    </p>
+                                                    <p class="text-gray-500">Win rate: {{ $winRate }}%</p>
+                                                    <div class="absolute top-full left-1/2 -translate-x-1/2
+                                    border-4 border-transparent border-t-gray-700">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                    </div>
+                                @endfor
+                            </div>
+
+                        </div>
+                    @endforeach
+
+                </div>
+            @endif
+
             {{-- Summary Stats --}}
             @if($statsQuery)
                 @php
@@ -585,7 +730,7 @@
                                         class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500
                                       text-white text-xs font-medium px-3 py-1.5 rounded-lg
                                       transition-colors whitespace-nowrap">
-                                        4 Legs
+                                        View More
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                 stroke-width="2" d="M9 5l7 7-7 7"/>

@@ -15,22 +15,25 @@ class BacktestController extends Controller
      */
     public function index(Request $request)
     {
-        // Always pass available strategies for the dropdown
         $availableStrategies = \App\Services\Backtest\StrategyRegistry::available();
+        $monthlyStats        = collect();
 
-        // No strategy selected → return empty state
+        // ── No strategy selected → empty state ────────────────────────────
         if (!$request->filled('strategy')) {
             return view('backtest.index', [
                 'days'                => (new \Illuminate\Pagination\LengthAwarePaginator([], 0, 30)),
                 'statsQuery'          => null,
+                'monthlyStats'        => $monthlyStats,
                 'availableStrategies' => $availableStrategies,
+                'expiryDates'         => [],
             ]);
         }
-        //$symbol = strtoupper($request->input('symbol', 'NIFTY'));
 
-        // ── Load expiry dates for the symbol ──────────────────────────────
-            $expiryDates = DB::table('expired_expiries')
-                         ->where('underlying_symbol', 'NIFTY')
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+
+        // ── Expiry dates ───────────────────────────────────────────────────
+        $expiryDates = DB::table('expired_expiries')
+                         ->where('underlying_symbol', $symbol)
                          ->where('instrument_type', 'OPT')
                          ->pluck('expiry_date')
                          ->mapWithKeys(fn($d) => [
@@ -40,108 +43,113 @@ class BacktestController extends Controller
 
         $expiryDateList = array_keys($expiryDates);
 
+        // ── Base query builder (reused for days, stats, monthly) ───────────
+        $baseQuery = fn() => DB::table('backtest_trades')
+                               ->where('strategy', $request->strategy)
+                               ->when($request->filled('symbol'),
+                                   fn($q) => $q->where('underlying_symbol', $request->symbol))
+                               ->when($request->filled('outcome'),
+                                   fn($q) => $q->where('day_outcome', $request->outcome))
+                               ->when($request->filled('pnl_dir') && $request->filled('pnl_value'),
+                                   fn($q) => $request->pnl_dir === 'gte'
+                                       ? $q->where('day_total_pnl', '>=', $request->pnl_value)
+                                       : $q->where('day_total_pnl', '<=', $request->pnl_value))
+                               ->when($request->filled('from'),
+                                   fn($q) => $q->whereDate('trade_date', '>=', $request->from))
+                               ->when($request->filled('to'),
+                                   fn($q) => $q->whereDate('trade_date', '<=', $request->to))
+                               ->when($request->skip_expiry == '1' && !empty($expiryDateList),
+                                   fn($q) => $q->whereNotIn('trade_date', $expiryDateList));
 
-        $query = DB::table('backtest_trades')
-                   ->selectRaw('
-        day_group_id, backtest_run_id, underlying_symbol, exchange,
-        strategy, trade_date, expiry, index_price_at_entry,
-        strike_offset, target, stoploss, lot_size,
-        day_total_pnl, day_outcome,
-        MIN(strike)              AS strike,
-        MIN(instrument_type)     AS instrument_type,
-        MAX(day_max_profit)      AS day_max_profit,
-        MAX(day_max_profit_time) AS day_max_profit_time,
-        MIN(day_max_loss)        AS day_max_loss,
-        MIN(day_max_loss_time)   AS day_max_loss_time,
-        MIN(entry_time)          AS entry_time,
-        MAX(exit_time)           AS exit_time,
-        MAX(trade_time_duration) AS trade_time_duration,
-        COUNT(*)                 AS total_legs
-    ')
-                   ->groupBy(
-                       'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
-                       'strategy', 'trade_date', 'expiry', 'index_price_at_entry',
-                       'strike_offset', 'target', 'stoploss', 'lot_size',
-                       'day_total_pnl', 'day_outcome'
-                   )
-                   ->where('strategy', $request->strategy);
-
-        // Symbol
-        if ($request->filled('symbol')) {
-            $query->where('underlying_symbol', $request->symbol);
-        }
-
-        // Outcome
-        if ($request->filled('outcome')) {
-            $query->where('day_outcome', $request->outcome);
-        }
-
-        // Day P&L filter
-        if ($request->filled('pnl_dir') && $request->filled('pnl_value')) {
-            $request->pnl_dir === 'gte'
-                ? $query->where('day_total_pnl', '>=', $request->pnl_value)
-                : $query->where('day_total_pnl', '<=', $request->pnl_value);
-        }
-
-        // Peak filter
-        if ($request->filled('peak_filter')) {
+        // ── Peak filter (only on days query) ──────────────────────────────
+        $applyPeakFilter = function ($q) use ($request) {
+            if (!$request->filled('peak_filter')) return $q;
             match($request->peak_filter) {
-                'has_peak_profit'      => $query->where('day_max_profit', '>', 0),
-                'no_peak_profit'       => $query->where(fn($q) =>
+                'has_peak_profit'      => $q->where('day_max_profit', '>', 0),
+                'no_peak_profit'       => $q->where(fn($q) =>
                 $q->whereNull('day_max_profit')
                   ->orWhere('day_max_profit', '<=', 0)),
-                'peak_profit_reversed' => $query->where('day_max_profit', '>', 0)
-                                                ->where('day_outcome', 'loss'),
-                'has_peak_loss'        => $query->where('day_max_loss', '<', 0),
-                'no_peak_loss'         => $query->where(fn($q) =>
+                'peak_profit_reversed' => $q->where('day_max_profit', '>', 0)
+                                            ->where('day_outcome', 'loss'),
+                'has_peak_loss'        => $q->where('day_max_loss', '<', 0),
+                'no_peak_loss'         => $q->where(fn($q) =>
                 $q->whereNull('day_max_loss')
                   ->orWhere('day_max_loss', '>=', 0)),
-                'peak_loss_recovered'  => $query->where('day_max_loss', '<', 0)
-                                                ->where('day_outcome', 'profit'),
+                'peak_loss_recovered'  => $q->where('day_max_loss', '<', 0)
+                                            ->where('day_outcome', 'profit'),
                 default                => null,
             };
-        }
+            return $q;
+        };
 
-        // Date range
-        if ($request->filled('from')) {
-            $query->whereDate('trade_date', '>=', $request->from);
-        }
-        if ($request->filled('to')) {
-            $query->whereDate('trade_date', '<=', $request->to);
-        }
-
-        if ($request->skip_expiry == '1' && !empty($expiryDateList)) {
-            $query->whereNotIn('trade_date', $expiryDateList);
-        }
-
-        $days = $query->orderByDesc('trade_date')->paginate(30)->withQueryString();
-
-        // Stats
-        $statsQuery = DB::table('backtest_trades')
-                        ->where('strategy', $request->strategy)
-                        ->when($request->filled('symbol'),  fn($q) => $q->where('underlying_symbol', $request->symbol))
-                        ->when($request->filled('outcome'), fn($q) => $q->where('day_outcome', $request->outcome))
-                        ->when($request->filled('from'),    fn($q) => $q->whereDate('trade_date', '>=', $request->from))
-                        ->when($request->filled('to'),      fn($q) => $q->whereDate('trade_date', '<=', $request->to))
-                        ->when(
-                            $request->skip_expiry == '1' && !empty($expiryDateList),
-                            fn($q) => $q->whereNotIn('trade_date', $expiryDateList)
-                        )
-                        ->selectRaw('
-            COUNT(DISTINCT day_group_id)                                            AS total_days,
-            ROUND(SUM(pnl), 2)                                                     AS total_pnl,
-            COUNT(DISTINCT CASE WHEN day_outcome="profit" THEN day_group_id END)   AS profit_days,
-            COUNT(DISTINCT CASE WHEN day_outcome="loss"   THEN day_group_id END)   AS loss_days,
-            AVG(CASE WHEN day_outcome="profit" THEN trade_time_duration END)       AS avg_profit_min,
-            AVG(CASE WHEN day_outcome="loss"   THEN trade_time_duration END)       AS avg_loss_min,
-            MAX(day_total_pnl)                                                     AS best_day,
-            MIN(day_total_pnl)                                                     AS worst_day,
-            AVG(day_max_profit)                                                    AS avg_max_profit,
-            AVG(day_max_loss)                                                      AS avg_max_loss
+        // ── Days (paginated) ───────────────────────────────────────────────
+        $daysQuery = $baseQuery()
+            ->selectRaw('
+            day_group_id, backtest_run_id, underlying_symbol, exchange,
+            strategy, trade_date, expiry, index_price_at_entry,
+            strike_offset, target, stoploss, lot_size,
+            day_total_pnl, day_outcome,
+            MIN(strike)              AS strike,
+            MIN(instrument_type)     AS instrument_type,
+            MIN(signal_time)         AS signal_time,
+            MAX(day_max_profit)      AS day_max_profit,
+            MAX(day_max_profit_time) AS day_max_profit_time,
+            MIN(day_max_loss)        AS day_max_loss,
+            MIN(day_max_loss_time)   AS day_max_loss_time,
+            MIN(entry_time)          AS entry_time,
+            MAX(exit_time)           AS exit_time,
+            MAX(trade_time_duration) AS trade_time_duration,
+            COUNT(*)                 AS total_legs
         ')
-                        ->first();
+            ->groupBy(
+                'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
+                'strategy', 'trade_date', 'expiry', 'index_price_at_entry',
+                'strike_offset', 'target', 'stoploss', 'lot_size',
+                'day_total_pnl', 'day_outcome'
+            );
 
-        return view('backtest.index', compact('days', 'statsQuery', 'availableStrategies','expiryDates'));
+        $applyPeakFilter($daysQuery);
+
+        $days = $daysQuery->orderByDesc('trade_date')->paginate(30)->withQueryString();
+
+        // ── Summary stats ──────────────────────────────────────────────────
+        $statsQuery = $baseQuery()
+            ->selectRaw('
+            COUNT(DISTINCT day_group_id)                                          AS total_days,
+            ROUND(SUM(pnl), 2)                                                   AS total_pnl,
+            COUNT(DISTINCT CASE WHEN day_outcome="profit" THEN day_group_id END) AS profit_days,
+            COUNT(DISTINCT CASE WHEN day_outcome="loss"   THEN day_group_id END) AS loss_days,
+            AVG(CASE WHEN day_outcome="profit" THEN trade_time_duration END)     AS avg_profit_min,
+            AVG(CASE WHEN day_outcome="loss"   THEN trade_time_duration END)     AS avg_loss_min,
+            MAX(day_total_pnl)                                                   AS best_day,
+            MIN(day_total_pnl)                                                   AS worst_day,
+            AVG(day_max_profit)                                                  AS avg_max_profit,
+            AVG(day_max_loss)                                                    AS avg_max_loss
+        ')
+            ->first();
+
+        // ── Monthly stats ──────────────────────────────────────────────────
+        $monthlyStats = $baseQuery()
+            ->selectRaw("
+            YEAR(trade_date)                                                          AS year,
+            MONTH(trade_date)                                                         AS month,
+            ROUND(SUM(pnl), 0)                                                       AS total_pnl,
+            COUNT(DISTINCT CASE WHEN day_outcome='profit' THEN day_group_id END)     AS profit_days,
+            COUNT(DISTINCT CASE WHEN day_outcome='loss'   THEN day_group_id END)     AS loss_days,
+            COUNT(DISTINCT day_group_id)                                              AS total_days
+        ")
+            ->groupByRaw('YEAR(trade_date), MONTH(trade_date)')
+            ->orderByRaw('YEAR(trade_date), MONTH(trade_date)')
+            ->get()
+            ->groupBy('year');
+
+        return view('backtest.index', compact(
+            'days',
+            'statsQuery',
+            'monthlyStats',
+            'availableStrategies',
+            'expiryDates'
+        ));
     }
 
     /**

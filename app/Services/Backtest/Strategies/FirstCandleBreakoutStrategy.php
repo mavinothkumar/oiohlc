@@ -30,8 +30,20 @@ class FirstCandleBreakoutStrategy implements BacktestStrategy
         }
 
         $openPrice = (float) $firstCandle->open;
+        $closePrice  = (float) $firstCandle->close;
+        $lowPrice  = (float) $firstCandle->low;
+        $highPrice  = (float) $firstCandle->high;
         $keyStrike = (int) (round($openPrice / 50) * 50);
-        \Log::info("FCB [{$tradeDate}] Open={$openPrice} → KeyStrike={$keyStrike}");
+
+        // ── Skip if first candle range > 90 points ────────────────────
+        $firstCandleRange = abs($highPrice - $lowPrice);
+
+        if ($firstCandleRange > 90) {
+            \Log::info("FCB SKIP [{$tradeDate}] — First candle too wide: {$firstCandleRange} pts (open={$openPrice} close={$closePrice})");
+            return null;
+        }
+
+
         // ── Walk every candle from 09:15 onward until breakout ────────
         $allIndexCandles = DB::table('expired_ohlc')
                              ->where('underlying_symbol', $symbol)
@@ -65,14 +77,14 @@ class FirstCandleBreakoutStrategy implements BacktestStrategy
         }
 
         if (!$optionType || !$signalTs) {
-            \Log::info("FCB SKIP [{$tradeDate}] — No breakout signal found all day. Open={$openPrice} Strike={$keyStrike}");
+
             return null;
         }
 
         // ── Entry = NEXT candle after signal candle ────────────────────
         $entryAfterTs = Carbon::parse($signalTs)->addMinutes(5)->toDateTimeString();
 
-        \Log::info("FCB [{$tradeDate}] Signal={$optionType} at {$signalTs} → Entry candle at {$entryAfterTs} | Open={$openPrice} Strike={$keyStrike}");
+
 
         $row = DB::table('expired_ohlc')
                  ->where('underlying_symbol', $symbol)
@@ -84,7 +96,7 @@ class FirstCandleBreakoutStrategy implements BacktestStrategy
                  ->first();
 
         if (!$row || (float) $row->open <= 0) {
-            \Log::info("FCB [{$tradeDate}] No data at {$keyStrike}, searching nearest strike within ±100");
+
 
             $row = DB::table('expired_ohlc')
                      ->where('underlying_symbol', $symbol)
@@ -99,11 +111,11 @@ class FirstCandleBreakoutStrategy implements BacktestStrategy
         }
 
         if (!$row || (float) $row->open <= 0) {
-            \Log::info("FCB SKIP [{$tradeDate}] — No option data near {$keyStrike} for {$optionType}");
+
             return null;
         }
 
-        \Log::info("FCB [{$tradeDate}] Entry: Sell {$optionType} strike={$row->strike} price={$row->open} at {$entryAfterTs}");
+
 
         $qty = (int) ($options['lot'] ?? 130);
 

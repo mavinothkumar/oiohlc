@@ -70,12 +70,24 @@ class RunStrangleBacktest extends Command {
         $entryHHMM = $this->option( 'entry-time' );
         $target    = (float) $this->option( 'target' );
         $stoploss  = (float) $this->option( 'stoploss' );
-        $qty       = (int) $this->option( 'lot' );
         $exchange  = strtoupper( $this->option( 'exchange' ) );
         $dryRun    = $this->option( 'dry-run' );
 
+        $qty = (int) $this->option( 'lot' );
+
+// If lot was not explicitly passed by user, apply strategy default
+        if ( ! $this->input->hasParameterOption( '--lot' ) ) {
+            $qty = match ( $strategyName ) {
+                'first_candle_breakout' => 130,
+                default => 65,
+            };
+            $this->line( "<fg=yellow>  Note: Using default qty={$qty} for {$strategyName}</>" );
+        }
+
+
         // All options passed through to strategy
-        $options = $this->options();
+        $options        = $this->options();
+        $options['lot'] = $qty; // update options array so strategy picks it up
 
         $strategy = StrategyRegistry::resolve( $strategyName );
         $engine   = new BacktestEngine();
@@ -197,7 +209,6 @@ class RunStrangleBacktest extends Command {
                 $legData, $entryTimestamp, $tradeDate, $target, $stoploss, $qty
             );
 
-            $effectiveQty = $result['effectiveQty'] ?? $qty;
 
             $legData          = $result['legData'];
             $dayOutcome       = $result['dayOutcome'];
@@ -207,10 +218,11 @@ class RunStrangleBacktest extends Command {
             $dayMaxLoss       = $result['dayMaxLoss'];
             $dayMaxLossTime   = $result['dayMaxLossTime'];
             $dayExitTime      = $result['dayExitTime'];
+            $effectiveQty     = $legData[0]['qty_override'] ?? $qty;
 
             // ── Day totals ─────────────────────────────────────────────────
             $dayTotalPnl = round( array_sum( array_map(
-                fn( $leg ) => ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $qty,
+                fn( $leg ) => ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
                 $legData
             ) ), 2 );
 
@@ -249,13 +261,13 @@ class RunStrangleBacktest extends Command {
                 ),
                 'lot_size'             => $effectiveQty,
                 'strategy'             => $strategyName,
-                'entry_time'          => $leg['actual_entry_ts'] ?? $entryTimestamp,
+                'entry_time'           => $leg['actual_entry_ts'] ?? $entryTimestamp,
                 'exit_time'            => $leg['exit_time'],
-                'signal_time'         => $leg['signal_time']     ?? null,
+                'signal_time'          => $leg['signal_time'] ?? null,
                 'trade_time_duration'  => $leg['exit_time']
                     ? (int) Carbon::parse( $entryTimestamp )->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
                     : null,
-                'outcome'              => ( round( ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $qty, 2 ) ) >= 0 ? 'profit' : 'loss',
+                'outcome'              => ( round( ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty, 2 ) ) >= 0 ? 'profit' : 'loss',
                 'trade_date'           => $tradeDate,
                 'backtest_run_id'      => $runId,
                 'day_group_id'         => $dayGroupId,
