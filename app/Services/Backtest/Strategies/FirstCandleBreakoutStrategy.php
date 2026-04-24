@@ -105,7 +105,7 @@ class FirstCandleBreakoutStrategy implements BacktestStrategy
 
         \Log::info("FCB [{$tradeDate}] Entry: Sell {$optionType} strike={$row->strike} price={$row->open} at {$entryAfterTs}");
 
-        $qty = (int) ($options['lot'] ?? 65) * 2;
+        $qty = (int) ($options['lot'] ?? 130);
 
         return [[
             'strike'         => $keyStrike,

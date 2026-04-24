@@ -17,7 +17,12 @@ class BacktestEngine
         float  $stoploss,
         int    $qty,
     ): array {
-        $effectiveQty = $legData[0]['qty_override'] ?? $qty;
+        $effectiveQty = isset($legData[0]['qty_override'])
+            ? (int) $legData[0]['qty_override']
+            : $qty;
+
+        \Log::info("Engine [{$tradeDate}] effectiveQty={$effectiveQty} stoploss={$stoploss} target={$target}");
+
 
         $instrumentKeys = array_column($legData, 'instrument_key');
 
@@ -125,6 +130,7 @@ class BacktestEngine
 
             // ── Fixed SL ───────────────────────────────────────────────
             if ($combinedPnl <= -$stoploss) {
+                \Log::info("Engine [{$tradeDate}] SL triggered at {$ts} pnl={$combinedPnl} sl={$stoploss}");
                 $legData     = $this->exitAll($legData, $allCandles, $ts);
                 $dayExitTime = $ts;
                 $dayOutcome  = 'loss';
