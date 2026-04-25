@@ -149,6 +149,35 @@
                               text-white focus:outline-none focus:border-indigo-500">
                 </div>
 
+                {{-- Skip Days — toggle buttons --}}
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs text-gray-400 uppercase tracking-wider">Skip Days</label>
+                    <div class="flex items-center gap-1.5">
+                        @foreach(['Monday' => 'M', 'Tuesday' => 'T', 'Wednesday' => 'W', 'Thursday' => 'T', 'Friday' => 'F'] as $day => $letter)
+                            @php $isActive = in_array($day, (array) request('skip_days', [])); @endphp
+                            <label
+                                title="{{ $day }}"
+                                class="relative cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    name="skip_days[]"
+                                    value="{{ $day }}"
+                                    {{ $isActive ? 'checked' : '' }}
+                                    class="peer sr-only"
+                                    onchange="this.closest('form').submit()">
+                                <span class="flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold
+                    border transition-all duration-150
+                    peer-checked:bg-red-500/20 peer-checked:border-red-500 peer-checked:text-red-400
+                    peer-not-checked:bg-gray-800 peer-not-checked:border-gray-700 peer-not-checked:text-gray-400
+                    hover:border-gray-500 hover:text-gray-200">
+                    {{ $letter }}
+                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-xs text-gray-600">Click to skip that day</p>
+                </div>
+
                 {{-- Skip Expiry Days --}}
                 <div class="flex flex-col gap-1">
                     <label class="text-xs text-gray-400 uppercase tracking-wider">Expiry Days</label>
@@ -262,6 +291,13 @@
         ₹{{ number_format(request('peak_value'), 0) }}
     </span>
             @endif
+
+
+            @foreach((array) request('skip_days', []) as $skippedDay)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-900/60 text-orange-300 rounded-full text-xs">
+        ⏭ {{ $skippedDay }} skipped
+    </span>
+            @endforeach
 
 
         </form>
@@ -437,6 +473,149 @@
                         </div>
                     @endforeach
 
+                </div>
+            @endif
+
+
+            {{-- Weekday Performance --}}
+            @if(isset($dowStats) && $dowStats->isNotEmpty())
+                <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden mb-6">
+                    <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                            📅 Weekday Performance
+                        </h3>
+                        <span class="text-xs text-gray-600">avg P&amp;L and win rate per trading day</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                            <tr class="border-b border-gray-800 bg-gray-950/40">
+                                <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Day</th>
+                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Days</th>
+                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Profit</th>
+                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Loss</th>
+                                <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider w-40">Win Rate</th>
+                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Avg P&amp;L</th>
+                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Total P&amp;L</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800/60">
+                            @php
+                                $dowOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+                                $dowMap   = $dowStats->keyBy('dow');
+                            @endphp
+                            @foreach($dowOrder as $dayName)
+                                @php $d = $dowMap->get($dayName); @endphp
+                                @if($d)
+                                    <tr class="hover:bg-gray-800/30 transition-colors">
+
+                                        {{-- Day name + colour dot --}}
+                                        <td class="py-3 px-4 font-medium text-gray-200">
+                                            <div class="flex items-center gap-2">
+                                                @php
+                                                    $dotColor = match($dayName) {
+                                                        'Monday'    => 'bg-blue-500',
+                                                        'Tuesday'   => 'bg-indigo-500',
+                                                        'Wednesday' => 'bg-purple-500',
+                                                        'Thursday'  => 'bg-amber-500',
+                                                        'Friday'    => 'bg-red-500',
+                                                        default     => 'bg-gray-500',
+                                                    };
+                                                @endphp
+                                                <span class="w-2 h-2 rounded-full {{ $dotColor }}"></span>
+                                                {{ $dayName }}
+                                            </div>
+                                        </td>
+
+                                        {{-- Days traded --}}
+                                        <td class="py-3 px-4 text-right text-gray-400">
+                                            {{ $d->total_days }}
+                                        </td>
+
+                                        {{-- Profit days --}}
+                                        <td class="py-3 px-4 text-right text-emerald-400">
+                                            {{ $d->profit_days }}
+                                        </td>
+
+                                        {{-- Loss days --}}
+                                        <td class="py-3 px-4 text-right text-red-400">
+                                            {{ $d->loss_days }}
+                                        </td>
+
+                                        {{-- Win rate bar --}}
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
+                                                    <div class="h-1.5 rounded-full {{ $d->win_rate >= 55 ? 'bg-emerald-500' : ($d->win_rate >= 45 ? 'bg-amber-500' : 'bg-red-500') }}"
+                                                        style="width: {{ min($d->win_rate, 100) }}%">
+                                                    </div>
+                                                </div>
+                                                <span class="text-xs font-mono w-12 text-right
+                                    {{ $d->win_rate >= 55 ? 'text-emerald-400' : ($d->win_rate >= 45 ? 'text-amber-400' : 'text-red-400') }}">
+                                    {{ $d->win_rate }}%
+                                </span>
+                                            </div>
+                                        </td>
+
+                                        {{-- Avg P&L --}}
+                                        <td class="py-3 px-4 text-right font-mono font-semibold
+                            {{ $d->avg_pnl >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                            {{ ($d->avg_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->avg_pnl), 0) }}
+                                        </td>
+
+                                        {{-- Total P&L --}}
+                                        <td class="py-3 px-4 text-right font-mono
+                            {{ $d->total_pnl >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                                            {{ ($d->total_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->total_pnl), 0) }}
+                                        </td>
+
+                                    </tr>
+                                @endif
+                            @endforeach
+
+                            {{-- Totals row --}}
+                            <tr class="bg-gray-800/40 border-t-2 border-gray-700">
+                                <td class="py-3 px-4 text-xs text-gray-500 uppercase font-semibold">Total</td>
+                                <td class="py-3 px-4 text-right text-gray-300 font-semibold">
+                                    {{ $dowStats->sum('total_days') }}
+                                </td>
+                                <td class="py-3 px-4 text-right text-emerald-400 font-semibold">
+                                    {{ $dowStats->sum('profit_days') }}
+                                </td>
+                                <td class="py-3 px-4 text-right text-red-400 font-semibold">
+                                    {{ $dowStats->sum('loss_days') }}
+                                </td>
+                                <td class="py-3 px-4">
+                                    @php
+                                        $totalDow   = $dowStats->sum('total_days');
+                                        $totalWins  = $dowStats->sum('profit_days');
+                                        $overallWr  = $totalDow > 0 ? round($totalWins / $totalDow * 100, 1) : 0;
+                                    @endphp
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
+                                            <div class="h-1.5 rounded-full bg-indigo-500"
+                                                style="width: {{ $overallWr }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-mono w-12 text-right text-indigo-400">
+                                {{ $overallWr }}%
+                            </span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-right font-mono font-semibold text-gray-300">
+                                    @php $overallAvg = $dowStats->sum('total_days') > 0
+                            ? round($dowStats->sum('total_pnl') / $dowStats->sum('total_days'))
+                            : 0; @endphp
+                                    {{ ($overallAvg >= 0 ? '+₹' : '-₹') . number_format(abs($overallAvg), 0) }}
+                                </td>
+                                <td class="py-3 px-4 text-right font-mono font-semibold
+                        {{ $dowStats->sum('total_pnl') >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                                    @php $gt = $dowStats->sum('total_pnl'); @endphp
+                                    {{ ($gt >= 0 ? '+₹' : '-₹') . number_format(abs($gt), 0) }}
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             @endif
 
