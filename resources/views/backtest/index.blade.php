@@ -95,41 +95,43 @@
                 </div>
 
                 {{-- Peak P&L Filter --}}
+                {{-- Peak PL Filter --}}
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Peak P&L</label>
-                    <select name="peak_filter"
-                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
-                               text-white focus:outline-none focus:border-indigo-500 w-52">
-                        <option value="">All</option>
-                        <optgroup label="─── Peak Profit ───">
-                            <option value="has_peak_profit"
-                                @selected(request('peak_filter') === 'has_peak_profit')>
-                                Has Peak Profit (> ₹0)
-                            </option>
-                            <option value="no_peak_profit"
-                                @selected(request('peak_filter') === 'no_peak_profit')>
-                                No Peak Profit (null / ₹0)
-                            </option>
-                            <option value="peak_profit_reversed"
-                                @selected(request('peak_filter') === 'peak_profit_reversed')>
-                                Peak Profit → Reversed to Loss
-                            </option>
-                        </optgroup>
-                        <optgroup label="─── Peak Loss ───">
-                            <option value="has_peak_loss"
-                                @selected(request('peak_filter') === 'has_peak_loss')>
-                                Has Peak Loss (&lt; ₹0)
-                            </option>
-                            <option value="no_peak_loss"
-                                @selected(request('peak_filter') === 'no_peak_loss')>
-                                No Peak Loss (null / ₹0)
-                            </option>
-                            <option value="peak_loss_recovered"
-                                @selected(request('peak_filter') === 'peak_loss_recovered')>
-                                Peak Loss → Recovered to Profit
-                            </option>
-                        </optgroup>
-                    </select>
+                    <label class="text-xs text-gray-400 uppercase tracking-wider">Peak P&L Filter</label>
+                    <div class="flex items-center gap-1 flex-wrap">
+
+                        {{-- Dropdown: what kind of peak --}}
+                        <select name="peak_filter"
+                            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-52">
+                            <option value="">All</option>
+                            <optgroup label="Peak Profit">
+                                <option value="has_peak_profit"      {{ request('peak_filter') === 'has_peak_profit'      ? 'selected' : '' }}>Has Peak Profit (> 0)</option>
+                                <option value="no_peak_profit"       {{ request('peak_filter') === 'no_peak_profit'       ? 'selected' : '' }}>No Peak Profit (null/0)</option>
+                                <option value="peak_profit_reversed" {{ request('peak_filter') === 'peak_profit_reversed' ? 'selected' : '' }}>Peak Profit → Reversed to Loss</option>
+                            </optgroup>
+                            <optgroup label="Peak Loss">
+                                <option value="has_peak_loss"        {{ request('peak_filter') === 'has_peak_loss'        ? 'selected' : '' }}>Has Peak Loss (< 0)</option>
+                                <option value="no_peak_loss"         {{ request('peak_filter') === 'no_peak_loss'         ? 'selected' : '' }}>No Peak Loss (null/0)</option>
+                                <option value="peak_loss_recovered"  {{ request('peak_filter') === 'peak_loss_recovered'  ? 'selected' : '' }}>Peak Loss → Recovered to Profit</option>
+                            </optgroup>
+                        </select>
+
+                        {{-- Operator: >= or <= --}}
+                        <select name="peak_dir"
+                            class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-20">
+                            <option value="">Any</option>
+                            <option value="gte" {{ request('peak_dir') === 'gte' ? 'selected' : '' }}>&gt;=</option>
+                            <option value="lte" {{ request('peak_dir') === 'lte' ? 'selected' : '' }}>&lt;=</option>
+                        </select>
+
+                        {{-- Value textbox --}}
+                        <input type="number"
+                            name="peak_value"
+                            value="{{ request('peak_value') }}"
+                            placeholder="e.g. 2000"
+                            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-28" />
+
+                    </div>
                 </div>
 
                 {{-- Date Range --}}
@@ -250,6 +252,15 @@
              </span>
                     @endif
                 </div>
+            @endif
+
+            @if(request('peak_filter') && request('peak_dir') && request('peak_value') !== null)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 text-purple-300 rounded-full text-xs">
+        Peak
+        {{ ucwords(str_replace('_', ' ', request('peak_filter'))) }}
+                    {{ request('peak_dir') === 'gte' ? '≥' : '≤' }}
+        ₹{{ number_format(request('peak_value'), 0) }}
+    </span>
             @endif
 
 
@@ -435,7 +446,7 @@
                     $totalDays = $statsQuery->profit_days + $statsQuery->loss_days;
                     $winRate   = $totalDays > 0 ? round($statsQuery->profit_days / $totalDays * 100, 1) : 0;
                 @endphp
-                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-9 gap-3 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-11 gap-3 mb-6">
 
                     <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
                         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total P&L</p>
@@ -507,6 +518,28 @@
                         <p class="text-xl font-bold text-emerald-300">
                             +₹{{ number_format($statsQuery->avg_max_profit ?? 0, 0) }}
                         </p>
+                    </div>
+
+                    {{-- Avg Profit P&L --}}
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Profit P&L</p>
+                        <p class="text-xl font-bold text-emerald-400">
+                            {{ $statsQuery->avg_profit_pnl
+                                ? '₹' . number_format(round($statsQuery->avg_profit_pnl), 0)
+                                : '—' }}
+                        </p>
+                        <p class="text-xs text-gray-600 mt-1">per profit day</p>
+                    </div>
+
+                    {{-- Avg Loss P&L --}}
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Loss P&L</p>
+                        <p class="text-xl font-bold text-red-400">
+                            {{ $statsQuery->avg_loss_pnl
+                                ? '₹' . number_format(round($statsQuery->avg_loss_pnl), 0)
+                                : '—' }}
+                        </p>
+                        <p class="text-xs text-gray-600 mt-1">per loss day</p>
                     </div>
 
                 </div>
@@ -698,6 +731,41 @@
                                                 @else
                                                     <span class="text-gray-600 text-xs">—</span>
                                                 @endif
+                                            </div>
+                                            @break
+
+                                        @case('iron_condor_ladder')
+                                            @php
+                                                $atm = (int)(round($day->index_price_at_entry / 100) * 100);
+                                            @endphp
+                                            <div class="flex flex-col items-center gap-0.5 text-xs font-mono">
+                                                {{-- ATM --}}
+                                                <div class="flex items-center gap-1">
+            <span class="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                {{ number_format($atm) }}
+            </span>
+                                                    <span class="text-gray-600 text-xs">ATM</span>
+                                                </div>
+                                                {{-- ±100 --}}
+                                                <div class="flex items-center gap-1">
+            <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                {{ number_format($atm - 100) }}
+            </span>
+                                                    <span class="text-gray-500 text-xs">±100</span>
+                                                    <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                {{ number_format($atm + 100) }}
+            </span>
+                                                </div>
+                                                {{-- ±300 --}}
+                                                <div class="flex items-center gap-1">
+            <span class="px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                {{ number_format($atm - 300) }}
+            </span>
+                                                    <span class="text-gray-500 text-xs">±300</span>
+                                                    <span class="px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                {{ number_format($atm + 300) }}
+            </span>
+                                                </div>
                                             </div>
                                             @break
 

@@ -62,6 +62,8 @@ class BacktestController extends Controller
         // ── Peak filter (only on days query) ──────────────────────────────
         $applyPeakFilter = function ($q) use ($request) {
             if (!$request->filled('peak_filter')) return $q;
+
+            // ── Type filter ────────────────────────────────────────────────
             match($request->peak_filter) {
                 'has_peak_profit'      => $q->where('day_max_profit', '>', 0),
                 'no_peak_profit'       => $q->where(fn($q) =>
@@ -77,6 +79,22 @@ class BacktestController extends Controller
                                             ->where('day_outcome', 'profit'),
                 default                => null,
             };
+
+            // ── Value filter (peak_dir + peak_value) ──────────────────────
+            if ($request->filled('peak_dir') && $request->filled('peak_value')) {
+                $val = (float) $request->peak_value;
+                $op  = $request->peak_dir === 'gte' ? '>=' : '<=';
+
+                // Apply to the relevant peak column based on filter type
+                $isProfitFilter = str_contains($request->peak_filter, 'profit');
+
+                if ($isProfitFilter) {
+                    $q->where('day_max_profit', $op, $val);
+                } else {
+                    $q->where('day_max_loss', $op, $val);
+                }
+            }
+
             return $q;
         };
 
@@ -115,17 +133,19 @@ class BacktestController extends Controller
         // ── Summary stats ──────────────────────────────────────────────────
         $statsQuery = $baseQuery()
             ->selectRaw('
-            COUNT(DISTINCT day_group_id)                                          AS total_days,
-            ROUND(SUM(pnl), 2)                                                   AS total_pnl,
-            COUNT(DISTINCT CASE WHEN day_outcome="profit" THEN day_group_id END) AS profit_days,
-            COUNT(DISTINCT CASE WHEN day_outcome="loss"   THEN day_group_id END) AS loss_days,
-            AVG(CASE WHEN day_outcome="profit" THEN trade_time_duration END)     AS avg_profit_min,
-            AVG(CASE WHEN day_outcome="loss"   THEN trade_time_duration END)     AS avg_loss_min,
-            MAX(day_total_pnl)                                                   AS best_day,
-            MIN(day_total_pnl)                                                   AS worst_day,
-            AVG(day_max_profit)                                                  AS avg_max_profit,
-            AVG(day_max_loss)                                                    AS avg_max_loss
-        ')
+        COUNT(DISTINCT day_group_id)                                          AS total_days,
+        ROUND(SUM(pnl), 2)                                                    AS total_pnl,
+        COUNT(DISTINCT CASE WHEN day_outcome="profit" THEN day_group_id END)  AS profit_days,
+        COUNT(DISTINCT CASE WHEN day_outcome="loss"   THEN day_group_id END)  AS loss_days,
+        AVG(CASE WHEN day_outcome="profit" THEN trade_time_duration END)      AS avg_profit_min,
+        AVG(CASE WHEN day_outcome="loss"   THEN trade_time_duration END)      AS avg_loss_min,
+        MAX(day_total_pnl)                                                    AS best_day,
+        MIN(day_total_pnl)                                                    AS worst_day,
+        AVG(day_max_profit)                                                   AS avg_max_profit,
+        AVG(day_max_loss)                                                     AS avg_max_loss,
+        AVG(CASE WHEN day_outcome="profit" THEN day_total_pnl END)            AS avg_profit_pnl,
+        AVG(CASE WHEN day_outcome="loss"   THEN day_total_pnl END)            AS avg_loss_pnl
+    ')
             ->first();
 
         // ── Monthly stats ──────────────────────────────────────────────────

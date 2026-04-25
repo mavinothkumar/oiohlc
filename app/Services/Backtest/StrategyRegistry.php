@@ -8,6 +8,7 @@ use App\Services\Backtest\Strategies\AtmStraddleStrategy;
 use App\Services\Backtest\Strategies\FifteenMinBreakoutStrategy;
 use App\Services\Backtest\Strategies\FirstCandleBreakoutStrategy;
 use App\Services\Backtest\Strategies\FixedOffsetStrategy;
+use App\Services\Backtest\Strategies\IronCondorLadderStrategy;
 use App\Services\Backtest\Strategies\NearStraddleStrategy;
 use App\Services\Backtest\Strategies\OtmStrangleStrategy;
 use App\Services\Backtest\Strategies\SmartBalancedStrategy;
@@ -26,7 +27,8 @@ class StrategyRegistry {
         'atm_straddle'          => AtmStraddleStrategy::class,
         'near_straddle'         => NearStraddleStrategy::class,
         'otm_strangle'          => OtmStrangleStrategy::class,
-        '15min_breakout'          => FifteenMinBreakoutStrategy::class,
+        '15min_breakout'        => FifteenMinBreakoutStrategy::class,
+        'iron_condor_ladder'    => IronCondorLadderStrategy::class,
     ];
 
     public static function resolve( string $name ): BacktestStrategy {

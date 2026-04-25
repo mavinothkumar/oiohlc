@@ -15,7 +15,10 @@
 # 15min_breakout
 // php artisan backtest:strangle 15min_breakout --from="2025-01-01" --to="2025-01-05" --entry-time="09:15" --target="6000" --stoploss="5000" --lot="130"
 
+# Iron Condor Ladder Strategy
+// php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="6000" --lot="65"
 
+//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'iron_condor_ladder')->delete(); echo 'Done';"
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
@@ -91,23 +94,25 @@ class RunStrangleBacktest extends Command {
 
 // If lot was not explicitly passed by user, apply strategy default
         if ( ! $this->input->hasParameterOption( '--lot' ) ) {
-            $qty = match ($strategyName) {
+            $qty = match ( $strategyName ) {
                 'first_candle_breakout',
                 '15min_breakout' => 130,
-                default          => 65,
+                'iron_condor_ladder' => 65,
+                default => 65,
             };
             $this->line( "<fg=yellow>  Note: Using default qty={$qty} for {$strategyName}</>" );
         }
 
         // Auto-correct entry time for straddle/strangle strategies
         if ( ! $this->input->hasParameterOption( '--entry-time' ) ) {
-            $entryHHMM = match ($strategyName) {
+            $entryHHMM = match ( $strategyName ) {
                 'atm_straddle',
                 'near_straddle',
-                'otm_strangle'   => '09:15',
+                'otm_strangle' => '09:15',
                 'first_candle_breakout',
-                '15min_breakout' => '09:15',  // ← add this
-                default          => '09:20',
+                '15min_breakout' => '09:15',
+                'iron_condor_ladder' => '09:15',
+                default => '09:20',
             };
             $this->line( "<fg=yellow>  Note: Entry time auto-set to {$entryHHMM} for {$strategyName}</>" );
         }
@@ -258,8 +263,8 @@ class RunStrangleBacktest extends Command {
             }
 
             $actualEntryTime = $legData[0]['entry_time'] ?? $entryTimestamp;
-            $dayDuration = $dayExitTime
-                ? (int) Carbon::parse($actualEntryTime)->diffInMinutes(Carbon::parse($dayExitTime))
+            $dayDuration     = $dayExitTime
+                ? (int) Carbon::parse( $actualEntryTime )->diffInMinutes( Carbon::parse( $dayExitTime ) )
                 : null;
 
             $dayOutcome === 'profit'
@@ -297,8 +302,8 @@ class RunStrangleBacktest extends Command {
                 'entry_time'           => $leg['entry_time'] ?? $entryTimestamp,
                 'exit_time'            => $leg['exit_time'],
                 'signal_time'          => $leg['signal_time'] ?? null,
-                'trade_time_duration' => $leg['exit_time']
-                    ? (int) Carbon::parse($leg['entry_time'] ?? $entryTimestamp)->diffInMinutes(Carbon::parse($leg['exit_time']))
+                'trade_time_duration'  => $leg['exit_time']
+                    ? (int) Carbon::parse( $leg['entry_time'] ?? $entryTimestamp )->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
                     : null,
                 'outcome'              => ( round( ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty, 2 ) ) >= 0 ? 'profit' : 'loss',
                 'trade_date'           => $tradeDate,
