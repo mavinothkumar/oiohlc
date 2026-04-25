@@ -34,6 +34,8 @@ class BacktestTrade extends Model {
         'lot_size',
         'strike_offset',
         'signal_time',
+        'ce_strike',
+        'pe_strike',
     ];
 
     protected $casts = [

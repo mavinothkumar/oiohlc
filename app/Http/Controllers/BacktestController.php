@@ -29,11 +29,9 @@ class BacktestController extends Controller
             ]);
         }
 
-        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
-
         // ── Expiry dates ───────────────────────────────────────────────────
         $expiryDates = DB::table('expired_expiries')
-                         ->where('underlying_symbol', $symbol)
+                         ->where('underlying_symbol', 'NIFTY')
                          ->where('instrument_type', 'OPT')
                          ->pluck('expiry_date')
                          ->mapWithKeys(fn($d) => [
@@ -85,22 +83,24 @@ class BacktestController extends Controller
         // ── Days (paginated) ───────────────────────────────────────────────
         $daysQuery = $baseQuery()
             ->selectRaw('
-            day_group_id, backtest_run_id, underlying_symbol, exchange,
-            strategy, trade_date, expiry, index_price_at_entry,
-            strike_offset, target, stoploss, lot_size,
-            day_total_pnl, day_outcome,
-            MIN(strike)              AS strike,
-            MIN(instrument_type)     AS instrument_type,
-            MIN(signal_time)         AS signal_time,
-            MAX(day_max_profit)      AS day_max_profit,
-            MAX(day_max_profit_time) AS day_max_profit_time,
-            MIN(day_max_loss)        AS day_max_loss,
-            MIN(day_max_loss_time)   AS day_max_loss_time,
-            MIN(entry_time)          AS entry_time,
-            MAX(exit_time)           AS exit_time,
-            MAX(trade_time_duration) AS trade_time_duration,
-            COUNT(*)                 AS total_legs
-        ')
+        day_group_id, backtest_run_id, underlying_symbol, exchange,
+        strategy, trade_date, expiry, index_price_at_entry,
+        strike_offset, target, stoploss, lot_size,
+        day_total_pnl, day_outcome,
+        MIN(strike)                                                 AS strike,
+        MIN(instrument_type)                                        AS instrument_type,
+        MIN(signal_time)                                            AS signal_time,
+        MAX(day_max_profit)                                         AS day_max_profit,
+        MAX(day_max_profit_time)                                    AS day_max_profit_time,
+        MIN(day_max_loss)                                           AS day_max_loss,
+        MIN(day_max_loss_time)                                      AS day_max_loss_time,
+        MIN(entry_time)                                             AS entry_time,
+        MAX(exit_time)                                              AS exit_time,
+        MAX(trade_time_duration)                                    AS trade_time_duration,
+        COUNT(*)                                                    AS total_legs,
+        MAX(CASE WHEN instrument_type = "CE" THEN strike END)       AS ce_strike,
+        MAX(CASE WHEN instrument_type = "PE" THEN strike END)       AS pe_strike
+    ')
             ->groupBy(
                 'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
                 'strategy', 'trade_date', 'expiry', 'index_price_at_entry',

@@ -545,11 +545,16 @@
                                 $isProfit = $day->day_outcome === 'profit';
                                 $isExpiry = isset($expiryDates[\Carbon\Carbon::parse($day->trade_date)->toDateString()]);
 
-                                // Only compute ATM strikes for strategies that use offset
+
+
                                 $atm   = null;
                                 $upper = null;
                                 $lower = null;
-                                if ($day->strategy !== 'first_candle_breakout' && $day->index_price_at_entry && $day->strike_offset) {
+
+                                // Only compute offset-based strikes for strategies that use strike_offset
+                                $offsetStrategies = ['fixed_offset', 'smart_balanced'];
+
+                                if (in_array($day->strategy, $offsetStrategies) && $day->index_price_at_entry && $day->strike_offset) {
                                     $atm   = (int)(round($day->index_price_at_entry / 100) * 100);
                                     $upper = $atm + $day->strike_offset;
                                     $lower = $atm - $day->strike_offset;
@@ -597,33 +602,122 @@
 
                                 {{-- Strikes --}}
                                 <td class="px-4 py-3 text-center">
-                                    @if($day->strategy === 'first_candle_breakout')
-                                        {{-- Single strike with direction indicator --}}
-                                        <div class="flex items-center justify-center gap-1 text-xs font-mono">
-            <span class="px-1.5 py-0.5 rounded
-                {{ $day->day_outcome === 'profit' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-red-900/50 text-red-300' }}">
-                {{ number_format($day->strike) }}
+                                    @switch($day->strategy)
+
+                                        @case('atm_straddle')
+                                            {{-- Single ATM strike, both CE+PE --}}
+                                            @php $atm = (int)(round($day->index_price_at_entry / 100) * 100); @endphp
+                                            <div class="flex items-center justify-center gap-1 text-xs font-mono">
+                <span class="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                    {{ number_format($atm) }}
+                </span>
+                                                <span class="text-gray-600 text-xs">CE+PE</span>
+                                            </div>
+                                            @break
+
+                                        @case('near_straddle')
+                                            {{-- ATM±100 strikes --}}
+                                            @php
+                                                $atm   = (int)(round($day->index_price_at_entry / 100) * 100);
+                                                $upper = $atm + 100;
+                                                $lower = $atm - 100;
+                                            @endphp
+                                            <div class="flex items-center justify-center gap-1 text-xs font-mono">
+                <span class="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                    {{ number_format($lower) }}
+                </span>
+                                                <span class="text-gray-600">&</span>
+                                                <span class="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                    {{ number_format($upper) }}
+                </span>
+                                            </div>
+                                            @break
+
+                                        @case('first_candle_breakout')
+                                            {{-- Single directional strike --}}
+                                            <div class="flex items-center justify-center gap-1 text-xs font-mono">
+                <span class="px-1.5 py-0.5 rounded
+                    {{ $day->day_outcome === 'profit' ? 'bg-emerald-900/50 text-emerald-300' : 'bg-red-900/50 text-red-300' }}">
+                    {{ number_format($day->strike) }}
+                </span>
+                                                <span class="px-1.5 py-0.5 rounded text-xs font-bold
+                    {{ $day->instrument_type === 'CE' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300' }}">
+                    {{ $day->instrument_type }}
+                </span>
+                                            </div>
+                                            @break
+
+                                        @case('otm_strangle')
+                                            @php
+                                                $ce = $day->ce_strike ?? $day->strike;
+                                                $pe = $day->pe_strike ?? $day->strike;
+                                                $symmetric = $ce === $pe;
+                                            @endphp
+
+                                            <div class="flex items-center justify-center gap-1 text-xs font-mono flex-wrap">
+                                                @if($symmetric)
+                                                    {{-- Same strike both sides (rare, but possible) --}}
+                                                    <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                {{ number_format($ce) }}
             </span>
-                                            {{-- Show CE or PE badge --}}
-                                            <span class="px-1.5 py-0.5 rounded text-xs font-bold
-                {{ $day->instrument_type === 'CE' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300' }}">
-                {{ $day->instrument_type }}
+                                                    <span class="text-gray-600 text-xs">CE+PE</span>
+                                                @else
+                                                    {{-- Asymmetric — show CE and PE separately --}}
+                                                    <span class="px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                {{ number_format($ce) }}
             </span>
-                                        </div>
-                                    @elseif($lower && $upper)
-                                        {{-- Original 4-leg display --}}
-                                        <div class="flex items-center justify-center gap-1 text-xs font-mono">
-            <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
-                {{ number_format($lower) }}
+                                                    <span class="text-gray-500 text-xs">CE</span>
+                                                    <span class="text-gray-600 mx-0.5">/</span>
+                                                    <span class="px-1.5 py-0.5 bg-orange-900/50 text-orange-300 rounded">
+                {{ number_format($pe) }}
             </span>
-                                            <span class="text-gray-600">&</span>
-                                            <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
-                {{ number_format($upper) }}
+                                                    <span class="text-gray-500 text-xs">PE</span>
+                                                @endif
+                                            </div>
+                                            @break
+
+                                        @case('15min_breakout')
+                                            @php
+                                                $ce = $day->ce_strike ?? null;
+                                                $pe = $day->pe_strike ?? null;
+                                                // Single leg — use instrument_type to know which side
+                                                $singleStrike = $day->strike ?? null;
+                                                $singleType   = $day->instrument_type ?? null;
+                                            @endphp
+
+                                            <div class="flex items-center justify-center gap-1 text-xs font-mono">
+                                                @if($singleStrike && $singleType)
+                                                    <span class="px-1.5 py-0.5 rounded
+                {{ $singleType === 'CE' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300' }}">
+                {{ number_format($singleStrike) }}
             </span>
-                                        </div>
-                                    @else
-                                        <span class="text-gray-600 text-xs">—</span>
-                                    @endif
+                                                    <span class="px-1.5 py-0.5 rounded text-xs font-bold
+                {{ $singleType === 'CE' ? 'bg-blue-900/30 text-blue-400' : 'bg-orange-900/30 text-orange-400' }}">
+                {{ $singleType }}
+            </span>
+                                                @else
+                                                    <span class="text-gray-600 text-xs">—</span>
+                                                @endif
+                                            </div>
+                                            @break
+
+                                        @default
+                                            {{-- fixed_offset / smart_balanced — ATM ± offset --}}
+                                            @if($lower && $upper)
+                                                <div class="flex items-center justify-center gap-1 text-xs font-mono">
+                    <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                        {{ number_format($lower) }}
+                    </span>
+                                                    <span class="text-gray-600">&</span>
+                                                    <span class="px-1.5 py-0.5 bg-indigo-900/50 text-indigo-300 rounded">
+                        {{ number_format($upper) }}
+                    </span>
+                                                </div>
+                                            @else
+                                                <span class="text-gray-600 text-xs">—</span>
+                                            @endif
+
+                                    @endswitch
                                 </td>
 
                                 {{-- Entry Time --}}
@@ -707,20 +801,20 @@
                                 </td>
 
                                 {{-- Params --}}
+                                {{-- Params --}}
                                 <td class="px-4 py-3 text-center">
                                     <div class="flex flex-wrap justify-center gap-1">
-                                <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs
-                                             font-mono text-indigo-300">
-                                    ±{{ $day->strike_offset }}
-                                </span>
-                                        <span class="px-1.5 py-0.5 bg-emerald-900/40 rounded text-xs
-                                             font-mono text-emerald-400">
-                                    T:{{ number_format($day->target, 0) }}
-                                </span>
-                                        <span class="px-1.5 py-0.5 bg-red-900/40 rounded text-xs
-                                             font-mono text-red-400">
-                                    SL:{{ number_format($day->stoploss, 0) }}
-                                </span>
+                                        @if(!in_array($day->strategy, ['15min_breakout', 'first_candle_breakout']))
+                                            <span class="px-1.5 py-0.5 bg-gray-800 rounded text-xs font-mono text-indigo-300">
+                {{ $day->strike_offset }}
+            </span>
+                                        @endif
+                                        <span class="px-1.5 py-0.5 bg-emerald-900/40 rounded text-xs font-mono text-emerald-400">
+            T {{ number_format($day->target, 0) }}
+        </span>
+                                        <span class="px-1.5 py-0.5 bg-red-900/40 rounded text-xs font-mono text-red-400">
+            SL {{ number_format($day->stoploss, 0) }}
+        </span>
                                     </div>
                                 </td>
 
