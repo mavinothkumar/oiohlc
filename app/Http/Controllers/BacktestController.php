@@ -163,12 +163,36 @@ class BacktestController extends Controller
             ->get()
             ->groupBy('year');
 
+
+        // ── Weekly stats ───────────────────────────────────────────────────
+        $weeklyStats = $baseQuery()
+            ->selectRaw("
+        YEARWEEK(trade_date, 1)                                                   AS yw,
+        MIN(trade_date)                                                            AS week_start,
+        COUNT(DISTINCT day_group_id)                                              AS total_days,
+        COUNT(DISTINCT CASE WHEN day_outcome='profit' THEN day_group_id END)      AS profit_days,
+        COUNT(DISTINCT CASE WHEN day_outcome='loss'   THEN day_group_id END)      AS loss_days,
+        ROUND(SUM(pnl), 0)                                                        AS total_pnl
+    ")
+            ->groupByRaw('YEARWEEK(trade_date, 1)')
+            ->orderByRaw('YEARWEEK(trade_date, 1)')
+            ->get();
+
+// Aggregate for summary widgets
+        $weeklyAvgWinRate = $weeklyStats->avg(fn($w) =>
+        $w->total_days > 0 ? ($w->profit_days / $w->total_days * 100) : 0
+        );
+        $weeklyAvgPnl = $weeklyStats->avg('total_pnl');
+
         return view('backtest.index', compact(
             'days',
             'statsQuery',
             'monthlyStats',
             'availableStrategies',
-            'expiryDates'
+            'expiryDates',
+            'weeklyStats',
+            'weeklyAvgWinRate',
+            'weeklyAvgPnl',
         ));
     }
 

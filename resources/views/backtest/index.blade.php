@@ -446,7 +446,7 @@
                     $totalDays = $statsQuery->profit_days + $statsQuery->loss_days;
                     $winRate   = $totalDays > 0 ? round($statsQuery->profit_days / $totalDays * 100, 1) : 0;
                 @endphp
-                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-11 gap-3 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-13 gap-3 mb-6">
 
                     <div class="bg-gray-900 rounded-xl border border-gray-800 p-4 col-span-2 md:col-span-1">
                         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total P&L</p>
@@ -540,6 +540,26 @@
                                 : '—' }}
                         </p>
                         <p class="text-xs text-gray-600 mt-1">per loss day</p>
+                    </div>
+
+                    {{-- Weekly Avg Win Rate --}}
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Weekly Avg Win Rate</p>
+                        <p class="text-xl font-bold {{ ($weeklyAvgWinRate ?? 0) >= 50 ? 'text-emerald-400' : 'text-red-400' }}">
+                            {{ $weeklyAvgWinRate ? number_format($weeklyAvgWinRate, 1) . '%' : '—' }}
+                        </p>
+                        <p class="text-xs text-gray-600 mt-1">avg across all weeks</p>
+                    </div>
+
+                    {{-- Weekly Avg P&L --}}
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Weekly Avg P&L</p>
+                        <p class="text-xl font-bold {{ ($weeklyAvgPnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                            {{ $weeklyAvgPnl
+                                ? (($weeklyAvgPnl >= 0 ? '+₹' : '-₹') . number_format(abs(round($weeklyAvgPnl)), 0))
+                                : '—' }}
+                        </p>
+                        <p class="text-xs text-gray-600 mt-1">per week avg</p>
                     </div>
 
                 </div>

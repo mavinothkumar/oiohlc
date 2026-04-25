@@ -16,7 +16,8 @@
 // php artisan backtest:strangle 15min_breakout --from="2025-01-01" --to="2025-01-05" --entry-time="09:15" --target="6000" --stoploss="5000" --lot="130"
 
 # Iron Condor Ladder Strategy
-// php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="6000" --lot="65"
+// php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="5500" --lot="65"
+// php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --stoploss="5500" --lot="65"
 
 //php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'iron_condor_ladder')->delete(); echo 'Done';"
 namespace App\Console\Commands;
@@ -236,9 +237,16 @@ class RunStrangleBacktest extends Command {
                 continue;
             }
 
+            // ── Use dynamic target if strategy suggests one ────────────────
+// Only override if --target was NOT explicitly passed by user
+            $effectiveTarget = $target; // default = CLI --target value
+            if (!$this->input->hasParameterOption('--target')) {
+                $effectiveTarget = $legData[0]['suggested_target'] ?? $target;
+            }
+
             // ── Engine walks the candles ───────────────────────────────────
             $result = $engine->run(
-                $legData, $entryTimestamp, $tradeDate, $target, $stoploss, $qty
+                $legData, $entryTimestamp, $tradeDate, $effectiveTarget, $stoploss, $qty
             );
 
 
@@ -316,7 +324,7 @@ class RunStrangleBacktest extends Command {
                 'day_max_loss'         => $dayMaxLoss,
                 'day_max_loss_time'    => $dayMaxLossTime,
                 'index_price_at_entry' => $indexOpen,
-                'target'               => $target,
+                'target'               => $effectiveTarget,
                 'stoploss'             => $stoploss,
                 'strike_offset'        => (int) ( $options['strike-offset'] ?? 300 ),
                 'created_at'           => $now,
