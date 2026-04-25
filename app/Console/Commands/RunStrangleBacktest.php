@@ -29,6 +29,7 @@ class RunStrangleBacktest extends Command {
         {--max-offset=600     : Smart balanced maximum offset}
         {--step=100           : Strike step size}
         {--list               : List all available strategies and exit}
+        {--min-premium=50 : Minimum option premium for OTM strangle strategy}
         {--dry-run            : Preview without saving}';
 
     protected $description = 'Backtest 4-leg strangle/straddle strategies.';

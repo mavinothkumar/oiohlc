@@ -4,8 +4,11 @@
 namespace App\Services\Backtest;
 
 use App\Services\Backtest\Contracts\BacktestStrategy;
+use App\Services\Backtest\Strategies\AtmStraddleStrategy;
 use App\Services\Backtest\Strategies\FirstCandleBreakoutStrategy;
 use App\Services\Backtest\Strategies\FixedOffsetStrategy;
+use App\Services\Backtest\Strategies\NearStraddleStrategy;
+use App\Services\Backtest\Strategies\OtmStrangleStrategy;
 use App\Services\Backtest\Strategies\SmartBalancedStrategy;
 use InvalidArgumentException;
 
@@ -16,9 +19,12 @@ class StrategyRegistry {
      */
     private static array $registry = [
         //'fixed_offset'    => FixedOffsetStrategy::class,
-        'strangle_straddle' => FixedOffsetStrategy::class,
-        'smart_balanced'    => SmartBalancedStrategy::class,
+        'strangle_straddle'     => FixedOffsetStrategy::class,
+        'smart_balanced'        => SmartBalancedStrategy::class,
         'first_candle_breakout' => FirstCandleBreakoutStrategy::class,
+        'atm_straddle'          => AtmStraddleStrategy::class,     // ← new
+        'near_straddle'         => NearStraddleStrategy::class,    // ← new
+        'otm_strangle'          => OtmStrangleStrategy::class,     // ← new
     ];
 
     public static function resolve( string $name ): BacktestStrategy {
