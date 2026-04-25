@@ -175,7 +175,6 @@
                             </label>
                         @endforeach
                     </div>
-                    <p class="text-xs text-gray-600">Click to skip that day</p>
                 </div>
 
                 {{-- Skip Expiry Days --}}
