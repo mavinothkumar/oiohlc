@@ -877,6 +877,53 @@
                 </span>
                                             </div>
                                             @break
+                                        @case('strangle_straddle')
+                                            @php
+                                                $atm = (int)(round($day->index_price_at_entry / 100) * 100);
+
+                                                // ATM straddle legs
+                                                $straddleCE = $atm;
+                                                $straddlePE = $atm;
+
+                                                // OTM strangle legs — pulled from DB aggregated strikes
+                                                $strangleCE = $day->ce_strike  ?? null;
+                                                $stranglePE = $day->pe_strike  ?? null;
+
+                                                // If ce_strike == ATM, the MAX picked the straddle strike.
+                                                // The strangle OTM strike is stored via strike_offset
+                                                $offset      = $day->strike_offset ?? 200;
+                                                $strangleCE  = $atm + $offset;
+                                                $stranglePE  = $atm - $offset;
+                                            @endphp
+
+                                            <div class="flex flex-col items-center gap-1.5 text-xs font-mono">
+
+                                                {{-- Straddle row (ATM CE + PE) --}}
+                                                <div class="flex items-center gap-1">
+                                                    <span class="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                                                        {{ number_format($straddleCE) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">CE+PE</span>
+                                                    <span class="text-gray-600 text-xs italic">(ATM)</span>
+                                                </div>
+
+                                                <div class="text-gray-700 text-xs leading-none">+</div>
+
+                                                {{-- Strangle row (OTM CE / PE) --}}
+                                                <div class="flex items-center gap-1">
+                                                    <span class="px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                                                        {{ number_format($strangleCE) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">CE</span>
+                                                    <span class="text-gray-600 mx-0.5">/</span>
+                                                    <span class="px-1.5 py-0.5 bg-orange-900/50 text-orange-300 rounded">
+                                                        {{ number_format($stranglePE) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">PE</span>
+                                                </div>
+
+                                            </div>
+                                            @break
 
                                         @case('otm_strangle')
                                             @php

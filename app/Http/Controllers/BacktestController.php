@@ -19,7 +19,7 @@ class BacktestController extends Controller {
         // ── No strategy selected → empty state ────────────────────────────
         if ( ! $request->filled( 'strategy' ) ) {
             return view( 'backtest.index', [
-                'days'                => ( new \Illuminate\Pagination\LengthAwarePaginator( [], 0, 30 ) ),
+                'days'                => ( new \Illuminate\Pagination\LengthAwarePaginator( [], 0, 100 ) ),
                 'statsQuery'          => null,
                 'monthlyStats'        => $monthlyStats,
                 'availableStrategies' => $availableStrategies,
@@ -131,7 +131,7 @@ class BacktestController extends Controller {
 
         $applyPeakFilter( $daysQuery );
 
-        $days = $daysQuery->orderByDesc( 'trade_date' )->paginate( 30 )->withQueryString();
+        $days = $daysQuery->orderByDesc( 'trade_date' )->paginate( 100 )->withQueryString();
 
         // ── Summary stats ──────────────────────────────────────────────────
         $statsQuery = $baseQuery()
