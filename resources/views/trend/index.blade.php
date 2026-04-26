@@ -46,10 +46,13 @@
                     <th class="px-3 py-2 w-24">Index Close</th>
                     <th class="px-3 py-2 w-24">Open Type</th>
                     <th class="px-3 py-2 w-24">Open Val</th>
-                    <th class="px-3 py-2 w-86"></th>
+                    <th class="px-3 py-2 w-20">Index Range</th>
                     <th class="px-3 py-2 w-20">Mid Pt</th>
-                    <th class="px-3 py-2 w-34">ATM Res</th>
-                    <th class="px-3 py-2 w-34">ATM Sup</th>
+                    <th class="px-3 py-2 w-86"></th>
+
+
+{{--                    <th class="px-3 py-2 w-34">ATM Res</th>--}}
+{{--                    <th class="px-3 py-2 w-34">ATM Sup</th>--}}
                     <th class="px-3 py-2 w-34">Res</th>
                     <th class="px-3 py-2 w-34">Sup</th>
                     <th class="px-3 py-2 w-34">Earth</th>
@@ -113,7 +116,12 @@
                             rowspan="">
                             {{ number_format($row['open_value'], 2) }}
                         </td>
-
+                        <td class="px-3 py-2 align-middle border-r border-slate-200" rowspan="">
+                            {{ number_format($row['index_day_range'] , 2) }}
+                        </td>
+                        <td class="px-3 py-2 align-middle border-r border-slate-200" rowspan="">
+                            {{ number_format($row['mid_point'] , 2) }}
+                        </td>
 
                         {{-- Option side --}}
                         <td class="px-3 py-2">
@@ -146,39 +154,37 @@
                             </table>
                         </td>
 
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            {{ number_format($row['mid_point'] , 2) }}
-                        </td>
 
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            <div class=" py-2">
-                                <strong>R1:</strong> {{ number_format($row['atm_r'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>R2:</strong> {{ number_format($row['atm_r_1'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>R3:</strong> {{ number_format($row['atm_r_2'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>R4:</strong> {{ number_format($row['atm_r_3'], 2) }}
-                            </div>
-                        </td>
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            <div class=" py-2">
-                                <strong>S1:</strong> {{ number_format($row['atm_s'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>S2:</strong> {{ number_format($row['atm_s_1'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>S3:</strong> {{ number_format($row['atm_s_2'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>S4:</strong> {{ number_format($row['atm_s_3'], 2) }}
-                            </div>
 
-                        </td>
+{{--                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>R1:</strong> {{ number_format($row['atm_r'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>R2:</strong> {{ number_format($row['atm_r_1'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>R3:</strong> {{ number_format($row['atm_r_2'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>R4:</strong> {{ number_format($row['atm_r_3'], 2) }}--}}
+{{--                            </div>--}}
+{{--                        </td>--}}
+{{--                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>S1:</strong> {{ number_format($row['atm_s'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>S2:</strong> {{ number_format($row['atm_s_1'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>S3:</strong> {{ number_format($row['atm_s_2'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>S4:</strong> {{ number_format($row['atm_s_3'], 2) }}--}}
+{{--                            </div>--}}
+
+{{--                        </td>--}}
                         <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
                             <div class=" py-2">
                                 <strong>Min:</strong> {{ number_format($row['min_r'], 2) }}

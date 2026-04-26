@@ -38,6 +38,8 @@ class DailyTrend extends Model
         'open_value',
         'atm_index_open',
         'mid_point',
+        'trading_date',
+        'index_day_range'
     ];
 
     protected $casts = [
