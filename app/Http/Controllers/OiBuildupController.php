@@ -30,7 +30,7 @@ class OiBuildupController extends Controller
                     'expiry'            => '',
                     'instrument_type'   => '',
                     'interval'          => 3,
-                    'at'                => now()->format('Y-m-d\TH:i'),
+                    'at'                => now()->format('Y-m-d') . 'T09:15',
                     'limit'             => 6,
                 ],
                 'datasets'  => $datasets,
@@ -43,7 +43,7 @@ class OiBuildupController extends Controller
             ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
             : Carbon::now();
 
-        $minutes    = floor($at->minute / 3) * 3;
+        $minutes    = floor($at->minute / 5) * 5;
         $atDateTime = $at->setTime($at->hour, $minutes, 0);
 
         $baseWhere = [];
@@ -58,7 +58,7 @@ class OiBuildupController extends Controller
             $baseWhere[] = ['instrument_type', '=', $validated['instrument_type']];
         }
 
-        $intervals = [3, 6, 9, 15, 30, 375];
+        $intervals = [5, 10, 15, 30, 60, 375];
 
 
         foreach ($intervals as $intervalMinutes) {
@@ -70,7 +70,7 @@ class OiBuildupController extends Controller
             $currentRows = DB::table('expired_ohlc')
                              ->where($baseWhere)
                              ->where('strike', '>', 0)
-                             ->where('interval', '3minute')
+                             ->where('interval', '5minute')
                              ->where('timestamp', $atDateTimeString)
                              //->orderBy('instrument_key', 'desc')
                              ->get()
@@ -86,7 +86,7 @@ class OiBuildupController extends Controller
                 $previousRows = DB::table('expired_ohlc')
                                   ->where($baseWhere)
                     //->where('strike', '>', 0)
-                                  ->where('interval', '3minute')
+                                  ->where('interval', '5minute')
                                   ->whereIn('instrument_key', $instrumentKeys)
                                   ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
                                       return $query->where('timestamp', $fromDateString);
