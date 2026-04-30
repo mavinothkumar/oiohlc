@@ -59,6 +59,12 @@ class BacktestController extends Controller {
                                ->when( request()->filled( 'entry_time' ), function ( $q ) {
                                    $q->whereRaw( "DATE_FORMAT(entry_time, '%H:%i') = ?", [ request( 'entry_time' ) ] );
                                } )
+                               ->when( request()->filled( 'exit_time' ), function ( $q ) {
+                                   $q->where( function ( $q ) {
+                                       $q->whereRaw( "DATE_FORMAT(exit_time, '%H:%i') <= ?", [ request( 'exit_time' ) ] )
+                                         ->orWhereNull( 'exit_time' );
+                                   } );
+                               } )
                                ->when( $request->filled( 'skip_days' ),
                                    fn( $q ) => $q->whereNotIn(
                                        DB::raw( 'DAYNAME(trade_date)' ),
@@ -219,6 +225,20 @@ class BacktestController extends Controller {
                                  ->pluck( 'entry_time_label' )
                                  ->toArray();
 
+        $availableExitTimes = DB::table( function ( $sub ) {
+            $sub->from( 'backtest_trades' )
+                ->when( request()->filled( 'strategy' ), fn( $q ) => $q->where( 'strategy', request( 'strategy' ) ) )
+                ->when( request()->filled( 'symbol' ), fn( $q ) => $q->where( 'underlying_symbol', request( 'symbol' ) ) )
+                ->when( request()->filled( 'entry_time' ), fn( $q ) => // Only show exit times that are after the selected entry time
+                $q->whereRaw( "DATE_FORMAT(entry_time, '%H:%i') = ?", [ request( 'entry_time' ) ] )
+                )
+                ->whereNotNull( 'exit_time' )
+                ->selectRaw( "DISTINCT DATE_FORMAT(exit_time, '%H:%i') AS exit_time_label" );
+        }, 'times' )
+                                ->orderBy( 'exit_time_label' )
+                                ->pluck( 'exit_time_label' )
+                                ->toArray();
+
         return view( 'backtest.index', compact(
             'days',
             'statsQuery',
@@ -230,6 +250,7 @@ class BacktestController extends Controller {
             'dowStats',
             'weeklyAvgPnl',
             'availableEntryTimes',
+            'availableExitTimes',
         ) );
     }
 
