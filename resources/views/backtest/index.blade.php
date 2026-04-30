@@ -63,6 +63,29 @@
                               text-white focus:outline-none focus:border-indigo-500 w-28">
                 </div>
 
+                {{-- Entry Time From --}}
+                {{-- Entry Time --}}
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">Entry Time</label>
+                    <div class="relative">
+                        <select name="entry_time"
+                            class="w-full bg-gray-800 border {{ request('entry_time') ? 'border-indigo-500' : 'border-gray-600' }}
+                   rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-400 appearance-none pr-8">
+                            <option value="">All Times</option>
+                            @foreach($availableEntryTimes as $t)
+                                <option value="{{ $t }}" {{ request('entry_time') === $t ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::createFromFormat('H:i', $t)->format('h:i A') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Outcome --}}
                 <div class="flex flex-col gap-1">
                     <label class="text-xs text-gray-400 uppercase tracking-wider">Day Outcome</label>
@@ -207,7 +230,7 @@
             </div>
 
             {{-- Active filter chips --}}
-            @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry']))
+            @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry', 'entry_time']))
                 <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
                     <span class="text-xs text-gray-500 self-center">Active filters:</span>
 
@@ -278,6 +301,12 @@
                  text-amber-300 rounded-full text-xs">
             ⚡ Expiry Days Hidden
              </span>
+                    @endif
+
+                    @if(request('entry_time'))
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-900/60 text-cyan-300 rounded-full text-xs">
+        ⏱ Entry @ {{ \Carbon\Carbon::createFromFormat('H:i', request('entry_time'))->format('h:i A') }}
+    </span>
                     @endif
                 </div>
             @endif

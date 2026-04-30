@@ -3,7 +3,8 @@
 // app/Console/Commands/RunStrangleBacktest.php
 
 # Strangle Straddle
-// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2025-01-05" --entry-time="09:20" --target="12000" --stoploss="5000" --lot="130"
+// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-13" --entry-time="10:40" --target="12000" --stoploss="5000" --lot="130"
+// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-13" --entry-time="11:05" --stoploss="5500" --lot="130"
 
 # Strangle Straddle Smart Balanced
 // php artisan backtest:strangle smart_balanced  --from="2025-01-01" --to="2026-04-13" --entry-time="09:20" --target="12000" --stoploss="5000" --lot="130"
@@ -26,7 +27,7 @@
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="5500" --lot="65"
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --stoploss="5500" --lot="65"
 
-//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'iron_condor_ladder')->delete(); echo 'Done';"
+//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->delete(); echo 'Done';"
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;

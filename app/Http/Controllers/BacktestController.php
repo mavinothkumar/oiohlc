@@ -56,6 +56,9 @@ class BacktestController extends Controller {
                                    fn( $q ) => $q->whereDate( 'trade_date', '<=', $request->to ) )
                                ->when( $request->skip_expiry == '1' && ! empty( $expiryDateList ),
                                    fn( $q ) => $q->whereNotIn( 'trade_date', $expiryDateList ) )
+                               ->when( request()->filled( 'entry_time' ), function ( $q ) {
+                                   $q->whereRaw( "DATE_FORMAT(entry_time, '%H:%i') = ?", [ request( 'entry_time' ) ] );
+                               } )
                                ->when( $request->filled( 'skip_days' ),
                                    fn( $q ) => $q->whereNotIn(
                                        DB::raw( 'DAYNAME(trade_date)' ),
@@ -184,7 +187,7 @@ class BacktestController extends Controller {
 
         // ── Day-of-week stats ──────────────────────────────────────────────
         $dowStats = $baseQuery()
-            ->selectRaw("
+            ->selectRaw( "
         DAYNAME(trade_date)                                                        AS dow,
         DAYOFWEEK(trade_date)                                                      AS dow_num,
         COUNT(DISTINCT day_group_id)                                               AS total_days,
@@ -196,15 +199,25 @@ class BacktestController extends Controller {
         )                                                                          AS win_rate,
         ROUND(SUM(day_total_pnl) / COUNT(DISTINCT day_group_id), 0)               AS avg_pnl,
         ROUND(SUM(day_total_pnl), 0)                                               AS total_pnl
-    ")
-            ->groupByRaw('DAYNAME(trade_date), DAYOFWEEK(trade_date)')
-            ->orderByRaw('DAYOFWEEK(trade_date)')
+    " )
+            ->groupByRaw( 'DAYNAME(trade_date), DAYOFWEEK(trade_date)' )
+            ->orderByRaw( 'DAYOFWEEK(trade_date)' )
             ->get();
 
 // Aggregate for summary widgets
         $weeklyAvgWinRate = $weeklyStats->avg( fn( $w ) => $w->total_days > 0 ? ( $w->profit_days / $w->total_days * 100 ) : 0
         );
         $weeklyAvgPnl     = $weeklyStats->avg( 'total_pnl' );
+
+        $availableEntryTimes = DB::table( function ( $sub ) {
+            $sub->from( 'backtest_trades' )
+                ->when( request()->filled( 'strategy' ), fn( $q ) => $q->where( 'strategy', request( 'strategy' ) ) )
+                ->when( request()->filled( 'symbol' ), fn( $q ) => $q->where( 'underlying_symbol', request( 'symbol' ) ) )
+                ->selectRaw( "DISTINCT DATE_FORMAT(entry_time, '%H:%i') AS entry_time_label" );
+        }, 'times' )
+                                 ->orderBy( 'entry_time_label' )
+                                 ->pluck( 'entry_time_label' )
+                                 ->toArray();
 
         return view( 'backtest.index', compact(
             'days',
@@ -216,6 +229,7 @@ class BacktestController extends Controller {
             'weeklyAvgWinRate',
             'dowStats',
             'weeklyAvgPnl',
+            'availableEntryTimes',
         ) );
     }
 
