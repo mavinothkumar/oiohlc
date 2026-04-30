@@ -5,6 +5,7 @@
 @endsection
 
 @section('content')
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <div class="min-h-screen bg-gray-950 text-gray-100 p-6">
 
         {{-- Header --}}
@@ -20,269 +21,299 @@
                 </code>
             </div>
         </div>
+        {{-- Filters Toggle --}}
+        <div x-data="{ open: false }" class="mb-6">
+            <button @click="open = !open"
+                class="w-full flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-3 text-sm font-semibold text-gray-300 hover:bg-gray-800 transition-colors">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                    </svg>
+                    <span>Filters</span>
+                    {{-- Show active filter count as a badge when collapsed --}}
+                    @php $activeCount = collect(['strategy','symbol','outcome','pnldir','peakfilter','from','to','skipexpiry','entry_time'])->filter(fn($k) => request()->filled($k))->count(); @endphp
+                    @if($activeCount > 0)
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold">
+                    {{ $activeCount }}
+                </span>
+                    @endif
+                </div>
+                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
 
-        {{-- Filters --}}
-        <form method="GET" action="{{ route('backtest.index') }}"
-            class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+            <div x-show="open" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 -translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 -translate-y-2"
+                class="mt-1">
+                {{-- Filters --}}
+                <form method="GET" action="{{ route('backtest.index') }}"
+                    class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
 
-            <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex flex-wrap items-end gap-4">
 
-                {{-- Strategy — Primary filter --}}
-                <div class="flex flex-col gap-1 min-w-[180px]">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">
-                        Strategy
-                        <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <select name="strategy"
-                            class="w-full bg-gray-800 border
+                        {{-- Strategy — Primary filter --}}
+                        <div class="flex flex-col gap-1 min-w-[180px]">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">
+                                Strategy
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <select name="strategy"
+                                    class="w-full bg-gray-800 border
                                    {{ request('strategy') ? 'border-indigo-500' : 'border-gray-600' }}
                                    rounded-lg px-3 py-2 text-sm text-white
                                    focus:outline-none focus:border-indigo-400 appearance-none pr-8">
-                            <option value="">— Select Strategy —</option>
-                            @foreach($availableStrategies as $s)
-                                <option value="{{ $s }}" @selected(request('strategy') === $s)>
-                                    {{ ucwords(str_replace('_', ' ', $s)) }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
+                                    <option value="">— Select Strategy —</option>
+                                    @foreach($availableStrategies as $s)
+                                        <option value="{{ $s }}" @selected(request('strategy') === $s)>
+                                            {{ ucwords(str_replace('_', ' ', $s)) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                {{-- Symbol --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Symbol</label>
-                    <input type="text" name="symbol" value="{{ request('symbol') }}"
-                        placeholder="NIFTY"
-                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                        {{-- Symbol --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Symbol</label>
+                            <input type="text" name="symbol" value="{{ request('symbol') }}"
+                                placeholder="NIFTY"
+                                class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                               text-white focus:outline-none focus:border-indigo-500 w-28">
-                </div>
-
-                {{-- Entry Time From --}}
-                {{-- Entry Time --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">Entry Time</label>
-                    <div class="relative">
-                        <select name="entry_time"
-                            class="w-full bg-gray-800 border {{ request('entry_time') ? 'border-indigo-500' : 'border-gray-600' }}
-                   rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-400 appearance-none pr-8">
-                            <option value="">All Times</option>
-                            @foreach($availableEntryTimes as $t)
-                                <option value="{{ $t }}" {{ request('entry_time') === $t ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::createFromFormat('H:i', $t)->format('h:i A') }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
                         </div>
-                    </div>
-                </div>
 
-                {{-- Outcome --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Day Outcome</label>
-                    <select name="outcome"
-                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                        {{-- Entry Time From --}}
+                        {{-- Entry Time --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">Entry Time</label>
+                            <div class="relative">
+                                <select name="entry_time"
+                                    class="w-full bg-gray-800 border {{ request('entry_time') ? 'border-indigo-500' : 'border-gray-600' }}
+                   rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-400 appearance-none pr-8">
+                                    <option value="">All Times</option>
+                                    @foreach($availableEntryTimes as $t)
+                                        <option value="{{ $t }}" {{ request('entry_time') === $t ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::createFromFormat('H:i', $t)->format('h:i A') }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Outcome --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Day Outcome</label>
+                            <select name="outcome"
+                                class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                                text-white focus:outline-none focus:border-indigo-500 w-36">
-                        <option value="">All Outcomes</option>
-                        <option value="profit" @selected(request('outcome') === 'profit')>✓ Profit Days</option>
-                        <option value="loss" @selected(request('outcome') === 'loss')>✗ Loss Days</option>
-                    </select>
-                </div>
+                                <option value="">All Outcomes</option>
+                                <option value="profit" @selected(request('outcome') === 'profit')>✓ Profit Days</option>
+                                <option value="loss" @selected(request('outcome') === 'loss')>✗ Loss Days</option>
+                            </select>
+                        </div>
 
-                {{-- Day P&L Filter --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Day P&L</label>
-                    <div class="flex items-center gap-1">
-                        <select name="pnl_dir"
-                            class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm
+                        {{-- Day P&L Filter --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Day P&L</label>
+                            <div class="flex items-center gap-1">
+                                <select name="pnl_dir"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm
                                    text-white focus:outline-none focus:border-indigo-500 w-20">
-                            <option value="">Any</option>
-                            <option value="gte" @selected(request('pnl_dir') === 'gte')>≥</option>
-                            <option value="lte" @selected(request('pnl_dir') === 'lte')>≤</option>
-                        </select>
-                        <input type="number" name="pnl_value"
-                            value="{{ request('pnl_value') }}"
-                            placeholder="e.g. 2000"
-                            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                                    <option value="">Any</option>
+                                    <option value="gte" @selected(request('pnl_dir') === 'gte')>≥</option>
+                                    <option value="lte" @selected(request('pnl_dir') === 'lte')>≤</option>
+                                </select>
+                                <input type="number" name="pnl_value"
+                                    value="{{ request('pnl_value') }}"
+                                    placeholder="e.g. 2000"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                                   text-white focus:outline-none focus:border-indigo-500 w-32">
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
-                {{-- Peak P&L Filter --}}
-                {{-- Peak PL Filter --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Peak P&L Filter</label>
-                    <div class="flex items-center gap-1 flex-wrap">
+                        {{-- Peak P&L Filter --}}
+                        {{-- Peak PL Filter --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Peak P&L Filter</label>
+                            <div class="flex items-center gap-1 flex-wrap">
 
-                        {{-- Dropdown: what kind of peak --}}
-                        <select name="peak_filter"
-                            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-52">
-                            <option value="">All</option>
-                            <optgroup label="Peak Profit">
-                                <option value="has_peak_profit"      {{ request('peak_filter') === 'has_peak_profit'      ? 'selected' : '' }}>Has Peak Profit (> 0)</option>
-                                <option value="no_peak_profit"       {{ request('peak_filter') === 'no_peak_profit'       ? 'selected' : '' }}>No Peak Profit (null/0)</option>
-                                <option value="peak_profit_reversed" {{ request('peak_filter') === 'peak_profit_reversed' ? 'selected' : '' }}>Peak Profit → Reversed to Loss</option>
-                            </optgroup>
-                            <optgroup label="Peak Loss">
-                                <option value="has_peak_loss"        {{ request('peak_filter') === 'has_peak_loss'        ? 'selected' : '' }}>Has Peak Loss (< 0)</option>
-                                <option value="no_peak_loss"         {{ request('peak_filter') === 'no_peak_loss'         ? 'selected' : '' }}>No Peak Loss (null/0)</option>
-                                <option value="peak_loss_recovered"  {{ request('peak_filter') === 'peak_loss_recovered'  ? 'selected' : '' }}>Peak Loss → Recovered to Profit</option>
-                            </optgroup>
-                        </select>
+                                {{-- Dropdown: what kind of peak --}}
+                                <select name="peak_filter"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-52">
+                                    <option value="">All</option>
+                                    <optgroup label="Peak Profit">
+                                        <option value="has_peak_profit" {{ request('peak_filter') === 'has_peak_profit'      ? 'selected' : '' }}>Has Peak Profit (> 0)</option>
+                                        <option value="no_peak_profit" {{ request('peak_filter') === 'no_peak_profit'       ? 'selected' : '' }}>No Peak Profit (null/0)</option>
+                                        <option value="peak_profit_reversed" {{ request('peak_filter') === 'peak_profit_reversed' ? 'selected' : '' }}>Peak Profit → Reversed to Loss</option>
+                                    </optgroup>
+                                    <optgroup label="Peak Loss">
+                                        <option value="has_peak_loss" {{ request('peak_filter') === 'has_peak_loss'        ? 'selected' : '' }}>Has Peak Loss (< 0)</option>
+                                        <option value="no_peak_loss" {{ request('peak_filter') === 'no_peak_loss'         ? 'selected' : '' }}>No Peak Loss (null/0)</option>
+                                        <option value="peak_loss_recovered" {{ request('peak_filter') === 'peak_loss_recovered'  ? 'selected' : '' }}>Peak Loss → Recovered to Profit</option>
+                                    </optgroup>
+                                </select>
 
-                        {{-- Operator: >= or <= --}}
-                        <select name="peak_dir"
-                            class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-20">
-                            <option value="">Any</option>
-                            <option value="gte" {{ request('peak_dir') === 'gte' ? 'selected' : '' }}>&gt;=</option>
-                            <option value="lte" {{ request('peak_dir') === 'lte' ? 'selected' : '' }}>&lt;=</option>
-                        </select>
+                                {{-- Operator: >= or <= --}}
+                                <select name="peak_dir"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-20">
+                                    <option value="">Any</option>
+                                    <option value="gte" {{ request('peak_dir') === 'gte' ? 'selected' : '' }}>&gt;=</option>
+                                    <option value="lte" {{ request('peak_dir') === 'lte' ? 'selected' : '' }}>&lt;=</option>
+                                </select>
 
-                        {{-- Value textbox --}}
-                        <input type="number"
-                            name="peak_value"
-                            value="{{ request('peak_value') }}"
-                            placeholder="e.g. 2000"
-                            class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-28" />
+                                {{-- Value textbox --}}
+                                <input type="number"
+                                    name="peak_value"
+                                    value="{{ request('peak_value') }}"
+                                    placeholder="e.g. 2000"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-28"/>
 
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
-                {{-- Date Range --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">From</label>
-                    <input type="date" name="from" value="{{ request('from') }}"
-                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                        {{-- Date Range --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">From</label>
+                            <input type="date" name="from" value="{{ request('from') }}"
+                                class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                               text-white focus:outline-none focus:border-indigo-500">
-                </div>
+                        </div>
 
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">To</label>
-                    <input type="date" name="to" value="{{ request('to') }}"
-                        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">To</label>
+                            <input type="date" name="to" value="{{ request('to') }}"
+                                class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                               text-white focus:outline-none focus:border-indigo-500">
-                </div>
+                        </div>
 
-                {{-- Skip Days — toggle buttons --}}
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Skip Days</label>
-                    <div class="flex items-center gap-1.5">
-                        @foreach(['Monday' => 'M', 'Tuesday' => 'T', 'Wednesday' => 'W', 'Thursday' => 'T', 'Friday' => 'F'] as $day => $letter)
-                            @php $isActive = in_array($day, (array) request('skip_days', [])); @endphp
-                            <label
-                                title="{{ $day }}"
-                                class="relative cursor-pointer select-none">
-                                <input
-                                    type="checkbox"
-                                    name="skip_days[]"
-                                    value="{{ $day }}"
-                                    {{ $isActive ? 'checked' : '' }}
-                                    class="peer sr-only"
-                                    onchange="this.closest('form').submit()">
-                                <span class="flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold
+                        {{-- Skip Days — toggle buttons --}}
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Skip Days</label>
+                            <div class="flex items-center gap-1.5">
+                                @foreach(['Monday' => 'M', 'Tuesday' => 'T', 'Wednesday' => 'W', 'Thursday' => 'T', 'Friday' => 'F'] as $day => $letter)
+                                    @php $isActive = in_array($day, (array) request('skip_days', [])); @endphp
+                                    <label
+                                        title="{{ $day }}"
+                                        class="relative cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            name="skip_days[]"
+                                            value="{{ $day }}"
+                                            {{ $isActive ? 'checked' : '' }}
+                                            class="peer sr-only"
+                                            onchange="this.closest('form').submit()">
+                                        <span class="flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold
                     border transition-all duration-150
                     peer-checked:bg-red-500/20 peer-checked:border-red-500 peer-checked:text-red-400
                     peer-not-checked:bg-gray-800 peer-not-checked:border-gray-700 peer-not-checked:text-gray-400
                     hover:border-gray-500 hover:text-gray-200">
                     {{ $letter }}
                 </span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
 
-                {{-- Skip Expiry Days --}}
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs text-gray-400 uppercase tracking-wider">Expiry Days</label>
-                    <label class="inline-flex items-center gap-2 cursor-pointer mt-1">
-                        <input type="hidden" name="skip_expiry" value="0">
-                        <input type="checkbox" name="skip_expiry" value="1"
-                            @checked(request('skip_expiry') == '1')
-                            class="w-4 h-4 rounded bg-gray-800 border-gray-600
+                        {{-- Skip Expiry Days --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Expiry Days</label>
+                            <label class="inline-flex items-center gap-2 cursor-pointer mt-1">
+                                <input type="hidden" name="skip_expiry" value="0">
+                                <input type="checkbox" name="skip_expiry" value="1"
+                                    @checked(request('skip_expiry') == '1')
+                                    class="w-4 h-4 rounded bg-gray-800 border-gray-600
                       text-indigo-500 focus:ring-indigo-500 cursor-pointer">
-                        <span class="text-sm text-gray-300">Skip Expiry Days</span>
-                    </label>
-                </div>
+                                <span class="text-sm text-gray-300">Skip Expiry Days</span>
+                            </label>
+                        </div>
 
-                {{-- Buttons --}}
-                <div class="flex gap-2 pb-0.5">
-                    <button type="submit"
-                        class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2
+                        {{-- Buttons --}}
+                        <div class="flex gap-2 pb-0.5">
+                            <button type="submit"
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2
                                rounded-lg transition-colors font-medium">
-                        Apply
-                    </button>
-                    <a href="{{ route('backtest.index') }}"
-                        class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2
+                                Apply
+                            </button>
+                            <a href="{{ route('backtest.index') }}"
+                                class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2
                           rounded-lg transition-colors">
-                        Reset
-                    </a>
-                </div>
+                                Reset
+                            </a>
+                        </div>
 
-            </div>
+                    </div>
 
-            {{-- Active filter chips --}}
-            @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry', 'entry_time']))
-                <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
-                    <span class="text-xs text-gray-500 self-center">Active filters:</span>
+                    {{-- Active filter chips --}}
+                    @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry', 'entry_time']))
+                        <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
+                            <span class="text-xs text-gray-500 self-center">Active filters:</span>
 
-                    @if(request('strategy'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-900/60
+                            @if(request('strategy'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-900/60
                              text-indigo-300 rounded-full text-xs">
                     Strategy: {{ ucwords(str_replace('_', ' ', request('strategy'))) }}
                 </span>
-                    @endif
-                    @if(request('symbol'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-800
+                            @endif
+                            @if(request('symbol'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-800
                              text-gray-300 rounded-full text-xs">
                     Symbol: {{ request('symbol') }}
                 </span>
-                    @endif
-                    @if(request('outcome'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5
+                            @endif
+                            @if(request('outcome'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5
                              {{ request('outcome') === 'profit' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300' }}
                              rounded-full text-xs">
                     {{ ucfirst(request('outcome')) }} Days
                 </span>
-                    @endif
-                    @if(request('pnl_dir') && request('pnl_value') !== null)
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-900/60
+                            @endif
+                            @if(request('pnl_dir') && request('pnl_value') !== null)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-900/60
                              text-yellow-300 rounded-full text-xs">
                     P&L {{ request('pnl_dir') === 'gte' ? '≥' : '≤' }} ₹{{ number_format(request('pnl_value'), 0) }}
                 </span>
-                    @endif
-                    @if(request('peak_filter'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60
+                            @endif
+                            @if(request('peak_filter'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60
                              text-purple-300 rounded-full text-xs">
                     Peak: {{ ucwords(str_replace('_', ' ', request('peak_filter'))) }}
                 </span>
-                    @endif
-                    @if(request('from') || request('to'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-800
+                            @endif
+                            @if(request('from') || request('to'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-800
                              text-gray-300 rounded-full text-xs">
                     {{ request('from') ?: '—' }} → {{ request('to') ?: '—' }}
                 </span>
-                    @endif
+                            @endif
 
-                    @if(request('skip_expiry') == '1')
-                        @php
-                            $totalExpiriesInRange = collect($expiryDates)->filter(function($v, $date) {
-                                $from = request('from');
-                                $to   = request('to');
-                                return (!$from || $date >= $from)
-                                    && (!$to   || $date <= $to);
-                            })->count();
-                        @endphp
-                        @if($totalExpiriesInRange > 0)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
+                            @if(request('skip_expiry') == '1')
+                                @php
+                                    $totalExpiriesInRange = collect($expiryDates)->filter(function($v, $date) {
+                                        $from = request('from');
+                                        $to   = request('to');
+                                        return (!$from || $date >= $from)
+                                            && (!$to   || $date <= $to);
+                                    })->count();
+                                @endphp
+                                @if($totalExpiriesInRange > 0)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
                  text-amber-300 rounded-full text-xs">
                                 <span>⚡</span>
                                 <span>
@@ -294,41 +325,43 @@
                                     Show them
                                 </a>
                             </span>
-                        @endif
-                    @endif
-                    @if(request('skip_expiry') == '1')
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
+                                @endif
+                            @endif
+                            @if(request('skip_expiry') == '1')
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-900/60
                  text-amber-300 rounded-full text-xs">
             ⚡ Expiry Days Hidden
              </span>
-                    @endif
+                            @endif
 
-                    @if(request('entry_time'))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-900/60 text-cyan-300 rounded-full text-xs">
+                            @if(request('entry_time'))
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-900/60 text-cyan-300 rounded-full text-xs">
         ⏱ Entry @ {{ \Carbon\Carbon::createFromFormat('H:i', request('entry_time'))->format('h:i A') }}
     </span>
+                            @endif
+                        </div>
                     @endif
-                </div>
-            @endif
 
-            @if(request('peak_filter') && request('peak_dir') && request('peak_value') !== null)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 text-purple-300 rounded-full text-xs">
+                    @if(request('peak_filter') && request('peak_dir') && request('peak_value') !== null)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 text-purple-300 rounded-full text-xs">
         Peak
         {{ ucwords(str_replace('_', ' ', request('peak_filter'))) }}
-                    {{ request('peak_dir') === 'gte' ? '≥' : '≤' }}
+                            {{ request('peak_dir') === 'gte' ? '≥' : '≤' }}
         ₹{{ number_format(request('peak_value'), 0) }}
     </span>
-            @endif
+                    @endif
 
 
-            @foreach((array) request('skip_days', []) as $skippedDay)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-900/60 text-orange-300 rounded-full text-xs">
+                    @foreach((array) request('skip_days', []) as $skippedDay)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-900/60 text-orange-300 rounded-full text-xs">
         ⏭ {{ $skippedDay }} skipped
     </span>
-            @endforeach
+                    @endforeach
 
 
-        </form>
+                </form>
+            </div>
+        </div>
 
         {{-- No strategy selected — empty state --}}
         @if(!request('strategy'))
@@ -359,290 +392,340 @@
 
         @else
 
-
             {{-- ── Monthly P&L Grid ──────────────────────────────────────────── --}}
             @if($monthlyStats->isNotEmpty())
-                @php
-                    $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    $allYears   = $monthlyStats->keys()->sort()->values();
-                @endphp
+                <div x-data="{ open: false }" class="mb-6">
+                    <button @click="open = !open"
+                        class="w-full flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-3 text-sm font-semibold text-gray-300 hover:bg-gray-800 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>Monthly Performance</span>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
 
-                <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
-
-                    {{-- Title --}}
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                            📅 Monthly Performance
-                        </h2>
-                        <span class="text-xs text-gray-600">P&L · Win Rate · Days</span>
-                    </div>
-
-                    {{-- One table per year --}}
-                    @foreach($allYears as $year)
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2"
+                        class="mt-1">
                         @php
-                            $yearMonths  = $monthlyStats->get($year)->keyBy('month');
-                            $yearPnl     = $yearMonths->sum('total_pnl');
-                            $yearProfit  = $yearMonths->sum('profit_days');
-                            $yearLoss    = $yearMonths->sum('loss_days');
-                            $yearTotal   = $yearMonths->sum('total_days');
-                            $yearWinRate = $yearTotal > 0 ? round($yearProfit / $yearTotal * 100) : 0;
+                            $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                            $allYears   = $monthlyStats->keys()->sort()->values();
                         @endphp
 
-                        <div class="mb-5 last:mb-0">
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
 
-                            {{-- Year header --}}
-                            <div class="flex items-center gap-4 mb-2">
+                            {{-- Title --}}
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                                    📅 Monthly Performance
+                                </h2>
+                                <span class="text-xs text-gray-600">P&L · Win Rate · Days</span>
+                            </div>
+
+                            {{-- One table per year --}}
+                            @foreach($allYears as $year)
+                                @php
+                                    $yearMonths  = $monthlyStats->get($year)->keyBy('month');
+                                    $yearPnl     = $yearMonths->sum('total_pnl');
+                                    $yearProfit  = $yearMonths->sum('profit_days');
+                                    $yearLoss    = $yearMonths->sum('loss_days');
+                                    $yearTotal   = $yearMonths->sum('total_days');
+                                    $yearWinRate = $yearTotal > 0 ? round($yearProfit / $yearTotal * 100) : 0;
+                                @endphp
+
+                                <div class="mb-5 last:mb-0">
+
+                                    {{-- Year header --}}
+                                    <div class="flex items-center gap-4 mb-2">
             <span class="text-xs font-bold text-gray-400 uppercase tracking-widest w-8">
                 {{ $year }}
             </span>
-                                <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-3">
                 <span class="text-sm font-bold font-mono
                     {{ $yearPnl >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
                     {{ $yearPnl >= 0 ? '+' : '' }}₹{{ number_format($yearPnl, 0) }}
                 </span>
-                                    <span class="text-xs px-2 py-0.5 rounded-full
+                                            <span class="text-xs px-2 py-0.5 rounded-full
                     {{ $yearWinRate >= 60 ? 'bg-emerald-900/50 text-emerald-300'
                      : ($yearWinRate >= 45 ? 'bg-yellow-900/50 text-yellow-300'
                      : 'bg-red-900/50 text-red-300') }}">
                     {{ $yearWinRate }}% WR
                 </span>
-                                    <span class="text-xs text-gray-600">
+                                            <span class="text-xs text-gray-600">
                     {{ $yearProfit }}W / {{ $yearLoss }}L / {{ $yearTotal }} days
                 </span>
-                                </div>
-                                <div class="flex-1 h-px bg-gray-800"></div>
-                            </div>
+                                        </div>
+                                        <div class="flex-1 h-px bg-gray-800"></div>
+                                    </div>
 
-                            {{-- Month cells --}}
-                            <div class="grid grid-cols-6 md:grid-cols-12 gap-1.5">
-                                @for($m = 1; $m <= 12; $m++)
-                                    @php
-                                        $month    = $yearMonths->get($m);
-                                        $pnl      = $month?->total_pnl ?? null;
-                                        $profit   = $month?->profit_days ?? 0;
-                                        $loss     = $month?->loss_days ?? 0;
-                                        $total    = $month?->total_days ?? 0;
-                                        $winRate  = $total > 0 ? round($profit / $total * 100) : null;
+                                    {{-- Month cells --}}
+                                    <div class="grid grid-cols-6 md:grid-cols-12 gap-1.5">
+                                        @for($m = 1; $m <= 12; $m++)
+                                            @php
+                                                $month    = $yearMonths->get($m);
+                                                $pnl      = $month?->total_pnl ?? null;
+                                                $profit   = $month?->profit_days ?? 0;
+                                                $loss     = $month?->loss_days ?? 0;
+                                                $total    = $month?->total_days ?? 0;
+                                                $winRate  = $total > 0 ? round($profit / $total * 100) : null;
 
-                                        $bgClass  = match(true) {
-                                            $pnl === null              => 'bg-gray-800/40 border-gray-800',
-                                            $pnl > 10000               => 'bg-emerald-900/80 border-emerald-700/50',
-                                            $pnl > 5000                => 'bg-emerald-900/60 border-emerald-800/50',
-                                            $pnl > 0                   => 'bg-emerald-900/30 border-emerald-900/50',
-                                            $pnl < -10000              => 'bg-red-900/80 border-red-700/50',
-                                            $pnl < -5000               => 'bg-red-900/60 border-red-800/50',
-                                            default                    => 'bg-red-900/30 border-red-900/50',
-                                        };
+                                                $bgClass  = match(true) {
+                                                    $pnl === null              => 'bg-gray-800/40 border-gray-800',
+                                                    $pnl > 10000               => 'bg-emerald-900/80 border-emerald-700/50',
+                                                    $pnl > 5000                => 'bg-emerald-900/60 border-emerald-800/50',
+                                                    $pnl > 0                   => 'bg-emerald-900/30 border-emerald-900/50',
+                                                    $pnl < -10000              => 'bg-red-900/80 border-red-700/50',
+                                                    $pnl < -5000               => 'bg-red-900/60 border-red-800/50',
+                                                    default                    => 'bg-red-900/30 border-red-900/50',
+                                                };
 
-                                        $pnlColor = match(true) {
-                                            $pnl === null => 'text-gray-700',
-                                            $pnl >= 0    => 'text-emerald-300',
-                                            default      => 'text-red-300',
-                                        };
-                                    @endphp
+                                                $pnlColor = match(true) {
+                                                    $pnl === null => 'text-gray-700',
+                                                    $pnl >= 0    => 'text-emerald-300',
+                                                    default      => 'text-red-300',
+                                                };
+                                            @endphp
 
-                                    <div class="relative group border rounded-lg p-2 cursor-default
+                                            <div class="relative group border rounded-lg p-2 cursor-default
                         transition-all duration-150 hover:scale-105 {{ $bgClass }}">
 
-                                        {{-- Month name --}}
-                                        <p class="text-xs font-semibold text-gray-400 mb-1">
-                                            {{ $monthNames[$m - 1] }}
-                                        </p>
+                                                {{-- Month name --}}
+                                                <p class="text-xs font-semibold text-gray-400 mb-1">
+                                                    {{ $monthNames[$m - 1] }}
+                                                </p>
 
-                                        @if($pnl !== null)
-                                            {{-- P&L --}}
-                                            <p class="text-xs font-bold font-mono leading-tight {{ $pnlColor }}">
-                                                {{ $pnl >= 0 ? '+' : '' }}{{ number_format($pnl / 1000, 1) }}k
-                                            </p>
+                                                @if($pnl !== null)
+                                                    {{-- P&L --}}
+                                                    <p class="text-xs font-bold font-mono leading-tight {{ $pnlColor }}">
+                                                        {{ $pnl >= 0 ? '+' : '' }}{{ number_format($pnl / 1000, 1) }}k
+                                                    </p>
 
-                                            {{-- Win rate bar --}}
-                                            <div class="mt-1.5 h-1 rounded-full bg-gray-700/50 overflow-hidden">
-                                                <div class="h-full rounded-full transition-all
+                                                    {{-- Win rate bar --}}
+                                                    <div class="mt-1.5 h-1 rounded-full bg-gray-700/50 overflow-hidden">
+                                                        <div class="h-full rounded-full transition-all
                             {{ $winRate >= 60 ? 'bg-emerald-500' : ($winRate >= 45 ? 'bg-yellow-500' : 'bg-red-500') }}"
-                                                    style="width: {{ $winRate }}%">
-                                                </div>
-                                            </div>
-
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                {{ $winRate }}%
-                                                <span class="text-gray-600">· {{ $total }}d</span>
-                                            </p>
-                                        @else
-                                            <p class="text-xs text-gray-700 mt-1">—</p>
-                                        @endif
-
-                                        {{-- Hover tooltip --}}
-                                        @if($pnl !== null)
-                                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20
-                            hidden group-hover:block pointer-events-none">
-                                                <div class="bg-gray-800 border border-gray-700 rounded-lg
-                                px-3 py-2 text-xs whitespace-nowrap shadow-xl">
-                                                    <p class="font-semibold text-white mb-1">
-                                                        {{ $monthNames[$m - 1] }} {{ $year }}
-                                                    </p>
-                                                    <p class="{{ $pnlColor }} font-mono font-bold">
-                                                        {{ $pnl >= 0 ? '+' : '' }}₹{{ number_format($pnl, 0) }}
-                                                    </p>
-                                                    <p class="text-gray-400 mt-0.5">
-                                                        ✓ {{ $profit }} profit · ✗ {{ $loss }} loss
-                                                    </p>
-                                                    <p class="text-gray-500">Win rate: {{ $winRate }}%</p>
-                                                    <div class="absolute top-full left-1/2 -translate-x-1/2
-                                    border-4 border-transparent border-t-gray-700">
+                                                            style="width: {{ $winRate }}%">
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        @endif
 
+                                                    <p class="text-xs text-gray-500 mt-1">
+                                                        {{ $winRate }}%
+                                                        <span class="text-gray-600">· {{ $total }}d</span>
+                                                    </p>
+                                                @else
+                                                    <p class="text-xs text-gray-700 mt-1">—</p>
+                                                @endif
+
+                                                {{-- Hover tooltip --}}
+                                                @if($pnl !== null)
+                                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20
+                            hidden group-hover:block pointer-events-none">
+                                                        <div class="bg-gray-800 border border-gray-700 rounded-lg
+                                px-3 py-2 text-xs whitespace-nowrap shadow-xl">
+                                                            <p class="font-semibold text-white mb-1">
+                                                                {{ $monthNames[$m - 1] }} {{ $year }}
+                                                            </p>
+                                                            <p class="{{ $pnlColor }} font-mono font-bold">
+                                                                {{ $pnl >= 0 ? '+' : '' }}₹{{ number_format($pnl, 0) }}
+                                                            </p>
+                                                            <p class="text-gray-400 mt-0.5">
+                                                                ✓ {{ $profit }} profit · ✗ {{ $loss }} loss
+                                                            </p>
+                                                            <p class="text-gray-500">Win rate: {{ $winRate }}%</p>
+                                                            <div class="absolute top-full left-1/2 -translate-x-1/2
+                                    border-4 border-transparent border-t-gray-700">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                            </div>
+                                        @endfor
                                     </div>
-                                @endfor
-                            </div>
+
+                                </div>
+                            @endforeach
 
                         </div>
-                    @endforeach
-
+                    </div>
                 </div>
             @endif
 
 
             {{-- Weekday Performance --}}
             @if(isset($dowStats) && $dowStats->isNotEmpty())
-                <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden mb-6">
-                    <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
-                        <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                            📅 Weekday Performance
-                        </h3>
-                        <span class="text-xs text-gray-600">avg P&amp;L and win rate per trading day</span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                            <tr class="border-b border-gray-800 bg-gray-950/40">
-                                <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Day</th>
-                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Days</th>
-                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Profit</th>
-                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Loss</th>
-                                <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider w-40">Win Rate</th>
-                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Avg P&amp;L</th>
-                                <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Total P&amp;L</th>
-                            </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-800/60">
-                            @php
-                                $dowOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-                                $dowMap   = $dowStats->keyBy('dow');
-                            @endphp
-                            @foreach($dowOrder as $dayName)
-                                @php $d = $dowMap->get($dayName); @endphp
-                                @if($d)
-                                    <tr class="hover:bg-gray-800/30 transition-colors">
+                <div x-data="{ open: false }" class="mb-6">
+                    <button @click="open = !open"
+                        class="w-full flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-3 text-sm font-semibold text-gray-300 hover:bg-gray-800 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            <span>Weekday Performance</span>
+                        </div>
+                        <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
 
-                                        {{-- Day name + colour dot --}}
-                                        <td class="py-3 px-4 font-medium text-gray-200">
-                                            <div class="flex items-center gap-2">
-                                                @php
-                                                    $dotColor = match($dayName) {
-                                                        'Monday'    => 'bg-blue-500',
-                                                        'Tuesday'   => 'bg-indigo-500',
-                                                        'Wednesday' => 'bg-purple-500',
-                                                        'Thursday'  => 'bg-amber-500',
-                                                        'Friday'    => 'bg-red-500',
-                                                        default     => 'bg-gray-500',
-                                                    };
-                                                @endphp
-                                                <span class="w-2 h-2 rounded-full {{ $dotColor }}"></span>
-                                                {{ $dayName }}
-                                            </div>
-                                        </td>
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2"
+                        class="mt-1">
+                        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden mb-6">
+                            <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
+                                <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                                    📅 Weekday Performance
+                                </h3>
+                                <span class="text-xs text-gray-600">avg P&amp;L and win rate per trading day</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                    <tr class="border-b border-gray-800 bg-gray-950/40">
+                                        <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Day</th>
+                                        <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Days</th>
+                                        <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Profit</th>
+                                        <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Loss</th>
+                                        <th class="text-left py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider w-40">Win Rate</th>
+                                        <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Avg P&amp;L</th>
+                                        <th class="text-right py-2.5 px-4 text-xs text-gray-500 uppercase tracking-wider">Total P&amp;L</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-800/60">
+                                    @php
+                                        $dowOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+                                        $dowMap   = $dowStats->keyBy('dow');
+                                    @endphp
+                                    @foreach($dowOrder as $dayName)
+                                        @php $d = $dowMap->get($dayName); @endphp
+                                        @if($d)
+                                            <tr class="hover:bg-gray-800/30 transition-colors">
 
-                                        {{-- Days traded --}}
-                                        <td class="py-3 px-4 text-right text-gray-400">
-                                            {{ $d->total_days }}
-                                        </td>
-
-                                        {{-- Profit days --}}
-                                        <td class="py-3 px-4 text-right text-emerald-400">
-                                            {{ $d->profit_days }}
-                                        </td>
-
-                                        {{-- Loss days --}}
-                                        <td class="py-3 px-4 text-right text-red-400">
-                                            {{ $d->loss_days }}
-                                        </td>
-
-                                        {{-- Win rate bar --}}
-                                        <td class="py-3 px-4">
-                                            <div class="flex items-center gap-2">
-                                                <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
-                                                    <div class="h-1.5 rounded-full {{ $d->win_rate >= 55 ? 'bg-emerald-500' : ($d->win_rate >= 45 ? 'bg-amber-500' : 'bg-red-500') }}"
-                                                        style="width: {{ min($d->win_rate, 100) }}%">
+                                                {{-- Day name + colour dot --}}
+                                                <td class="py-3 px-4 font-medium text-gray-200">
+                                                    <div class="flex items-center gap-2">
+                                                        @php
+                                                            $dotColor = match($dayName) {
+                                                                'Monday'    => 'bg-blue-500',
+                                                                'Tuesday'   => 'bg-indigo-500',
+                                                                'Wednesday' => 'bg-purple-500',
+                                                                'Thursday'  => 'bg-amber-500',
+                                                                'Friday'    => 'bg-red-500',
+                                                                default     => 'bg-gray-500',
+                                                            };
+                                                        @endphp
+                                                        <span class="w-2 h-2 rounded-full {{ $dotColor }}"></span>
+                                                        {{ $dayName }}
                                                     </div>
-                                                </div>
-                                                <span class="text-xs font-mono w-12 text-right
+                                                </td>
+
+                                                {{-- Days traded --}}
+                                                <td class="py-3 px-4 text-right text-gray-400">
+                                                    {{ $d->total_days }}
+                                                </td>
+
+                                                {{-- Profit days --}}
+                                                <td class="py-3 px-4 text-right text-emerald-400">
+                                                    {{ $d->profit_days }}
+                                                </td>
+
+                                                {{-- Loss days --}}
+                                                <td class="py-3 px-4 text-right text-red-400">
+                                                    {{ $d->loss_days }}
+                                                </td>
+
+                                                {{-- Win rate bar --}}
+                                                <td class="py-3 px-4">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
+                                                            <div
+                                                                class="h-1.5 rounded-full {{ $d->win_rate >= 55 ? 'bg-emerald-500' : ($d->win_rate >= 45 ? 'bg-amber-500' : 'bg-red-500') }}"
+                                                                style="width: {{ min($d->win_rate, 100) }}%">
+                                                            </div>
+                                                        </div>
+                                                        <span class="text-xs font-mono w-12 text-right
                                     {{ $d->win_rate >= 55 ? 'text-emerald-400' : ($d->win_rate >= 45 ? 'text-amber-400' : 'text-red-400') }}">
                                     {{ $d->win_rate }}%
                                 </span>
-                                            </div>
-                                        </td>
+                                                    </div>
+                                                </td>
 
-                                        {{-- Avg P&L --}}
-                                        <td class="py-3 px-4 text-right font-mono font-semibold
+                                                {{-- Avg P&L --}}
+                                                <td class="py-3 px-4 text-right font-mono font-semibold
                             {{ $d->avg_pnl >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
-                                            {{ ($d->avg_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->avg_pnl), 0) }}
-                                        </td>
+                                                    {{ ($d->avg_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->avg_pnl), 0) }}
+                                                </td>
 
-                                        {{-- Total P&L --}}
-                                        <td class="py-3 px-4 text-right font-mono
+                                                {{-- Total P&L --}}
+                                                <td class="py-3 px-4 text-right font-mono
                             {{ $d->total_pnl >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                            {{ ($d->total_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->total_pnl), 0) }}
+                                                    {{ ($d->total_pnl >= 0 ? '+₹' : '-₹') . number_format(abs($d->total_pnl), 0) }}
+                                                </td>
+
+                                            </tr>
+                                        @endif
+                                    @endforeach
+
+                                    {{-- Totals row --}}
+                                    <tr class="bg-gray-800/40 border-t-2 border-gray-700">
+                                        <td class="py-3 px-4 text-xs text-gray-500 uppercase font-semibold">Total</td>
+                                        <td class="py-3 px-4 text-right text-gray-300 font-semibold">
+                                            {{ $dowStats->sum('total_days') }}
                                         </td>
-
-                                    </tr>
-                                @endif
-                            @endforeach
-
-                            {{-- Totals row --}}
-                            <tr class="bg-gray-800/40 border-t-2 border-gray-700">
-                                <td class="py-3 px-4 text-xs text-gray-500 uppercase font-semibold">Total</td>
-                                <td class="py-3 px-4 text-right text-gray-300 font-semibold">
-                                    {{ $dowStats->sum('total_days') }}
-                                </td>
-                                <td class="py-3 px-4 text-right text-emerald-400 font-semibold">
-                                    {{ $dowStats->sum('profit_days') }}
-                                </td>
-                                <td class="py-3 px-4 text-right text-red-400 font-semibold">
-                                    {{ $dowStats->sum('loss_days') }}
-                                </td>
-                                <td class="py-3 px-4">
-                                    @php
-                                        $totalDow   = $dowStats->sum('total_days');
-                                        $totalWins  = $dowStats->sum('profit_days');
-                                        $overallWr  = $totalDow > 0 ? round($totalWins / $totalDow * 100, 1) : 0;
-                                    @endphp
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
-                                            <div class="h-1.5 rounded-full bg-indigo-500"
-                                                style="width: {{ $overallWr }}%"></div>
-                                        </div>
-                                        <span class="text-xs font-mono w-12 text-right text-indigo-400">
+                                        <td class="py-3 px-4 text-right text-emerald-400 font-semibold">
+                                            {{ $dowStats->sum('profit_days') }}
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-red-400 font-semibold">
+                                            {{ $dowStats->sum('loss_days') }}
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            @php
+                                                $totalDow   = $dowStats->sum('total_days');
+                                                $totalWins  = $dowStats->sum('profit_days');
+                                                $overallWr  = $totalDow > 0 ? round($totalWins / $totalDow * 100, 1) : 0;
+                                            @endphp
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 bg-gray-800 rounded-full h-1.5 w-24">
+                                                    <div class="h-1.5 rounded-full bg-indigo-500"
+                                                        style="width: {{ $overallWr }}%"></div>
+                                                </div>
+                                                <span class="text-xs font-mono w-12 text-right text-indigo-400">
                                 {{ $overallWr }}%
                             </span>
-                                    </div>
-                                </td>
-                                <td class="py-3 px-4 text-right font-mono font-semibold text-gray-300">
-                                    @php $overallAvg = $dowStats->sum('total_days') > 0
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-semibold text-gray-300">
+                                            @php $overallAvg = $dowStats->sum('total_days') > 0
                             ? round($dowStats->sum('total_pnl') / $dowStats->sum('total_days'))
                             : 0; @endphp
-                                    {{ ($overallAvg >= 0 ? '+₹' : '-₹') . number_format(abs($overallAvg), 0) }}
-                                </td>
-                                <td class="py-3 px-4 text-right font-mono font-semibold
+                                            {{ ($overallAvg >= 0 ? '+₹' : '-₹') . number_format(abs($overallAvg), 0) }}
+                                        </td>
+                                        <td class="py-3 px-4 text-right font-mono font-semibold
                         {{ $dowStats->sum('total_pnl') >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
-                                    @php $gt = $dowStats->sum('total_pnl'); @endphp
-                                    {{ ($gt >= 0 ? '+₹' : '-₹') . number_format(abs($gt), 0) }}
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
+                                            @php $gt = $dowStats->sum('total_pnl'); @endphp
+                                            {{ ($gt >= 0 ? '+₹' : '-₹') . number_format(abs($gt), 0) }}
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endif
