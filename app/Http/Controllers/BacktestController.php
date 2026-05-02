@@ -45,19 +45,25 @@ class BacktestController extends Controller {
         $baseQuery = fn() => DB::table( 'backtest_trades' )
                                ->where( 'strategy', $request->strategy )
                                ->when( $request->filled( 'symbol' ),
-                                   fn( $q ) => $q->where( 'underlying_symbol', $request->symbol ) )
+                                   fn( $q ) => $q->where( 'underlying_symbol', $request->symbol )
+                               )
                                ->when( $request->filled( 'outcome' ),
-                                   fn( $q ) => $q->where( 'day_outcome', $request->outcome ) )
+                                   fn( $q ) => $q->where( 'day_outcome', $request->outcome )
+                               )
                                ->when( $request->filled( 'pnl_dir' ) && $request->filled( 'pnl_value' ),
                                    fn( $q ) => $request->pnl_dir === 'gte'
-                                       ? $q->where( 'day_total_pnl', '>=', $request->pnl_value )
-                                       : $q->where( 'day_total_pnl', '<=', $request->pnl_value ) )
+                                       ? $q->where( 'day_total_pnl', '>=', (float) $request->pnl_value )
+                                       : $q->where( 'day_total_pnl', '<=', (float) $request->pnl_value )
+                               )
                                ->when( $request->filled( 'from' ),
-                                   fn( $q ) => $q->whereDate( 'trade_date', '>=', $request->from ) )
+                                   fn( $q ) => $q->whereDate( 'trade_date', '>=', $request->from )
+                               )
                                ->when( $request->filled( 'to' ),
-                                   fn( $q ) => $q->whereDate( 'trade_date', '<=', $request->to ) )
+                                   fn( $q ) => $q->whereDate( 'trade_date', '<=', $request->to )
+                               )
                                ->when( $request->skip_expiry == '1' && ! empty( $expiryDateList ),
-                                   fn( $q ) => $q->whereNotIn( 'trade_date', $expiryDateList ) )
+                                   fn( $q ) => $q->whereNotIn( 'trade_date', $expiryDateList )
+                               )
                                ->when( $request->filled( 'entry_time' ), function ( $q ) use ( $request ) {
                                    $q->whereRaw( "DATE_FORMAT(entry_time, '%H%i') = ?", [ $request->entry_time ] );
                                } )
@@ -67,20 +73,28 @@ class BacktestController extends Controller {
                                          ->orWhereNull( 'exit_time' );
                                    } );
                                } )
-                               ->when( $request->filled( 'gapdir' ) && $request->filled( 'gapvalue' ), function ( $q ) use ( $request ) {
-                                   $op = $request->gapdir === 'gte' ? '>=' : '<=';
-                                   $q->where( 'gap_used', $op, (float) $request->gapvalue );
+                               ->when( $request->filled( 'gap_dir' ) && $request->filled( 'gap_value' ), function ( $q ) use ( $request ) {
+                                   $op = $request->gap_dir === 'gte' ? '>=' : '<=';
+                                   $q->where( 'gap_used', $op, (float) $request->gap_value );
                                } )
-                               ->when( $request->filled( 'rangedir' ) && $request->filled( 'rangevalue' ), function ( $q ) use ( $request ) {
-                                   $op = $request->rangedir === 'gte' ? '>=' : '<=';
-                                   $q->where( 'previous_day_range', $op, (float) $request->rangevalue );
-                               } )
+                               ->when(
+                                   ( $request->filled( 'range_dir' ) || $request->filled( 'rangedir' ) ) &&
+                                   ( $request->filled( 'range_value' ) || $request->filled( 'rangevalue' ) ),
+                                   function ( $q ) use ( $request ) {
+                                       $dir = $request->input( 'range_dir', $request->input( 'rangedir' ) );
+                                       $val = $request->input( 'range_value', $request->input( 'rangevalue' ) );
+
+                                       $op = $dir === 'gte' ? '>=' : '<=';
+                                       $q->where( 'previous_day_range', $op, (float) $val );
+                                   }
+                               )
                                ->when( $request->filled( 'gap_pct_dir' ) && $request->filled( 'gap_pct_value' ), function ( $q ) use ( $request ) {
                                    $op = $request->gap_pct_dir === 'gte' ? '>=' : '<=';
                                    $q->where( 'gap_pct_prev_range', $op, (float) $request->gap_pct_value );
                                } )
                                ->when( $request->filled( 'skip_days' ),
-                                   fn( $q ) => $q->whereNotIn( DB::raw( 'DAYNAME(trade_date)' ), (array) $request->skip_days ) );
+                                   fn( $q ) => $q->whereNotIn( DB::raw( 'DAYNAME(trade_date)' ), (array) $request->skip_days )
+                               );
 
         // ── Peak filter (only on days query) ──────────────────────────────
         $applyPeakFilter = function ( $q ) use ( $request ) {
