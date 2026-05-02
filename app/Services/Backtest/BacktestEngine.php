@@ -198,19 +198,47 @@ class BacktestEngine {
         }
 
         // ── EOD exit ───────────────────────────────────────────────────
-        if ( $dayOutcome === 'open' ) {
-            foreach ( $legData as $idx => $leg ) {
-                if ( ! $leg['exited'] ) {
-                    $lastCandle = $allCandles->get( $leg['instrument_key'] )?->last();
-                    if ( $lastCandle ) {
-                        $legData[ $idx ]['exit_price'] = (float) $lastCandle->close;
-                        $legData[ $idx ]['exit_time']  = $lastCandle->timestamp;
-                        $legData[ $idx ]['exited']     = true;
-                    }
+
+        // ── EOD exit ───────────────────────────────────────────────────
+        if ($dayOutcome === 'open') {
+            $marketCloseTs = "{$tradeDate} 15:30:00";
+
+            foreach ($legData as $idx => $leg) {
+                if (!$leg['exited']) {
+                    $lastCandle = $allCandles->get($leg['instrument_key'])?->last();
+
+                    $legData[$idx]['exit_price'] = $lastCandle
+                        ? (float) $lastCandle->close
+                        : (float) $leg['entry_price'];
+
+                    $legData[$idx]['exit_time'] = $lastCandle
+                        ? $lastCandle->timestamp
+                        : $marketCloseTs;
+
+                    $legData[$idx]['exited'] = true;
                 }
             }
-            $dayExitTime = $legData[0]['exit_time'] ?? null;
+
+            $dayExitTime = collect($legData)
+                ->pluck('exit_time')
+                ->filter()
+                ->max();
+
+            $exitReason = 'EOD exit';
         }
+//        if ( $dayOutcome === 'open' ) {
+//            foreach ( $legData as $idx => $leg ) {
+//                if ( ! $leg['exited'] ) {
+//                    $lastCandle = $allCandles->get( $leg['instrument_key'] )?->last();
+//                    if ( $lastCandle ) {
+//                        $legData[ $idx ]['exit_price'] = (float) $lastCandle->close;
+//                        $legData[ $idx ]['exit_time']  = $lastCandle->timestamp;
+//                        $legData[ $idx ]['exited']     = true;
+//                    }
+//                }
+//            }
+//            $dayExitTime = $legData[0]['exit_time'] ?? null;
+//        }
 
         return [
             'legData'          => $legData,

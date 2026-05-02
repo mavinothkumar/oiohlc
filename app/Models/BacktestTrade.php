@@ -36,6 +36,9 @@ class BacktestTrade extends Model {
         'signal_time',
         'ce_strike',
         'pe_strike',
+        'gap_used',
+        'gap_pct_prev_range',
+        'previous_day_range'
     ];
 
     protected $casts = [

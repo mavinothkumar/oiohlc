@@ -23,6 +23,8 @@ class BacktestController extends Controller {
                 'statsQuery'          => null,
                 'monthlyStats'        => $monthlyStats,
                 'availableStrategies' => $availableStrategies,
+                'availableEntryTimes' => [],
+                'availableExitTimes'  => [],
                 'expiryDates'         => [],
             ] );
         }
@@ -56,20 +58,29 @@ class BacktestController extends Controller {
                                    fn( $q ) => $q->whereDate( 'trade_date', '<=', $request->to ) )
                                ->when( $request->skip_expiry == '1' && ! empty( $expiryDateList ),
                                    fn( $q ) => $q->whereNotIn( 'trade_date', $expiryDateList ) )
-                               ->when( request()->filled( 'entry_time' ), function ( $q ) {
-                                   $q->whereRaw( "DATE_FORMAT(entry_time, '%H:%i') = ?", [ request( 'entry_time' ) ] );
+                               ->when( $request->filled( 'entry_time' ), function ( $q ) use ( $request ) {
+                                   $q->whereRaw( "DATE_FORMAT(entry_time, '%H%i') = ?", [ $request->entry_time ] );
                                } )
-                               ->when( request()->filled( 'exit_time' ), function ( $q ) {
-                                   $q->where( function ( $q ) {
-                                       $q->whereRaw( "DATE_FORMAT(exit_time, '%H:%i') <= ?", [ request( 'exit_time' ) ] )
+                               ->when( $request->filled( 'exit_time' ), function ( $q ) use ( $request ) {
+                                   $q->where( function ( $q ) use ( $request ) {
+                                       $q->whereRaw( "DATE_FORMAT(exit_time, '%H%i') <= ?", [ $request->exit_time ] )
                                          ->orWhereNull( 'exit_time' );
                                    } );
                                } )
+                               ->when( $request->filled( 'gapdir' ) && $request->filled( 'gapvalue' ), function ( $q ) use ( $request ) {
+                                   $op = $request->gapdir === 'gte' ? '>=' : '<=';
+                                   $q->where( 'gap_used', $op, (float) $request->gapvalue );
+                               } )
+                               ->when( $request->filled( 'rangedir' ) && $request->filled( 'rangevalue' ), function ( $q ) use ( $request ) {
+                                   $op = $request->rangedir === 'gte' ? '>=' : '<=';
+                                   $q->where( 'previous_day_range', $op, (float) $request->rangevalue );
+                               } )
+                               ->when( $request->filled( 'gap_pct_dir' ) && $request->filled( 'gap_pct_value' ), function ( $q ) use ( $request ) {
+                                   $op = $request->gap_pct_dir === 'gte' ? '>=' : '<=';
+                                   $q->where( 'gap_pct_prev_range', $op, (float) $request->gap_pct_value );
+                               } )
                                ->when( $request->filled( 'skip_days' ),
-                                   fn( $q ) => $q->whereNotIn(
-                                       DB::raw( 'DAYNAME(trade_date)' ),
-                                       (array) $request->skip_days
-                                   ) );
+                                   fn( $q ) => $q->whereNotIn( DB::raw( 'DAYNAME(trade_date)' ), (array) $request->skip_days ) );
 
         // ── Peak filter (only on days query) ──────────────────────────────
         $applyPeakFilter = function ( $q ) use ( $request ) {
@@ -113,23 +124,26 @@ class BacktestController extends Controller {
         // ── Days (paginated) ───────────────────────────────────────────────
         $daysQuery = $baseQuery()
             ->selectRaw( '
-        day_group_id, backtest_run_id, underlying_symbol, exchange,
+       day_group_id, backtest_run_id, underlying_symbol, exchange,
         strategy, trade_date, expiry, index_price_at_entry,
         strike_offset, target, stoploss, lot_size,
         day_total_pnl, day_outcome,
-        MIN(strike)                                                 AS strike,
-        MIN(instrument_type)                                        AS instrument_type,
-        MIN(signal_time)                                            AS signal_time,
-        MAX(day_max_profit)                                         AS day_max_profit,
-        MAX(day_max_profit_time)                                    AS day_max_profit_time,
-        MIN(day_max_loss)                                           AS day_max_loss,
-        MIN(day_max_loss_time)                                      AS day_max_loss_time,
-        MIN(entry_time)                                             AS entry_time,
-        MAX(exit_time)                                              AS exit_time,
-        MAX(trade_time_duration)                                    AS trade_time_duration,
-        COUNT(*)                                                    AS total_legs,
-        MAX(CASE WHEN instrument_type = "CE" THEN strike END)       AS ce_strike,
-        MAX(CASE WHEN instrument_type = "PE" THEN strike END)       AS pe_strike
+        MIN(strike) AS strike,
+        MIN(instrument_type) AS instrument_type,
+        MIN(signal_time) AS signal_time,
+        MAX(day_max_profit) AS day_max_profit,
+        MAX(day_max_profit_time) AS day_max_profit_time,
+        MIN(day_max_loss) AS day_max_loss,
+        MIN(day_max_loss_time) AS day_max_loss_time,
+        MIN(entry_time) AS entry_time,
+        MAX(exit_time) AS exit_time,
+        MAX(trade_time_duration) AS trade_time_duration,
+        COUNT(*) AS total_legs,
+        MAX(CASE WHEN instrument_type = "CE" THEN strike END) AS ce_strike,
+        MAX(CASE WHEN instrument_type = "PE" THEN strike END) AS pe_strike,
+        MAX(previous_day_range) AS previous_day_range,
+        MAX(gap_pct_prev_range) AS gap_pct_prev_range,
+        MAX(gap_used) AS gap_used
     ' )
             ->groupBy(
                 'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
@@ -156,7 +170,8 @@ class BacktestController extends Controller {
         AVG(day_max_profit)                                                   AS avg_max_profit,
         AVG(day_max_loss)                                                     AS avg_max_loss,
         AVG(CASE WHEN day_outcome="profit" THEN day_total_pnl END)            AS avg_profit_pnl,
-        AVG(CASE WHEN day_outcome="loss"   THEN day_total_pnl END)            AS avg_loss_pnl
+        AVG(CASE WHEN day_outcome="loss"   THEN day_total_pnl END)            AS avg_loss_pnl,
+        ROUND(AVG(gap_used), 1) AS avg_gap
     ' )
             ->first();
 
@@ -215,14 +230,23 @@ class BacktestController extends Controller {
         );
         $weeklyAvgPnl     = $weeklyStats->avg( 'total_pnl' );
 
-        $availableEntryTimes = DB::table( function ( $sub ) {
-            $sub->from( 'backtest_trades' )
-                ->when( request()->filled( 'strategy' ), fn( $q ) => $q->where( 'strategy', request( 'strategy' ) ) )
-                ->when( request()->filled( 'symbol' ), fn( $q ) => $q->where( 'underlying_symbol', request( 'symbol' ) ) )
-                ->selectRaw( "DISTINCT DATE_FORMAT(entry_time, '%H:%i') AS entry_time_label" );
-        }, 'times' )
-                                 ->orderBy( 'entry_time_label' )
-                                 ->pluck( 'entry_time_label' )
+        // Available Entry Times (with gap stats)
+        $availableEntryTimes = DB::table( 'backtest_trades' )
+                                 ->when( request()->filled( 'strategy' ), fn( $q ) => $q->where( 'strategy', request( 'strategy' ) ) )
+                                 ->when( request()->filled( 'symbol' ), fn( $q ) => $q->where( 'underlying_symbol', request( 'symbol' ) ) )
+                                 ->selectRaw( 'DISTINCT DATE_FORMAT(entry_time, "%H%i") AS raw_time' )
+                                 ->orderBy( 'raw_time' )
+                                 ->pluck( 'raw_time' )
+                                 ->mapWithKeys( function ( $rawTime ) {
+                                     $formatted   = substr( $rawTime, 0, 2 ) . ':' . substr( $rawTime, 2, 2 );
+                                     $hour        = (int) substr( $rawTime, 0, 2 );
+                                     $min         = substr( $rawTime, 2, 2 );
+                                     $displayHour = $hour % 12 ?: 12;
+                                     $period      = $hour >= 12 ? 'PM' : 'AM';
+                                     $label       = "{$formatted} ({$displayHour}:{$min} {$period})";
+
+                                     return [ $rawTime => $label ];
+                                 } )
                                  ->toArray();
 
         $availableExitTimes = DB::table( function ( $sub ) {
@@ -239,6 +263,24 @@ class BacktestController extends Controller {
                                 ->pluck( 'exit_time_label' )
                                 ->toArray();
 
+        $entryGapStats = $baseQuery()
+            ->selectRaw( '
+        DATE_FORMAT(entry_time, "%H:%i") AS entry_time,
+        FLOOR(gap_used / 50) * 50 AS gap_bucket,
+        COUNT(DISTINCT day_group_id) AS days,
+        COUNT(DISTINCT CASE WHEN day_outcome = "profit" THEN day_group_id END) AS profit_days,
+        ROUND(
+            COUNT(DISTINCT CASE WHEN day_outcome = "profit" THEN day_group_id END)
+            / NULLIF(COUNT(DISTINCT day_group_id), 0) * 100, 1
+        ) AS win_rate,
+        ROUND(AVG(day_total_pnl), 0) AS avg_pnl
+    ' )
+            ->whereNotNull( 'gap_used' )
+            ->groupByRaw( 'DATE_FORMAT(entry_time, "%H:%i"), FLOOR(gap_used / 50) * 50' )
+            ->orderByRaw( 'DATE_FORMAT(entry_time, "%H:%i")' )
+            ->orderBy( 'gap_bucket' )
+            ->get();
+
         return view( 'backtest.index', compact(
             'days',
             'statsQuery',
@@ -251,6 +293,7 @@ class BacktestController extends Controller {
             'weeklyAvgPnl',
             'availableEntryTimes',
             'availableExitTimes',
+            'entryGapStats',
         ) );
     }
 

@@ -3,8 +3,9 @@
 // app/Console/Commands/RunStrangleBacktest.php
 
 # Strangle Straddle
-// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-13" --entry-time="10:40" --target="12000" --stoploss="5000" --lot="130"
-// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-13" --entry-time="11:05" --stoploss="5500" --lot="130"
+// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-13" --entry-time="09:45" --target="12000" --stoploss="5000" --lot="130"
+// php artisan backtest:strangle strangle_straddle  --from="2025-01-01" --to="2026-04-28" --entry-time="09:45" --stoploss="5500" --lot="130"
+
 
 # Strangle Straddle Smart Balanced
 // php artisan backtest:strangle smart_balanced  --from="2025-01-01" --to="2026-04-13" --entry-time="09:20" --target="12000" --stoploss="5000" --lot="130"
@@ -27,7 +28,8 @@
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="5500" --lot="65"
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --stoploss="5500" --lot="65"
 
-//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->delete(); echo 'Done';"
+//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->where(')->delete(); echo 'Done';"
+//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->whereRaw(\"TIME(entry_time) = '09:45:00'\")->delete(); echo 'Done';"
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
@@ -248,7 +250,7 @@ class RunStrangleBacktest extends Command {
             // ── Use dynamic target if strategy suggests one ────────────────
 // Only override if --target was NOT explicitly passed by user
             $effectiveTarget = $target; // default = CLI --target value
-            if (!$this->input->hasParameterOption('--target')) {
+            if ( ! $this->input->hasParameterOption( '--target' ) ) {
                 $effectiveTarget = $legData[0]['suggested_target'] ?? $target;
             }
 
@@ -296,6 +298,15 @@ class RunStrangleBacktest extends Command {
             $ceStrike = collect( $legData )->firstWhere( 'type', 'CE' )['strike'] ?? null;
             $peStrike = collect( $legData )->firstWhere( 'type', 'PE' )['strike'] ?? null;
 
+            $gapRow = DB::table( 'index_gap' )
+                        ->where( 'symbol_name', $symbol )
+                        ->whereDate( 'trading_date', $tradeDate )
+                        ->first();
+
+            $gapUsed          = $gapRow?->gap_abs;
+            $previousDayRange = $gapRow?->previous_day_range;
+            $gapPctPrevRange  = $gapRow?->gap_pct_prev_range;
+
             $dayRows = array_map( fn( $leg ) => [
                 'underlying_symbol'    => $symbol,
                 'instrument_type'      => $leg['type'],
@@ -337,6 +348,9 @@ class RunStrangleBacktest extends Command {
                 'strike_offset'        => (int) ( $options['strike-offset'] ?? 300 ),
                 'created_at'           => $now,
                 'updated_at'           => $now,
+                'gap_used'             => $gapUsed,
+                'previous_day_range'   => $previousDayRange,
+                'gap_pct_prev_range'   => $gapPctPrevRange,
             ], $legData );
 
             if ( ! $dryRun ) {

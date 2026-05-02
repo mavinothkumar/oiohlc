@@ -95,6 +95,7 @@
                         </div>
 
                         {{-- Entry Time From --}}
+                        @if (!empty($availableEntryTimes))
                         <div class="flex flex-col gap-1">
                             <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">Entry Time</label>
                             <div class="relative">
@@ -102,9 +103,9 @@
                                     class="w-full bg-gray-800 border {{ request('entry_time') ? 'border-indigo-500' : 'border-gray-600' }}
                    rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-400 appearance-none pr-8">
                                     <option value="">All Times</option>
-                                    @foreach($availableEntryTimes as $t)
-                                        <option value="{{ $t }}" {{ request('entry_time') === $t ? 'selected' : '' }}>
-                                            {{ \Carbon\Carbon::createFromFormat('H:i', $t)->format('h:i A') }}
+                                    @foreach($availableEntryTimes as $rawTime => $label)
+                                        <option  value="{{ $rawTime }}" {{ request('entry_time') == $rawTime ? 'selected' : '' }}>
+                                            {{ $label }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -115,7 +116,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        @endif
                         {{-- Exit Time --}}
                         <div class="flex flex-col gap-1">
                             <label class="text-xs text-gray-400 uppercase tracking-wider font-medium">Exit Time</label>
@@ -166,6 +167,48 @@
                                     placeholder="e.g. 2000"
                                     class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
                                   text-white focus:outline-none focus:border-indigo-500 w-32">
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Prev Day Range</label>
+                            <div class="flex items-center gap-1">
+                                <select name="rangedir" class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white w-20">
+                                    <option value="">Any</option>
+                                    <option value="gte" {{ request('rangedir') === 'gte' ? 'selected' : '' }}>&gt;=</option>
+                                    <option value="lte" {{ request('rangedir') === 'lte' ? 'selected' : '' }}>&lt;=</option>
+                                </select>
+                                <input type="number" step="0.01" name="rangevalue" value="{{ request('rangevalue') }}"
+                                    placeholder="e.g. 250"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white w-32">
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Gap % / Range</label>
+                            <div class="flex items-center gap-1">
+                                <select name="gap_pct_dir" class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white w-20">
+                                    <option value="">Any</option>
+                                    <option value="gte" {{ request('gap_pct_dir') === 'gte' ? 'selected' : '' }}>&gt;=</option>
+                                    <option value="lte" {{ request('gap_pct_dir') === 'lte' ? 'selected' : '' }}>&lt;=</option>
+                                </select>
+                                <input type="number" step="0.01" name="gap_pct_value" value="{{ request('gap_pct_value') }}"
+                                    placeholder="e.g. 60"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white w-32">
+                            </div>
+                        </div>
+
+                        {{-- Gap Filter --}}
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs text-gray-400 uppercase tracking-wider">Gap Filter</label>
+                            <div class="flex items-center gap-1">
+                                <select name="gap_dir" class="bg-gray-800 border border-gray-700 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-20">
+                                    <option value="Any">Any</option>
+                                    <option value="gte" {{ request('gap_dir') == 'gte' ? 'selected' : '' }}>≥</option>
+                                    <option value="lte" {{ request('gap_dir') == 'lte' ? 'selected' : '' }}>&le;</option>
+                                </select>
+                                <input type="number" name="gap_value" value="{{ request('gap_value') }}" placeholder="e.g. 100"
+                                    class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-32">
                             </div>
                         </div>
 
@@ -282,7 +325,7 @@
                     </div>
 
                     {{-- Active filter chips --}}
-                    @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry', 'entry_time', 'exit_time']))
+                    @if(request()->hasAny(['strategy','symbol','outcome','pnl_dir','peak_filter','from','to', 'skip_expiry', 'entry_time', 'exit_time', 'gap_dir']))
                         <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
                             <span class="text-xs text-gray-500 self-center">Active filters:</span>
 
@@ -355,9 +398,10 @@
              </span>
                             @endif
 
-                            @if(request('entry_time'))
+                            @if($entryTime = request('entry_time'))
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-900/60 text-cyan-300 rounded-full text-xs">
-        ⏱ Entry @ {{ \Carbon\Carbon::createFromFormat('H:i', request('entry_time'))->format('h:i A') }}
+        ⏱ Entry {{ substr($entryTime,0,2) }}:{{ substr($entryTime,2) }}
+        ({{ substr($entryTime,0,2)%12 ?: 12 }}:{{ substr($entryTime,2) }} {{ substr($entryTime,0,2)>=12 ? 'PM' : 'AM' }})
     </span>
                             @endif
                         </div>
@@ -382,6 +426,24 @@
                     @if(request('exit_time'))
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-900/60 text-orange-300 rounded-full text-xs">
         🚪 Exit @ {{ \Carbon\Carbon::createFromFormat('H:i', request('exit_time'))->format('h:i A') }}
+    </span>
+                    @endif
+
+                    @if(request('gap_dir') && request('gap_value') != null)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-900/60 text-teal-300 rounded-full text-xs">
+        Gap {{ request('gap_dir') == 'gte' ? '≥' : '≤' }} {{ number_format(request('gap_value'), 0) }}
+    </span>
+                    @endif
+
+                    @if(request('rangedir') && request('rangevalue') !== null)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-800 text-slate-300 rounded-full text-xs">
+        Prev Range {{ request('rangedir') === 'gte' ? '>=' : '<=' }} {{ number_format((float) request('rangevalue'), 2) }}
+    </span>
+                    @endif
+
+                    @if(request('gap_pct_dir') && request('gap_pct_value') !== null)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-900/60 text-violet-300 rounded-full text-xs">
+        Gap % {{ request('gap_pct_dir') === 'gte' ? '>=' : '<=' }} {{ number_format((float) request('gap_pct_value'), 2) }}%
     </span>
                     @endif
                 </form>
@@ -755,6 +817,7 @@
                 </div>
             @endif
 
+
             {{-- Summary Stats --}}
             @if($statsQuery)
                 @php
@@ -829,6 +892,13 @@
                     </div>
 
                     <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Gap</p>
+                        <p class="text-xl font-bold text-teal-400">
+                            {{ number_format($statsQuery->avgmaxprofit ?? 0, 1) }} <!-- Wait, use statsQuery->AVG(gap_used) -->
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
                         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Peak Profit</p>
                         <p class="text-xl font-bold text-emerald-300">
                             +₹{{ number_format($statsQuery->avg_max_profit ?? 0, 0) }}
@@ -877,6 +947,13 @@
                         <p class="text-xs text-gray-600 mt-1">per week avg</p>
                     </div>
 
+                    <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg Gap</p>
+                        <p class="text-xl font-bold text-teal-400">
+                            {{ $statsQuery->avg_gap ? number_format($statsQuery->avg_gap, 1) : '-' }}
+                        </p>
+                    </div>
+
                 </div>
             @endif
 
@@ -895,6 +972,9 @@
                             <th class="px-4 py-3 text-right">Entry</th>
                             <th class="px-4 py-3 text-right">Exit</th>
                             <th class="px-4 py-3 text-right">Duration</th>
+                            <th class="px-4 py-3 text-right">Gap</th>
+                            <th class="px-4 py-3 text-right">Prev Range</th>
+                            <th class="px-4 py-3 text-right">Gap %</th>
                             <th class="px-4 py-3 text-right">Day P&L</th>
                             <th class="px-4 py-3 text-right">
                                 <span class="text-emerald-400">Peak +</span>
@@ -1189,6 +1269,19 @@
                                     {{ $durFmt }}
                                 </td>
 
+                                {{-- Gap --}}
+                                <td class="px-4 py-3 text-right font-mono text-cyan-300 text-xs">
+                                    {{ $day->gap_used !== null ? number_format($day->gap_used, 2) : '—' }}
+                                </td>
+
+                                <td class="px-4 py-3 text-right font-mono text-gray-300 text-xs">
+                                    {{ $day->previous_day_range !== null ? number_format($day->previous_day_range, 2) : '—' }}
+                                </td>
+
+                                <td class="px-4 py-3 text-right font-mono text-violet-300 text-xs">
+                                    {{ $day->gap_pct_prev_range !== null ? number_format($day->gap_pct_prev_range, 2) . '%' : '—' }}
+                                </td>
+
                                 {{-- Day P&L --}}
                                 <td class="px-4 py-3 text-right">
                             <span class="font-bold font-mono
@@ -1289,8 +1382,11 @@
                         {{-- Footer --}}
                         <tfoot>
                         <tr class="bg-gray-800/60 border-t-2 border-gray-700 text-xs font-semibold">
-                            <td colspan="7" class="px-4 py-2.5 text-gray-500 uppercase tracking-wider">
+                            <td colspan="6" class="px-4 py-2.5 text-gray-500 uppercase tracking-wider">
                                 Page total ({{ $days->count() }} days)
+                            </td>
+                            <td class="px-4 py-2.5 text-right font-mono font-bold text-teal-400">
+                                {{ number_format($days->avg('gap_used') ?? 0, 1) }}
                             </td>
                             <td class="px-4 py-2.5 text-right font-mono font-bold
                             {{ $days->sum('day_total_pnl') >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
