@@ -8,123 +8,122 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 
-class OhlcChartController extends Controller
-{
+class OhlcChartController extends Controller {
     // ── Configurable interval ────────────────────────────────────────────────
-    const STEP_INTERVAL    = '5minute';
-    const STEP_MINUTES     = 5;
+    const STEP_INTERVAL = '5minute';
+    const STEP_MINUTES = 5;
     const STEP_MARKET_START = '09:15';
-    const STEP_MARKET_END   = '15:30';
+    const STEP_MARKET_END = '15:30';
 
-    public function index()
-    {
+    public function index() {
         // initial page – you can preload symbols or dates if needed
-        return view('options-chart');
+        return view( 'options-chart' );
     }
 
-    public function expiries(Request $request)
-    {
-        $request->validate([
+    public function expiries( Request $request ) {
+        $request->validate( [
             'underlying_symbol' => 'required|string',
             'date'              => 'required|date',
-        ]);
+        ] );
 
         $symbol = $request->underlying_symbol;
         $date   = $request->date;
-        [$prevDay, $spot] = $this->getPrevDayAndSpot($symbol, $date);
+        [ $prevDay, $spot ] = $this->getPrevDayAndSpot( $symbol, $date );
 
         // build full-day range for the selected date
-        $startOfDay = $date.' 00:00:00';
-        $endOfDay   = $date.' 23:59:59';
+        $startOfDay = $date . ' 00:00:00';
+        $endOfDay   = $date . ' 23:59:59';
 
-        $expiries = DB::table('expired_ohlc')
-                      ->where('underlying_symbol', $symbol)
-                      ->where('expiry', '>=', $startOfDay)
-                      ->where('timestamp', '>=', $startOfDay)
-                      ->where('timestamp', '<=', $endOfDay)
-                      ->limit(1)
-                      ->pluck('expiry');
+        $expiries = DB::table( 'expired_ohlc' )
+                      ->where( 'underlying_symbol', $symbol )
+                      ->where( 'expiry', '>=', $startOfDay )
+                      ->where( 'timestamp', '>=', $startOfDay )
+                      ->where( 'timestamp', '<=', $endOfDay )
+                      ->limit( 1 )
+                      ->pluck( 'expiry' );
 
 
         $atmStrike    = null;
         $expiryForAtm = $expiries->first();
 
-        if ($expiryForAtm) {
+        if ( $expiryForAtm ) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
+            $atmStrike = $this->getAtmStrikeForDay( $symbol, $expiryForAtm, $date, $prevDay );
         }
 
-        return response()->json([
+        return response()->json( [
             'expiries'   => $expiries,
             'spot'       => $spot,
             'atm_strike' => $atmStrike,
-        ]);
+        ] );
     }
 
-    protected function getPrevDayAndSpot(string $symbol, string $date): array
-    {
+    protected function getPrevDayAndSpot( string $symbol, string $date ): array {
         // previous working day from nse_working_days
-        $prevDay = DB::table('nse_working_days')
-                     ->where('working_date', '<', $date)
-                     ->orderBy('working_date', 'desc')
-                     ->value('working_date');
+        $prevDay = DB::table( 'nse_working_days' )
+                     ->where( 'working_date', '<', $date )
+                     ->orderBy( 'working_date', 'desc' )
+                     ->value( 'working_date' );
 
-        if ( ! $prevDay) {
-            return [null, null];
+        if ( ! $prevDay ) {
+            return [ null, null ];
         }
 
         // spot = previous day close of index (interval 'day')
-        $spot = DB::table('expired_ohlc')
-                  ->where('underlying_symbol', $symbol)
-                  ->where('instrument_type', 'INDEX')
-                  ->where('interval', 'day')
-                  ->whereDate('timestamp', $prevDay)
-                  ->value('close');
+        $spot = DB::table( 'expired_ohlc' )
+                  ->where( 'underlying_symbol', $symbol )
+                  ->where( 'instrument_type', 'INDEX' )
+                  ->where( 'interval', 'day' )
+                  ->whereDate( 'timestamp', $prevDay )
+                  ->value( 'close' );
 
-        return [$prevDay, $spot ? (float) $spot : null];
+        return [ $prevDay, $spot ? (float) $spot : null ];
     }
 
-    protected function getAtmStrikeForDay(string $symbol, string $expiry, string $date, string $prevDay = ''): ?int
-    {
-        return DB::table('daily_trend')
-                 ->where('symbol_name', $symbol)
-                 ->where('quote_date', $date)->value('strike');
+    protected function getAtmStrikeForDay( string $symbol, string $expiry, string $date, string $prevDay = '' ): ?int {
+        return DB::table( 'nse_atm_day_data' )
+                 ->where( 'underlying_symbol', $symbol )
+                 ->where( 'current_date', $date )->value( 'atm_strike' );
+
+//        return DB::table('daily_trend')
+//                 ->where('symbol_name', $symbol)
+//                 ->where('quote_date', $date)->value('strike');
 
         // all CE daily bars for that day
-        $ceRows = DB::table('expired_ohlc')
-                    ->where('underlying_symbol', $symbol)
-                    ->whereDate('expiry', $expiry)
-                    ->where('instrument_type', 'CE')
-                    ->where('interval', 'day')
-                    ->whereDate('timestamp', $date)
-                    ->get(['strike', 'close']);
+        $ceRows = DB::table( 'expired_ohlc' )
+                    ->where( 'underlying_symbol', $symbol )
+                    ->whereDate( 'expiry', $expiry )
+                    ->where( 'instrument_type', 'CE' )
+                    ->where( 'interval', 'day' )
+                    ->whereDate( 'timestamp', $date )
+                    ->get( [ 'strike', 'close' ] );
 
-        if ($ceRows->isEmpty()) {
+        if ( $ceRows->isEmpty() ) {
             return null;
         }
 
         // all PE daily bars for that day, keyed by strike
-        $peRows = DB::table('expired_ohlc')
-                    ->where('underlying_symbol', $symbol)
-                    ->whereDate('expiry', $expiry)
-                    ->where('instrument_type', 'PE')
-                    ->where('interval', 'day')
-                    ->whereDate('timestamp', $date)
-                    ->get(['strike', 'close'])
-                    ->keyBy('strike');
+        $peRows = DB::table( 'expired_ohlc' )
+                    ->where( 'underlying_symbol', $symbol )
+                    ->whereDate( 'expiry', $expiry )
+                    ->where( 'instrument_type', 'PE' )
+                    ->where( 'interval', 'day' )
+                    ->whereDate( 'timestamp', $date )
+                    ->get( [ 'strike', 'close' ] )
+                    ->keyBy( 'strike' );
 
         $bestStrike = null;
         $bestDiff   = null;
 
-        foreach ($ceRows as $ce) {
+        foreach ( $ceRows as $ce ) {
             $strike = (int) $ce->strike;
-            $pe     = $peRows->get($strike);
-            if ( ! $pe) {
+            $pe     = $peRows->get( $strike );
+            if ( ! $pe ) {
                 continue; // no matching PE for this strike
             }
 
-            $diff = abs((float) $ce->close - (float) $pe->close);
-            if ($bestDiff === null || $diff < $bestDiff) {
+            $diff = abs( (float) $ce->close - (float) $pe->close );
+            if ( $bestDiff === null || $diff < $bestDiff ) {
                 $bestDiff   = $diff;
                 $bestStrike = $strike;
             }
@@ -134,15 +133,14 @@ class OhlcChartController extends Controller
     }
 
 
-    public function ohlc(Request $request)
-    {
-        $request->validate([
+    public function ohlc( Request $request ) {
+        $request->validate( [
             'underlying_symbol' => 'required|string',
             'expiry'            => 'required|date',
             'date'              => 'required|date',
             'ce_instrument_key' => 'required|string',
             'pe_instrument_key' => 'required|string',
-        ]);
+        ] );
 
 //        $symbol = 'NIFTY';
 //        $expiry = '2025-11-25';
@@ -158,61 +156,61 @@ class OhlcChartController extends Controller
 
         // previous working day (for backtesting – ignore `current`/`previous` flags)
         $prevDate = $date;
-        DB::table('nse_working_days')
-          ->where('working_date', '<', $date)
-          ->orderBy('working_date', 'desc')
-          ->value('working_date');   // null if no earlier day
+        DB::table( 'nse_working_days' )
+          ->where( 'working_date', '<', $date )
+          ->orderBy( 'working_date', 'desc' )
+          ->value( 'working_date' );   // null if no earlier day
 
         // base for selected day
-        $baseToday = DB::table('expired_ohlc')
-                       ->where('underlying_symbol', $symbol)
-                       ->where('expiry', $expiry)
-                       ->where('interval', '5minute')
-                       ->whereDate('timestamp', $date)
-                       ->orderBy('timestamp', 'asc');
+        $baseToday = DB::table( 'expired_ohlc' )
+                       ->where( 'underlying_symbol', $symbol )
+                       ->where( 'expiry', $expiry )
+                       ->where( 'interval', '5minute' )
+                       ->whereDate( 'timestamp', $date )
+                       ->orderBy( 'timestamp', 'asc' );
 
-        $ceToday = (clone $baseToday)
-            ->where('strike', $ceKey)
-            ->where('instrument_type', 'CE')
-            ->select('open','high','low','close','timestamp')
-            ->groupBy('timestamp','open','high','low','close') // or better: groupBy('timestamp') with aggregates
-            ->orderBy('timestamp','asc')
+        $ceToday = ( clone $baseToday )
+            ->where( 'strike', $ceKey )
+            ->where( 'instrument_type', 'CE' )
+            ->select( 'open', 'high', 'low', 'close', 'timestamp' )
+            ->groupBy( 'timestamp', 'open', 'high', 'low', 'close' ) // or better: groupBy('timestamp') with aggregates
+            ->orderBy( 'timestamp', 'asc' )
             ->get();
 
-        $peToday = (clone $baseToday)
-            ->where('strike', $peKey)
-            ->where('instrument_type', 'PE')
-            ->select('open','high','low','close','timestamp')
-            ->groupBy('timestamp','open','high','low','close') // or better: groupBy('timestamp') with aggregates
-            ->orderBy('timestamp','asc')
+        $peToday = ( clone $baseToday )
+            ->where( 'strike', $peKey )
+            ->where( 'instrument_type', 'PE' )
+            ->select( 'open', 'high', 'low', 'close', 'timestamp' )
+            ->groupBy( 'timestamp', 'open', 'high', 'low', 'close' ) // or better: groupBy('timestamp') with aggregates
+            ->orderBy( 'timestamp', 'asc' )
             ->get();
         // previous working day data
         $cePrev = collect();
         $pePrev = collect();
 
 
-        if ($prevDate) {
-            $basePrev = DB::table('expired_ohlc')
-                          ->where('underlying_symbol', $symbol)
-                          ->where('expiry', $expiry)
-                          ->where('interval', '5minute')
-                          ->whereDate('timestamp', $prevDate)
-                          ->orderBy('timestamp', 'asc');
+        if ( $prevDate ) {
+            $basePrev = DB::table( 'expired_ohlc' )
+                          ->where( 'underlying_symbol', $symbol )
+                          ->where( 'expiry', $expiry )
+                          ->where( 'interval', '5minute' )
+                          ->whereDate( 'timestamp', $prevDate )
+                          ->orderBy( 'timestamp', 'asc' );
 
-            $cePrev = (clone $basePrev)
-                ->where('strike', $ceKey)
-                ->where('instrument_type', 'CE')
-                ->get(['open', 'high', 'low', 'close', 'timestamp']);
+            $cePrev = ( clone $basePrev )
+                ->where( 'strike', $ceKey )
+                ->where( 'instrument_type', 'CE' )
+                ->get( [ 'open', 'high', 'low', 'close', 'timestamp' ] );
 
-            $pePrev = (clone $basePrev)
-                ->where('strike', $peKey)
-                ->where('instrument_type', 'PE')
-                ->get(['open', 'high', 'low', 'close', 'timestamp']);
+            $pePrev = ( clone $basePrev )
+                ->where( 'strike', $peKey )
+                ->where( 'instrument_type', 'PE' )
+                ->get( [ 'open', 'high', 'low', 'close', 'timestamp' ] );
         }
 
 
-        $map = fn($row) => [
-            'time'  => strtotime($row->timestamp),
+        $map = fn( $row ) => [
+            'time'  => strtotime( $row->timestamp ),
             'open'  => (float) $row->open,
             'high'  => (float) $row->high,
             'low'   => (float) $row->low,
@@ -223,8 +221,8 @@ class OhlcChartController extends Controller
         $prevOhlcCe = $cePrev->isNotEmpty()
             ? [
                 'open'  => (float) $cePrev->first()->open,
-                'high'  => (float) $cePrev->max('high'),
-                'low'   => (float) $cePrev->min('low'),
+                'high'  => (float) $cePrev->max( 'high' ),
+                'low'   => (float) $cePrev->min( 'low' ),
                 'close' => (float) $cePrev->last()->close,
             ]
             : null;
@@ -232,37 +230,36 @@ class OhlcChartController extends Controller
         $prevOhlcPe = $pePrev->isNotEmpty()
             ? [
                 'open'  => (float) $pePrev->first()->open,
-                'high'  => (float) $pePrev->max('high'),
-                'low'   => (float) $pePrev->min('low'),
+                'high'  => (float) $pePrev->max( 'high' ),
+                'low'   => (float) $pePrev->min( 'low' ),
                 'close' => (float) $pePrev->last()->close,
             ]
             : null;
 
-        return response()->json([
+        return response()->json( [
             'prev_date'    => $prevDate,
-            'ce_today'     => $ceToday->map($map)->values(),
-            'pe_today'     => $peToday->map($map)->values(),
-            'ce_prev'      => $cePrev->map($map)->values(),
-            'pe_prev'      => $pePrev->map($map)->values(),
+            'ce_today'     => $ceToday->map( $map )->values(),
+            'pe_today'     => $peToday->map( $map )->values(),
+            'ce_prev'      => $cePrev->map( $map )->values(),
+            'pe_prev'      => $pePrev->map( $map )->values(),
             'ce_prev_ohlc' => $prevOhlcCe,
             'pe_prev_ohlc' => $prevOhlcPe,
-        ]);
+        ] );
     }
 
-    public function multiExpiries(Request $request)
-    {
-        $request->validate([
+    public function multiExpiries( Request $request ) {
+        $request->validate( [
             'underlying_symbol' => 'required|string',
             'date'              => 'required|date',
-        ]);
+        ] );
 
         $symbol = $request->underlying_symbol;
         $date   = $request->date;
-        [$prevDay, $spot] = $this->getPrevDayAndSpot($symbol, $date);
+        [ $prevDay, $spot ] = $this->getPrevDayAndSpot( $symbol, $date );
 
         // build full-day range for the selected date
-        $startOfDay = $date.' 00:00:00';
-        $endOfDay   = $date.' 23:59:59';
+        $startOfDay = $date . ' 00:00:00';
+        $endOfDay   = $date . ' 23:59:59';
 
 //        $expiries = DB::table('expired_ohlc')
 //                      ->where('underlying_symbol', $symbol)
@@ -272,76 +269,83 @@ class OhlcChartController extends Controller
 //                      ->limit(1)
 //                      ->pluck('expiry');
 
-        $expiryForAtm = DB::table('expired_expiries')
-                          ->where('underlying_symbol', $symbol)
-                          ->where('instrument_type', 'OPT')
-                          ->where('expiry_date', '>=', $date)
-                          ->orderBy('expiry_date')
-                          ->value('expiry_date');
+        $expiryForAtm = DB::table( 'expired_expiries' )
+                          ->where( 'underlying_symbol', $symbol )
+                          ->where( 'instrument_type', 'OPT' )
+                          ->where( 'expiry_date', '>=', $date )
+                          ->orderBy( 'expiry_date' )
+                          ->value( 'expiry_date' );
 
-        $atmStrike    = null;
-        if ($expiryForAtm) {
+        $atmStrike = null;
+        if ( $expiryForAtm ) {
             // use same date (or $prevDay) depending on how you define ATM day
-            $atmStrike = $this->getAtmStrikeForDay($symbol, $expiryForAtm, $date, $prevDay);
+            $atmStrike = $this->getAtmStrikeForDay( $symbol, $expiryForAtm, $date, $prevDay );
         }
 
-        $trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $prevDay)->first();
+        //$trend = DB::table('daily_trend')->where('symbol_name', $request->underlying_symbol)->where('quote_date', $prevDay)->first();
+        $trend = DB::table( 'nse_atm_day_data' )->where( 'underlying_symbol', $request->underlying_symbol )->where( 'current_date', $date )->first();
 
-        return response()->json([
-            'expiries'        => [$expiryForAtm],
+        return response()->json( [
+            'expiries'        => [ $expiryForAtm ],
             'spot'            => $spot,
             'atm_strike'      => $atmStrike,
-            'open_atm_strike' => $trend->atm_index_open,
-        ]);
+            'open_atm_strike' => 50 * floor( $trend->current_day_index_open / 50 ),
+            'date'            => $date,
+        ] );
 
 
     }
 
-    public function multiIndex(Request $request)
-    {
+    public function multiIndex( Request $request ) {
         // allow empty filters (empty page with just filters)
-        $request->validate([
+        $request->validate( [
             'symbol'      => 'nullable|string',
             'quote_date'  => 'nullable|date',
             'expiry_date' => 'nullable|date',
             'ce_strikes'  => 'nullable|array',
             'pe_strikes'  => 'nullable|array',
-        ]);
+        ] );
 
-        $symbol     = $request->input('symbol');
-        $quoteDate  = $request->input('quote_date');
-        $expiryDate = $request->input('expiry_date');
+        $symbol     = $request->input( 'symbol' );
+        $quoteDate  = $request->input( 'quote_date' );
+        $expiryDate = $request->input( 'expiry_date' );
 
-        $trend            = null;
-        $atmIndexOpen     = null;
-        $baseStrikes      = [];
-        $ceStrikes        = [];
-        $peStrikes        = [];
-        $avgAtm           = null;
-        $avgAll           = null;
+        $trend         = null;
+        $atmIndexOpen  = null;
+        $baseStrikes   = [];
+        $ceStrikes     = [];
+        $peStrikes     = [];
+        $avgAtm        = null;
+        $avgAll        = null;
         $prevMidPoints = [];
 
         // new data for right‑side table
-        $saturation = (float) $request->input('saturation', 5);   // adjustable +/- X
+        $saturation = (float) $request->input( 'saturation', 5 );   // adjustable +/- X
         $diffMatrix = [];   // [time => [strike => ['diff' => float, 'ce_high' => ..., ...]]]
         $timeSlots  = [];   // ordered unique 5‑minute times (Carbon strings)
         $allStrikes = [];   // merged CE + PE strikes for header
 
-        if ($symbol && $quoteDate && $expiryDate) {
-            $getExpiryFromDate = DB::table('expired_expiries')
-                                   ->where('underlying_symbol', $symbol)
-                                   ->where('instrument_type', 'OPT')
-                                   ->where('expiry_date', '<', $expiryDate)
-                                   ->orderByDesc('expiry_date')->value('expiry_date');
+        if ( $symbol && $quoteDate && $expiryDate ) {
+            $getExpiryFromDate = DB::table( 'expired_expiries' )
+                                   ->where( 'underlying_symbol', $symbol )
+                                   ->where( 'instrument_type', 'OPT' )
+                                   ->where( 'expiry_date', '<', $expiryDate )
+                                   ->orderByDesc( 'expiry_date' )->value( 'expiry_date' );
 
-            $trends        = DB::table('daily_trend')
-                               ->where('symbol_name', $symbol)
-                               ->whereBetween('quote_date', [$getExpiryFromDate, $quoteDate])
-                               ->where('expiry_date', $expiryDate)->orderByDesc('id')
-                               ->get();
+//            $trends        = DB::table('daily_trend')
+//                               ->where('symbol_name', $symbol)
+//                               ->whereBetween('quote_date', [$getExpiryFromDate, $quoteDate])
+//                               ->where('expiry_date', $expiryDate)->orderByDesc('id')
+//                               ->get();
 
-            foreach ($trends as $index => $_trend) {
-                if (0 === $index) {
+            $trends = DB::table( 'nse_atm_day_data' )
+                        ->where( 'underlying_symbol', $symbol )
+                        ->whereBetween( 'current_date', [ $getExpiryFromDate, $quoteDate ] )
+                        ->where( 'current_expiry_date', $expiryDate )->orderByDesc( 'id' )
+                        ->get();
+
+            foreach ( $trends as $index => $_trend ) {
+                if ( 0 === $index ) {
                     $trend = $_trend;
                 } else {
                     $prevMidPoints[] = $_trend->mid_point;
@@ -349,14 +353,14 @@ class OhlcChartController extends Controller
             }
 
 
-            if ($trend) {
-                $atmIndexOpen = (float) $trend->atm_index_open;
+            if ( $trend ) {
+                $atmIndexOpen = (float) $trend->current_day_index_open;
                 $step         = 50;
 
                 $snipperPoint = $trend->mid_point;
 
 
-                $snipperSaturation = (float) $request->input('snipper_saturation', 10);
+                $snipperSaturation = (float) $request->input( 'snipper_saturation', 10 );
 
                 // default ±2 strikes around atm_index_open
                 $baseStrikes = [
@@ -370,35 +374,35 @@ class OhlcChartController extends Controller
                 ];
 
                 // apply your validation / override logic
-                $ceStrikes = $request->has('ce_strikes')
+                $ceStrikes = $request->has( 'ce_strikes' )
                     ? array_map(
                         'floatval',
                         array_filter(
-                            $request->input('ce_strikes'),
-                            fn($v) => $v !== null && $v !== ''
+                            $request->input( 'ce_strikes' ),
+                            fn( $v ) => $v !== null && $v !== ''
                         )
                     )
                     : $baseStrikes;
 
-                $peStrikes = $request->has('pe_strikes')
+                $peStrikes = $request->has( 'pe_strikes' )
                     ? array_map(
                         'floatval',
                         array_filter(
-                            $request->input('pe_strikes'),
-                            fn($v) => $v !== null && $v !== ''
+                            $request->input( 'pe_strikes' ),
+                            fn( $v ) => $v !== null && $v !== ''
                         )
                     )
                     : $baseStrikes;
 
                 // if user partially cleared all inputs, fall back to defaults
-                if (empty($ceStrikes)) {
+                if ( empty( $ceStrikes ) ) {
                     $ceStrikes = $baseStrikes;
                 }
-                if (empty($peStrikes)) {
+                if ( empty( $peStrikes ) ) {
                     $peStrikes = $baseStrikes;
                 }
 
-                $avgAtm = ((float) $trend->atm_ce_close + (float) $trend->atm_pe_close) / 2;
+                $avgAtm = ( (float) $trend->previous_day_ce_close + (float) $trend->previous_day_pe_close ) / 2;
                 $avgAll = (float) $snipperPoint;
 
                 /**
@@ -409,58 +413,58 @@ class OhlcChartController extends Controller
                  *   diff2 = PE_high - CE_low
                  * Keep the smallest absolute diff that is within +/- saturation.
                  */
-                $allStrikes = array_values(array_unique(array_merge($ceStrikes, $peStrikes)));
-                sort($allStrikes);
+                $allStrikes = array_values( array_unique( array_merge( $ceStrikes, $peStrikes ) ) );
+                sort( $allStrikes );
 
-                if ( ! empty($allStrikes)) {
-                    $base = DB::table('expired_ohlc')
-                              ->where('underlying_symbol', $symbol)
-                              ->where('expiry', $expiryDate)
-                              ->where('interval', '5minute')
-                              ->whereDate('timestamp', $quoteDate)
-                              ->orderBy('timestamp', 'asc');
+                if ( ! empty( $allStrikes ) ) {
+                    $base = DB::table( 'expired_ohlc' )
+                              ->where( 'underlying_symbol', $symbol )
+                              ->where( 'expiry', $expiryDate )
+                              ->where( 'interval', '5minute' )
+                              ->whereDate( 'timestamp', $quoteDate )
+                              ->orderBy( 'timestamp', 'asc' );
 
                     // pull all CE rows for relevant strikes
-                    $ceRows = (clone $base)
-                        ->where('instrument_type', 'CE')
-                        ->whereIn('strike', $allStrikes)
-                        ->get(['strike', 'open', 'high', 'low', 'close', 'timestamp']);
+                    $ceRows = ( clone $base )
+                        ->where( 'instrument_type', 'CE' )
+                        ->whereIn( 'strike', $allStrikes )
+                        ->get( [ 'strike', 'open', 'high', 'low', 'close', 'timestamp' ] );
 
                     // pull all PE rows for relevant strikes
-                    $peRows = (clone $base)
-                        ->where('instrument_type', 'PE')
-                        ->whereIn('strike', $allStrikes)
-                        ->get(['strike', 'open', 'high', 'low', 'close', 'timestamp']);
+                    $peRows = ( clone $base )
+                        ->where( 'instrument_type', 'PE' )
+                        ->whereIn( 'strike', $allStrikes )
+                        ->get( [ 'strike', 'open', 'high', 'low', 'close', 'timestamp' ] );
 
                     // group by [time => [strike => row]]
                     $ceGrouped = [];
-                    foreach ($ceRows as $row) {
-                        $timeKey                                   = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
-                        $ceGrouped[$timeKey][(float) $row->strike] = $row;
+                    foreach ( $ceRows as $row ) {
+                        $timeKey                                       = \Carbon\Carbon::parse( $row->timestamp )->format( 'H:i' );
+                        $ceGrouped[ $timeKey ][ (float) $row->strike ] = $row;
                     }
 
                     $peGrouped = [];
-                    foreach ($peRows as $row) {
-                        $timeKey                                   = \Carbon\Carbon::parse($row->timestamp)->format('H:i');
-                        $peGrouped[$timeKey][(float) $row->strike] = $row;
+                    foreach ( $peRows as $row ) {
+                        $timeKey                                       = \Carbon\Carbon::parse( $row->timestamp )->format( 'H:i' );
+                        $peGrouped[ $timeKey ][ (float) $row->strike ] = $row;
                     }
 
                     // we care only about trading time window 09:15–15:30
-                    $start = \Carbon\Carbon::parse($quoteDate.' 09:15:00');
-                    $end   = \Carbon\Carbon::parse($quoteDate.' 15:30:00');
+                    $start = \Carbon\Carbon::parse( $quoteDate . ' 09:15:00' );
+                    $end   = \Carbon\Carbon::parse( $quoteDate . ' 15:30:00' );
 
                     $cursor = $start->copy();
-                    while ($cursor <= $end) {
-                        $timeKey     = $cursor->format('H:i');
+                    while ( $cursor <= $end ) {
+                        $timeKey     = $cursor->format( 'H:i' );
                         $timeSlots[] = $timeKey;
 
-                        foreach ($allStrikes as $strike) {
+                        foreach ( $allStrikes as $strike ) {
                             $strike = (float) $strike;
 
-                            $ce = $ceGrouped[$timeKey][$strike] ?? null;
-                            $pe = $peGrouped[$timeKey][$strike] ?? null;
+                            $ce = $ceGrouped[ $timeKey ][ $strike ] ?? null;
+                            $pe = $peGrouped[ $timeKey ][ $strike ] ?? null;
 
-                            if ( ! $ce || ! $pe) {
+                            if ( ! $ce || ! $pe ) {
                                 continue;
                             }
 
@@ -495,8 +499,8 @@ class OhlcChartController extends Controller
                              *     - for PE use High & Close
                              */
 
-                            if ($ceOpen > $peOpen) {
-                                if ($ceSide === 'green') {
+                            if ( $ceOpen > $peOpen ) {
+                                if ( $ceSide === 'green' ) {
                                     // CE higher, CE green
                                     // Build all combinations you care about:
                                     $combos = [
@@ -537,10 +541,10 @@ class OhlcChartController extends Controller
                                 }
 
                                 // evaluate all CE‑higher combos
-                                foreach ($combos as $c) {
+                                foreach ( $combos as $c ) {
                                     $diff = $c['left_val'] - $c['right_val'];
 
-                                    if (abs($diff) > $saturation) {
+                                    if ( abs( $diff ) > $saturation ) {
                                         continue;
                                     }
 
@@ -574,8 +578,8 @@ class OhlcChartController extends Controller
                              *  - PE higher & PE red:   use PE Close & Low, CE High & Close
                              */
 
-                            if ($peOpen > $ceOpen) {
-                                if ($peSide === 'green') {
+                            if ( $peOpen > $ceOpen ) {
+                                if ( $peSide === 'green' ) {
                                     $combos = [
                                         [
                                             'left_val'  => $ceHigh,
@@ -602,7 +606,8 @@ class OhlcChartController extends Controller
                                             'left_src'  => 'C-H',   // CE close
                                             'right_src' => 'P-L',   // PE high
                                             'direction' => 'PE_SELL',
-                                        ], [
+                                        ],
+                                        [
                                             'left_val'  => $ceLow,
                                             'right_val' => $peLow,
                                             'left_src'  => 'C-L',   // CE close
@@ -614,13 +619,13 @@ class OhlcChartController extends Controller
                                 }
 
                                 // evaluate all PE‑higher combos
-                                foreach ($combos as $c) {
+                                foreach ( $combos as $c ) {
                                     $leftVal  = $c['left_val'];   // e.g. 71.9
                                     $rightVal = $c['right_val'];  // e.g. 72.2
                                     $diff     = $leftVal - $rightVal;
 
 // main saturation filter
-                                    if (abs($diff) > $saturation) {
+                                    if ( abs( $diff ) > $saturation ) {
                                         continue;
                                     }
 
@@ -630,8 +635,8 @@ class OhlcChartController extends Controller
 
 // require at least ONE side to be within snipper band
                                     if (
-                                        abs($leftValSnipper) > $snipperSaturation &&
-                                        abs($rightValSnipper) > $snipperSaturation
+                                        abs( $leftValSnipper ) > $snipperSaturation &&
+                                        abs( $rightValSnipper ) > $snipperSaturation
                                     ) {
                                         // both far from snipperPoint -> skip cell entirely
                                         continue;
@@ -665,8 +670,8 @@ class OhlcChartController extends Controller
                             }
 
                             // pick best candidate (lowest abs diff) for this time & strike
-                            if ( ! empty($candidates)) {
-                                usort($candidates, fn($a, $b) => abs($a['diff']) <=> abs($b['diff']));
+                            if ( ! empty( $candidates ) ) {
+                                usort( $candidates, fn( $a, $b ) => abs( $a['diff'] ) <=> abs( $b['diff'] ) );
                                 $best = $candidates[0];
 
                                 // MAIN + SNIPPER FILTER (runs for ALL branches)
@@ -677,10 +682,10 @@ class OhlcChartController extends Controller
                                 $rightValSnipper = $rightVal - $snipperPoint;
 
                                 if (
-                                    abs($best['diff']) <= $saturation &&
+                                    abs( $best['diff'] ) <= $saturation &&
                                     (
-                                        abs($leftValSnipper) <= $snipperSaturation ||
-                                        abs($rightValSnipper) <= $snipperSaturation
+                                        abs( $leftValSnipper ) <= $snipperSaturation ||
+                                        abs( $rightValSnipper ) <= $snipperSaturation
                                     )
                                 ) {
                                     // only cells passing both conditions are stored
@@ -689,22 +694,22 @@ class OhlcChartController extends Controller
                                     $best['snipper_point'] = $snipperPoint;
                                     $best['snipper_sat']   = $snipperSaturation;
 
-                                    $diffMatrix[$timeKey][$strike] = $best;
+                                    $diffMatrix[ $timeKey ][ $strike ] = $best;
                                 }
                             }
                         }
 
 
-                        $cursor->addMinutes(5);
+                        $cursor->addMinutes( 5 );
                     }
 
                     // ensure unique ordered time slots
-                    $timeSlots = array_values(array_unique($timeSlots));
+                    $timeSlots = array_values( array_unique( $timeSlots ) );
                 }
             }
         }
 
-        return view('options-chart-multi', [
+        return view( 'options-chart-multi', [
             'symbol'            => $symbol,
             'quoteDate'         => $quoteDate,
             'expiryDate'        => $expiryDate,
@@ -721,47 +726,45 @@ class OhlcChartController extends Controller
             'diffMatrix'        => $diffMatrix,
             'timeSlots'         => $timeSlots,
             'allStrikes'        => $allStrikes,
-        ]);
+        ] );
     }
 
     /**
      * Page load — filter form only, no charts yet.
      */
-    public function chartStepIndex(Request $request)
-    {
-        $request->validate([
+    public function chartStepIndex( Request $request ) {
+        $request->validate( [
             'symbol'     => 'nullable|string',
             'quote_date' => 'nullable|date',
             'expiry'     => 'nullable|date',
             'strikes'    => 'nullable|array|max:6',
             'strikes.*'  => 'nullable|numeric',
             'saturation' => 'nullable|numeric',
-        ]);
+        ] );
 
         $strikes = array_filter(
-            (array) $request->input('strikes', []),
-            fn($v) => $v !== null && $v !== ''
+            (array) $request->input( 'strikes', [] ),
+            fn( $v ) => $v !== null && $v !== ''
         );
-        $strikes = array_map('floatval', array_values($strikes));
+        $strikes = array_map( 'floatval', array_values( $strikes ) );
 
-        return view('test.options-chart-step', [
-            'symbol'     => $request->input('symbol', 'NIFTY'),
-            'quote_date' => $request->input('quote_date'),
-            'expiry'     => $request->input('expiry'),
+        return view( 'test.options-chart-step', [
+            'symbol'     => $request->input( 'symbol', 'NIFTY' ),
+            'quote_date' => $request->input( 'quote_date' ),
+            'expiry'     => $request->input( 'expiry' ),
             'strikes'    => $strikes,
-            'saturation' => (float) $request->input('saturation', 5),
+            'saturation' => (float) $request->input( 'saturation', 5 ),
             'slots'      => $this->buildChartSlots(),
             'interval'   => self::STEP_INTERVAL,
-        ]);
+        ] );
     }
 
     /**
      * AJAX — returns OHLC data for ALL strikes for a single time slot.
      * Front-end renders a chart per strike.
      */
-    public function chartStepSlot(Request $request)
-    {
-        $request->validate([
+    public function chartStepSlot( Request $request ) {
+        $request->validate( [
             'symbol'     => 'required|string',
             'quote_date' => 'required|date',
             'expiry'     => 'required|date',
@@ -769,52 +772,56 @@ class OhlcChartController extends Controller
             'strikes.*'  => 'required|numeric',
             'slot_index' => 'required|integer|min:0',
             'saturation' => 'nullable|numeric',
-        ]);
+        ] );
 
-        $symbol     = $request->input('symbol');
-        $date       = $request->input('quote_date');
-        $expiry     = $request->input('expiry');
-        $strikes    = array_map('floatval', $request->input('strikes'));
-        $slotIdx    = (int) $request->input('slot_index');
-        $saturation = (float) $request->input('saturation', 5);
+        $symbol     = $request->input( 'symbol' );
+        $date       = $request->input( 'quote_date' );
+        $expiry     = $request->input( 'expiry' );
+        $strikes    = array_map( 'floatval', $request->input( 'strikes' ) );
+        $slotIdx    = (int) $request->input( 'slot_index' );
+        $saturation = (float) $request->input( 'saturation', 5 );
 
         $slots = $this->buildChartSlots();
 
-        if (! isset($slots[$slotIdx])) {
-            return response()->json(['error' => 'Invalid slot index'], 422);
+        if ( ! isset( $slots[ $slotIdx ] ) ) {
+            return response()->json( [ 'error' => 'Invalid slot index' ], 422 );
         }
 
-        $currSlot = $slots[$slotIdx]; // e.g. "09:20"
+        $currSlot = $slots[ $slotIdx ]; // e.g. "09:20"
 
         // ── avgAtm from daily_trend ───────────────────────────────────────────
-        $trend  = DB::table('daily_trend')
-                    ->where('symbol_name', $symbol)
-                    ->where('quote_date', $date)
-                    ->where('expiry_date', $expiry)
-                    ->first();
+//        $trend  = DB::table('daily_trend')
+//                    ->where('symbol_name', $symbol)
+//                    ->where('quote_date', $date)
+//                    ->where('expiry_date', $expiry)
+//                    ->first();
 
-        $avgAtm       = $trend ? round(((float)$trend->atm_ce_close + (float)$trend->atm_pe_close) / 2, 2) : null;
-        $snipperPoint = $trend ? (float) $trend->mid_point : null;
-        $snipperSat   = (float) $request->input('snipper_saturation', 10);
+        $trend = DB::table( 'nse_atm_day_data' )
+                   ->where( 'underlying_symbol', $symbol )
+                   ->where( 'current_date', $date )
+                   ->where( 'current_expiry_date', $expiry )
+                   ->first();
+
+        $avgAtm = (float) $trend->mid_point;
 
         // ── Fetch candles from 09:15 up to current slot ───────────────────────
-        $rows = DB::table('expired_ohlc')
-                  ->where('underlying_symbol', $symbol)
-                  ->where('expiry', $expiry)
-                  ->where('interval', self::STEP_INTERVAL)
-                  ->whereDate('timestamp', $date)
-                  ->whereIn('strike', $strikes)
-                  ->whereIn('instrument_type', ['CE', 'PE'])
-                  ->whereRaw("TIME(timestamp) <= ?", [$currSlot . ':00'])
-                  ->orderBy('timestamp', 'asc')
+        $rows = DB::table( 'expired_ohlc' )
+                  ->where( 'underlying_symbol', $symbol )
+                  ->where( 'expiry', $expiry )
+                  ->where( 'interval', self::STEP_INTERVAL )
+                  ->whereDate( 'timestamp', $date )
+                  ->whereIn( 'strike', $strikes )
+                  ->whereIn( 'instrument_type', [ 'CE', 'PE' ] )
+                  ->whereRaw( "TIME(timestamp) <= ?", [ $currSlot . ':00' ] )
+                  ->orderBy( 'timestamp', 'asc' )
                   ->distinct()
-                  ->get(['strike', 'instrument_type', 'open', 'high', 'low', 'close', 'volume', 'open_interest', 'timestamp']);
+                  ->get( [ 'strike', 'instrument_type', 'open', 'high', 'low', 'close', 'volume', 'open_interest', 'timestamp' ] );
 
         // ── Group: [strike][type][] = candle array ────────────────────────────
         $grouped = [];
-        foreach ($rows as $row) {
-            $grouped[(float)$row->strike][$row->instrument_type][] = [
-                'time'  => strtotime($row->timestamp),
+        foreach ( $rows as $row ) {
+            $grouped[ (float) $row->strike ][ $row->instrument_type ][] = [
+                'time'  => strtotime( $row->timestamp ),
                 'open'  => (float) $row->open,
                 'high'  => (float) $row->high,
                 'low'   => (float) $row->low,
@@ -825,20 +832,20 @@ class OhlcChartController extends Controller
         }
 
         // ── First candle (09:15) high/low per strike — for reference lines ────
-        $firstSlot   = $slots[0]; // "09:15"
-        $firstCandles = DB::table('expired_ohlc')
-                          ->where('underlying_symbol', $symbol)
-                          ->where('expiry', $expiry)
-                          ->where('interval', self::STEP_INTERVAL)
-                          ->whereDate('timestamp', $date)
-                          ->whereIn('strike', $strikes)
-                          ->whereIn('instrument_type', ['CE', 'PE'])
-                          ->whereRaw("TIME(timestamp) = ?", [$firstSlot . ':00'])
-                          ->get(['strike', 'instrument_type', 'high', 'low']);
+        $firstSlot    = $slots[0]; // "09:15"
+        $firstCandles = DB::table( 'expired_ohlc' )
+                          ->where( 'underlying_symbol', $symbol )
+                          ->where( 'expiry', $expiry )
+                          ->where( 'interval', self::STEP_INTERVAL )
+                          ->whereDate( 'timestamp', $date )
+                          ->whereIn( 'strike', $strikes )
+                          ->whereIn( 'instrument_type', [ 'CE', 'PE' ] )
+                          ->whereRaw( "TIME(timestamp) = ?", [ $firstSlot . ':00' ] )
+                          ->get( [ 'strike', 'instrument_type', 'high', 'low' ] );
 
         $firstCandleLines = [];
-        foreach ($firstCandles as $fc) {
-            $firstCandleLines[(float)$fc->strike][$fc->instrument_type] = [
+        foreach ( $firstCandles as $fc ) {
+            $firstCandleLines[ (float) $fc->strike ][ $fc->instrument_type ] = [
                 'high' => (float) $fc->high,
                 'low'  => (float) $fc->low,
             ];
@@ -846,20 +853,24 @@ class OhlcChartController extends Controller
 
         // ── Cell badge data ───────────────────────────────────────────────────
         $cellData = [];
-        foreach ($strikes as $strike) {
-            $ceCandles = $grouped[$strike]['CE'] ?? [];
-            $peCandles = $grouped[$strike]['PE'] ?? [];
-            $ce = end($ceCandles) ?: null;
-            $pe = end($peCandles) ?: null;
+        foreach ( $strikes as $strike ) {
+            $ceCandles = $grouped[ $strike ]['CE'] ?? [];
+            $peCandles = $grouped[ $strike ]['PE'] ?? [];
+            $ce        = end( $ceCandles ) ?: null;
+            $pe        = end( $peCandles ) ?: null;
 
-            if ($ce && $pe) {
-                $diff    = round($ce['close'] - $pe['close'], 2);
-                $inBand  = abs($diff) <= $saturation;
-                $cellData[$strike] = [
-                    'ce_close'  => $ce['close'], 'ce_open' => $ce['open'],
-                    'ce_high'   => $ce['high'],  'ce_low'  => $ce['low'],
-                    'pe_close'  => $pe['close'], 'pe_open' => $pe['open'],
-                    'pe_high'   => $pe['high'],  'pe_low'  => $pe['low'],
+            if ( $ce && $pe ) {
+                $diff                = round( $ce['close'] - $pe['close'], 2 );
+                $inBand              = abs( $diff ) <= $saturation;
+                $cellData[ $strike ] = [
+                    'ce_close'  => $ce['close'],
+                    'ce_open'   => $ce['open'],
+                    'ce_high'   => $ce['high'],
+                    'ce_low'    => $ce['low'],
+                    'pe_close'  => $pe['close'],
+                    'pe_open'   => $pe['open'],
+                    'pe_high'   => $pe['high'],
+                    'pe_low'    => $pe['low'],
                     'ce_side'   => $ce['close'] >= $ce['open'] ? 'green' : 'red',
                     'pe_side'   => $pe['close'] >= $pe['open'] ? 'green' : 'red',
                     'diff'      => $diff,
@@ -869,32 +880,31 @@ class OhlcChartController extends Controller
             }
         }
 
-        return response()->json([
+        return response()->json( [
             'slot_index'         => $slotIdx,
             'label'              => $currSlot,
-            'total_slots'        => count($slots),
+            'total_slots'        => count( $slots ),
             'strikes'            => $strikes,
             'ohlc'               => $grouped,
             'cells'              => $cellData,
             'saturation'         => $saturation,
             'avg_atm'            => $avgAtm,      // ← horizontal line value
             'first_candle_lines' => $firstCandleLines, // ← CE/PE high+low of 09:15
-        ]);
+        ] );
     }
 
 
     /**
      * Build ordered slot labels: ["09:15","09:20",...]
      */
-    private function buildChartSlots(): array
-    {
+    private function buildChartSlots(): array {
         $slots = [];
-        $start = strtotime(self::STEP_MARKET_START);
-        $end   = strtotime(self::STEP_MARKET_END);
+        $start = strtotime( self::STEP_MARKET_START );
+        $end   = strtotime( self::STEP_MARKET_END );
         $step  = self::STEP_MINUTES * 60;
 
-        for ($t = $start; $t <= $end; $t += $step) {
-            $slots[] = date('H:i', $t);
+        for ( $t = $start; $t <= $end; $t += $step ) {
+            $slots[] = date( 'H:i', $t );
         }
 
         return $slots;
