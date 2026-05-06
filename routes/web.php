@@ -111,6 +111,13 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
     // AJAX: expiry dates for a symbol  (reads nse_expiries, is_current = 1)
     Route::get( '/expiries', [ TradingViewController::class, 'getExpiries' ] )
          ->name( 'expiries' );
+
+
+    Route::get('/options/prev-level-match', [App\Http\Controllers\OptionLevelMatchController::class, 'index'])
+         ->name('options.prev-level-match');
+
+    Route::get('/options/prev-level-match/live', [App\Http\Controllers\OptionLevelMatchController::class, 'live'])
+         ->name('options.prev-level-match.live');
 } );
 
 
