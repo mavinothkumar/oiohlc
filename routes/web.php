@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OptionLevelMatchController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TradingViewController;
 
@@ -112,12 +113,11 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
     Route::get( '/expiries', [ TradingViewController::class, 'getExpiries' ] )
          ->name( 'expiries' );
 
+    Route::get('/prev-level-match', [OptionLevelMatchController::class, 'index'])
+         ->name('prev-level-match');
 
-    Route::get('/options/prev-level-match', [App\Http\Controllers\OptionLevelMatchController::class, 'index'])
-         ->name('options.prev-level-match');
-
-    Route::get('/options/prev-level-match/live', [App\Http\Controllers\OptionLevelMatchController::class, 'live'])
-         ->name('options.prev-level-match.live');
+    Route::get('/prev-level-match/live', [OptionLevelMatchController::class, 'live'])
+         ->name('prev-level-match.live');
 } );
 
 
