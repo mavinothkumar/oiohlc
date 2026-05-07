@@ -144,7 +144,7 @@ class OptionLevelMatchController extends Controller
             );
         }
 
-        $limit = (int) $request->query('limit', 10);
+        $limit = (int) $request->query('limit', 2);
         $limit = $limit > 0 ? min($limit, 100) : 10;
 
         $strikePrices = collect(range(-$limit, $limit))
@@ -228,43 +228,81 @@ class OptionLevelMatchController extends Controller
                                      ->keyBy(fn ($row) => $row->strike_int . '_' . strtoupper($row->option_type));
         }
 
-        $liveSubQuery = DB::table('ohlc_quotes')
-                          ->whereDate('expiry_date', $expiryDate)
-                          ->whereDate('ts_at', $currentDate)
-                          ->where('ts_at', '<=', $timeCutoff)
-                          ->where('trading_symbol', 'NIFTY')
-                          ->whereIn('instrument_type', ['CE', 'PE'])
-                          ->whereIn(DB::raw('CAST(strike_price AS UNSIGNED)'), $strikePrices->all())
-                          ->selectRaw('
-                CAST(strike_price AS UNSIGNED) as strike_int,
-                instrument_type,
-                expiry_date,
-                MAX(ts_at) as max_ts_at
-            ')
-                          ->groupBy(
-                              DB::raw('CAST(strike_price AS UNSIGNED)'),
-                              'instrument_type',
-                              'expiry_date'
-                          );
+        $liveBaseQuery = DB::table('ohlc_quotes')
+                           ->whereDate('expiry_date', $expiryDate)
+                           ->whereDate('ts_at', $currentDate)
+                           ->where('ts_at', '<=', $timeCutoff)
+                           ->whereIn('instrument_type', ['CE', 'PE'])
+                           ->whereIn(DB::raw('CAST(strike_price AS UNSIGNED)'), $strikePrices->all())
+                           ->where('trading_symbol', 'NIFTY');
 
-        $liveQuotes = DB::table('ohlc_quotes as oq')
-                        ->joinSub($liveSubQuery, 'latest', function ($join) {
-                            $join->on(DB::raw('CAST(oq.strike_price AS UNSIGNED)'), '=', 'latest.strike_int')
-                                 ->on('oq.instrument_type', '=', 'latest.instrument_type')
-                                 ->on('oq.expiry_date', '=', 'latest.expiry_date')
-                                 ->on('oq.ts_at', '=', 'latest.max_ts_at');
-                        })
-                        ->selectRaw('
-                CAST(oq.strike_price AS UNSIGNED) as strike_int,
-                oq.instrument_type,
-                oq.high,
-                oq.low,
-                oq.close,
-                oq.volume,
-                oq.ts_at
-            ')
-                        ->get()
-                        ->keyBy(fn ($row) => $row->strike_int . '_' . strtoupper($row->instrument_type));
+        $dayExtremes = (clone $liveBaseQuery)
+            ->selectRaw('
+        CAST(strike_price AS UNSIGNED) as strike_int,
+        instrument_type,
+        MAX(high) as day_high,
+        MIN(low) as day_low
+    ')
+            ->groupBy(
+                DB::raw('CAST(strike_price AS UNSIGNED)'),
+                'instrument_type'
+            )
+            ->get()
+            ->keyBy(fn ($row) => $row->strike_int . '_' . strtoupper($row->instrument_type));
+
+        $latestSubQuery = (clone $liveBaseQuery)
+            ->selectRaw('
+        CAST(strike_price AS UNSIGNED) as strike_int,
+        instrument_type,
+        expiry_date,
+        MAX(ts_at) as max_ts_at
+    ')
+            ->groupBy(
+                DB::raw('CAST(strike_price AS UNSIGNED)'),
+                'instrument_type',
+                'expiry_date'
+            );
+
+        $latestQuotes = DB::table('ohlc_quotes as oq')
+                          ->joinSub($latestSubQuery, 'latest', function ($join) {
+                              $join->on(DB::raw('CAST(oq.strike_price AS UNSIGNED)'), '=', 'latest.strike_int')
+                                   ->on('oq.instrument_type', '=', 'latest.instrument_type')
+                                   ->on('oq.expiry_date', '=', 'latest.expiry_date')
+                                   ->on('oq.ts_at', '=', 'latest.max_ts_at');
+                          })
+                          ->selectRaw('
+        CAST(oq.strike_price AS UNSIGNED) as strike_int,
+        oq.instrument_type,
+        oq.close,
+        oq.volume,
+        oq.ts_at
+    ')
+                          ->get()
+                          ->keyBy(fn ($row) => $row->strike_int . '_' . strtoupper($row->instrument_type));
+
+        $liveQuotes = collect($strikePrices)->flatMap(function ($strike) use ($dayExtremes, $latestQuotes) {
+            return collect(['CE', 'PE'])->map(function ($side) use ($strike, $dayExtremes, $latestQuotes) {
+                $key = $strike . '_' . $side;
+                $extreme = $dayExtremes->get($key);
+                $latest = $latestQuotes->get($key);
+
+                if (! $extreme && ! $latest) {
+                    return null;
+                }
+
+                return (object) [
+                    'strike_int' => $strike,
+                    'instrument_type' => $side,
+                    'high' => $extreme?->day_high,
+                    'low' => $extreme?->day_low,
+                    'close' => $latest?->close,
+                    'volume' => $latest?->volume,
+                    'ts_at' => $latest?->ts_at,
+                ];
+            });
+        })
+                                            ->filter()
+                                            ->keyBy(fn ($row) => $row->strike_int . '_' . strtoupper($row->instrument_type));
 
         $rows = collect($strikePrices)->map(function ($strike) use ($previousDayQuotes, $olderPreviousQuotes, $liveQuotes) {
             $cePrev = $previousDayQuotes->get($strike . '_CE');
@@ -326,7 +364,7 @@ class OptionLevelMatchController extends Controller
                 'base_strike' => null,
                 'current_day_index_open' => null,
                 'requested_time' => $request->query('time'),
-                'limit' => (int) $request->query('limit', 10),
+                'limit' => (int) $request->query('limit', 2),
                 'time_cutoff' => null,
                 'generated_at' => now()->format('d M Y h:i:s A'),
                 'prev_count' => 0,
