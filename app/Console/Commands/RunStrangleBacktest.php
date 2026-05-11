@@ -46,6 +46,8 @@
 # Disable both (original behaviour)
 // php artisan backtest:strangle strangle_straddle --from=... --to=... --no-leg-sl --no-combined-sl
 
+// php artisan backtest:strangle oi_volume_weighted_sell --from=2025-01-10 --to=2025-01-28 --entry-time=09:50 --min-premium=50 --target=8000 --stoploss=3500 --lot=130 --min-gap=0
+
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
@@ -262,15 +264,10 @@ class RunStrangleBacktest extends Command {
                                 ->first();
 
             if ( ! $indexCandle ) {
-                $skippedDays ++;
-                $skipReasons['no_index_candle'] ++;
-                if ( $verboseSkips ) {
-                    $this->line( "  ⊘ SKIP {$tradeDate} — No INDEX candle at {$entryHHMM} (±5 min)" );
-                }
-                $this->recordSkip( $skippedDays, $skipReasons, 'no_index_candle' );
-
+                $skippedDays++;
+                $skipReasons['no_index_candle'] = ( $skipReasons['no_index_candle'] ?? 0 ) + 1;
+                if ( $verboseSkips ) $this->line( "  ⊘ SKIP {$tradeDate} — no_index_candle" );
                 continue;
-
             }
 
             $indexOpen = (float) $indexCandle->open;
@@ -279,12 +276,9 @@ class RunStrangleBacktest extends Command {
             $expiry = resolveExpiry( $tradeDate, $allExpiries );
 
             if ( ! $expiry ) {
-                $skippedDays ++;
-                $skipReasons['no_expiry'] ++;
-                $this->recordSkip( $skippedDays, $skipReasons, 'no_expiry' );
-                if ( $verboseSkips ) {
-                    $this->line( "  ⊘ SKIP {$tradeDate} — No expiry found in expired_expiries" );
-                }
+                $skippedDays++;
+                $skipReasons['no_expiry'] = ( $skipReasons['no_expiry'] ?? 0 ) + 1;
+                if ( $verboseSkips ) $this->line( "  ⊘ SKIP {$tradeDate} — no_expiry" );
                 continue;
             }
 
@@ -298,14 +292,13 @@ class RunStrangleBacktest extends Command {
                 $symbol, $indexOpen, $tradeDate, $entryTimestamp, $options
             );
 
-            if ( $legData === null || BacktestStrategy::isSkip( $legData ) ) {
-                $reason = BacktestStrategy::isSkip( $legData )
-                    ? BacktestStrategy::skipReason( $legData )
+            if ( ! $legData || \App\Services\Backtest\Contracts\BacktestStrategy::isSkip( $legData ) ) {
+                $reason = \App\Services\Backtest\Contracts\BacktestStrategy::isSkip( $legData )
+                    ? \App\Services\Backtest\Contracts\BacktestStrategy::skipReason( $legData )
                     : 'unknown_filter';
-                $this->recordSkip( $skippedDays, $skipReasons, $reason );
-                if ( $verboseSkips ) {
-                    $this->line( "  ⊘ SKIP {$tradeDate} — {$reason}" );
-                }
+                $skippedDays++;
+                $skipReasons[$reason] = ( $skipReasons[$reason] ?? 0 ) + 1;
+                if ( $verboseSkips ) $this->line( "  ⊘ SKIP {$tradeDate} — {$reason}" );
                 continue;
             }
 
@@ -507,12 +500,22 @@ class RunStrangleBacktest extends Command {
     ): void {
         $winRate = $totalDays > 0 ? round( $profitDays / $totalDays * 100, 2 ) : 0;
         arsort( $skipReasons );
-        // ── Skip reason labels ─────────────────────────────────────────────
+
+        // ── add these lines ──
         $skipLabels = [
-            'no_index_candle' => 'No INDEX candle at entry time',
-            'no_expiry'       => 'No expiry in expired_expiries',
-            'strategy_filter' => 'Strategy filter (gap/OI/premium/imbalance)',
+            'no_index_candle'      => 'No INDEX candle at entry time',
+            'no_expiry'            => 'No expiry in expired_expiries',
+            'gap_too_small'        => 'Gap too small (gap_abs < threshold)',
+            'no_oi_data'           => 'No OI/volume data in scan window',
+            'no_ce_strike'         => 'No CE strike found above ATM',
+            'no_pe_strike'         => 'No PE strike found below ATM',
+            'below_min_premium_ce' => 'CE below min-premium (after walk)',
+            'below_min_premium_pe' => 'PE below min-premium (after walk)',
+            'imbalance'            => 'CE/PE distance imbalance > threshold',
+            'no_entry_candle'      => 'Entry candle missing in expired_ohlc',
+            'unknown_filter'       => 'Unknown filter (legacy null return)',
         ];
+        arsort( $skipReasons );
 
         $this->info( "╔══════════════════════════════════════════════════════════════╗" );
         $this->info( "║                    📊  BACKTEST SUMMARY                     ║" );
@@ -529,14 +532,10 @@ class RunStrangleBacktest extends Command {
         }
 
         foreach ( $skipReasons as $key => $count ) {
-            if ( $count === 0 ) {
-                continue;
-            }
-            $label = $skipLabels[ $key ] ?? $key;
+            if ( $count === 0 ) continue;
+            $label = $skipLabels[$key] ?? $key;
             $pct   = $skippedDays > 0 ? round( $count / $skippedDays * 100, 1 ) : 0;
-            $this->info( sprintf( "║    ↳ %-30s : %-21s║",
-                $label, "{$count} days ({$pct}%)"
-            ) );
+            $this->info( sprintf( "║    ↳ %-30s : %-21s║", $label, "{$count} days ({$pct}%)" ) );
         }
 
         $this->info( "╠══════════════════════════════════════════════════════════════╣" );
