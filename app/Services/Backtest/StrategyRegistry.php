@@ -10,6 +10,7 @@ use App\Services\Backtest\Strategies\FirstCandleBreakoutStrategy;
 use App\Services\Backtest\Strategies\FixedOffsetStrategy;
 use App\Services\Backtest\Strategies\IronCondorLadderStrategy;
 use App\Services\Backtest\Strategies\NearStraddleStrategy;
+use App\Services\Backtest\Strategies\OiVolumeWeightedSellStrategy;
 use App\Services\Backtest\Strategies\OtmStrangleStrategy;
 use App\Services\Backtest\Strategies\SmartBalancedStrategy;
 use InvalidArgumentException;
@@ -29,6 +30,7 @@ class StrategyRegistry {
         'otm_strangle'          => OtmStrangleStrategy::class,
         '15min_breakout'        => FifteenMinBreakoutStrategy::class,
         'iron_condor_ladder'    => IronCondorLadderStrategy::class,
+        'oi_volume_weighted_sell'   => OiVolumeWeightedSellStrategy::class,
     ];
 
     public static function resolve( string $name ): BacktestStrategy {

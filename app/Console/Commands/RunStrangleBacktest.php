@@ -28,12 +28,29 @@
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --target="12000" --stoploss="5500" --lot="65"
 // php artisan backtest:strangle iron_condor_ladder --from="2025-01-01" --to="2025-01-05" --stoploss="5500" --lot="65"
 
-//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->where(')->delete(); echo 'Done';"
+//php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'oi_volume_weighted_sell')->delete(); echo 'Done';"
 //php artisan tinker --execute="DB::table('backtest_trades')->where('strategy', 'strangle_straddle')->whereRaw(\"TIME(entry_time) = '09:45:00'\")->delete(); echo 'Done';"
+
+
+// php artisan backtest:strangle oi_volume_weighted_sell --from=2025-01-01 --to=2025-01-03 --entry-time=09:50 --min-premium=70 --target=8000 --stoploss=4000 --lot=130
+
+# Tune the thresholds
+// php artisan backtest:strangle strangle_straddle --from=... --to=... --leg-sl-pct=50 --combined-sl-pct=35
+
+# Disable only the leg guard
+// php artisan backtest:strangle strangle_straddle --from=... --to=... --no-leg-sl
+
+# Disable only the combined guard
+// php artisan backtest:strangle strangle_straddle --from=... --to=... --no-combined-sl
+
+# Disable both (original behaviour)
+// php artisan backtest:strangle strangle_straddle --from=... --to=... --no-leg-sl --no-combined-sl
+
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
 use App\Services\Backtest\BacktestEngine;
+use App\Services\Backtest\Contracts\BacktestStrategy;
 use App\Services\Backtest\StrategyRegistry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -42,22 +59,32 @@ use Illuminate\Support\Str;
 
 class RunStrangleBacktest extends Command {
     protected $signature = 'backtest:strangle
-        {strategy             : Strategy name. Run with --list to see all available.}
-        {--symbol=NIFTY       : Underlying symbol}
-        {--from=              : From date YYYY-MM-DD}
-        {--to=                : To date YYYY-MM-DD}
-        {--entry-time=09:20   : Entry time HH:MM}
-        {--strike-offset=300  : Fixed offset from ATM (fixed_offset strategy)}
-        {--target=7000        : Combined day profit target ₹}
-        {--stoploss=5000      : Combined day stop loss ₹}
-        {--lot=65             : Qty per leg}
-        {--exchange=NSE       : Exchange}
-        {--min-offset=300     : Smart balanced minimum offset}
-        {--max-offset=600     : Smart balanced maximum offset}
-        {--step=100           : Strike step size}
-        {--list               : List all available strategies and exit}
+        {strategy : Strategy name. Run with --list to see all available.}
+        {--symbol=NIFTY : Underlying symbol}
+        {--from= : From date YYYY-MM-DD}
+        {--to= : To date YYYY-MM-DD}
+        {--entry-time=09:20 : Entry time HH:MM}
+        {--strike-offset=300 : Fixed offset from ATM (fixed_offset strategy)}
+        {--target=7000 : Combined day profit target ₹}
+        {--stoploss=5000 : Combined day stop loss ₹}
+        {--lot=65 : Qty per leg}
+        {--exchange=NSE : Exchange}
+        {--min-offset=300 : Smart balanced minimum offset}
+        {--max-offset=600 : Smart balanced maximum offset}
+        {--step=100 : Strike step size}
+        {--list : List all available strategies and exit}
         {--min-premium=50 : Minimum option premium for OTM strangle strategy}
-        {--dry-run            : Preview without saving}';
+        {--dry-run : Preview without saving}
+        {--no-leg-sl : Disable individual leg loss% exit guard (default: enabled at 60%)}
+        {--no-combined-sl : Disable combined premium breach% exit guard (default: enabled at 40%)}
+        {--leg-sl-pct=60 : Individual leg loss threshold % — exit whole trade when any leg rises this % above entry}
+        {--combined-sl-pct=40 : Combined premium breach threshold % — exit when combined current price rises this % above combined entry}
+        {--dry-run : Preview without saving}
+        {--min-gap=0 : Min gap_abs to trade (0 = disabled)}
+        {--min-gap-pct=0 : Min gap as %% of previous close (0 = disabled)}
+        {--min-range-pct=0 : Min gap as %% of previous day range (0 = disabled)}
+        {--gap-mode=abs : Gap filter mode: abs|pct|range|any|all}
+        {--verbose-skips : Print each skipped day with its exact reason}';
 
     protected $description = 'Backtest 4-leg strangle/straddle strategies.';
 
@@ -91,19 +118,20 @@ class RunStrangleBacktest extends Command {
             return self::FAILURE;
         }
 
-
         // ── Boot ───────────────────────────────────────────────────────────
-        $runId     = (string) Str::uuid();
-        $symbol    = strtoupper( $this->option( 'symbol' ) );
-        $entryHHMM = $this->option( 'entry-time' );
-        $target    = (float) $this->option( 'target' );
-        $stoploss  = (float) $this->option( 'stoploss' );
-        $exchange  = strtoupper( $this->option( 'exchange' ) );
-        $dryRun    = $this->option( 'dry-run' );
+        $runId        = (string) Str::uuid();
+        $symbol       = strtoupper( $this->option( 'symbol' ) );
+        $entryHHMM    = $this->option( 'entry-time' );
+        $target       = (float) $this->option( 'target' );
+        $stoploss     = (float) $this->option( 'stoploss' );
+        $exchange     = strtoupper( $this->option( 'exchange' ) );
+        $dryRun       = $this->option( 'dry-run' );
+        $verboseSkips = $this->option( 'verbose-skips' );
+        $skipReasons  = [];
 
         $qty = (int) $this->option( 'lot' );
 
-// If lot was not explicitly passed by user, apply strategy default
+        // If lot was not explicitly passed by user, apply strategy default
         if ( ! $this->input->hasParameterOption( '--lot' ) ) {
             $qty = match ( $strategyName ) {
                 'first_candle_breakout',
@@ -111,7 +139,7 @@ class RunStrangleBacktest extends Command {
                 'iron_condor_ladder' => 65,
                 default => 65,
             };
-            $this->line( "<fg=yellow>  Note: Using default qty={$qty} for {$strategyName}</>" );
+            $this->line( "  Note: Using default qty={$qty} for {$strategyName}" );
         }
 
         // Auto-correct entry time for straddle/strangle strategies
@@ -125,20 +153,35 @@ class RunStrangleBacktest extends Command {
                 'iron_condor_ladder' => '09:15',
                 default => '09:20',
             };
-            $this->line( "<fg=yellow>  Note: Entry time auto-set to {$entryHHMM} for {$strategyName}</>" );
+            $this->line( "  Note: Entry time auto-set to {$entryHHMM} for {$strategyName}" );
         }
 
-        // All options passed through to strategy
+        // ── Guard flags ────────────────────────────────────────────────────
+        $useLegSl      = ! $this->option( 'no-leg-sl' );
+        $useCombinedSl = ! $this->option( 'no-combined-sl' );
+        $legSlPct      = (float) $this->option( 'leg-sl-pct' );
+        $combinedSlPct = (float) $this->option( 'combined-sl-pct' );
+
+        $engineOptions = [
+            'use-leg-sl'      => $useLegSl,
+            'use-combined-sl' => $useCombinedSl,
+            'leg-sl-pct'      => $legSlPct,
+            'combined-sl-pct' => $combinedSlPct,
+        ];
+
         $options        = $this->options();
-        $options['lot'] = $qty; // update options array so strategy picks it up
+        $options['lot'] = $qty;
 
         $strategy = StrategyRegistry::resolve( $strategyName );
         $engine   = new BacktestEngine();
 
-        $this->printHeader( $symbol, $from, $to, $entryHHMM, $target, $stoploss,
+        $this->printHeader(
+            $symbol, $from, $to, $entryHHMM, $target, $stoploss,
             $qty, $runId, $dryRun, $strategyName,
-            $strategy->describe( $options ) );
-
+            $strategy->describe( $options ),
+            $useLegSl, $legSlPct,
+            $useCombinedSl, $combinedSlPct
+        );
 
         // ── Trading dates ──────────────────────────────────────────────────
         $tradingDates = DB::table( 'expired_ohlc' )
@@ -171,6 +214,14 @@ class RunStrangleBacktest extends Command {
         $totalPnlSum   = 0;
         $skippedDays   = 0;
 
+        // ── Skip reason counters ───────────────────────────────────────────
+        // Each key maps to a human-readable label printed in the summary.
+        $skipReasons = [
+            'no_index_candle' => 0,  // INDEX candle missing at entry time
+            'no_expiry'       => 0,  // No expiry found in expired_expiries
+            'strategy_filter' => 0,  // resolveLegs() returned null (all sub-reasons logged via Log::info)
+        ];
+
         // ── Load all expiries for the symbol once ──────────────────────────
         $allExpiries = DB::table( 'expired_expiries' )
                          ->where( 'underlying_symbol', $symbol )
@@ -184,7 +235,6 @@ class RunStrangleBacktest extends Command {
 
             return self::FAILURE;
         }
-
 
         foreach ( $tradingDates as $tradeDate ) {
 
@@ -213,52 +263,68 @@ class RunStrangleBacktest extends Command {
 
             if ( ! $indexCandle ) {
                 $skippedDays ++;
+                $skipReasons['no_index_candle'] ++;
+                if ( $verboseSkips ) {
+                    $this->line( "  ⊘ SKIP {$tradeDate} — No INDEX candle at {$entryHHMM} (±5 min)" );
+                }
+                $this->recordSkip( $skippedDays, $skipReasons, 'no_index_candle' );
+
                 continue;
+
             }
 
             $indexOpen = (float) $indexCandle->open;
 
             // ── Expiry ─────────────────────────────────────────────────────
-//            $expiry = DB::table('expired_ohlc')
-//                        ->where('underlying_symbol', $symbol)
-//                        ->whereIn('instrument_type', ['CE', 'PE'])
-//                        ->where('interval', '5minute')
-//                        ->whereDate('timestamp', $tradeDate)
-//                        ->whereNotNull('expiry')
-//                        ->orderByRaw("ABS(DATEDIFF(expiry, ?))", [$tradeDate])
-//                        ->value('expiry');
-
             $expiry = resolveExpiry( $tradeDate, $allExpiries );
 
-
             if ( ! $expiry ) {
-                $this->warn( "  No expiry found for {$tradeDate} — skipping." );
                 $skippedDays ++;
+                $skipReasons['no_expiry'] ++;
+                $this->recordSkip( $skippedDays, $skipReasons, 'no_expiry' );
+                if ( $verboseSkips ) {
+                    $this->line( "  ⊘ SKIP {$tradeDate} — No expiry found in expired_expiries" );
+                }
                 continue;
             }
 
             // ── Strategy resolves the legs ─────────────────────────────────
+            // resolveLegs() returns null for strategy-level filters:
+            //   gap_abs < 50, no OI data, LTP below min-premium,
+            //   strike distance imbalance, leg candle missing, etc.
+            // Each sub-reason is already written to Log::info() inside the strategy.
+            // Here we only track the aggregate count and surface via --verbose-skips.
             $legData = $strategy->resolveLegs(
                 $symbol, $indexOpen, $tradeDate, $entryTimestamp, $options
             );
 
-            if ( ! $legData ) {
-                $skippedDays ++;
+            if ( $legData === null || BacktestStrategy::isSkip( $legData ) ) {
+                $reason = BacktestStrategy::isSkip( $legData )
+                    ? BacktestStrategy::skipReason( $legData )
+                    : 'unknown_filter';
+                $this->recordSkip( $skippedDays, $skipReasons, $reason );
+                if ( $verboseSkips ) {
+                    $this->line( "  ⊘ SKIP {$tradeDate} — {$reason}" );
+                }
                 continue;
             }
 
             // ── Use dynamic target if strategy suggests one ────────────────
-// Only override if --target was NOT explicitly passed by user
-            $effectiveTarget = $target; // default = CLI --target value
+            $effectiveTarget = $target;
             if ( ! $this->input->hasParameterOption( '--target' ) ) {
                 $effectiveTarget = $legData[0]['suggested_target'] ?? $target;
             }
 
             // ── Engine walks the candles ───────────────────────────────────
             $result = $engine->run(
-                $legData, $entryTimestamp, $tradeDate, $effectiveTarget, $stoploss, $qty
+                $legData,
+                $entryTimestamp,
+                $tradeDate,
+                $effectiveTarget,
+                $stoploss,
+                $qty,
+                $engineOptions
             );
-
 
             $legData          = $result['legData'];
             $dayOutcome       = $result['dayOutcome'];
@@ -330,9 +396,13 @@ class RunStrangleBacktest extends Command {
                 'exit_time'            => $leg['exit_time'],
                 'signal_time'          => $leg['signal_time'] ?? null,
                 'trade_time_duration'  => $leg['exit_time']
-                    ? (int) Carbon::parse( $leg['entry_time'] ?? $entryTimestamp )->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
+                    ? (int) Carbon::parse( $leg['entry_time'] ?? $entryTimestamp )
+                                  ->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
                     : null,
-                'outcome'              => ( round( ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty, 2 ) ) >= 0 ? 'profit' : 'loss',
+                'outcome'              => ( round(
+                    ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
+                    2
+                ) ) >= 0 ? 'profit' : 'loss',
                 'trade_date'           => $tradeDate,
                 'backtest_run_id'      => $runId,
                 'day_group_id'         => $dayGroupId,
@@ -357,23 +427,33 @@ class RunStrangleBacktest extends Command {
                 BacktestTrade::insert( $dayRows );
             }
 
-            // Console line
             $pnl = ( $dayTotalPnl >= 0 ? '+₹' : '-₹' ) . number_format( abs( $dayTotalPnl ), 0 );
-            $tag = $dayOutcome === 'profit' ? "<fg=green>✓ {$pnl}</>" : "<fg=red>✗ {$pnl}</>";
-            $this->line( "  <fg=gray>{$tradeDate}</> | {$tag} | {$exitReason}" );
+            $tag = $dayOutcome === 'profit' ? "✓ {$pnl}" : "✗ {$pnl}";
+            $this->line( "  {$tradeDate} | {$tag} | {$exitReason}" );
         }
 
         $bar->finish();
         $this->newLine( 2 );
 
-        $this->printSummary( $runId, $profitDays + $lossDays, $profitDays, $lossDays,
-            $skippedDays, $totalPnlSum,
+        $this->printSummary(
+            $runId,
+            $profitDays + $lossDays,
+            $profitDays,
+            $lossDays,
+            $skippedDays,
+            $skipReasons,
+            $totalPnlSum,
             ! empty( $profitMinutes ) ? round( array_sum( $profitMinutes ) / count( $profitMinutes ), 1 ) : 0,
             ! empty( $lossMinutes ) ? round( array_sum( $lossMinutes ) / count( $lossMinutes ), 1 ) : 0,
             $dryRun
         );
 
         return self::SUCCESS;
+    }
+
+    private function recordSkip( int &$skippedDays, array &$skipReasons, string $reason ): void {
+        $skippedDays ++;
+        $skipReasons[ $reason ] = ( $skipReasons[ $reason ] ?? 0 ) + 1;
     }
 
     private function printHeader(
@@ -387,8 +467,15 @@ class RunStrangleBacktest extends Command {
         string $runId,
         bool $dryRun,
         string $strategyName,
-        string $strategyDesc
+        string $strategyDesc,
+        bool $useLegSl,
+        float $legSlPct,
+        bool $useCombinedSl,
+        float $combinedSlPct
     ): void {
+        $legSlLabel      = $useLegSl ? "ON @ {$legSlPct}%" : 'OFF';
+        $combinedSlLabel = $useCombinedSl ? "ON @ {$combinedSlPct}%" : 'OFF';
+
         $this->info( "╔══════════════════════════════════════════════════════════════╗" );
         $this->info( "║         🔄  STRANGLE BACKTEST  (4-Leg Combined Exit)        ║" );
         $this->info( "╠══════════════════════════════════════════════════════════════╣" );
@@ -399,6 +486,8 @@ class RunStrangleBacktest extends Command {
         $this->info( sprintf( "║  Entry Time     : %-43s║", $entryHHMM ) );
         $this->info( sprintf( "║  Target / SL    : %-43s║", "₹$target / ₹$stoploss" ) );
         $this->info( sprintf( "║  Qty per leg    : %-43s║", $qty ) );
+        $this->info( sprintf( "║  Leg SL Guard   : %-43s║", $legSlLabel ) );
+        $this->info( sprintf( "║  Combined SL    : %-43s║", $combinedSlLabel ) );
         $this->info( sprintf( "║  Run ID         : %-43s║", $runId ) );
         $this->info( sprintf( "║  Dry Run        : %-43s║", $dryRun ? 'YES' : 'NO' ) );
         $this->info( "╚══════════════════════════════════════════════════════════════╝\n" );
@@ -410,17 +499,47 @@ class RunStrangleBacktest extends Command {
         int $profitDays,
         int $lossDays,
         int $skippedDays,
+        array $skipReasons,
         float $totalPnl,
         float $avgProfitWait,
         float $avgLossWait,
         bool $dryRun
     ): void {
         $winRate = $totalDays > 0 ? round( $profitDays / $totalDays * 100, 2 ) : 0;
+        arsort( $skipReasons );
+        // ── Skip reason labels ─────────────────────────────────────────────
+        $skipLabels = [
+            'no_index_candle' => 'No INDEX candle at entry time',
+            'no_expiry'       => 'No expiry in expired_expiries',
+            'strategy_filter' => 'Strategy filter (gap/OI/premium/imbalance)',
+        ];
+
         $this->info( "╔══════════════════════════════════════════════════════════════╗" );
         $this->info( "║                    📊  BACKTEST SUMMARY                     ║" );
         $this->info( "╠══════════════════════════════════════════════════════════════╣" );
         $this->info( sprintf( "║  Total Days Processed  : %-35s║", $totalDays ) );
         $this->info( sprintf( "║  Skipped Days          : %-35s║", $skippedDays ) );
+
+        // ── Print each skip reason breakdown ──────────────────────────────
+        foreach ( $skipLabels as $key => $label ) {
+            $count = $skipReasons[ $key ] ?? 0;
+            if ( $count > 0 ) {
+                $this->info( sprintf( "║    ↳ %-20s : %-28s║", $label, $count . ' days' ) );
+            }
+        }
+
+        foreach ( $skipReasons as $key => $count ) {
+            if ( $count === 0 ) {
+                continue;
+            }
+            $label = $skipLabels[ $key ] ?? $key;
+            $pct   = $skippedDays > 0 ? round( $count / $skippedDays * 100, 1 ) : 0;
+            $this->info( sprintf( "║    ↳ %-30s : %-21s║",
+                $label, "{$count} days ({$pct}%)"
+            ) );
+        }
+
+        $this->info( "╠══════════════════════════════════════════════════════════════╣" );
         $this->info( sprintf( "║  Profit Days           : %-35s║", $profitDays ) );
         $this->info( sprintf( "║  Loss Days             : %-35s║", $lossDays ) );
         $this->info( sprintf( "║  Win Rate              : %-35s║", "$winRate%" ) );
@@ -429,8 +548,9 @@ class RunStrangleBacktest extends Command {
         $this->info( sprintf( "║  Avg Wait — Loss Day   : %-35s║", "$avgLossWait min" ) );
         $this->info( sprintf( "║  Run ID                : %-35s║", $runId ) );
         $this->info( "╚══════════════════════════════════════════════════════════════╝" );
+
         $dryRun
             ? $this->warn( "\n[DRY RUN] Nothing was saved." )
-            : $this->info( "\n✅  Done. View at /backtest?run_id={$runId}" );
+            : $this->info( "\n✅ Done. View at /backtest?run_id={$runId}" );
     }
 }

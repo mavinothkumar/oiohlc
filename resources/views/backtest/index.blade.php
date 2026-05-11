@@ -1231,6 +1231,25 @@
                                             </div>
                                             @break
 
+                                        @case('oi_volume_weighted_sell')
+                                            @php
+                                                $ce = $day->ce_strike ?? null;
+                                                $pe = $day->pe_strike ?? null;
+                                            @endphp
+                                            @if($ce && $pe)
+                                                <div class="flex flex-col gap-0.5 text-xs font-mono">
+                                                    <span class="text-red-500 dark:text-red-400">{{ number_format($ce) }} CE</span>
+                                                    <span class="text-green-600 dark:text-green-400">{{ number_format($pe) }} PE</span>
+                                                </div>
+                                            @elseif($ce)
+                                                <span class="font-mono text-xs text-red-500">{{ number_format($ce) }} CE</span>
+                                            @elseif($pe)
+                                                <span class="font-mono text-xs text-green-600">{{ number_format($pe) }} PE</span>
+                                            @else
+                                                <span class="text-gray-400">—</span>
+                                            @endif
+                                            @break
+
                                         @default
                                             {{-- fixed_offset / smart_balanced — ATM ± offset --}}
                                             @if($lower && $upper)
