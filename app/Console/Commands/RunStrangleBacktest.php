@@ -48,6 +48,13 @@
 
 // php artisan backtest:strangle oi_volume_weighted_sell --from=2025-01-10 --to=2025-01-28 --entry-time=09:50 --min-premium=50 --target=8000 --stoploss=3500 --lot=130 --min-gap=0
 
+
+# Dry run first — no data saved
+// php artisan backtest:weekly weekly_iron_condor --symbol=NIFTY --from=2025-01-06 --to=2025-01-29 --strike-offset=600 --sell-lots=2 --hedge-lots=8 --hedge-price=10 --target=100000 --stoploss=30000 --leg-double-pct=100 --trailing-lock-pct=60 --gap-shift-threshold=100 --gap-skip-threshold=300 --dry-run
+
+# Live run
+// php artisan backtest:weekly weekly_iron_condor --from=2025-01-06 --to=2026-04-25 --strike-offset=600 --sell-lots=2 --target=100000 --stoploss=30000
+
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;

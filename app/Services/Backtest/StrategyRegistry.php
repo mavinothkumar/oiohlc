@@ -13,6 +13,7 @@ use App\Services\Backtest\Strategies\NearStraddleStrategy;
 use App\Services\Backtest\Strategies\OiVolumeWeightedSellStrategy;
 use App\Services\Backtest\Strategies\OtmStrangleStrategy;
 use App\Services\Backtest\Strategies\SmartBalancedStrategy;
+use App\Services\Backtest\Strategies\WeeklyIronCondorStrategy;
 use InvalidArgumentException;
 
 class StrategyRegistry {
@@ -22,15 +23,16 @@ class StrategyRegistry {
      */
     private static array $registry = [
         //'fixed_offset'    => FixedOffsetStrategy::class,
-        'strangle_straddle'     => FixedOffsetStrategy::class,
-        'smart_balanced'        => SmartBalancedStrategy::class,
-        'first_candle_breakout' => FirstCandleBreakoutStrategy::class,
-        'atm_straddle'          => AtmStraddleStrategy::class,
-        'near_straddle'         => NearStraddleStrategy::class,
-        'otm_strangle'          => OtmStrangleStrategy::class,
-        '15min_breakout'        => FifteenMinBreakoutStrategy::class,
-        'iron_condor_ladder'    => IronCondorLadderStrategy::class,
-        'oi_volume_weighted_sell'   => OiVolumeWeightedSellStrategy::class,
+        'strangle_straddle'       => FixedOffsetStrategy::class,
+        'smart_balanced'          => SmartBalancedStrategy::class,
+        'first_candle_breakout'   => FirstCandleBreakoutStrategy::class,
+        'atm_straddle'            => AtmStraddleStrategy::class,
+        'near_straddle'           => NearStraddleStrategy::class,
+        'otm_strangle'            => OtmStrangleStrategy::class,
+        '15min_breakout'          => FifteenMinBreakoutStrategy::class,
+        'iron_condor_ladder'      => IronCondorLadderStrategy::class,
+        'oi_volume_weighted_sell' => OiVolumeWeightedSellStrategy::class,
+        'weekly_iron_condor'      => WeeklyIronCondorStrategy::class,
     ];
 
     public static function resolve( string $name ): BacktestStrategy {

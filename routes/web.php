@@ -98,6 +98,8 @@ Route::get( '/options-charts', [ App\Http\Controllers\OptionsChartController::cl
 Route::get( '/options-charts/expiry-range', [ App\Http\Controllers\OptionsChartController::class, 'getExpiryRange' ] )->name( 'options.chart.expiry.range' );
 Route::get( '/options-charts/chart-data', [ App\Http\Controllers\OptionsChartController::class, 'getChartData' ] )->name( 'options.chart.chart.data' );
 
+Route::get('/option-data', [App\Http\Controllers\OptionAnalysisController::class, 'index'])->name('option-data');
+Route::get('/api/option-data', [App\Http\Controllers\OptionAnalysisController::class, 'getOptionData'])->name('api.option.data');
 
 Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
@@ -118,6 +120,7 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
     Route::get('/prev-level-match/live', [OptionLevelMatchController::class, 'live'])
          ->name('prev-level-match.live');
+
 } );
 
 
