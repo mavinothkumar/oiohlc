@@ -114,7 +114,21 @@ class StrikeDetailController extends Controller
                          'diff_oi',
                          'volume',
                          'diff_volume',
-                         'strike_price'
+                         'strike_price',
+                         'build_up',  // ← Now included
+                         'ltp',
+                         'close_price',
+                         'bid_price',
+                         'ask_price',
+                         'prev_oi',
+                         'vega',
+                         'theta',
+                         'gamma',
+                         'delta',
+                         'iv',
+                         'pop',
+                         'underlying_spot_price',
+                         'pcr'
                      )
                      ->whereDate('captured_at', $date)
                      ->where('expiry', $expiry)
@@ -157,6 +171,10 @@ class StrikeDetailController extends Controller
             $ce = $data['ce'];
             $pe = $data['pe'];
 
+            // Safe access to build_up (using null coalescing operator)
+            $ceBuildUp = $ce ? ($ce->build_up ?? null) : null;
+            $peBuildUp = $pe ? ($pe->build_up ?? null) : null;
+
             $ceCurrentPercent = $ce ? $this->calculatePercentChange($ce->oi, $ce->oi - $ce->diff_oi) : 0;
             $peCurrentPercent = $pe ? $this->calculatePercentChange($pe->oi, $pe->oi - $pe->diff_oi) : 0;
             $ceCumulativePercent = $startCE > 0 ? (($ce->oi - $startCE) / $startCE) * 100 : 0;
@@ -176,6 +194,8 @@ class StrikeDetailController extends Controller
                 'pe_cumulative_percent' => round($peCumulativePercent, 2),
                 'ce_volume' => $ce ? $ce->volume : 0,
                 'pe_volume' => $pe ? $pe->volume : 0,
+                'ce_build_up' => $ceBuildUp,
+                'pe_build_up' => $peBuildUp,
             ];
         }
 
@@ -184,7 +204,6 @@ class StrikeDetailController extends Controller
 
     private function groupDataByTime($allStrikesData, $currentSpotPrice)
     {
-        // Collect all unique times across all strikes
         $allTimes = [];
         foreach ($allStrikesData as $strikeData) {
             $allTimes = array_merge($allTimes, array_keys($strikeData));
@@ -227,8 +246,8 @@ class StrikeDetailController extends Controller
                 $row['is_top5_pe_negative'] = in_array($row['pe_current_percent'], $top5PENegative);
             }
 
-            // Calculate consolidated action based on all 5 strikes
-            $consolidatedAction = $this->calculateConsolidatedAction($timeData, $currentSpotPrice);
+            // Calculate consolidated action based on all 5 strikes using build_up
+            $consolidatedAction = $this->calculateConsolidatedActionWithBuildUp($timeData, $currentSpotPrice);
 
             $grouped[$time] = [
                 'strikes' => $timeData,
@@ -239,6 +258,138 @@ class StrikeDetailController extends Controller
         }
 
         return $grouped;
+    }
+
+    private function calculateConsolidatedActionWithBuildUp($timeData, $currentSpotPrice)
+    {
+        $buyScore = 0;
+        $sellScore = 0;
+        $buyBuildUpCount = 0;
+        $sellBuildUpCount = 0;
+
+        foreach ($timeData as $strike => $row) {
+            $distance = abs($currentSpotPrice - $strike);
+            $weight = $distance <= 50 ? 3 : ($distance <= 100 ? 2 : 1);
+
+            // Check build_up signals
+            $ceBuildUp = $row['ce_build_up'];
+            $peBuildUp = $row['pe_build_up'];
+            $marketAboveStrike = $currentSpotPrice > $strike;
+
+            // ===== BULLISH SIGNALS =====
+            if ($peBuildUp === 'Long Build' && $marketAboveStrike) {
+                $buyScore += $weight * 3;  // Very strong
+                $buyBuildUpCount++;
+            }
+            if ($ceBuildUp === 'Long Build' && $marketAboveStrike) {
+                $buyScore += $weight * 2;
+                $buyBuildUpCount++;
+            }
+            if ($ceBuildUp === 'Short Cover' && $marketAboveStrike) {
+                $buyScore += $weight;
+                $buyBuildUpCount++;
+            }
+            if ($peBuildUp === 'Short Build' && $marketAboveStrike) {
+                $buyScore += $weight;
+                $buyBuildUpCount++;
+            }
+
+            // ===== BEARISH SIGNALS =====
+            if ($ceBuildUp === 'Long Build' && !$marketAboveStrike) {
+                $sellScore += $weight * 3;  // Very strong
+                $sellBuildUpCount++;
+            }
+            if ($peBuildUp === 'Long Build' && !$marketAboveStrike) {
+                $sellScore += $weight * 2;
+                $sellBuildUpCount++;
+            }
+            if ($peBuildUp === 'Short Cover' && !$marketAboveStrike) {
+                $sellScore += $weight;
+                $sellBuildUpCount++;
+            }
+            if ($ceBuildUp === 'Short Build' && !$marketAboveStrike) {
+                $sellScore += $weight;
+                $sellBuildUpCount++;
+            }
+        }
+
+        // Determine final action
+        if ($buyScore > $sellScore * 1.5 && $buyBuildUpCount >= 2) {
+            return 'STRONG BUY';
+        } elseif ($buyScore > $sellScore) {
+            return 'BUY';
+        } elseif ($sellScore > $buyScore * 1.5 && $sellBuildUpCount >= 2) {
+            return 'STRONG SELL';
+        } elseif ($sellScore > $buyScore) {
+            return 'SELL';
+        } else {
+            return 'WAIT';
+        }
+    }
+
+    private function determineAction($ceData, $peData, $currentSpotPrice, $strike)
+    {
+        // Calculate distance from strike
+        $distanceFromStrike = abs($currentSpotPrice - $strike);
+        $isATM = $distanceFromStrike <= 50;
+
+        // Get build_up values
+        $ceBuildUp = $ceData['build_up'] ?? null;
+        $peBuildUp = $peData['build_up'] ?? null;
+
+        // Get cumulative percent changes
+        $ceCumulativePercent = $ceData['ce_cumulative_percent'] ?? 0;
+        $peCumulativePercent = $peData['pe_cumulative_percent'] ?? 0;
+
+        // Determine market direction based on price vs strike
+        $marketAboveStrike = $currentSpotPrice > $strike;
+
+        // ===== BULLISH SIGNALS =====
+
+        // 1. Put Long Build (Put writers defending) - Strong Bullish
+        if ($peBuildUp === 'Long Build' && $marketAboveStrike) {
+            return 'STRONG BUY';
+        }
+
+        // 2. Call Long Build (Traders buying calls) - Bullish
+        if ($ceBuildUp === 'Long Build' && $marketAboveStrike) {
+            return 'BUY';
+        }
+
+        // 3. Call Short Cover (Call writers fleeing) - Bullish
+        if ($ceBuildUp === 'Short Cover' && $marketAboveStrike) {
+            return 'BUY ON DIPS';
+        }
+
+        // 4. Put Short Build (Put writers selling) - Bullish (if market above)
+        if ($peBuildUp === 'Short Build' && $marketAboveStrike) {
+            return 'BUY ON DIPS';
+        }
+
+        // ===== BEARISH SIGNALS =====
+
+        // 1. Call Long Build (Call writers defending) - Strong Bearish
+        if ($ceBuildUp === 'Long Build' && !$marketAboveStrike) {
+            return 'STRONG SELL';
+        }
+
+        // 2. Put Long Build (Traders buying puts) - Bearish
+        if ($peBuildUp === 'Long Build' && !$marketAboveStrike) {
+            return 'SELL';
+        }
+
+        // 3. Put Short Cover (Put writers fleeing) - Bearish
+        if ($peBuildUp === 'Short Cover' && !$marketAboveStrike) {
+            return 'SELL ON RISE';
+        }
+
+        // 4. Call Short Build (Call writers selling) - Bearish (if market below)
+        if ($ceBuildUp === 'Short Build' && !$marketAboveStrike) {
+            return 'SELL ON RISE';
+        }
+
+        // ===== NEUTRAL / WAIT =====
+        return 'WAIT';
     }
 
     private function calculateConsolidatedAction($timeData, $currentSpotPrice)

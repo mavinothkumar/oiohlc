@@ -3,14 +3,14 @@
 @section('title', 'NIFTY OI & Volume - Multi Strike Analysis')
 
 @section('content')
-    <div class="container mx-auto px-4 py-6">
+    <div class="mx-auto px-4 py-6">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-blue-600">
                     📊 Multi-Strike OI Analysis
                 </h1>
-                <p class="text-gray-600 text-sm">5-Strike Profile (ATM ±2) with Consolidated Action</p>
+                <p class="text-gray-600 text-sm">5-Strike Profile (ATM ±2) with Build-Up Signals</p>
             </div>
             <div class="flex items-center space-x-2">
             <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700" id="current-time">
@@ -84,13 +84,16 @@
                 <span class="flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-1"></span> Top 5% CE Negative</span>
                 <span class="flex items-center"><span class="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Top 5% PE Positive</span>
                 <span class="flex items-center"><span class="w-3 h-3 bg-orange-500 rounded-full mr-1"></span> Top 5% PE Negative</span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Long Build</span></span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">Short Build</span></span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">Short Cover</span></span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Long Unwind</span></span>
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">STRONG BUY</span></span>
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">STRONG SELL</span></span>
-                <span class="flex items-center"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">WAIT</span></span>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-sm min-w-[1400px]">
+                <table class="w-full text-sm min-w-[1500px]">
                     <thead>
                     <tr class="bg-gray-50 border-b border-gray-200">
                         <th class="sticky left-0 bg-gray-50 py-2 px-3 text-left font-semibold text-gray-700">Time</th>
@@ -100,11 +103,13 @@
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE Δ (Cum)</th>
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE % (Cur)</th>
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE % (Cum)</th>
+                        <th class="py-2 px-3 text-center font-semibold text-gray-700">CE Build</th>
                         <th class="py-2 px-3 text-right font-semibold text-red-600">PE OI</th>
                         <th class="py-2 px-3 text-right font-semibold text-red-600">PE Δ (Cur)</th>
                         <th class="py-2 px-3 text-right font-semibold text-red-600">PE Δ (Cum)</th>
                         <th class="py-2 px-3 text-right font-semibold text-red-600">PE % (Cur)</th>
                         <th class="py-2 px-3 text-right font-semibold text-red-600">PE % (Cum)</th>
+                        <th class="py-2 px-3 text-center font-semibold text-gray-700">PE Build</th>
                         <th class="py-2 px-3 text-center font-semibold text-blue-600">Action</th>
                     </tr>
                     </thead>
@@ -138,7 +143,7 @@
                 params.append(key, value);
             }
 
-            document.getElementById('table-body').innerHTML = '<tr><td colspan="13" class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i></td></tr>';
+            document.getElementById('table-body').innerHTML = '<tr><td colspan="15" class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i></td></tr>';
             document.getElementById('consolidated-signal').classList.add('hidden');
             document.getElementById('summary-cards').classList.add('hidden');
             document.getElementById('table-info').textContent = 'Loading...';
@@ -153,15 +158,41 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('table-body').innerHTML = '<tr><td colspan="13" class="text-center py-4 text-red-500">Error loading data</td></tr>';
+                    document.getElementById('table-body').innerHTML = '<tr><td colspan="15" class="text-center py-4 text-red-500">Error loading data</td></tr>';
                 });
+        }
+
+        function getBuildUpBadge(buildUp) {
+            if (!buildUp) return '<span class="text-gray-400">-</span>';
+
+            let colorClass = '';
+            let label = buildUp;
+
+            switch(buildUp) {
+                case 'Long Build':
+                    colorClass = 'bg-green-100 text-green-700';
+                    break;
+                case 'Short Build':
+                    colorClass = 'bg-red-100 text-red-700';
+                    break;
+                case 'Short Cover':
+                    colorClass = 'bg-yellow-100 text-yellow-700';
+                    break;
+                case 'Long Unwind':
+                    colorClass = 'bg-blue-100 text-blue-700';
+                    break;
+                default:
+                    colorClass = 'bg-gray-100 text-gray-700';
+            }
+
+            return `<span class="px-2 py-0.5 text-xs rounded-full ${colorClass} font-medium">${label}</span>`;
         }
 
         function updateTable(data, strikes, atmStrike) {
             const tbody = document.getElementById('table-body');
 
             if (Object.keys(data).length === 0) {
-                tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-gray-500">No data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4 text-gray-500">No data available</td></tr>';
                 return;
             }
 
@@ -178,7 +209,7 @@
 
                 // Add separator between different time batches
                 if (rowIndex > 0) {
-                    html += `<tr class="border-t-2 border-gray-300"><td colspan="13" class="py-1"></td></tr>`;
+                    html += `<tr class="border-t-2 border-gray-300"><td colspan="15" class="py-1"></td></tr>`;
                 }
 
                 // For each strike in this time
@@ -205,6 +236,10 @@
                     if (row.is_top5_ce_negative) ceCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
                     if (row.is_top5_pe_positive) peCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
                     if (row.is_top5_pe_negative) peCurrentPercentClass = 'text-green-700 font-bold bg-green-100 px-1 rounded';
+
+                    // Build-up badges
+                    const ceBuildBadge = getBuildUpBadge(row.ce_build_up);
+                    const peBuildBadge = getBuildUpBadge(row.pe_build_up);
 
                     // Action badge - show only for ATM strike
                     let actionBadge = '';
@@ -236,11 +271,13 @@
                         <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right ${ceCurrentPercentClass}">${row.ce_current_percent > 0 ? '+' : ''}${row.ce_current_percent}%</td>
                         <td class="py-2 px-3 text-right ${ceCumulativePercentClass}">${row.ce_cumulative_percent > 0 ? '+' : ''}${row.ce_cumulative_percent}%</td>
+                        <td class="py-2 px-3 text-center">${ceBuildBadge}</td>
                         <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
                         <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right ${peCurrentPercentClass}">${row.pe_current_percent > 0 ? '+' : ''}${row.pe_current_percent}%</td>
                         <td class="py-2 px-3 text-right ${peCumulativePercentClass}">${row.pe_cumulative_percent > 0 ? '+' : ''}${row.pe_cumulative_percent}%</td>
+                        <td class="py-2 px-3 text-center">${peBuildBadge}</td>
                         <td class="py-2 px-3 text-center">${actionBadge}</td>
                     </tr>
                 `;
