@@ -100,6 +100,8 @@ Route::get( '/options-charts/chart-data', [ App\Http\Controllers\OptionsChartCon
 
 Route::get('/option-data', [App\Http\Controllers\OptionAnalysisController::class, 'index'])->name('option-data');
 Route::get('/api/option-data', [App\Http\Controllers\OptionAnalysisController::class, 'getOptionData'])->name('api.option.data');
+Route::get('/strike-detail', [App\Http\Controllers\StrikeDetailController::class, 'index'])->name('strike.detail');
+Route::get('/api/strike-data', [App\Http\Controllers\StrikeDetailController::class, 'getStrikeData'])->name('api.strike.data');
 
 Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
