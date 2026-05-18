@@ -10,7 +10,6 @@ class StrikeDetailController extends Controller
 {
     public function index()
     {
-        // Get default values
         $currentDate = now()->toDateString();
         $currentExpiry = $this->getCurrentExpiry();
         $currentSpot = $this->getCurrentSpot();
@@ -28,22 +27,44 @@ class StrikeDetailController extends Controller
 
     public function getStrikeData(Request $request)
     {
-        // Validate and get filters
         $date = $request->input('date', now()->toDateString());
         $expiry = $request->input('expiry', $this->getCurrentExpiry());
-        $strike = $request->input('strike', $this->getATMStrike($this->getCurrentSpot()));
+        $atmStrike = $request->input('strike', $this->getATMStrike($this->getCurrentSpot()));
 
-        // Get all 5-minute interval data for this strike
-        $strikeData = $this->getStrikeTimeSeries($date, $expiry, $strike);
+        // Get 5 strikes: ATM - 100, ATM - 50, ATM, ATM + 50, ATM + 100
+        $strikes = [
+            $atmStrike - 100,
+            $atmStrike - 50,
+            $atmStrike,
+            $atmStrike + 50,
+            $atmStrike + 100
+        ];
 
-        // Calculate cumulative and percentage metrics
-        $processedData = $this->processStrikeData($strikeData);
+        // Get current spot price
+        $currentSpotPrice = DB::table('option_chains')
+                              ->whereDate('captured_at', $date)
+                              ->where('expiry', $expiry)
+                              ->orderBy('captured_at', 'desc')
+                              ->value('underlying_spot_price');
+
+        $allStrikesData = [];
+
+        foreach ($strikes as $strike) {
+            $strikeData = $this->getStrikeTimeSeries($date, $expiry, $strike);
+            $processedData = $this->processStrikeData($strikeData, $currentSpotPrice);
+            $allStrikesData[$strike] = $processedData;
+        }
+
+        // Group by time across all strikes
+        $groupedByTime = $this->groupDataByTime($allStrikesData, $currentSpotPrice);
 
         return response()->json([
-            'data' => $processedData,
-            'strike' => $strike,
+            'data' => $groupedByTime,
+            'strikes' => $strikes,
+            'atm_strike' => $atmStrike,
             'expiry' => $expiry,
-            'date' => $date
+            'date' => $date,
+            'current_spot' => $currentSpotPrice
         ]);
     }
 
@@ -69,27 +90,21 @@ class StrikeDetailController extends Controller
     private function getCurrentSpot()
     {
         $expiry = $this->getCurrentExpiry();
-
-        $spot = DB::table('option_chains')
-                  ->where('expiry', $expiry)
-                  ->whereDate('captured_at', now()->toDateString())
-                  ->orderBy('captured_at', 'desc')
-                  ->value('underlying_spot_price');
-
-        return $spot ?? 23400; // Fallback if no data
+        return DB::table('option_chains')
+                 ->where('expiry', $expiry)
+                 ->whereDate('captured_at', now()->toDateString())
+                 ->orderBy('captured_at', 'desc')
+                 ->value('underlying_spot_price') ?? 23400;
     }
 
     private function getATMStrike($spot)
     {
         if (!$spot) return 23400;
-
-        // Round to nearest 50
         return round($spot / 50) * 50;
     }
 
     private function getStrikeTimeSeries($date, $expiry, $strike)
     {
-        // Get all records ordered by time DESC (recent first)
         $records = DB::table('option_chains')
                      ->select(
                          DB::raw('DATE_FORMAT(captured_at, "%H:%i") as time'),
@@ -107,11 +122,9 @@ class StrikeDetailController extends Controller
                      ->orderBy('captured_at', 'desc')
                      ->get();
 
-        // Separate CE and PE
         $ceRecords = $records->where('option_type', 'CE')->keyBy('time');
         $peRecords = $records->where('option_type', 'PE')->keyBy('time');
 
-        // Get all unique times (already sorted desc because of the query)
         $allTimes = array_unique(array_merge($ceRecords->keys()->toArray(), $peRecords->keys()->toArray()));
         rsort($allTimes);
 
@@ -128,15 +141,12 @@ class StrikeDetailController extends Controller
         return $result;
     }
 
-    private function processStrikeData($strikeData)
+    private function processStrikeData($strikeData, $currentSpotPrice)
     {
         $processed = [];
-        $cumulativeCE = 0;
-        $cumulativePE = 0;
-        $startCE = null;  // Store the first CE OI value (09:15)
-        $startPE = null;  // Store the first PE OI value (09:15)
+        $startCE = null;
+        $startPE = null;
 
-        // Get the first (oldest) record to use as baseline
         $firstRecord = array_values($strikeData)[0] ?? null;
         if ($firstRecord) {
             $startCE = $firstRecord['ce']->oi ?? 0;
@@ -147,41 +157,123 @@ class StrikeDetailController extends Controller
             $ce = $data['ce'];
             $pe = $data['pe'];
 
-            // Current interval change (5-minute)
-            $ceCurrentDiff = $ce ? $ce->diff_oi : 0;
-            $peCurrentDiff = $pe ? $pe->diff_oi : 0;
-
-            // Cumulative change from 09:15
-            $ceCumulativeDiff = $ce ? ($ce->oi - $startCE) : 0;
-            $peCumulativeDiff = $pe ? ($pe->oi - $startPE) : 0;
-
-            // Current interval percentage (based on previous OI)
             $ceCurrentPercent = $ce ? $this->calculatePercentChange($ce->oi, $ce->oi - $ce->diff_oi) : 0;
             $peCurrentPercent = $pe ? $this->calculatePercentChange($pe->oi, $pe->oi - $pe->diff_oi) : 0;
-
-            // Cumulative percentage (based on 09:15 OI)
             $ceCumulativePercent = $startCE > 0 ? (($ce->oi - $startCE) / $startCE) * 100 : 0;
             $peCumulativePercent = $startPE > 0 ? (($pe->oi - $startPE) / $startPE) * 100 : 0;
 
-            $processed[] = [
-                'time' => $time,
-                'ce_current_diff_oi' => $ceCurrentDiff,
-                'ce_cumulative_diff_oi' => $ceCumulativeDiff,
-                'ce_current_percent' => round($ceCurrentPercent, 2),
-                'ce_cumulative_percent' => round($ceCumulativePercent, 2),
+            $processed[$time] = [
                 'strike' => $data['strike_price'],
-                'pe_current_diff_oi' => $peCurrentDiff,
-                'pe_cumulative_diff_oi' => $peCumulativeDiff,
-                'pe_current_percent' => round($peCurrentPercent, 2),
-                'pe_cumulative_percent' => round($peCumulativePercent, 2),
                 'ce_oi' => $ce ? $ce->oi : 0,
                 'pe_oi' => $pe ? $pe->oi : 0,
+                'ce_current_diff_oi' => $ce ? $ce->diff_oi : 0,
+                'pe_current_diff_oi' => $pe ? $pe->diff_oi : 0,
+                'ce_cumulative_diff_oi' => $ce ? ($ce->oi - $startCE) : 0,
+                'pe_cumulative_diff_oi' => $pe ? ($pe->oi - $startPE) : 0,
+                'ce_current_percent' => round($ceCurrentPercent, 2),
+                'pe_current_percent' => round($peCurrentPercent, 2),
+                'ce_cumulative_percent' => round($ceCumulativePercent, 2),
+                'pe_cumulative_percent' => round($peCumulativePercent, 2),
                 'ce_volume' => $ce ? $ce->volume : 0,
                 'pe_volume' => $pe ? $pe->volume : 0,
             ];
         }
 
         return $processed;
+    }
+
+    private function groupDataByTime($allStrikesData, $currentSpotPrice)
+    {
+        // Collect all unique times across all strikes
+        $allTimes = [];
+        foreach ($allStrikesData as $strikeData) {
+            $allTimes = array_merge($allTimes, array_keys($strikeData));
+        }
+        $allTimes = array_unique($allTimes);
+        rsort($allTimes);
+
+        $grouped = [];
+
+        foreach ($allTimes as $time) {
+            $timeData = [];
+            $allCEPercentChanges = [];
+            $allPEPercentChanges = [];
+
+            foreach ($allStrikesData as $strike => $strikeData) {
+                if (isset($strikeData[$time])) {
+                    $row = $strikeData[$time];
+                    $timeData[$strike] = $row;
+                    $allCEPercentChanges[] = $row['ce_current_percent'];
+                    $allPEPercentChanges[] = $row['pe_current_percent'];
+                }
+            }
+
+            // Sort to find top 5
+            rsort($allCEPercentChanges);
+            $top5CEPositive = array_slice(array_filter($allCEPercentChanges, function($v) { return $v > 0; }), 0, 5);
+            sort($allCEPercentChanges);
+            $top5CENegative = array_slice(array_filter($allCEPercentChanges, function($v) { return $v < 0; }), 0, 5);
+
+            rsort($allPEPercentChanges);
+            $top5PEPositive = array_slice(array_filter($allPEPercentChanges, function($v) { return $v > 0; }), 0, 5);
+            sort($allPEPercentChanges);
+            $top5PENegative = array_slice(array_filter($allPEPercentChanges, function($v) { return $v < 0; }), 0, 5);
+
+            // Add flags to each row
+            foreach ($timeData as $strike => &$row) {
+                $row['is_top5_ce_positive'] = in_array($row['ce_current_percent'], $top5CEPositive);
+                $row['is_top5_ce_negative'] = in_array($row['ce_current_percent'], $top5CENegative);
+                $row['is_top5_pe_positive'] = in_array($row['pe_current_percent'], $top5PEPositive);
+                $row['is_top5_pe_negative'] = in_array($row['pe_current_percent'], $top5PENegative);
+            }
+
+            // Calculate consolidated action based on all 5 strikes
+            $consolidatedAction = $this->calculateConsolidatedAction($timeData, $currentSpotPrice);
+
+            $grouped[$time] = [
+                'strikes' => $timeData,
+                'consolidated_action' => $consolidatedAction,
+                'total_ce_oi' => array_sum(array_column($timeData, 'ce_oi')),
+                'total_pe_oi' => array_sum(array_column($timeData, 'pe_oi')),
+            ];
+        }
+
+        return $grouped;
+    }
+
+    private function calculateConsolidatedAction($timeData, $currentSpotPrice)
+    {
+        $buyScore = 0;
+        $sellScore = 0;
+
+        foreach ($timeData as $strike => $row) {
+            $distance = abs($currentSpotPrice - $strike);
+            $weight = $distance <= 50 ? 3 : ($distance <= 100 ? 2 : 1);
+
+            $netScore = $row['pe_cumulative_percent'] - $row['ce_cumulative_percent'];
+
+            if ($netScore > 10) {
+                $buyScore += $weight * 2;
+            } elseif ($netScore > 5) {
+                $buyScore += $weight;
+            } elseif ($netScore < -10) {
+                $sellScore += $weight * 2;
+            } elseif ($netScore < -5) {
+                $sellScore += $weight;
+            }
+        }
+
+        if ($buyScore > $sellScore * 1.5) {
+            return 'STRONG BUY';
+        } elseif ($buyScore > $sellScore) {
+            return 'BUY';
+        } elseif ($sellScore > $buyScore * 1.5) {
+            return 'STRONG SELL';
+        } elseif ($sellScore > $buyScore) {
+            return 'SELL';
+        } else {
+            return 'WAIT';
+        }
     }
 
     private function calculatePercentChange($current, $previous)

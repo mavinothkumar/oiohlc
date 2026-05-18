@@ -1,64 +1,69 @@
 @extends('layouts.app')
 
-@section('title', 'NIFTY OI & Volume Difference')
+@section('title', 'NIFTY OI & Volume - Multi Strike Analysis')
 
 @section('content')
     <div class="container mx-auto px-4 py-6">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                    🔍 Strike Analysis: OI & Volume
+                <h1 class="text-2xl font-bold text-blue-600">
+                    📊 Multi-Strike OI Analysis
                 </h1>
-                <p class="text-gray-400 text-sm">Detailed 5-minute OI changes for a specific strike</p>
+                <p class="text-gray-600 text-sm">5-Strike Profile (ATM ±2) with Consolidated Action</p>
             </div>
             <div class="flex items-center space-x-2">
-            <span class="px-3 py-1 bg-gray-800 rounded-full text-xs font-medium text-white" id="current-time">
+            <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700" id="current-time">
                 {{ now()->format('H:i:s') }}
             </span>
             </div>
         </div>
 
         <!-- Filter Section -->
-        <div class="bg-gray-800 rounded-xl p-4 mb-6 border border-gray-700 shadow-lg">
+        <div class="bg-white rounded-xl p-4 mb-6 border border-gray-200 shadow-sm">
             <form id="filter-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-1">Date</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input type="date" name="date" id="filter-date"
                         value="{{ $currentDate }}"
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-1">Expiry</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
                     <input type="date" name="expiry" id="filter-expiry"
                         value="{{ $currentExpiry }}"
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-1">Strike Price</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ATM Strike</label>
                     <input type="number" name="strike" id="filter-strike"
                         value="{{ $atmStrike }}"
                         step="50"
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div class="flex items-end">
                     <button onclick="fetchStrikeData()"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors w-full">
-                        <i class="fas fa-sync-alt mr-2"></i> Load Data
+                        <i class="fas fa-sync-alt mr-2"></i> Analyze
                     </button>
                 </div>
             </form>
 
             <!-- Quick ATM Strikes -->
             <div class="mt-3 flex flex-wrap gap-2">
-                <span class="text-xs text-gray-400 mr-2">Quick ATM:</span>
+                <span class="text-xs text-gray-500 mr-2">Quick ATM:</span>
                 @foreach([-200, -150, -100, -50, 0, 50, 100, 150, 200] as $offset)
                     <button onclick="setStrike({{ $atmStrike + $offset }})"
-                        class="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded-md text-gray-300 transition-colors">
+                        class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition-colors">
                         {{ $atmStrike + $offset }}
                     </button>
                 @endforeach
             </div>
+        </div>
+
+        <!-- Consolidated Signal Card -->
+        <div id="consolidated-signal" class="mb-6 hidden">
+            <!-- Will be populated by JS -->
         </div>
 
         <!-- Summary Cards -->
@@ -67,34 +72,40 @@
         </div>
 
         <!-- Main Table -->
-        <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-lg overflow-x-auto">
+        <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm overflow-x-auto">
             <div class="flex justify-between items-center mb-3">
-                <h2 class="text-lg font-semibold text-white">5-Minute OI & Volume Analysis</h2>
-                <span class="text-xs text-gray-400 text-white" id="table-info">Loading...</span>
+                <h2 class="text-lg font-semibold text-gray-800">5-Strike Profile (ATM ±2)</h2>
+                <span class="text-xs text-gray-500" id="table-info">Loading...</span>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap gap-4 mb-3 text-xs text-gray-600">
+                <span class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-1"></span> Top 5% CE Positive</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-1"></span> Top 5% CE Negative</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Top 5% PE Positive</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-orange-500 rounded-full mr-1"></span> Top 5% PE Negative</span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">STRONG BUY</span></span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">STRONG SELL</span></span>
+                <span class="flex items-center"><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">WAIT</span></span>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-sm min-w-[1200px]">
+                <table class="w-full text-sm min-w-[1400px]">
                     <thead>
-                    <tr class="border-b border-gray-700 bg-gray-750 text-white">
-                        <th class="sticky left-0 bg-gray-800 py-2 px-3 text-left font-semibold">Time</th>
-
-                        <!-- CE Section -->
-                        <th class="py-2 px-3 text-right font-semibold text-green-400">CE OI</th>
-                        <th class="py-2 px-3 text-right font-semibold text-green-400">CE Δ (Current)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-green-400">CE Δ (Cumulative)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-green-400">CE % (Current)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-green-400">CE % (Cumulative)</th>
-
-                        <!-- Strike -->
-                        <th class="py-2 px-3 text-center font-semibold text-yellow-400">Strike</th>
-
-                        <!-- PE Section -->
-                        <th class="py-2 px-3 text-right font-semibold text-red-400">PE OI</th>
-                        <th class="py-2 px-3 text-right font-semibold text-red-400">PE Δ (Current)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-red-400">PE Δ (Cumulative)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-red-400">PE % (Current)</th>
-                        <th class="py-2 px-3 text-right font-semibold text-red-400">PE % (Cumulative)</th>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="sticky left-0 bg-gray-50 py-2 px-3 text-left font-semibold text-gray-700">Time</th>
+                        <th class="py-2 px-3 text-center font-semibold text-gray-700">Strike</th>
+                        <th class="py-2 px-3 text-right font-semibold text-green-600">CE OI</th>
+                        <th class="py-2 px-3 text-right font-semibold text-green-600">CE Δ (Cur)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-green-600">CE Δ (Cum)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-green-600">CE % (Cur)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-green-600">CE % (Cum)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE OI</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE Δ (Cur)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE Δ (Cum)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE % (Cur)</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE % (Cum)</th>
+                        <th class="py-2 px-3 text-center font-semibold text-blue-600">Action</th>
                     </tr>
                     </thead>
                     <tbody id="table-body">
@@ -103,27 +114,14 @@
                 </table>
             </div>
         </div>
-
-        <!-- Volume Chart -->
-        <div class="mt-6 bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-lg">
-            <h2 class="text-lg font-semibold mb-3">Volume Comparison</h2>
-            <div class="h-64">
-                <canvas id="volumeChart"></canvas>
-            </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        let volumeChart = null;
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-refresh time
             setInterval(() => {
                 document.getElementById('current-time').textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
             }, 1000);
-
-            // Initial fetch
             fetchStrikeData();
         });
 
@@ -135,219 +133,229 @@
         function fetchStrikeData() {
             const form = document.getElementById('filter-form');
             const formData = new FormData(form);
-
-            // Convert to query parameters
             const params = new URLSearchParams();
             for (const [key, value] of formData.entries()) {
                 params.append(key, value);
             }
 
-            // Show loading state
-            document.getElementById('table-body').innerHTML = '<tr><td colspan="12" class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i></td></tr>';
+            document.getElementById('table-body').innerHTML = '<tr><td colspan="13" class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i></td></tr>';
+            document.getElementById('consolidated-signal').classList.add('hidden');
             document.getElementById('summary-cards').classList.add('hidden');
             document.getElementById('table-info').textContent = 'Loading...';
 
             fetch(`/api/strike-data?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
-                    updateTable(data.data, data.strike);
-                    updateSummaryCards(data.data, data.strike);
-                    updateVolumeChart(data.data);
-                    document.getElementById('table-info').textContent = `Strike: ${data.strike} | Expiry: ${data.expiry} | ${data.data.length} intervals`;
+                    updateTable(data.data, data.strikes, data.atm_strike);
+                    updateConsolidatedSignal(data.data, data.atm_strike);
+                    updateSummaryCards(data.data, data.strikes);
+                    document.getElementById('table-info').textContent = `ATM: ${data.atm_strike} | Expiry: ${data.expiry} | ${Object.keys(data.data).length} intervals`;
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('table-body').innerHTML = '<tr><td colspan="12" class="text-center py-4 text-red-500">Error loading data</td></tr>';
+                    document.getElementById('table-body').innerHTML = '<tr><td colspan="13" class="text-center py-4 text-red-500">Error loading data</td></tr>';
                 });
         }
 
-        function updateTable(data, strike) {
+        function updateTable(data, strikes, atmStrike) {
             const tbody = document.getElementById('table-body');
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="text-center py-4 text-gray-400">No data available for this strike</td></tr>';
+            if (Object.keys(data).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13" class="text-center py-4 text-gray-500">No data available</td></tr>';
                 return;
             }
 
             let html = '';
-            data.forEach(row => {
-                // Color coding for current differences
-                const ceCurrentColor = row.ce_current_diff_oi > 0 ? 'text-green-400' : (row.ce_current_diff_oi < 0 ? 'text-red-400' : 'text-gray-400');
-                const peCurrentColor = row.pe_current_diff_oi > 0 ? 'text-red-400' : (row.pe_current_diff_oi < 0 ? 'text-green-400' : 'text-gray-400');
+            let rowIndex = 0;
 
-                // Color coding for cumulative differences
-                const ceCumulativeColor = row.ce_cumulative_diff_oi > 0 ? 'text-green-400' : (row.ce_cumulative_diff_oi < 0 ? 'text-red-400' : 'text-gray-400');
-                const peCumulativeColor = row.pe_cumulative_diff_oi > 0 ? 'text-red-400' : (row.pe_cumulative_diff_oi < 0 ? 'text-green-400' : 'text-gray-400');
+            // Sort times descending
+            const times = Object.keys(data).sort().reverse();
 
-                // Color coding for percentages
-                const ceCurrentPercentColor = row.ce_current_percent > 0 ? 'text-green-400' : (row.ce_current_percent < 0 ? 'text-red-400' : 'text-gray-400');
-                const peCurrentPercentColor = row.pe_current_percent > 0 ? 'text-red-400' : (row.pe_current_percent < 0 ? 'text-green-400' : 'text-gray-400');
-                const ceCumulativePercentColor = row.ce_cumulative_percent > 0 ? 'text-green-400' : (row.ce_cumulative_percent < 0 ? 'text-red-400' : 'text-gray-400');
-                const peCumulativePercentColor = row.pe_cumulative_percent > 0 ? 'text-red-400' : (row.pe_cumulative_percent < 0 ? 'text-green-400' : 'text-gray-400');
+            times.forEach(time => {
+                const timeData = data[time];
+                const isEven = rowIndex % 2 === 0;
+                const bgClass = isEven ? 'bg-white' : 'bg-gray-50';
 
-                html += `
-                <tr class="border-b border-gray-700 hover:bg-gray-750 transition-colors">
-                    <td class="sticky left-0 bg-gray-800 py-2 px-3 text-left font-medium text-white">${row.time}</td>
+                // Add separator between different time batches
+                if (rowIndex > 0) {
+                    html += `<tr class="border-t-2 border-gray-300"><td colspan="13" class="py-1"></td></tr>`;
+                }
 
-                    <!-- CE Data -->
-                    <td class="py-2 px-3 text-right font-medium text-green-400">${row.ce_oi ? row.ce_oi.toLocaleString() : '-'}</td>
-                    <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${row.ce_current_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${ceCurrentPercentColor}">${row.ce_current_percent > 0 ? '+' : ''}${row.ce_current_percent}%</td>
-                    <td class="py-2 px-3 text-right ${ceCumulativePercentColor}">${row.ce_cumulative_percent > 0 ? '+' : ''}${row.ce_cumulative_percent}%</td>
+                // For each strike in this time
+                strikes.forEach(strike => {
+                    const row = timeData.strikes[strike];
+                    if (!row) return;
 
-                    <!-- Strike -->
-                    <td class="py-2 px-3 text-center font-bold text-yellow-400">${strike}</td>
+                    const isATM = strike === atmStrike;
+                    const strikeClass = isATM ? 'font-bold text-blue-600' : 'text-gray-700';
 
-                    <!-- PE Data -->
-                    <td class="py-2 px-3 text-right font-medium text-red-400">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
-                    <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${peCurrentPercentColor}">${row.pe_current_percent > 0 ? '+' : ''}${row.pe_current_percent}%</td>
-                    <td class="py-2 px-3 text-right ${peCumulativePercentColor}">${row.pe_cumulative_percent > 0 ? '+' : ''}${row.pe_cumulative_percent}%</td>
-                </tr>
-            `;
+                    // Color coding
+                    const ceCurrentColor = row.ce_current_diff_oi > 0 ? 'text-green-600' : (row.ce_current_diff_oi < 0 ? 'text-red-600' : 'text-gray-500');
+                    const peCurrentColor = row.pe_current_diff_oi > 0 ? 'text-red-600' : (row.pe_current_diff_oi < 0 ? 'text-green-600' : 'text-gray-500');
+                    const ceCumulativeColor = row.ce_cumulative_diff_oi > 0 ? 'text-green-600' : (row.ce_cumulative_diff_oi < 0 ? 'text-red-600' : 'text-gray-500');
+                    const peCumulativeColor = row.pe_cumulative_diff_oi > 0 ? 'text-red-600' : (row.pe_cumulative_diff_oi < 0 ? 'text-green-600' : 'text-gray-500');
+
+                    // Top 5 highlights
+                    let ceCurrentPercentClass = row.ce_current_percent > 0 ? 'text-green-600' : (row.ce_current_percent < 0 ? 'text-red-600' : 'text-gray-500');
+                    let peCurrentPercentClass = row.pe_current_percent > 0 ? 'text-red-600' : (row.pe_current_percent < 0 ? 'text-green-600' : 'text-gray-500');
+                    let ceCumulativePercentClass = row.ce_cumulative_percent > 0 ? 'text-green-600' : (row.ce_cumulative_percent < 0 ? 'text-red-600' : 'text-gray-500');
+                    let peCumulativePercentClass = row.pe_cumulative_percent > 0 ? 'text-red-600' : (row.pe_cumulative_percent < 0 ? 'text-green-600' : 'text-gray-500');
+
+                    if (row.is_top5_ce_positive) ceCurrentPercentClass = 'text-green-700 font-bold bg-green-100 px-1 rounded';
+                    if (row.is_top5_ce_negative) ceCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
+                    if (row.is_top5_pe_positive) peCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
+                    if (row.is_top5_pe_negative) peCurrentPercentClass = 'text-green-700 font-bold bg-green-100 px-1 rounded';
+
+                    // Action badge - show only for ATM strike
+                    let actionBadge = '';
+                    if (isATM) {
+                        switch(timeData.consolidated_action) {
+                            case 'STRONG BUY':
+                                actionBadge = '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">▲ STRONG BUY</span>';
+                                break;
+                            case 'BUY':
+                                actionBadge = '<span class="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">▲ BUY</span>';
+                                break;
+                            case 'STRONG SELL':
+                                actionBadge = '<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">▼ STRONG SELL</span>';
+                                break;
+                            case 'SELL':
+                                actionBadge = '<span class="px-2 py-1 bg-red-50 text-red-600 rounded text-xs font-bold">▼ SELL</span>';
+                                break;
+                            default:
+                                actionBadge = '<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold">⏸ WAIT</span>';
+                        }
+                    }
+
+                    html += `
+                    <tr class="${bgClass} hover:bg-gray-100 transition-colors">
+                        <td class="sticky left-0 ${bgClass} py-2 px-3 text-left font-medium text-gray-800">${time}</td>
+                        <td class="py-2 px-3 text-center ${strikeClass}">${strike}</td>
+                        <td class="py-2 px-3 text-right font-medium text-green-600">${row.ce_oi ? row.ce_oi.toLocaleString() : '-'}</td>
+                        <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${row.ce_current_diff_oi.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right ${ceCurrentPercentClass}">${row.ce_current_percent > 0 ? '+' : ''}${row.ce_current_percent}%</td>
+                        <td class="py-2 px-3 text-right ${ceCumulativePercentClass}">${row.ce_cumulative_percent > 0 ? '+' : ''}${row.ce_cumulative_percent}%</td>
+                        <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
+                        <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right ${peCurrentPercentClass}">${row.pe_current_percent > 0 ? '+' : ''}${row.pe_current_percent}%</td>
+                        <td class="py-2 px-3 text-right ${peCumulativePercentClass}">${row.pe_cumulative_percent > 0 ? '+' : ''}${row.pe_cumulative_percent}%</td>
+                        <td class="py-2 px-3 text-center">${actionBadge}</td>
+                    </tr>
+                `;
+                });
+
+                rowIndex++;
             });
 
             tbody.innerHTML = html;
         }
 
-        function updateSummaryCards(data, strike) {
-            if (data.length === 0) return;
-
-            const container = document.getElementById('summary-cards');
+        function updateConsolidatedSignal(data, atmStrike) {
+            const container = document.getElementById('consolidated-signal');
             container.classList.remove('hidden');
 
-            const first = data[0];
-            const last = data[data.length - 1];
+            const times = Object.keys(data).sort().reverse();
+            const latest = times.length > 0 ? data[times[0]] : null;
 
-            // Calculate total changes
-            const totalCEChange = last.ce_cumulative_diff_oi;
-            const totalPEChange = last.pe_cumulative_diff_oi;
-            const totalCEPercent = last.ce_cumulative_percent;
-            const totalPEPercent = last.pe_cumulative_percent;
+            if (!latest) return;
 
-            // Current interval changes
-            const currentCEChange = last.ce_current_diff_oi;
-            const currentPEChange = last.pe_current_diff_oi;
-            const currentCEPercent = last.ce_current_percent;
-            const currentPEPercent = last.pe_current_percent;
+            const action = latest.consolidated_action;
+            let bgColor = 'bg-gray-50';
+            let borderColor = 'border-gray-300';
+            let textColor = 'text-gray-700';
+            let icon = '⏸';
+
+            if (action === 'STRONG BUY') {
+                bgColor = 'bg-green-50';
+                borderColor = 'border-green-300';
+                textColor = 'text-green-700';
+                icon = '🚀';
+            } else if (action === 'BUY') {
+                bgColor = 'bg-green-50';
+                borderColor = 'border-green-200';
+                textColor = 'text-green-600';
+                icon = '📈';
+            } else if (action === 'STRONG SELL') {
+                bgColor = 'bg-red-50';
+                borderColor = 'border-red-300';
+                textColor = 'text-red-700';
+                icon = '🔻';
+            } else if (action === 'SELL') {
+                bgColor = 'bg-red-50';
+                borderColor = 'border-red-200';
+                textColor = 'text-red-600';
+                icon = '📉';
+            }
 
             container.innerHTML = `
-            <div class="bg-gray-700 rounded-lg p-3">
-                <div class="text-xs text-gray-400">Strike</div>
-                <div class="text-2xl font-bold text-yellow-400">${strike}</div>
-                <div class="text-xs text-gray-500">${data.length} intervals</div>
-            </div>
-
-            <div class="bg-gray-700 rounded-lg p-3">
-                <div class="text-xs text-gray-400">CE Total Δ</div>
-                <div class="text-xl font-bold ${totalCEChange > 0 ? 'text-green-400' : totalCEChange < 0 ? 'text-red-400' : 'text-gray-400'}">
-                    ${totalCEChange > 0 ? '+' : ''}${totalCEChange.toLocaleString()}
-                </div>
-                <div class="text-xs ${totalCEPercent > 0 ? 'text-green-400' : totalCEPercent < 0 ? 'text-red-400' : 'text-gray-400'}">
-                    ${totalCEPercent > 0 ? '+' : ''}${totalCEPercent}%
-                </div>
-            </div>
-
-            <div class="bg-gray-700 rounded-lg p-3">
-                <div class="text-xs text-gray-400">PE Total Δ</div>
-                <div class="text-xl font-bold ${totalPEChange > 0 ? 'text-red-400' : totalPEChange < 0 ? 'text-green-400' : 'text-gray-400'}">
-                    ${totalPEChange > 0 ? '+' : ''}${totalPEChange.toLocaleString()}
-                </div>
-                <div class="text-xs ${totalPEPercent > 0 ? 'text-red-400' : totalPEPercent < 0 ? 'text-green-400' : 'text-gray-400'}">
-                    ${totalPEPercent > 0 ? '+' : ''}${totalPEPercent}%
-                </div>
-            </div>
-
-            <div class="bg-gray-700 rounded-lg p-3">
-                <div class="text-xs text-gray-400">Last Interval Δ</div>
-                <div class="flex justify-between">
-                    <div>
-                        <span class="text-xs text-green-400">CE:</span>
-                        <span class="text-sm font-bold ${currentCEChange > 0 ? 'text-green-400' : currentCEChange < 0 ? 'text-red-400' : 'text-gray-400'}">
-                            ${currentCEChange > 0 ? '+' : ''}${currentCEChange.toLocaleString()}
-                        </span>
+            <div class="border-l-4 ${borderColor} ${bgColor} rounded-xl p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="text-3xl">${icon}</div>
+                        <div>
+                            <h3 class="text-xl font-bold ${textColor}">${action}</h3>
+                            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                                <span>ATM: <strong class="text-blue-600">${atmStrike}</strong></span>
+                                <span>Latest: <strong class="text-gray-800">${times[0]}</strong></span>
+                                <span>Intervals: <strong class="text-gray-800">${times.length}</strong></span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-xs text-red-400">PE:</span>
-                        <span class="text-sm font-bold ${currentPEChange > 0 ? 'text-red-400' : currentPEChange < 0 ? 'text-green-400' : 'text-gray-400'}">
-                            ${currentPEChange > 0 ? '+' : ''}${currentPEChange.toLocaleString()}
-                        </span>
+                    <div class="flex space-x-4 text-sm">
+                        <div class="text-center">
+                            <div class="text-gray-500">Total CE OI</div>
+                            <div class="font-bold text-green-600">${latest.total_ce_oi ? latest.total_ce_oi.toLocaleString() : '-'}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-gray-500">Total PE OI</div>
+                            <div class="font-bold text-red-600">${latest.total_pe_oi ? latest.total_pe_oi.toLocaleString() : '-'}</div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         }
 
-        function updateVolumeChart(data) {
-            const ctx = document.getElementById('volumeChart').getContext('2d');
+        function updateSummaryCards(data, strikes) {
+            const container = document.getElementById('summary-cards');
+            container.classList.remove('hidden');
 
-            if (volumeChart) {
-                volumeChart.destroy();
-            }
+            const times = Object.keys(data).sort().reverse();
+            const latest = times.length > 0 ? data[times[0]] : null;
 
-            const labels = data.map(row => row.time);
-            const ceVolume = data.map(row => row.ce_volume || 0);
-            const peVolume = data.map(row => row.pe_volume || 0);
+            if (!latest) return;
 
-            volumeChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'CE Volume',
-                            data: ceVolume,
-                            backgroundColor: 'rgba(52, 211, 153, 0.5)',
-                            borderColor: 'rgba(52, 211, 153, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'PE Volume',
-                            data: peVolume,
-                            backgroundColor: 'rgba(248, 113, 113, 0.5)',
-                            borderColor: 'rgba(248, 113, 113, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e2e8f0'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: '#94a3b8',
-                                maxRotation: 45,
-                                autoSkip: true,
-                                maxTicksLimit: 15
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.05)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#94a3b8',
-                                callback: function(value) {
-                                    return (value / 1000000).toFixed(1) + 'L';
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.05)'
-                            }
-                        }
-                    }
+            // Calculate totals across all strikes
+            let totalCE = 0, totalPE = 0;
+            strikes.forEach(strike => {
+                if (latest.strikes[strike]) {
+                    totalCE += latest.strikes[strike].ce_oi || 0;
+                    totalPE += latest.strikes[strike].pe_oi || 0;
                 }
             });
+
+            container.innerHTML = `
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div class="text-xs text-gray-500">Total CE OI (5 strikes)</div>
+                <div class="text-xl font-bold text-green-600">${totalCE.toLocaleString()}</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div class="text-xs text-gray-500">Total PE OI (5 strikes)</div>
+                <div class="text-xl font-bold text-red-600">${totalPE.toLocaleString()}</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div class="text-xs text-gray-500">PCR (Total)</div>
+                <div class="text-xl font-bold text-blue-600">${totalPE > 0 ? (totalCE / totalPE).toFixed(3) : 'N/A'}</div>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                <div class="text-xs text-gray-500">Current Action</div>
+                <div class="text-xl font-bold ${latest.consolidated_action.includes('BUY') ? 'text-green-600' : latest.consolidated_action.includes('SELL') ? 'text-red-600' : 'text-gray-600'}">
+                    ${latest.consolidated_action}
+                </div>
+            </div>
+        `;
         }
     </script>
 @endsection
