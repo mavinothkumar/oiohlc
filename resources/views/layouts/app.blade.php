@@ -30,54 +30,54 @@ $routeName = request()->route()?->getName() ?? '';
 </div>
 @if(!Str::startsWith($routeName, ['test.', 'trading.']))
 {{--    @if(!request()->has('nr'))--}}
-    <script>
-        ( function () {
-            function isWithinTradingHours () {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes();
-                const day = now.getDay();
-                if ( day === 0 || day === 6 ) return false;
+<script>
+    ( function () {
+        function isWithinTradingHours () {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const day = now.getDay();
+            if ( day === 0 || day === 6 ) return false;
 
-                // Convert current time to minutes since midnight
-                const currentMinutes = hours * 60 + minutes;
-                const startMinutes = 9 * 60 + 14;   // 09:14
-                const endMinutes = 15 * 60 + 31;    // 15:31
+// Convert current time to minutes since midnight
+            const currentMinutes = hours * 60 + minutes;
+            const startMinutes = 9 * 60 + 14; // 09:14
+            const endMinutes = 15 * 60 + 31; // 15:31
 
-                return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+            return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+        }
+
+        function msUntilNextNineSeconds () {
+            const now = new Date();
+            const seconds = now.getSeconds();
+            const ms = now.getMilliseconds();
+
+            if (seconds < 9) {
+                return ( ( 9 - seconds ) * 1000 ) - ms;
+            } else {
+                return ( ( 60 - seconds + 9 ) * 1000 ) - ms;
             }
+        }
 
-            function msUntilNextNineSeconds () {
-                const now = new Date();
-                const seconds = now.getSeconds();
-                const ms = now.getMilliseconds();
+        function scheduleReload () {
+            const initialDelay = msUntilNextNineSeconds();
 
-                if (seconds < 9) {
-                    return ( ( 9 - seconds ) * 1000 ) - ms;
-                } else {
-                    return ( ( 60 - seconds + 9 ) * 1000 ) - ms;
+            setTimeout(() => {
+                if (isWithinTradingHours()) {
+                    window.location.reload();
                 }
-            }
 
-            function scheduleReload () {
-                const initialDelay = msUntilNextNineSeconds();
-
-                setTimeout(() => {
+                setInterval(() => {
                     if (isWithinTradingHours()) {
                         window.location.reload();
                     }
+                }, 309000); // 5 minutes 9 seconds = 309,000 milliseconds
+            }, initialDelay);
+        }
 
-                    setInterval(() => {
-                        if (isWithinTradingHours()) {
-                            window.location.reload();
-                        }
-                    }, 60000);
-                }, initialDelay);
-            }
-
-            scheduleReload();
-        } )();
-    </script>
+        scheduleReload();
+    } )();
+</script>
 @endif
 @stack('scripts')
 </body>

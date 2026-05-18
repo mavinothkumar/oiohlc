@@ -80,10 +80,10 @@
 
             <!-- Legend -->
             <div class="flex flex-wrap gap-4 mb-3 text-xs text-gray-600">
-                <span class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-1"></span> Top 5% CE Positive</span>
-                <span class="flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-1"></span> Top 5% CE Negative</span>
-                <span class="flex items-center"><span class="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Top 5% PE Positive</span>
-                <span class="flex items-center"><span class="w-3 h-3 bg-orange-500 rounded-full mr-1"></span> Top 5% PE Negative</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-green-500 rounded-full mr-1"></span> Top 3% CE Positive</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-red-500 rounded-full mr-1"></span> Top 3% CE Negative</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> Top 3% PE Positive</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-orange-500 rounded-full mr-1"></span> Top 3% PE Negative</span>
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Long Build</span></span>
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">Short Build</span></span>
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">Short Cover</span></span>
@@ -92,11 +92,11 @@
                 <span class="flex items-center"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">STRONG SELL</span></span>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm min-w-[1500px]">
-                    <thead>
-                    <tr class="bg-gray-50 border-b border-gray-200">
-                        <th class="sticky left-0 bg-gray-50 py-2 px-3 text-left font-semibold text-gray-700">Time</th>
+            <div class="overflow-x-auto" style="max-height: 800px; overflow-y: auto;">
+                <table class="w-full text-sm min-w-[1500px] border-collapse">
+                    <thead class="sticky top-0 z-10 bg-gray-50 shadow-sm">
+                    <tr class="border-b border-gray-200">
+                        <th class="sticky left-0 z-20 bg-gray-50 py-2 px-3 text-left font-semibold text-gray-700 border-r border-gray-200">Time</th>
                         <th class="py-2 px-3 text-center font-semibold text-gray-700">Strike</th>
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE OI</th>
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE Δ (Cur)</th>
@@ -123,6 +123,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let currentStrikeData = [];
+
         document.addEventListener('DOMContentLoaded', function() {
             setInterval(() => {
                 document.getElementById('current-time').textContent = new Date().toLocaleTimeString('en-IN', { hour12: false });
@@ -151,6 +153,7 @@
             fetch(`/api/strike-data?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
+                    currentStrikeData = data.data;
                     updateTable(data.data, data.strikes, data.atm_strike);
                     updateConsolidatedSignal(data.data, data.atm_strike);
                     updateSummaryCards(data.data, data.strikes);
@@ -188,31 +191,73 @@
             return `<span class="px-2 py-0.5 text-xs rounded-full ${colorClass} font-medium">${label}</span>`;
         }
 
+        function getTop3Box(value, allValues, type, isPositive) {
+            // Sort all values
+            const sorted = [...allValues].sort((a, b) => b - a);
+
+            // Get top 3 positive or bottom 3 negative
+            let top3 = [];
+            if (isPositive) {
+                top3 = sorted.slice(0, 3);
+            } else {
+                top3 = sorted.slice(-3).reverse();
+            }
+
+            // Check if this value is in top 3
+            if (top3.includes(value) && value !== 0) {
+                return `<span class="px-1 py-0.5 border-2 ${type === 'CE' ? 'border-green-500' : 'border-red-500'} rounded font-bold">${value > 0 ? '+' : ''}${value}%</span>`;
+            }
+
+            return `<span>${value > 0 ? '+' : ''}${value}%</span>`;
+        }
+
         function updateTable(data, strikes, atmStrike) {
             const tbody = document.getElementById('table-body');
+            const startTimeForTop3 = '09:30';
 
             if (Object.keys(data).length === 0) {
                 tbody.innerHTML = '<tr><td colspan="15" class="text-center py-4 text-gray-500">No data available</td></tr>';
                 return;
             }
 
+            // Define baseline time (09:20 or the earliest time after 09:15)
+            const baselineTime = '09:20'; // Adjust if your baseline is different
+
+            // Collect all percentage values for Top 3 detection - EXCLUDE baseline
+            let allCE_Current = [];
+            let allPE_Current = [];
+            let allCE_Cumulative = [];
+            let allPE_Cumulative = [];
+
+            const times = Object.keys(data).sort().reverse();
+            times.forEach(time => {
+                // Skip times before 09:30 for Top 3 calculation
+                if (time <= startTimeForTop3) return;
+
+                const timeData = data[time];
+                strikes.forEach(strike => {
+                    const row = timeData.strikes[strike];
+                    if (row) {
+                        allCE_Current.push(row.ce_current_percent);
+                        allPE_Current.push(row.pe_current_percent);
+                        allCE_Cumulative.push(row.ce_cumulative_percent);
+                        allPE_Cumulative.push(row.pe_cumulative_percent);
+                    }
+                });
+            });
+
             let html = '';
             let rowIndex = 0;
-
-            // Sort times descending
-            const times = Object.keys(data).sort().reverse();
 
             times.forEach(time => {
                 const timeData = data[time];
                 const isEven = rowIndex % 2 === 0;
                 const bgClass = isEven ? 'bg-white' : 'bg-gray-50';
 
-                // Add separator between different time batches
                 if (rowIndex > 0) {
                     html += `<tr class="border-t-2 border-gray-300"><td colspan="15" class="py-1"></td></tr>`;
                 }
 
-                // For each strike in this time
                 strikes.forEach(strike => {
                     const row = timeData.strikes[strike];
                     if (!row) return;
@@ -226,16 +271,22 @@
                     const ceCumulativeColor = row.ce_cumulative_diff_oi > 0 ? 'text-green-600' : (row.ce_cumulative_diff_oi < 0 ? 'text-red-600' : 'text-gray-500');
                     const peCumulativeColor = row.pe_cumulative_diff_oi > 0 ? 'text-red-600' : (row.pe_cumulative_diff_oi < 0 ? 'text-green-600' : 'text-gray-500');
 
-                    // Top 5 highlights
-                    let ceCurrentPercentClass = row.ce_current_percent > 0 ? 'text-green-600' : (row.ce_current_percent < 0 ? 'text-red-600' : 'text-gray-500');
-                    let peCurrentPercentClass = row.pe_current_percent > 0 ? 'text-red-600' : (row.pe_current_percent < 0 ? 'text-green-600' : 'text-gray-500');
-                    let ceCumulativePercentClass = row.ce_cumulative_percent > 0 ? 'text-green-600' : (row.ce_cumulative_percent < 0 ? 'text-red-600' : 'text-gray-500');
-                    let peCumulativePercentClass = row.pe_cumulative_percent > 0 ? 'text-red-600' : (row.pe_cumulative_percent < 0 ? 'text-green-600' : 'text-gray-500');
+                    // Top 3 boxes - Check if this is baseline time
+                    let ceCurrentBox, ceCumulativeBox, peCurrentBox, peCumulativeBox;
 
-                    if (row.is_top5_ce_positive) ceCurrentPercentClass = 'text-green-700 font-bold bg-green-100 px-1 rounded';
-                    if (row.is_top5_ce_negative) ceCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
-                    if (row.is_top5_pe_positive) peCurrentPercentClass = 'text-red-700 font-bold bg-red-100 px-1 rounded';
-                    if (row.is_top5_pe_negative) peCurrentPercentClass = 'text-green-700 font-bold bg-green-100 px-1 rounded';
+                    if (time === baselineTime) {
+                        // Baseline - show normal display without box
+                        ceCurrentBox = `<span>${row.ce_current_percent > 0 ? '+' : ''}${row.ce_current_percent}%</span>`;
+                        ceCumulativeBox = `<span>${row.ce_cumulative_percent > 0 ? '+' : ''}${row.ce_cumulative_percent}%</span>`;
+                        peCurrentBox = `<span>${row.pe_current_percent > 0 ? '+' : ''}${row.pe_current_percent}%</span>`;
+                        peCumulativeBox = `<span>${row.pe_cumulative_percent > 0 ? '+' : ''}${row.pe_cumulative_percent}%</span>`;
+                    } else {
+                        // Normal - apply Top 3 detection
+                        ceCurrentBox = getTop3Box(row.ce_current_percent, allCE_Current, 'CE', row.ce_current_percent > 0);
+                        ceCumulativeBox = getTop3Box(row.ce_cumulative_percent, allCE_Cumulative, 'CE', row.ce_cumulative_percent > 0);
+                        peCurrentBox = getTop3Box(row.pe_current_percent, allPE_Current, 'PE', row.pe_current_percent > 0);
+                        peCumulativeBox = getTop3Box(row.pe_cumulative_percent, allPE_Cumulative, 'PE', row.pe_current_percent > 0);
+                    }
 
                     // Build-up badges
                     const ceBuildBadge = getBuildUpBadge(row.ce_build_up);
@@ -244,7 +295,8 @@
                     // Action badge - show only for ATM strike
                     let actionBadge = '';
                     if (isATM) {
-                        switch(timeData.consolidated_action) {
+                        const action = timeData.consolidated_action || 'WAIT';
+                        switch(action) {
                             case 'STRONG BUY':
                                 actionBadge = '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">▲ STRONG BUY</span>';
                                 break;
@@ -263,24 +315,24 @@
                     }
 
                     html += `
-                    <tr class="${bgClass} hover:bg-gray-100 transition-colors">
-                        <td class="sticky left-0 ${bgClass} py-2 px-3 text-left font-medium text-gray-800">${time}</td>
-                        <td class="py-2 px-3 text-center ${strikeClass}">${strike}</td>
-                        <td class="py-2 px-3 text-right font-medium text-green-600">${row.ce_oi ? row.ce_oi.toLocaleString() : '-'}</td>
-                        <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${row.ce_current_diff_oi.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right ${ceCurrentPercentClass}">${row.ce_current_percent > 0 ? '+' : ''}${row.ce_current_percent}%</td>
-                        <td class="py-2 px-3 text-right ${ceCumulativePercentClass}">${row.ce_cumulative_percent > 0 ? '+' : ''}${row.ce_cumulative_percent}%</td>
-                        <td class="py-2 px-3 text-center">${ceBuildBadge}</td>
-                        <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
-                        <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right ${peCurrentPercentClass}">${row.pe_current_percent > 0 ? '+' : ''}${row.pe_current_percent}%</td>
-                        <td class="py-2 px-3 text-right ${peCumulativePercentClass}">${row.pe_cumulative_percent > 0 ? '+' : ''}${row.pe_cumulative_percent}%</td>
-                        <td class="py-2 px-3 text-center">${peBuildBadge}</td>
-                        <td class="py-2 px-3 text-center">${actionBadge}</td>
-                    </tr>
-                `;
+                <tr class="${bgClass} hover:bg-gray-100 transition-colors">
+                    <td class="sticky left-0 ${bgClass} py-2 px-3 text-left font-medium text-gray-800 border-r border-gray-200">${time}</td>
+                    <td class="py-2 px-3 text-center ${strikeClass}">${strike}</td>
+                    <td class="py-2 px-3 text-right font-medium text-green-600">${row.ce_oi ? row.ce_oi.toLocaleString() : '-'}</td>
+                    <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${row.ce_current_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right">${ceCurrentBox}</td>
+                    <td class="py-2 px-3 text-right">${ceCumulativeBox}</td>
+                    <td class="py-2 px-3 text-center">${ceBuildBadge}</td>
+                    <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
+                    <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right">${peCurrentBox}</td>
+                    <td class="py-2 px-3 text-right">${peCumulativeBox}</td>
+                    <td class="py-2 px-3 text-center">${peBuildBadge}</td>
+                    <td class="py-2 px-3 text-center">${actionBadge}</td>
+                </tr>
+            `;
                 });
 
                 rowIndex++;
@@ -298,7 +350,7 @@
 
             if (!latest) return;
 
-            const action = latest.consolidated_action;
+            const action = latest.consolidated_action || 'WAIT';
             let bgColor = 'bg-gray-50';
             let borderColor = 'border-gray-300';
             let textColor = 'text-gray-700';
@@ -364,7 +416,6 @@
 
             if (!latest) return;
 
-            // Calculate totals across all strikes
             let totalCE = 0, totalPE = 0;
             strikes.forEach(strike => {
                 if (latest.strikes[strike]) {
@@ -388,8 +439,8 @@
             </div>
             <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                 <div class="text-xs text-gray-500">Current Action</div>
-                <div class="text-xl font-bold ${latest.consolidated_action.includes('BUY') ? 'text-green-600' : latest.consolidated_action.includes('SELL') ? 'text-red-600' : 'text-gray-600'}">
-                    ${latest.consolidated_action}
+                <div class="text-xl font-bold ${latest.consolidated_action?.includes('BUY') ? 'text-green-600' : latest.consolidated_action?.includes('SELL') ? 'text-red-600' : 'text-gray-600'}">
+                    ${latest.consolidated_action || 'WAIT'}
                 </div>
             </div>
         `;

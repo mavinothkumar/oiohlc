@@ -8,7 +8,7 @@ use Carbon\Carbon;
 
 class StrikeDetailController extends Controller {
     public function index() {
-        $currentDate   = now()->toDateString();
+        $currentDate   = request()->get( 'date', now()->toDateString() );
         $currentExpiry = $this->getCurrentExpiry();
         $currentSpot   = $this->getCurrentSpot();
         $atmStrike     = request()->get( 'strike', $this->getATMStrike( $currentSpot ) );
@@ -100,10 +100,11 @@ class StrikeDetailController extends Controller {
         return round( $spot / 50 ) * 50;
     }
 
-    private function getStrikeTimeSeries( $date, $expiry, $strike ) {
-        $records = DB::table( 'option_chains' )
+    private function getStrikeTimeSeries($date, $expiry, $strike)
+    {
+        $records = DB::table('option_chains')
                      ->select(
-                         DB::raw( 'DATE_FORMAT(captured_at, "%H:%i") as time' ),
+                         DB::raw('DATE_FORMAT(captured_at, "%H:%i") as time'),
                          'captured_at',
                          'option_type',
                          'oi',
@@ -111,315 +112,225 @@ class StrikeDetailController extends Controller {
                          'volume',
                          'diff_volume',
                          'strike_price',
-                         'build_up',  // ← Now included
-                         'ltp',
-                         'close_price',
-                         'bid_price',
-                         'ask_price',
-                         'prev_oi',
-                         'vega',
-                         'theta',
-                         'gamma',
-                         'delta',
-                         'iv',
-                         'pop',
-                         'underlying_spot_price',
-                         'pcr'
+                         'build_up',
+                         'underlying_spot_price'
                      )
-                     ->whereDate( 'captured_at', $date )
-                     ->where( 'expiry', $expiry )
-                     ->where( 'strike_price', $strike )
-                     ->orderBy( 'captured_at', 'desc' )
+                     ->whereDate('captured_at', $date)
+                     ->where('expiry', $expiry)
+                     ->where('strike_price', $strike)
+                     ->orderBy('captured_at', 'asc')
                      ->get();
 
-        $ceRecords = $records->where( 'option_type', 'CE' )->keyBy( 'time' );
-        $peRecords = $records->where( 'option_type', 'PE' )->keyBy( 'time' );
+        // Separate CE and PE
+        $ceRecords = $records->where('option_type', 'CE');
+        $peRecords = $records->where('option_type', 'PE');
 
-        $allTimes = array_unique( array_merge( $ceRecords->keys()->toArray(), $peRecords->keys()->toArray() ) );
-        rsort( $allTimes );
+        // Group by time
+        $ceGrouped = $ceRecords->groupBy('time')->map(function ($group) {
+            return $group->last();
+        });
+
+        $peGrouped = $peRecords->groupBy('time')->map(function ($group) {
+            return $group->last();
+        });
+
+        // Merge
+        $allTimes = array_unique(array_merge($ceGrouped->keys()->toArray(), $peGrouped->keys()->toArray()));
+        sort($allTimes);
 
         $result = [];
-        foreach ( $allTimes as $time ) {
-            $result[ $time ] = [
-                'ce'           => $ceRecords->get( $time ),
-                'pe'           => $peRecords->get( $time ),
-                'time'         => $time,
-                'strike_price' => $strike,
+        foreach ($allTimes as $time) {
+            $result[$time] = [
+                'ce' => $ceGrouped->get($time),
+                'pe' => $peGrouped->get($time),
+                'time' => $time,
+                'strike_price' => $strike
             ];
         }
 
         return $result;
     }
 
-    private function processStrikeData( $strikeData, $currentSpotPrice ) {
+    private function processStrikeData($strikeData, $currentSpotPrice)
+    {
         $processed = [];
-        $startCE   = null;
-        $startPE   = null;
 
-        $firstRecord = array_values( $strikeData )[0] ?? null;
-        if ( $firstRecord ) {
-            $startCE = $firstRecord['ce']->oi ?? 0;
-            $startPE = $firstRecord['pe']->oi ?? 0;
-        }
+        // Track running sum of diff_oi
+        $runningSumCE = 0;
+        $runningSumPE = 0;
 
-        foreach ( $strikeData as $time => $data ) {
+        // Track previous running sum for percentage calculation
+        $prevRunningSumCE = 0;
+        $prevRunningSumPE = 0;
+
+        // Sort times in ascending order to process chronologically
+        $times = array_keys($strikeData);
+        sort($times);
+
+        foreach ($times as $time) {
+            // Skip 09:15
+            if ($time <= '09:15') continue;
+
+            $data = $strikeData[$time];
             $ce = $data['ce'];
             $pe = $data['pe'];
 
-            // Safe access to build_up (using null coalescing operator)
-            $ceBuildUp = $ce ? ( $ce->build_up ?? null ) : null;
-            $peBuildUp = $pe ? ( $pe->build_up ?? null ) : null;
+            if (!$ce || !$pe) continue;
 
-            $ceCurrentPercent    = $ce ? $this->calculatePercentChange( $ce->oi, $ce->oi - $ce->diff_oi ) : 0;
-            $peCurrentPercent    = $pe ? $this->calculatePercentChange( $pe->oi, $pe->oi - $pe->diff_oi ) : 0;
-            $ceCumulativePercent = $startCE > 0 ? ( ( $ce->oi - $startCE ) / $startCE ) * 100 : 0;
-            $peCumulativePercent = $startPE > 0 ? ( ( $pe->oi - $startPE ) / $startPE ) * 100 : 0;
+            // Store previous running sum before updating
+            $prevRunningSumCE = $runningSumCE;
+            $prevRunningSumPE = $runningSumPE;
 
-            $processed[ $time ] = [
-                'strike'                => $data['strike_price'],
-                'ce_oi'                 => $ce ? $ce->oi : 0,
-                'pe_oi'                 => $pe ? $pe->oi : 0,
-                'ce_current_diff_oi'    => $ce ? $ce->diff_oi : 0,
-                'pe_current_diff_oi'    => $pe ? $pe->diff_oi : 0,
-                'ce_cumulative_diff_oi' => $ce ? ( $ce->oi - $startCE ) : 0,
-                'pe_cumulative_diff_oi' => $pe ? ( $pe->oi - $startPE ) : 0,
-                'ce_current_percent'    => round( $ceCurrentPercent, 2 ),
-                'pe_current_percent'    => round( $peCurrentPercent, 2 ),
-                'ce_cumulative_percent' => round( $ceCumulativePercent, 2 ),
-                'pe_cumulative_percent' => round( $peCumulativePercent, 2 ),
-                'ce_volume'             => $ce ? $ce->volume : 0,
-                'pe_volume'             => $pe ? $pe->volume : 0,
-                'ce_build_up'           => $ceBuildUp,
-                'pe_build_up'           => $peBuildUp,
+            // Add current diff_oi to running sum
+            $runningSumCE += $ce->diff_oi ?? 0;
+            $runningSumPE += $pe->diff_oi ?? 0;
+
+            $ceBuildUp = $ce->build_up ?? null;
+            $peBuildUp = $pe->build_up ?? null;
+
+            $ceCurrentDiff = $ce->diff_oi ?? 0;
+            $peCurrentDiff = $pe->diff_oi ?? 0;
+
+            $ceCurrentPercent = $this->calculatePercentChange($ce->oi, $ce->oi - $ceCurrentDiff);
+            $peCurrentPercent = $this->calculatePercentChange($pe->oi, $pe->oi - $peCurrentDiff);
+
+            // ===== YOUR LOGIC: Percentage change between consecutive running sums =====
+            if ($time === '09:20') {
+                // For 09:20, cumulative percent is 0 (baseline)
+                $ceCumulativePercent = 0;
+                $peCumulativePercent = 0;
+            } else {
+                // Calculate percentage change from previous running sum
+                $ceCumulativePercent = $prevRunningSumCE > 0 ?
+                    (($runningSumCE - $prevRunningSumCE) / $prevRunningSumCE) * 100 : 0;
+                $peCumulativePercent = $prevRunningSumPE > 0 ?
+                    (($runningSumPE - $prevRunningSumPE) / $prevRunningSumPE) * 100 : 0;
+            }
+
+            $processed[$time] = [
+                'strike' => $data['strike_price'],
+                'ce_oi' => $ce->oi,
+                'pe_oi' => $pe->oi,
+                'ce_current_diff_oi' => $ceCurrentDiff,
+                'pe_current_diff_oi' => $peCurrentDiff,
+                'ce_cumulative_diff_oi' => $runningSumCE,
+                'pe_cumulative_diff_oi' => $runningSumPE,
+                'ce_current_percent' => round($ceCurrentPercent, 2),
+                'pe_current_percent' => round($peCurrentPercent, 2),
+                'ce_cumulative_percent' => round($ceCumulativePercent, 2),
+                'pe_cumulative_percent' => round($peCumulativePercent, 2),
+                'ce_volume' => $ce->volume ?? 0,
+                'pe_volume' => $pe->volume ?? 0,
+                'ce_build_up' => $ceBuildUp,
+                'pe_build_up' => $peBuildUp,
             ];
         }
 
         return $processed;
     }
 
-    private function groupDataByTime( $allStrikesData, $currentSpotPrice ) {
+    private function groupDataByTime($allStrikesData, $currentSpotPrice)
+    {
         $allTimes = [];
-        foreach ( $allStrikesData as $strikeData ) {
-            $allTimes = array_merge( $allTimes, array_keys( $strikeData ) );
+        foreach ($allStrikesData as $strikeData) {
+            $allTimes = array_merge($allTimes, array_keys($strikeData));
         }
-        $allTimes = array_unique( $allTimes );
-        rsort( $allTimes );
+        $allTimes = array_unique($allTimes);
+        rsort($allTimes);
 
         $grouped = [];
+        $previousPrice = null;
 
-        foreach ( $allTimes as $time ) {
-            $timeData            = [];
+        foreach ($allTimes as $time) {
+            $timeData = [];
             $allCEPercentChanges = [];
             $allPEPercentChanges = [];
 
-            foreach ( $allStrikesData as $strike => $strikeData ) {
-                if ( isset( $strikeData[ $time ] ) ) {
-                    $row                   = $strikeData[ $time ];
-                    $timeData[ $strike ]   = $row;
+            foreach ($allStrikesData as $strike => $strikeData) {
+                if (isset($strikeData[$time])) {
+                    $row = $strikeData[$time];
+                    $timeData[$strike] = $row;
                     $allCEPercentChanges[] = $row['ce_current_percent'];
                     $allPEPercentChanges[] = $row['pe_current_percent'];
                 }
             }
 
-            // Sort to find top 5
-            rsort( $allCEPercentChanges );
-            $top5CEPositive = array_slice( array_filter( $allCEPercentChanges, function ( $v ) {
-                return $v > 0;
-            } ), 0, 5 );
-            sort( $allCEPercentChanges );
-            $top5CENegative = array_slice( array_filter( $allCEPercentChanges, function ( $v ) {
-                return $v < 0;
-            } ), 0, 5 );
-
-            rsort( $allPEPercentChanges );
-            $top5PEPositive = array_slice( array_filter( $allPEPercentChanges, function ( $v ) {
-                return $v > 0;
-            } ), 0, 5 );
-            sort( $allPEPercentChanges );
-            $top5PENegative = array_slice( array_filter( $allPEPercentChanges, function ( $v ) {
-                return $v < 0;
-            } ), 0, 5 );
-
-            // Add flags to each row
-            foreach ( $timeData as $strike => &$row ) {
-                $row['is_top5_ce_positive'] = in_array( $row['ce_current_percent'], $top5CEPositive );
-                $row['is_top5_ce_negative'] = in_array( $row['ce_current_percent'], $top5CENegative );
-                $row['is_top5_pe_positive'] = in_array( $row['pe_current_percent'], $top5PEPositive );
-                $row['is_top5_pe_negative'] = in_array( $row['pe_current_percent'], $top5PENegative );
+            // Get current price for this time
+            $currentPrice = $currentSpotPrice;
+            if (isset($timeData[$strike]) && isset($timeData[$strike]['price'])) {
+                $currentPrice = $timeData[$strike]['price'];
             }
 
-            // Calculate consolidated action based on all 5 strikes using build_up
-            $consolidatedAction = $this->calculateConsolidatedActionWithBuildUp( $timeData, $currentSpotPrice );
+            // Calculate consolidated action
+            $consolidatedAction = $this->calculateConsolidatedActionWithBuildUp($timeData, $currentPrice);
 
-            $grouped[ $time ] = [
-                'strikes'             => $timeData,
+            $grouped[$time] = [
+                'strikes' => $timeData,
                 'consolidated_action' => $consolidatedAction,
-                'total_ce_oi'         => array_sum( array_column( $timeData, 'ce_oi' ) ),
-                'total_pe_oi'         => array_sum( array_column( $timeData, 'pe_oi' ) ),
+                'total_ce_oi' => array_sum(array_column($timeData, 'ce_oi')),
+                'total_pe_oi' => array_sum(array_column($timeData, 'pe_oi')),
+                'price' => $currentPrice,
             ];
+
+            $previousPrice = $currentPrice;
         }
 
         return $grouped;
     }
 
-    private function calculateConsolidatedActionWithBuildUp( $timeData, $currentSpotPrice ) {
-        $buyScore         = 0;
-        $sellScore        = 0;
-        $buyBuildUpCount  = 0;
+    private function calculateConsolidatedActionWithBuildUp($timeData, $currentSpotPrice)
+    {
+        $buyScore = 0;
+        $sellScore = 0;
+        $buyBuildUpCount = 0;
         $sellBuildUpCount = 0;
 
-        foreach ( $timeData as $strike => $row ) {
-            $distance = abs( $currentSpotPrice - $strike );
-            $weight   = $distance <= 50 ? 3 : ( $distance <= 100 ? 2 : 1 );
+        foreach ($timeData as $strike => $row) {
+            $distance = abs($currentSpotPrice - $strike);
+            $weight = $distance <= 50 ? 3 : ($distance <= 100 ? 2 : 1);
 
-            // Check build_up signals
-            $ceBuildUp         = $row['ce_build_up'];
-            $peBuildUp         = $row['pe_build_up'];
-            $marketAboveStrike = $currentSpotPrice > $strike;
+            $ceBuildUp = $row['ce_build_up'];
+            $peBuildUp = $row['pe_build_up'];
+            $isITMForCall = $currentSpotPrice > $strike;
+            $isITMForPut = $currentSpotPrice < $strike;
 
             // ===== BULLISH SIGNALS =====
-            if ( $peBuildUp === 'Long Build' && $marketAboveStrike ) {
-                $buyScore += $weight * 3;  // Very strong
-                $buyBuildUpCount ++;
+            if ($ceBuildUp === 'Long Build' && $isITMForCall) {
+                $buyScore += $weight * 3;
+                $buyBuildUpCount++;
             }
-            if ( $ceBuildUp === 'Long Build' && $marketAboveStrike ) {
+            if ($peBuildUp === 'Short Build' && $isITMForCall) {
                 $buyScore += $weight * 2;
-                $buyBuildUpCount ++;
+                $buyBuildUpCount++;
             }
-            if ( $ceBuildUp === 'Short Cover' && $marketAboveStrike ) {
+            if ($ceBuildUp === 'Short Cover' && $isITMForCall) {
                 $buyScore += $weight;
-                $buyBuildUpCount ++;
-            }
-            if ( $peBuildUp === 'Short Build' && $marketAboveStrike ) {
-                $buyScore += $weight;
-                $buyBuildUpCount ++;
+                $buyBuildUpCount++;
             }
 
             // ===== BEARISH SIGNALS =====
-            if ( $ceBuildUp === 'Long Build' && ! $marketAboveStrike ) {
-                $sellScore += $weight * 3;  // Very strong
-                $sellBuildUpCount ++;
+            if ($peBuildUp === 'Long Build' && $isITMForPut) {
+                $sellScore += $weight * 3;
+                $sellBuildUpCount++;
             }
-            if ( $peBuildUp === 'Long Build' && ! $marketAboveStrike ) {
+            if ($ceBuildUp === 'Short Build' && $isITMForPut) {
                 $sellScore += $weight * 2;
-                $sellBuildUpCount ++;
+                $sellBuildUpCount++;
             }
-            if ( $peBuildUp === 'Short Cover' && ! $marketAboveStrike ) {
+            if ($peBuildUp === 'Short Cover' && $isITMForPut) {
                 $sellScore += $weight;
-                $sellBuildUpCount ++;
-            }
-            if ( $ceBuildUp === 'Short Build' && ! $marketAboveStrike ) {
-                $sellScore += $weight;
-                $sellBuildUpCount ++;
+                $sellBuildUpCount++;
             }
         }
 
         // Determine final action
-        if ( $buyScore > $sellScore * 1.5 && $buyBuildUpCount >= 2 ) {
+        if ($buyScore > $sellScore * 1.5 && $buyBuildUpCount >= 2) {
             return 'STRONG BUY';
-        } elseif ( $buyScore > $sellScore ) {
+        } elseif ($buyScore > $sellScore) {
             return 'BUY';
-        } elseif ( $sellScore > $buyScore * 1.5 && $sellBuildUpCount >= 2 ) {
+        } elseif ($sellScore > $buyScore * 1.5 && $sellBuildUpCount >= 2) {
             return 'STRONG SELL';
-        } elseif ( $sellScore > $buyScore ) {
-            return 'SELL';
-        } else {
-            return 'WAIT';
-        }
-    }
-
-    private function determineAction( $ceData, $peData, $currentSpotPrice, $strike ) {
-        // Calculate distance from strike
-        $distanceFromStrike = abs( $currentSpotPrice - $strike );
-        $isATM              = $distanceFromStrike <= 50;
-
-        // Get build_up values
-        $ceBuildUp = $ceData['build_up'] ?? null;
-        $peBuildUp = $peData['build_up'] ?? null;
-
-        // Get cumulative percent changes
-        $ceCumulativePercent = $ceData['ce_cumulative_percent'] ?? 0;
-        $peCumulativePercent = $peData['pe_cumulative_percent'] ?? 0;
-
-        // Determine market direction based on price vs strike
-        $marketAboveStrike = $currentSpotPrice > $strike;
-
-        // ===== BULLISH SIGNALS =====
-
-        // 1. Put Long Build (Put writers defending) - Strong Bullish
-        if ( $peBuildUp === 'Long Build' && $marketAboveStrike ) {
-            return 'STRONG BUY';
-        }
-
-        // 2. Call Long Build (Traders buying calls) - Bullish
-        if ( $ceBuildUp === 'Long Build' && $marketAboveStrike ) {
-            return 'BUY';
-        }
-
-        // 3. Call Short Cover (Call writers fleeing) - Bullish
-        if ( $ceBuildUp === 'Short Cover' && $marketAboveStrike ) {
-            return 'BUY ON DIPS';
-        }
-
-        // 4. Put Short Build (Put writers selling) - Bullish (if market above)
-        if ( $peBuildUp === 'Short Build' && $marketAboveStrike ) {
-            return 'BUY ON DIPS';
-        }
-
-        // ===== BEARISH SIGNALS =====
-
-        // 1. Call Long Build (Call writers defending) - Strong Bearish
-        if ( $ceBuildUp === 'Long Build' && ! $marketAboveStrike ) {
-            return 'STRONG SELL';
-        }
-
-        // 2. Put Long Build (Traders buying puts) - Bearish
-        if ( $peBuildUp === 'Long Build' && ! $marketAboveStrike ) {
-            return 'SELL';
-        }
-
-        // 3. Put Short Cover (Put writers fleeing) - Bearish
-        if ( $peBuildUp === 'Short Cover' && ! $marketAboveStrike ) {
-            return 'SELL ON RISE';
-        }
-
-        // 4. Call Short Build (Call writers selling) - Bearish (if market below)
-        if ( $ceBuildUp === 'Short Build' && ! $marketAboveStrike ) {
-            return 'SELL ON RISE';
-        }
-
-        // ===== NEUTRAL / WAIT =====
-        return 'WAIT';
-    }
-
-    private function calculateConsolidatedAction( $timeData, $currentSpotPrice ) {
-        $buyScore  = 0;
-        $sellScore = 0;
-
-        foreach ( $timeData as $strike => $row ) {
-            $distance = abs( $currentSpotPrice - $strike );
-            $weight   = $distance <= 50 ? 3 : ( $distance <= 100 ? 2 : 1 );
-
-            $netScore = $row['pe_cumulative_percent'] - $row['ce_cumulative_percent'];
-
-            if ( $netScore > 10 ) {
-                $buyScore += $weight * 2;
-            } elseif ( $netScore > 5 ) {
-                $buyScore += $weight;
-            } elseif ( $netScore < - 10 ) {
-                $sellScore += $weight * 2;
-            } elseif ( $netScore < - 5 ) {
-                $sellScore += $weight;
-            }
-        }
-
-        if ( $buyScore > $sellScore * 1.5 ) {
-            return 'STRONG BUY';
-        } elseif ( $buyScore > $sellScore ) {
-            return 'BUY';
-        } elseif ( $sellScore > $buyScore * 1.5 ) {
-            return 'STRONG SELL';
-        } elseif ( $sellScore > $buyScore ) {
+        } elseif ($sellScore > $buyScore) {
             return 'SELL';
         } else {
             return 'WAIT';
