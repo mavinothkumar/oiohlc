@@ -236,10 +236,9 @@ class StrikeDetailController extends Controller {
             $allTimes = array_merge($allTimes, array_keys($strikeData));
         }
         $allTimes = array_unique($allTimes);
-        rsort($allTimes);
+        sort($allTimes);
 
         $grouped = [];
-        $previousPrice = null;
 
         foreach ($allTimes as $time) {
             $timeData = [];
@@ -255,82 +254,103 @@ class StrikeDetailController extends Controller {
                 }
             }
 
-            // Get current price for this time
-            $currentPrice = $currentSpotPrice;
-            if (isset($timeData[$strike]) && isset($timeData[$strike]['price'])) {
-                $currentPrice = $timeData[$strike]['price'];
+            // Find top 3% changes
+            rsort($allCEPercentChanges);
+            $top3CEPositive = array_slice(array_filter($allCEPercentChanges, function($v) { return $v > 0; }), 0, 3);
+            sort($allCEPercentChanges);
+            $top3CENegative = array_slice(array_filter($allCEPercentChanges, function($v) { return $v < 0; }), 0, 3);
+
+            rsort($allPEPercentChanges);
+            $top3PEPositive = array_slice(array_filter($allPEPercentChanges, function($v) { return $v > 0; }), 0, 3);
+            sort($allPEPercentChanges);
+            $top3PENegative = array_slice(array_filter($allPEPercentChanges, function($v) { return $v < 0; }), 0, 3);
+
+            // Build top3 data for each strike
+            $top3Data = [];
+            foreach ($timeData as $strike => $row) {
+                $isTop3 = in_array($row['ce_current_percent'], $top3CEPositive) ||
+                          in_array($row['ce_current_percent'], $top3CENegative) ||
+                          in_array($row['pe_current_percent'], $top3PEPositive) ||
+                          in_array($row['pe_current_percent'], $top3PENegative);
+                $top3Data[$strike] = $isTop3;
             }
 
             // Calculate consolidated action
-            $consolidatedAction = $this->calculateConsolidatedActionWithBuildUp($timeData, $currentPrice);
+            $consolidatedAction = $this->calculateConsolidatedActionWithBuildUp(
+                $timeData,
+                $currentSpotPrice,
+                $time,
+                $top3Data
+            );
 
             $grouped[$time] = [
                 'strikes' => $timeData,
                 'consolidated_action' => $consolidatedAction,
                 'total_ce_oi' => array_sum(array_column($timeData, 'ce_oi')),
                 'total_pe_oi' => array_sum(array_column($timeData, 'pe_oi')),
-                'price' => $currentPrice,
+                'top3_data' => $top3Data,
             ];
-
-            $previousPrice = $currentPrice;
         }
 
         return $grouped;
     }
 
-    private function calculateConsolidatedActionWithBuildUp($timeData, $currentSpotPrice)
+    private function calculateConsolidatedActionWithBuildUp($timeData, $currentSpotPrice, $time, $top3Data)
     {
-        $buyScore = 0;
-        $sellScore = 0;
-        $buyBuildUpCount = 0;
-        $sellBuildUpCount = 0;
+        $bullishScore = 0;
+        $bearishScore = 0;
+        $buildUpCount = 0;
 
         foreach ($timeData as $strike => $row) {
+            $ceBuildUp = $row['ce_build_up'];
+            $peBuildUp = $row['pe_build_up'];
             $distance = abs($currentSpotPrice - $strike);
             $weight = $distance <= 50 ? 3 : ($distance <= 100 ? 2 : 1);
 
-            $ceBuildUp = $row['ce_build_up'];
-            $peBuildUp = $row['pe_build_up'];
-            $isITMForCall = $currentSpotPrice > $strike;
-            $isITMForPut = $currentSpotPrice < $strike;
+            $isTop3 = isset($top3Data[$strike]) && $top3Data[$strike] === true;
 
-            // ===== BULLISH SIGNALS =====
-            if ($ceBuildUp === 'Long Build' && $isITMForCall) {
-                $buyScore += $weight * 3;
-                $buyBuildUpCount++;
+            $ceDirection = $this->getBuildUpDirection($ceBuildUp, 'CE');
+            $peDirection = $this->getBuildUpDirection($peBuildUp, 'PE');
+
+            // ===== CORRECTED: Proper combination logic =====
+
+            // CASE 1: BOTH BULLISH → Strong Bullish (Call buyers + Put sellers)
+            if ($ceDirection === 'BULLISH' && $peDirection === 'BULLISH') {
+                $bullishScore += $weight * 10;
+                $buildUpCount++;
             }
-            if ($peBuildUp === 'Short Build' && $isITMForCall) {
-                $buyScore += $weight * 2;
-                $buyBuildUpCount++;
+            // CASE 2: BOTH BEARISH → Strong Bearish (Call sellers + Put buyers)
+            elseif ($ceDirection === 'BEARISH' && $peDirection === 'BEARISH') {
+                $bearishScore += $weight * 10;
+                $buildUpCount++;
             }
-            if ($ceBuildUp === 'Short Cover' && $isITMForCall) {
-                $buyScore += $weight;
-                $buyBuildUpCount++;
+            // CASE 3: CE Bullish + PE Bearish → Bullish (Call buyers active, Put buyers active)
+            elseif ($ceDirection === 'BULLISH' && $peDirection === 'BEARISH') {
+                $bullishScore += $weight * 5;
+            }
+            // CASE 4: CE Bearish + PE Bullish → Bearish (Call sellers active, Put sellers active)
+            elseif ($ceDirection === 'BEARISH' && $peDirection === 'BULLISH') {
+                $bearishScore += $weight * 5;
             }
 
-            // ===== BEARISH SIGNALS =====
-            if ($peBuildUp === 'Long Build' && $isITMForPut) {
-                $sellScore += $weight * 3;
-                $sellBuildUpCount++;
-            }
-            if ($ceBuildUp === 'Short Build' && $isITMForPut) {
-                $sellScore += $weight * 2;
-                $sellBuildUpCount++;
-            }
-            if ($peBuildUp === 'Short Cover' && $isITMForPut) {
-                $sellScore += $weight;
-                $sellBuildUpCount++;
+            // Top 3% bonus (only after 10:15)
+            if ($isTop3 && $this->getMinutesSinceOpen($time) > 60) {
+                if ($ceDirection === 'BULLISH' && $peDirection === 'BULLISH') {
+                    $bullishScore += $weight * 5;
+                } elseif ($ceDirection === 'BEARISH' && $peDirection === 'BEARISH') {
+                    $bearishScore += $weight * 5;
+                }
             }
         }
 
-        // Determine final action
-        if ($buyScore > $sellScore * 1.5 && $buyBuildUpCount >= 2) {
+        // Final decision
+        if ($bullishScore > $bearishScore * 1.5 && $buildUpCount >= 2) {
             return 'STRONG BUY';
-        } elseif ($buyScore > $sellScore) {
+        } elseif ($bullishScore > $bearishScore) {
             return 'BUY';
-        } elseif ($sellScore > $buyScore * 1.5 && $sellBuildUpCount >= 2) {
+        } elseif ($bearishScore > $bullishScore * 1.5 && $buildUpCount >= 2) {
             return 'STRONG SELL';
-        } elseif ($sellScore > $buyScore) {
+        } elseif ($bearishScore > $bullishScore) {
             return 'SELL';
         } else {
             return 'WAIT';
@@ -343,5 +363,115 @@ class StrikeDetailController extends Controller {
         }
 
         return round( ( ( $current - $previous ) / $previous ) * 100, 2 );
+    }
+
+    private function getBuildUpDirection($buildUp, $optionType)
+    {
+        // For CE (Call options)
+        if ($optionType === 'CE') {
+            // Bullish for market: Long Build (buying calls), Short Cover (fleeing calls)
+            if (in_array($buildUp, ['Long Build', 'Short Cover'])) {
+                return 'BULLISH';
+            }
+            // Bearish for market: Short Build (selling calls), Long Unwind (exiting calls)
+            if (in_array($buildUp, ['Short Build', 'Long Unwind'])) {
+                return 'BEARISH';
+            }
+        }
+
+        // For PE (Put options)
+        if ($optionType === 'PE') {
+            // Bullish for market: Short Build (selling puts), Long Unwind (exiting puts)
+            if (in_array($buildUp, ['Short Build', 'Long Unwind'])) {
+                return 'BULLISH';
+            }
+            // Bearish for market: Long Build (buying puts), Short Cover (fleeing puts)
+            if (in_array($buildUp, ['Long Build', 'Short Cover'])) {
+                return 'BEARISH';
+            }
+        }
+
+        return 'NEUTRAL';
+    }
+
+    private function calculateTimeWeight($time)
+    {
+        $minutesSinceOpen = $this->getMinutesSinceOpen($time);
+
+        if ($minutesSinceOpen < 30) {
+            return 0.5; // Early market - lower weight
+        } elseif ($minutesSinceOpen < 60) {
+            return 0.8; // Mid market - medium weight
+        } else {
+            return 1.0; // Late market - full weight
+        }
+    }
+
+    private function getMinutesSinceOpen($time)
+    {
+        $openTime = Carbon::parse('09:15:00');
+        $currentTime = Carbon::parse($time . ':00');
+        return $openTime->diffInMinutes($currentTime);
+    }
+
+    private function calculateMomentumScore($currentPercent, $cumulativePercent)
+    {
+        $score = 0;
+
+        // Current percent momentum
+        if ($currentPercent > 2) {
+            $score += 10;
+        } elseif ($currentPercent > 0.5) {
+            $score += 5;
+        } elseif ($currentPercent < -2) {
+            $score -= 10;
+        } elseif ($currentPercent < -0.5) {
+            $score -= 5;
+        }
+
+        // Cumulative percent momentum
+        if ($cumulativePercent > 5) {
+            $score += 15;
+        } elseif ($cumulativePercent > 2) {
+            $score += 8;
+        } elseif ($cumulativePercent < -5) {
+            $score -= 15;
+        } elseif ($cumulativePercent < -2) {
+            $score -= 8;
+        }
+
+        return $score;
+    }
+
+    private function calculateTotalScore($isUltimateBullish, $isUltimateBearish, $timeWeight, $top3Bonus, $momentumScore)
+    {
+        $score = 0;
+
+        if ($isUltimateBullish) {
+            $score += 50 * $timeWeight;
+        }
+        if ($isUltimateBearish) {
+            $score -= 50 * $timeWeight;
+        }
+
+        $score += $top3Bonus;
+        $score += $momentumScore;
+
+        return $score;
+    }
+
+    private function getFinalAction($totalScore)
+    {
+        if ($totalScore >= 60) {
+            return 'STRONG BUY';
+        } elseif ($totalScore >= 30) {
+            return 'BUY';
+        } elseif ($totalScore <= -60) {
+            return 'STRONG SELL';
+        } elseif ($totalScore <= -30) {
+            return 'SELL';
+        } else {
+            return 'WAIT';
+        }
     }
 }

@@ -318,15 +318,15 @@
                 <tr class="${bgClass} hover:bg-gray-100 transition-colors">
                     <td class="sticky left-0 ${bgClass} py-2 px-3 text-left font-medium text-gray-800 border-r border-gray-200">${time}</td>
                     <td class="py-2 px-3 text-center ${strikeClass}">${strike}</td>
-                    <td class="py-2 px-3 text-right font-medium text-green-600">${row.ce_oi ? row.ce_oi.toLocaleString() : '-'}</td>
-                    <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${row.ce_current_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${row.ce_cumulative_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right font-medium text-green-600">${row.ce_oi ? formatIndianCompact(row.ce_oi.toLocaleString()) : '-'}</td>
+                    <td class="py-2 px-3 text-right ${ceCurrentColor}">${row.ce_current_diff_oi > 0 ? '+' : ''}${formatIndianCompact(row.ce_current_diff_oi.toLocaleString())}</td>
+                    <td class="py-2 px-3 text-right ${ceCumulativeColor}">${row.ce_cumulative_diff_oi > 0 ? '+' : ''}${formatIndianCompact(row.ce_cumulative_diff_oi.toLocaleString())}</td>
                     <td class="py-2 px-3 text-right">${ceCurrentBox}</td>
                     <td class="py-2 px-3 text-right">${ceCumulativeBox}</td>
                     <td class="py-2 px-3 text-center">${ceBuildBadge}</td>
-                    <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? row.pe_oi.toLocaleString() : '-'}</td>
-                    <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${row.pe_current_diff_oi.toLocaleString()}</td>
-                    <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${row.pe_cumulative_diff_oi.toLocaleString()}</td>
+                    <td class="py-2 px-3 text-right font-medium text-red-600">${row.pe_oi ? formatIndianCompact(row.pe_oi.toLocaleString()) : '-'}</td>
+                    <td class="py-2 px-3 text-right ${peCurrentColor}">${row.pe_current_diff_oi > 0 ? '+' : ''}${formatIndianCompact(row.pe_current_diff_oi.toLocaleString())}</td>
+                    <td class="py-2 px-3 text-right ${peCumulativeColor}">${row.pe_cumulative_diff_oi > 0 ? '+' : ''}${formatIndianCompact(row.pe_cumulative_diff_oi.toLocaleString())}</td>
                     <td class="py-2 px-3 text-right">${peCurrentBox}</td>
                     <td class="py-2 px-3 text-right">${peCumulativeBox}</td>
                     <td class="py-2 px-3 text-center">${peBuildBadge}</td>
@@ -405,6 +405,30 @@
                 </div>
             </div>
         `;
+        }
+
+        function formatIndianCompact(value) {
+            if (value === null || value === undefined || value === '') return '-';
+
+            const num = Number(String(value).replace(/,/g, ''));
+            if (isNaN(num)) return '-';
+
+            const absNum = Math.abs(num);
+            const sign = num < 0 ? '-' : '';
+
+            if (absNum >= 10000000) {
+                return sign + (absNum / 10000000).toFixed(1).replace(/\.00$/, '') + 'C';
+            }
+
+            if (absNum >= 100000) {
+                return sign + (absNum / 100000).toFixed(1).replace(/\.00$/, '') + 'L';
+            }
+
+            if (absNum >= 1000) {
+                return sign + (absNum / 1000).toFixed(1).replace(/\.00$/, '') + 'T';
+            }
+
+            return sign + absNum.toString();
         }
 
         function updateSummaryCards(data, strikes) {
