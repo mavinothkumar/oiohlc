@@ -130,9 +130,10 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 //
 //    Route::get('/straddle-pairs', [App\Http\Controllers\StraddlePairsController::class, 'index'])->name('straddle.pairs');
 //    Route::get('/api/straddle-pairs-data', [App\Http\Controllers\StraddlePairsController::class, 'getPairsData'])->name('api.straddle.pairs.data');
-    Route::get('/short-strangle', [App\Http\Controllers\ShortStrangleController::class, 'index'])->name('short.strangle');
-    Route::get('/api/short-strangle-data', [App\Http\Controllers\ShortStrangleController::class, 'getStrangleData'])->name('api.short.strangle.data');
+//    Route::get('/short-strangle', [App\Http\Controllers\ShortStrangleController::class, 'index'])->name('short.strangle');
+//    Route::get('/api/short-strangle-data', [App\Http\Controllers\ShortStrangleController::class, 'getStrangleData'])->name('api.short.strangle.data');
 
+    Route::get('/strangle-view', [App\Http\Controllers\StrangleViewController::class, 'index'])->name('strangle.view');
 
 } );
 
