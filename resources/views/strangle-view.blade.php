@@ -72,9 +72,9 @@
                     <thead>
                     <tr class="bg-gray-50 border-b border-gray-200">
                         <th class="py-2 px-3 text-left font-semibold text-gray-700">Dist</th>
-                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE Premium</th>
-                        <th class="py-2 px-3 text-center font-semibold text-gray-700">Strike</th>
                         <th class="py-2 px-3 text-right font-semibold text-green-600">CE Premium</th>
+                        <th class="py-2 px-3 text-center font-semibold text-gray-700">Strike</th>
+                        <th class="py-2 px-3 text-right font-semibold text-red-600">PE Premium</th>
                         <th class="py-2 px-3 text-right font-semibold text-blue-600">Total Premium</th>
                         <th class="py-2 px-3 text-right font-semibold text-orange-500">Premium Diff</th>
                     </tr>
@@ -83,9 +83,9 @@
                     @forelse($strangleLegs as $leg)
                         <tr class="bg-white hover:bg-gray-50 transition-colors border-b border-gray-100">
                             <td class="py-2 px-3 text-left text-gray-700">{{ $leg['distance'] }}</td>
-                            <td class="py-2 px-3 text-right font-medium text-red-600">{{ $leg['pe_premium'] }}</td>
-                            <td class="py-2 px-3 text-center font-bold text-gray-800">{{ $leg['pe_strike'] }} / {{ $leg['ce_strike'] }}</td>
                             <td class="py-2 px-3 text-right font-medium text-green-600">{{ $leg['ce_premium'] }}</td>
+                            <td class="py-2 px-3 text-center font-bold text-gray-800">{{ $leg['ce_strike'] }} / {{ $leg['pe_strike'] }}</td>
+                            <td class="py-2 px-3 text-right font-medium text-red-600">{{ $leg['pe_premium'] }}</td>
                             <td class="py-2 px-3 text-right font-bold text-blue-600">{{ $leg['total_premium'] }}</td>
                             <td class="py-2 px-3 text-right font-bold text-orange-500">{{ $leg['premium_diff'] }}</td>
                         </tr>
