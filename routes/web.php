@@ -103,6 +103,8 @@ Route::get('/api/option-data', [App\Http\Controllers\OptionAnalysisController::c
 Route::get('/strike-detail', [App\Http\Controllers\StrikeDetailController::class, 'index'])->name('strike.detail');
 Route::get('/api/strike-data', [App\Http\Controllers\StrikeDetailController::class, 'getStrikeData'])->name('api.strike.data');
 
+
+
 Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
     // Main chart page
@@ -122,6 +124,15 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
     Route::get('/prev-level-match/live', [OptionLevelMatchController::class, 'live'])
          ->name('prev-level-match.live');
+
+//    Route::get('/straddle-sell', [App\Http\Controllers\PremiumSellController::class, 'straddleIndex'])->name('straddle.sell');
+//    Route::get('/api/straddle-data', [App\Http\Controllers\PremiumSellController::class, 'getStraddleData'])->name('api.straddle.data');
+//
+//    Route::get('/straddle-pairs', [App\Http\Controllers\StraddlePairsController::class, 'index'])->name('straddle.pairs');
+//    Route::get('/api/straddle-pairs-data', [App\Http\Controllers\StraddlePairsController::class, 'getPairsData'])->name('api.straddle.pairs.data');
+    Route::get('/short-strangle', [App\Http\Controllers\ShortStrangleController::class, 'index'])->name('short.strangle');
+    Route::get('/api/short-strangle-data', [App\Http\Controllers\ShortStrangleController::class, 'getStrangleData'])->name('api.short.strangle.data');
+
 
 } );
 
