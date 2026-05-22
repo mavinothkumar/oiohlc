@@ -8,20 +8,25 @@ use Carbon\Carbon;
 
 class StrangleViewController extends Controller {
     public function index( Request $request ) {
-        $date      = $request->input( 'date', now()->toDateString() );
-        $time      = $request->input( 'time', '15:30:00' );
+        $date      = $request->input( 'date' );
+        $time      = $request->input( 'time' );
         $expiry    = $request->input( 'expiry', $this->getCurrentExpiry() );
         $openPrice = $request->input( 'open_price', $this->getOpenPrice( $date ) );
 
-        // Combine date and time
-        $timestamp = Carbon::parse( $date . ' ' . $time );
+        if ( empty( $date ) || empty( $time ) ) {
+            $timestamp = DB::table( 'ohlc_quotes' )->orderByDesc( 'id' )->first()->ts_at;
+        } else {
+            // Combine date and time
+            $timestamp = Carbon::parse( $date . ' ' . $time );
+        }
+
 
         // Get NIFTY current price at this timestamp
-        $niftyData    = $this->getNiftyPriceAtTime( $date, $time );
+        $niftyData    = $this->getNiftyPriceAtTime( $timestamp );
         $currentPrice = $niftyData['close'] ?? 0;
 
         // Generate strangle legs
-        $strangleLegs = $this->generateStrangleLegs( $date, $expiry, $openPrice, $timestamp );
+        $strangleLegs = $this->generateStrangleLegs( $timestamp, $expiry, $openPrice );
 
         return view( 'strangle-view', compact(
             'strangleLegs',
@@ -34,7 +39,7 @@ class StrangleViewController extends Controller {
         ) );
     }
 
-    private function generateStrangleLegs( $date, $expiry, $openPrice, $timestamp ) {
+    private function generateStrangleLegs( $timestamp, $expiry, $openPrice ) {
         // Round open price to nearest 100
         $baseStrike = round( $openPrice / 100 ) * 100;
 
@@ -101,15 +106,11 @@ class StrangleViewController extends Controller {
         return $legs;
     }
 
-    private function getNiftyPriceAtTime( $date, $time ) {
-        $timestamp = Carbon::parse( $date . ' ' . $time );
-
+    private function getNiftyPriceAtTime( $timestamp ) {
         $record = DB::table( 'ohlc_quotes' )
                     ->select( 'close', 'open', 'high', 'low' )
-                    ->whereDate( 'ts_at', $date )
+                    ->where( 'ts_at', $timestamp )
                     ->where( 'instrument_key', 'NSE_INDEX|Nifty 50' )
-                    ->where( 'ts_at', '<=', $timestamp )
-                    ->orderBy( 'ts_at', 'desc' )
                     ->first();
 
         return [
