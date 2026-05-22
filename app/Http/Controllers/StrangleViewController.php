@@ -8,10 +8,10 @@ use Carbon\Carbon;
 
 class StrangleViewController extends Controller {
     public function index( Request $request ) {
-        $date      = $request->input( 'date' );
-        $time      = $request->input( 'time' );
-        $expiry    = $request->input( 'expiry', $this->getCurrentExpiry() );
-        $openPrice = $request->input( 'open_price', $this->getOpenPrice( $date ) );
+        $date   = $request->input( 'date' );
+        $time   = $request->input( 'time' );
+        $expiry = $request->input( 'expiry', $this->getCurrentExpiry() );
+
 
         if ( empty( $date ) || empty( $time ) ) {
             $timestamp = DB::table( 'ohlc_quotes' )->orderByDesc( 'id' )->first()->ts_at;
@@ -19,7 +19,7 @@ class StrangleViewController extends Controller {
             // Combine date and time
             $timestamp = Carbon::parse( $date . ' ' . $time );
         }
-
+        $openPrice = $request->input( 'open_price', $this->getOpenPrice( Carbon::parse( $timestamp )->format( 'Y-m-d' ) ) );
 
         // Get NIFTY current price at this timestamp
         $niftyData    = $this->getNiftyPriceAtTime( $timestamp );
@@ -132,7 +132,7 @@ class StrangleViewController extends Controller {
     private function getOpenPrice( $date ) {
         $record = DB::table( 'daily_trend' )
                     ->select( 'current_day_index_open' )
-                    ->whereDate( 'trading_date', $date )
+                    ->where( 'trading_date', $date )
                     ->where( 'symbol_name', 'NIFTY' )
                     ->first();
 

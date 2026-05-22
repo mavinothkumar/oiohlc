@@ -12,6 +12,8 @@ Route::get( '/111', function () {
     ( new \App\Console\Commands\FetchOptionChainData() )->aggregateFiveMinuteData();
 } );
 
+Route::get('/option-premium-analysis', [\App\Http\Controllers\OptionPremiumAnalysisController::class, 'index'])->name('option.premium.analysis');
+
 Route::get( 'test', [ '\App\Http\Controllers\OhlcChartController', 'ohlc' ] );
 
 Route::get( '/snipper-point', [ App\Http\Controllers\SnipperPointController::class, 'index' ] )->name( 'snipper-point' );
@@ -103,7 +105,7 @@ Route::get('/api/option-data', [App\Http\Controllers\OptionAnalysisController::c
 Route::get('/strike-detail', [App\Http\Controllers\StrikeDetailController::class, 'index'])->name('strike.detail');
 Route::get('/api/strike-data', [App\Http\Controllers\StrikeDetailController::class, 'getStrikeData'])->name('api.strike.data');
 
-
+Route::get('/strangle-analyzer', [App\Http\Controllers\StrangleAnalyzerController::class, 'index'])->name('strangle.analyzer');
 
 Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
@@ -133,7 +135,7 @@ Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 //    Route::get('/short-strangle', [App\Http\Controllers\ShortStrangleController::class, 'index'])->name('short.strangle');
 //    Route::get('/api/short-strangle-data', [App\Http\Controllers\ShortStrangleController::class, 'getStrangleData'])->name('api.short.strangle.data');
 
-    Route::get('/strangle-view', [App\Http\Controllers\StrangleViewController::class, 'index'])->name('strangle.view');
+//    Route::get('/strangle-view', [App\Http\Controllers\StrangleViewController::class, 'index'])->name('strangle.view');
 
 } );
 
