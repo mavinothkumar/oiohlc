@@ -64,6 +64,7 @@ class GreekAnalysisController extends Controller
                       ->select(
                           'put.captured_at',
                           'put.ltp as put_ltp', 'call.ltp as call_ltp',
+                          'put.volume as put_volume', 'call.volume as call_volume',
                           'put.vega as put_vega', 'call.vega as call_vega',
                           'put.theta as put_theta', 'call.theta as call_theta',
                           'put.gamma as put_gamma', 'call.gamma as call_gamma',
@@ -100,6 +101,26 @@ class GreekAnalysisController extends Controller
             $callIv = $rows->pluck('call_iv');
             $putPop  = $rows->pluck('put_pop');
             $callPop = $rows->pluck('call_pop');
+
+            // Compute VWAP for the combined premium
+            $cumulativePV = 0;
+            $cumulativeVol = 0;
+            $vwap = [];
+
+            foreach ($rows as $row) {
+                $combinedPrice = $row->put_ltp + $row->call_ltp;
+                $combinedVol   = $row->put_volume + $row->call_volume;
+
+                $cumulativePV  += $combinedPrice * $combinedVol;
+                $cumulativeVol += $combinedVol;
+
+                // Avoid division by zero; carry forward the last valid VWAP
+                if ($cumulativeVol > 0) {
+                    $vwap[] = round($cumulativePV / $cumulativeVol, 2);
+                } else {
+                    $vwap[] = count($vwap) ? end($vwap) : 0;
+                }
+            }
         }
 
         return view('greek-analysis', compact(
@@ -113,7 +134,7 @@ class GreekAnalysisController extends Controller
             'putGamma', 'callGamma', 'netGamma',
             'putDelta', 'callDelta', 'netDelta',
             'putIv', 'callIv', 'putPop', 'callPop',
-            'data'
+            'data', 'vwap'
         ));
     }
 }

@@ -189,6 +189,18 @@
                         pointRadius: 0,
                     });
                 }
+
+                @if(!empty($vwap))
+                datasets.push({
+                    label: 'VWAP (Combined)',
+                    data: @json($vwap),
+                    borderColor: '#ff0000',
+                    borderWidth: 3,
+                    borderDash: [2, 2],
+                    pointRadius: 1,
+                    fill: false,
+                });
+                @endif
                 @if($enterPrice)
                 datasets.push({
                     label: 'Entry ({{ $enterPrice }})',
