@@ -217,8 +217,8 @@
                     datasets.push({
                         label: 'Combined Premium',
                         data: @json($combinedLtp),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245,158,11,0.1)',
+                        borderColor: '#35ec9e',
+                        backgroundColor: 'rgba(7,223,60,0.1)',
                         tension: 0.2,
                         fill: true,
                         pointRadius: 0,
@@ -245,8 +245,8 @@
                 datasets.push({
                     label: 'VWAP (Vol)',
                     data: @json($vwap),
-                    borderColor: '#f97316',
-                    borderWidth: 3,
+                    borderColor: '#ff0000',
+                    borderWidth: 7,
                     borderDash: [1, 1],
                     pointRadius: 1,
                     fill: false,
@@ -274,7 +274,7 @@
                     label: 'Net OI Change',
                     data: @json($netOIChange),
                     borderColor: '#ec4899',
-                    borderWidth: 3,
+                    borderWidth: 4,
                     pointRadius: 1,
                     fill: false,
                     yAxisID: 'y1'
