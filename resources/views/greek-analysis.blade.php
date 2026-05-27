@@ -246,9 +246,9 @@
                     label: 'VWAP (Vol)',
                     data: @json($vwap),
                     borderColor: '#f97316',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 0,
+                    borderWidth: 3,
+                    borderDash: [1, 1],
+                    pointRadius: 1,
                     fill: false,
                     yAxisID: 'y'
                 });
@@ -274,8 +274,8 @@
                     label: 'Net OI Change',
                     data: @json($netOIChange),
                     borderColor: '#ec4899',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
+                    borderWidth: 3,
+                    pointRadius: 1,
                     fill: false,
                     yAxisID: 'y1'
                 });
