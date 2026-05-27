@@ -107,8 +107,16 @@ Route::get('/api/strike-data', [App\Http\Controllers\StrikeDetailController::cla
 
 Route::get('/strangle-analyzer', [App\Http\Controllers\StrangleAnalyzerController::class, 'index'])->name('strangle.analyzer');
 
+/**
+ * Greeks Analysis Starts
+ */
 Route::get('/greek-analysis', [App\Http\Controllers\GreekAnalysisController::class, 'index'])->name('greek.analysis');
+Route::get('/option-chain-greeks', [App\Http\Controllers\OptionChainGreeksController::class, 'index'])->name('option-chain-greeks');
 
+
+/**
+ * Greeks Analysis Ends
+ */
 Route::prefix( 'trading' )->name( 'trading.' )->group( function () {
 
     // Main chart page

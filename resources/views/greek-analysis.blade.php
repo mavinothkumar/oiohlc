@@ -5,214 +5,350 @@
 @endsection
 
 @section('content')
-
+    {{-- Include Chart.js and Select2 --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <div class="bg-gray-900 text-white font-sans p-4 md:p-8">
-        <div class="max-w-full mx-auto">
+    <div class="bg-gray-50 text-gray-800 font-sans p-4 md:p-6">
+        {{-- Full‑width container --}}
+        <div class="w-full">
             <h1 class="text-3xl font-bold mb-6">📊 Option Greek Monitor – Short Strangle / Straddle</h1>
 
-            {{-- Filter Card --}}
-            <form method="GET" class="bg-gray-800 rounded-2xl p-6 mb-8 shadow-lg">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Expiry</label>
-                        <select name="expiry" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
-                            @foreach($expiries as $exp)
-                                <option value="{{ $exp }}" {{ $selectedExpiry == $exp ? 'selected' : '' }}>{{ $exp }}</option>
-                            @endforeach
-                        </select>
+            {{-- Filter row (single line) --}}
+            <form method="GET" class="bg-white rounded-xl shadow border border-gray-200 p-4 mb-8">
+                <div class="flex flex-wrap items-end gap-3">
+                    {{-- Expiry as date picker --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Expiry</label>
+                        <input type="date" name="expiry" value="{{ $selectedExpiry }}"
+                            class="border border-gray-300 rounded px-3 py-2 text-sm w-36 bg-white">
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Date</label>
-                        <input type="date" name="date" value="{{ $selectedDate }}" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+
+                    {{-- Date --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Date</label>
+                        <input type="date" name="date" value="{{ $selectedDate }}"
+                            class="border border-gray-300 rounded px-3 py-2 text-sm w-32 bg-white">
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Put Strike (PE)</label>
-                        <select name="put_strike" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+
+                    {{-- Put Strike with search --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Put Strike (PE)</label>
+                        <select name="put_strike" class="searchable border border-gray-300 rounded px-3 py-2 text-sm w-40 bg-white">
                             <option value="">-- Select --</option>
                             @foreach($strikes as $s)
                                 <option value="{{ $s }}" {{ $putStrike == $s ? 'selected' : '' }}>{{ $s }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Call Strike (CE)</label>
-                        <select name="call_strike" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+
+                    {{-- Call Strike with search --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Call Strike (CE)</label>
+                        <select name="call_strike" class="searchable border border-gray-300 rounded px-3 py-2 text-sm w-40 bg-white">
                             <option value="">-- Select --</option>
                             @foreach($strikes as $s)
                                 <option value="{{ $s }}" {{ $callStrike == $s ? 'selected' : '' }}>{{ $s }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Entry Premium (Combined)</label>
-                        <input type="number" step="0.01" name="enter_price" value="{{ $enterPrice }}" placeholder="eg 120.50"
-                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+
+                    {{-- Entry Premium --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Entry Premium</label>
+                        <input type="number" step="0.01" name="enter_price" value="{{ $enterPrice }}"
+                            placeholder="e.g. 120.50"
+                            class="border border-gray-300 rounded px-3 py-2 text-sm w-36 bg-white">
                     </div>
-                    <div>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition">Load Data</button>
+
+                    {{-- Chart View Selector --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Chart View</label>
+                        <select name="chart_view" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+                            <option value="all" {{ $chartView == 'all' ? 'selected' : '' }}>All (Indiv + Combined)</option>
+                            <option value="combined_only" {{ $chartView == 'combined_only' ? 'selected' : '' }}>Combined Only</option>
+                            <option value="individual_only" {{ $chartView == 'individual_only' ? 'selected' : '' }}>Individual Only</option>
+                        </select>
+                    </div>
+
+                    {{-- Submit --}}
+                    <div class="flex items-end">
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition text-sm">
+                            Load Data
+                        </button>
                     </div>
                 </div>
-
             </form>
 
-            @if($data->isEmpty())
-                @if($putStrike && $callStrike)
-                    <div class="bg-yellow-600 text-white p-4 rounded-lg">No data found for the selected filters.</div>
-                @endif
-            @else
-                {{-- Combined Premium Chart --}}
-                <div class="bg-gray-800 rounded-2xl p-6 mb-8 shadow-lg">
-                    <h2 class="text-xl font-semibold mb-4">💵 Combined Premium (Put LTP + Call LTP)</h2>
-                    <canvas id="combinedChart" height="100"></canvas>
+            {{-- No data warning --}}
+            @if($putStrike && $callStrike && $data->isEmpty())
+                <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg">
+                    No data found for the selected filters.
+                </div>
+            @endif
+
+            {{-- Charts --}}
+            @if($data->isNotEmpty())
+                {{-- Combined Premium --}}
+                <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-8">
+                    <h2 class="text-xl font-semibold mb-2">💵 Combined Premium</h2>
+                    <p class="text-sm text-gray-500 mb-4">PE LTP + CE LTP (based on selected view).</p>
+                    <canvas id="combinedChart" height="80"></canvas>
                 </div>
 
-                {{-- Greeks Grid --}}
+                {{-- Greeks grid --}}
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {{-- Net Vega --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">📈 Net Vega
-                            <span class="text-sm text-red-400">(Short = negative)</span>
-                        </h2>
-                        <p class="text-xs text-gray-400 mb-3">Rise in IV hurts the position. Fall in IV helps.</p>
-                        <canvas id="vegaChart" height="100"></canvas>
+                    {{-- Vega --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">📈 Vega</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Vega (positive) and Net Vega (short = negative).</p>
+                        <canvas id="vegaChart" height="80"></canvas>
                     </div>
-                    {{-- Net Theta --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">⏳ Net Theta
-                            <span class="text-sm text-green-400">(Short = positive)</span>
-                        </h2>
-                        <p class="text-xs text-gray-400 mb-3">Time decay works in your favour.</p>
-                        <canvas id="thetaChart" height="100"></canvas>
+                    {{-- Theta --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">⏳ Theta</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Theta and Net Theta (short = positive).</p>
+                        <canvas id="thetaChart" height="80"></canvas>
                     </div>
-                    {{-- Net Gamma --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">🎢 Net Gamma
-                            <span class="text-sm text-red-400">(Short = negative)</span>
-                        </h2>
-                        <p class="text-xs text-gray-400 mb-3">Large moves accelerate losses.</p>
-                        <canvas id="gammaChart" height="100"></canvas>
+                    {{-- Gamma --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">🎢 Gamma</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Gamma and Net Gamma (short = negative).</p>
+                        <canvas id="gammaChart" height="80"></canvas>
                     </div>
-                    {{-- Net Delta --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">🎯 Net Delta</h2>
-                        <p class="text-xs text-gray-400 mb-3">Directional exposure (should stay near zero).</p>
-                        <canvas id="deltaChart" height="100"></canvas>
+                    {{-- Delta --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">🎯 Delta</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Delta and Net Delta (should stay near zero).</p>
+                        <canvas id="deltaChart" height="80"></canvas>
                     </div>
-                    {{-- IV (individual options) --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">🌡️ Implied Volatility (IV)</h2>
-                        <canvas id="ivChart" height="100"></canvas>
+                    {{-- IV --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">🌡️ Implied Volatility (IV)</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual IV of the put and call options.</p>
+                        <canvas id="ivChart" height="80"></canvas>
                     </div>
-                    {{-- POP (individual options) --}}
-                    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg">
-                        <h2 class="text-lg font-semibold mb-2">🎲 Probability of Profit (POP) %</h2>
-                        <canvas id="popChart" height="100"></canvas>
+                    {{-- POP --}}
+                    <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold mb-1">🎲 Probability of Profit (POP) %</h2>
+                        <p class="text-xs text-gray-500 mb-4">Individual POP of the put and call options.</p>
+                        <canvas id="popChart" height="80"></canvas>
                     </div>
                 </div>
             @endif
         </div>
+    </div>
 
-        @if($data->isNotEmpty())
-            <script>
-                // Common labels (time)
-                const labels = @json($labels);
+    {{-- Chart.js & Select2 initialisation --}}
+    @if($data->isNotEmpty())
+        <script>
+            // ----- Make strike selects searchable with Select2 -----
+            $(document).ready(function() {
+                $('.searchable').select2({
+                    placeholder: "Search strike...",
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
 
-                // Combined premium with entry line
-                new Chart(document.getElementById('combinedChart'), {
+            const labels = @json($labels);
+            const chartView = @json($chartView);  // 'all', 'combined_only', 'individual_only'
+
+            // Helper: decide which datasets to show based on chartView
+            function getCombinedPremiumDatasets() {
+                let datasets = [];
+                if (chartView === 'all' || chartView === 'individual_only') {
+                    datasets.push({
+                        label: 'PE LTP',
+                        data: @json($putLtp),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                    });
+                    datasets.push({
+                        label: 'CE LTP',
+                        data: @json($callLtp),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                    });
+                }
+                if (chartView === 'all' || chartView === 'combined_only') {
+                    datasets.push({
+                        label: 'Combined Premium',
+                        data: @json($combinedLtp),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.1)',
+                        tension: 0.2,
+                        fill: true,
+                        pointRadius: 0,
+                    });
+                }
+                @if($enterPrice)
+                datasets.push({
+                    label: 'Entry ({{ $enterPrice }})',
+                    data: Array(labels.length).fill({{ $enterPrice }}),
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    borderDash: [5,5],
+                    pointRadius: 0,
+                    fill: false,
+                });
+                @endif
+                    return datasets;
+            }
+
+            // Generic tooltip options to show time + all values
+            const tooltipOptions = {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    title: function(context) {
+                        return 'Time: ' + context[0].label;
+                    },
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.parsed.y;
+                    }
+                }
+            };
+
+            // ---------- Combined Premium Chart ----------
+            new Chart(document.getElementById('combinedChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: getCombinedPremiumDatasets()
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: tooltipOptions,
+                        legend: { labels: { color: '#374151', usePointStyle: true } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#6b7280', maxTicksLimit: 10 }, grid: { color: '#e5e7eb' } },
+                        y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }
+                    }
+                }
+            });
+
+            // Helper for three‑line charts (PE, CE, Net) respecting chartView
+            function threeLineChart(canvasId, peLabel, peData, peColor, ceLabel, ceData, ceColor, netLabel, netData, netColor) {
+                let datasets = [];
+                if (chartView === 'all' || chartView === 'individual_only') {
+                    datasets.push({
+                        label: peLabel,
+                        data: peData,
+                        borderColor: peColor,
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                    });
+                    datasets.push({
+                        label: ceLabel,
+                        data: ceData,
+                        borderColor: ceColor,
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                    });
+                }
+                if (chartView === 'all' || chartView === 'combined_only') {
+                    datasets.push({
+                        label: netLabel,
+                        data: netData,
+                        borderColor: netColor,
+                        borderWidth: 2,
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                    });
+                }
+
+                new Chart(document.getElementById(canvasId), {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: tooltipOptions,
+                            legend: { labels: { color: '#374151', usePointStyle: true } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#6b7280', maxTicksLimit: 10 }, grid: { color: '#e5e7eb' } },
+                            y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }
+                        }
+                    }
+                });
+            }
+
+            threeLineChart('vegaChart',
+                'PE Vega', @json($putVega), '#ef4444',
+                'CE Vega', @json($callVega), '#3b82f6',
+                'Net Vega (Short)', @json($netVega), '#f97316');
+
+            threeLineChart('thetaChart',
+                'PE Theta', @json($putTheta), '#ef4444',
+                'CE Theta', @json($callTheta), '#3b82f6',
+                'Net Theta (Short)', @json($netTheta), '#22c55e');
+
+            threeLineChart('gammaChart',
+                'PE Gamma', @json($putGamma), '#ef4444',
+                'CE Gamma', @json($callGamma), '#3b82f6',
+                'Net Gamma (Short)', @json($netGamma), '#f97316');
+
+            threeLineChart('deltaChart',
+                'PE Delta', @json($putDelta), '#ef4444',
+                'CE Delta', @json($callDelta), '#3b82f6',
+                'Net Delta (Short)', @json($netDelta), '#8b5cf6');
+
+            // IV and POP are always individual (no combined), so ignore chartView (always show both)
+            function dualLineChart(canvasId, label1, data1, color1, label2, data2, color2) {
+                new Chart(document.getElementById(canvasId), {
                     type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [{
-                            label: 'Combined Premium',
-                            data: @json($combinedLtp),
-                            borderColor: '#fbbf24',
-                            backgroundColor: 'rgba(251,191,36,0.1)',
-                            tension: 0.2,
-                            fill: true,
-                            pointRadius: 0
-                        },
-                                @if($enterPrice)
+                        datasets: [
                             {
-                                label: 'Entry Premium ({{ $enterPrice }})',
-                                data: Array(labels.length).fill({{ $enterPrice }}),
-                                borderColor: '#34d399',
-                                borderWidth: 2,
-                                borderDash: [5, 5],
+                                label: label1,
+                                data: data1,
+                                borderColor: color1,
+                                tension: 0.2,
                                 pointRadius: 0,
-                                fill: false
+                            },
+                            {
+                                label: label2,
+                                data: data2,
+                                borderColor: color2,
+                                tension: 0.2,
+                                pointRadius: 0,
                             }
-                            @endif
                         ]
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { labels: { color: '#ccc' } } },
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: tooltipOptions,
+                            legend: { labels: { color: '#374151', usePointStyle: true } }
+                        },
                         scales: {
-                            x: { ticks: { color: '#aaa', maxTicksLimit: 10 } },
-                            y: { ticks: { color: '#aaa' }, grid: { color: '#374151' } }
+                            x: { ticks: { color: '#6b7280', maxTicksLimit: 10 }, grid: { color: '#e5e7eb' } },
+                            y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }
                         }
                     }
                 });
+            }
 
-                // Helper to draw a single-line chart
-                function simpleLine (canvasId, label, data, color) {
-                    new Chart(document.getElementById(canvasId), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: label,
-                                data: data,
-                                borderColor: color,
-                                backgroundColor: 'transparent',
-                                tension: 0.2,
-                                pointRadius: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { labels: { color: '#ccc' } } },
-                            scales: {
-                                x: { ticks: { color: '#aaa', maxTicksLimit: 10 } },
-                                y: { ticks: { color: '#aaa' }, grid: { color: '#374151' } }
-                            }
-                        }
-                    });
-                }
-
-                // Dual-line chart for IV / POP
-                function dualLine (canvasId, label1, data1, color1, label2, data2, color2) {
-                    new Chart(document.getElementById(canvasId), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [
-                                { label: label1, data: data1, borderColor: color1, tension: 0.2, pointRadius: 0 },
-                                { label: label2, data: data2, borderColor: color2, tension: 0.2, pointRadius: 0 }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { labels: { color: '#ccc' } } },
-                            scales: {
-                                x: { ticks: { color: '#aaa', maxTicksLimit: 10 } },
-                                y: { ticks: { color: '#aaa' }, grid: { color: '#374151' } }
-                            }
-                        }
-                    });
-                }
-
-                // Draw Greeks
-                simpleLine('vegaChart', 'Net Vega', @json($netVega), '#f87171');
-                simpleLine('thetaChart', 'Net Theta', @json($netTheta), '#4ade80');
-                simpleLine('gammaChart', 'Net Gamma', @json($netGamma), '#f97316');
-                simpleLine('deltaChart', 'Net Delta', @json($netDelta), '#60a5fa');
-
-                dualLine('ivChart', 'Put IV', @json($putIv), '#a78bfa', 'Call IV', @json($callIv), '#f472b6');
-                dualLine('popChart', 'Put POP%', @json($putPop), '#a78bfa', 'Call POP%', @json($callPop), '#f472b6');
-            </script>
-        @endif
-    </div>
+            dualLineChart('ivChart', 'Put IV', @json($putIv), '#a78bfa', 'Call IV', @json($callIv), '#f472b6');
+            dualLineChart('popChart', 'Put POP %', @json($putPop), '#a78bfa', 'Call POP %', @json($callPop), '#f472b6');
+        </script>
+    @endif
 @endsection
