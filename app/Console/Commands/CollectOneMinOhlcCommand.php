@@ -8,161 +8,175 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class  CollectOneMinOhlcCommand extends Command
-{
+class  CollectOneMinOhlcCommand extends Command {
     protected $signature = 'ohlc:collect-1min';
     protected $description = 'Collect 1-minute OHLC from Upstox /market-quote/ohlc and store in ohlc_quotes';
 
     private array $instruments = [
-        ['key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY', 'exchange' => 'NSE'],
+        [ 'key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY', 'exchange' => 'NSE' ],
     ];
 
-    public function handle(): int
-    {
+    public function handle(): int {
         $now = now();
-        info('ohlc:collect-1min running - Start ' . $now->toTimeString());
+        info( 'ohlc:collect-1min running - Start ' . $now->toTimeString() );
 
-        $start = $now->copy()->setTime(9, 8);
-        $end   = $now->copy()->setTime(15, 30);
+        $start = $now->copy()->setTime( 9, 8 );
+        $end   = $now->copy()->setTime( 15, 30 );
 
-        if (! $now->between($start, $end)) {
-            $this->info('Outside market hours — skipping.');
+        if ( ! $now->between( $start, $end ) ) {
+            $this->info( 'Outside market hours — skipping.' );
+
             return self::SUCCESS;
         }
 
-        $token = config('services.upstox.analytics_token');
+        $token = config( 'services.upstox.analytics_token' );
 
-        if (! $token) {
-            $this->error('Upstox access token not configured.');
+        if ( ! $token ) {
+            $this->error( 'Upstox access token not configured.' );
+
             return self::FAILURE;
         }
 
-        foreach ($this->instruments as $inst) {
-            $this->processInstrument($inst, $token);
+        foreach ( $this->instruments as $inst ) {
+            $this->processInstrument( $inst, $token );
         }
 
-        $this->info('1-min OHLC collection complete — ' . now()->toTimeString());
-        info('ohlc:collect-1min running - Completed ' . now()->toTimeString());
+        $this->info( '1-min OHLC collection complete — ' . now()->toTimeString() );
+        info( 'ohlc:collect-1min running - Completed ' . now()->toTimeString() );
 
         return self::SUCCESS;
     }
 
-    private function processInstrument(array $inst, string $token): void
-    {
-        $this->info("Processing {$inst['symbol']} ...");
+    private function processInstrument( array $inst, string $token ): void {
+        $this->info( "Processing {$inst['symbol']} ..." );
 
-        $_optExpiry = DB::table('nse_expiries')
-                        ->where('trading_symbol', $inst['symbol'])
-                        ->where('is_current', 1)
-                        ->where('instrument_type', 'OPT')
+        $_optExpiries = DB::table( 'nse_expiries' )
+                          ->where( 'trading_symbol', $inst['symbol'] )
+                          ->where( fn( $q ) => $q->where( 'is_current', 1 )->orWhere( 'is_next', 1 ) )
+                          ->where( 'instrument_type', 'OPT' )
+                          ->get();
+
+        $_futExpiry = DB::table( 'nse_expiries' )
+                        ->where( 'trading_symbol', $inst['symbol'] )
+                        ->where( 'is_current', 1 )
+                        ->where( 'instrument_type', 'FUT' )
                         ->first();
 
-        $_futExpiry = DB::table('nse_expiries')
-                        ->where('trading_symbol', $inst['symbol'])
-                        ->where('is_current', 1)
-                        ->where('instrument_type', 'FUT')
-                        ->first();
 
-        $optExpiryDate = $_optExpiry?->expiry_date;
         $futExpiryDate = $_futExpiry?->expiry_date;
 
-        if (! $optExpiryDate && ! $futExpiryDate) {
-            Log::warning("No current expiry (OPT or FUT) for {$inst['symbol']}");
-            $this->warn("No current expiry for {$inst['symbol']} — skipping.");
+        if ( $_optExpiries->isEmpty() && ! $futExpiryDate ) {
+            Log::warning( "No current expiry (OPT or FUT) for {$inst['symbol']}" );
+            $this->warn( "No current expiry for {$inst['symbol']} — skipping." );
+
             return;
         }
-
         $instrumentRows = collect();
 
-        if ($_optExpiry) {
-            $cepe = DB::table('instruments')
-                      ->where('underlying_symbol', $inst['symbol'])
-                      ->where('expiry', $_optExpiry->expiry)
-                      ->whereIn('instrument_type', ['CE', 'PE'])
-                      ->get(['instrument_key', 'instrument_type', 'strike_price']);
+        if ( $_optExpiries->isNotEmpty() ) {
+            $optExpiries = $_optExpiries->pluck( 'expiry' );   // both current + next expiry values
 
-            $instrumentRows = $instrumentRows->merge($cepe);
+            info('$optExpiries',[$optExpiries]);
+
+            $cepe = DB::table( 'instruments' )
+                      ->where( 'underlying_symbol', $inst['symbol'] )
+                      ->whereIn( 'expiry', $optExpiries )            // ← both expiry dates
+                      ->whereIn( 'instrument_type', [ 'CE', 'PE' ] )
+                      ->get( [ 'instrument_key', 'instrument_type', 'strike_price', 'expiry' ] );
+
+            // Build per-key expiry_date map using the nse_expiries lookup
+            $expiryToDate = $_optExpiries->pluck( 'expiry_date', 'expiry' );  // [ expiry => expiry_date ]
+
+            foreach ( $cepe as $row ) {
+                $optExpiryDateMap[ $row->instrument_key ] = $expiryToDate[ $row->expiry ] ?? null;
+            }
+
+            $instrumentRows = $instrumentRows->merge( $cepe );
         }
 
-        if ($_futExpiry) {
-            $fut = DB::table('instruments')
-                     ->where('underlying_symbol', $inst['symbol'])
-                     ->where('expiry', $_futExpiry->expiry)
-                     ->where('instrument_type', 'FUT')
-                     ->get(['instrument_key', 'instrument_type', 'strike_price']);
+        if ( $_futExpiry ) {
+            $fut = DB::table( 'instruments' )
+                     ->where( 'underlying_symbol', $inst['symbol'] )
+                     ->where( 'expiry', $_futExpiry->expiry )
+                     ->where( 'instrument_type', 'FUT' )
+                     ->get( [ 'instrument_key', 'instrument_type', 'strike_price' ] );
 
-            $instrumentRows = $instrumentRows->merge($fut);
+            $instrumentRows = $instrumentRows->merge( $fut );
         }
 
-        if ($instrumentRows->isEmpty()) {
-            $this->warn("No instruments found for {$inst['symbol']}.");
+        if ( $instrumentRows->isEmpty() ) {
+            $this->warn( "No instruments found for {$inst['symbol']}." );
+
             return;
         }
 
         $metaMap = $instrumentRows
-            ->keyBy('instrument_key')
-            ->map(fn ($row) => [
+            ->keyBy( 'instrument_key' )
+            ->map( fn( $row ) => [
                 'instrument_type' => $row->instrument_type,
-                'strike' => $row->strike_price,
-            ])
+                'strike'          => $row->strike_price,
+            ] )
             ->toArray();
 
-        info('before ohlc api ' . now()->toTimeString());
+        info( 'before ohlc api ' . now()->toTimeString() );
 
-        $quotes = $this->fetchOneMinOhlc(array_keys($metaMap), $token);
+        $quotes = $this->fetchOneMinOhlc( array_keys( $metaMap ), $token );
 
-        info('after ohlc api ' . now()->toTimeString());
+        info( 'after ohlc api ' . now()->toTimeString() );
 
-        if (empty($quotes)) {
-            $this->error("1-min OHLC fetch returned empty data for {$inst['symbol']}.");
+        if ( empty( $quotes ) ) {
+            $this->error( "1-min OHLC fetch returned empty data for {$inst['symbol']}." );
+
             return;
         }
 
         $rows = [];
-        $now  = now()->second(0);
+        $now  = now()->second( 0 );
 
-        foreach ($quotes as $instrumentKey => $quote) {
-            if (! isset($metaMap[$instrumentKey])) {
+        foreach ( $quotes as $instrumentKey => $quote ) {
+            if ( ! isset( $metaMap[ $instrumentKey ] ) ) {
                 continue;
             }
 
-            $meta = $metaMap[$instrumentKey];
+            $meta = $metaMap[ $instrumentKey ];
 
-            $ohlc = $quote['live_ohlc'] ?? null;  // V3: only live_ohlc
-            if (! $ohlc) {
+            $ohlc = $quote['live_ohlc'] ?? null;
+            if ( ! $ohlc ) {
                 continue;
             }
 
-            $open  = $ohlc['open']  ?? null;
-            $high  = $ohlc['high']  ?? null;
-            $low   = $ohlc['low']   ?? null;
+            $open  = $ohlc['open'] ?? null;
+            $high  = $ohlc['high'] ?? null;
+            $low   = $ohlc['low'] ?? null;
             $close = $ohlc['close'] ?? null;
 
-            if ($open === null || $high === null || $low === null || $close === null) {
+            if ( $open === null || $high === null || $low === null || $close === null ) {
                 continue;
             }
 
-// V3: ts is the candle start time in milliseconds, inside live_ohlc
-            $tsAt = ! empty($ohlc['ts'])
-                ? Carbon::createFromTimestampMs((int) $ohlc['ts'])
-                        ->setTimezone(config('app.timezone'))
-                : now()->setTimezone(config('app.timezone'));
+            $tsAt = ! empty( $ohlc['ts'] )
+                ? Carbon::createFromTimestampMs( (int) $ohlc['ts'] )
+                        ->setTimezone( config( 'app.timezone' ) )
+                : now()->setTimezone( config( 'app.timezone' ) );
 
-            $tsAt->second(0);
+            $tsAt->second( 0 );
+
+            // ── Resolve the correct expiry_date per instrument_key ─────────────
+            $resolvedExpiryDate = in_array( $meta['instrument_type'], [ 'CE', 'PE' ], true )
+                ? ( $optExpiryDateMap[ $instrumentKey ] ?? null )   // per-key lookup
+                : $futExpiryDate;
 
             $rows[] = [
                 'instrument_key'  => $instrumentKey,
                 'instrument_type' => $meta['instrument_type'],
                 'trading_symbol'  => $inst['symbol'],
-                'expiry_date'     => in_array($meta['instrument_type'], ['CE', 'PE'], true)
-                    ? $optExpiryDate
-                    : $futExpiryDate,
+                'expiry_date'     => $resolvedExpiryDate,       // ← correct per-instrument expiry
                 'strike_price'    => $meta['strike'],
                 'open'            => $open,
                 'high'            => $high,
                 'low'             => $low,
                 'close'           => $close,
-                'volume'          => $ohlc['volume'] ?? null,  // V3: volume is inside live_ohlc
+                'volume'          => $ohlc['volume'] ?? null,
                 'ts'              => $tsAt->timestamp,
                 'ts_at'           => $tsAt,
                 'last_price'      => $quote['last_price'] ?? null,
@@ -171,47 +185,48 @@ class  CollectOneMinOhlcCommand extends Command
             ];
         }
 
-        if (empty($rows)) {
-            $this->warn("No rows prepared for {$inst['symbol']}.");
+        if ( empty( $rows ) ) {
+            $this->warn( "No rows prepared for {$inst['symbol']}." );
+
             return;
         }
 
-        DB::table('ohlc_quotes')->upsert(
+        DB::table( 'ohlc_quotes' )->upsert(
             $rows,
-            ['instrument_key', 'ts'],
-            ['open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at']
+            [ 'instrument_key', 'ts' ],
+            [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
         );
 
-        info('Event Firing start' . now()->toTimeString());
-        event(new \App\Events\OhlcOneMinCollected(
-            symbol:    $inst['symbol'],
-            timestamp: now()->second(0)->toDateTimeString(),
-        ));
-        info('Event Firing end' . now()->toTimeString());
-        info('fully completed ' . now()->toTimeString());
-        $this->info("Upserted " . count($rows) . " 1-min OHLC rows for {$inst['symbol']}.");
+        info( 'Event Firing start' . now()->toTimeString() );
+        event( new \App\Events\OhlcOneMinCollected(
+            symbol: $inst['symbol'],
+            timestamp: now()->second( 0 )->toDateTimeString(),
+        ) );
+        info( 'Event Firing end' . now()->toTimeString() );
+        info( 'fully completed ' . now()->toTimeString() );
+        $this->info( "Upserted " . count( $rows ) . " 1-min OHLC rows for {$inst['symbol']}." );
     }
 
-    private function fetchOneMinOhlc(array $instrumentKeys, string $token): array
-    {
-        $chunks = array_chunk($instrumentKeys, 500);
+    private function fetchOneMinOhlc( array $instrumentKeys, string $token ): array {
+        info( '$instrumentKeys', [ count( $instrumentKeys ) ] );
+        $chunks = array_chunk( $instrumentKeys, 490 );
         $result = [];
 
-        foreach ($chunks as $chunk) {
-            $response = Http::withHeaders([
+        foreach ( $chunks as $chunk ) {
+            $response = Http::withHeaders( [
                 'Accept'        => 'application/json',
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer ' . $token,
-            ])->get('https://api.upstox.com/v3/market-quote/ohlc', [  // ← v3
-                'instrument_key' => implode(',', $chunk),
+            ] )->get( 'https://api.upstox.com/v3/market-quote/ohlc', [  // ← v3
+                'instrument_key' => implode( ',', $chunk ),
                 'interval'       => 'I1',
-            ]);
+            ] );
 
-            if (! $response->ok()) {
-                Log::error('1-min OHLC API error', [
+            if ( ! $response->ok() ) {
+                Log::error( '1-min OHLC API error', [
                     'status' => $response->status(),
                     'body'   => $response->body(),
-                ]);
+                ] );
                 continue;
             }
 
@@ -219,14 +234,14 @@ class  CollectOneMinOhlcCommand extends Command
 
             //info('$body',[$body]);
 
-            if (($body['status'] ?? null) !== 'success' || empty($body['data'])) {
-                Log::error('Unexpected 1-min OHLC response', ['body' => $body]);
+            if ( ( $body['status'] ?? null ) !== 'success' || empty( $body['data'] ) ) {
+                Log::error( 'Unexpected 1-min OHLC response', [ 'body' => $body ] );
                 continue;
             }
 
-            foreach ($body['data'] as $key => $quote) {
-                $resolvedKey          = $quote['instrument_token'] ?? $key;
-                $result[$resolvedKey] = $quote;
+            foreach ( $body['data'] as $key => $quote ) {
+                $resolvedKey            = $quote['instrument_token'] ?? $key;
+                $result[ $resolvedKey ] = $quote;
             }
         }
 
