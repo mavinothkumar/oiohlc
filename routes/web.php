@@ -111,7 +111,6 @@ Route::get('/strangle-analyzer', [App\Http\Controllers\StrangleAnalyzerControlle
  * Greeks Analysis Starts
  */
 Route::get('/greek-analysis', [App\Http\Controllers\GreekAnalysisController::class, 'index'])->name('greek.analysis');
-Route::get('/option-chain-greeks', [App\Http\Controllers\OptionChainGreeksController::class, 'index'])->name('option-chain-greeks');
 
 
 /**
