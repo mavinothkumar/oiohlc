@@ -1,22 +1,21 @@
 @extends('layouts.app')
 
 @section('title')
-    HLC
+    Greek Analysis – Short Strangle
 @endsection
 
 @section('content')
-    {{-- Include Chart.js and Select2 --}}
+    {{-- Include Chart.js, Select2 (with jQuery) --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <div class="bg-gray-50 text-gray-800 font-sans p-4 md:p-6">
-        {{-- Full‑width container --}}
         <div class="w-full">
             <h1 class="text-3xl font-bold mb-6">📊 Option Greek Monitor – Short Strangle / Straddle</h1>
 
-            {{-- Filter row (single line) --}}
+            {{-- Filter Row --}}
             <form method="GET" class="bg-white rounded-xl shadow border border-gray-200 p-4 mb-8">
                 <div class="flex flex-wrap items-end gap-3">
                     {{-- Expiry as date picker --}}
@@ -92,10 +91,26 @@
 
             {{-- Charts --}}
             @if($data->isNotEmpty())
-                {{-- Combined Premium --}}
+                {{-- Combined Premium Chart --}}
                 <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-8">
                     <h2 class="text-xl font-semibold mb-2">💵 Combined Premium</h2>
-                    <p class="text-sm text-gray-500 mb-4">PE LTP + CE LTP (based on selected view).</p>
+                    <p class="text-sm text-gray-500 mb-2">
+                        PE LTP + CE LTP. VWAP (orange dashed) and OI‑weighted average (purple dashed) shown.
+                        Net OI Change on right axis.
+                    </p>
+                    {{-- Build‑up status --}}
+                    <div class="text-sm text-gray-600 mb-4">
+                        <span class="font-semibold">Latest Put Build‑Up:</span>
+                        <span class="ml-1 px-2 py-0.5 rounded
+                            {{ Str::contains($putBuildUp->last(), 'Short') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                            {{ $putBuildUp->last() ?? 'N/A' }}
+                        </span>
+                        <span class="ml-4 font-semibold">Latest Call Build‑Up:</span>
+                        <span class="ml-1 px-2 py-0.5 rounded
+                            {{ Str::contains($callBuildUp->last(), 'Short') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                            {{ $callBuildUp->last() ?? 'N/A' }}
+                        </span>
+                    </div>
                     <canvas id="combinedChart" height="80"></canvas>
                 </div>
 
@@ -104,25 +119,25 @@
                     {{-- Vega --}}
                     <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
                         <h2 class="text-lg font-semibold mb-1">📈 Vega</h2>
-                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Vega (positive) and Net Vega (short = negative).</p>
+                        <p class="text-xs text-gray-500 mb-4">Short = negative. Falling IV helps the position.</p>
                         <canvas id="vegaChart" height="80"></canvas>
                     </div>
                     {{-- Theta --}}
                     <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
                         <h2 class="text-lg font-semibold mb-1">⏳ Theta</h2>
-                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Theta and Net Theta (short = positive).</p>
+                        <p class="text-xs text-gray-500 mb-4">Short = positive. Time decay works in your favour.</p>
                         <canvas id="thetaChart" height="80"></canvas>
                     </div>
                     {{-- Gamma --}}
                     <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
                         <h2 class="text-lg font-semibold mb-1">🎢 Gamma</h2>
-                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Gamma and Net Gamma (short = negative).</p>
+                        <p class="text-xs text-gray-500 mb-4">Short = negative. Large moves hurt.</p>
                         <canvas id="gammaChart" height="80"></canvas>
                     </div>
                     {{-- Delta --}}
                     <div class="bg-white rounded-xl shadow border border-gray-200 p-6">
                         <h2 class="text-lg font-semibold mb-1">🎯 Delta</h2>
-                        <p class="text-xs text-gray-500 mb-4">Individual PE/CE Delta and Net Delta (should stay near zero).</p>
+                        <p class="text-xs text-gray-500 mb-4">Should stay near zero for a neutral position.</p>
                         <canvas id="deltaChart" height="80"></canvas>
                     </div>
                     {{-- IV --}}
@@ -145,8 +160,8 @@
     {{-- Chart.js & Select2 initialisation --}}
     @if($data->isNotEmpty())
         <script>
-            // ----- Make strike selects searchable with Select2 -----
             $(document).ready(function() {
+                // Searchable strike selects
                 $('.searchable').select2({
                     placeholder: "Search strike...",
                     allowClear: true,
@@ -155,67 +170,9 @@
             });
 
             const labels = @json($labels);
-            const chartView = @json($chartView);  // 'all', 'combined_only', 'individual_only'
+            const chartView = @json($chartView);
 
-            // Helper: decide which datasets to show based on chartView
-            function getCombinedPremiumDatasets() {
-                let datasets = [];
-                if (chartView === 'all' || chartView === 'individual_only') {
-                    datasets.push({
-                        label: 'PE LTP',
-                        data: @json($putLtp),
-                        borderColor: '#ef4444',
-                        backgroundColor: 'transparent',
-                        tension: 0.2,
-                        pointRadius: 0,
-                    });
-                    datasets.push({
-                        label: 'CE LTP',
-                        data: @json($callLtp),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'transparent',
-                        tension: 0.2,
-                        pointRadius: 0,
-                    });
-                }
-                if (chartView === 'all' || chartView === 'combined_only') {
-                    datasets.push({
-                        label: 'Combined Premium',
-                        data: @json($combinedLtp),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245,158,11,0.1)',
-                        tension: 0.2,
-                        fill: true,
-                        pointRadius: 0,
-                    });
-                }
-
-                @if(!empty($vwap))
-                datasets.push({
-                    label: 'VWAP (Combined)',
-                    data: @json($vwap),
-                    borderColor: '#ff0000',
-                    borderWidth: 3,
-                    borderDash: [2, 2],
-                    pointRadius: 1,
-                    fill: false,
-                });
-                @endif
-                @if($enterPrice)
-                datasets.push({
-                    label: 'Entry ({{ $enterPrice }})',
-                    data: Array(labels.length).fill({{ $enterPrice }}),
-                    borderColor: '#10b981',
-                    borderWidth: 2,
-                    borderDash: [5,5],
-                    pointRadius: 0,
-                    fill: false,
-                });
-                @endif
-                    return datasets;
-            }
-
-            // Generic tooltip options to show time + all values
+            // Common tooltip – show time and all dataset values at that point
             const tooltipOptions = {
                 mode: 'index',
                 intersect: false,
@@ -229,7 +186,104 @@
                 }
             };
 
-            // ---------- Combined Premium Chart ----------
+            // ------------------ Combined Premium Chart ------------------
+            function getCombinedPremiumDatasets() {
+                let datasets = [];
+
+                // PE & CE LTP (individual)
+                if (chartView === 'all' || chartView === 'individual_only') {
+                    datasets.push({
+                        label: 'PE LTP',
+                        data: @json($putLtp),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    });
+                    datasets.push({
+                        label: 'CE LTP',
+                        data: @json($callLtp),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'transparent',
+                        tension: 0.2,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    });
+                }
+
+                // Combined premium
+                if (chartView === 'all' || chartView === 'combined_only') {
+                    datasets.push({
+                        label: 'Combined Premium',
+                        data: @json($combinedLtp),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.1)',
+                        tension: 0.2,
+                        fill: true,
+                        pointRadius: 0,
+                        yAxisID: 'y'
+                    });
+                }
+
+                // Entry line (if set)
+                @if($enterPrice)
+                datasets.push({
+                    label: 'Entry ({{ $enterPrice }})',
+                    data: Array(labels.length).fill({{ $enterPrice }}),
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    borderDash: [5,5],
+                    pointRadius: 0,
+                    fill: false,
+                    yAxisID: 'y'
+                });
+                @endif
+
+                // VWAP (volume weighted)
+                @if(!empty($vwap))
+                datasets.push({
+                    label: 'VWAP (Vol)',
+                    data: @json($vwap),
+                    borderColor: '#f97316',
+                    borderWidth: 1.5,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    yAxisID: 'y'
+                });
+                @endif
+
+                // OI-VWAP (OI additions weighted)
+                @if(!empty($oiVwap))
+                datasets.push({
+                    label: 'OI‑VWAP (Additions)',
+                    data: @json($oiVwap),
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    borderDash: [2, 2],
+                    pointRadius: 0,
+                    fill: false,
+                    yAxisID: 'y'
+                });
+                @endif
+
+                // Net OI Change (secondary axis)
+                @if(!empty($netOIChange))
+                datasets.push({
+                    label: 'Net OI Change',
+                    data: @json($netOIChange),
+                    borderColor: '#ec4899',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    yAxisID: 'y1'
+                });
+                @endif
+
+                    return datasets;
+            }
+
             new Chart(document.getElementById('combinedChart'), {
                 type: 'line',
                 data: {
@@ -244,13 +298,30 @@
                         legend: { labels: { color: '#374151', usePointStyle: true } }
                     },
                     scales: {
-                        x: { ticks: { color: '#6b7280', maxTicksLimit: 10 }, grid: { color: '#e5e7eb' } },
-                        y: { ticks: { color: '#6b7280' }, grid: { color: '#e5e7eb' } }
+                        x: {
+                            ticks: { color: '#6b7280', maxTicksLimit: 10 },
+                            grid: { color: '#e5e7eb' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Premium (₹)' },
+                            ticks: { color: '#6b7280' },
+                            grid: { color: '#e5e7eb' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Net OI Change' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#ec4899' },
+                            display: {{ !empty($netOIChange) ? 'true' : 'false' }}
+                        }
                     }
                 }
             });
 
-            // Helper for three‑line charts (PE, CE, Net) respecting chartView
+            // ------------------ Helper for Greek charts (PE, CE, Net) ------------------
             function threeLineChart(canvasId, peLabel, peData, peColor, ceLabel, ceData, ceColor, netLabel, netData, netColor) {
                 let datasets = [];
                 if (chartView === 'all' || chartView === 'individual_only') {
@@ -260,7 +331,7 @@
                         borderColor: peColor,
                         backgroundColor: 'transparent',
                         tension: 0.2,
-                        pointRadius: 0,
+                        pointRadius: 0
                     });
                     datasets.push({
                         label: ceLabel,
@@ -268,7 +339,7 @@
                         borderColor: ceColor,
                         backgroundColor: 'transparent',
                         tension: 0.2,
-                        pointRadius: 0,
+                        pointRadius: 0
                     });
                 }
                 if (chartView === 'all' || chartView === 'combined_only') {
@@ -279,7 +350,7 @@
                         borderWidth: 2,
                         backgroundColor: 'transparent',
                         tension: 0.2,
-                        pointRadius: 0,
+                        pointRadius: 0
                     });
                 }
 
@@ -321,7 +392,7 @@
                 'CE Delta', @json($callDelta), '#3b82f6',
                 'Net Delta (Short)', @json($netDelta), '#8b5cf6');
 
-            // IV and POP are always individual (no combined), so ignore chartView (always show both)
+            // ------------------ Dual line charts (IV & POP) ------------------
             function dualLineChart(canvasId, label1, data1, color1, label2, data2, color2) {
                 new Chart(document.getElementById(canvasId), {
                     type: 'line',
@@ -333,14 +404,14 @@
                                 data: data1,
                                 borderColor: color1,
                                 tension: 0.2,
-                                pointRadius: 0,
+                                pointRadius: 0
                             },
                             {
                                 label: label2,
                                 data: data2,
                                 borderColor: color2,
                                 tension: 0.2,
-                                pointRadius: 0,
+                                pointRadius: 0
                             }
                         ]
                     },

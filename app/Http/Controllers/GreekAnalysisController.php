@@ -4,18 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\NseExpiry;
-use App\Models\OptionChain;
+use Carbon\Carbon;
 
 class GreekAnalysisController extends Controller
 {
     public function index(Request $request)
     {
-        // Default expiry = current NIFTY OPT expiry (fallback = today)
-        $defaultExpiry = DB::table('nse_expiries')->where('trading_symbol', 'NIFTY')
-                                  ->where('instrument_type', 'OPT')
-                                  ->where('is_current', 1)
-                                  ->value('expiry_date') ?? today()->toDateString();
+        // ----- 1. Default expiry (current NIFTY OPT expiry) -----
+        $defaultExpiry = DB::table('nse_expiries')
+                           ->where('trading_symbol', 'NIFTY')
+                           ->where('instrument_type', 'OPT')
+                           ->where('is_current', 1)
+                           ->value('expiry_date') ?? today()->toDateString();
 
         $selectedExpiry = $request->input('expiry', $defaultExpiry);
         $selectedDate   = $request->input('date', today()->toDateString());
@@ -24,20 +24,15 @@ class GreekAnalysisController extends Controller
         $enterPrice     = $request->input('enter_price');
         $chartView      = $request->input('chart_view', 'all');   // all, combined_only, individual_only
 
-        // Dropdown data – still needed for strikes
-        $expiries = DB::table('nse_expiries')->where('trading_symbol', 'NIFTY')
-                             ->where('instrument_type', 'OPT')
-                             ->orderBy('expiry_date')
-                             ->pluck('expiry_date', 'expiry_date');
+        // ----- 2. Strikes for the selected expiry (for dropdowns) -----
+        $strikes = DB::table('option_chains')
+                     ->where('trading_symbol', 'NIFTY')
+                     ->where('expiry', $selectedExpiry)
+                     ->distinct()
+                     ->orderBy('strike_price')
+                     ->pluck('strike_price');
 
-        // Get strikes for the selected expiry (any date, not just future)
-        $strikes = OptionChain::where('trading_symbol', 'NIFTY')
-                              ->where('expiry', $selectedExpiry)
-                              ->distinct()
-                              ->orderBy('strike_price')
-                              ->pluck('strike_price');
-
-        // ----- Chart data (unchanged) -----
+        // ----- 3. Fetch data if both strikes are selected -----
         $data = collect();
         $labels = $combinedLtp = $netVega = $netTheta = $netGamma = $netDelta = [];
         $putLtp = $callLtp = [];
@@ -46,6 +41,11 @@ class GreekAnalysisController extends Controller
         $putGamma = $callGamma = [];
         $putDelta = $callDelta = [];
         $putIv = $callIv = $putPop = $callPop = [];
+        $vwap = [];
+        $oiVwap = [];
+        $netOIChange = [];
+        $putBuildUp = [];
+        $callBuildUp = [];
 
         if ($putStrike && $callStrike) {
             $rows = DB::table('option_chains as put')
@@ -65,6 +65,10 @@ class GreekAnalysisController extends Controller
                           'put.captured_at',
                           'put.ltp as put_ltp', 'call.ltp as call_ltp',
                           'put.volume as put_volume', 'call.volume as call_volume',
+                          'put.oi as put_oi', 'call.oi as call_oi',
+                          'put.prev_oi as put_prev_oi', 'call.prev_oi as call_prev_oi',
+                          'put.diff_oi as put_diff_oi', 'call.diff_oi as call_diff_oi',
+                          'put.build_up as put_build_up', 'call.build_up as call_build_up',
                           'put.vega as put_vega', 'call.vega as call_vega',
                           'put.theta as put_theta', 'call.theta as call_theta',
                           'put.gamma as put_gamma', 'call.gamma as call_gamma',
@@ -75,12 +79,14 @@ class GreekAnalysisController extends Controller
                       ->get();
 
             $data = $rows;
-            $labels = $rows->pluck('captured_at')->map(fn($d) => \Carbon\Carbon::parse($d)->format('H:i'));
+            $labels = $rows->pluck('captured_at')->map(fn($d) => Carbon::parse($d)->format('H:i'));
 
+            // Premiums
             $putLtp = $rows->pluck('put_ltp');
             $callLtp = $rows->pluck('call_ltp');
             $combinedLtp = $rows->map(fn($r) => round($r->put_ltp + $r->call_ltp, 2));
 
+            // Greeks
             $putVega  = $rows->pluck('put_vega');
             $callVega = $rows->pluck('call_vega');
             $netVega  = $rows->map(fn($r) => round(-($r->put_vega + $r->call_vega), 4));
@@ -97,36 +103,53 @@ class GreekAnalysisController extends Controller
             $callDelta = $rows->pluck('call_delta');
             $netDelta  = $rows->map(fn($r) => round(-($r->put_delta + $r->call_delta), 4));
 
+            // IV & POP
             $putIv  = $rows->pluck('put_iv');
             $callIv = $rows->pluck('call_iv');
             $putPop  = $rows->pluck('put_pop');
             $callPop = $rows->pluck('call_pop');
 
-            // Compute VWAP for the combined premium
+            // Build‑up strings
+            $putBuildUp  = $rows->pluck('put_build_up');
+            $callBuildUp = $rows->pluck('call_build_up');
+
+            // ----- VWAP (volume weighted) -----
             $cumulativePV = 0;
             $cumulativeVol = 0;
-            $vwap = [];
-
             foreach ($rows as $row) {
                 $combinedPrice = $row->put_ltp + $row->call_ltp;
                 $combinedVol   = $row->put_volume + $row->call_volume;
-
                 $cumulativePV  += $combinedPrice * $combinedVol;
                 $cumulativeVol += $combinedVol;
+                $vwap[] = $cumulativeVol > 0 ? round($cumulativePV / $cumulativeVol, 2) : (count($vwap) ? end($vwap) : 0);
+            }
 
-                // Avoid division by zero; carry forward the last valid VWAP
-                if ($cumulativeVol > 0) {
-                    $vwap[] = round($cumulativePV / $cumulativeVol, 2);
+            // ----- OI‑VWAP (weighted by new positions: max(diff_oi, 0)) -----
+            $cumulativeOIPV = 0;
+            $cumulativeOIWeight = 0;
+            foreach ($rows as $row) {
+                $combinedPrice = $row->put_ltp + $row->call_ltp;
+                $weight = max($row->put_diff_oi, 0) + max($row->call_diff_oi, 0);
+                if ($weight > 0) {
+                    $cumulativeOIPV += $combinedPrice * $weight;
+                    $cumulativeOIWeight += $weight;
+                    $oiVwap[] = round($cumulativeOIPV / $cumulativeOIWeight, 2);
                 } else {
-                    $vwap[] = count($vwap) ? end($vwap) : 0;
+                    $oiVwap[] = count($oiVwap) ? end($oiVwap) : round($combinedPrice, 2);
                 }
+            }
+
+            // ----- Cumulative Net OI Change -----
+            $runningOI = 0;
+            foreach ($rows as $row) {
+                $runningOI += ($row->put_diff_oi + $row->call_diff_oi);
+                $netOIChange[] = $runningOI;
             }
         }
 
         return view('greek-analysis', compact(
-            'expiries', 'strikes',
             'selectedExpiry', 'selectedDate', 'putStrike', 'callStrike', 'enterPrice',
-            'chartView',
+            'chartView', 'strikes',
             'labels',
             'putLtp', 'callLtp', 'combinedLtp',
             'putVega', 'callVega', 'netVega',
@@ -134,7 +157,9 @@ class GreekAnalysisController extends Controller
             'putGamma', 'callGamma', 'netGamma',
             'putDelta', 'callDelta', 'netDelta',
             'putIv', 'callIv', 'putPop', 'callPop',
-            'data', 'vwap'
+            'vwap', 'oiVwap', 'netOIChange',
+            'putBuildUp', 'callBuildUp',
+            'data'
         ));
     }
 }
