@@ -14,7 +14,6 @@
         <div class="w-full">
             <h1 class="text-3xl font-bold mb-2">📊 Multi-Strike Analysis – Short Strangle / Straddle</h1>
             <p class="text-sm text-gray-600 mb-6">Compare 4 strike width combinations simultaneously</p>
-
             {{-- Filter Row --}}
             <form method="GET" class="bg-white rounded-xl shadow border border-gray-200 p-4 mb-6">
                 <div class="flex flex-wrap items-end gap-3">
@@ -30,6 +29,15 @@
                         <label class="text-xs text-gray-600 mb-1">Date</label>
                         <input type="date" name="date" value="{{ $selectedDate }}"
                             class="border border-gray-300 rounded px-3 py-2 text-sm w-32 bg-white">
+                    </div>
+
+                    {{-- Strategy Type --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Strategy</label>
+                        <select name="strategy_type" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+                            <option value="strangle" {{ $strategyType == 'strangle' ? 'selected' : '' }}>Strangle</option>
+                            <option value="straddle" {{ $strategyType == 'straddle' ? 'selected' : '' }}>Straddle</option>
+                        </select>
                     </div>
 
                     {{-- Put Strike --}}

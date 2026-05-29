@@ -24,6 +24,7 @@ class MultiStrikeAnalysisController extends Controller
         $enterPrice     = $request->input('enter_price');
         $chartView      = $request->input('chart_view', 'all');
         $gridColumns    = $request->input('grid_columns', 2); // 1, 2, 3, or 4
+        $strategyType   = $request->input('strategy_type', 'strangle'); // 'strangle' or 'straddle'
 
         // ----- 2. Strikes for dropdowns -----
         $strikes = DB::table('option_chains')
@@ -33,39 +34,55 @@ class MultiStrikeAnalysisController extends Controller
                      ->orderBy('strike_price')
                      ->pluck('strike_price');
 
-        // ----- 3. Generate 4 strike combinations -----
+        // ----- 3. Generate strike combinations based on strategy type -----
         $strikeCombinations = [];
 
         if ($putStrike && $callStrike) {
             $putStrike = (float) $putStrike;
             $callStrike = (float) $callStrike;
 
-            // Determine step based on whether it's a straddle or strangle
-            if ($putStrike == $callStrike) {
-                // Straddle: widen symmetrically
+            if ($strategyType === 'straddle') {
+                // Straddle: Both strikes must be the same
+                // Use the PE strike as the base (or average if different)
+                $baseStrike = $putStrike;
                 $step = 50;
-                $strikeCombinations = [
-                    ['put' => $putStrike, 'call' => $callStrike],
-                    ['put' => $putStrike - $step, 'call' => $callStrike + $step],
-                    ['put' => $putStrike - ($step * 2), 'call' => $callStrike + ($step * 2)],
-                    ['put' => $putStrike - ($step * 3), 'call' => $callStrike + ($step * 3)],
-                ];
-            } else {
-                // Strangle: maintain the same width between strikes
-                $width = abs($callStrike - $putStrike);
-                $halfWidth = $width / 2;
-                $centerStrike = ($putStrike + $callStrike) / 2;
 
                 $strikeCombinations = [
-                    ['put' => $putStrike, 'call' => $callStrike],
-                    ['put' => $centerStrike - $halfWidth - 50, 'call' => $centerStrike + $halfWidth + 50],
-                    ['put' => $centerStrike - $halfWidth - 100, 'call' => $centerStrike + $halfWidth + 100],
-                    ['put' => $centerStrike - $halfWidth - 150, 'call' => $centerStrike + $halfWidth + 150],
+                    ['put' => $baseStrike, 'call' => $baseStrike],
+                    ['put' => $baseStrike - $step, 'call' => $baseStrike - $step],
+                    ['put' => $baseStrike + $step, 'call' => $baseStrike + $step],
+                    ['put' => $baseStrike - ($step * 2), 'call' => $baseStrike - ($step * 2)],
+                    ['put' => $baseStrike + ($step * 2), 'call' => $baseStrike + ($step * 2)],
                 ];
+            } else {
+                // Strangle (default): Different strikes for PE and CE
+                if ($putStrike == $callStrike) {
+                    // If same strike given in strangle mode, widen symmetrically
+                    $step = 50;
+                    $strikeCombinations = [
+                        ['put' => $putStrike, 'call' => $callStrike],
+                        ['put' => $putStrike - $step, 'call' => $callStrike + $step],
+                        ['put' => $putStrike - ($step * 2), 'call' => $callStrike + ($step * 2)],
+                        ['put' => $putStrike - ($step * 3), 'call' => $callStrike + ($step * 3)],
+                    ];
+                } else {
+                    // Strangle: maintain the same width between strikes
+                    $width = abs($callStrike - $putStrike);
+                    $halfWidth = $width / 2;
+                    $centerStrike = ($putStrike + $callStrike) / 2;
+                    $step = 50;
+
+                    $strikeCombinations = [
+                        ['put' => $putStrike, 'call' => $callStrike],
+                        ['put' => $centerStrike - $halfWidth - $step, 'call' => $centerStrike + $halfWidth + $step],
+                        ['put' => $centerStrike - $halfWidth - ($step * 2), 'call' => $centerStrike + $halfWidth + ($step * 2)],
+                        ['put' => $centerStrike - $halfWidth - ($step * 3), 'call' => $centerStrike + $halfWidth + ($step * 3)],
+                    ];
+                }
             }
         }
 
-        // ----- 4. Fetch data for all 4 combinations -----
+        // ----- 4. Fetch data for all combinations -----
         $chartData = [];
 
         foreach ($strikeCombinations as $index => $combo) {
@@ -145,7 +162,7 @@ class MultiStrikeAnalysisController extends Controller
 
         return view('multi-strike-analysis', compact(
             'selectedExpiry', 'selectedDate', 'putStrike', 'callStrike', 'enterPrice',
-            'chartView', 'gridColumns', 'strikes', 'chartData'
+            'chartView', 'gridColumns', 'strategyType', 'strikes', 'chartData'
         ));
     }
 }
