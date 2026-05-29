@@ -31,65 +31,92 @@ class FetchOptionChainData extends Command {
         $now   = now()->copy()->second( 0 );
 
         foreach ( $instruments as $inst ) {
-            $expiry = DB::table( 'nse_expiries' )
-                        ->where( 'trading_symbol', $inst['symbol'] )
-                        ->where( 'is_current', 1 )
-                        ->where( 'instrument_type', 'OPT' )
-                        ->value( 'expiry_date' );
+            // Get both current and next expiries using orWhere
+            $expiries = DB::table( 'nse_expiries' )
+                          ->where( 'trading_symbol', $inst['symbol'] )
+                          ->where( function($q) {
+                              $q->where( 'is_current', 1 )
+                                ->orWhere( 'is_next', 1 );
+                          })
+                          ->where( 'instrument_type', 'OPT' )
+                          ->orderBy('expiry_date')
+                          ->get();
 
-            if ( ! $expiry ) {
-                Log::warning( "No current expiry found for {$inst['symbol']}" );
+            info('$expiries',[$expiries]);
+
+            if ( $expiries->isEmpty() ) {
+                Log::warning( "No current or next expiry found for {$inst['symbol']}" );
                 continue;
             }
 
-            $response = Http::withHeaders( [
-                'Content-Type'  => 'application/json',
-                'Accept'        => 'application/json',
-                'Authorization' => 'Bearer ' . $token,
-            ] )->get( 'https://api.upstox.com/v2/option/chain', [
-                'instrument_key' => $inst['key'],
-                'expiry_date'    => $expiry,
-            ] );
+            // Loop through each expiry (current and next)
+            foreach ($expiries as $expiryData) {
+                $expiry = $expiryData->expiry_date;
+                $expiryType = $expiryData->is_current ? 'current' : 'next';
 
-            if ( ! $response->ok() ) {
-                Log::error( "Option chain API error for {$inst['symbol']}", [
-                    'status' => $response->status(),
-                    'body'   => $response->body(),
+                Log::info( "Fetching {$expiryType} expiry data for {$inst['symbol']} on {$expiry}" );
+
+                $response = Http::withHeaders( [
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                    'Authorization' => 'Bearer ' . $token,
+                ] )->get( 'https://api.upstox.com/v2/option/chain', [
+                    'instrument_key' => $inst['key'],
+                    'expiry_date'    => $expiry,
                 ] );
-                continue;
-            }
 
-            $data = $response->json( 'data' ) ?? [];
-            if ( empty( $data ) ) {
-                Log::error( "Empty option chain data for {$inst['symbol']}" );
-                continue;
-            }
+                if ( ! $response->ok() ) {
+                    Log::error( "Option chain API error for {$inst['symbol']} ({$expiryType} expiry)", [
+                        'expiry'  => $expiry,
+                        'status'  => $response->status(),
+                        'body'    => $response->body(),
+                    ] );
+                    continue;
+                }
 
-            $latestCapturedAt = DB::table( 'option_chains' )
-                                  ->max( 'captured_at' );
+                $data = $response->json( 'data' ) ?? [];
+                if ( empty( $data ) ) {
+                    Log::error( "Empty option chain data for {$inst['symbol']} ({$expiryType} expiry)" );
+                    continue;
+                }
 
-            $prevData = collect();
+                // Get latest captured_at for this specific expiry
+                $latestCapturedAt = DB::table( 'option_chains' )
+                                      ->where('expiry', $expiry)
+                                      ->where('trading_symbol', $inst['symbol'])
+                                      ->max( 'captured_at' );
 
-            if ( $latestCapturedAt ) {
-                $prevData = DB::table( 'option_chains' )
-                              ->where( 'captured_at', $latestCapturedAt )
-                              ->get( [ 'instrument_key', 'oi', 'ltp', 'volume' ] )
-                              ->keyBy( 'instrument_key' );
-            }
+                $prevData = collect();
 
-            $records = [];
-            foreach ( $data as $item ) {
-                $records[] = $this->buildRecord( $item, $prevData, $inst['symbol'], 'CE', $now );
-                $records[] = $this->buildRecord( $item, $prevData, $inst['symbol'], 'PE', $now );
-            }
+                if ( $latestCapturedAt ) {
+                    $prevData = DB::table( 'option_chains' )
+                                  ->where( 'captured_at', $latestCapturedAt )
+                                  ->where('expiry', $expiry)
+                                  ->where('trading_symbol', $inst['symbol'])
+                                  ->get( [ 'instrument_key', 'oi', 'ltp', 'volume' ] )
+                                  ->keyBy( 'instrument_key' );
+                }
 
-            foreach ( array_chunk( $records, 500 ) as $chunk ) {
-                DB::table( 'option_chains' )->insert( $chunk );
+                $records = [];
+                foreach ( $data as $item ) {
+                    $ceRecord = $this->buildRecord( $item, $prevData, $inst['symbol'], 'CE', $now, $expiry, $expiryType );
+                    $peRecord = $this->buildRecord( $item, $prevData, $inst['symbol'], 'PE', $now, $expiry, $expiryType );
+
+                    if ($ceRecord) $records[] = $ceRecord;
+                    if ($peRecord) $records[] = $peRecord;
+                }
+
+                if (!empty($records)) {
+                    foreach ( array_chunk( $records, 500 ) as $chunk ) {
+                        DB::table( 'option_chains' )->insert( $chunk );
+                    }
+                    Log::info( "Stored " . count($records) . " records for {$inst['symbol']} ({$expiryType} expiry: {$expiry})" );
+                }
             }
         }
     }
 
-    private function buildRecord( array $item, $prevData, string $symbol, string $type, Carbon $now ): array {
+    private function buildRecord( array $item, $prevData, string $symbol, string $type, Carbon $now, string $expiry, string $expiryType = 'current' ): array {
         $optData = $type === 'CE' ? ( $item['call_options'] ?? null ) : ( $item['put_options'] ?? null );
 
         if ( ! $optData ) {
@@ -127,7 +154,8 @@ class FetchOptionChainData extends Command {
             'underlying_key'        => $item['underlying_key'] ?? null,
             'instrument_key'        => $instrumentKey,
             'trading_symbol'        => $symbol,
-            'expiry'                => $item['expiry'] ?? null,
+            'expiry'                => $expiry,
+            //'expiry_type'           => $expiryType,
             'strike_price'          => $item['strike_price'] ?? null,
             'option_type'           => $type,
             'ltp'                   => $m['ltp'] ?? null,
@@ -178,11 +206,16 @@ class FetchOptionChainData extends Command {
         ];
 
         foreach ($underlyings as $inst) {
-            $optExpiry = DB::table('nse_expiries')
-                           ->where('trading_symbol', $inst['symbol'])
-                           ->where('is_current', 1)
-                           ->where('instrument_type', 'OPT')
-                           ->first();
+            // Get both current and next expiries for options
+            $optExpiries = DB::table('nse_expiries')
+                             ->where('trading_symbol', $inst['symbol'])
+                             ->where('instrument_type', 'OPT')
+                             ->where(function($query) {
+                                 $query->where('is_current', 1)
+                                       ->orWhere('is_next', 1);
+                             })
+                             ->orderBy('expiry_date')
+                             ->get();
 
             $futExpiry = DB::table('nse_expiries')
                            ->where('trading_symbol', $inst['symbol'])
@@ -192,13 +225,19 @@ class FetchOptionChainData extends Command {
 
             $instrumentRows = collect();
 
-            if ($optExpiry) {
+            // Process each option expiry (current and next)
+            foreach ($optExpiries as $optExpiry) {
                 $instrumentRows = $instrumentRows->merge(
                     DB::table('instruments')
                       ->where('underlying_symbol', $inst['symbol'])
                       ->where('expiry', $optExpiry->expiry)
                       ->whereIn('instrument_type', ['CE', 'PE'])
-                      ->get(['instrument_key', 'instrument_type', 'strike_price'])
+                      ->get(['instrument_key', 'instrument_type', 'strike_price', 'expiry'])
+                      ->map(function($item) use ($optExpiry) {
+                          $item->expiry_date = $optExpiry->expiry_date;
+                          $item->expiry_type = $optExpiry->is_current ? 'current' : 'next';
+                          return $item;
+                      })
                 );
             }
 
@@ -208,7 +247,12 @@ class FetchOptionChainData extends Command {
                       ->where('underlying_symbol', $inst['symbol'])
                       ->where('expiry', $futExpiry->expiry)
                       ->where('instrument_type', 'FUT')
-                      ->get(['instrument_key', 'instrument_type', 'strike_price'])
+                      ->get(['instrument_key', 'instrument_type', 'strike_price', 'expiry'])
+                      ->map(function($item) use ($futExpiry) {
+                          $item->expiry_date = $futExpiry->expiry_date;
+                          $item->expiry_type = 'current';
+                          return $item;
+                      })
                 );
             }
 
@@ -233,27 +277,35 @@ class FetchOptionChainData extends Command {
                 $windowStart = $bucket->copy();
                 $windowEnd   = $bucket->copy()->addMinutes(4)->endOfMinute();
 
-                $chainCapturedAt = DB::table('option_chains')
-                                     ->where('trading_symbol', $inst['symbol'])
-                                     ->whereBetween('captured_at', [$windowStart, $windowEnd])
-                                     ->max('captured_at');
-
+                // Get chain data for each expiry separately
                 $chainMap = collect();
-                if ($chainCapturedAt) {
-                    $chainMap = DB::table('option_chains')
-                                  ->where('trading_symbol', $inst['symbol'])
-                                  ->where('captured_at', $chainCapturedAt)
-                                  ->get([
-                                      'strike_price',
-                                      'option_type',
-                                      'oi',
-                                      'volume',
-                                      'diff_oi',
-                                      'diff_volume',
-                                      'diff_ltp',
-                                      'build_up',
-                                  ])
-                                  ->keyBy(fn ($row) => number_format((float) $row->strike_price, 2, '.', '') . '|' . $row->option_type);
+
+                foreach ($optExpiries as $optExpiry) {
+                    $chainCapturedAt = DB::table('option_chains')
+                                         ->where('trading_symbol', $inst['symbol'])
+                                         ->where('expiry', $optExpiry->expiry)
+                                         ->whereBetween('captured_at', [$windowStart, $windowEnd])
+                                         ->max('captured_at');
+
+                    if ($chainCapturedAt) {
+                        $expiryChainMap = DB::table('option_chains')
+                                            ->where('trading_symbol', $inst['symbol'])
+                                            ->where('expiry', $optExpiry->expiry)
+                                            ->where('captured_at', $chainCapturedAt)
+                                            ->get([
+                                                'strike_price',
+                                                'option_type',
+                                                'oi',
+                                                'volume',
+                                                'diff_oi',
+                                                'diff_volume',
+                                                'diff_ltp',
+                                                'build_up',
+                                            ])
+                                            ->keyBy(fn ($row) => number_format((float) $row->strike_price, 2, '.', '') . '|' . $row->option_type . '|' . $optExpiry->expiry);
+
+                        $chainMap = $chainMap->merge($expiryChainMap);
+                    }
                 }
 
                 $rows = [];
@@ -271,16 +323,15 @@ class FetchOptionChainData extends Command {
 
                     $chain = null;
                     if (in_array($instrument->instrument_type, ['CE', 'PE'], true)) {
-                        $chainKey = number_format((float) $instrument->strike_price, 2, '.', '') . '|' . $instrument->instrument_type;
+                        $chainKey = number_format((float) $instrument->strike_price, 2, '.', '') . '|' . $instrument->instrument_type . '|' . $instrument->expiry;
                         $chain    = $chainMap->get($chainKey);
                     }
 
                     $rows[] = [
                         'instrument_key'    => $instrument->instrument_key,
                         'underlying_symbol' => $inst['symbol'],
-                        'expiry_date'       => in_array($instrument->instrument_type, ['CE', 'PE'], true)
-                            ? ($optExpiry?->expiry_date ?? null)
-                            : ($futExpiry?->expiry_date ?? null),
+                        'expiry_date'       => $instrument->expiry_date ?? null,
+                        //'expiry_type'       => $instrument->expiry_type ?? 'current',
                         'strike'            => $instrument->strike_price,
                         'instrument_type'   => $instrument->instrument_type,
                         'open'              => $candles->first()->open,

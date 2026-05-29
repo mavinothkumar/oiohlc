@@ -20,6 +20,7 @@
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Greeks</a>
+                        <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Greeks</a>
                         <a href="{{ route('strangle.analyzer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strangle View</a>
                         <a href="{{ route('trading.chart') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Chart</a>
                         <a href="{{ route('strike.detail') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI Data</a>
