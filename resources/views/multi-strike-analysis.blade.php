@@ -123,23 +123,63 @@
 
                 <div class="grid {{ $gridClass }} gap-6">
                     @foreach($chartData as $key => $data)
+                        @php
+                            $latestPutLtp = $data['putLtp']->last() ?? 0;
+                            $latestCallLtp = $data['callLtp']->last() ?? 0;
+                            $latestCombined = $data['combinedLtp']->last() ?? 0;
+                            $latestVwap = !empty($data['vwap']) ? end($data['vwap']) : null;
+                            $latestNetOI = !empty($data['netOIChange']) ? end($data['netOIChange']) : null;
+                        @endphp
+
                         <div class="bg-white rounded-xl shadow border border-gray-200 p-4 flex flex-col">
-                            <h3 class="text-lg font-semibold mb-1">
-                                {{ $data['put_strike'] }} PE + {{ $data['call_strike'] }} CE
-                            </h3>
-                            <div class="text-xs text-gray-500 mb-2">
-                                Width: {{ $data['call_strike'] - $data['put_strike'] }} pts
-                                <span class="ml-4">
-                    <span class="px-1.5 py-0.5 rounded text-xs
-                        {{ Str::contains($data['putBuildUp']->last(), 'Short') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
-                        P: {{ $data['putBuildUp']->last() ?? 'N/A' }}
-                    </span>
-                    <span class="px-1.5 py-0.5 rounded text-xs ml-1
-                        {{ Str::contains($data['callBuildUp']->last(), 'Short') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
-                        C: {{ $data['callBuildUp']->last() ?? 'N/A' }}
-                    </span>
-                </span>
+                            {{-- Compact Header --}}
+                            <div class="mb-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <h3 class="text-lg font-bold text-gray-800">
+                                        {{ $data['put_strike'] }} PE + {{ $data['call_strike'] }} CE
+                                    </h3>
+                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs text-gray-600">
+                Width: {{ $data['call_strike'] - $data['put_strike'] }} pts
+            </span>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
+            <span class="text-gray-600">
+                PE: <strong class="text-red-600">{{ number_format($latestPutLtp, 2) }}</strong>
+            </span>
+                                    <span class="text-gray-400">|</span>
+                                    <span class="text-gray-600">
+                CE: <strong class="text-blue-600">{{ number_format($latestCallLtp, 2) }}</strong>
+            </span>
+                                    <span class="text-gray-400">|</span>
+                                    <span class="text-gray-600">
+                Comb: <strong class="text-gray-800">{{ number_format($latestCombined, 2) }}</strong>
+            </span>
+                                    @if($latestVwap)
+                                        <span class="text-gray-400">|</span>
+                                        <span class="text-gray-600">
+                VWAP: <strong class="text-orange-600">{{ number_format($latestVwap, 2) }}</strong>
+            </span>
+                                    @endif
+                                    @if($latestNetOI !== null)
+                                        <span class="text-gray-400">|</span>
+                                        <span class="text-gray-600">
+                Net OI: <strong class="text-pink-600">{{ number_format($latestNetOI, 0) }}</strong>
+            </span>
+                                    @endif
+                                    <span class="text-gray-400">|</span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium
+                {{ Str::contains($data['putBuildUp']->last(), 'Short') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+                P: {{ $data['putBuildUp']->last() ?? 'N/A' }}
+            </span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium
+                {{ Str::contains($data['callBuildUp']->last(), 'Short') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+                C: {{ $data['callBuildUp']->last() ?? 'N/A' }}
+            </span>
+                                </div>
                             </div>
+
+                            {{-- Chart Canvas --}}
                             <div class="relative" style="height: {{ $chartHeight }};">
                                 <canvas id="chart_{{ $loop->index }}"></canvas>
                             </div>
