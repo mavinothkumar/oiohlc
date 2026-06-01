@@ -89,7 +89,7 @@ Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
 
 Schedule::call( function () {
     DB::table( 'option_chains' )
-      ->where( 'captured_at', '<', now()->subDays( 14 ) )
+      ->where( 'captured_at', '<', now()->subDays( 30 ) )
       ->delete();
 } )->dailyAt( '16:00' )
         ->timezone( 'Asia/Kolkata' )

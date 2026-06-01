@@ -80,6 +80,15 @@
                         </select>
                     </div>
 
+                    {{-- Strike Price --}}
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-600 mb-1">Step</label>
+                        <select name="step" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+                            <option value="100" {{ $step == '100' ? 'selected' : '' }}>100</option>
+                            <option value="50" {{ $step == '50' ? 'selected' : '' }}>50</option>
+                        </select>
+                    </div>
+
                     {{-- Submit --}}
                     <div class="flex items-end">
                         <button type="submit"
