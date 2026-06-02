@@ -23,7 +23,7 @@ class MultiStrikeAnalysisController extends Controller {
         $chartView      = $request->input( 'chart_view', 'all' );
         $gridColumns    = $request->input( 'grid_columns', 2 ); // 1, 2, 3, or 4
         $strategyType   = $request->input( 'strategy_type', 'strangle' ); // 'strangle' or 'straddle'
-        $sp         = $request->input( 'step', 100 ); // 50 or 100
+        $step         = $request->input( 'step', 100 ); // 50 or 100
 
         // ----- 2. Strikes for dropdowns -----
         $strikes = DB::table( 'option_chains' )
@@ -44,7 +44,6 @@ class MultiStrikeAnalysisController extends Controller {
                 // Straddle: Both strikes must be the same
                 // Use the PE strike as the base (or average if different)
                 $baseStrike = $putStrike;
-                $step       = $sp;
 
                 $strikeCombinations = [
                     [ 'put' => $baseStrike, 'call' => $baseStrike ],
@@ -57,7 +56,6 @@ class MultiStrikeAnalysisController extends Controller {
                 // Strangle (default): Different strikes for PE and CE
                 if ( $putStrike == $callStrike ) {
                     // If same strike given in strangle mode, widen symmetrically
-                    $step               = $sp;
                     $strikeCombinations = [
                         [ 'put' => $putStrike, 'call' => $callStrike ],
                         [ 'put' => $putStrike - $step, 'call' => $callStrike + $step ],
@@ -69,7 +67,6 @@ class MultiStrikeAnalysisController extends Controller {
                     $width        = abs( $callStrike - $putStrike );
                     $halfWidth    = $width / 2;
                     $centerStrike = ( $putStrike + $callStrike ) / 2;
-                    $step         = $sp;
 
                     $strikeCombinations = [
                         [ 'put' => $putStrike, 'call' => $callStrike ],

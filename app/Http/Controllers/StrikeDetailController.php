@@ -9,7 +9,7 @@ use Carbon\Carbon;
 class StrikeDetailController extends Controller {
     public function index() {
         $currentDate   = request()->get( 'date', now()->toDateString() );
-        $currentExpiry = $this->getCurrentExpiry();
+        $currentExpiry   = request()->get( 'expiry', $this->getCurrentExpiry() );
         $currentSpot   = $this->getCurrentSpot();
         $atmStrike     = request()->get( 'strike', $this->getATMStrike( $currentSpot ) );
         $workingDates  = $this->getWorkingDates();
