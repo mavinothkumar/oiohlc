@@ -19,6 +19,7 @@
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
+                        <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Combined Premium</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Greeks</a>
                         <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Greeks</a>
                         <a href="{{ route('strangle.analyzer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strangle View</a>
@@ -36,13 +37,8 @@
                         <a href="{{ route('option-chain-diff') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chain Diff</a>
                         <a href="{{ route('option-chain.build-up') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Buildup</a>
                         <a href="{{ route('option-chain.build-up-all') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Buildup All</a>
-                        <a href="{{ route('snipper-point') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Snipper</a>
-                        <a href="{{ route('option.chain') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chain</a>
-                        <a href="{{ route('option-straddle') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Straddle</a>
-                        <a href="{{ route('ohlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OHLC</a>
                         <a href="{{ route('hlc.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC</a>
                         <a href="{{ route('hlc.close') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">HLC Close</a>
-                        <a href="{{ route('hlc.close') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100"></a>
                     </div>
                 </div>
 
