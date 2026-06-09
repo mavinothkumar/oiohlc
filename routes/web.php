@@ -112,6 +112,7 @@ Route::get('/strangle-analyzer', [App\Http\Controllers\StrangleAnalyzerControlle
  */
 Route::get('/greek-analysis', [App\Http\Controllers\GreekAnalysisController::class, 'index'])->name('greek.analysis');
 Route::get('/multi-strike-analysis', [App\Http\Controllers\MultiStrikeAnalysisController::class, 'index'])->name('multi.strike.analysis');
+Route::get('/combined-premium-analysis', [App\Http\Controllers\CombinedPremiumAnalysisController::class, 'index'])->name('combined.premium.analysis');
 
 /**
  * Greeks Analysis Ends
