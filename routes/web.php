@@ -9,7 +9,16 @@ Route::get( '/', function () {
 } )->name( 'home' );
 
 Route::get( '/111', function () {
-    ( new \App\Console\Commands\FetchOptionChainData() )->aggregateFiveMinuteData();
+    return $test = DB::table('option_chains')
+              ->where('trading_symbol', 'NIFTY')
+              ->where('expiry', '2026-06-16')
+              ->whereDate('captured_at', '2026-06-10')
+              ->where('strike_price', 23300)
+              ->select('option_type', DB::raw('count(*) as count'))
+              ->groupBy('option_type')
+              ->get();
+
+    return response()->json($test);
 } );
 
 Route::get('/option-premium-analysis', [\App\Http\Controllers\OptionPremiumAnalysisController::class, 'index'])->name('option.premium.analysis');
@@ -114,6 +123,8 @@ Route::get('/greek-analysis', [App\Http\Controllers\GreekAnalysisController::cla
 Route::get('/multi-strike-analysis', [App\Http\Controllers\MultiStrikeAnalysisController::class, 'index'])->name('multi.strike.analysis');
 Route::get('/combined-premium-analysis', [App\Http\Controllers\CombinedPremiumAnalysisController::class, 'index'])->name('combined.premium.analysis');
 
+
+Route::get('/strike-optimizer', [App\Http\Controllers\CombinedPremiumAnalysisController::class, 'strikeOptimizer'])->name('strike.optimizer');
 /**
  * Greeks Analysis Ends
  */

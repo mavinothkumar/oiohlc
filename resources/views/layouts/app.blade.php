@@ -32,19 +32,20 @@ $routeName = request()->route()?->getName() ?? '';
 {{--    @if(!request()->has('nr'))--}}
 <script>
     ( function () {
-        function isWithinTradingHours () {
+        function isWithinTradingHours() {
             const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
             const day = now.getDay();
-            if ( day === 0 || day === 6 ) return false;
+            if (day === 0 || day === 6) return false;
 
-// Convert current time to minutes since midnight
-            const currentMinutes = hours * 60 + minutes;
-            const startMinutes = 9 * 60 + 14; // 09:14
-            const endMinutes = 15 * 60 + 31; // 15:31
+            const currentSeconds =
+                now.getHours() * 3600 +
+                now.getMinutes() * 60 +
+                now.getSeconds();
 
-            return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+            const startSeconds = 9 * 3600 + 15 * 60 + 9; // 09:15:09
+            const endSeconds = 15 * 3600 + 30 * 60 + 9;  // 15:30:09
+
+            return currentSeconds >= startSeconds && currentSeconds <= endSeconds;
         }
 
         function msUntilNextNineSeconds () {
