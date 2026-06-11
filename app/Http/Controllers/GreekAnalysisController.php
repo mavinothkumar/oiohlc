@@ -17,6 +17,8 @@ class GreekAnalysisController extends Controller
                            ->where('is_current', 1)
                            ->value('expiry_date') ?? today()->toDateString();
 
+
+
         $selectedExpiry = $request->input('expiry', $defaultExpiry);
         $selectedDate   = $request->input('date', today()->toDateString());
         $putStrike      = $request->input('put_strike');
@@ -24,8 +26,10 @@ class GreekAnalysisController extends Controller
         $enterPrice     = $request->input('enter_price');
         $chartView      = $request->input('chart_view', 'all');   // all, combined_only, individual_only
 
+        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
+
         // ----- 2. Strikes for the selected expiry (for dropdowns) -----
-        $strikes = DB::table('option_chains')
+        $strikes = DB::table($table)
                      ->where('trading_symbol', 'NIFTY')
                      ->where('expiry', $selectedExpiry)
                      ->distinct()
@@ -48,8 +52,8 @@ class GreekAnalysisController extends Controller
         $callBuildUp = [];
 
         if ($putStrike && $callStrike) {
-            $rows = DB::table('option_chains as put')
-                      ->join('option_chains as call', function ($join) {
+            $rows = DB::table($table .' as put')
+                      ->join($table .' as call', function ($join) {
                           $join->on('put.captured_at', '=', 'call.captured_at')
                                ->on('put.expiry', '=', 'call.expiry')
                                ->on('put.trading_symbol', '=', 'call.trading_symbol');

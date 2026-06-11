@@ -67,6 +67,12 @@ Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
         ->appendOutputTo(storage_path('logs/ohlc-1min.log'));
 
 
+Schedule::command('option-chains:archive')
+        ->dailyAt('15:40')
+        ->timezone('Asia/Kolkata')
+        ->appendOutputTo(storage_path('logs/option-chains-archive.log'));
+
+
 //Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
 //        ->everyFiveMinutes()
 //        ->between( '9:15', '15:30' )
@@ -87,13 +93,13 @@ Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
 //        ->timezone('Asia/Kolkata')
 //        ->appendOutputTo(storage_path('logs/update-snapshop-bias.log'));
 
-Schedule::call( function () {
-    DB::table( 'option_chains' )
-      ->where( 'captured_at', '<', now()->subDays( 30 ) )
-      ->delete();
-} )->dailyAt( '16:00' )
-        ->timezone( 'Asia/Kolkata' )
-        ->appendOutputTo( storage_path( 'logs/option-chains-cleanup.log' ) );
+//Schedule::call( function () {
+//    DB::table( 'option_chains' )
+//      ->where( 'captured_at', '<', now()->subDays( 30 ) )
+//      ->delete();
+//} )->dailyAt( '16:00' )
+//        ->timezone( 'Asia/Kolkata' )
+//        ->appendOutputTo( storage_path( 'logs/option-chains-cleanup.log' ) );
 
 
 

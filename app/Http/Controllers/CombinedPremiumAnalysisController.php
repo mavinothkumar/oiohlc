@@ -22,8 +22,9 @@ class CombinedPremiumAnalysisController extends Controller {
         $enterPrice     = $request->input( 'enter_price' );
         $chartView      = $request->input( 'chart_view', 'combined' ); // Default to combined
 
+        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
         // ----- 2. All strikes for dropdowns -----
-        $allStrikes = DB::table( 'option_chains' )
+        $allStrikes = DB::table( $table )
                         ->where( 'trading_symbol', 'NIFTY' )
                         ->where( 'expiry', $selectedExpiry )
                         ->distinct()
@@ -60,7 +61,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
         if ( ! empty( $putStrikes ) && ! empty( $callStrikes ) ) {
             // Fetch all PE data
-            $peData = DB::table( 'option_chains' )
+            $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
@@ -69,7 +70,7 @@ class CombinedPremiumAnalysisController extends Controller {
                         ->get();
 
             // Fetch all CE data
-            $ceData = DB::table( 'option_chains' )
+            $ceData = DB::table( $table )
                         ->whereIn( 'strike_price', $callStrikes )
                         ->where( 'option_type', 'CE' )
                         ->where( 'expiry', $selectedExpiry )
@@ -282,8 +283,10 @@ class CombinedPremiumAnalysisController extends Controller {
                                                        ->where( 'is_current', 1 )
                                                        ->value( 'expiry_date' ) ?? today()->toDateString() );
 
-        $selectedDate     = $request->input( 'date', today()->toDateString() );
-        $selectedDateTime = $selectedDate . ' 09:15:00';
+        $_selectedDate     = $request->input( 'date', today()->toDateString() );
+        $selectedDate     = Carbon::parse( $_selectedDate )->format( 'Y-m-d' );
+        $selectedDateTime = $_selectedDate;
+        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
         // Get Nifty open price from daily_trend
         $dailyTrend = DB::table( 'daily_trend' )
                         ->where( 'symbol_name', 'NIFTY' )
@@ -360,7 +363,7 @@ class CombinedPremiumAnalysisController extends Controller {
             }
 
             // Fetch data for these strikes
-            $peData = DB::table( 'option_chains' )
+            $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
@@ -368,7 +371,7 @@ class CombinedPremiumAnalysisController extends Controller {
                         ->orderBy( 'captured_at' )
                         ->get();
 
-            $ceData = DB::table( 'option_chains' )
+            $ceData = DB::table( $table )
                         ->whereIn( 'strike_price', $callStrikes )
                         ->where( 'option_type', 'CE' )
                         ->where( 'expiry', $selectedExpiry )

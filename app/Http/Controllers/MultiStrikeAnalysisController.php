@@ -25,8 +25,10 @@ class MultiStrikeAnalysisController extends Controller {
         $strategyType   = $request->input( 'strategy_type', 'strangle' ); // 'strangle' or 'straddle'
         $step         = $request->input( 'step', 100 ); // 50 or 100
 
+        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
+
         // ----- 2. Strikes for dropdowns -----
-        $strikes = DB::table( 'option_chains' )
+        $strikes = DB::table( $table )
                      ->where( 'trading_symbol', 'NIFTY' )
                      ->where( 'expiry', $selectedExpiry )
                      ->distinct()
@@ -87,8 +89,8 @@ class MultiStrikeAnalysisController extends Controller {
 
             $key = "{$putStrikeVal}_PE_{$callStrikeVal}_CE";
 
-            $rows = DB::table( 'option_chains as put' )
-                      ->join( 'option_chains as call', function ( $join ) {
+            $rows = DB::table( $table. ' as put' )
+                      ->join( $table .' as call', function ( $join ) {
                           $join->on( 'put.captured_at', '=', 'call.captured_at' )
                                ->on( 'put.expiry', '=', 'call.expiry' )
                                ->on( 'put.trading_symbol', '=', 'call.trading_symbol' );
