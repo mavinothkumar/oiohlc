@@ -13,15 +13,21 @@
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
                         <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clip-rule="evenodd"/>
                         </svg>
                     </div>
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-blue-800">📊 Analysis Based on Nifty Open Price</h3>
                         <div class="mt-2 text-sm text-blue-700">
-                            <p><strong>Open Price:</strong> {{ number_format($openPrice, 2) }}</p>
-                            <p><strong>ATM Strike:</strong> <span class="font-bold text-blue-800">{{ $atmStrike }}</span></p>
-                            <p><strong>Strikes Analyzed:</strong> {{ implode(', ', $strikes) }}</p>
+                            <p>
+                                <strong>Open Price:</strong> {{ number_format($openPrice, 2) }}</p>
+                            <p>
+                                <strong>ATM Strike:</strong>
+                                <span class="font-bold text-blue-800">{{ $atmStrike }}</span>
+                            </p>
+                            <p>
+                                <strong>Strikes Analyzed:</strong> {{ implode(', ', $strikes) }}</p>
                         </div>
                     </div>
                 </div>
@@ -92,6 +98,7 @@
                                 <th class="px-3 py-2 text-right font-semibold text-gray-600">Max DD ₹</th>
                                 <th class="px-3 py-2 text-center font-semibold text-gray-600">Cross VWAP</th>
                                 <th class="px-3 py-2 text-center font-semibold text-gray-600">Stability</th>
+                                <th class="px-3 py-2 text-center font-semibold text-gray-600">View</th>
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
@@ -102,6 +109,14 @@
                                     $isMaxPEVol = $result['put_volume'] == $maxPEVol && $maxPEVol > 0;
                                     $isMaxCEOI = $result['call_oi'] == $maxCEOI && $maxCEOI > 0;
                                     $isMaxPEOI = $result['put_oi'] == $maxPEOI && $maxPEOI > 0;
+                                    $date = $selectedDateTime;
+                                 $query = http_build_query([
+                                        'put_strikes' => $result['put_strikes'],
+                                        'call_strikes' => $result['call_strikes'],
+                                        'expiry' => $selectedExpiry,
+                                        'date' => $date,
+                                        'chart_view' => 'combined',
+                                    ]);
                                 @endphp
                                 <tr class="{{ $isAtm ? 'bg-blue-50 border-2 border-blue-300' : ($index < 5 ? 'bg-green-50' : ($result['crossed_vwap'] ? 'bg-red-50' : '')) }}">
                                     <td class="px-3 py-2 font-medium text-gray-800">{{ $index + 1 }}</td>
@@ -114,7 +129,8 @@
                                     <td class="px-3 py-2">
                                         <div class="flex flex-wrap gap-1">
                                             @foreach($result['call_strikes'] as $strike)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-blue-800 text-white' : 'bg-blue-100 text-blue-800' }}">
+                                                <span
+                                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-blue-800 text-white' : 'bg-blue-100 text-blue-800' }}">
                                         {{ $strike }}
                                                     @if($strike == $result['atm_strike'])
                                                         <span class="ml-0.5 text-[10px]">★</span>
@@ -126,7 +142,8 @@
                                     <td class="px-3 py-2">
                                         <div class="flex flex-wrap gap-1">
                                             @foreach($result['put_strikes'] as $strike)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-red-800 text-white' : 'bg-red-100 text-red-800' }}">
+                                                <span
+                                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-red-800 text-white' : 'bg-red-100 text-red-800' }}">
                                         {{ $strike }}
                                                     @if($strike == $result['atm_strike'])
                                                         <span class="ml-0.5 text-[10px]">★</span>
@@ -203,6 +220,15 @@
                                 {{ $result['stability_score'] }}%
                             </span>
                                     </td>
+                                    <td>
+                                        <a
+                                            target="_blank"
+                                            href="{{ url('/combined-premium-analysis') . '?' . $query }}"
+                                            class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+                                        >
+                                            View
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                             </tbody>
@@ -218,18 +244,18 @@
                                 [
                                     'key' => 'atm_minus_100',
                                     'label' => 'ATM-100 (' . ($atmStrike - 100) . ')',
-                                    'strikes' => $chartData['atm_minus_100']['put_strikes']
+                                    'strikes' => $chartData['atm_minus_100']['put_strikes'],
                                 ],
                                 [
                                     'key' => 'atm',
                                     'label' => 'ATM (' . $atmStrike . ')',
-                                    'strikes' => [$atmStrike]
+                                    'strikes' => [$atmStrike],
                                 ],
                                 [
                                     'key' => 'atm_plus_100',
                                     'label' => 'ATM+100 (' . ($atmStrike + 100) . ')',
-                                    'strikes' => $chartData['atm_plus_100']['call_strikes']
-                                ]
+                                    'strikes' => $chartData['atm_plus_100']['call_strikes'],
+                                ],
                             ];
                         @endphp
 
@@ -278,13 +304,13 @@
     @if(isset($chartData['atm']))
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const chartData = @json($chartData);
                 const chartKeys = ['atm_minus_100', 'atm', 'atm_plus_100'];
 
                 chartKeys.forEach((key) => {
-                    const result = chartData[key];
-                    if (!result) return;
+                    const result = chartData[ key ];
+                    if ( ! result) return;
 
                     new Chart(document.getElementById('chart_' + key), {
                         type: 'line',

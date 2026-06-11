@@ -52,7 +52,7 @@
                         {{-- Date --}}
                         <div class="flex-1 min-w-[120px]">
                             <label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
-                            <input type="date" name="date" value="{{ $selectedDate }}"
+                            <input  type="datetime-local" name="date" value="{{ $selectedDate }}"
                                 class="w-full border border-gray-300 rounded px-2 py-2 text-sm bg-white">
                         </div>
 

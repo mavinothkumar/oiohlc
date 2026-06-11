@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+
 
 class CombinedPremiumAnalysisController extends Controller {
     public function index( Request $request ) {
@@ -22,7 +23,7 @@ class CombinedPremiumAnalysisController extends Controller {
         $enterPrice     = $request->input( 'enter_price' );
         $chartView      = $request->input( 'chart_view', 'combined' ); // Default to combined
 
-        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
+        $table =  today()->toDateString() === Carbon::parse($selectedDate)->format('Y-m-d') ? 'option_chains' : 'option_chains_history';
         // ----- 2. All strikes for dropdowns -----
         $allStrikes = DB::table( $table )
                         ->where( 'trading_symbol', 'NIFTY' )
@@ -65,7 +66,7 @@ class CombinedPremiumAnalysisController extends Controller {
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->whereDate( 'captured_at', $selectedDate )
+                        ->where( 'captured_at','>=', $selectedDate )
                         ->orderBy( 'captured_at' )
                         ->get();
 
@@ -74,7 +75,7 @@ class CombinedPremiumAnalysisController extends Controller {
                         ->whereIn( 'strike_price', $callStrikes )
                         ->where( 'option_type', 'CE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->whereDate( 'captured_at', $selectedDate )
+                        ->where( 'captured_at','>=', $selectedDate )
                         ->orderBy( 'captured_at' )
                         ->get();
 
