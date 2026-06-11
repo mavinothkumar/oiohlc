@@ -37,9 +37,10 @@
                     </div>
 
                     <div class="flex-1 min-w-[150px]">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Date</label>
-                        <input type="date" name="date" value="{{ $selectedDate }}"
-                            class="w-full border border-gray-300 rounded px-2 py-2 text-sm bg-white">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+                        <input type="datetime-local" name="date" value="{{ $selectedDateTime }}"
+                            class="w-full border border-gray-300 rounded px-2 py-2 text-sm bg-white"
+                            step="60">
                     </div>
 
                     <div class="flex-none">
