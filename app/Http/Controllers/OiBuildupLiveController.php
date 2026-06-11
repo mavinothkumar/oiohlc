@@ -30,10 +30,14 @@ class OiBuildupLiveController extends Controller
             ? Carbon::createFromFormat('Y-m-d\TH:i', $at)
             : Carbon::now();
 
+        $table = $at->format('Y-m-d') === now()->format('Y-m-d') ? 'option_chains' : 'option_chains_history';
+
         $minutes = floor($at->minute / 5) * 5; // Changed from 5 to 3 minutes
         //$minutes = floor($at->minute / 3) * 3; // Changed from 5 to 3 minutes
 
-        $atDateTime = $at->setTime($at->hour, $minutes, 0);
+        $at_hour =  $at->hour >= 15 ? 15 : $at->hour;
+        $atDateTime = $at->setTime($at_hour, $minutes, 0);
+
 
         //$intervals = [3, 6, 9, 15, 30, 375]; // Updated intervals to 3-minute multiples
         $intervals = [5, 10, 15, 30, 60, 375]; // Updated intervals to 3-minute multiples
@@ -48,7 +52,7 @@ class OiBuildupLiveController extends Controller
 
             //dd([$atDateTimeString, $fromTimeString]);
 
-            $currentRows = DB::table('option_chains')
+            $currentRows = DB::table($table)
                              ->where('expiry', $expiry)
                              ->where('captured_at', $atDateTimeString)
                 //->orderBy('diff_oi', 'desc')
@@ -60,12 +64,12 @@ class OiBuildupLiveController extends Controller
             $previousRows = collect();
             if ( ! empty($instrument_key)) {
                 //dump([$atDateTimeString,$fromTime]);
-                $previousRows = DB::table('option_chains')
+                $previousRows = DB::table($table)
                                   ->where('expiry', $expiry)
                                   ->whereIn('instrument_key', $instrument_key)
                     //->where('captured_at', $fromTimeString)
-                                  ->when(375 === $intervalMinutes, function ($query) use ($fromDateString) {
-                        $first_tick = DB::table('option_chains')->where('captured_at','>=', $fromDateString)->first()->captured_at;
+                                  ->when(375 === $intervalMinutes, function ($query) use ($fromDateString, $table) {
+                        $first_tick = DB::table($table)->where('captured_at','>=', $fromDateString)->first()->captured_at;
                         return $query->where('captured_at',$first_tick);
                     }, function ($query) use ($fromTimeString) {
                         return $query->where('captured_at', $fromTimeString);
