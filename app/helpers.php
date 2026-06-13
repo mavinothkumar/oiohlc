@@ -64,24 +64,33 @@ function exchange_segments() {
 /**
  * Get build-up label and styling
  */
-function getBuildUpLabel($buildUp)
-{
+function getBuildUpLabel( $buildUp ) {
     $labels = [
-        'Long Build' => ['label' => 'LB', 'color' => 'bg-blue-200 text-blue-800'],
-        'Short Build' => ['label' => 'SB', 'color' => 'bg-orange-200 text-orange-800'],
-        'Short Cover' => ['label' => 'SC', 'color' => 'bg-green-200 text-green-800'],
-        'Long Unwind' => ['label' => 'LU', 'color' => 'bg-red-200 text-red-800'],
+        'Long Build'  => [ 'label' => 'LB', 'color' => 'bg-blue-200 text-blue-800' ],
+        'Short Build' => [ 'label' => 'SB', 'color' => 'bg-orange-200 text-orange-800' ],
+        'Short Cover' => [ 'label' => 'SC', 'color' => 'bg-green-200 text-green-800' ],
+        'Long Unwind' => [ 'label' => 'LU', 'color' => 'bg-red-200 text-red-800' ],
     ];
 
-    return $labels[$buildUp] ?? null;
+    return $labels[ $buildUp ] ?? null;
 }
 
-function resolveExpiry(string $tradeDate, array $allExpiries): ?string
-{
-    foreach ($allExpiries as $expiry) {
-        if ($expiry >= $tradeDate) {
+function resolveExpiry( string $tradeDate, array $allExpiries ): ?string {
+    foreach ( $allExpiries as $expiry ) {
+        if ( $expiry >= $tradeDate ) {
             return $expiry;
         }
     }
+
     return null; // trade date is beyond all known expiries
+}
+
+function getTableName( $table ) {
+
+    $working_day = DB::table( 'nse_working_days' )->where( 'working_date', '=', today()->toDateString() )->first();
+    if ( empty( $working_day ) ) {
+        return $table . '_history';
+    }
+
+    return now()->toDateTimeString() > Carbon::now()->toDateString() . ' 15:41:00' ? $table . '_history' : $table;
 }

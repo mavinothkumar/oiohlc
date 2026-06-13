@@ -12,9 +12,9 @@ class ArchiveOptionChains extends Command
 
     public function handle(): int
     {
-        $todayStart = now('Asia/Kolkata')->startOfDay()->toDateTimeString();
+        //$todayStart = now('Asia/Kolkata')->startOfDay()->toDateTimeString();
 
-        DB::transaction(function () use ($todayStart) {
+        DB::transaction(function (){
             DB::statement("
                 INSERT INTO option_chains_history (
                     id,
@@ -82,12 +82,9 @@ class ArchiveOptionChains extends Command
                     updated_at,
                     build_up
                 FROM option_chains
-                WHERE captured_at < ?
-            ", [$todayStart]);
+            ");
 
-            DB::table('option_chains')
-              ->where('captured_at', '<', $todayStart)
-              ->delete();
+            DB::table('option_chains')->delete();
         });
 
         $this->info('Previous option chain data moved to history successfully.');

@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
-
 class CombinedPremiumAnalysisController extends Controller {
     public function index( Request $request ) {
         // ----- 1. Default expiry -----
@@ -21,9 +20,12 @@ class CombinedPremiumAnalysisController extends Controller {
         $putStrikes     = $request->input( 'put_strikes', [] );
         $callStrikes    = $request->input( 'call_strikes', [] );
         $enterPrice     = $request->input( 'enter_price' );
-        $chartView      = $request->input( 'chart_view', 'combined' ); // Default to combined
+        $chartView      = $request->input( 'chart_view', 'combined' );
 
-        $table =  today()->toDateString() === Carbon::parse($selectedDate)->format('Y-m-d') ? 'option_chains' : 'option_chains_history';
+        $beforeFormat = Carbon::parse( $selectedDate )->format( 'Y-m-d' ) . ' 15:30:00';
+        $endDate      = Carbon::parse( $beforeFormat )->format( 'Y-m-d\TH:i' );
+        $table        = getTableName( 'option_chains' );
+
         // ----- 2. All strikes for dropdowns -----
         $allStrikes = DB::table( $table )
                         ->where( 'trading_symbol', 'NIFTY' )
@@ -60,29 +62,26 @@ class CombinedPremiumAnalysisController extends Controller {
         $putBuildUp   = [];
         $callBuildUp  = [];
 
+
         if ( ! empty( $putStrikes ) && ! empty( $callStrikes ) ) {
-            // Fetch all PE data
             $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->where( 'captured_at','>=', $selectedDate )
+                        ->whereBetween( 'captured_at', [ $selectedDate, $endDate ] )
                         ->orderBy( 'captured_at' )
                         ->get();
 
-            // Fetch all CE data
             $ceData = DB::table( $table )
                         ->whereIn( 'strike_price', $callStrikes )
                         ->where( 'option_type', 'CE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->where( 'captured_at','>=', $selectedDate )
+                        ->whereBetween( 'captured_at', [ $selectedDate, $endDate ] )
                         ->orderBy( 'captured_at' )
                         ->get();
 
-            // Group and aggregate by timestamp
             $groupedData = [];
 
-            // Aggregate PE data
             foreach ( $peData as $row ) {
                 $key = $row->captured_at;
                 if ( ! isset( $groupedData[ $key ] ) ) {
@@ -134,7 +133,6 @@ class CombinedPremiumAnalysisController extends Controller {
                 }
             }
 
-            // Aggregate CE data
             foreach ( $ceData as $row ) {
                 $key = $row->captured_at;
                 if ( ! isset( $groupedData[ $key ] ) ) {
@@ -186,19 +184,15 @@ class CombinedPremiumAnalysisController extends Controller {
                 }
             }
 
-            // Sort by timestamp
             ksort( $groupedData );
             $data = collect( array_values( $groupedData ) );
 
-            // Generate labels and aggregated data
             $labels = $data->pluck( 'captured_at' )->map( fn( $d ) => Carbon::parse( $d )->format( 'H:i' ) );
 
-            // Calculate averages and totals
             $totalPutLtp  = $data->pluck( 'total_put_ltp' );
             $totalCallLtp = $data->pluck( 'total_call_ltp' );
             $combinedLtp  = $data->map( fn( $r ) => round( $r['total_put_ltp'] + $r['total_call_ltp'], 2 ) );
 
-            // Greeks (averaged per strike)
             $putCount  = $data->pluck( 'put_count' )->map( fn( $c ) => max( $c, 1 ) );
             $callCount = $data->pluck( 'call_count' )->map( fn( $c ) => max( $c, 1 ) );
 
@@ -223,11 +217,9 @@ class CombinedPremiumAnalysisController extends Controller {
             $putPop  = $data->pluck( 'total_put_pop' )->map( fn( $v, $i ) => round( $v / $putCount[ $i ], 2 ) );
             $callPop = $data->pluck( 'total_call_pop' )->map( fn( $v, $i ) => round( $v / $callCount[ $i ], 2 ) );
 
-            // Build-up strings (combine all)
             $putBuildUp  = $data->map( fn( $r ) => implode( ', ', array_unique( $r['put_build_up'] ) ) );
             $callBuildUp = $data->map( fn( $r ) => implode( ', ', array_unique( $r['call_build_up'] ) ) );
 
-            // ----- VWAP (volume weighted) -----
             $cumulativePV  = 0;
             $cumulativeVol = 0;
             foreach ( $data as $row ) {
@@ -238,7 +230,6 @@ class CombinedPremiumAnalysisController extends Controller {
                 $vwap[]        = $cumulativeVol > 0 ? round( $cumulativePV / $cumulativeVol, 2 ) : ( count( $vwap ) ? end( $vwap ) : 0 );
             }
 
-            // ----- OI-VWAP (weighted by new positions) -----
             $cumulativeOIPV     = 0;
             $cumulativeOIWeight = 0;
             foreach ( $data as $row ) {
@@ -253,7 +244,6 @@ class CombinedPremiumAnalysisController extends Controller {
                 }
             }
 
-            // ----- Cumulative Net OI Change -----
             $runningOI = 0;
             foreach ( $data as $row ) {
                 $runningOI     += ( $row['total_put_diff_oi'] + $row['total_call_diff_oi'] );
@@ -284,11 +274,19 @@ class CombinedPremiumAnalysisController extends Controller {
                                                        ->where( 'is_current', 1 )
                                                        ->value( 'expiry_date' ) ?? today()->toDateString() );
 
-        $_selectedDate     = $request->input( 'date', today()->toDateString() );
-        $selectedDate     = Carbon::parse( $_selectedDate )->format( 'Y-m-d' );
-        $selectedDateTime = $_selectedDate;
-        $table =  today()->toDateString() === $selectedDate ? 'option_chains' : 'option_chains_history';
-        // Get Nifty open price from daily_trend
+        $selectedDateTime    = $request->input( 'date' );
+        $selectedEndDateTime = $request->input( 'end_date' );
+        $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
+        if ( empty( $_selectedDate ) ) {
+            $selectedDateTime = $selectedDate . ' 09:15:00';
+        }
+        if ( empty( $selectedEndDateTime ) ) {
+            $selectedEndDateTime = $selectedDate . ' 15:30:00';
+        }
+
+        //return $selectedEndDateTime = $request->input( 'end_date', Carbon::parse( $beforeFormat )->format( 'Y-m-d H:m:i' ) );
+        $table = getTableName( 'option_chains' );
+
         $dailyTrend = DB::table( 'daily_trend' )
                         ->where( 'symbol_name', 'NIFTY' )
                         ->where( 'trading_date', $selectedDate )
@@ -301,24 +299,26 @@ class CombinedPremiumAnalysisController extends Controller {
                                     ->orderBy( 'working_date', 'desc' )
                                     ->first();
             if ( $previousWorkingDay ) {
+                $dailyTrend       = DB::table( 'daily_trend' )
+                                      ->where( 'symbol_name', 'NIFTY' )
+                                      ->where( 'trading_date', $previousWorkingDay->working_date )
+                                      ->select( 'current_day_index_open', 'index_high', 'index_low', 'index_close' )
+                                      ->first();
                 $selectedDate     = $previousWorkingDay->working_date;
                 $selectedDateTime = $selectedDate . ' 09:15:00';
+                $selectedEndDateTime = $selectedDate . ' 15:30:00';
             }
         }
 
-        $openPrice = $dailyTrend->current_day_index_open;
-
-        // Find nearest 100 strike
+        $openPrice     = $dailyTrend->current_day_index_open;
         $nearestStrike = round( $openPrice / 100 ) * 100;
 
-        // Build +/- 5 strikes (sorted from small to large)
         $strikes = [];
         for ( $i = - 6; $i <= 6; $i ++ ) {
             $strikes[] = $nearestStrike + ( $i * 100 );
         }
         sort( $strikes );
 
-        // Helper function for compact format
         $formatInrCompact = function ( $number ) {
             $abs  = abs( (float) $number );
             $sign = $number < 0 ? '-' : '';
@@ -334,11 +334,11 @@ class CombinedPremiumAnalysisController extends Controller {
             return $sign . number_format( $abs, 2 );
         };
 
-        // For each strike, build OTM combinations
-        $results = [];
+        $results     = [];
+        $results_otm = [];
 
         foreach ( $strikes as $atmStrike ) {
-            // PE Strikes: ATM-200, ATM-100, ATM (always get 3 strikes)
+            // Standard: PE: ATM-200, ATM-100, ATM | CE: ATM, ATM+100, ATM+200
             $putStrikes = [];
             for ( $i = 2; $i >= 0; $i -- ) {
                 $strike = $atmStrike - ( $i * 100 );
@@ -348,7 +348,6 @@ class CombinedPremiumAnalysisController extends Controller {
             }
             sort( $putStrikes );
 
-            // CE Strikes: ATM, ATM+100, ATM+200 (always get 3 strikes)
             $callStrikes = [];
             for ( $i = 0; $i <= 2; $i ++ ) {
                 $strike = $atmStrike + ( $i * 100 );
@@ -358,17 +357,35 @@ class CombinedPremiumAnalysisController extends Controller {
             }
             sort( $callStrikes );
 
-            // Need at least 2 strikes on each side (some edge cases may have fewer)
+            // OTM version: PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300
+            $putStrikesOTM = [];
+            for ( $i = 3; $i >= 1; $i -- ) {
+                $strike = $atmStrike - ( $i * 100 );
+                if ( in_array( $strike, $strikes ) ) {
+                    $putStrikesOTM[] = $strike;
+                }
+            }
+            sort( $putStrikesOTM );
+
+            $callStrikesOTM = [];
+            for ( $i = 1; $i <= 3; $i ++ ) {
+                $strike = $atmStrike + ( $i * 100 );
+                if ( in_array( $strike, $strikes ) ) {
+                    $callStrikesOTM[] = $strike;
+                }
+            }
+            sort( $callStrikesOTM );
+
             if ( count( $putStrikes ) < 2 || count( $callStrikes ) < 2 ) {
                 continue;
             }
 
-            // Fetch data for these strikes
+            // Process standard strikes
             $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->where( 'captured_at', '>=', $selectedDateTime )
+                        ->whereBetween( 'captured_at', [ $selectedDateTime, $selectedEndDateTime ] )
                         ->orderBy( 'captured_at' )
                         ->get();
 
@@ -376,7 +393,7 @@ class CombinedPremiumAnalysisController extends Controller {
                         ->whereIn( 'strike_price', $callStrikes )
                         ->where( 'option_type', 'CE' )
                         ->where( 'expiry', $selectedExpiry )
-                        ->where( 'captured_at', '>=', $selectedDateTime )
+                        ->whereBetween( 'captured_at', [ $selectedDateTime, $selectedEndDateTime ] )
                         ->orderBy( 'captured_at' )
                         ->get();
 
@@ -384,13 +401,11 @@ class CombinedPremiumAnalysisController extends Controller {
                 continue;
             }
 
-            // Calculate Volume and OI totals
             $totalPutVolume  = $peData->sum( 'volume' );
             $totalPutOI      = $peData->sum( 'oi' );
             $totalCallVolume = $ceData->sum( 'volume' );
             $totalCallOI     = $ceData->sum( 'oi' );
 
-            // Group by timestamp for premium data
             $grouped = [];
             foreach ( $peData as $row ) {
                 $key = $row->captured_at;
@@ -413,7 +428,6 @@ class CombinedPremiumAnalysisController extends Controller {
                 continue;
             }
 
-            // Calculate metrics
             $combinedPremiums = [];
             foreach ( $grouped as $ts => $data ) {
                 $combinedPremiums[] = $data['pe'] + $data['ce'];
@@ -424,7 +438,6 @@ class CombinedPremiumAnalysisController extends Controller {
             $totalReturn     = $startingPremium - $endingPremium;
             $returnPercent   = $startingPremium > 0 ? ( $totalReturn / $startingPremium ) * 100 : 0;
 
-            // Calculate VWAP
             $vwapValues    = [];
             $cumulativePV  = 0;
             $cumulativeVol = 0;
@@ -434,7 +447,6 @@ class CombinedPremiumAnalysisController extends Controller {
                 $vwapValues[] = $cumulativePV / $cumulativeVol;
             }
 
-            // Check VWAP crossing
             $crossedVwap    = false;
             $belowVwapCount = 0;
             foreach ( $combinedPremiums as $i => $premium ) {
@@ -447,7 +459,6 @@ class CombinedPremiumAnalysisController extends Controller {
             $stabilityScore = count( $combinedPremiums ) > 0 ?
                 ( ( count( $combinedPremiums ) - $belowVwapCount ) / count( $combinedPremiums ) ) * 100 : 0;
 
-            // Calculate max drawdown
             $maxDrawdown = 0;
             $peak        = $startingPremium;
             foreach ( $combinedPremiums as $premium ) {
@@ -484,56 +495,139 @@ class CombinedPremiumAnalysisController extends Controller {
                 'call_volume_formatted' => $formatInrCompact( $totalCallVolume ),
                 'call_oi_formatted'     => $formatInrCompact( $totalCallOI ),
             ];
+
+            // Process OTM strikes if valid
+            if ( count( $putStrikesOTM ) >= 2 && count( $callStrikesOTM ) >= 2 ) {
+                $peDataOTM = DB::table( $table )
+                               ->whereIn( 'strike_price', $putStrikesOTM )
+                               ->where( 'option_type', 'PE' )
+                               ->where( 'expiry', $selectedExpiry )
+                               ->where( 'captured_at', '>=', $selectedDateTime )
+                               ->orderBy( 'captured_at' )
+                               ->get();
+
+                $ceDataOTM = DB::table( $table )
+                               ->whereIn( 'strike_price', $callStrikesOTM )
+                               ->where( 'option_type', 'CE' )
+                               ->where( 'expiry', $selectedExpiry )
+                               ->where( 'captured_at', '>=', $selectedDateTime )
+                               ->orderBy( 'captured_at' )
+                               ->get();
+
+                if ( ! $peDataOTM->isEmpty() && ! $ceDataOTM->isEmpty() ) {
+                    $totalPutVolumeOTM  = $peDataOTM->sum( 'volume' );
+                    $totalPutOIOTM      = $peDataOTM->sum( 'oi' );
+                    $totalCallVolumeOTM = $ceDataOTM->sum( 'volume' );
+                    $totalCallOIOTM     = $ceDataOTM->sum( 'oi' );
+
+                    $groupedOTM = [];
+                    foreach ( $peDataOTM as $row ) {
+                        $key = $row->captured_at;
+                        if ( ! isset( $groupedOTM[ $key ] ) ) {
+                            $groupedOTM[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
+                        }
+                        $groupedOTM[ $key ]['pe'] += $row->ltp;
+                    }
+                    foreach ( $ceDataOTM as $row ) {
+                        $key = $row->captured_at;
+                        if ( ! isset( $groupedOTM[ $key ] ) ) {
+                            $groupedOTM[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
+                        }
+                        $groupedOTM[ $key ]['ce'] += $row->ltp;
+                    }
+
+                    ksort( $groupedOTM );
+
+                    if ( count( $groupedOTM ) >= 5 ) {
+                        $combinedPremiumsOTM = [];
+                        foreach ( $groupedOTM as $ts => $data ) {
+                            $combinedPremiumsOTM[] = $data['pe'] + $data['ce'];
+                        }
+
+                        $startingPremiumOTM = $combinedPremiumsOTM[0] ?? 0;
+                        $endingPremiumOTM   = $combinedPremiumsOTM[ count( $combinedPremiumsOTM ) - 1 ] ?? 0;
+                        $totalReturnOTM     = $startingPremiumOTM - $endingPremiumOTM;
+                        $returnPercentOTM   = $startingPremiumOTM > 0 ? ( $totalReturnOTM / $startingPremiumOTM ) * 100 : 0;
+
+                        $vwapValuesOTM    = [];
+                        $cumulativePVOTM  = 0;
+                        $cumulativeVolOTM = 0;
+                        foreach ( $combinedPremiumsOTM as $premium ) {
+                            $cumulativePVOTM += $premium;
+                            $cumulativeVolOTM ++;
+                            $vwapValuesOTM[] = $cumulativePVOTM / $cumulativeVolOTM;
+                        }
+
+                        $crossedVwapOTM    = false;
+                        $belowVwapCountOTM = 0;
+                        foreach ( $combinedPremiumsOTM as $i => $premium ) {
+                            if ( $i > 0 && $premium < $vwapValuesOTM[ $i ] ) {
+                                $crossedVwapOTM = true;
+                                $belowVwapCountOTM ++;
+                            }
+                        }
+
+                        $stabilityScoreOTM = count( $combinedPremiumsOTM ) > 0 ?
+                            ( ( count( $combinedPremiumsOTM ) - $belowVwapCountOTM ) / count( $combinedPremiumsOTM ) ) * 100 : 0;
+
+                        $maxDrawdownOTM = 0;
+                        $peakOTM        = $startingPremiumOTM;
+                        foreach ( $combinedPremiumsOTM as $premium ) {
+                            if ( $premium > $peakOTM ) {
+                                $peakOTM = $premium;
+                            }
+                            $drawdownOTM = $peakOTM - $premium;
+                            if ( $drawdownOTM > $maxDrawdownOTM ) {
+                                $maxDrawdownOTM = $drawdownOTM;
+                            }
+                        }
+
+                        $results_otm[] = [
+                            'atm_strike'            => $atmStrike,
+                            'put_strikes'           => $putStrikesOTM,
+                            'call_strikes'          => $callStrikesOTM,
+                            'total_strikes'         => count( $putStrikesOTM ) + count( $callStrikesOTM ),
+                            'starting_premium'      => round( $startingPremiumOTM, 2 ),
+                            'ending_premium'        => round( $endingPremiumOTM, 2 ),
+                            'total_return'          => round( $totalReturnOTM, 2 ),
+                            'return_percent'        => round( $returnPercentOTM, 2 ),
+                            'max_drawdown'          => round( $maxDrawdownOTM, 2 ),
+                            'crossed_vwap'          => $crossedVwapOTM,
+                            'stability_score'       => round( $stabilityScoreOTM, 2 ),
+                            'premium_data'          => $combinedPremiumsOTM,
+                            'vwap_data'             => $vwapValuesOTM,
+                            'timestamps'            => array_keys( $groupedOTM ),
+                            'put_volume'            => $totalPutVolumeOTM,
+                            'put_oi'                => $totalPutOIOTM,
+                            'call_volume'           => $totalCallVolumeOTM,
+                            'call_oi'               => $totalCallOIOTM,
+                            'put_volume_formatted'  => $formatInrCompact( $totalPutVolumeOTM ),
+                            'put_oi_formatted'      => $formatInrCompact( $totalPutOIOTM ),
+                            'call_volume_formatted' => $formatInrCompact( $totalCallVolumeOTM ),
+                            'call_oi_formatted'     => $formatInrCompact( $totalCallOIOTM ),
+                        ];
+                    }
+                }
+            }
         }
 
-        // Sort by ATM strike ascending
         usort( $results, function ( $a, $b ) {
             return $a['atm_strike'] - $b['atm_strike'];
         } );
 
-        $topResults = array_slice( $results, 0, 15 );
+        usort( $results_otm, function ( $a, $b ) {
+            return $a['atm_strike'] - $b['atm_strike'];
+        } );
 
-        // Find the ATM strike (closest to open price)
+        $topResults    = array_slice( $results, 0, 15 );
+        $topResultsOTM = array_slice( $results_otm, 0, 15 );
+
         $atmStrike = $nearestStrike;
-
-        // Find the index of ATM strike in results
-        $atmIndex = null;
-        foreach ( $topResults as $index => $result ) {
-            if ( $result['atm_strike'] == $atmStrike ) {
-                $atmIndex = $index;
-                break;
-            }
-        }
-
-        // Get charts data: ATM-100, ATM, ATM+100
-        $chartData = [];
-        if ( $atmIndex !== null ) {
-            // Chart 1: ATM-100
-            $atmMinus100 = $atmStrike - 100;
-            foreach ( $topResults as $result ) {
-                if ( $result['atm_strike'] == $atmMinus100 ) {
-                    $chartData['atm_minus_100'] = $result;
-                    break;
-                }
-            }
-
-            // Chart 2: ATM
-            $chartData['atm'] = $topResults[ $atmIndex ];
-
-            // Chart 3: ATM+100
-            $atmPlus100 = $atmStrike + 100;
-            foreach ( $topResults as $result ) {
-                if ( $result['atm_strike'] == $atmPlus100 ) {
-                    $chartData['atm_plus_100'] = $result;
-                    break;
-                }
-            }
-        }
 
         return view( 'strike-optimizer', compact(
             'selectedExpiry', 'selectedDate', 'openPrice',
-            'strikes', 'topResults', 'results',
-            'atmStrike', 'atmIndex', 'chartData', 'selectedDateTime'
+            'strikes', 'topResults', 'topResultsOTM', 'results', 'results_otm',
+            'atmStrike', 'selectedDateTime', 'selectedEndDateTime'
         ) );
     }
 }

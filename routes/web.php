@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\OptionLevelMatchController;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TradingViewController;
 
@@ -9,16 +10,7 @@ Route::get( '/', function () {
 } )->name( 'home' );
 
 Route::get( '/111', function () {
-    return $test = DB::table('option_chains')
-              ->where('trading_symbol', 'NIFTY')
-              ->where('expiry', '2026-06-16')
-              ->whereDate('captured_at', '2026-06-10')
-              ->where('strike_price', 23300)
-              ->select('option_type', DB::raw('count(*) as count'))
-              ->groupBy('option_type')
-              ->get();
-
-    return response()->json($test);
+    return  '';
 } );
 
 Route::get('/option-premium-analysis', [\App\Http\Controllers\OptionPremiumAnalysisController::class, 'index'])->name('option.premium.analysis');
