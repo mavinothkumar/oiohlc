@@ -277,7 +277,7 @@ class CombinedPremiumAnalysisController extends Controller {
         $selectedDateTime    = $request->input( 'date' );
         $selectedEndDateTime = $request->input( 'end_date' );
         $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
-        if ( empty( $_selectedDate ) ) {
+        if ( empty( $selectedDate ) ) {
             $selectedDateTime = $selectedDate . ' 09:15:00';
         }
         if ( empty( $selectedEndDateTime ) ) {
@@ -286,6 +286,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
         //return $selectedEndDateTime = $request->input( 'end_date', Carbon::parse( $beforeFormat )->format( 'Y-m-d H:m:i' ) );
         $table = getTableName( 'option_chains' );
+
 
         $dailyTrend = DB::table( 'daily_trend' )
                         ->where( 'symbol_name', 'NIFTY' )
@@ -381,7 +382,7 @@ class CombinedPremiumAnalysisController extends Controller {
             }
 
             // Process standard strikes
-            $peData = DB::table( $table )
+             $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )

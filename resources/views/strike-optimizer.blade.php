@@ -33,7 +33,7 @@
 
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
-                        <input type="datetime-local" name="date" value="{{ $selectedDateTime }}"
+                        <input type="datetime-local" name="date" value="{{ \Carbon\Carbon::parse($selectedDateTime)->format('Y-m-d\TH:i') }}"
                             class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
                     </div>
                     <div>
