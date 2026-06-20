@@ -92,5 +92,5 @@ function getTableName( $table ) {
         return $table . '_history';
     }
 
-    return now()->toDateTimeString() > Carbon::now()->toDateString() . ' 15:41:00' ? $table . '_history' : $table;
+    return ( now()->toDateTimeString() > Carbon::now()->toDateString() . ' 15:41:00' || now()->toDateTimeString() <= Carbon::now()->toDateString() . ' 09:14:00' ) ? $table . '_history' : $table;
 }

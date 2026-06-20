@@ -276,6 +276,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
         $selectedDateTime    = $request->input( 'date' );
         $selectedEndDateTime = $request->input( 'end_date' );
+        $selectedStrike = $request->input( 'selected_strike' );
         $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
         if ( empty( $selectedDate ) ) {
             $selectedDateTime = $selectedDate . ' 09:15:00';
@@ -284,9 +285,7 @@ class CombinedPremiumAnalysisController extends Controller {
             $selectedEndDateTime = $selectedDate . ' 15:30:00';
         }
 
-        //return $selectedEndDateTime = $request->input( 'end_date', Carbon::parse( $beforeFormat )->format( 'Y-m-d H:m:i' ) );
         $table = getTableName( 'option_chains' );
-
 
         $dailyTrend = DB::table( 'daily_trend' )
                         ->where( 'symbol_name', 'NIFTY' )
@@ -311,11 +310,11 @@ class CombinedPremiumAnalysisController extends Controller {
             }
         }
 
-        $openPrice     = $dailyTrend->current_day_index_open;
+        $openPrice     = $selectedStrike ?? $dailyTrend->current_day_index_open;
         $nearestStrike = round( $openPrice / 100 ) * 100;
 
         $strikes = [];
-        for ( $i = - 6; $i <= 6; $i ++ ) {
+        for ( $i = - 8; $i <= 8; $i ++ ) {
             $strikes[] = $nearestStrike + ( $i * 100 );
         }
         sort( $strikes );
@@ -341,7 +340,7 @@ class CombinedPremiumAnalysisController extends Controller {
         foreach ( $strikes as $atmStrike ) {
             // Standard: PE: ATM-200, ATM-100, ATM | CE: ATM, ATM+100, ATM+200
             $putStrikes = [];
-            for ( $i = 2; $i >= 0; $i -- ) {
+            for ( $i = 4; $i >= 0; $i -- ) {
                 $strike = $atmStrike - ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikes[] = $strike;
@@ -350,7 +349,7 @@ class CombinedPremiumAnalysisController extends Controller {
             sort( $putStrikes );
 
             $callStrikes = [];
-            for ( $i = 0; $i <= 2; $i ++ ) {
+            for ( $i = 0; $i <= 4; $i ++ ) {
                 $strike = $atmStrike + ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikes[] = $strike;
@@ -360,7 +359,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
             // OTM version: PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300
             $putStrikesOTM = [];
-            for ( $i = 3; $i >= 1; $i -- ) {
+            for ( $i = 4; $i >= 1; $i -- ) {
                 $strike = $atmStrike - ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikesOTM[] = $strike;
@@ -369,7 +368,7 @@ class CombinedPremiumAnalysisController extends Controller {
             sort( $putStrikesOTM );
 
             $callStrikesOTM = [];
-            for ( $i = 1; $i <= 3; $i ++ ) {
+            for ( $i = 1; $i <= 4; $i ++ ) {
                 $strike = $atmStrike + ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikesOTM[] = $strike;
@@ -382,7 +381,7 @@ class CombinedPremiumAnalysisController extends Controller {
             }
 
             // Process standard strikes
-             $peData = DB::table( $table )
+            $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )
@@ -460,15 +459,17 @@ class CombinedPremiumAnalysisController extends Controller {
             $stabilityScore = count( $combinedPremiums ) > 0 ?
                 ( ( count( $combinedPremiums ) - $belowVwapCount ) / count( $combinedPremiums ) ) * 100 : 0;
 
-            $maxDrawdown = 0;
-            $peak        = $startingPremium;
+            // --- NEW: Calculate Max Profit and Max Loss ---
+            $maxProfit = 0;
+            $maxLoss = 0;
             foreach ( $combinedPremiums as $premium ) {
-                if ( $premium > $peak ) {
-                    $peak = $premium;
+                $profit = $startingPremium - $premium;  // Positive when premium goes down (good for sellers)
+                $loss = $premium - $startingPremium;    // Positive when premium goes up (bad for sellers)
+                if ( $profit > $maxProfit ) {
+                    $maxProfit = $profit;
                 }
-                $drawdown = $peak - $premium;
-                if ( $drawdown > $maxDrawdown ) {
-                    $maxDrawdown = $drawdown;
+                if ( $loss > $maxLoss ) {
+                    $maxLoss = $loss;
                 }
             }
 
@@ -481,7 +482,8 @@ class CombinedPremiumAnalysisController extends Controller {
                 'ending_premium'        => round( $endingPremium, 2 ),
                 'total_return'          => round( $totalReturn, 2 ),
                 'return_percent'        => round( $returnPercent, 2 ),
-                'max_drawdown'          => round( $maxDrawdown, 2 ),
+                'max_profit'            => round( $maxProfit, 2 ),
+                'max_loss'              => round( $maxLoss, 2 ),
                 'crossed_vwap'          => $crossedVwap,
                 'stability_score'       => round( $stabilityScore, 2 ),
                 'premium_data'          => $combinedPremiums,
@@ -571,15 +573,17 @@ class CombinedPremiumAnalysisController extends Controller {
                         $stabilityScoreOTM = count( $combinedPremiumsOTM ) > 0 ?
                             ( ( count( $combinedPremiumsOTM ) - $belowVwapCountOTM ) / count( $combinedPremiumsOTM ) ) * 100 : 0;
 
-                        $maxDrawdownOTM = 0;
-                        $peakOTM        = $startingPremiumOTM;
+                        // --- NEW: Calculate Max Profit and Max Loss for OTM ---
+                        $maxProfitOTM = 0;
+                        $maxLossOTM = 0;
                         foreach ( $combinedPremiumsOTM as $premium ) {
-                            if ( $premium > $peakOTM ) {
-                                $peakOTM = $premium;
+                            $profitOTM = $startingPremiumOTM - $premium;
+                            $lossOTM = $premium - $startingPremiumOTM;
+                            if ( $profitOTM > $maxProfitOTM ) {
+                                $maxProfitOTM = $profitOTM;
                             }
-                            $drawdownOTM = $peakOTM - $premium;
-                            if ( $drawdownOTM > $maxDrawdownOTM ) {
-                                $maxDrawdownOTM = $drawdownOTM;
+                            if ( $lossOTM > $maxLossOTM ) {
+                                $maxLossOTM = $lossOTM;
                             }
                         }
 
@@ -592,7 +596,8 @@ class CombinedPremiumAnalysisController extends Controller {
                             'ending_premium'        => round( $endingPremiumOTM, 2 ),
                             'total_return'          => round( $totalReturnOTM, 2 ),
                             'return_percent'        => round( $returnPercentOTM, 2 ),
-                            'max_drawdown'          => round( $maxDrawdownOTM, 2 ),
+                            'max_profit'            => round( $maxProfitOTM, 2 ),
+                            'max_loss'              => round( $maxLossOTM, 2 ),
                             'crossed_vwap'          => $crossedVwapOTM,
                             'stability_score'       => round( $stabilityScoreOTM, 2 ),
                             'premium_data'          => $combinedPremiumsOTM,
@@ -628,7 +633,7 @@ class CombinedPremiumAnalysisController extends Controller {
         return view( 'strike-optimizer', compact(
             'selectedExpiry', 'selectedDate', 'openPrice',
             'strikes', 'topResults', 'topResultsOTM', 'results', 'results_otm',
-            'atmStrike', 'selectedDateTime', 'selectedEndDateTime'
+            'atmStrike', 'selectedDateTime', 'selectedEndDateTime', 'selectedStrike'
         ) );
     }
 }

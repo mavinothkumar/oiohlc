@@ -41,6 +41,11 @@
                         <input type="datetime-local" name="end_date" value="{{ $selectedEndDateTime }}"
                             class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Strike</label>
+                        <input type="text" name="selected_strike" value="{{ $selectedStrike ?? '' }}"
+                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
+                    </div>
 
                     <div>
                         <button type="submit"
@@ -86,7 +91,8 @@
                                 <th class="px-3 py-2 text-right font-semibold text-gray-600">End ₹</th>
                                 <th class="px-3 py-2 text-right font-semibold text-gray-600">Return ₹</th>
                                 <th class="px-3 py-2 text-right font-semibold text-gray-600">Return %</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Max DD ₹</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Profit ₹</th>
+                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Loss ₹</th>
                                 <th class="px-3 py-2 text-center font-semibold text-gray-600">VWAP</th>
                                 <th class="px-3 py-2 text-center font-semibold text-gray-600">Stability</th>
                                 <th class="px-3 py-2 text-center font-semibold text-gray-600">View</th>
@@ -197,8 +203,11 @@
                                     <td class="px-3 py-2 text-right font-medium {{ $result['return_percent'] > 0 ? 'text-green-600' : 'text-red-600' }}">
                                         {{ $result['return_percent'] }}%
                                     </td>
-                                    <td class="px-3 py-2 text-right font-medium text-orange-600">
-                                        ₹{{ number_format($result['max_drawdown'], 2) }}
+                                    <td class="px-3 py-2 text-right font-medium text-green-600">
+                                        ₹{{ number_format($result['max_profit'], 2) }}
+                                    </td>
+                                    <td class="px-3 py-2 text-right font-medium text-red-600">
+                                        ₹{{ number_format($result['max_loss'], 2) }}
                                     </td>
                                     <td class="px-3 py-2 text-center">
                                         @if($vwapStatus === 'below')
@@ -273,7 +282,8 @@
                                     <th class="px-3 py-2 text-right font-semibold text-gray-600">End ₹</th>
                                     <th class="px-3 py-2 text-right font-semibold text-gray-600">Return ₹</th>
                                     <th class="px-3 py-2 text-right font-semibold text-gray-600">Return %</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Max DD ₹</th>
+                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Profit ₹</th>
+                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Loss ₹</th>
                                     <th class="px-3 py-2 text-center font-semibold text-gray-600">VWAP</th>
                                     <th class="px-3 py-2 text-center font-semibold text-gray-600">Stability</th>
                                     <th class="px-3 py-2 text-center font-semibold text-gray-600">View</th>
@@ -372,8 +382,11 @@
                                         <td class="px-3 py-2 text-right font-medium {{ $result['return_percent'] > 0 ? 'text-green-600' : 'text-red-600' }}">
                                             {{ $result['return_percent'] }}%
                                         </td>
-                                        <td class="px-3 py-2 text-right font-medium text-orange-600">
-                                            ₹{{ number_format($result['max_drawdown'], 2) }}
+                                        <td class="px-3 py-2 text-right font-medium text-green-600">
+                                            ₹{{ number_format($result['max_profit'], 2) }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-medium text-red-600">
+                                            ₹{{ number_format($result['max_loss'], 2) }}
                                         </td>
                                         <td class="px-3 py-2 text-center">
                                             @if($vwapStatus === 'below')
