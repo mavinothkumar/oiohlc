@@ -277,6 +277,7 @@ class CombinedPremiumAnalysisController extends Controller {
         $selectedDateTime    = $request->input( 'date' );
         $selectedEndDateTime = $request->input( 'end_date' );
         $selectedStrike = $request->input( 'selected_strike' );
+        $strikeCount = $request->input( 'strike_count', 3 );
         $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
         if ( empty( $selectedDate ) ) {
             $selectedDateTime = $selectedDate . ' 09:15:00';
@@ -340,7 +341,7 @@ class CombinedPremiumAnalysisController extends Controller {
         foreach ( $strikes as $atmStrike ) {
             // Standard: PE: ATM-200, ATM-100, ATM | CE: ATM, ATM+100, ATM+200
             $putStrikes = [];
-            for ( $i = 4; $i >= 0; $i -- ) {
+            for ( $i = $strikeCount; $i >= 0; $i -- ) {
                 $strike = $atmStrike - ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikes[] = $strike;
@@ -349,7 +350,7 @@ class CombinedPremiumAnalysisController extends Controller {
             sort( $putStrikes );
 
             $callStrikes = [];
-            for ( $i = 0; $i <= 4; $i ++ ) {
+            for ( $i = 0; $i <= $strikeCount; $i ++ ) {
                 $strike = $atmStrike + ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikes[] = $strike;
@@ -359,7 +360,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
             // OTM version: PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300
             $putStrikesOTM = [];
-            for ( $i = 4; $i >= 1; $i -- ) {
+            for ( $i = $strikeCount; $i >= 1; $i -- ) {
                 $strike = $atmStrike - ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikesOTM[] = $strike;
@@ -368,7 +369,7 @@ class CombinedPremiumAnalysisController extends Controller {
             sort( $putStrikesOTM );
 
             $callStrikesOTM = [];
-            for ( $i = 1; $i <= 4; $i ++ ) {
+            for ( $i = 1; $i <= $strikeCount; $i ++ ) {
                 $strike = $atmStrike + ( $i * 100 );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikesOTM[] = $strike;
