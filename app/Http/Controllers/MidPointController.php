@@ -61,20 +61,20 @@ class MidPointController extends Controller {
         $peStrikes = [];
 
         if ( $midPoint > 0 && $startStrike > 0 && $expiryDate ) {
-            $ohlc_quotes = getTableName( 'ohlc_quotes' );
+            $ohlc_quotes     = getTableName( 'ohlc_quotes' );
             $maxRange        = 10;
             $possibleStrikes = [];
             for ( $i = - $maxRange; $i <= $maxRange; $i ++ ) {
                 $possibleStrikes[] = $startStrike + ( $i * 50 );
             }
-             $instrument_keys = DB::table( 'instruments' )
+            $instrument_keys = DB::table( 'instruments' )
                                  ->whereIn( 'instrument_type', [ 'CE', 'PE' ] )
                                  ->where( 'name', 'NIFTY' )
                                  ->where( 'expiry', $expiryRecord->expiry )
                                  ->whereIn( 'strike_price', $possibleStrikes )->pluck( 'instrument_key' );
 
             // Get latest prices for all NIFTY options of the selected expiry within the date range
-             $latestPricesQuery = DB::table( $ohlc_quotes )
+            $latestPricesQuery = DB::table( $ohlc_quotes )
                                    ->select( 'strike_price', 'instrument_type', 'close' )
                                    ->whereIn( 'instrument_key', $instrument_keys )
                                    ->where( 'ts_at', $toDate )
@@ -105,7 +105,7 @@ class MidPointController extends Controller {
 
                     // Check CE
                     if ( isset( $pricesByStrikeType[ $strike ]['CE'] ) ) {
-                        $price = $pricesByStrikeType[ $strike ]['CE'];
+                        $price = number_format( $pricesByStrikeType[ $strike ]['CE'], 2 );
                         if ( $price < $midPoint && $price >= 25 ) {
                             $ceStrikes[] = [ 'strike' => $strike, 'price' => $price, 'type' => 'CE' ];
                             $ceCount ++;
@@ -114,7 +114,7 @@ class MidPointController extends Controller {
 
                     // Check PE
                     if ( isset( $pricesByStrikeType[ $strike ]['PE'] ) ) {
-                        $price = $pricesByStrikeType[ $strike ]['PE'];
+                        $price = number_format( $pricesByStrikeType[ $strike ]['PE'], 2 );
                         if ( $price < $midPoint && $price >= 25 ) {
                             $peStrikes[] = [ 'strike' => $strike, 'price' => $price, 'type' => 'PE' ];
                             $peCount ++;
@@ -137,23 +137,23 @@ class MidPointController extends Controller {
 
             // Combine strikes for display
             $allStrikesMap = [];
-            foreach ($ceStrikes as $c) {
-                $allStrikesMap[(string)$c['strike']]['CE'] = $c['price'];
+            foreach ( $ceStrikes as $c ) {
+                $allStrikesMap[ (string) $c['strike'] ]['CE'] = $c['price'];
             }
-            foreach ($peStrikes as $p) {
-                $allStrikesMap[(string)$p['strike']]['PE'] = $p['price'];
+            foreach ( $peStrikes as $p ) {
+                $allStrikesMap[ (string) $p['strike'] ]['PE'] = $p['price'];
             }
 
-            $strikeKeys = array_keys($allStrikesMap);
+            $strikeKeys = array_keys( $allStrikesMap );
             // Sort ascending
-            sort($strikeKeys, SORT_NUMERIC);
+            sort( $strikeKeys, SORT_NUMERIC );
 
             $combinedStrikes = [];
-            foreach ($strikeKeys as $strike) {
+            foreach ( $strikeKeys as $strike ) {
                 $combinedStrikes[] = [
-                    'strike' => $strike,
-                    'ce_price' => $allStrikesMap[$strike]['CE'] ?? '-',
-                    'pe_price' => $allStrikesMap[$strike]['PE'] ?? '-'
+                    'strike'   => $strike,
+                    'ce_price' => $allStrikesMap[ $strike ]['CE'] ?? '-',
+                    'pe_price' => $allStrikesMap[ $strike ]['PE'] ?? '-',
                 ];
             }
         }
