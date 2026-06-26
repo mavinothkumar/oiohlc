@@ -3,6 +3,7 @@
 use App\Http\Controllers\OptionLevelMatchController;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MidPointController;
 use App\Http\Controllers\TradingViewController;
 
 Route::get( '/', function () {
@@ -18,6 +19,7 @@ Route::get('/option-premium-analysis', [\App\Http\Controllers\OptionPremiumAnaly
 Route::get( 'test', [ '\App\Http\Controllers\OhlcChartController', 'ohlc' ] );
 
 Route::get( '/snipper-point', [ App\Http\Controllers\SnipperPointController::class, 'index' ] )->name( 'snipper-point' );
+Route::get( '/mid-point', [ MidPointController::class, 'index' ] )->name( 'mid-point.index' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 Route::get( '/option-chain', [ App\Http\Controllers\OptionChainController::class, 'index' ] )->name( 'option.chain' );
 Route::get( '/buildups', [ App\Http\Controllers\BuildUpSummaryController::class, 'index' ] )->name( 'buildups.index' );

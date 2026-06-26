@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class ArchiveOptionChains extends Command
 {
     protected $signature = 'option-chains:archive';
-    protected $description = 'Move previous day option chain data to history table and keep only current day data in live table';
+    protected $description = 'Move previous day option chain and OHLC quotes data to history tables and keep only current day data in live tables';
 
     public function handle(): int
     {
@@ -85,9 +85,50 @@ class ArchiveOptionChains extends Command
             ");
 
             DB::table('option_chains')->delete();
+
+            DB::statement("
+                INSERT INTO ohlc_quotes_history (
+                    id,
+                    instrument_key,
+                    instrument_type,
+                    trading_symbol,
+                    expiry_date,
+                    strike_price,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                    ts,
+                    ts_at,
+                    last_price,
+                    created_at,
+                    updated_at
+                )
+                SELECT
+                    id,
+                    instrument_key,
+                    instrument_type,
+                    trading_symbol,
+                    expiry_date,
+                    strike_price,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                    ts,
+                    ts_at,
+                    last_price,
+                    created_at,
+                    updated_at
+                FROM ohlc_quotes
+            ");
+
+            DB::table('ohlc_quotes')->delete();
         });
 
-        $this->info('Previous option chain data moved to history successfully.');
+        $this->info('Previous option chain and OHLC quotes data moved to history successfully.');
 
         return self::SUCCESS;
     }

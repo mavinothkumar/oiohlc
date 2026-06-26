@@ -20,6 +20,8 @@
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
                         <a href="{{ route('strike.optimizer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strike Premium Identifier</a>
+                        <a href="{{ route('mid-point.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Mid Point</a>
+                        <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
                         <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Combined Premium</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Greeks</a>
                         <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Greeks</a>
@@ -30,7 +32,6 @@
                         <a href="{{ route('option-chain.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Chain Deep Analysis</a>
                         <a href="{{ route('buildup.snapshot') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build up Snapshot</a>
                         <a href="{{ route('oi-diff-live.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI List</a>
-                        <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
                         <a href="{{ route('daily_trend.view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend View</a>
                         <a href="{{ route('buildups.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Buildups</a>
                         <a href="{{ route('build-up.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Build Up Analysis</a>

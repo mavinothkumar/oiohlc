@@ -44,29 +44,30 @@ class CollectOhlcForIndices extends Command
 
         foreach ($this->indices as $index) {
             // 1. Get current expiry for the instrument
-            $expiry = DB::table('nse_expiries')
-                        ->where('instrument_type', 'OPT')
-                        ->where('is_current', 1)
-                        ->where('trading_symbol', $index)
-                        ->value('expiry');
+            $expiries = DB::table('nse_expiries')
+                          ->where('instrument_type', 'OPT')
+                          ->where('trading_symbol', $index)
+                          ->where(function ($q) {
+                              $q->where('is_current', 1)
+                                ->orWhere('is_next', 1);
+                          })
+                          ->get();
 
-            if ( ! $expiry) {
-                $this->warn("No current expiry found for $index.");
-                continue;
+            foreach ($expiries as $expiryRecord) {
+
+                $instruments = DB::table('instruments')
+                                 ->where('underlying_symbol', $index)
+                                 ->where('expiry', $expiryRecord->expiry)
+                                 ->get()
+                                 ->toArray();
+
+                $this->info(
+                    "Processing {$index} expiry {$expiryRecord->expiry}" .
+                    ($expiryRecord->is_current ? ' (Current)' : ' (Next)')
+                );
+
+                $this->update($instruments, $index);
             }
-
-            // 2. Get ALL instruments for underlying symbol and expiry
-            $instruments = DB::table('instruments')
-                             ->where('underlying_symbol', $index)
-                             ->where('expiry', $expiry)
-                             ->get()->toArray();
-
-            if (empty($instruments)) {
-                $this->warn("No instruments found for $index and expiry $expiry.");
-                continue;
-            }
-
-            $this->update($instruments, $index);
         }
     }
 

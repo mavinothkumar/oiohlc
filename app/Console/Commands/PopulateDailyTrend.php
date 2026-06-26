@@ -37,14 +37,38 @@ class PopulateDailyTrend extends Command {
         $symbols = [ 'NIFTY', 'BANKNIFTY', 'SENSEX' ]; //, 'FINNIFTY'
         $saved   = 0;
 
-        foreach ( $symbols as $symbol ) {
-            $data = $this->calculateTrendData( $previousDay, $currentDay, $symbol );
-            if ( $data ) {
-                DailyTrend::updateOrCreate(
-                    [ 'quote_date' => $previousDay, 'symbol_name' => $symbol ],
-                    $data
+        foreach ($symbols as $symbol) {
+
+            $expiries = DB::table('nse_expiries')
+                          ->where('instrument_type', 'OPT')
+                          ->where('trading_symbol', $symbol)
+                          ->where(function ($q) {
+                              $q->where('is_current', 1)
+                                ->orWhere('is_next', 1);
+                          })
+                          ->get();
+
+            foreach ($expiries as $expiryRow) {
+
+                $data = $this->calculateTrendData(
+                    $previousDay,
+                    $currentDay,
+                    $symbol,
+                    $expiryRow->expiry_date
                 );
-                $saved ++;
+
+                if ($data) {
+                    DailyTrend::updateOrCreate(
+                        [
+                            'quote_date'  => $previousDay,
+                            'symbol_name' => $symbol,
+                            'expiry_date' => $expiryRow->expiry_date,
+                        ],
+                        $data
+                    );
+
+                    $saved++;
+                }
             }
         }
 
@@ -53,54 +77,58 @@ class PopulateDailyTrend extends Command {
         return 0;
     }
 
-    private function calculateTrendData( $quoteDate, $currentDay, $symbol ) {
+    private function calculateTrendData(
+        $quoteDate,
+        $currentDay,
+        $symbol,
+        $expiryDate
+    ) {
         $buildExpiredDailyTrend = new BuildExpiredDailyTrend();
-        // Same logic as original controller for yesterday's static data
-        $indexRow = DailyOhlcQuote::where( 'option_type', 'INDEX' )
-                                  ->where( 'quote_date', $quoteDate )
-                                  ->where( 'symbol_name', $symbol )
+
+        $indexRow = DailyOhlcQuote::where('option_type', 'INDEX')
+                                  ->where('quote_date', $quoteDate)
+                                  ->where('symbol_name', $symbol)
                                   ->first();
 
-        if ( ! $indexRow ) {
+        if (!$indexRow) {
             return null;
         }
 
-//        $currentExpiry = DailyOhlcQuote::where('quote_date', $quoteDate)
-//                                       ->where('symbol_name', $symbol)
-//                                       ->whereIn('option_type', ['CE', 'PE'])
-//                                       ->orderBy('expiry_date')
-//                                       ->value('expiry_date');
-
-        $currentExpiry = DB::table( 'nse_expiries' )
-                           ->where( 'is_current', 1 )
-                           ->where( 'instrument_type', 'OPT' )
-                           ->where( 'trading_symbol', $symbol )
-                           ->value( 'expiry_date' );
-
-        $options = DailyOhlcQuote::where( 'quote_date', $quoteDate )
-                                 ->where( 'symbol_name', $symbol )
-                                 ->whereIn( 'option_type', [ 'CE', 'PE' ] )
-                                 ->when( $currentExpiry, fn( $q ) => $q->where( 'expiry_date', $currentExpiry ) )
+        $options = DailyOhlcQuote::where('quote_date', $quoteDate)
+                                 ->where('symbol_name', $symbol)
+                                 ->whereIn('option_type', ['CE', 'PE'])
+                                 ->where('expiry_date', $expiryDate)
                                  ->get();
 
-        if ( $options->isEmpty() ) {
+        if ($options->isEmpty()) {
             return null;
         }
 
-        $bestPair = $buildExpiredDailyTrend->findBestPair( $options, $symbol, true );
-        if ( ! $bestPair ) {
+        $bestPair = $buildExpiredDailyTrend->findBestPair(
+            $options,
+            $symbol,
+            true
+        );
+
+        if (!$bestPair) {
             return null;
         }
 
         $strike   = $bestPair['strike'];
         $ce       = $bestPair['ce'];
         $pe       = $bestPair['pe'];
+
         $ceClose  = $ce->close;
         $peClose  = $pe->close;
         $sumClose = $ceClose + $peClose;
 
+        $atmData = $buildExpiredDailyTrend->findNearestAtmPair(
+            $options,
+            $strike,
+            $symbol,
+            true
+        );
 
-        $atmData      = $buildExpiredDailyTrend->findNearestAtmPair( $options, $strike, $symbol, true );
         $atm_ce       = $atmData['atm_ce'];
         $atm_pe       = $atmData['atm_pe'];
         $atm_ce_close = $atmData['atm_ce_close'];
@@ -110,14 +138,22 @@ class PopulateDailyTrend extends Command {
         $atm_ce_low   = $atmData['atm_ce_low'];
         $atm_pe_low   = $atmData['atm_pe_low'];
 
-        $earthValue = ( $indexRow->high - $indexRow->low ) * 0.2611;
+        $earthValue = ($indexRow->high - $indexRow->low) * 0.2611;
 
-        // ---- Type logic per side (same as controller) ----
-        $ceType = $buildExpiredDailyTrend->computeType( $ce, $symbol );
-        $peType = $buildExpiredDailyTrend->computeType( $pe, $symbol );
+        $ceType = $buildExpiredDailyTrend->computeType(
+            $ce,
+            $symbol
+        );
 
-        // Optional aggregate market_type (e.g. CE/PE combination)
-        $marketType = $buildExpiredDailyTrend->computeMarketType( $ceType, $peType );
+        $peType = $buildExpiredDailyTrend->computeType(
+            $pe,
+            $symbol
+        );
+
+        $marketType = $buildExpiredDailyTrend->computeMarketType(
+            $ceType,
+            $peType
+        );
 
         $midPoint = $sumClose / 2;
 
@@ -125,37 +161,49 @@ class PopulateDailyTrend extends Command {
             'quote_date'      => $quoteDate,
             'trading_date'    => $currentDay,
             'symbol_name'     => $symbol,
+
             'index_high'      => $indexRow->high,
             'index_low'       => $indexRow->low,
             'index_close'     => $indexRow->close,
             'index_day_range' => $indexRow->high - $indexRow->low,
+
             'earth_value'     => $earthValue,
+
             'strike'          => $strike,
+
             'ce_high'         => $ce->high,
             'ce_low'          => $ce->low,
             'ce_close'        => $ceClose,
+
             'pe_high'         => $pe->high,
             'pe_low'          => $pe->low,
             'pe_close'        => $peClose,
+
             'min_r'           => $strike + $ceClose,
             'min_s'           => $strike - $peClose,
+
             'max_r'           => $strike + $sumClose,
             'max_s'           => $strike - $sumClose,
-            'expiry_date'     => $currentExpiry,
+
+            'expiry_date'     => $expiryDate,
+
             'market_type'     => $marketType,
             'ce_type'         => $ceType,
             'pe_type'         => $peType,
 
-            'mid_point' => $midPoint,
+            'mid_point'       => $midPoint,
 
-            'atm_ce'       => $atm_ce,
-            'atm_pe'       => $atm_pe,
-            'atm_ce_close' => $atm_ce_close,
-            'atm_pe_close' => $atm_pe_close,
-            'atm_ce_high'  => $atm_ce_high,
-            'atm_pe_high'  => $atm_pe_high,
-            'atm_ce_low'   => $atm_ce_low,
-            'atm_pe_low'   => $atm_pe_low,
+            'atm_ce'          => $atm_ce,
+            'atm_pe'          => $atm_pe,
+
+            'atm_ce_close'    => $atm_ce_close,
+            'atm_pe_close'    => $atm_pe_close,
+
+            'atm_ce_high'     => $atm_ce_high,
+            'atm_pe_high'     => $atm_pe_high,
+
+            'atm_ce_low'      => $atm_ce_low,
+            'atm_pe_low'      => $atm_pe_low,
         ];
     }
 
