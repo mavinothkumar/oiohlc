@@ -11,11 +11,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label for="from_date" class="block text-sm font-medium text-gray-700">From Date & Time</label>
-                        <input type="text" name="from_date" id="from_date" value="{{ $fromDate }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="YYYY-MM-DD HH:mm:ss">
+                        <input type="datetime-local" name="from_date" id="from_date" value="{{ $fromDate }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="YYYY-MM-DD HH:mm:ss">
                     </div>
                     <div>
                         <label for="to_date" class="block text-sm font-medium text-gray-700">To Date & Time</label>
-                        <input type="text" name="to_date" id="to_date" value="{{ $toDate }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="YYYY-MM-DD HH:mm:ss">
+                        <input type="datetime-local" name="to_date" id="to_date" value="{{ $toDate }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" placeholder="YYYY-MM-DD HH:mm:ss">
                     </div>
                     <div>
                         <label for="expiry_date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
@@ -75,7 +75,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm {{ $row['ce_price'] !== '-' ? 'text-gray-900 font-semibold' : 'text-gray-400' }}">
                                     {{ $row['ce_price'] }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800  {{ (int)$startStrike == $row['strike'] ? 'bg-red-50' : 'bg-gray-50'}}">
                                     {{ $row['strike'] }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm {{ $row['pe_price'] !== '-' ? 'text-gray-900 font-semibold' : 'text-gray-400' }}">
