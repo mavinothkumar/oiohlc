@@ -27,6 +27,14 @@ class OptionChainBuildupController extends Controller
             $selectedExpiry = $currentExpiry ? $currentExpiry->expiry_date : null;
         }
 
+        // price open and mid point
+
+        $trend = DB::table('daily_trend')
+                   ->where('trading_date', $selectedDate )
+                   ->where('symbol_name', 'NIFTY')
+                   ->select('mid_point', 'current_day_index_open', 'atm_index_open')
+                   ->first();
+
         // 3. Time Filter Rules
         $startTime = $request->input('start_time', '09:15');
         $endTime = $request->input('end_time', '15:25');
@@ -37,9 +45,9 @@ class OptionChainBuildupController extends Controller
         $table_name = getTableName('option_chains');
 
         // 4. Fetch Underlying Spot to anchor our strike prices center
-        $spotData = DB::table($table_name)->orderByDesc('id')->limit(1)->first();
+        //$spotData = DB::table($table_name)->orderByDesc('id')->limit(1)->first();
 
-        $spotPrice = $spotData ? $spotData->underlying_spot_price : 0;
+        $spotPrice = $trend ? $trend->atm_index_open : 0;
 
         $nearestStrike = round($spotPrice / 50) * 50;
 
@@ -88,7 +96,8 @@ class OptionChainBuildupController extends Controller
             'spotPrice' => $spotPrice,
             'strikes' => $strikes,
             'timeSeries' => $timeSeries,
-            'matrix' => $processedData
+            'matrix' => $processedData,
+            'trend' => $trend
         ]);
     }
 }
