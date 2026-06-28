@@ -22,14 +22,15 @@ class CombinedPremiumAnalysisController extends Controller {
         $enterPrice     = $request->input( 'enter_price' );
         $chartView      = $request->input( 'chart_view', 'combined' );
 
-        $beforeFormat = Carbon::parse( $selectedDate )->format( 'Y-m-d' ) . ' 15:30:00';
+         $beforeFormat = Carbon::parse( $selectedDate )->format( 'Y-m-d' ) . ' 15:30:00';
         $endDate      = Carbon::parse( $beforeFormat )->format( 'Y-m-d\TH:i' );
         $table        = getTableName( 'option_chains' );
 
         // ----- 2. All strikes for dropdowns -----
-        $allStrikes = DB::table( $table )
+       $allStrikes = DB::table( $table )
                         ->where( 'trading_symbol', 'NIFTY' )
                         ->where( 'expiry', $selectedExpiry )
+                        ->where( 'captured_at', Carbon::parse( $selectedDate )->toDateString() .' 09:15:00' )
                         ->distinct()
                         ->orderBy( 'strike_price' )
                         ->pluck( 'strike_price' );
@@ -64,7 +65,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
 
         if ( ! empty( $putStrikes ) && ! empty( $callStrikes ) ) {
-            $peData = DB::table( $table )
+                $peData = DB::table( $table )
                         ->whereIn( 'strike_price', $putStrikes )
                         ->where( 'option_type', 'PE' )
                         ->where( 'expiry', $selectedExpiry )

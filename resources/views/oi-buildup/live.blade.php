@@ -42,7 +42,7 @@
                     id="at_input"
                     type="datetime-local"
                     name="at"
-                    value=""
+                    value="{{$filters['at']}}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                 />
             </div>

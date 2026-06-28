@@ -119,6 +119,23 @@ Route::get('/combined-premium-analysis', [App\Http\Controllers\CombinedPremiumAn
 
 
 Route::get('/strike-optimizer', [App\Http\Controllers\CombinedPremiumAnalysisController::class, 'strikeOptimizer'])->name('strike.optimizer');
+
+
+/**
+ * New Investigation
+ */
+Route::get('/option-analysis', [App\Http\Controllers\OptionChainBuildupController::class, 'index'])->name('options.analysis');
+//Route::get('/oi-chain', [App\Http\Controllers\OIChainController::class, 'index'])->name('oi-chain.index');
+
+Route::get('/oi-analysis', [App\Http\Controllers\OiAnalysisController::class, 'index'])->name('oi-analysis.index');
+
+/**
+ * End New investigation
+ */
+
+
+
+
 /**
  * Greeks Analysis Ends
  */
