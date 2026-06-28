@@ -12,7 +12,7 @@ class OptionChainBuildupController extends Controller
     {
         // 1. Determine Selected or Default Working Date
         $selectedDate = $request->input('date');
-
+        $strikes = $request->input('strikes', 10);
         if (!$selectedDate) {
              $workingDay = DB::table('nse_working_days')->where('current', '1')->first();
             $selectedDate = $workingDay ? $workingDay->working_date : Carbon::today()->toDateString();
@@ -41,9 +41,18 @@ class OptionChainBuildupController extends Controller
 
         $spotPrice = $spotData ? $spotData->underlying_spot_price : 0;
 
+        $nearestStrike = round($spotPrice / 50) * 50;
+
+        // ── 3. Build strike list ───────────────────────────────────────
+        $strikeList = [];
+        for ($i = -$strikes; $i <= $strikes; $i++) {
+            $strikeList[] = $nearestStrike + ($i * 50);
+        }
+
         // 5. Query primary Option Chain Data filtered by range
         $rawChainData = DB::table($table_name)
                           ->where('expiry', $selectedExpiry)
+                          ->whereIn('strike_price', $strikeList)
                           ->whereBetween('captured_at', [$startDateTime, $endDateTime])
                           ->select(
                               'strike_price',

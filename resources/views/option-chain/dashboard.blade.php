@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
 
-    <div class="container mx-auto p-4 space-y-6">
+    <div class="mx-auto p-4 space-y-6">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-800 p-4 rounded-xl border border-gray-700 gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-white">Intraday Option Chain Scanner</h1>
@@ -52,6 +52,127 @@
             </div>
         </form>
 
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h3 class="text-md font-bold text-gray-200">Convergent Option Chain Buildup Matrix</h3>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs font-medium">
+                    <span class="px-2 py-1 bg-emerald-600 text-white rounded shadow-sm">Long Build</span>
+                    <span class="px-2 py-1 bg-rose-600 text-white rounded shadow-sm">Short Build</span>
+                    <span class="px-2 py-1 bg-teal-500 text-white rounded shadow-sm">Short Cover</span>
+                    <span class="px-2 py-1 bg-amber-500 text-white rounded shadow-sm">Long Unwind</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-[1fr_112px_1fr] text-center font-bold text-xs tracking-wider uppercase mb-1">
+                <div class="text-orange-400 bg-orange-950/30 py-1.5 rounded-l-lg border-l border-y border-orange-900/50">Calls (CE) Momentum</div>
+                <div class="text-indigo-400 bg-gray-900 py-1.5 border-y border-gray-700">Axis</div>
+                <div class="text-blue-400 bg-blue-950/30 py-1.5 rounded-r-lg border-r border-y border-blue-900/50">Puts (PE) Momentum</div>
+            </div>
+
+            <div class="grid grid-cols-[1fr_112px_1fr] bg-gray-950 rounded-xl border border-gray-700 overflow-hidden shadow-2xl">
+
+                <div id="ce-scroll-container" class="overflow-x-auto scrollbar-thin border-r border-gray-800 select-none">
+                    <table class="w-max border-collapse text-[11px] font-mono text-center table-fixed">
+                        <thead>
+                        <tr class="bg-gray-900/80 text-gray-400 border-b border-gray-800 h-10">
+                            @foreach($timeSeries as $time)
+                                <th class="p-1 w-16 min-w-[64px] max-w-[64px] border-r border-gray-800/30 font-semibold tracking-tight whitespace-nowrap text-center">
+                                    {{ $time }}
+                                </th>
+                            @endforeach
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach(array_reverse($strikes) as $strike)
+                            <tr class="border-b border-gray-900 hover:bg-gray-800/40 h-10 transition-colors">
+                                @foreach($timeSeries as $time)
+                                    @php
+                                        $cell = $matrix[$strike]['CE'][$time] ?? null;
+                                        $buildup = $cell['build_up'] ?? '';
+                                        $rawValue = $cell['oi'] ?? 0;
+                                        $formattedValue = $rawValue != 0 ? round($rawValue / 100000, 1) : '-';
+
+                                        $colorClass = 'bg-gray-950 text-gray-600';
+                                        if($buildup == 'Long Build')  $colorClass = 'bg-emerald-600 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Short Build') $colorClass = 'bg-rose-600 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Short Cover') $colorClass = 'bg-blue-900 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Long Unwind') $colorClass = 'bg-amber-500 text-white font-bold border border-gray-200';
+                                    @endphp
+                                    <td class="p-1 w-16 min-w-[64px] max-w-[64px] {{ $colorClass }} whitespace-nowrap border-r border-gray-900/40 text-center"
+                                        title="CE | Strike: {{ $strike }} | Time: {{ $time }} | Buildup: {{ $buildup ?: 'None' }} | Raw: {{ $rawValue }}">
+                                        {{ $formattedValue }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="w-[112px] min-w-[112px] max-w-[112px] bg-gray-900 z-10 text-center border-r border-gray-800 shadow-[0_0_15px_rgba(0,0,0,0.7)]">
+                    <table class="w-full border-collapse text-xs font-mono text-center table-fixed">
+                        <thead>
+                        <tr class="bg-gray-950 text-indigo-400 font-bold border-b border-gray-800 h-10">
+                            <th class="p-1 tracking-wider text-center">STRIKE</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach(array_reverse($strikes) as $strike)
+                            <tr class="border-b border-gray-800/60 bg-gray-900/90 h-10 flex items-center justify-center">
+                                <td class="p-1 font-extrabold text-indigo-300 flex items-center justify-center h-full w-full text-center">
+                                    {{ (int) $strike }}
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="pe-scroll-container" class="overflow-x-auto scrollbar-thin select-none">
+                    @php $reversedTimeSeries = array_reverse($timeSeries); @endphp
+                    <table class="w-max border-collapse text-[11px] font-mono text-center table-fixed">
+                        <thead>
+                        <tr class="bg-gray-900/80 text-gray-400 border-b border-gray-800 h-10">
+                            @foreach($reversedTimeSeries as $time)
+                                <th class="p-1 w-16 min-w-[64px] max-w-[64px] border-r border-gray-800/30 font-semibold tracking-tight whitespace-nowrap text-center">
+                                    {{ $time }}
+                                </th>
+                            @endforeach
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach(array_reverse($strikes) as $strike)
+                            <tr class="border-b border-gray-900 hover:bg-gray-800/40 h-10 transition-colors">
+                                @foreach($reversedTimeSeries as $time)
+                                    @php
+                                        $cell = $matrix[$strike]['PE'][$time] ?? null;
+                                        $buildup = $cell['build_up'] ?? '';
+                                        $rawValue = $cell['oi'] ?? 0;
+                                        $formattedValue = $rawValue != 0 ? round($rawValue / 100000, 1) : '-';
+
+                                        $colorClass = 'bg-gray-950 text-gray-600';
+                                        if($buildup == 'Long Build')  $colorClass = 'bg-emerald-600 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Short Build') $colorClass = 'bg-rose-600 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Short Cover') $colorClass = 'bg-blue-900 text-white font-bold border border-gray-200';
+                                        if($buildup == 'Long Unwind') $colorClass = 'bg-amber-500 text-white font-bold border border-gray-200';
+                                    @endphp
+                                    <td class="p-1 w-16 min-w-[64px] max-w-[64px] {{ $colorClass }} whitespace-nowrap border-r border-gray-900/40 text-center"
+                                        title="PE | Strike: {{ $strike }} | Time: {{ $time }} | Buildup: {{ $buildup ?: 'None' }} | Raw: {{ $rawValue }}">
+                                        {{ $formattedValue }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
                 <h3 class="text-md font-bold text-gray-200 mb-3">Dominant OI Concentration Walls</h3>
@@ -64,75 +185,6 @@
             </div>
         </div>
 
-        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 overflow-hidden">
-            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                    <h3 class="text-md font-bold text-gray-200">Continuous Buildup Timeline Matrix</h3>
-                    <p class="text-xs text-gray-400">Scan columns downwards to identify continuous matching blocks between 09:30 and 10:00.</p>
-                </div>
-                <div class="flex flex-wrap gap-2 text-xs font-medium">
-                    <span class="px-2 py-1 bg-emerald-950 text-emerald-400 rounded border border-emerald-800">Long Build</span>
-                    <span class="px-2 py-1 bg-rose-950 text-rose-400 rounded border border-rose-800">Short Build</span>
-                    <span class="px-2 py-1 bg-teal-950 text-teal-300 rounded border border-teal-800">Short Cover</span>
-                    <span class="px-2 py-1 bg-amber-950 text-amber-400 rounded border border-amber-800">Long Unwind</span>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full min-w-[800px] border-collapse text-xs font-mono text-center">
-                    <thead>
-                    <tr class="bg-gray-900 text-gray-400 border-b border-gray-700">
-                        <th class="p-2 text-left sticky left-0 bg-gray-900 z-10 w-24">Strike Price</th>
-                        <th class="p-2 border-r border-gray-800 w-12">Type</th>
-                        @foreach($timeSeries as $time)
-                            <th class="p-2 min-w-[55px]">{{ $time }}</th>
-                        @endforeach
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach(array_reverse($strikes) as $strike)
-                        @foreach(['CE', 'PE'] as $type)
-                            <tr class="border-b border-gray-800 hover:bg-gray-750 transition-colors">
-                                @if($loop->first)
-                                    <td rowspan="2" class="p-2 text-left font-bold text-indigo-300 bg-gray-900 sticky left-0 border-r border-gray-700">
-                                        {{ $strike }}
-                                    </td>
-                                @endif
-                                <td class="p-1 font-bold border-r border-gray-800 {{ $type === 'CE' ? 'text-orange-400' : 'text-blue-400' }}">
-                                    {{ $type }}
-                                </td>
-                                @foreach($timeSeries as $time)
-                                    @php
-                                        $cell = $matrix[$strike][$type][$time] ?? null;
-                                        $buildup = $cell['build_up'] ?? '';
-                                        $colorClass = 'bg-gray-900 text-gray-600';
-
-                                        if($buildup == 'Long Build') $colorClass = 'bg-emerald-950 text-emerald-400 font-bold border border-emerald-800/40';
-                                        if($buildup == 'Short Build') $colorClass = 'bg-rose-950 text-rose-400 font-bold border border-rose-800/40';
-                                        if($buildup == 'Short Cover') $colorClass = 'bg-teal-950 text-teal-300 font-bold border border-teal-700';
-                                        if($buildup == 'Long Unwind') $colorClass = 'bg-amber-950 text-amber-500 border border-amber-800/40';
-                                    @endphp
-                                    <td class="p-1 p-2 {{ $colorClass }}" title="Strike: {{ $strike }} | Time: {{ $time }} | Buildup: {{ $buildup ?: 'No Data' }}">
-                                        @if($buildup == 'Long Build')
-                                            LB
-                                        @elseif($buildup == 'Short Build')
-                                            SB
-                                        @elseif($buildup == 'Short Cover')
-                                            SC
-                                        @elseif($buildup == 'Long Unwind')
-                                            LU
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                @endforeach
-                            </tr>
-                        @endforeach
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -179,5 +231,13 @@
             xaxis: { categories: strikesData },
             yaxis: { title: { text: 'Net Difference Change' } }
         }).render();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const ceContainer = document.getElementById('ce-scroll-container');
+            if (ceContainer) {
+                // Automatically scroll CE layout rightward to anchor recent timelines to the strike axis
+                ceContainer.scrollLeft = ceContainer.scrollWidth;
+            }
+        });
     </script>
 @endsection

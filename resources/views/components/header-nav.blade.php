@@ -22,6 +22,7 @@
                         <a href="{{ route('strike.optimizer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strike Premium Identifier</a>
                         <a href="{{ route('mid-point.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Mid Point</a>
                         <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
+                        <a href="{{ route('options.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Analysis</a>
                         <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Combined Premium</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Greeks</a>
                         <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Greeks</a>
