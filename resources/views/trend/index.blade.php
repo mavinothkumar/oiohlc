@@ -42,6 +42,7 @@
                 <tr>
                     <th class="px-3 py-2 w-28">Symbol</th>
                     <th class="px-3 py-2 w-28">Idx Open</th>
+                    <th class="px-3 py-2 w-28">Expiry</th>
                     <th class="px-3 py-2 w-24">Strike</th>
                     <th class="px-3 py-2 w-24">Index Close</th>
                     <th class="px-3 py-2 w-24">Open Type</th>
@@ -53,8 +54,8 @@
 
 {{--                    <th class="px-3 py-2 w-34">ATM Res</th>--}}
 {{--                    <th class="px-3 py-2 w-34">ATM Sup</th>--}}
-                    <th class="px-3 py-2 w-34">Res</th>
-                    <th class="px-3 py-2 w-34">Sup</th>
+{{--                    <th class="px-3 py-2 w-34">Res</th>--}}
+{{--                    <th class="px-3 py-2 w-34">Sup</th>--}}
                     <th class="px-3 py-2 w-34">Earth</th>
                 </tr>
                 </thead>
@@ -84,6 +85,10 @@
                             @else
                                 —
                             @endif
+                        </td>
+{{--                        Expiry--}}
+                        <td>
+                            {{$row['expiry_date']}}
                         </td>
 
                         {{-- Strike (merged) --}}
@@ -185,24 +190,24 @@
 {{--                            </div>--}}
 
 {{--                        </td>--}}
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            <div class=" py-2">
-                                <strong>Min:</strong> {{ number_format($row['min_r'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>Max:</strong> {{ number_format($row['max_r'], 2) }}
-                            </div>
+{{--                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>Min:</strong> {{ number_format($row['min_r'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>Max:</strong> {{ number_format($row['max_r'], 2) }}--}}
+{{--                            </div>--}}
 
-                        </td>
-                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">
-                            <div class=" py-2">
-                                <strong>Min:</strong> {{ number_format($row['min_s'], 2) }}
-                            </div>
-                            <div class=" py-2">
-                                <strong>Max:</strong> {{ number_format($row['max_s'], 2) }}
-                            </div>
+{{--                        </td>--}}
+{{--                        <td class="px-3 py-2 bg-slate-50 align-middle" rowspan="">--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>Min:</strong> {{ number_format($row['min_s'], 2) }}--}}
+{{--                            </div>--}}
+{{--                            <div class=" py-2">--}}
+{{--                                <strong>Max:</strong> {{ number_format($row['max_s'], 2) }}--}}
+{{--                            </div>--}}
 
-                        </td>
+{{--                        </td>--}}
 
                         {{-- Earth: separate dots for E-H and E-L --}}
                         <td class="px-3 py-2 bg-amber-50 align-middle text-xs"
