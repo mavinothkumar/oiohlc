@@ -44,6 +44,7 @@ class MidPointController extends Controller {
         // 3. Get daily_trend values
         $dailyTrend = DB::table( 'daily_trend' )
                         ->where( 'symbol_name', 'NIFTY' )
+                        ->where('expiry_date',  $expiryDate )
                         ->where( function ( $q ) use ( $workingDate ) {
                             $q->where( 'quote_date', $workingDate )
                               ->orWhere( 'trading_date', $workingDate );
@@ -51,7 +52,7 @@ class MidPointController extends Controller {
                         ->first();
 
         $midPoint       = $dailyTrend ? $dailyTrend->mid_point : 0;
-        $startStrikeRaw = $dailyTrend ? $dailyTrend->current_day_index_open : 0;
+        $startStrikeRaw = $dailyTrend ? ( $dailyTrend->current_day_index_open ?? $dailyTrend->atm_ce) : 0;
 
         // Round to nearest 50
         $startStrike = round( $startStrikeRaw / 50 ) * 50;
@@ -67,6 +68,8 @@ class MidPointController extends Controller {
             for ( $i = - $maxRange; $i <= $maxRange; $i ++ ) {
                 $possibleStrikes[] = $startStrike + ( $i * 50 );
             }
+
+            $latestOHLCQuoteTime = DB::table( 'ohlc_quotes' )->orderByDesc( 'id' )->first();
             $instrument_keys = DB::table( 'instruments' )
                                  ->whereIn( 'instrument_type', [ 'CE', 'PE' ] )
                                  ->where( 'name', 'NIFTY' )
@@ -77,7 +80,7 @@ class MidPointController extends Controller {
             $latestPricesQuery = DB::table( $ohlc_quotes )
                                    ->select( 'strike_price', 'instrument_type', 'close' )
                                    ->whereIn( 'instrument_key', $instrument_keys )
-                                   ->where( 'ts_at', $toDate )
+                                   ->where( 'ts_at', $latestOHLCQuoteTime->ts_at )
                                    ->get();
 
             // Structure the prices
