@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title')
-    HLC
+    Option Chains
 @endsection
 
 @section('content')
@@ -148,8 +148,8 @@
                                 $isHighestPe = ((int)$highestPeStrike === (int)$strike);
                                 $isAtmLive = ((int)$currentNearestStrike === (int)$strike);
                             @endphp
-                            <tr class="h-12 flex items-center justify-center relative border-b border-gray-800/60 {{ $isAtmLive ? 'bg-indigo-950/60' : 'bg-gray-900/90' }}">
-                                <td class="p-1 font-extrabold text-indigo-300 flex items-center justify-center h-full w-full text-center tracking-wide text-sm relative">
+                            <tr class="h-12 flex items-center justify-center relative border-b border-white-800/60 {{ $isAtmLive ? 'bg-indigo-950/60' : 'bg-gray-900/90' }}">
+                                <td class="p-1 font-extrabold text-indigo-300 flex border-b border-white-200 items-center justify-center h-full w-full text-center tracking-wide text-sm relative">
                                     {{ (int) $strike }}
 
                                     <div class="absolute top-0.5 right-1 flex gap-0.5 z-20 pointer-events-none select-none scale-[0.8] origin-top-right font-sans">
