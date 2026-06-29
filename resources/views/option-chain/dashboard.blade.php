@@ -85,7 +85,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach(array_reverse($strikes) as $strike)
+                        @foreach(($strikes) as $strike)
                             <tr class="border-b border-gray-900 hover:bg-gray-800/40 h-10 transition-colors">
                                 @foreach($timeSeries as $time)
                                     @php
@@ -119,7 +119,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach(array_reverse($strikes) as $strike)
+                        @foreach(($strikes) as $strike)
                             <tr class="h-10 flex items-center justify-center {{$trend->atm_index_open ===$strike ? 'border-b border-white bg-white text-black-400' : 'border-b border-gray-800/60 bg-gray-900/90'}}">
                                 <td class="p-1 font-extrabold text-indigo-300 flex items-center justify-center h-full w-full text-center">
                                     {{ (int) $strike }}
@@ -143,7 +143,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach(array_reverse($strikes) as $strike)
+                        @foreach(($strikes) as $strike)
                             <tr class="border-b border-gray-900 hover:bg-gray-800/40 h-10 transition-colors">
                                 @foreach($reversedTimeSeries as $time)
                                     @php
