@@ -15,115 +15,43 @@ class ArchiveOptionChains extends Command
         //$todayStart = now('Asia/Kolkata')->startOfDay()->toDateTimeString();
 
         DB::transaction(function (){
+            // Archive option_chains — skip duplicates based on unique key
             DB::statement("
-                INSERT INTO option_chains_history (
-                    id,
-                    instrument_key,
-                    underlying_key,
-                    trading_symbol,
-                    expiry,
-                    strike_price,
-                    option_type,
-                    ltp,
-                    diff_ltp,
-                    volume,
-                    diff_volume,
-                    oi,
-                    diff_oi,
-                    close_price,
-                    bid_price,
-                    bid_qty,
-                    ask_price,
-                    ask_qty,
-                    prev_oi,
-                    vega,
-                    theta,
-                    gamma,
-                    delta,
-                    iv,
-                    pop,
-                    underlying_spot_price,
-                    pcr,
-                    captured_at,
-                    created_at,
-                    updated_at,
-                    build_up
-                )
-                SELECT
-                    id,
-                    instrument_key,
-                    underlying_key,
-                    trading_symbol,
-                    expiry,
-                    strike_price,
-                    option_type,
-                    ltp,
-                    diff_ltp,
-                    volume,
-                    diff_volume,
-                    oi,
-                    diff_oi,
-                    close_price,
-                    bid_price,
-                    bid_qty,
-                    ask_price,
-                    ask_qty,
-                    prev_oi,
-                    vega,
-                    theta,
-                    gamma,
-                    delta,
-                    iv,
-                    pop,
-                    underlying_spot_price,
-                    pcr,
-                    captured_at,
-                    created_at,
-                    updated_at,
-                    build_up
-                FROM option_chains
-            ");
+            INSERT IGNORE INTO option_chains_history (
+                id, instrument_key, underlying_key, trading_symbol,
+                expiry, strike_price, option_type, ltp, diff_ltp,
+                volume, diff_volume, oi, diff_oi, close_price,
+                bid_price, bid_qty, ask_price, ask_qty, prev_oi,
+                vega, theta, gamma, delta, iv, pop,
+                underlying_spot_price, pcr, captured_at,
+                created_at, updated_at, build_up
+            )
+            SELECT
+                id, instrument_key, underlying_key, trading_symbol,
+                expiry, strike_price, option_type, ltp, diff_ltp,
+                volume, diff_volume, oi, diff_oi, close_price,
+                bid_price, bid_qty, ask_price, ask_qty, prev_oi,
+                vega, theta, gamma, delta, iv, pop,
+                underlying_spot_price, pcr, captured_at,
+                created_at, updated_at, build_up
+            FROM option_chains
+        ");
 
             DB::table('option_chains')->delete();
 
             DB::statement("
-                INSERT INTO ohlc_quotes_history (
-                    id,
-                    instrument_key,
-                    instrument_type,
-                    trading_symbol,
-                    expiry_date,
-                    strike_price,
-                    open,
-                    high,
-                    low,
-                    close,
-                    volume,
-                    ts,
-                    ts_at,
-                    last_price,
-                    created_at,
-                    updated_at
-                )
-                SELECT
-                    id,
-                    instrument_key,
-                    instrument_type,
-                    trading_symbol,
-                    expiry_date,
-                    strike_price,
-                    open,
-                    high,
-                    low,
-                    close,
-                    volume,
-                    ts,
-                    ts_at,
-                    last_price,
-                    created_at,
-                    updated_at
-                FROM ohlc_quotes
-            ");
+            INSERT IGNORE INTO ohlc_quotes_history (
+                id, instrument_key, instrument_type, trading_symbol,
+                expiry_date, strike_price, open, high, low, close,
+                volume, ts, ts_at, last_price, created_at, updated_at
+            )
+            SELECT
+                id, instrument_key, instrument_type, trading_symbol,
+                expiry_date, strike_price, open, high, low, close,
+                volume, ts, ts_at, last_price, created_at, updated_at
+            FROM ohlc_quotes
+        ");
+
 
             DB::table('ohlc_quotes')->delete();
         });
