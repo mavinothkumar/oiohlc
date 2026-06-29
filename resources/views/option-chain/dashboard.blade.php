@@ -73,7 +73,7 @@
 
             <div class="grid grid-cols-[1fr_112px_1fr] bg-gray-950 rounded-xl border border-gray-700 overflow-hidden shadow-2xl">
 
-                <div id="ce-scroll-container" class="overflow-x-auto scrollbar-thin border-r border-gray-800 select-none">
+                <div id="ce-scroll-container" class="overflow-x-auto scrollbar-thin border-r border-gray-800 select-none flex justify-end">
                     <table class="w-max border-collapse text-[11px] font-mono text-center table-fixed">
                         <thead>
                         <tr class="bg-gray-900/80 text-gray-400 border-b border-gray-800 h-10">
