@@ -19,7 +19,7 @@
             </div>
         </header>
 
-        <form method="GET" action="{{ route('options.analysis') }}" class="bg-gray-800 p-4 rounded-xl border border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <form method="GET" action="{{ route('options.analysis') }}" class="bg-gray-800 p-4 rounded-xl border border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
             <div>
                 <label class="block text-xs font-semibold text-gray-400 mb-1">Trading Date</label>
                 <input type="date" name="date" value="{{ $selectedDate }}"
@@ -45,6 +45,12 @@
             </div>
 
             <div>
+                <label class="block text-xs font-semibold text-gray-400 mb-1">Top Ranks Count</label>
+                <input type="number" name="top_oi_count" value="{{ $topOiCount }}" min="1" max="25"
+                    class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500" title="Adjust the cross-sectional OI matrix ranks boundary limit">
+            </div>
+
+            <div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors py-2 px-4 rounded-lg font-bold text-white shadow-md">
                     Filter & Analyze
                 </button>
@@ -55,7 +61,12 @@
             <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                     <h3 class="text-md font-bold text-gray-200">Convergent Option Chain Buildup Matrix</h3>
-                    <p class="text-xs text-gray-400">Markers: <span class="text-red-500 font-bold">[O]</span> Market Open ATM | <span class="text-red-500 font-bold">[C]</span> Live Spot ATM | <span class="text-red-500 font-bold">[H]</span> Highest Volume Seller Wall</p>
+                    <p class="text-xs text-gray-400">Markers:
+                        <span class="text-red-500 font-bold">[O]</span> Open ATM |
+                        <span class="text-red-500 font-bold">[C]</span> Live Spot ATM |
+                        <span class="text-red-500 font-bold">[H]</span> Highest Single Wall |
+                        <span class="text-white bg-slate-700 px-1 py-0.5 rounded text-[10px] font-bold">#1-#{{ $topOiCount }}</span> Top Combined OI Volume positions (White)
+                    </p>
                 </div>
                 <div class="flex flex-wrap gap-2 text-xs font-medium">
                     <span class="px-2 py-1 bg-emerald-600 text-white rounded shadow-sm">Long Build</span>
@@ -94,6 +105,7 @@
                                         $rawValue = $cell['oi'] ?? 0;
                                         $diffOi = $cell['diff_oi'] ?? 0;
                                         $diffLtp = $cell['diff_ltp'] ?? 0;
+                                        $ltp = $cell['ltp'] ?? 0;
 
                                         $colorClass = 'bg-gray-950 text-gray-500';
                                         if($buildup == 'Long Build')  $colorClass = 'bg-emerald-600 text-white font-semibold border border-emerald-500/10';
@@ -104,12 +116,11 @@
                                     <td class="p-1 w-44 min-w-[176px] max-w-[176px] {{ $colorClass }} whitespace-nowrap border-r border-gray-900/40 text-center text-[11px]"
                                         title="CE | Strike: {{ $strike }} | Time: {{ $time }} | Buildup: {{ $buildup ?: 'None' }}">
                                         @if($cell)
-                                            <div class="flex items-center justify-center gap-1.5 px-0.5">
-                                                <span class="font-bold">{{ $diffLtp >= 0 ? '+'.$diffLtp : $diffLtp }}</span>
-                                                <span class="text-white/40">|</span>
-                                                <span class="text-[10px] font-medium tracking-tight">
+                                            <div class="px-0.5">
+                                                <div class="font-bold">{{$ltp}}({{ $diffLtp >= 0 ? '+'.$diffLtp : $diffLtp }})</div>
+                                                <div class="text-[10px] font-medium tracking-tight">
                                                     {{ format_inr_compact($rawValue) }} ({{ $diffOi >= 0 ? '+'.format_inr_compact($diffOi) : format_inr_compact($diffOi) }})
-                                                </span>
+                                                </div>
                                             </div>
                                         @else
                                             <span class="opacity-20">-</span>
@@ -138,22 +149,39 @@
                                 $isAtmLive = ((int)$currentNearestStrike === (int)$strike);
                             @endphp
                             <tr class="h-12 flex items-center justify-center relative border-b border-gray-800/60 {{ $isAtmLive ? 'bg-indigo-950/60' : 'bg-gray-900/90' }}">
-                                <td class="p-1 font-extrabold text-indigo-300 flex items-center justify-center h-full w-full text-center tracking-wide text-sm">
+                                <td class="p-1 font-extrabold text-indigo-300 flex items-center justify-center h-full w-full text-center tracking-wide text-sm relative">
                                     {{ (int) $strike }}
+
                                     <div class="absolute top-0.5 right-1 flex gap-0.5 z-20 pointer-events-none select-none scale-[0.8] origin-top-right font-sans">
                                         @if($isAtmOpen)
-                                            <span class="bg-red-600 text-white font-black px-1 rounded-sm border border-red-500 shadow-md text-[9px]" title="Market Open ATM Strike">O</span>
+                                            <span class="bg-yellow-600 text-white font-black px-1 rounded-sm border border-yellow-500 shadow-md text-[11px]" title="Market Open ATM Strike">O</span>
                                         @endif
                                         @if($isHighestCe)
-                                            <span class="bg-red-600 text-white font-black px-1 rounded-sm border border-red-500 shadow-md text-[9px]" title="Highest Call OI Wall (Resistance)">H(CE)</span>
+                                            <span class="bg-red-600 text-white font-black px-1 rounded-sm border border-red-500 shadow-md text-[11px]" title="Highest Call OI Wall (Resistance)">H(CE)</span>
                                         @endif
                                         @if($isHighestPe)
-                                            <span class="bg-red-600 text-white font-black px-1 rounded-sm border border-red-500 shadow-md text-[9px]" title="Highest Put OI Wall (Support)">H(PE)</span>
+                                            <span class="bg-green-600 text-white font-black px-1 rounded-sm border border-green-500 shadow-md text-[11px]" title="Highest Put OI Wall (Support)">H(PE)</span>
                                         @endif
                                         @if($isAtmLive)
-                                            <span class="bg-red-600 text-white font-black px-1 rounded-sm border border-red-500 shadow-md text-[9px]" title="Live Current Spot Price ATM">C</span>
+                                            <span class="bg-blue-600 text-white font-black px-1 rounded-sm border border-blue-500 shadow-md text-[11px]" title="Live Current Spot Price ATM">C</span>
                                         @endif
                                     </div>
+
+                                    @if(isset($topOiRanks[$strike]['CE']))
+                                        <div class="absolute bottom-0.5 left-1 z-20 pointer-events-none select-none font-sans scale-[0.85] origin-bottom-left">
+                                            <span class="bg-white text-black font-black px-1 py-0.5 rounded-sm border border-gray-300 shadow-sm text-[15px]">
+                                                {{ $topOiRanks[$strike]['CE'] }}
+                                            </span>
+                                        </div>
+                                    @endif
+
+                                    @if(isset($topOiRanks[$strike]['PE']))
+                                        <div class="absolute bottom-0.5 right-1 z-20 pointer-events-none select-none font-sans scale-[0.85] origin-bottom-right">
+                                            <span class="bg-white text-black font-black px-1 py-0.5 rounded-sm border border-gray-300 shadow-sm text-[15px]">
+                                                {{ $topOiRanks[$strike]['PE'] }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -183,6 +211,7 @@
                                         $rawValue = $cell['oi'] ?? 0;
                                         $diffOi = $cell['diff_oi'] ?? 0;
                                         $diffLtp = $cell['diff_ltp'] ?? 0;
+                                        $ltp = $cell['ltp'] ?? 0;
 
                                         $colorClass = 'bg-gray-950 text-gray-500';
                                         if($buildup == 'Long Build')  $colorClass = 'bg-emerald-600 text-white font-semibold border border-emerald-500/10';
@@ -193,12 +222,11 @@
                                     <td class="p-1 w-44 min-w-[176px] max-w-[176px] {{ $colorClass }} whitespace-nowrap border-r border-gray-900/40 text-center text-[11px]"
                                         title="PE | Strike: {{ $strike }} | Time: {{ $time }} | Buildup: {{ $buildup ?: 'None' }}">
                                         @if($cell)
-                                            <div class="flex items-center justify-center gap-1.5 px-0.5">
-                                                <span class="font-bold">{{ $diffLtp >= 0 ? '+'.$diffLtp : $diffLtp }}</span>
-                                                <span class="text-white/40">|</span>
-                                                <span class="text-[10px] font-medium tracking-tight">
+                                            <div class="px-0.5">
+                                                <div class="font-bold">{{$ltp}}({{ $diffLtp >= 0 ? '+'.$diffLtp : $diffLtp }})</div>
+                                                <div class="text-[10px] font-medium tracking-tight">
                                                     {{ format_inr_compact($rawValue) }} ({{ $diffOi >= 0 ? '+'.format_inr_compact($diffOi) : format_inr_compact($diffOi) }})
-                                                </span>
+                                                </div>
                                             </div>
                                         @else
                                             <span class="opacity-20">-</span>

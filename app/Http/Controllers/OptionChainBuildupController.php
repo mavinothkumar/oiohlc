@@ -68,7 +68,8 @@ class OptionChainBuildupController extends Controller
                               'option_type',
                               'oi',
                               'diff_oi',
-                              'diff_ltp', // Captured target metric field
+                              'diff_ltp',
+                              'ltp',
                               'build_up',
                               DB::raw("DATE_FORMAT(captured_at, '%H:%i') as time_label")
                           )
@@ -86,6 +87,7 @@ class OptionChainBuildupController extends Controller
                 'oi' => $row->oi,
                 'diff_oi' => $row->diff_oi,
                 'diff_ltp' => $row->diff_ltp,
+                'ltp' => $row->ltp,
                 'build_up' => $row->build_up
             ];
         }
@@ -112,6 +114,35 @@ class OptionChainBuildupController extends Controller
             }
         }
 
+        // 7. NEW FEATURE: Combined Cross-Sectional Top Ranks Calculator (Adjustable query count)
+        $topOiCount = (int) $request->input('top_oi_count', 4);
+        $topOiRanks = [];
+
+        if ($latestTimeLabel) {
+            $combinedLatestOi = [];
+            foreach ($rawChainData as $dataItem) {
+                if ($dataItem->time_label === $latestTimeLabel) {
+                    $combinedLatestOi[] = [
+                        'strike_price' => $dataItem->strike_price,
+                        'option_type'  => $dataItem->option_type,
+                        'oi'           => $dataItem->oi
+                    ];
+                }
+            }
+
+            // Sort descending by raw Open Interest volume
+            usort($combinedLatestOi, function ($a, $b) {
+                return $b['oi'] <=> $a['oi'];
+            });
+
+            // Extract the top requested matches into multi-dimensional lookup structure
+            $slicedTopRanks = array_slice($combinedLatestOi, 0, $topOiCount);
+            foreach ($slicedTopRanks as $index => $item) {
+                $rankValue = $index + 1;
+                $topOiRanks[$item['strike_price']][$item['option_type']] = $rankValue;
+            }
+        }
+
         return view('option-chain.dashboard', [
             'selectedDate' => $selectedDate,
             'selectedExpiry' => $selectedExpiry,
@@ -126,7 +157,10 @@ class OptionChainBuildupController extends Controller
             'openStrike' => $openNearestStrike,
             'currentNearestStrike' => $currentNearestStrike,
             'highestCeStrike' => $highestCeStrike,
-            'highestPeStrike' => $highestPeStrike
+            'highestPeStrike' => $highestPeStrike,
+            // Cross-Sectional Rank Context
+            'topOiCount' => $topOiCount,
+            'topOiRanks' => $topOiRanks
         ]);
     }
 }
