@@ -44,7 +44,13 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Strike</label>
                         <input type="text" name="selected_strike" value="{{ $selectedStrike ?? '' }}"
-                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
+                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Strike Step</label>
+                        <input type="text" name="strike_step" value="{{ $strikeStep ?? '100' }}"
+                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
                     </div>
 
                     <div>

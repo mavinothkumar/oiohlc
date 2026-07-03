@@ -279,6 +279,7 @@ class CombinedPremiumAnalysisController extends Controller {
         $selectedEndDateTime = $request->input( 'end_date' );
         $selectedStrike = $request->input( 'selected_strike' );
         $strikeCount = $request->input( 'strike_count', 3 );
+        $strikeStep = $request->input( 'strike_step', 100 );
         $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
         if ( empty( $selectedDate ) ) {
             $selectedDateTime = $selectedDate . ' 09:15:00';
@@ -313,11 +314,11 @@ class CombinedPremiumAnalysisController extends Controller {
         }
 
         $openPrice     = $selectedStrike ?? $dailyTrend->current_day_index_open;
-        $nearestStrike = round( $openPrice / 100 ) * 100;
+        $nearestStrike = round( $openPrice / $strikeStep ) * $strikeStep;
 
         $strikes = [];
         for ( $i = - 8; $i <= 8; $i ++ ) {
-            $strikes[] = $nearestStrike + ( $i * 100 );
+            $strikes[] = $nearestStrike + ( $i * $strikeStep );
         }
         sort( $strikes );
 
@@ -343,7 +344,7 @@ class CombinedPremiumAnalysisController extends Controller {
             // Standard: PE: ATM-200, ATM-100, ATM | CE: ATM, ATM+100, ATM+200
             $putStrikes = [];
             for ( $i = $strikeCount; $i >= 0; $i -- ) {
-                $strike = $atmStrike - ( $i * 100 );
+                $strike = $atmStrike - ( $i * $strikeStep );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikes[] = $strike;
                 }
@@ -352,7 +353,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
             $callStrikes = [];
             for ( $i = 0; $i <= $strikeCount; $i ++ ) {
-                $strike = $atmStrike + ( $i * 100 );
+                $strike = $atmStrike + ( $i * $strikeStep );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikes[] = $strike;
                 }
@@ -362,7 +363,7 @@ class CombinedPremiumAnalysisController extends Controller {
             // OTM version: PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300
             $putStrikesOTM = [];
             for ( $i = $strikeCount; $i >= 1; $i -- ) {
-                $strike = $atmStrike - ( $i * 100 );
+                $strike = $atmStrike - ( $i * $strikeStep );
                 if ( in_array( $strike, $strikes ) ) {
                     $putStrikesOTM[] = $strike;
                 }
@@ -371,7 +372,7 @@ class CombinedPremiumAnalysisController extends Controller {
 
             $callStrikesOTM = [];
             for ( $i = 1; $i <= $strikeCount; $i ++ ) {
-                $strike = $atmStrike + ( $i * 100 );
+                $strike = $atmStrike + ( $i * $strikeStep );
                 if ( in_array( $strike, $strikes ) ) {
                     $callStrikesOTM[] = $strike;
                 }
@@ -635,7 +636,7 @@ class CombinedPremiumAnalysisController extends Controller {
         return view( 'strike-optimizer', compact(
             'selectedExpiry', 'selectedDate', 'openPrice',
             'strikes', 'topResults', 'topResultsOTM', 'results', 'results_otm',
-            'atmStrike', 'selectedDateTime', 'selectedEndDateTime', 'selectedStrike'
+            'atmStrike', 'selectedDateTime', 'selectedEndDateTime', 'selectedStrike','strikeStep'
         ) );
     }
 }
