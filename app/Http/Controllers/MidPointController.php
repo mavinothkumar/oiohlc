@@ -80,7 +80,7 @@ class MidPointController extends Controller {
             $latestPricesQuery = DB::table( $ohlc_quotes )
                                    ->select( 'strike_price', 'instrument_type', 'close' )
                                    ->whereIn( 'instrument_key', $instrument_keys )
-                                   ->where( 'ts_at', $latestOHLCQuoteTime->ts_at )
+                                   ->where( 'ts_at', $latestOHLCQuoteTime->ts_at ?? '' )
                                    ->get();
 
             // Structure the prices
