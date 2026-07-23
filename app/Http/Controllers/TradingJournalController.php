@@ -20,7 +20,7 @@ class TradingJournalController extends Controller
     public function getPanels()
     {
         $panels = StrategyPanel::with('legs')->orderBy('id', 'desc')->get();
-        
+
         $currentExpiry = DB::table('nse_expiries')->where('is_current', 1)->value('expiry');
         // Fallback if no next flag, just get the next date after current
         $nextExpiry = DB::table('nse_expiries')
@@ -35,14 +35,14 @@ class TradingJournalController extends Controller
 
             foreach ($panel->legs as $leg) {
                 $expiryToUse = $leg->expiry_type === 'Next' ? $nextExpiry : $currentExpiry;
-                
+
                 // Find instrument key
                 $instrument = Instrument::where('name', 'NIFTY')
                     ->where('strike_price', $leg->strike_price)
                     ->where('option_type', $leg->option_type)
                     ->where('expiry', $expiryToUse)
                     ->first();
-                
+
                 $leg->instrument_key = $instrument ? $instrument->instrument_key : null;
                 $leg->entry_price = 0;
 
@@ -53,7 +53,7 @@ class TradingJournalController extends Controller
                         ->where('ts_at', '>=', $entryDateTime)
                         ->orderBy('ts_at', 'asc')
                         ->first();
-                    
+
                     if ($quote) {
                         $leg->entry_price = $quote->open; // or close, depending on preference
                     }
@@ -99,7 +99,7 @@ class TradingJournalController extends Controller
 
     public function getWsUrl()
     {
-        $token = config('services.upstox.access_token');
+        $token = config('services.upstox.analytics_token');
         if (!$token) {
             return response()->json(['error' => 'Upstox access token not configured'], 400);
         }
@@ -107,7 +107,7 @@ class TradingJournalController extends Controller
         $response = Http::withHeaders([
             'Accept' => 'application/json',
             'Authorization' => 'Bearer ' . $token,
-        ])->get('https://api.upstox.com/v2/feed/market-data-feed/authorize');
+        ])->get('https://api.upstox.com/v3/feed/market-data-feed/authorize');
 
         if ($response->successful()) {
             return response()->json($response->json());

@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- Protobuf JS -->
     <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
-    
+
     <style>
         [x-cloak] { display: none !important; }
         .glass-panel {
@@ -55,7 +55,7 @@
                     <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
                         <div class="flex items-center gap-4 flex-1">
                             <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
-                            
+
                             <div class="flex items-center gap-2">
                                 <label class="text-sm text-slate-400">Entry Time:</label>
                                 <input type="time" x-model="panel.entry_time" min="09:15" max="15:30" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -67,7 +67,7 @@
                                 <span class="text-sm text-slate-400">Total P&L:</span>
                                 <span class="font-bold text-lg" :class="calculatePanelPnL(panel) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculatePanelPnL(panel))"></span>
                             </div>
-                            
+
                             <button @click="savePanel(panel)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
                                 Save
                             </button>
@@ -206,11 +206,11 @@
                 addLeg(panel) {
                     panel.legs.push({
                         strike_price: panel.legs.length > 0 ? panel.legs[panel.legs.length - 1].strike_price : '',
-                        option_type: 'PE', 
-                        expiry_type: 'Current', 
-                        quantity: 65, 
-                        side: 'Sell', 
-                        entry_price: 0, 
+                        option_type: 'PE',
+                        expiry_type: 'Current',
+                        quantity: 65,
+                        side: 'Sell',
+                        entry_price: 0,
                         instrument_key: null
                     });
                 },
@@ -306,7 +306,7 @@
                     try {
                         const authResponse = await axios.get('/trading-journal/ws-url');
                         const wsUrl = authResponse.data.data.authorizedRedirectUri;
-                        
+
                         this.socket = new WebSocket(wsUrl);
                         this.socket.binaryType = "arraybuffer";
 
@@ -350,18 +350,18 @@
                             instrumentKeys: Array.from(keys)
                         }
                     };
-                    
+
                     this.socket.send(new TextEncoder().encode(JSON.stringify(data)));
                 },
 
                 decodeProtobuf(buffer) {
                     if (!this.protobufRoot) return;
-                    
+
                     try {
                         let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeeder.rpc.proto.FeedResponse");
                         let message = FeedResponse.decode(new Uint8Array(buffer));
                         let obj = FeedResponse.toObject(message, { enums: String, bytes: String });
-                        
+
                         if (obj.feeds) {
                             for (const [key, feed] of Object.entries(obj.feeds)) {
                                 if (feed.ff && feed.ff.marketFF && feed.ff.marketFF.ltpc) {
