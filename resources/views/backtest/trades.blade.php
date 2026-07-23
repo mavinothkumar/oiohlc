@@ -263,8 +263,8 @@
 
                             <td class="px-4 py-3 text-center">
                             <span class="px-2.5 py-1 rounded font-bold text-xs
-                                         bg-red-900/60 text-red-300">
-                                SELL
+                                         {{ ($leg->side ?? 'SELL') === 'BUY' ? 'bg-emerald-900/60 text-emerald-300' : 'bg-red-900/60 text-red-300' }}">
+                                {{ $leg->side ?? 'SELL' }}
                             </span>
                             </td>
 

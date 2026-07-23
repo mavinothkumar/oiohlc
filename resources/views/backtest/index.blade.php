@@ -1052,6 +1052,36 @@
                                 <td class="px-4 py-3 text-center">
                                     @switch($day->strategy)
 
+                                        @case('atm_ratio_backspread')
+                                            @php
+                                                $atm = (int)(round($day->index_price_at_entry / 100) * 100);
+                                                $otmCE = $day->ce_strike ?? null;
+                                                $otmPE = $day->pe_strike ?? null;
+                                            @endphp
+                                            <div class="flex flex-col items-center gap-1.5 text-xs font-mono">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="px-1.5 py-0.5 bg-emerald-900/50 text-emerald-300 rounded">
+                                                        {{ number_format($atm) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">CE+PE</span>
+                                                    <span class="text-gray-600 text-xs italic">(Buy)</span>
+                                                </div>
+                                                <div class="text-gray-700 text-xs leading-none">+</div>
+                                                <div class="flex items-center gap-1">
+                                                    <span class="px-1.5 py-0.5 bg-red-900/50 text-red-300 rounded">
+                                                        {{ number_format($otmCE) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">CE</span>
+                                                    <span class="text-gray-600 mx-0.5">/</span>
+                                                    <span class="px-1.5 py-0.5 bg-red-900/50 text-red-300 rounded">
+                                                        {{ number_format($otmPE) }}
+                                                    </span>
+                                                    <span class="text-gray-500 text-xs">PE</span>
+                                                    <span class="text-gray-600 text-xs italic">(Sell)</span>
+                                                </div>
+                                            </div>
+                                            @break
+
                                         @case('atm_straddle')
                                             {{-- Single ATM strike, both CE+PE --}}
                                             @php $atm = (int)(round($day->index_price_at_entry / 100) * 100); @endphp

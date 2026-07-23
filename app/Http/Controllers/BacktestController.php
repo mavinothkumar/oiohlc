@@ -140,7 +140,8 @@ class BacktestController extends Controller {
             ->selectRaw( '
        day_group_id, backtest_run_id, underlying_symbol, exchange,
         strategy, trade_date, expiry, index_price_at_entry,
-        strike_offset, target, stoploss, lot_size,
+        strike_offset, target, stoploss,
+        MIN(lot_size) AS lot_size,
         day_total_pnl, day_outcome,
         MIN(strike) AS strike,
         MIN(instrument_type) AS instrument_type,
@@ -154,7 +155,7 @@ class BacktestController extends Controller {
         MAX(trade_time_duration) AS trade_time_duration,
         COUNT(*) AS total_legs,
         MAX(CASE WHEN instrument_type = "CE" THEN strike END) AS ce_strike,
-        MAX(CASE WHEN instrument_type = "PE" THEN strike END) AS pe_strike,
+        MIN(CASE WHEN instrument_type = "PE" THEN strike END) AS pe_strike,
         MAX(previous_day_range) AS previous_day_range,
         MAX(gap_pct_prev_range) AS gap_pct_prev_range,
         MAX(gap_used) AS gap_used
@@ -162,7 +163,7 @@ class BacktestController extends Controller {
             ->groupBy(
                 'day_group_id', 'backtest_run_id', 'underlying_symbol', 'exchange',
                 'strategy', 'trade_date', 'expiry', 'index_price_at_entry',
-                'strike_offset', 'target', 'stoploss', 'lot_size',
+                'strike_offset', 'target', 'stoploss',
                 'day_total_pnl', 'day_outcome'
             );
 

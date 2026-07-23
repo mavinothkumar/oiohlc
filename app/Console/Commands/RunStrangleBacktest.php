@@ -55,11 +55,15 @@
 # Live run
 // php artisan backtest:weekly weekly_iron_condor --from=2025-01-06 --to=2026-04-25 --strike-offset=600 --sell-lots=2 --target=100000 --stoploss=30000
 
+# atm_ratio_backspread
+// php artisan backtest:strangle atm_ratio_backspread --from=2025-01-01 --to=2025-01-31 --entry-time=09:15 --lot=65 --target=7000 --stoploss=5000 --step=50 --dry-run --verbose-skips
+
 namespace App\Console\Commands;
 
 use App\Models\BacktestTrade;
 use App\Services\Backtest\BacktestEngine;
 use App\Services\Backtest\Contracts\BacktestStrategy;
+use App\Services\Backtest\HybridIntradayEngine;
 use App\Services\Backtest\StrategyRegistry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -131,8 +135,8 @@ class RunStrangleBacktest extends Command {
         $runId        = (string) Str::uuid();
         $symbol       = strtoupper( $this->option( 'symbol' ) );
         $entryHHMM    = $this->option( 'entry-time' );
-        $target       = (float) $this->option( 'target' );
-        $stoploss     = (float) $this->option( 'stoploss' );
+        $target       = abs((float) $this->option( 'target' ));
+        $stoploss     = abs((float) $this->option( 'stoploss' ));
         $exchange     = strtoupper( $this->option( 'exchange' ) );
         $dryRun       = $this->option( 'dry-run' );
         $verboseSkips = $this->option( 'verbose-skips' );
@@ -182,7 +186,10 @@ class RunStrangleBacktest extends Command {
         $options['lot'] = $qty;
 
         $strategy = StrategyRegistry::resolve( $strategyName );
-        $engine   = new BacktestEngine();
+        $engine = match ($strategyName) {
+            'atm_ratio_backspread' => new HybridIntradayEngine(),
+            default => new BacktestEngine(),
+        };
 
         $this->printHeader(
             $symbol, $from, $to, $entryHHMM, $target, $stoploss,
@@ -337,10 +344,20 @@ class RunStrangleBacktest extends Command {
             $effectiveQty     = $legData[0]['qty_override'] ?? $qty;
 
             // ── Day totals ─────────────────────────────────────────────────
-            $dayTotalPnl = round( array_sum( array_map(
-                fn( $leg ) => ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
-                $legData
-            ) ), 2 );
+            $calcLegPnl = function (array $leg) use ($qty) {
+                $legQty = (int) ($leg['qty_override'] ?? $qty);
+                $side = strtoupper($leg['side'] ?? 'SELL');
+                $exit = (float) ($leg['exit_price'] ?? $leg['entry_price']);
+
+                return round(
+                    $side === 'BUY'
+                        ? ($exit - $leg['entry_price']) * $legQty
+                        : ($leg['entry_price'] - $exit) * $legQty,
+                    2
+                );
+            };
+
+            $dayTotalPnl = round(array_sum(array_map($calcLegPnl, $legData)), 2);
 
             if ( $dayOutcome === 'open' ) {
                 $dayOutcome = $dayTotalPnl >= 0 ? 'profit' : 'loss';
@@ -373,55 +390,49 @@ class RunStrangleBacktest extends Command {
             $previousDayRange = $gapRow?->previous_day_range;
             $gapPctPrevRange  = $gapRow?->gap_pct_prev_range;
 
-            $dayRows = array_map( fn( $leg ) => [
-                'underlying_symbol'    => $symbol,
-                'instrument_type'      => $leg['type'],
-                'exchange'             => $exchange,
-                'expiry'               => $expiry,
-                'instrument_key'       => $leg['instrument_key'],
-                'strike'               => $leg['strike'],
-                'ce_strike'            => $ceStrike,
-                'pe_strike'            => $peStrike,
-                'entry_price'          => $leg['entry_price'],
-                'exit_price'           => $leg['exit_price'],
-                'side'                 => 'SELL',
-                'qty'                  => $effectiveQty,
-                'pnl'                  => round(
-                    ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
-                    2
-                ),
-                'lot_size'             => $effectiveQty,
-                'strategy'             => $strategyName,
-                'entry_time'           => $leg['entry_time'] ?? $entryTimestamp,
-                'exit_time'            => $leg['exit_time'],
-                'signal_time'          => $leg['signal_time'] ?? null,
-                'trade_time_duration'  => $leg['exit_time']
-                    ? (int) Carbon::parse( $leg['entry_time'] ?? $entryTimestamp )
-                                  ->diffInMinutes( Carbon::parse( $leg['exit_time'] ) )
+            $dayRows = array_map(fn ($leg) => [
+                'underlying_symbol' => $symbol,
+                'instrument_type' => $leg['type'],
+                'exchange' => $exchange,
+                'expiry' => $expiry,
+                'instrument_key' => $leg['instrument_key'],
+                'strike' => $leg['strike'],
+                'ce_strike' => $ceStrike,
+                'pe_strike' => $peStrike,
+                'entry_price' => $leg['entry_price'],
+                'exit_price' => $leg['exit_price'],
+                'side' => strtoupper($leg['side'] ?? 'SELL'),
+                'qty' => (int) ($leg['qty_override'] ?? $qty),
+                'pnl' => $calcLegPnl($leg),
+                'lot_size' => (int) ($leg['qty_override'] ?? $qty),
+                'strategy' => $strategyName,
+                'entry_time' => $leg['entry_time'] ?? $entryTimestamp,
+                'exit_time' => $leg['exit_time'],
+                'signal_time' => $leg['signal_time'] ?? null,
+                'trade_time_duration' => $leg['exit_time']
+                    ? (int) Carbon::parse($leg['entry_time'] ?? $entryTimestamp)
+                                  ->diffInMinutes(Carbon::parse($leg['exit_time']))
                     : null,
-                'outcome'              => ( round(
-                    ( $leg['entry_price'] - ( $leg['exit_price'] ?? $leg['entry_price'] ) ) * $effectiveQty,
-                    2
-                ) ) >= 0 ? 'profit' : 'loss',
-                'trade_date'           => $tradeDate,
-                'backtest_run_id'      => $runId,
-                'day_group_id'         => $dayGroupId,
-                'day_total_pnl'        => $dayTotalPnl,
-                'day_outcome'          => $dayOutcome,
-                'day_max_profit'       => $dayMaxProfit,
-                'day_max_profit_time'  => $dayMaxProfitTime,
-                'day_max_loss'         => $dayMaxLoss,
-                'day_max_loss_time'    => $dayMaxLossTime,
+                'outcome' => $calcLegPnl($leg) >= 0 ? 'profit' : 'loss',
+                'trade_date' => $tradeDate,
+                'backtest_run_id' => $runId,
+                'day_group_id' => $dayGroupId,
+                'day_total_pnl' => $dayTotalPnl,
+                'day_outcome' => $dayOutcome,
+                'day_max_profit' => $dayMaxProfit,
+                'day_max_profit_time' => $dayMaxProfitTime,
+                'day_max_loss' => $dayMaxLoss,
+                'day_max_loss_time' => $dayMaxLossTime,
                 'index_price_at_entry' => $indexOpen,
-                'target'               => $effectiveTarget,
-                'stoploss'             => $stoploss,
-                'strike_offset'        => (int) ( $options['strike-offset'] ?? 300 ),
-                'created_at'           => $now,
-                'updated_at'           => $now,
-                'gap_used'             => $gapUsed,
-                'previous_day_range'   => $previousDayRange,
-                'gap_pct_prev_range'   => $gapPctPrevRange,
-            ], $legData );
+                'target' => $effectiveTarget,
+                'stoploss' => $stoploss,
+                'strike_offset' => (int) ($options['strike-offset'] ?? 300),
+                'created_at' => $now,
+                'updated_at' => $now,
+                'gap_used' => $gapUsed,
+                'previous_day_range' => $previousDayRange,
+                'gap_pct_prev_range' => $gapPctPrevRange,
+            ], $legData);
 
             if ( ! $dryRun ) {
                 BacktestTrade::insert( $dayRows );

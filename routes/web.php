@@ -225,3 +225,11 @@ Route::prefix( 'backtest' )->name( 'backtest.' )->group( function () {
     Route::get( '/', [ App\Http\Controllers\BacktestController::class, 'index' ] )->name( 'index' );
     Route::get( '/trades', [ App\Http\Controllers\BacktestController::class, 'trades' ] )->name( 'trades' );
 } );
+
+Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
+    Route::get('/', [App\Http\Controllers\TradingJournalController::class, 'index'])->name('index');
+    Route::get('/data', [App\Http\Controllers\TradingJournalController::class, 'getPanels'])->name('data');
+    Route::post('/panel', [App\Http\Controllers\TradingJournalController::class, 'savePanel'])->name('panel.save');
+    Route::post('/panel/delete/{id}', [App\Http\Controllers\TradingJournalController::class, 'deletePanel'])->name('panel.delete');
+    Route::get('/ws-url', [App\Http\Controllers\TradingJournalController::class, 'getWsUrl'])->name('ws-url');
+});

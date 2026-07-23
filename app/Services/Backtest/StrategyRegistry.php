@@ -4,6 +4,7 @@
 namespace App\Services\Backtest;
 
 use App\Services\Backtest\Contracts\BacktestStrategy;
+use App\Services\Backtest\Strategies\AtmRatioBackspreadStrategy;
 use App\Services\Backtest\Strategies\AtmStraddleStrategy;
 use App\Services\Backtest\Strategies\FifteenMinBreakoutStrategy;
 use App\Services\Backtest\Strategies\FirstCandleBreakoutStrategy;
@@ -33,6 +34,7 @@ class StrategyRegistry {
         'iron_condor_ladder'      => IronCondorLadderStrategy::class,
         'oi_volume_weighted_sell' => OiVolumeWeightedSellStrategy::class,
         'weekly_iron_condor'      => WeeklyIronCondorStrategy::class,
+        'atm_ratio_backspread' => AtmRatioBackspreadStrategy::class,
     ];
 
     public static function resolve( string $name ): BacktestStrategy {
