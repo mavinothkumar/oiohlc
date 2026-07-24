@@ -39,7 +39,7 @@ class TradingJournalController extends Controller
                 // Find instrument key
                 $instrument = Instrument::where('name', 'NIFTY')
                     ->where('strike_price', $leg->strike_price)
-                    ->where('option_type', $leg->option_type)
+                    ->where('instrument_type', $leg->option_type)
                     ->where('expiry', $expiryToUse)
                     ->first();
 
@@ -69,7 +69,7 @@ class TradingJournalController extends Controller
         $validated = $request->validate([
             'id' => 'nullable|exists:strategy_panels,id',
             'name' => 'required|string',
-            'entry_time' => 'required|date_format:H:i',
+            'entry_time' => 'required|date_format:H:i:s',
             'legs' => 'required|array',
             'legs.*.strike_price' => 'required|numeric',
             'legs.*.option_type' => 'required|string|in:CE,PE',

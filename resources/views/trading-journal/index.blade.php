@@ -24,7 +24,7 @@
 </head>
 <body class="bg-slate-900 text-slate-200 min-h-screen font-sans" x-data="tradingJournal()">
 
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="container mx-auto px-4 py-8">
         <header class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Trading Journal</h1>
@@ -295,7 +295,7 @@
                 // WebSocket Integration
                 async initProtobuf() {
                     try {
-                        this.protobufRoot = await protobuf.load('/MarketDataFeed.proto');
+                        this.protobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
                         console.log('Protobuf initialized');
                     } catch (e) {
                         console.error('Error loading protobuf:', e);
@@ -321,7 +321,11 @@
                         };
 
                         this.socket.onmessage = (event) => {
-                            this.decodeProtobuf(event.data);
+                            if (typeof event.data === 'string') {
+                                console.log('WS Text:', event.data);
+                            } else {
+                                this.decodeProtobuf(event.data);
+                            }
                         };
 
                     } catch (error) {
@@ -356,19 +360,38 @@
 
                 decodeProtobuf(buffer) {
                     if (!this.protobufRoot) return;
-
+                    
                     try {
-                        let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeeder.rpc.proto.FeedResponse");
-                        let message = FeedResponse.decode(new Uint8Array(buffer));
+                        let arr = new Uint8Array(buffer);
+                        if (arr.length > 0 && arr[0] === 123) { // '{' character
+                            console.log('WS JSON message:', new TextDecoder().decode(arr));
+                            return;
+                        }
+                        
+                        let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse");
+                        let message = FeedResponse.decode(arr);
                         let obj = FeedResponse.toObject(message, { enums: String, bytes: String });
-
+                        
                         if (obj.feeds) {
+                            let updated = false;
                             for (const [key, feed] of Object.entries(obj.feeds)) {
-                                if (feed.ff && feed.ff.marketFF && feed.ff.marketFF.ltpc) {
-                                    this.livePrices[key] = feed.ff.marketFF.ltpc.ltp;
-                                } else if (feed.sf && feed.sf.ltpc) {
-                                    this.livePrices[key] = feed.sf.ltpc.ltp;
+                                let ltp = null;
+                                if (feed.fullFeed && feed.fullFeed.marketFF && feed.fullFeed.marketFF.ltpc) {
+                                    ltp = feed.fullFeed.marketFF.ltpc.ltp;
+                                } else if (feed.fullFeed && feed.fullFeed.indexFF && feed.fullFeed.indexFF.ltpc) {
+                                    ltp = feed.fullFeed.indexFF.ltpc.ltp;
+                                } else if (feed.ltpc) {
+                                    ltp = feed.ltpc.ltp;
                                 }
+                                
+                                if (ltp !== null) {
+                                    this.livePrices[key] = ltp;
+                                    updated = true;
+                                }
+                            }
+                            if (updated) {
+                                // Trigger reactivity just in case
+                                this.livePrices = { ...this.livePrices };
                             }
                         }
                     } catch (e) {
