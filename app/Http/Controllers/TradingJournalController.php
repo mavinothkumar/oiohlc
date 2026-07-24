@@ -69,7 +69,7 @@ class TradingJournalController extends Controller
         $validated = $request->validate([
             'id' => 'nullable|exists:strategy_panels,id',
             'name' => 'required|string',
-            'entry_time' => 'required|date_format:H:i:s',
+            'entry_time' => 'required|date_format:H:i',
             'legs' => 'required|array',
             'legs.*.strike_price' => 'required|numeric',
             'legs.*.option_type' => 'required|string|in:CE,PE',
