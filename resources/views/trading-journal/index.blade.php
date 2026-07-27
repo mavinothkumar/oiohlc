@@ -68,6 +68,12 @@
                                 <span class="font-bold text-lg" :class="calculatePanelPnL(panel) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculatePanelPnL(panel))"></span>
                             </div>
 
+                            <button @click="clonePanel(panel)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                </svg>
+                                Clone
+                            </button>
                             <button @click="savePanel(panel)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
                                 Save
                             </button>
@@ -190,6 +196,26 @@
                     } catch (error) {
                         console.error('Error fetching panels:', error);
                     }
+                },
+
+                clonePanel(panel) {
+                    // 1. Create a deep copy so we don't accidentally mutate the original panel
+                    let clonedPanel = JSON.parse(JSON.stringify(panel));
+
+                    // 2. Reset the panel ID to null so the backend treats it as a new insert
+                    clonedPanel.id = null;
+
+                    // Optional: Append an indicator to the name
+                    clonedPanel.name = clonedPanel.name + ' (Clone)';
+
+                    // 3. Reset the IDs of all legs so they are inserted as new rows in the DB
+                    clonedPanel.legs = clonedPanel.legs.map(leg => {
+                        leg.id = null;
+                        return leg;
+                    });
+
+                    // 4. Unshift places the cloned panel at the very top of your list
+                    this.panels.unshift(clonedPanel);
                 },
 
                 addNewPanel() {
