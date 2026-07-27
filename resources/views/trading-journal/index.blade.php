@@ -255,19 +255,21 @@
                                 let newIndex = evt.newDraggableIndex;
 
                                 if (oldIndex !== newIndex) {
-                                    // 1. Remove the element Sortable just moved to prevent DOM conflicts
-                                    evt.item.remove();
+                                    // 1. Get the raw un-proxied array from Alpine
+                                    let rawPanels = Alpine.raw(this.panels);
 
-                                    // 2. Directly mutate the Alpine array so it naturally redraws the missing element
-                                    let movedItem = this.panels.splice(oldIndex, 1)[0];
-                                    this.panels.splice(newIndex, 0, movedItem);
+                                    // 2. Move the item in the array to match Sortable's new DOM order
+                                    let movedItem = rawPanels.splice(oldIndex, 1)[0];
+                                    rawPanels.splice(newIndex, 0, movedItem);
 
-                                    // 3. Extract the IDs in their new order
+                                    // 3. Reassign the array back to Alpine to safely lock in the state
+                                    this.panels = rawPanels;
+
+                                    // 4. Send the new order to the backend
                                     let orderedIds = this.panels
                                         .map(panel => panel.id)
                                         .filter(id => id !== null);
 
-                                    // 4. Send the new order to the backend
                                     try {
                                         await axios.post('/trading-journal/panel/reorder', {
                                             ordered_ids: orderedIds
