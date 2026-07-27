@@ -115,9 +115,9 @@
                                                 </select>
                                             </td>
                                             <td class="py-3 px-2">
-                                                <select x-model="leg.quantity" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
-                                                    <template x-for="i in 10">
-                                                        <option :value="i * 65" x-text="i + ' (' + (i * 65) + ')'"></option>
+                                                <select :value="leg.quantity" @change="leg.quantity = Number($event.target.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
+                                                    <template x-for="i in 10" :key="i">
+                                                        <option :value="i * 65" :selected="leg.quantity == (i * 65)" x-text="i + ' (' + (i * 65) + ')'"></option>
                                                     </template>
                                                 </select>
                                             </td>
@@ -360,18 +360,18 @@
 
                 decodeProtobuf(buffer) {
                     if (!this.protobufRoot) return;
-                    
+
                     try {
                         let arr = new Uint8Array(buffer);
                         if (arr.length > 0 && arr[0] === 123) { // '{' character
                             console.log('WS JSON message:', new TextDecoder().decode(arr));
                             return;
                         }
-                        
+
                         let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse");
                         let message = FeedResponse.decode(arr);
                         let obj = FeedResponse.toObject(message, { enums: String, bytes: String });
-                        
+
                         if (obj.feeds) {
                             let updated = false;
                             for (const [key, feed] of Object.entries(obj.feeds)) {
@@ -383,7 +383,7 @@
                                 } else if (feed.ltpc) {
                                     ltp = feed.ltpc.ltp;
                                 }
-                                
+
                                 if (ltp !== null) {
                                     this.livePrices[key] = ltp;
                                     updated = true;
