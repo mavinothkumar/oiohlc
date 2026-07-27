@@ -52,7 +52,7 @@
 
         <div class="space-y-6" x-init="initSortable($el)">
             <!-- Panels Loop -->
-            <template x-for="(panel, pIndex) in panels" :key="panel.id || 'new-'+pIndex">
+            <template x-for="(panel, pIndex) in panels" :key="panel.id || panel.temp_id">
                 <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all">
                     <!-- Panel Header -->
                     <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
@@ -63,6 +63,18 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
                                 </svg>
                             </div>
+
+                            <!-- NEW: Toggle Button -->
+                            <button @click="panel.is_expanded = !panel.is_expanded" class="text-slate-400 hover:text-white transition-colors p-1" title="Toggle Legs">
+                                <!-- Up Arrow (Shown when expanded) -->
+                                <svg x-show="panel.is_expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <!-- Down Arrow (Shown when collapsed) -->
+                                <svg x-show="!panel.is_expanded" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
 
                             <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
 
@@ -94,7 +106,7 @@
                     </div>
 
                     <!-- Panel Legs -->
-                    <div class="p-6">
+                    <div class="p-6" x-show="panel.is_expanded">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
@@ -202,7 +214,11 @@
                 async fetchPanels() {
                     try {
                         const response = await axios.get('/trading-journal/data');
-                        this.panels = response.data;
+                        // Map over the data to inject 'is_expanded: true' for the toggle state
+                        this.panels = response.data.map(panel => ({
+                            ...panel,
+                            is_expanded: true
+                        }));
                     } catch (error) {
                         console.error('Error fetching panels:', error);
                     }
@@ -239,16 +255,19 @@
                                 let newIndex = evt.newDraggableIndex;
 
                                 if (oldIndex !== newIndex) {
-                                    // 1. Reorder the array in the frontend
+                                    // 1. Remove the element Sortable just moved to prevent DOM conflicts
+                                    evt.item.remove();
+
+                                    // 2. Directly mutate the Alpine array so it naturally redraws the missing element
                                     let movedItem = this.panels.splice(oldIndex, 1)[0];
                                     this.panels.splice(newIndex, 0, movedItem);
 
-                                    // 2. Extract the IDs in their new order (ignoring unsaved cloned panels that have a null ID)
+                                    // 3. Extract the IDs in their new order
                                     let orderedIds = this.panels
                                         .map(panel => panel.id)
                                         .filter(id => id !== null);
 
-                                    // 3. Send the new order to the backend
+                                    // 4. Send the new order to the backend
                                     try {
                                         await axios.post('/trading-journal/panel/reorder', {
                                             ordered_ids: orderedIds
@@ -266,8 +285,10 @@
                 addNewPanel() {
                     this.panels.unshift({
                         id: null,
+                        temp_id: 'temp_' + Date.now(),
                         name: 'New Strategy',
                         entry_time: '09:15',
+                        is_expanded: true, // <-- Add this line
                         legs: [
                             { strike_price: '', option_type: 'CE', expiry_type: 'Current', quantity: 65, side: 'Sell', entry_price: 0, instrument_key: null }
                         ]
