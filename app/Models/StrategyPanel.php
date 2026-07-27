@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StrategyPanel extends Model
 {
-    protected $fillable = ['name', 'entry_time'];
+    protected $fillable = ['name', 'entry_time', 'sort_order'];
 
     public function legs()
     {
