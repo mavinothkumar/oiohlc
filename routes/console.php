@@ -57,6 +57,11 @@ Schedule::command( 'trend:update-index-open' ) // php artisan trend:update-index
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
 
+Schedule::command( 'trading:generate-daily-strategies' ) // php artisan trading:generate-daily-strategies
+        ->dailyAt( '09:10' )
+        ->timezone( 'Asia/Kolkata' )
+        ->appendOutputTo( storage_path( 'logs/generate-daily-strategies.log' ) );
+
 
 Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
         ->everyMinute()
