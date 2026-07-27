@@ -13,6 +13,9 @@
     <!-- Protobuf JS -->
     <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
 
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
     <style>
         [x-cloak] { display: none !important; }
         .glass-panel {
@@ -47,13 +50,20 @@
             </div>
         </header>
 
-        <div class="space-y-6">
+        <div class="space-y-6" x-init="initSortable($el)">
             <!-- Panels Loop -->
             <template x-for="(panel, pIndex) in panels" :key="panel.id || 'new-'+pIndex">
                 <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all">
                     <!-- Panel Header -->
                     <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
                         <div class="flex items-center gap-4 flex-1">
+                            <!-- Drag Handle -->
+                            <div class="drag-handle cursor-move text-slate-500 hover:text-slate-300 transition-colors" title="Drag to reorder">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                                </svg>
+                            </div>
+
                             <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
 
                             <div class="flex items-center gap-2">
@@ -216,6 +226,27 @@
 
                     // 4. Unshift places the cloned panel at the very top of your list
                     this.panels.unshift(clonedPanel);
+                },
+
+                initSortable(el) {
+                    // Delay initialization slightly to ensure the DOM is ready
+                    setTimeout(() => {
+                        Sortable.create(el, {
+                            handle: '.drag-handle', // Only drag when clicking the icon
+                            animation: 150, // Smooth sliding animation
+                            ghostClass: 'opacity-50', // Visual feedback for the dragging item
+                            onEnd: (evt) => {
+                                let oldIndex = evt.oldDraggableIndex;
+                                let newIndex = evt.newDraggableIndex;
+
+                                // If the panel was actually moved, update the Alpine array
+                                if (oldIndex !== newIndex) {
+                                    let movedItem = this.panels.splice(oldIndex, 1)[0];
+                                    this.panels.splice(newIndex, 0, movedItem);
+                                }
+                            }
+                        });
+                    }, 100);
                 },
 
                 addNewPanel() {
