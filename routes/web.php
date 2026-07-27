@@ -232,4 +232,5 @@ Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
     Route::post('/panel', [App\Http\Controllers\TradingJournalController::class, 'savePanel'])->name('panel.save');
     Route::post('/panel/delete/{id}', [App\Http\Controllers\TradingJournalController::class, 'deletePanel'])->name('panel.delete');
     Route::get('/ws-url', [App\Http\Controllers\TradingJournalController::class, 'getWsUrl'])->name('ws-url');
+    Route::post('/panel/reorder', [App\Http\Controllers\TradingJournalController::class, 'reorderPanels'])->name('panel.reorder');
 });

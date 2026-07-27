@@ -229,20 +229,34 @@
                 },
 
                 initSortable(el) {
-                    // Delay initialization slightly to ensure the DOM is ready
                     setTimeout(() => {
                         Sortable.create(el, {
-                            handle: '.drag-handle', // Only drag when clicking the icon
-                            animation: 150, // Smooth sliding animation
-                            ghostClass: 'opacity-50', // Visual feedback for the dragging item
-                            onEnd: (evt) => {
+                            handle: '.drag-handle',
+                            animation: 150,
+                            ghostClass: 'opacity-50',
+                            onEnd: async (evt) => {
                                 let oldIndex = evt.oldDraggableIndex;
                                 let newIndex = evt.newDraggableIndex;
 
-                                // If the panel was actually moved, update the Alpine array
                                 if (oldIndex !== newIndex) {
+                                    // 1. Reorder the array in the frontend
                                     let movedItem = this.panels.splice(oldIndex, 1)[0];
                                     this.panels.splice(newIndex, 0, movedItem);
+
+                                    // 2. Extract the IDs in their new order (ignoring unsaved cloned panels that have a null ID)
+                                    let orderedIds = this.panels
+                                        .map(panel => panel.id)
+                                        .filter(id => id !== null);
+
+                                    // 3. Send the new order to the backend
+                                    try {
+                                        await axios.post('/trading-journal/panel/reorder', {
+                                            ordered_ids: orderedIds
+                                        });
+                                        console.log('Panel order saved successfully.');
+                                    } catch (error) {
+                                        console.error('Failed to save panel order:', error);
+                                    }
                                 }
                             }
                         });

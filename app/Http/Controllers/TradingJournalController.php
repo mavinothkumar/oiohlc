@@ -16,7 +16,7 @@ class TradingJournalController extends Controller {
     }
 
     public function getPanels() {
-        $panels = StrategyPanel::with( 'legs' )->orderBy( 'id', 'desc' )->get();
+        $panels = StrategyPanel::with( 'legs' )->orderBy( 'sort_order', 'asc' )->get();
 
         $currentExpiry = DB::table( 'nse_expiries' )->where( 'is_current', 1 )->value( 'expiry' );
         // Fallback if no next flag, just get the next date after current
@@ -92,6 +92,19 @@ class TradingJournalController extends Controller {
         StrategyPanel::findOrFail( $id )->delete();
 
         return response()->json( [ 'success' => true ] );
+    }
+
+    public function reorderPanels(Request $request) {
+        $validated = $request->validate([
+            'ordered_ids'   => 'required|array',
+            'ordered_ids.*' => 'integer|exists:strategy_panels,id',
+        ]);
+
+        foreach ($validated['ordered_ids'] as $index => $id) {
+            StrategyPanel::where('id', $id)->update(['sort_order' => $index]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function getWsUrl() {
