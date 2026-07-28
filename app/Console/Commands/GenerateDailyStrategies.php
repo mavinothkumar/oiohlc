@@ -140,6 +140,17 @@ class GenerateDailyStrategies extends Command {
                 ],
             ],
             [
+                'name' => 'Straddle IAO',
+                'legs' => [
+                    [ 'strike' => $atm - 200, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+                    [ 'strike' => $atm + 200, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+                    [ 'strike' => $atm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+                    [ 'strike' => $atm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+                    [ 'strike' => $atm + 200, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+                    [ 'strike' => $atm - 200, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+                ],
+            ],
+            [
                 'name' => 'Straddle ITM',
                 'legs' => [
                     [ 'strike' => $itm, 'type' => 'CE', 'qty' => 2 * $baseLotSize ],
@@ -153,7 +164,6 @@ class GenerateDailyStrategies extends Command {
                     [ 'strike' => $atm, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
                 ],
             ],
-
             [
                 'name' => 'Straddle OTM',
                 'legs' => [
@@ -161,17 +171,7 @@ class GenerateDailyStrategies extends Command {
                     [ 'strike' => $otm, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
                 ],
             ],
-            [
-                'name' => 'Straddle IAO',
-                'legs' => [
-                    [ 'strike' => $atm - 200, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
-                    [ 'strike' => $atm + 200, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
-                    [ 'strike' => $atm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
-                    [ 'strike' => $atm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
-                    [ 'strike' => $atm + 200, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
-                    [ 'strike' => $atm - 200, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
-                ],
-            ],
+
             [
                 'name' => 'Strangle',
                 'legs' => [
