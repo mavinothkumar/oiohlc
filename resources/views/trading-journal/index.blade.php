@@ -27,473 +27,492 @@
 </head>
 <body class="bg-slate-900 text-slate-200 min-h-screen font-sans" x-data="tradingJournal()">
 
-    <div class="container mx-auto px-4 py-8">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Trading Journal</h1>
-                <p class="text-slate-400 mt-1">Live Strategy Tracker (Upstox WebSocket)</p>
-            </div>
-            <div class="flex gap-4 items-center">
-                <div class="flex items-center gap-2">
+<div class="container mx-auto px-4 py-8">
+    <header class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Trading Journal</h1>
+            <p class="text-slate-400 mt-1">Live Strategy Tracker (Upstox WebSocket)</p>
+        </div>
+        <div class="flex gap-4 items-center">
+            <div class="flex items-center gap-2">
                     <span class="relative flex h-3 w-3">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" x-show="wsConnected"></span>
                       <span class="relative inline-flex rounded-full h-3 w-3" :class="wsConnected ? 'bg-emerald-500' : 'bg-red-500'"></span>
                     </span>
-                    <span class="text-sm text-slate-400" x-text="wsConnected ? 'Live Feed Connected' : 'Disconnected'"></span>
-                </div>
-                <button @click="addNewPanel()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    New Strategy Panel
-                </button>
+                <span class="text-sm text-slate-400" x-text="wsConnected ? 'Live Feed Connected' : 'Disconnected'"></span>
             </div>
-        </header>
-
-        <div class="space-y-6" x-init="initSortable($el)">
-            <!-- Panels Loop -->
-            <template x-for="(panel, pIndex) in panels" :key="panel.id || panel.temp_id">
-                <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all">
-                    <!-- Panel Header -->
-                    <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
-                        <div class="flex items-center gap-4 flex-1">
-                            <!-- Drag Handle -->
-                            <div class="drag-handle cursor-move text-slate-500 hover:text-slate-300 transition-colors" title="Drag to reorder">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-                                </svg>
-                            </div>
-
-                            <!-- NEW: Toggle Button -->
-                            <button @click="panel.is_expanded = !panel.is_expanded" class="text-slate-400 hover:text-white transition-colors p-1" title="Toggle Legs">
-                                <!-- Up Arrow (Shown when expanded) -->
-                                <svg x-show="panel.is_expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
-                                </svg>
-                                <!-- Down Arrow (Shown when collapsed) -->
-                                <svg x-show="!panel.is_expanded" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-
-                            <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
-
-                            <div class="flex items-center gap-2">
-                                <label class="text-sm text-slate-400">Entry Time:</label>
-                                <input type="time" x-model="panel.entry_time" min="09:15" max="15:30" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-4 mt-4 sm:mt-0">
-                            <div class="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-3">
-                                <span class="text-sm text-slate-400">Total P&L:</span>
-                                <span class="font-bold text-lg" :class="calculatePanelPnL(panel) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculatePanelPnL(panel))"></span>
-                            </div>
-
-                            <button @click="clonePanel(panel)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                                </svg>
-                                Clone
-                            </button>
-                            <button @click="savePanel(panel)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
-                                Save
-                            </button>
-                            <button @click="deletePanel(panel.id, pIndex)" class="bg-rose-900/50 hover:bg-rose-800 text-rose-300 px-3 py-1.5 rounded-md text-sm transition-colors">
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Panel Legs -->
-                    <div class="p-6" x-show="panel.is_expanded">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="text-xs uppercase text-slate-400 border-b border-slate-700/50">
-                                        <th class="pb-3 px-2 font-medium">Strike</th>
-                                        <th class="pb-3 px-2 font-medium">Type</th>
-                                        <th class="pb-3 px-2 font-medium">Expiry</th>
-                                        <th class="pb-3 px-2 font-medium">Qty (Lots)</th>
-                                        <th class="pb-3 px-2 font-medium">Side</th>
-                                        <th class="pb-3 px-2 font-medium text-right">Entry Price</th>
-                                        <th class="pb-3 px-2 font-medium text-right">Live Price</th>
-                                        <th class="pb-3 px-2 font-medium text-right">Diff Pts</th>
-                                        <th class="pb-3 px-2 font-medium text-right">Change %</th>
-                                        <th class="pb-3 px-2 font-medium text-right">P&L</th>
-                                        <th class="pb-3 px-2 font-medium text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-sm">
-                                    <template x-for="(leg, lIndex) in panel.legs" :key="lIndex">
-                                        <tr class="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
-                                            <td class="py-3 px-2">
-                                                <input type="number" x-model="leg.strike_price" placeholder="Strike" class="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none">
-                                            </td>
-                                            <td class="py-3 px-2">
-                                                <select x-model="leg.option_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white">
-                                                    <option value="CE">CE</option>
-                                                    <option value="PE">PE</option>
-                                                </select>
-                                            </td>
-                                            <td class="py-3 px-2">
-                                                <select x-model="leg.expiry_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
-                                                    <option value="Current">Current</option>
-                                                    <option value="Next">Next</option>
-                                                </select>
-                                            </td>
-                                            <td class="py-3 px-2">
-                                                <select :value="leg.quantity" @change="leg.quantity = Number($event.target.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
-                                                    <template x-for="i in 10" :key="i">
-                                                        <option :value="i * 65" :selected="leg.quantity == (i * 65)" x-text="i + ' (' + (i * 65) + ')'"></option>
-                                                    </template>
-                                                </select>
-                                            </td>
-                                            <td class="py-3 px-2">
-                                                <select x-model="leg.side" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none" :class="leg.side === 'Buy' ? 'text-blue-400' : 'text-rose-400'">
-                                                    <option value="Buy">Buy</option>
-                                                    <option value="Sell">Sell</option>
-                                                </select>
-                                            </td>
-                                            <td class="py-3 px-2 text-right font-mono" x-text="formatPrice(leg.entry_price)"></td>
-                                            <td class="py-3 px-2 text-right font-mono font-medium text-emerald-400" x-text="formatPrice(getLivePrice(leg))"></td>
-                                            <td class="py-3 px-2 text-right font-mono" :class="getDiffPts(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="getDiffPts(leg) > 0 ? '+'+getDiffPts(leg).toFixed(2) : getDiffPts(leg).toFixed(2)"></td>
-                                            <td class="py-3 px-2 text-right font-mono text-xs" :class="getChangePct(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></td>
-                                            <td class="py-3 px-2 text-right font-mono font-bold" :class="calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculateLegPnL(leg))"></td>
-                                            <td class="py-3 px-2 text-center">
-                                                <button @click="panel.legs.splice(lIndex, 1)" class="text-slate-500 hover:text-rose-400 transition-colors p-1" title="Remove Leg">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-4">
-                            <button @click="addLeg(panel)" class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                                </svg>
-                                Add Strategy Leg
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <!-- Empty State -->
-            <div x-show="panels.length === 0" class="text-center py-20 glass-panel rounded-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <button @click="addNewPanel()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                 </svg>
-                <h3 class="text-xl font-medium text-slate-300">No Strategies Found</h3>
-                <p class="text-slate-400 mt-2">Create your first strategy panel to start tracking.</p>
-                <button @click="addNewPanel()" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                    Create Panel
-                </button>
+                New Strategy Panel
+            </button>
+        </div>
+    </header>
+
+    <div class="space-y-6" x-init="initSortable($el)">
+        <!-- Panels Loop -->
+        <template x-for="(panel, pIndex) in panels" :key="panel.id || panel.temp_id">
+            <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all">
+                <!-- Panel Header -->
+                <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
+                    <div class="flex items-center gap-4 flex-1">
+                        <!-- Drag Handle -->
+                        <div class="drag-handle cursor-move text-slate-500 hover:text-slate-300 transition-colors" title="Drag to reorder">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                            </svg>
+                        </div>
+
+                        <!-- NEW: Toggle Button now calls togglePanel -->
+                        <button @click="togglePanel(panel)" class="text-slate-400 hover:text-white transition-colors p-1" title="Toggle Legs">
+                            <!-- Up Arrow (Shown when expanded) -->
+                            <svg x-show="panel.is_expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <!-- Down Arrow (Shown when collapsed) -->
+                            <svg x-show="!panel.is_expanded" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+
+                        <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
+
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-slate-400">Entry Time:</label>
+                            <input type="time" x-model="panel.entry_time" min="09:15" max="15:30" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                        <div class="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-3">
+                            <span class="text-sm text-slate-400">Total P&L:</span>
+                            <span class="font-bold text-lg" :class="calculatePanelPnL(panel) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculatePanelPnL(panel))"></span>
+                        </div>
+
+                        <button @click="clonePanel(panel)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            Clone
+                        </button>
+                        <button @click="savePanel(panel)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1">
+                            Save
+                        </button>
+                        <button @click="deletePanel(panel.id, pIndex)" class="bg-rose-900/50 hover:bg-rose-800 text-rose-300 px-3 py-1.5 rounded-md text-sm transition-colors">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Legs -->
+                <div class="p-6" x-show="panel.is_expanded">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                            <tr class="text-xs uppercase text-slate-400 border-b border-slate-700/50">
+                                <th class="pb-3 px-2 font-medium">Strike</th>
+                                <th class="pb-3 px-2 font-medium">Type</th>
+                                <th class="pb-3 px-2 font-medium">Expiry</th>
+                                <th class="pb-3 px-2 font-medium">Qty (Lots)</th>
+                                <th class="pb-3 px-2 font-medium">Side</th>
+                                <th class="pb-3 px-2 font-medium text-right">Entry Price</th>
+                                <th class="pb-3 px-2 font-medium text-right">Live Price</th>
+                                <th class="pb-3 px-2 font-medium text-right">Diff Pts</th>
+                                <th class="pb-3 px-2 font-medium text-right">Change %</th>
+                                <th class="pb-3 px-2 font-medium text-right">P&L</th>
+                                <th class="pb-3 px-2 font-medium text-center">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody class="text-sm">
+                            <template x-for="(leg, lIndex) in panel.legs" :key="lIndex">
+                                <tr class="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
+                                    <td class="py-3 px-2">
+                                        <input type="number" x-model="leg.strike_price" placeholder="Strike" class="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none">
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        <select x-model="leg.option_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white">
+                                            <option value="CE">CE</option>
+                                            <option value="PE">PE</option>
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        <select x-model="leg.expiry_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
+                                            <option value="Current">Current</option>
+                                            <option value="Next">Next</option>
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        <select :value="leg.quantity" @change="leg.quantity = Number($event.target.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
+                                            <template x-for="i in 10" :key="i">
+                                                <option :value="i * 65" :selected="leg.quantity == (i * 65)" x-text="i + ' (' + (i * 65) + ')'"></option>
+                                            </template>
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-2">
+                                        <select x-model="leg.side" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none" :class="leg.side === 'Buy' ? 'text-blue-400' : 'text-rose-400'">
+                                            <option value="Buy">Buy</option>
+                                            <option value="Sell">Sell</option>
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-2 text-right font-mono" x-text="formatPrice(leg.entry_price)"></td>
+                                    <td class="py-3 px-2 text-right font-mono font-medium text-emerald-400" x-text="formatPrice(getLivePrice(leg))"></td>
+                                    <td class="py-3 px-2 text-right font-mono" :class="getDiffPts(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="getDiffPts(leg) > 0 ? '+'+getDiffPts(leg).toFixed(2) : getDiffPts(leg).toFixed(2)"></td>
+                                    <td class="py-3 px-2 text-right font-mono text-xs" :class="getChangePct(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></td>
+                                    <td class="py-3 px-2 text-right font-mono font-bold" :class="calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculateLegPnL(leg))"></td>
+                                    <td class="py-3 px-2 text-center">
+                                        <button @click="panel.legs.splice(lIndex, 1)" class="text-slate-500 hover:text-rose-400 transition-colors p-1" title="Remove Leg">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4">
+                        <button @click="addLeg(panel)" class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Strategy Leg
+                        </button>
+                    </div>
+                </div>
             </div>
+        </template>
+
+        <!-- Empty State -->
+        <div x-show="panels.length === 0" class="text-center py-20 glass-panel rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="text-xl font-medium text-slate-300">No Strategies Found</h3>
+            <p class="text-slate-400 mt-2">Create your first strategy panel to start tracking.</p>
+            <button @click="addNewPanel()" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Create Panel
+            </button>
         </div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('tradingJournal', () => ({
-                panels: [],
-                livePrices: {}, // { instrument_key: price }
-                wsConnected: false,
-                socket: null,
-                protobufRoot: null,
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('tradingJournal', () => ({
+            panels: [],
+            livePrices: {}, // { instrument_key: price }
+            wsConnected: false,
+            socket: null,
+            protobufRoot: null,
 
-                async init() {
-                    await this.fetchPanels();
-                    await this.initProtobuf();
-                    await this.connectWebsocket();
-                },
+            async init() {
+                await this.fetchPanels();
+                await this.initProtobuf();
+                await this.connectWebsocket();
+            },
 
-                async fetchPanels() {
-                    try {
-                        const response = await axios.get('/trading-journal/data');
-                        // Map over the data to inject 'is_expanded: true' for the toggle state
-                        this.panels = response.data.map(panel => ({
+            async fetchPanels() {
+                try {
+                    const response = await axios.get('/trading-journal/data');
+
+                    // NEW: Read the saved states from localStorage
+                    let savedState = JSON.parse(localStorage.getItem('trading_panel_states')) || {};
+
+                    // Map over the data to inject 'is_expanded' based on browser history. Default is true.
+                    this.panels = response.data.map(panel => {
+                        let isExpanded = savedState[panel.id] !== undefined ? savedState[panel.id] : true;
+
+                        return {
                             ...panel,
-                            is_expanded: true
-                        }));
-                    } catch (error) {
-                        console.error('Error fetching panels:', error);
-                    }
-                },
-
-                clonePanel(panel) {
-                    // 1. Create a deep copy so we don't accidentally mutate the original panel
-                    let clonedPanel = JSON.parse(JSON.stringify(panel));
-
-                    // 2. Reset the panel ID to null so the backend treats it as a new insert
-                    clonedPanel.id = null;
-
-                    // Optional: Append an indicator to the name
-                    clonedPanel.name = clonedPanel.name + ' (Clone)';
-
-                    // 3. Reset the IDs of all legs so they are inserted as new rows in the DB
-                    clonedPanel.legs = clonedPanel.legs.map(leg => {
-                        leg.id = null;
-                        return leg;
+                            is_expanded: isExpanded
+                        };
                     });
+                } catch (error) {
+                    console.error('Error fetching panels:', error);
+                }
+            },
 
-                    // 4. Unshift places the cloned panel at the very top of your list
-                    this.panels.unshift(clonedPanel);
-                },
+            // NEW: Function to toggle and immediately save to local storage
+            togglePanel(panel) {
+                panel.is_expanded = !panel.is_expanded;
 
-                initSortable(el) {
-                    setTimeout(() => {
-                        Sortable.create(el, {
-                            handle: '.drag-handle',
-                            animation: 150,
-                            ghostClass: 'opacity-50',
-                            onEnd: async (evt) => {
-                                let oldIndex = evt.oldDraggableIndex;
-                                let newIndex = evt.newDraggableIndex;
+                let savedState = JSON.parse(localStorage.getItem('trading_panel_states')) || {};
+                let panelKey = panel.id || panel.temp_id;
+                savedState[panelKey] = panel.is_expanded;
 
-                                if (oldIndex !== newIndex) {
-                                    // 1. Get the raw un-proxied array from Alpine
-                                    let rawPanels = Alpine.raw(this.panels);
+                localStorage.setItem('trading_panel_states', JSON.stringify(savedState));
+            },
 
-                                    // 2. Move the item in the array to match Sortable's new DOM order
-                                    let movedItem = rawPanels.splice(oldIndex, 1)[0];
-                                    rawPanels.splice(newIndex, 0, movedItem);
+            clonePanel(panel) {
+                // 1. Create a deep copy so we don't accidentally mutate the original panel
+                let clonedPanel = JSON.parse(JSON.stringify(panel));
 
-                                    // 3. Reassign the array back to Alpine to safely lock in the state
-                                    this.panels = rawPanels;
+                // 2. Reset the panel ID to null so the backend treats it as a new insert
+                clonedPanel.id = null;
 
-                                    // 4. Send the new order to the backend
-                                    let orderedIds = this.panels
-                                        .map(panel => panel.id)
-                                        .filter(id => id !== null);
+                // Optional: Append an indicator to the name
+                clonedPanel.name = clonedPanel.name + ' (Clone)';
 
-                                    try {
-                                        await axios.post('/trading-journal/panel/reorder', {
-                                            ordered_ids: orderedIds
-                                        });
-                                        console.log('Panel order saved successfully.');
-                                    } catch (error) {
-                                        console.error('Failed to save panel order:', error);
-                                    }
+                // 3. Reset the IDs of all legs so they are inserted as new rows in the DB
+                clonedPanel.legs = clonedPanel.legs.map(leg => {
+                    leg.id = null;
+                    return leg;
+                });
+
+                // 4. Unshift places the cloned panel at the very top of your list
+                this.panels.unshift(clonedPanel);
+            },
+
+            initSortable(el) {
+                setTimeout(() => {
+                    Sortable.create(el, {
+                        handle: '.drag-handle',
+                        animation: 150,
+                        ghostClass: 'opacity-50',
+                        onEnd: async (evt) => {
+                            let oldIndex = evt.oldDraggableIndex;
+                            let newIndex = evt.newDraggableIndex;
+
+                            if (oldIndex !== newIndex) {
+                                // 1. Get the raw un-proxied array from Alpine
+                                let rawPanels = Alpine.raw(this.panels);
+
+                                // 2. Move the item in the array to match Sortable's new DOM order
+                                let movedItem = rawPanels.splice(oldIndex, 1)[0];
+                                rawPanels.splice(newIndex, 0, movedItem);
+
+                                // 3. Reassign the array back to Alpine to safely lock in the state
+                                this.panels = rawPanels;
+
+                                // 4. Send the new order to the backend
+                                let orderedIds = this.panels
+                                    .map(panel => panel.id)
+                                    .filter(id => id !== null);
+
+                                try {
+                                    await axios.post('/trading-journal/panel/reorder', {
+                                        ordered_ids: orderedIds
+                                    });
+                                    console.log('Panel order saved successfully.');
+                                } catch (error) {
+                                    console.error('Failed to save panel order:', error);
                                 }
                             }
-                        });
-                    }, 100);
-                },
-
-                addNewPanel() {
-                    this.panels.unshift({
-                        id: null,
-                        temp_id: 'temp_' + Date.now(),
-                        name: 'New Strategy',
-                        entry_time: '09:15',
-                        is_expanded: true, // <-- Add this line
-                        legs: [
-                            { strike_price: '', option_type: 'CE', expiry_type: 'Current', quantity: 65, side: 'Sell', entry_price: 0, instrument_key: null }
-                        ]
-                    });
-                },
-
-                addLeg(panel) {
-                    panel.legs.push({
-                        strike_price: panel.legs.length > 0 ? panel.legs[panel.legs.length - 1].strike_price : '',
-                        option_type: 'PE',
-                        expiry_type: 'Current',
-                        quantity: 65,
-                        side: 'Sell',
-                        entry_price: 0,
-                        instrument_key: null
-                    });
-                },
-
-                async savePanel(panel) {
-                    if (!panel.name || panel.legs.length === 0) {
-                        alert('Please fill out strategy name and add at least one leg.');
-                        return;
-                    }
-                    try {
-                        const response = await axios.post('/trading-journal/panel', panel);
-                        if (response.data.success) {
-                            // Re-fetch to get accurate entry_prices and instrument_keys updated by backend
-                            await this.fetchPanels();
-                            this.subscribeToInstruments();
-                            // Optional: Show success toast
                         }
-                    } catch (error) {
-                        console.error('Error saving panel:', error);
-                        alert('Failed to save panel.');
-                    }
-                },
-
-                async deletePanel(id, index) {
-                    if (confirm('Are you sure you want to delete this panel?')) {
-                        if (id) {
-                            try {
-                                await axios.post(`/trading-journal/panel/delete/${id}`);
-                            } catch (e) {
-                                console.error('Error deleting panel:', e);
-                            }
-                        }
-                        this.panels.splice(index, 1);
-                    }
-                },
-
-                getLivePrice(leg) {
-                    if (leg.instrument_key && this.livePrices[leg.instrument_key]) {
-                        return this.livePrices[leg.instrument_key];
-                    }
-                    return leg.entry_price || 0; // fallback to entry if live not available
-                },
-
-                getDiffPts(leg) {
-                    let live = this.getLivePrice(leg);
-                    let entry = parseFloat(leg.entry_price) || 0;
-                    if (entry === 0) return 0;
-                    return live - entry;
-                },
-
-                getChangePct(leg) {
-                    let diff = this.getDiffPts(leg);
-                    let entry = parseFloat(leg.entry_price) || 0;
-                    if (entry === 0) return 0;
-                    return (diff / entry) * 100;
-                },
-
-                calculateLegPnL(leg) {
-                    let diff = this.getDiffPts(leg);
-                    let qty = parseInt(leg.quantity) || 0;
-                    // If Sell, diff is reversed (lower price = profit)
-                    if (leg.side === 'Sell') {
-                        return (diff * -1) * qty;
-                    }
-                    // If Buy
-                    return diff * qty;
-                },
-
-                calculatePanelPnL(panel) {
-                    return panel.legs.reduce((total, leg) => total + this.calculateLegPnL(leg), 0);
-                },
-
-                formatPrice(val) {
-                    return parseFloat(val).toFixed(2);
-                },
-
-                formatCurrency(val) {
-                    let formatted = parseFloat(val).toFixed(2);
-                    return formatted > 0 ? '+₹' + formatted : '₹' + formatted;
-                },
-
-                // WebSocket Integration
-                async initProtobuf() {
-                    try {
-                        this.protobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
-                        console.log('Protobuf initialized');
-                    } catch (e) {
-                        console.error('Error loading protobuf:', e);
-                    }
-                },
-
-                async connectWebsocket() {
-                    try {
-                        const authResponse = await axios.get('/trading-journal/ws-url');
-                        const wsUrl = authResponse.data.data.authorizedRedirectUri;
-
-                        this.socket = new WebSocket(wsUrl);
-                        this.socket.binaryType = "arraybuffer";
-
-                        this.socket.onopen = () => {
-                            this.wsConnected = true;
-                            this.subscribeToInstruments();
-                        };
-
-                        this.socket.onclose = () => {
-                            this.wsConnected = false;
-                            setTimeout(() => this.connectWebsocket(), 5000); // Reconnect
-                        };
-
-                        this.socket.onmessage = (event) => {
-                            if (typeof event.data === 'string') {
-                                console.log('WS Text:', event.data);
-                            } else {
-                                this.decodeProtobuf(event.data);
-                            }
-                        };
-
-                    } catch (error) {
-                        console.error('WebSocket connection error:', error);
-                    }
-                },
-
-                subscribeToInstruments() {
-                    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-
-                    // Collect all unique instrument keys
-                    const keys = new Set();
-                    this.panels.forEach(panel => {
-                        panel.legs.forEach(leg => {
-                            if (leg.instrument_key) keys.add(leg.instrument_key);
-                        });
                     });
+                }, 100);
+            },
 
-                    if (keys.size === 0) return;
+            addNewPanel() {
+                this.panels.unshift({
+                    id: null,
+                    temp_id: 'temp_' + Date.now(),
+                    name: 'New Strategy',
+                    entry_time: '09:15',
+                    is_expanded: true, // Remains open by default on creation
+                    legs: [
+                        { strike_price: '', option_type: 'CE', expiry_type: 'Current', quantity: 65, side: 'Sell', entry_price: 0, instrument_key: null }
+                    ]
+                });
+            },
 
-                    const data = {
-                        guid: "someguid",
-                        method: "sub",
-                        data: {
-                            mode: "full",
-                            instrumentKeys: Array.from(keys)
+            addLeg(panel) {
+                panel.legs.push({
+                    strike_price: panel.legs.length > 0 ? panel.legs[panel.legs.length - 1].strike_price : '',
+                    option_type: 'PE',
+                    expiry_type: 'Current',
+                    quantity: 65,
+                    side: 'Sell',
+                    entry_price: 0,
+                    instrument_key: null
+                });
+            },
+
+            async savePanel(panel) {
+                if (!panel.name || panel.legs.length === 0) {
+                    alert('Please fill out strategy name and add at least one leg.');
+                    return;
+                }
+                try {
+                    const response = await axios.post('/trading-journal/panel', panel);
+                    if (response.data.success) {
+                        // Re-fetch to get accurate entry_prices and instrument_keys updated by backend
+                        await this.fetchPanels();
+                        this.subscribeToInstruments();
+                        // Optional: Show success toast
+                    }
+                } catch (error) {
+                    console.error('Error saving panel:', error);
+                    alert('Failed to save panel.');
+                }
+            },
+
+            async deletePanel(id, index) {
+                if (confirm('Are you sure you want to delete this panel?')) {
+                    if (id) {
+                        try {
+                            await axios.post(`/trading-journal/panel/delete/${id}`);
+                        } catch (e) {
+                            console.error('Error deleting panel:', e);
+                        }
+                    }
+                    this.panels.splice(index, 1);
+                }
+            },
+
+            getLivePrice(leg) {
+                if (leg.instrument_key && this.livePrices[leg.instrument_key]) {
+                    return this.livePrices[leg.instrument_key];
+                }
+                return leg.entry_price || 0; // fallback to entry if live not available
+            },
+
+            getDiffPts(leg) {
+                let live = this.getLivePrice(leg);
+                let entry = parseFloat(leg.entry_price) || 0;
+                if (entry === 0) return 0;
+                return live - entry;
+            },
+
+            getChangePct(leg) {
+                let diff = this.getDiffPts(leg);
+                let entry = parseFloat(leg.entry_price) || 0;
+                if (entry === 0) return 0;
+                return (diff / entry) * 100;
+            },
+
+            calculateLegPnL(leg) {
+                let diff = this.getDiffPts(leg);
+                let qty = parseInt(leg.quantity) || 0;
+                // If Sell, diff is reversed (lower price = profit)
+                if (leg.side === 'Sell') {
+                    return (diff * -1) * qty;
+                }
+                // If Buy
+                return diff * qty;
+            },
+
+            calculatePanelPnL(panel) {
+                return panel.legs.reduce((total, leg) => total + this.calculateLegPnL(leg), 0);
+            },
+
+            formatPrice(val) {
+                return parseFloat(val).toFixed(2);
+            },
+
+            formatCurrency(val) {
+                let formatted = parseFloat(val).toFixed(2);
+                return formatted > 0 ? '+₹' + formatted : '₹' + formatted;
+            },
+
+            // WebSocket Integration
+            async initProtobuf() {
+                try {
+                    this.protobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
+                    console.log('Protobuf initialized');
+                } catch (e) {
+                    console.error('Error loading protobuf:', e);
+                }
+            },
+
+            async connectWebsocket() {
+                try {
+                    const authResponse = await axios.get('/trading-journal/ws-url');
+                    const wsUrl = authResponse.data.data.authorizedRedirectUri;
+
+                    this.socket = new WebSocket(wsUrl);
+                    this.socket.binaryType = "arraybuffer";
+
+                    this.socket.onopen = () => {
+                        this.wsConnected = true;
+                        this.subscribeToInstruments();
+                    };
+
+                    this.socket.onclose = () => {
+                        this.wsConnected = false;
+                        setTimeout(() => this.connectWebsocket(), 5000); // Reconnect
+                    };
+
+                    this.socket.onmessage = (event) => {
+                        if (typeof event.data === 'string') {
+                            console.log('WS Text:', event.data);
+                        } else {
+                            this.decodeProtobuf(event.data);
                         }
                     };
 
-                    this.socket.send(new TextEncoder().encode(JSON.stringify(data)));
-                },
-
-                decodeProtobuf(buffer) {
-                    if (!this.protobufRoot) return;
-
-                    try {
-                        let arr = new Uint8Array(buffer);
-                        if (arr.length > 0 && arr[0] === 123) { // '{' character
-                            console.log('WS JSON message:', new TextDecoder().decode(arr));
-                            return;
-                        }
-
-                        let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse");
-                        let message = FeedResponse.decode(arr);
-                        let obj = FeedResponse.toObject(message, { enums: String, bytes: String });
-
-                        if (obj.feeds) {
-                            let updated = false;
-                            for (const [key, feed] of Object.entries(obj.feeds)) {
-                                let ltp = null;
-                                if (feed.fullFeed && feed.fullFeed.marketFF && feed.fullFeed.marketFF.ltpc) {
-                                    ltp = feed.fullFeed.marketFF.ltpc.ltp;
-                                } else if (feed.fullFeed && feed.fullFeed.indexFF && feed.fullFeed.indexFF.ltpc) {
-                                    ltp = feed.fullFeed.indexFF.ltpc.ltp;
-                                } else if (feed.ltpc) {
-                                    ltp = feed.ltpc.ltp;
-                                }
-
-                                if (ltp !== null) {
-                                    this.livePrices[key] = ltp;
-                                    updated = true;
-                                }
-                            }
-                            if (updated) {
-                                // Trigger reactivity just in case
-                                this.livePrices = { ...this.livePrices };
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Protobuf decode error:', e);
-                    }
+                } catch (error) {
+                    console.error('WebSocket connection error:', error);
                 }
-            }));
-        });
-    </script>
+            },
+
+            subscribeToInstruments() {
+                if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+
+                // Collect all unique instrument keys
+                const keys = new Set();
+                this.panels.forEach(panel => {
+                    panel.legs.forEach(leg => {
+                        if (leg.instrument_key) keys.add(leg.instrument_key);
+                    });
+                });
+
+                if (keys.size === 0) return;
+
+                const data = {
+                    guid: "someguid",
+                    method: "sub",
+                    data: {
+                        mode: "full",
+                        instrumentKeys: Array.from(keys)
+                    }
+                };
+
+                this.socket.send(new TextEncoder().encode(JSON.stringify(data)));
+            },
+
+            decodeProtobuf(buffer) {
+                if (!this.protobufRoot) return;
+
+                try {
+                    let arr = new Uint8Array(buffer);
+                    if (arr.length > 0 && arr[0] === 123) { // '{' character
+                        console.log('WS JSON message:', new TextDecoder().decode(arr));
+                        return;
+                    }
+
+                    let FeedResponse = this.protobufRoot.lookupType("com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse");
+                    let message = FeedResponse.decode(arr);
+                    let obj = FeedResponse.toObject(message, { enums: String, bytes: String });
+
+                    if (obj.feeds) {
+                        let updated = false;
+                        for (const [key, feed] of Object.entries(obj.feeds)) {
+                            let ltp = null;
+                            if (feed.fullFeed && feed.fullFeed.marketFF && feed.fullFeed.marketFF.ltpc) {
+                                ltp = feed.fullFeed.marketFF.ltpc.ltp;
+                            } else if (feed.fullFeed && feed.fullFeed.indexFF && feed.fullFeed.indexFF.ltpc) {
+                                ltp = feed.fullFeed.indexFF.ltpc.ltp;
+                            } else if (feed.ltpc) {
+                                ltp = feed.ltpc.ltp;
+                            }
+
+                            if (ltp !== null) {
+                                this.livePrices[key] = ltp;
+                                updated = true;
+                            }
+                        }
+                        if (updated) {
+                            // Trigger reactivity just in case
+                            this.livePrices = { ...this.livePrices };
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Protobuf decode error:', e);
+                }
+            }
+        }));
+    });
+</script>
 </body>
 </html>
