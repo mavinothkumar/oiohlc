@@ -61,8 +61,51 @@ class GenerateDailyStrategies extends Command {
         $entryTime   = '09:16';
         $baseLotSize = 65; // Matches your UI frontend logic for 1 Lot
 
-        // 3. Define the Panels and their Legs
+        // 3a. Define the raw, uncombined legs for Daily IAO
+        $rawIaoLegs = [
+            // --- ITM Legs ---
+            [ 'strike' => $itm,       'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm,       'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm - 50,  'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm + 50,  'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- ATM Legs ---
+            [ 'strike' => $atm,       'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm,       'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 50,  'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 50,  'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- OTM Legs ---
+            [ 'strike' => $otm,       'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm,       'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm - 50,  'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm + 50,  'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+        ];
+
+        // 3b. Consolidate duplicates for Daily IAO by adding their quantities together
+        $consolidatedIaoLegs = [];
+        foreach ($rawIaoLegs as $leg) {
+            $key = $leg['strike'] . '_' . $leg['type'];
+            if (isset($consolidatedIaoLegs[$key])) {
+                $consolidatedIaoLegs[$key]['qty'] += $leg['qty'];
+            } else {
+                $consolidatedIaoLegs[$key] = $leg;
+            }
+        }
+
+        // 3c. Define the final Panels and their Legs
         $strategies = [
+            [
+                'name' => 'Daily IAO',
+                // We insert the cleanly merged array here
+                'legs' => array_values($consolidatedIaoLegs),
+            ],
             [
                 'name' => 'Daily ITM',
                 'legs' => [
@@ -136,6 +179,7 @@ class GenerateDailyStrategies extends Command {
                     [ 'strike' => $atm - 200, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
                 ],
             ],
+
         ];
 
         // 4. Insert into Database
