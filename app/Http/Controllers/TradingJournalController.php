@@ -18,11 +18,16 @@ class TradingJournalController extends Controller {
     public function getPanels() {
         $panels = StrategyPanel::with( 'legs' )->orderBy( 'sort_order', 'asc' )->get();
 
-        $currentExpiry = DB::table( 'nse_expiries' )->where( 'is_current', 1 )->value( 'expiry' );
+        $currentExpiry = DB::table( 'nse_expiries' )
+                           ->where( 'is_current', 1 )
+                           ->where( 'trading_symbol', 'NIFTY' )
+                           ->where( 'instrument_type', 'OPT' )
+                           ->value( 'expiry' );
         // Fallback if no next flag, just get the next date after current
         $nextExpiry = DB::table( 'nse_expiries' )
-                        ->where( 'expiry', '>', $currentExpiry )
-                        ->orderBy( 'expiry', 'asc' )
+                        ->where( 'is_next', 1 )
+                        ->where( 'instrument_type', 'OPT' )
+                        ->where( 'trading_symbol', 'NIFTY' )
                         ->value( 'expiry' );
 
         foreach ( $panels as $panel ) {
@@ -94,17 +99,17 @@ class TradingJournalController extends Controller {
         return response()->json( [ 'success' => true ] );
     }
 
-    public function reorderPanels(Request $request) {
-        $validated = $request->validate([
+    public function reorderPanels( Request $request ) {
+        $validated = $request->validate( [
             'ordered_ids'   => 'required|array',
             'ordered_ids.*' => 'integer|exists:strategy_panels,id',
-        ]);
+        ] );
 
-        foreach ($validated['ordered_ids'] as $index => $id) {
-            StrategyPanel::where('id', $id)->update(['sort_order' => $index]);
+        foreach ( $validated['ordered_ids'] as $index => $id ) {
+            StrategyPanel::where( 'id', $id )->update( [ 'sort_order' => $index ] );
         }
 
-        return response()->json(['success' => true]);
+        return response()->json( [ 'success' => true ] );
     }
 
     public function getWsUrl() {
