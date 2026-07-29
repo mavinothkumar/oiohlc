@@ -32,6 +32,7 @@ class GenerateDailyStrategies extends Command {
         // 1. Get the current expiry date
         $currentExpiry = DB::table( 'nse_expiries' )
                            ->where( 'is_current', 1 )
+                           ->where( 'instrument_type', 'OPT' )
                            ->value( 'expiry_date' );
 
         if ( ! $currentExpiry ) {
