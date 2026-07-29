@@ -59,7 +59,7 @@ class GenerateDailyStrategies extends Command {
         $itm = $atm - 50;
         $otm = $atm + 50;
 
-        $entryTime   = '09:16';
+        $entryTime   = '09:20';
         $baseLotSize = 65; // Matches your UI frontend logic for 1 Lot
 
         // 3a. Define the raw, uncombined legs for Daily IAO
