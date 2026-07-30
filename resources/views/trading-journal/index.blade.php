@@ -85,7 +85,7 @@
                     </div>
 
                     <div class="flex items-center gap-4 mt-4 sm:mt-0">
-                        <div class="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-3">
+                        <div class="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-3 min-w-[230px]">
                             <span class="text-sm text-slate-400">Total P&L:</span>
                             <span class="font-bold text-lg" :class="calculatePanelPnL(panel) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculatePanelPnL(panel))"></span>
                         </div>
