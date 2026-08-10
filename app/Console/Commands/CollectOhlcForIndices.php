@@ -13,12 +13,13 @@ class CollectOhlcForIndices extends Command
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
     public $index_instruments = [
         //'BSE_INDEX|BANKEX',
-        'BSE_INDEX|SENSEX',
+        //'BSE_INDEX|SENSEX',
         'NSE_INDEX|Nifty 50',
-        'NSE_INDEX|Nifty Bank',
+        //'NSE_INDEX|Nifty Bank',
         // 'NSE_INDEX|Nifty Fin Service',
     ];
-    public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
+    //public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
+    public $indices = ['NIFTY']; //, 'FINNIFTY', 'BANKNIFTY', 'SENSEX'
     public $quoteDate;
     public $workingDay;
     public $currentDay;
@@ -144,7 +145,7 @@ class CollectOhlcForIndices extends Command
                     ]
                 );
                 $expiry = $expiry ?? null;
-                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".$this->currentDay->working_date);
+                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".$fromDate);
             }
         }
 
