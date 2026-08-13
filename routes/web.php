@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BacktestStrategyController;
 use App\Http\Controllers\OptionLevelMatchController;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -224,7 +225,31 @@ Route::prefix( 'test' )->name( 'test.' )->group( function () {
 Route::prefix( 'backtest' )->name( 'backtest.' )->group( function () {
     Route::get( '/', [ App\Http\Controllers\BacktestController::class, 'index' ] )->name( 'index' );
     Route::get( '/trades', [ App\Http\Controllers\BacktestController::class, 'trades' ] )->name( 'trades' );
+
+    Route::prefix('strategies')
+         ->name('strategies.')
+        // Add ->middleware('auth') here if this is an authenticated admin area.
+         ->group(function (): void {
+            Route::get('/', [BacktestStrategyController::class, 'index'])
+                 ->name('index');
+            Route::get('/create', [BacktestStrategyController::class, 'create'])
+                 ->name('create');
+            Route::post('/', [BacktestStrategyController::class, 'store'])
+                 ->name('store');
+            Route::get('/{id}/edit', [BacktestStrategyController::class, 'edit'])
+                 ->name('edit');
+            Route::put('/{id}', [BacktestStrategyController::class, 'update'])
+                 ->name('update');
+            Route::post('/{id}/clone', [BacktestStrategyController::class, 'clone'])
+                 ->name('clone');
+            Route::delete('/{id}', [BacktestStrategyController::class, 'destroy'])
+                 ->name('destroy');
+        });
+
 } );
+
+Route::get('/backtests/basket-builder', [BasketBuilderController::class, 'index'])
+     ->name('backtests.basket-builder');
 
 Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
     Route::get('/', [App\Http\Controllers\TradingJournalController::class, 'index'])->name('index');
