@@ -35,12 +35,23 @@
         </div>
         <div class="flex gap-4 items-center">
             <div class="flex items-center gap-2">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" x-show="wsConnected"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3" :class="wsConnected ? 'bg-emerald-500' : 'bg-red-500'"></span>
-                    </span>
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" x-show="wsConnected"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3" :class="wsConnected ? 'bg-emerald-500' : 'bg-red-500'"></span>
+            </span>
                 <span class="text-sm text-slate-400" x-text="wsConnected ? 'Live Feed Connected' : 'Disconnected'"></span>
             </div>
+
+            <!-- New Strategy from Template Button -->
+            <button @click="openTemplateModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-indigo-500/30 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7z" />
+                    <path fill-rule="evenodd" d="M4 7a1 1 0 011-1h10a1 1 0 011 1v11a1 1 0 01-1 1H5a1 1 0 01-1-1V7zm3 4a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                </svg>
+                New Strategy from Template
+            </button>
+
+            <!-- Existing Blank Panel Button -->
             <button @click="addNewPanel()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/30 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
@@ -196,6 +207,53 @@
     </div>
 </div>
 
+<!-- Modal Popup: New Strategy From Template -->
+<div x-show="showTemplateModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Backdrop -->
+        <div x-show="showTemplateModal" @click="showTemplateModal = false" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <!-- Modal Card -->
+        <div class="inline-block align-bottom glass-panel rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6 border border-slate-700">
+            <h3 class="text-xl font-bold text-white mb-4">Generate Strategy from Template</h3>
+
+            <form @submit.prevent="generateFromTemplate()">
+                <div class="space-y-4">
+                    <!-- Strategy Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Select Strategy</label>
+                        <select x-model="templateForm.strategy_id" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Choose Strategy --</option>
+                            <template x-for="strat in backtestStrategies" :key="strat.id">
+                                <option :value="strat.id" x-text="strat.name + ' (v' + strat.version + ')'"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- NIFTY ATM Strike Input -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">NIFTY Index ATM Strike</label>
+                        <input type="number" step="50" x-model="templateForm.atm" placeholder="e.g. 24500" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        <p class="text-xs text-slate-500 mt-1">Legs will be auto-calculated (ITM: ATM-50 | OTM: ATM+50)</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" @click="showTemplateModal = false" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" :disabled="isGenerating" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+                        <span x-show="!isGenerating">Generate Legs</span>
+                        <span x-show="isGenerating">Generating...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('tradingJournal', () => ({
@@ -205,10 +263,62 @@
             socket: null,
             protobufRoot: null,
 
+            // Modal State
+            showTemplateModal: false,
+            isGenerating: false,
+            backtestStrategies: [
+                // Standard backtest strategies catalog (hydrated directly or fetched via API)
+                {
+                    "id": 1,
+                    "slug": "daily-oai",
+                    "name": "Daily OAI",
+                    "version": 2
+                }
+            ],
+            templateForm: {
+                strategy_id: 1,
+                atm: ''
+            },
+
             async init() {
                 await this.fetchPanels();
                 await this.initProtobuf();
                 await this.connectWebsocket();
+            },
+
+            openTemplateModal() {
+                this.showTemplateModal = true;
+            },
+
+            async generateFromTemplate() {
+                if (!this.templateForm.strategy_id || !this.templateForm.atm) {
+                    alert('Please select strategy and enter ATM strike.');
+                    return;
+                }
+
+                this.isGenerating = true;
+
+                try {
+                    const response = await axios.post('/trading-journal/from-template', {
+                        strategy_id: this.templateForm.strategy_id,
+                        atm: this.templateForm.atm
+                    });
+
+                    if (response.data.success) {
+                        // Refetch panels to reflect updated keys and entries
+                        await this.fetchPanels();
+                        this.subscribeToInstruments();
+                        this.showTemplateModal = false;
+
+                        // Reset form
+                        this.templateForm.atm = '';
+                    }
+                } catch (error) {
+                    console.error('Error generating strategy from template:', error);
+                    alert(error.response?.data?.error || 'Failed to generate strategy.');
+                } finally {
+                    this.isGenerating = false;
+                }
             },
 
             async fetchPanels() {

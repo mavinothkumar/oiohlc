@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BacktestStrategyController;
+use App\Http\Controllers\BasketBuilderController;
 use App\Http\Controllers\OptionLevelMatchController;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -258,4 +259,6 @@ Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
     Route::post('/panel/delete/{id}', [App\Http\Controllers\TradingJournalController::class, 'deletePanel'])->name('panel.delete');
     Route::get('/ws-url', [App\Http\Controllers\TradingJournalController::class, 'getWsUrl'])->name('ws-url');
     Route::post('/panel/reorder', [App\Http\Controllers\TradingJournalController::class, 'reorderPanels'])->name('panel.reorder');
+
+    Route::post('/from-template', [App\Http\Controllers\TradingJournalController::class, 'generateFromTemplate'])->name('from-template');
 });

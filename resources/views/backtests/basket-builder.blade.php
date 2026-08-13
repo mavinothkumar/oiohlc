@@ -3,9 +3,9 @@
 @section('content')
     <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div class="mb-8">
-            <a href="{{ route('backtests.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-                ← Backtest dashboard
-            </a>
+{{--            <a href="{{ route('backtests.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">--}}
+{{--                ← Backtest dashboard--}}
+{{--            </a>--}}
 
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">
                 Basket Builder

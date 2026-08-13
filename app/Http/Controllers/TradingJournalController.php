@@ -129,4 +129,77 @@ class TradingJournalController extends Controller {
 
         return response()->json( [ 'error' => 'Failed to fetch WS URL', 'details' => $response->body() ], $response->status() );
     }
+
+    public function generateFromTemplate( Request $request ) {
+        $validated = $request->validate([
+            'strategy_id' => 'required|integer',
+            'atm'         => 'required|numeric',
+        ]);
+
+        // 1. Fetch template strategy definition
+        $strategy = DB::table('backtest_strategies')->where('id', $validated['strategy_id'])->first();
+        if (!$strategy) {
+            return response()->json(['error' => 'Strategy template not found.'], 404);
+        }
+
+        $definition = json_decode($strategy->definition, true);
+        $parameters = json_decode($strategy->parameters, true);
+
+        $atm = (float) $validated['atm'];
+        $entryTime = $parameters['entry_time'] ?? '09:15';
+
+        // 2. Create Strategy Panel
+        $panel = StrategyPanel::create([
+            'name'       => $strategy->name . ' (ATM ' . $atm . ')',
+            'entry_time' => $entryTime,
+            'sort_order' => StrategyPanel::max('sort_order') + 1,
+        ]);
+
+        $legsData = [];
+        if (isset($definition['legs']) && is_array($definition['legs'])) {
+            foreach ($definition['legs'] as $legDef) {
+                $moneyness    = strtoupper($legDef['moneyness'] ?? 'ATM');
+                $offset       = (float) ($legDef['strike_offset'] ?? 0);
+                $optionType   = strtoupper($legDef['option_type'] ?? 'CE');
+                $lots         = (int) ($legDef['lots'] ?? 1);
+                $side         = ucfirst(strtolower($legDef['side'] ?? 'Sell'));
+
+                // Standard NIFTY lot size multiplier is 65 (adjust if needed)
+                $quantity = $lots * 65;
+
+                // Calculate Base Strike based on Moneyness rules
+                $baseStrike = $atm;
+                if ($moneyness === 'ITM') {
+                    $baseStrike = $atm - 50;
+                } elseif ($moneyness === 'OTM') {
+                    $baseStrike = $atm + 50;
+                }
+
+                // Calculate final Strike using offset
+                if ($optionType === 'CE') {
+                    $strikePrice = $baseStrike + $offset;
+                } else {
+                    $strikePrice = $baseStrike - $offset;
+                }
+
+                $legsData[] = [
+                    'strike_price' => $strikePrice,
+                    'option_type'  => $optionType,
+                    'expiry_type'  => 'Current',
+                    'quantity'     => $quantity,
+                    'side'         => $side,
+                ];
+            }
+        }
+
+        // Save legs
+        foreach ($legsData as $leg) {
+            $panel->legs()->create($leg);
+        }
+
+        return response()->json([
+            'success' => true,
+            'panel'   => $panel->load('legs'),
+        ]);
+    }
 }
