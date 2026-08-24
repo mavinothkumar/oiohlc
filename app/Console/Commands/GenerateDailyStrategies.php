@@ -60,6 +60,8 @@ class GenerateDailyStrategies extends Command {
         $otm   = $atm + 50;
         $itm_2 = $itm - 50;
         $otm_2 = $otm + 50;
+        $itm_3 = $itm_2 - 50;
+        $otm_3 = $otm_2 + 50;
 
         $entryTime   = '09:20';
         $baseLotSize = 65; // Matches your UI frontend logic for 1 Lot
@@ -131,6 +133,81 @@ class GenerateDailyStrategies extends Command {
             [ 'strike' => $otm_2 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
             [ 'strike' => $otm_2 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
         ];
+        $rawIaoLegs_v3 = [
+            // --- ITM Legs v 3 ---
+            [ 'strike' => $itm_3, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3 - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3 + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+
+            // --- ITM Legs v 2 ---
+            [ 'strike' => $itm_2, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_2, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_2 - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_2 + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_2 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_2 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- ITM Legs ---
+            [ 'strike' => $itm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- ATM Legs ---
+            [ 'strike' => $atm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- OTM Legs ---
+            [ 'strike' => $otm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- OTM Legs v 2 ---
+            [ 'strike' => $otm_2, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2 - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2 + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+
+            // --- OTM Legs v 3 ---
+            [ 'strike' => $otm_3, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3 - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3 + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+        ];
+
+        $rawIaoLegs_v4 = [
+            // --- ITM Legs ---
+            [ 'strike' => $itm, 'type' => 'CE', 'qty' => 2 * $baseLotSize ],
+            [ 'strike' => $itm, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
+            // --- ATM Legs ---
+            [ 'strike' => $atm, 'type' => 'CE', 'qty' => 2 * $baseLotSize ],
+            [ 'strike' => $atm, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
+            // --- OTM Legs ---
+            [ 'strike' => $otm, 'type' => 'CE', 'qty' => 2 * $baseLotSize ],
+            [ 'strike' => $otm, 'type' => 'PE', 'qty' => 2 * $baseLotSize ],
+            // OTM Legs
+            [ 'strike' => $itm_2, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_2, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $itm_3, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $otm_3, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+        ];
 
         // 3b. Consolidate duplicates for Daily IAO by adding their quantities together
 
@@ -144,6 +221,14 @@ class GenerateDailyStrategies extends Command {
             [
                 'name' => 'Daily 2IA2O',
                 'legs' => array_values( $this->consolidateLegs( $rawIaoLegs_v2 ) ),
+            ],
+            [
+                'name' => 'Daily 3IA3O',
+                'legs' => array_values( $this->consolidateLegs( $rawIaoLegs_v3 ) ),
+            ],
+            [
+                'name' => 'Daily 2(IAO)2O',
+                'legs' => array_values( $this->consolidateLegs( $rawIaoLegs_v4 ) ),
             ],
             [
                 'name' => 'Daily ITM',
