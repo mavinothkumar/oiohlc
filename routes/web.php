@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\BacktestStrategyController;
 use App\Http\Controllers\BasketBuilderController;
+use App\Http\Controllers\FiiDiiController;
 use App\Http\Controllers\OptionLevelMatchController;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,12 @@ Route::get( 'test', [ '\App\Http\Controllers\OhlcChartController', 'ohlc' ] );
 Route::get( '/snipper-point', [ App\Http\Controllers\SnipperPointController::class, 'index' ] )->name( 'snipper-point' );
 Route::get( '/mid-point', [ MidPointController::class, 'index' ] )->name( 'mid-point.index' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
+
+// FII & DII Activity
+Route::get( '/fii-dii', [ FiiDiiController::class, 'index' ] )->name( 'fii-dii.index' );
+Route::get( '/api/fii-dii/data', [ FiiDiiController::class, 'data' ] )->name( 'fii-dii.data' );
+
+
 Route::get( '/option-chain', [ App\Http\Controllers\OptionChainController::class, 'index' ] )->name( 'option.chain' );
 Route::get( '/buildups', [ App\Http\Controllers\BuildUpSummaryController::class, 'index' ] )->name( 'buildups.index' );
 Route::get( '/buildup/strike', [ App\Http\Controllers\BuildUpSummaryController::class, 'strike' ] )->name( 'buildups.strike' );

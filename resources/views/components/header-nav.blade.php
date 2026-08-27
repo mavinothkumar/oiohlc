@@ -9,6 +9,10 @@
             <div class="hidden md:flex md:items-center space-x-4">
                 <!-- Normal Links -->
                 <a href="{{ route('home') }}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded">Dashboard</a>
+                <a href="{{ route('fii-dii.index') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition text-sm shadow-sm">
+                    📊 FII &amp; DII
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">

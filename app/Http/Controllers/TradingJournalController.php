@@ -80,9 +80,20 @@ class TradingJournalController extends Controller {
             'legs.*.side'         => 'required|string|in:Buy,Sell',
         ] );
 
+        $isNew = empty( $validated['id'] );
+
+        if ( $isNew ) {
+            // Shift all existing panels down to make room at the top (sort_order = 0)
+            StrategyPanel::query()->increment( 'sort_order' );
+        }
+
         $panel = StrategyPanel::updateOrCreate(
             [ 'id' => $validated['id'] ?? null ],
-            [ 'name' => $validated['name'], 'entry_time' => $validated['entry_time'] ]
+            [
+                'name'       => $validated['name'],
+                'entry_time' => $validated['entry_time'],
+                'sort_order' => $isNew ? 0 : DB::raw( 'sort_order' ), // keep existing order on update
+            ]
         );
 
         $panel->legs()->delete();

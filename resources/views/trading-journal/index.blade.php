@@ -321,22 +321,31 @@
                 }
             },
 
-            async fetchPanels() {
+            async fetchPanels(mergeOnly = false) {
                 try {
                     const response = await axios.get('/trading-journal/data');
 
-                    // NEW: Read the saved states from localStorage
+                    // Read the saved states from localStorage
                     let savedState = JSON.parse(localStorage.getItem('trading_panel_states')) || {};
 
-                    // Map over the data to inject 'is_expanded' based on browser history. Default is true.
-                    this.panels = response.data.map(panel => {
-                        let isExpanded = savedState[panel.id] !== undefined ? savedState[panel.id] : true;
+                    if (mergeOnly && this.panels.length > 0) {
+                        // Merge-only mode: update each panel's legs/prices in-place by id,
+                        // preserving the current UI order (no reordering from backend).
+                        const fetchedMap = {};
+                        response.data.forEach(p => { fetchedMap[p.id] = p; });
 
-                        return {
-                            ...panel,
-                            is_expanded: isExpanded
-                        };
-                    });
+                        this.panels = this.panels.map(panel => {
+                            const fresh = panel.id ? fetchedMap[panel.id] : null;
+                            if (!fresh) return panel; // unsaved/new panel — leave untouched
+                            return { ...fresh, is_expanded: panel.is_expanded };
+                        });
+                    } else {
+                        // Full replace: order comes from backend (sort_order asc)
+                        this.panels = response.data.map(panel => {
+                            let isExpanded = savedState[panel.id] !== undefined ? savedState[panel.id] : true;
+                            return { ...panel, is_expanded: isExpanded };
+                        });
+                    }
                 } catch (error) {
                     console.error('Error fetching panels:', error);
                 }
@@ -446,10 +455,21 @@
                 try {
                     const response = await axios.post('/trading-journal/panel', panel);
                     if (response.data.success) {
-                        // Re-fetch to get accurate entry_prices and instrument_keys updated by backend
-                        await this.fetchPanels();
+                        const saved = response.data.panel;
+
+                        // For brand-new panels (no id yet), assign the real id first so
+                        // fetchPanels(mergeOnly) can match it in the panels array by id.
+                        if (!panel.id) {
+                            const idx = this.panels.findIndex(p => p === panel);
+                            if (idx !== -1) {
+                                this.panels[idx] = { ...this.panels[idx], id: saved.id };
+                            }
+                        }
+
+                        // Merge-fetch: pulls entry_price / instrument_key from backend
+                        // without reordering the panels array.
+                        await this.fetchPanels(true);
                         this.subscribeToInstruments();
-                        // Optional: Show success toast
                     }
                 } catch (error) {
                     console.error('Error saving panel:', error);
