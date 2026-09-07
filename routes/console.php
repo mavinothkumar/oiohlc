@@ -53,19 +53,19 @@ Schedule::command( 'nse:populate-working-days' ) // php artisan nse:populate-wor
 //
 
 Schedule::command( 'trend:update-index-open' ) // php artisan trend:update-index-open
-        ->dailyAt( '09:08' )
+        ->dailyAt( '09:13' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/update-index-open.log' ) );
 
 Schedule::command( 'trading:generate-daily-strategies' ) // php artisan trading:generate-daily-strategies
-        ->dailyAt( '09:10' )
+        ->dailyAt( '09:14' )
         ->timezone( 'Asia/Kolkata' )
         ->appendOutputTo( storage_path( 'logs/generate-daily-strategies.log' ) );
 
 
 Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
         ->everyMinute()
-        ->between('9:14', '15:30')
+        ->between('9:15', '15:30')
         ->timezone('Asia/Kolkata')
         ->withoutOverlapping()
         ->runInBackground()

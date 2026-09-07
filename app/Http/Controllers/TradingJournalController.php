@@ -123,6 +123,16 @@ class TradingJournalController extends Controller {
         return response()->json( [ 'success' => true ] );
     }
 
+    public function updateAllTimes( Request $request ) {
+        $validated = $request->validate( [
+            'entry_time' => 'required',
+        ] );
+
+        StrategyPanel::query()->update( [ 'entry_time' => $validated['entry_time'] ] );
+
+        return response()->json( [ 'success' => true ] );
+    }
+
     public function getWsUrl() {
         $token = config( 'services.upstox.analytics_token' );
         if ( ! $token ) {

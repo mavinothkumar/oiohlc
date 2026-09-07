@@ -28,17 +28,38 @@
 <body class="bg-slate-900 text-slate-200 min-h-screen font-sans" x-data="tradingJournal()">
 
 <div class="container mx-auto px-4 py-8">
-    <header class="flex justify-between items-center mb-8">
+    <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
         <div>
             <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Trading Journal</h1>
             <p class="text-slate-400 mt-1">Live Strategy Tracker (Upstox WebSocket)</p>
         </div>
-        <div class="flex gap-4 items-center">
-            <div class="flex items-center gap-2">
-            <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" x-show="wsConnected"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3" :class="wsConnected ? 'bg-emerald-500' : 'bg-red-500'"></span>
-            </span>
+        <div class="flex flex-wrap gap-3 items-center">
+            <!-- Common / Bulk Time Update Control -->
+            <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 rounded-lg shadow-lg">
+                <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Common Time:
+                </span>
+                <input type="time" x-model="commonEntryTime" min="09:15" max="15:30" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm text-white focus:ring-2 focus:ring-amber-500 outline-none">
+                <button @click="updateAllTimes()" :disabled="isUpdatingTimes" class="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm" title="Apply this time to all strategies and recalculate entry prices">
+                    <svg x-show="!isUpdatingTimes" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <svg x-show="isUpdatingTimes" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span x-text="isUpdatingTimes ? 'Updating...' : 'Apply to All'"></span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-800/50 border border-slate-700/50 px-3 py-2 rounded-lg">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" x-show="wsConnected"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3" :class="wsConnected ? 'bg-emerald-500' : 'bg-red-500'"></span>
+                </span>
                 <span class="text-sm text-slate-400" x-text="wsConnected ? 'Live Feed Connected' : 'Disconnected'"></span>
             </div>
 
@@ -137,9 +158,9 @@
                             </thead>
                             <tbody class="text-sm">
                             <template x-for="(leg, lIndex) in panel.legs" :key="lIndex">
-                                <tr class="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
+                                <tr :class="isChangeAlert(leg) ? 'bg-rose-950/40 border-b border-rose-800/40 hover:bg-rose-900/40 transition-colors' : 'border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors'">
                                     <td class="py-3 px-2">
-                                        <input type="number" x-model="leg.strike_price" placeholder="Strike" class="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none">
+                                        <input type="number" x-model="leg.strike_price" placeholder="Strike" :class="isChangeAlert(leg) ? 'w-24 bg-slate-900 border border-rose-500/70 text-rose-200 rounded px-2 py-1 focus:ring-1 focus:ring-rose-500 outline-none' : 'w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none'">
                                     </td>
                                     <td class="py-3 px-2">
                                         <select x-model="leg.option_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white">
@@ -169,7 +190,9 @@
                                     <td class="py-3 px-2 text-right font-mono" x-text="formatPrice(leg.entry_price)"></td>
                                     <td class="py-3 px-2 text-right font-mono font-medium text-emerald-400" x-text="formatPrice(getLivePrice(leg))"></td>
                                     <td class="py-3 px-2 text-right font-mono" :class="getDiffPts(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="getDiffPts(leg) > 0 ? '+'+getDiffPts(leg).toFixed(2) : getDiffPts(leg).toFixed(2)"></td>
-                                    <td class="py-3 px-2 text-right font-mono text-xs" :class="getChangePct(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></td>
+                                    <td class="py-3 px-2 text-right font-mono text-xs">
+                                        <span :class="isChangeAlert(leg) ? 'inline-block bg-rose-500/25 text-rose-300 border border-rose-500/50 font-bold px-1.5 py-0.5 rounded shadow-sm' : (getChangePct(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400')" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></span>
+                                    </td>
                                     <td class="py-3 px-2 text-right font-mono font-bold" :class="calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculateLegPnL(leg))"></td>
                                     <td class="py-3 px-2 text-center">
                                         <button @click="panel.legs.splice(lIndex, 1)" class="text-slate-500 hover:text-rose-400 transition-colors p-1" title="Remove Leg">
@@ -263,6 +286,10 @@
             socket: null,
             protobufRoot: null,
 
+            // Common Time State
+            commonEntryTime: '09:15',
+            isUpdatingTimes: false,
+
             // Modal State
             showTemplateModal: false,
             isGenerating: false,
@@ -288,6 +315,41 @@
 
             openTemplateModal() {
                 this.showTemplateModal = true;
+            },
+
+            async updateAllTimes() {
+                if (!this.commonEntryTime) {
+                    alert('Please select a valid time.');
+                    return;
+                }
+
+                if (this.panels.length === 0) {
+                    alert('No strategies available to update.');
+                    return;
+                }
+
+                // 1. Instantly update all panels in local state
+                this.panels.forEach(panel => {
+                    panel.entry_time = this.commonEntryTime;
+                });
+
+                this.isUpdatingTimes = true;
+
+                try {
+                    // 2. Persist in database for all panels
+                    await axios.post('/trading-journal/update-all-times', {
+                        entry_time: this.commonEntryTime
+                    });
+
+                    // 3. Re-fetch panels in merge-only mode to update entry_price matching new entry time without disturbing panel orders
+                    await this.fetchPanels(true);
+                    this.subscribeToInstruments();
+                } catch (error) {
+                    console.error('Error updating all strategy times:', error);
+                    alert('Failed to update all strategy times.');
+                } finally {
+                    this.isUpdatingTimes = false;
+                }
             },
 
             async generateFromTemplate() {
@@ -509,6 +571,13 @@
                 let entry = parseFloat(leg.entry_price) || 0;
                 if (entry === 0) return 0;
                 return (diff / entry) * 100;
+            },
+
+            isChangeAlert(leg) {
+                let entry = parseFloat(leg.entry_price) || 0;
+                if (entry === 0) return false;
+                let pct = this.getChangePct(leg);
+                return pct <= -50;
             },
 
             calculateLegPnL(leg) {

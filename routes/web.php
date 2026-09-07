@@ -31,6 +31,9 @@ Route::get( '/api/fii-dii/data', [ FiiDiiController::class, 'data' ] )->name( 'f
 
 
 Route::get( '/option-chain', [ App\Http\Controllers\OptionChainController::class, 'index' ] )->name( 'option.chain' );
+Route::get( '/option-chain-view', [ App\Http\Controllers\OptionChainViewController::class, 'index' ] )->name( 'option-chain-view' );
+Route::get( '/api/option-chain-view/data', [ App\Http\Controllers\OptionChainViewController::class, 'getData' ] )->name( 'api.option-chain-view.data' );
+Route::get( '/api/option-chain-view/expiries', [ App\Http\Controllers\OptionChainViewController::class, 'getExpiries' ] )->name( 'api.option-chain-view.expiries' );
 Route::get( '/buildups', [ App\Http\Controllers\BuildUpSummaryController::class, 'index' ] )->name( 'buildups.index' );
 Route::get( '/buildup/strike', [ App\Http\Controllers\BuildUpSummaryController::class, 'strike' ] )->name( 'buildups.strike' );
 Route::get( '/option-chain-diff', [ App\Http\Controllers\OptionChainDiffController::class, 'index' ] )->name( 'option-chain-diff' );
@@ -266,6 +269,7 @@ Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
     Route::post('/panel/delete/{id}', [App\Http\Controllers\TradingJournalController::class, 'deletePanel'])->name('panel.delete');
     Route::get('/ws-url', [App\Http\Controllers\TradingJournalController::class, 'getWsUrl'])->name('ws-url');
     Route::post('/panel/reorder', [App\Http\Controllers\TradingJournalController::class, 'reorderPanels'])->name('panel.reorder');
+    Route::post('/update-all-times', [App\Http\Controllers\TradingJournalController::class, 'updateAllTimes'])->name('update-all-times');
 
     Route::post('/from-template', [App\Http\Controllers\TradingJournalController::class, 'generateFromTemplate'])->name('from-template');
 });
