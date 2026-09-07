@@ -131,8 +131,34 @@ class OptionChainViewController extends Controller
         $peOi     = $rows->where('option_type', 'PE')->sum('oi');
         $totalPcr = $ceOi > 0 ? round($peOi / $ceOi, 3) : null;
 
-        $ceDiffOi  = $rows->where('option_type', 'CE')->sum('diff_oi');
-        $peDiffOi  = $rows->where('option_type', 'PE')->sum('diff_oi');
+        // ── Sum diff_oi and diff_volume across the selected time interval ─────
+        $intervalSums = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->whereDate('captured_at', $date)
+            ->whereTime('captured_at', '>=', $startTime . ':00')
+            ->whereTime('captured_at', '<=', $endTime . ':59')
+            ->groupBy('strike_price', 'option_type')
+            ->select(
+                'strike_price',
+                'option_type',
+                DB::raw('SUM(COALESCE(diff_oi, 0)) as total_diff_oi'),
+                DB::raw('SUM(COALESCE(diff_volume, 0)) as total_diff_volume')
+            )
+            ->get()
+            ->keyBy(function ($item) {
+                return ((int)$item->strike_price) . '_' . $item->option_type;
+            });
+
+        $ceDiffOi = 0;
+        $peDiffOi = 0;
+        foreach ($intervalSums as $item) {
+            if ($item->option_type === 'CE') {
+                $ceDiffOi += (int) $item->total_diff_oi;
+            } elseif ($item->option_type === 'PE') {
+                $peDiffOi += (int) $item->total_diff_oi;
+            }
+        }
         $changePcr = $ceDiffOi != 0 ? round($peDiffOi / $ceDiffOi, 3) : null;
 
         // ── Pivot rows into strike-keyed array ───────────────────────────────
@@ -149,14 +175,18 @@ class OptionChainViewController extends Controller
                 : max(0, $strike - $spot);
             $timeValue = max(0, $ltpVal - $intrinsic);
 
+            $sumKey     = $strike . '_' . $type;
+            $diffOiSum  = isset($intervalSums[$sumKey]) ? (int) $intervalSums[$sumKey]->total_diff_oi : (int) ($r->diff_oi ?? 0);
+            $diffVolSum = isset($intervalSums[$sumKey]) ? (int) $intervalSums[$sumKey]->total_diff_volume : (int) ($r->diff_volume ?? 0);
+
             $strikeMap[$strike][$type] = [
                 'ltp'         => $ltpVal,
                 'diff_ltp'    => (float) ($r->diff_ltp ?? 0),
                 'ltp_pct'     => $ltpPct,
                 'volume'      => (int) ($r->volume ?? 0),
-                'diff_volume' => (int) ($r->diff_volume ?? 0),
+                'diff_volume' => $diffVolSum,
                 'oi'          => (int) ($r->oi ?? 0),
-                'diff_oi'     => (int) ($r->diff_oi ?? 0),
+                'diff_oi'     => $diffOiSum,
                 'prev_oi'     => (int) ($r->prev_oi ?? 0),
                 'iv'          => (float) ($r->iv ?? 0),
                 'delta'       => (float) ($r->delta ?? 0),

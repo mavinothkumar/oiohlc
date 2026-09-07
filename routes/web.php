@@ -34,6 +34,10 @@ Route::get( '/option-chain', [ App\Http\Controllers\OptionChainController::class
 Route::get( '/option-chain-view', [ App\Http\Controllers\OptionChainViewController::class, 'index' ] )->name( 'option-chain-view' );
 Route::get( '/api/option-chain-view/data', [ App\Http\Controllers\OptionChainViewController::class, 'getData' ] )->name( 'api.option-chain-view.data' );
 Route::get( '/api/option-chain-view/expiries', [ App\Http\Controllers\OptionChainViewController::class, 'getExpiries' ] )->name( 'api.option-chain-view.expiries' );
+Route::get( '/trending-oi', [ App\Http\Controllers\TrendingOiController::class, 'index' ] )->name( 'trending-oi.index' );
+Route::get( '/api/trending-oi/data', [ App\Http\Controllers\TrendingOiController::class, 'getData' ] )->name( 'api.trending-oi.data' );
+Route::get( '/api/trending-oi/expiries', [ App\Http\Controllers\TrendingOiController::class, 'getExpiries' ] )->name( 'api.trending-oi.expiries' );
+Route::get( '/api/trending-oi/strikes', [ App\Http\Controllers\TrendingOiController::class, 'getStrikes' ] )->name( 'api.trending-oi.strikes' );
 Route::get( '/buildups', [ App\Http\Controllers\BuildUpSummaryController::class, 'index' ] )->name( 'buildups.index' );
 Route::get( '/buildup/strike', [ App\Http\Controllers\BuildUpSummaryController::class, 'strike' ] )->name( 'buildups.strike' );
 Route::get( '/option-chain-diff', [ App\Http\Controllers\OptionChainDiffController::class, 'index' ] )->name( 'option-chain-diff' );

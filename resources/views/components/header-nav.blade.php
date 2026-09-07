@@ -23,6 +23,7 @@
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('option-chain-view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-blue-700">📋 Option Chain View</a>
+                        <a href="{{ route('trending-oi.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-red-700">📈 Trending OI</a>
                         <a href="{{ route('trading-journal.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Journal</a>
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
                         <a href="{{ route('strike.optimizer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strike Premium Identifier</a>
