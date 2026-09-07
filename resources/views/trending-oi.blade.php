@@ -650,6 +650,7 @@
 
     // ── Render Charts ────────────────────────────────────────────────────────
     function renderCharts(chartData) {
+        applyGraphHeight();
         const labels    = chartData.labels || [];
         const callOi    = chartData.call_oi || [];
         const putOi     = chartData.put_oi || [];
