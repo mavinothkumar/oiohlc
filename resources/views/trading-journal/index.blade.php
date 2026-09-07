@@ -287,7 +287,7 @@
             protobufRoot: null,
 
             // Common Time State
-            commonEntryTime: '09:15',
+            commonEntryTime: '09:20',
             isUpdatingTimes: false,
 
             // Modal State
