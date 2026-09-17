@@ -23,6 +23,9 @@ Route::get( 'test', [ '\App\Http\Controllers\OhlcChartController', 'ohlc' ] );
 
 Route::get( '/snipper-point', [ App\Http\Controllers\SnipperPointController::class, 'index' ] )->name( 'snipper-point' );
 Route::get( '/mid-point', [ MidPointController::class, 'index' ] )->name( 'mid-point.index' );
+Route::get( '/live-strike-chart', [ \App\Http\Controllers\LiveStrikeChartController::class, 'index' ] )->name( 'live.strike.chart' );
+Route::get( '/api/live-strike-chart/data', [ \App\Http\Controllers\LiveStrikeChartController::class, 'getData' ] )->name( 'api.live.strike.chart.data' );
+Route::get( '/api/live-strike-chart/ws-url', [ \App\Http\Controllers\LiveStrikeChartController::class, 'getWsUrl' ] )->name( 'api.live.strike.chart.ws-url' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity

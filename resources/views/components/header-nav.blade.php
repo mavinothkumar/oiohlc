@@ -28,6 +28,7 @@
                         <a href="{{ route('trend.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trend</a>
                         <a href="{{ route('strike.optimizer') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Strike Premium Identifier</a>
                         <a href="{{ route('mid-point.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Mid Point</a>
+                        <a href="{{ route('live.strike.chart') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-semibold">⚡ Live Strike Chart</a>
                         <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
                         <a href="{{ route('options.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Analysis</a>
                         <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Combined Premium</a>

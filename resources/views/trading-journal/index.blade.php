@@ -85,9 +85,9 @@
     <div class="space-y-6" x-init="initSortable($el)">
         <!-- Panels Loop -->
         <template x-for="(panel, pIndex) in panels" :key="panel.id || panel.temp_id">
-            <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all">
+            <div class="glass-panel rounded-xl overflow-hidden shadow-2xl transition-all" :class="getAlertLegsCount(panel) > 0 ? 'border border-rose-500/40 ring-1 ring-rose-500/20' : ''">
                 <!-- Panel Header -->
-                <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b border-slate-700/50">
+                <div class="bg-slate-800/80 px-6 py-4 flex flex-wrap justify-between items-center border-b" :class="getAlertLegsCount(panel) > 0 ? 'border-rose-500/40 bg-slate-800/95' : 'border-slate-700/50'">
                     <div class="flex items-center gap-4 flex-1">
                         <!-- Drag Handle -->
                         <div class="drag-handle cursor-move text-slate-500 hover:text-slate-300 transition-colors" title="Drag to reorder">
@@ -96,8 +96,8 @@
                             </svg>
                         </div>
 
-                        <!-- NEW: Toggle Button now calls togglePanel -->
-                        <button @click="togglePanel(panel)" class="text-slate-400 hover:text-white transition-colors p-1" title="Toggle Legs">
+                        <!-- Toggle Button -->
+                        <button @click="togglePanel(panel)" class="relative text-slate-400 hover:text-white transition-colors p-1" title="Toggle Legs">
                             <!-- Up Arrow (Shown when expanded) -->
                             <svg x-show="panel.is_expanded" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
@@ -106,6 +106,12 @@
                             <svg x-show="!panel.is_expanded" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
+
+                            <!-- Red ping indicator on arrow when collapsed and alert exists -->
+                            <span x-show="!panel.is_expanded && getAlertLegsCount(panel) > 0" class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                            </span>
                         </button>
 
                         <input type="text" x-model="panel.name" placeholder="Strategy Name (e.g., Short Straddle)" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none w-64">
@@ -113,6 +119,14 @@
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-slate-400">Entry Time:</label>
                             <input type="time" x-model="panel.entry_time" min="09:15" max="15:30" class="bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+
+                        <!-- Alert Notification Badge in Strategy Header -->
+                        <div x-show="getAlertLegsCount(panel) > 0" @click="if(!panel.is_expanded) togglePanel(panel)" class="cursor-pointer flex items-center gap-1.5 bg-rose-500/20 border border-rose-500/50 hover:bg-rose-500/30 text-rose-300 px-3 py-1 rounded-lg text-xs font-semibold animate-pulse shadow-sm transition-colors" title="Click to view alerting strikes">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-rose-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span x-text="getAlertLegsCount(panel) + ' Strike' + (getAlertLegsCount(panel) > 1 ? 's' : '') + ' Alert (50%+)'"></span>
                         </div>
                     </div>
 
@@ -189,9 +203,9 @@
                                     </td>
                                     <td class="py-3 px-2 text-right font-mono" x-text="formatPrice(leg.entry_price)"></td>
                                     <td class="py-3 px-2 text-right font-mono font-medium text-emerald-400" x-text="formatPrice(getLivePrice(leg))"></td>
-                                    <td class="py-3 px-2 text-right font-mono" :class="getDiffPts(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="getDiffPts(leg) > 0 ? '+'+getDiffPts(leg).toFixed(2) : getDiffPts(leg).toFixed(2)"></td>
+                                    <td class="py-3 px-2 text-right font-mono" :class="calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="getDiffPts(leg) > 0 ? '+'+getDiffPts(leg).toFixed(2) : getDiffPts(leg).toFixed(2)"></td>
                                     <td class="py-3 px-2 text-right font-mono text-xs">
-                                        <span :class="isChangeAlert(leg) ? 'inline-block bg-rose-500/25 text-rose-300 border border-rose-500/50 font-bold px-1.5 py-0.5 rounded shadow-sm' : (getChangePct(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400')" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></span>
+                                        <span :class="isChangeAlert(leg) ? 'inline-block bg-rose-500/25 text-rose-300 border border-rose-500/50 font-bold px-1.5 py-0.5 rounded shadow-sm' : (calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400')" x-text="(getChangePct(leg) > 0 ? '+' : '') + getChangePct(leg).toFixed(2) + '%'"></span>
                                     </td>
                                     <td class="py-3 px-2 text-right font-mono font-bold" :class="calculateLegPnL(leg) >= 0 ? 'text-emerald-400' : 'text-rose-400'" x-text="formatCurrency(calculateLegPnL(leg))"></td>
                                     <td class="py-3 px-2 text-center">
@@ -577,7 +591,19 @@
                 let entry = parseFloat(leg.entry_price) || 0;
                 if (entry === 0) return false;
                 let pct = this.getChangePct(leg);
-                return pct <= -50;
+                
+                if (leg.side === 'Sell') {
+                    // For Sell: price increasing by +50% or more is a loss (going against us)
+                    return pct >= 50;
+                } else {
+                    // For Buy: price dropping by -50% or worse is a loss (going against us)
+                    return pct <= -50;
+                }
+            },
+
+            getAlertLegsCount(panel) {
+                if (!panel || !panel.legs || panel.legs.length === 0) return 0;
+                return panel.legs.filter(leg => this.isChangeAlert(leg)).length;
             },
 
             calculateLegPnL(leg) {
