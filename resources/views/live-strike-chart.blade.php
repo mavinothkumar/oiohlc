@@ -5,35 +5,31 @@
 @section('content')
 <div class="w-full px-1 sm:px-3 py-2 space-y-3 text-slate-100 font-sans" id="live-strike-app">
 
-    {{-- ════════════════════════ 1. SLEEK PROFESSIONAL TOP FILTER BAR ════════════════════════ --}}
-    <div class="bg-slate-900/95 backdrop-blur border border-slate-800 rounded-xl px-3 py-2 shadow-xl">
-        <div class="flex flex-wrap items-center justify-between gap-2.5">
+    {{-- ════════════════════════ 1. SLEEK PROFESSIONAL SINGLE-LINE FILTER BAR ════════════════════════ --}}
+    <div class="bg-slate-900/95 backdrop-blur border border-slate-800 rounded-xl px-3 py-1.5 shadow-xl">
+        <div class="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5">
             
-            {{-- Left: Filter Controls Group --}}
-            <div class="flex flex-wrap items-center gap-2">
+            {{-- Left: Filter Controls Group (All in one unified line) --}}
+            <div class="flex items-center gap-2 flex-shrink-0">
                 {{-- Symbol Selector --}}
-                <div class="flex items-center">
-                    <select id="filter-symbol" class="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold tracking-wide focus:ring-1 focus:ring-emerald-500 focus:outline-none cursor-pointer">
-                        <option value="NIFTY" {{ $symbol === 'NIFTY' ? 'selected' : '' }}>NIFTY</option>
-                        <option value="BANKNIFTY" {{ $symbol === 'BANKNIFTY' ? 'selected' : '' }}>BANKNIFTY</option>
-                    </select>
-                </div>
+                <select id="filter-symbol" class="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold tracking-wide focus:ring-1 focus:ring-emerald-500 focus:outline-none cursor-pointer">
+                    <option value="NIFTY" {{ $symbol === 'NIFTY' ? 'selected' : '' }}>NIFTY</option>
+                    <option value="BANKNIFTY" {{ $symbol === 'BANKNIFTY' ? 'selected' : '' }}>BANKNIFTY</option>
+                </select>
 
                 {{-- Strike Range Selector (Default ±8) --}}
-                <div class="flex items-center">
-                    <select id="filter-range" class="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none cursor-pointer">
-                        <option value="2" {{ $range == 2 ? 'selected' : '' }}>± 2 (5 strikes)</option>
-                        <option value="3" {{ $range == 3 ? 'selected' : '' }}>± 3 (7 strikes)</option>
-                        <option value="4" {{ $range == 4 ? 'selected' : '' }}>± 4 (9 strikes)</option>
-                        <option value="5" {{ $range == 5 ? 'selected' : '' }}>± 5 (11 strikes)</option>
-                        <option value="8" {{ $range == 8 ? 'selected' : '' }}>± 8 (17 strikes)</option>
-                        <option value="10" {{ $range == 10 ? 'selected' : '' }}>± 10 (21 strikes)</option>
-                    </select>
-                </div>
+                <select id="filter-range" class="bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 font-semibold focus:ring-1 focus:ring-emerald-500 focus:outline-none cursor-pointer">
+                    <option value="2" {{ $range == 2 ? 'selected' : '' }}>±2 (5 strikes)</option>
+                    <option value="3" {{ $range == 3 ? 'selected' : '' }}>±3 (7 strikes)</option>
+                    <option value="4" {{ $range == 4 ? 'selected' : '' }}>±4 (9 strikes)</option>
+                    <option value="5" {{ $range == 5 ? 'selected' : '' }}>±5 (11 strikes)</option>
+                    <option value="8" {{ $range == 8 ? 'selected' : '' }}>±8 (17 strikes)</option>
+                    <option value="10" {{ $range == 10 ? 'selected' : '' }}>±10 (21 strikes)</option>
+                </select>
 
                 {{-- ATM Center Controller Group --}}
                 <div class="inline-flex items-center bg-slate-800/90 border border-slate-700 rounded-lg p-0.5">
-                    <span class="text-[11px] font-bold text-slate-400 px-2 select-none">ATM</span>
+                    <span class="text-[11px] font-bold text-slate-400 px-1.5 select-none">ATM</span>
                     <button type="button" id="btn-atm-minus" class="text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs font-bold transition hover:bg-slate-700" title="Minus {{ $strikeStep }}">
                         -{{ $strikeStep }}
                     </button>
@@ -46,8 +42,8 @@
                     </button>
                 </div>
 
-                {{-- Spot & Open Toggles --}}
-                <label class="inline-flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
+                {{-- Spot, Open & Fut Marker Toggles --}}
+                <label class="inline-flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
                     <input type="checkbox" id="filter-show-spot" checked class="rounded bg-slate-900 border-slate-600 text-cyan-500 focus:ring-cyan-400 h-3.5 w-3.5">
                     <span class="text-cyan-300 flex items-center gap-1">
                         <span class="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -56,7 +52,7 @@
                     <span id="label-spot-val" class="hidden">{{ number_format($indexSpot ?: $indexClose, 2) }}</span>
                 </label>
 
-                <label class="inline-flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
+                <label class="inline-flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
                     <input type="checkbox" id="filter-show-open" checked class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
                     <span class="text-amber-300 flex items-center gap-1">
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
@@ -65,8 +61,7 @@
                     <span id="label-open-val" class="hidden">{{ number_format($indexOpen, 2) }}</span>
                 </label>
 
-                {{-- Toggle Show Current Month Future --}}
-                <label class="inline-flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition" title="Toggle Current Month Future Line">
+                <label class="inline-flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition" title="Toggle Current Month Future Line">
                     <input type="checkbox" id="filter-show-fut" checked class="rounded bg-slate-900 border-slate-600 text-indigo-500 focus:ring-indigo-400 h-3.5 w-3.5">
                     <span class="text-indigo-300 flex items-center gap-1">
                         <span class="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
@@ -85,33 +80,19 @@
                 </button>
             </div>
 
-            {{-- Right: Live Summary Chips & Live Feed Status --}}
-            <div class="flex items-center gap-1.5 sm:gap-2 text-xs">
-                {{-- Live Spot, Open, Fut & Difference Chips --}}
-                <span class="inline-flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                    Spot: <strong class="font-mono text-cyan-300" id="chip-index-spot">₹{{ number_format($indexSpot ?: $indexClose, 2) }}</strong>
-                </span>
-                <span class="inline-flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                    Fut: <strong class="font-mono text-indigo-300" id="chip-index-fut">₹{{ number_format($futurePrice, 2) }}</strong>
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] border" id="chip-fut-diff" title="Difference between Future and Spot">
-                    Fut Diff: <span class="font-mono" id="chip-fut-diff-val">--</span>
-                </span>
-                <span class="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                    Open: <strong class="font-mono text-amber-400" id="chip-index-open">{{ number_format($indexOpen, 2) }}</strong>
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] border" id="chip-index-diff" title="Difference between Spot and Open">
-                    Open Diff: <span class="font-mono" id="chip-diff-val">--</span>
-                </span>
-                <span class="hidden xl:inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                    Curr: <strong class="font-mono text-blue-400" id="chip-curr-mid">{{ number_format($currentMidPoint, 2) }}</strong>
-                </span>
-                <span class="hidden xl:inline-flex items-center gap-1 bg-purple-500/10 border border-purple-500/30 text-purple-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                    Next: <strong class="font-mono text-purple-400" id="chip-next-mid">{{ number_format($nextMidPoint, 2) }}</strong>
-                </span>
+            {{-- Right: Live Feed Status & Info Drawer Toggle (Ultra Compact) --}}
+            <div class="flex items-center gap-2 text-xs flex-shrink-0">
+                {{-- Hidden live chip anchors for JS selectors (safe for updates) --}}
+                <span class="hidden" id="chip-index-spot">₹{{ number_format($indexSpot ?: $indexClose, 2) }}</span>
+                <span class="hidden" id="chip-index-fut">₹{{ number_format($futurePrice, 2) }}</span>
+                <span class="hidden" id="chip-fut-diff"><span id="chip-fut-diff-val">--</span></span>
+                <span class="hidden" id="chip-index-open">{{ number_format($indexOpen, 2) }}</span>
+                <span class="hidden" id="chip-index-diff"><span id="chip-diff-val">--</span></span>
+                <span class="hidden" id="chip-curr-mid">{{ number_format($currentMidPoint, 2) }}</span>
+                <span class="hidden" id="chip-next-mid">{{ number_format($nextMidPoint, 2) }}</span>
 
                 {{-- Live Feed Status Indicator --}}
-                <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-medium">
+                <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-medium">
                     <span id="ws-dot" class="inline-block h-2 w-2 rounded-full bg-red-500"></span>
                     <span id="ws-status-text" class="text-slate-300 text-[11px]">Connecting…</span>
                     <span class="text-slate-600">|</span>
@@ -206,6 +187,27 @@
                 <p class="text-[10px] text-slate-500 mt-0.5" id="card-strike-span">
                     {{ $strikesData[0]['strike'] ?? '-' }} to {{ $strikesData[count($strikesData)-1]['strike'] ?? '-' }}
                 </p>
+            </div>
+        </div>
+    </div>
+
+    {{-- ════════════════════════ 1.5 DUAL-SIDE CONFLUENCE & REVERSAL SIGNAL BANNER ════════════════════════ --}}
+    <div id="confluence-signal-bar" class="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between gap-3">
+            {{-- Left: Signal Status Badge & Directional Action Banner --}}
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                <span id="signal-badge" class="px-3 py-1 rounded-lg text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow bg-slate-800 text-slate-200 border border-slate-600 flex-shrink-0">
+                    <span id="signal-dot" class="h-2 w-2 rounded-full bg-slate-400"></span>
+                    <span id="signal-title">SCANNING CONFLUENCE</span>
+                </span>
+                <div id="signal-desc" class="text-xs text-slate-100 font-semibold truncate leading-normal">
+                    Monitoring CE & PE interactions with Current Mid (<span class="text-blue-400 font-mono font-bold">{{ number_format($currentMidPoint, 2) }}</span>) and Next Mid (<span class="text-purple-400 font-mono font-bold">{{ number_format($nextMidPoint, 2) }}</span>)…
+                </div>
+            </div>
+
+            {{-- Right: Contributing Confluence & Reversal Strike Tags --}}
+            <div id="signal-tags" class="flex items-center gap-1.5 text-xs flex-shrink-0">
+                <!-- Populated dynamically via JS -->
             </div>
         </div>
     </div>
@@ -664,10 +666,28 @@
                 ctx.fillText(openText, openPixelX, openBadgeY);
             }
 
-            // E. DRAW CURRENT & NEXT WEEK MID-POINT VALUE BADGES ON HORIZONTAL LINES
+            // E0. DRAW MID-POINT TOLERANCE CORRIDORS (SOFTER GLOW FILL)
             const currMidVal = state.currentMidPoint;
             const nextMidVal = state.nextMidPoint;
 
+            if (currMidVal > 0) {
+                const currMidYTop = y.getPixelForValue(currMidVal * 1.035);
+                const currMidYBot = y.getPixelForValue(currMidVal * 0.965);
+                if (currMidYBot >= topY && currMidYTop <= bottomY) {
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.05)'; // Soft Blue Corridor
+                    ctx.fillRect(x.left, Math.min(currMidYTop, currMidYBot), x.right - x.left, Math.abs(currMidYBot - currMidYTop));
+                }
+            }
+            if (nextMidVal > 0) {
+                const nextMidYTop = y.getPixelForValue(nextMidVal * 1.035);
+                const nextMidYBot = y.getPixelForValue(nextMidVal * 0.965);
+                if (nextMidYBot >= topY && nextMidYTop <= bottomY) {
+                    ctx.fillStyle = 'rgba(168, 85, 247, 0.05)'; // Soft Purple Corridor
+                    ctx.fillRect(x.left, Math.min(nextMidYTop, nextMidYBot), x.right - x.left, Math.abs(nextMidYBot - nextMidYTop));
+                }
+            }
+
+            // E. DRAW CURRENT & NEXT WEEK MID-POINT VALUE BADGES ON HORIZONTAL LINES
             if (currMidVal > 0) {
                 const currMidY = y.getPixelForValue(currMidVal);
                 if (currMidY >= topY && currMidY <= bottomY) {
@@ -727,7 +747,7 @@
                 }
             }
 
-            // F. DRAW CE GREEN CAPSULES ABOVE CE POINTS
+            // F. DRAW CE GREEN CAPSULES ABOVE CE POINTS (WITH CONFLUENCE / REVERSAL HIGHLIGHT)
             ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -736,6 +756,9 @@
                 ceMeta.data.forEach((element, index) => {
                     const val = chart.data.datasets[2].data[index];
                     if (val === null || val === undefined || isNaN(val)) return;
+
+                    const strikeVal = strikeLabels[index];
+                    const tagInfo = activeConfluenceState?.strikeTags?.[strikeVal]?.ceTag;
 
                     const posX = element.x;
                     const posY = element.y - 15;
@@ -746,10 +769,21 @@
                     const pillX = posX - (pillWidth / 2);
                     const pillY = posY - (pillHeight / 2);
 
+                    // Confluence Halo Ring around point if active
+                    if (tagInfo) {
+                        ctx.save();
+                        ctx.strokeStyle = tagInfo.includes('Reclaimed') || tagInfo.includes('S:') ? '#10b981' : '#f59e0b';
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.arc(posX, element.y, 7.5, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
                     // Capsule Body
-                    ctx.fillStyle = 'rgba(6, 78, 59, 0.92)';
-                    ctx.strokeStyle = '#10b981';
-                    ctx.lineWidth = 1.2;
+                    ctx.fillStyle = tagInfo ? 'rgba(6, 95, 70, 0.98)' : 'rgba(6, 78, 59, 0.92)';
+                    ctx.strokeStyle = tagInfo ? '#34d399' : '#10b981';
+                    ctx.lineWidth = tagInfo ? 1.8 : 1.2;
                     ctx.beginPath();
                     ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 8.5);
                     ctx.fill();
@@ -767,11 +801,14 @@
                 });
             }
 
-            // G. DRAW PE RED CAPSULES BELOW PE POINTS
+            // G. DRAW PE RED CAPSULES BELOW PE POINTS (WITH CONFLUENCE / REVERSAL HIGHLIGHT)
             if (peMeta && !peMeta.hidden) {
                 peMeta.data.forEach((element, index) => {
                     const val = chart.data.datasets[3].data[index];
                     if (val === null || val === undefined || isNaN(val)) return;
+
+                    const strikeVal = strikeLabels[index];
+                    const tagInfo = activeConfluenceState?.strikeTags?.[strikeVal]?.peTag;
 
                     const posX = element.x;
                     const posY = element.y + 15;
@@ -782,10 +819,21 @@
                     const pillX = posX - (pillWidth / 2);
                     const pillY = posY - (pillHeight / 2);
 
+                    // Confluence Halo Ring around point if active
+                    if (tagInfo) {
+                        ctx.save();
+                        ctx.strokeStyle = tagInfo.includes('Reclaimed') || tagInfo.includes('S:') ? '#818cf8' : '#f43f5e';
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.arc(posX, element.y, 7.5, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
                     // Capsule Body
-                    ctx.fillStyle = 'rgba(136, 19, 55, 0.92)';
-                    ctx.strokeStyle = '#f43f5e';
-                    ctx.lineWidth = 1.2;
+                    ctx.fillStyle = tagInfo ? 'rgba(159, 18, 57, 0.98)' : 'rgba(136, 19, 55, 0.92)';
+                    ctx.strokeStyle = tagInfo ? '#fb7185' : '#f43f5e';
+                    ctx.lineWidth = tagInfo ? 1.8 : 1.2;
                     ctx.beginPath();
                     ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 8.5);
                     ctx.fill();
@@ -1037,6 +1085,7 @@
                             ₹${parseFloat(cePrice).toFixed(1)}
                         </span>
                     </div>
+                    <div class="text-center min-h-[14px] flex items-center justify-center" id="ce-tag-wrap-${item.strike}"></div>
 
                     {{-- PE Capsule (Red Dot & Red Pill) --}}
                     <div class="w-full flex items-center justify-between rounded-full px-2 py-0.5 bg-rose-500/10 border border-rose-500/40 text-rose-300 text-[11px] font-semibold shadow-sm">
@@ -1048,10 +1097,333 @@
                             ₹${parseFloat(pePrice).toFixed(1)}
                         </span>
                     </div>
+                    <div class="text-center min-h-[14px] flex items-center justify-center" id="pe-tag-wrap-${item.strike}"></div>
                 </div>
             `;
 
             wrapGrid.appendChild(card);
+        });
+    }
+
+    // ──────────────────────────────────────────────
+    // 3.5 DUAL-SIDE CONFLUENCE & REVERSAL EVALUATION ENGINE
+    // ──────────────────────────────────────────────
+    const priceHistory = {};
+    let activeConfluenceState = {
+        type: 'NEUTRAL',
+        title: 'Scanning Market Confluence…',
+        desc: 'Monitoring CE & PE interactions with Current Mid and Next Mid…',
+        ceSuppCurr: [],
+        ceSuppNext: [],
+        peSuppCurr: [],
+        peSuppNext: [],
+        ceResCurr: [],
+        ceResNext: [],
+        peResCurr: [],
+        peResNext: [],
+        strikeTags: {},
+        reversals: [],
+        badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
+        dotClass: 'bg-slate-400',
+        bannerBorder: 'border-slate-800',
+        tags: []
+    };
+
+    function recordPricePoint(key, price) {
+        if (!key || price <= 0) return;
+        if (!priceHistory[key]) {
+            priceHistory[key] = [];
+        }
+        const history = priceHistory[key];
+        history.push({ price: parseFloat(price), time: Date.now() });
+        if (history.length > 25) {
+            history.shift(); // keep last 25 ticks
+        }
+    }
+
+    function checkReversal(key, currentPrice, midVal, midLabel, optionType) {
+        if (!key || !priceHistory[key] || priceHistory[key].length < 3 || midVal <= 0) return null;
+        const history = priceHistory[key];
+        const prices = history.map(h => h.price);
+        const minP = Math.min(...prices);
+        const maxP = Math.max(...prices);
+
+        // Bullish Reversal / False Breakdown Sweep: Dipped below Mid and reclaimed back above
+        if (minP < (midVal - 0.5) && currentPrice >= midVal && (currentPrice - minP) >= 1.2) {
+            return {
+                type: 'BULLISH_REVERSAL',
+                text: `⚡ ${optionType} Reclaimed ${midLabel}`,
+                action: 'Bullish Reversal Reclaim',
+                isBullish: true
+            };
+        }
+
+        // Bearish Reversal / Bull Trap Rejection: Poked above Mid and slammed back below
+        if (maxP > (midVal + 0.5) && currentPrice <= midVal && (maxP - currentPrice) >= 1.2) {
+            return {
+                type: 'BEARISH_REVERSAL',
+                text: `⚠️ ${optionType} Rejected at ${midLabel}`,
+                action: 'Bearish Trap Rejection',
+                isBullish: false
+            };
+        }
+
+        return null;
+    }
+
+    function evaluateConfluenceAndReversals() {
+        const currMid = parseFloat(state.currentMidPoint) || 0;
+        const nextMid = parseFloat(state.nextMidPoint) || 0;
+        if (currMid <= 0 && nextMid <= 0) return;
+
+        const tolCurr = Math.max(currMid * 0.04, 3.0);
+        const tolNext = Math.max(nextMid * 0.04, 4.0);
+
+        const ceSuppCurr = [];
+        const ceSuppNext = [];
+        const ceResCurr  = [];
+        const ceResNext  = [];
+
+        const peSuppCurr = [];
+        const peSuppNext = [];
+        const peResCurr  = [];
+        const peResNext  = [];
+
+        const strikeTags = {};
+        const reversals = [];
+
+        state.strikesData.forEach(item => {
+            const strike = item.strike;
+            const ceKey = item.ce.instrument_key;
+            const peKey = item.pe.instrument_key;
+
+            const cePrice = ceKey && livePrices[ceKey] !== undefined ? livePrices[ceKey] : (item.ce.price || 0);
+            const pePrice = peKey && livePrices[peKey] !== undefined ? livePrices[peKey] : (item.pe.price || 0);
+
+            if (ceKey && cePrice > 0) recordPricePoint(ceKey, cePrice);
+            if (peKey && pePrice > 0) recordPricePoint(peKey, pePrice);
+
+            strikeTags[strike] = { ceTag: '', peTag: '', ceClass: '', peClass: '' };
+
+            // 1. CE Evaluation
+            if (cePrice > 0) {
+                const revCurr = checkReversal(ceKey, cePrice, currMid, 'Curr Mid', 'CE');
+                const revNext = checkReversal(ceKey, cePrice, nextMid, 'Next Mid', 'CE');
+                const rev = revCurr || revNext;
+                if (rev) {
+                    reversals.push({ strike, opt: 'CE', ...rev });
+                    strikeTags[strike].ceTag = rev.text;
+                    strikeTags[strike].ceClass = rev.isBullish ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                }
+
+                // CE Support at Curr Mid
+                if (cePrice >= (currMid - tolCurr * 0.35) && cePrice <= (currMid + tolCurr * 1.6)) {
+                    ceSuppCurr.push(strike);
+                    if (!strikeTags[strike].ceTag) {
+                        strikeTags[strike].ceTag = '🛡️ S: Curr Mid';
+                        strikeTags[strike].ceClass = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+                    }
+                }
+                // CE Support at Next Mid
+                if (cePrice >= (nextMid - tolNext * 0.35) && cePrice <= (nextMid + tolNext * 1.6)) {
+                    ceSuppNext.push(strike);
+                    if (!strikeTags[strike].ceTag) {
+                        strikeTags[strike].ceTag = '🛡️ S: Next Mid';
+                        strikeTags[strike].ceClass = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+                    }
+                }
+                // CE Resistance at Curr Mid
+                if (cePrice <= (currMid + tolCurr * 0.35) && cePrice >= (currMid - tolCurr * 1.6)) {
+                    ceResCurr.push(strike);
+                    if (!strikeTags[strike].ceTag) {
+                        strikeTags[strike].ceTag = '🧱 R: Curr Mid';
+                        strikeTags[strike].ceClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                    }
+                }
+                // CE Resistance at Next Mid
+                if (cePrice <= (nextMid + tolNext * 0.35) && cePrice >= (nextMid - tolNext * 1.6)) {
+                    ceResNext.push(strike);
+                    if (!strikeTags[strike].ceTag) {
+                        strikeTags[strike].ceTag = '🧱 R: Next Mid';
+                        strikeTags[strike].ceClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                    }
+                }
+            }
+
+            // 2. PE Evaluation
+            if (pePrice > 0) {
+                const revCurr = checkReversal(peKey, pePrice, currMid, 'Curr Mid', 'PE');
+                const revNext = checkReversal(peKey, pePrice, nextMid, 'Next Mid', 'PE');
+                const rev = revCurr || revNext;
+                if (rev) {
+                    reversals.push({ strike, opt: 'PE', ...rev });
+                    strikeTags[strike].peTag = rev.text;
+                    strikeTags[strike].peClass = rev.isBullish ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+                }
+
+                // PE Support at Curr Mid
+                if (pePrice >= (currMid - tolCurr * 0.35) && pePrice <= (currMid + tolCurr * 1.6)) {
+                    peSuppCurr.push(strike);
+                    if (!strikeTags[strike].peTag) {
+                        strikeTags[strike].peTag = '🛡️ S: Curr Mid';
+                        strikeTags[strike].peClass = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
+                    }
+                }
+                // PE Support at Next Mid
+                if (pePrice >= (nextMid - tolNext * 0.35) && pePrice <= (nextMid + tolNext * 1.6)) {
+                    peSuppNext.push(strike);
+                    if (!strikeTags[strike].peTag) {
+                        strikeTags[strike].peTag = '🛡️ S: Next Mid';
+                        strikeTags[strike].peClass = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+                    }
+                }
+                // PE Resistance at Curr Mid
+                if (pePrice <= (currMid + tolCurr * 0.35) && pePrice >= (currMid - tolCurr * 1.6)) {
+                    peResCurr.push(strike);
+                    if (!strikeTags[strike].peTag) {
+                        strikeTags[strike].peTag = '🧱 R: Curr Mid';
+                        strikeTags[strike].peClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                    }
+                }
+                // PE Resistance at Next Mid
+                if (pePrice <= (nextMid + tolNext * 0.35) && pePrice >= (nextMid - tolNext * 1.6)) {
+                    peResNext.push(strike);
+                    if (!strikeTags[strike].peTag) {
+                        strikeTags[strike].peTag = '🧱 R: Next Mid';
+                        strikeTags[strike].peClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                    }
+                }
+            }
+        });
+
+        // 3. Evaluate Dual-Side Confluence Rules
+        const isCeDualSupport = (ceSuppCurr.length > 0 && ceSuppNext.length > 0);
+        const isPeOppositeResist = (peResCurr.length > 0 || peResNext.length > 0);
+
+        const isPeDualSupport = (peSuppCurr.length > 0 && peSuppNext.length > 0);
+        const isCeOppositeResist = (ceResCurr.length > 0 || ceResNext.length > 0);
+
+        const hasBullishReversal = reversals.some(r => (r.opt === 'CE' && r.isBullish) || (r.opt === 'PE' && !r.isBullish));
+        const hasBearishReversal = reversals.some(r => (r.opt === 'PE' && r.isBullish) || (r.opt === 'CE' && !r.isBullish));
+
+        let banner = {
+            type: 'NEUTRAL',
+            title: 'SCANNING CONFLUENCE',
+            desc: `Monitoring ${state.strikesData.length} strikes against Current Mid (<strong class="text-blue-400 font-mono">₹${currMid.toFixed(2)}</strong>) & Next Mid (<strong class="text-purple-400 font-mono">₹${nextMid.toFixed(2)}</strong>)…`,
+            badgeClass: 'bg-slate-800 text-slate-200 border-slate-600',
+            dotClass: 'bg-slate-400',
+            bannerBorder: 'border-slate-700 bg-slate-900',
+            tags: []
+        };
+
+        if (isCeDualSupport && isPeOppositeResist) {
+            // 🔥 RULE 1: VERY STRONG SUPPORT (SUPER BULLISH CONFLUENCE)
+            const revExtra = hasBullishReversal ? ' 🚀 <span class="text-emerald-300 font-black">QUICK REVERSAL CONFIRMED: High-momentum Bullish follow-through!</span>' : ' 🔥 <span class="text-emerald-300 font-black">High-Probability Long Setup!</span>';
+            banner = {
+                type: 'STRONG_SUPPORT',
+                title: '🟢 VERY STRONG SUPPORT',
+                desc: `CE holding Support at Curr Mid (<strong class="text-emerald-400 font-mono">${ceSuppCurr.join(', ')}</strong>) & Next Mid (<strong class="text-purple-400 font-mono">${ceSuppNext.join(', ')}</strong>) while PE faces Resistance (<strong class="text-rose-400 font-mono">${[...peResCurr, ...peResNext].join(', ')}</strong>).${revExtra}`,
+                badgeClass: 'bg-emerald-600 text-white font-black border-emerald-400 shadow-md',
+                dotClass: 'bg-white',
+                bannerBorder: 'border-emerald-500 bg-slate-900 shadow-emerald-950/40',
+                tags: [
+                    `🛡️ CE Supp: ${ceSuppCurr.join(',')}`,
+                    `🛡️ CE Next: ${ceSuppNext.join(',')}`,
+                    `🧱 PE Resist: ${[...peResCurr, ...peResNext].join(',')}`
+                ]
+            };
+        } else if (isPeDualSupport && isCeOppositeResist) {
+            // 🔴 RULE 2: VERY STRONG RESISTANCE (SUPER BEARISH CONFLUENCE)
+            const revExtra = hasBearishReversal ? ' 🔻 <span class="text-rose-300 font-black">QUICK REVERSAL CONFIRMED: High-momentum Bearish follow-through!</span>' : ' 💥 <span class="text-rose-300 font-black">High-Probability Short Setup!</span>';
+            banner = {
+                type: 'STRONG_RESISTANCE',
+                title: '🔴 VERY STRONG RESISTANCE',
+                desc: `PE holding Support at Curr Mid (<strong class="text-blue-400 font-mono">${peSuppCurr.join(', ')}</strong>) & Next Mid (<strong class="text-purple-400 font-mono">${peSuppNext.join(', ')}</strong>) while CE faces Resistance (<strong class="text-rose-400 font-mono">${[...ceResCurr, ...ceResNext].join(', ')}</strong>).${revExtra}`,
+                badgeClass: 'bg-rose-600 text-white font-black border-rose-400 shadow-md',
+                dotClass: 'bg-white',
+                bannerBorder: 'border-rose-500 bg-slate-900 shadow-rose-950/40',
+                tags: [
+                    `🛡️ PE Supp: ${peSuppCurr.join(',')}`,
+                    `🛡️ PE Next: ${peSuppNext.join(',')}`,
+                    `🧱 CE Resist: ${[...ceResCurr, ...ceResNext].join(',')}`
+                ]
+            };
+        } else if (hasBullishReversal) {
+            const revItem = reversals.find(r => (r.opt === 'CE' && r.isBullish) || (r.opt === 'PE' && !r.isBullish));
+            banner = {
+                type: 'BULLISH_REVERSAL',
+                title: '⚡ BULLISH SWEEP REVERSAL',
+                desc: `<strong class="text-emerald-400 font-mono">${revItem.opt} ${revItem.strike}</strong> broke Mid-Point and quickly rebounded back above floor! Strong signal to favor Bullish direction.`,
+                badgeClass: 'bg-emerald-600 text-white font-black border-emerald-400 shadow-md',
+                dotClass: 'bg-white',
+                bannerBorder: 'border-emerald-500 bg-slate-900',
+                tags: [`⚡ ${revItem.opt} ${revItem.strike} Rebound`]
+            };
+        } else if (hasBearishReversal) {
+            const revItem = reversals.find(r => (r.opt === 'PE' && r.isBullish) || (r.opt === 'CE' && !r.isBullish));
+            banner = {
+                type: 'BEARISH_REVERSAL',
+                title: '⚠️ BEARISH TRAP REJECTION',
+                desc: `<strong class="text-rose-400 font-mono">${revItem.opt} ${revItem.strike}</strong> tested Mid-Point ceiling and quickly got rejected back down! Strong signal to favor Bearish direction.`,
+                badgeClass: 'bg-rose-600 text-white font-black border-rose-400 shadow-md',
+                dotClass: 'bg-white',
+                bannerBorder: 'border-rose-500 bg-slate-900',
+                tags: [`⚠️ ${revItem.opt} ${revItem.strike} Rejection`]
+            };
+        } else {
+            const activeTags = [];
+            if (ceSuppCurr.length) activeTags.push(`CE Curr S: ${ceSuppCurr.join(',')}`);
+            if (ceSuppNext.length) activeTags.push(`CE Next S: ${ceSuppNext.join(',')}`);
+            if (peSuppCurr.length) activeTags.push(`PE Curr S: ${peSuppCurr.join(',')}`);
+            if (peSuppNext.length) activeTags.push(`PE Next S: ${peSuppNext.join(',')}`);
+            if (ceResCurr.length)  activeTags.push(`CE Curr R: ${ceResCurr.join(',')}`);
+            if (peResCurr.length)  activeTags.push(`PE Curr R: ${peResCurr.join(',')}`);
+            banner.tags = activeTags.slice(0, 4);
+        }
+
+        activeConfluenceState = {
+            ...banner,
+            strikeTags,
+            ceSuppCurr,
+            ceSuppNext,
+            peSuppCurr,
+            peSuppNext,
+            ceResCurr,
+            ceResNext,
+            peResCurr,
+            peResNext
+        };
+
+        // Update Banner DOM elements
+        const bannerEl = document.getElementById('confluence-signal-bar');
+        const badgeEl  = document.getElementById('signal-badge');
+        const dotEl    = document.getElementById('signal-dot');
+        const titleEl  = document.getElementById('signal-title');
+        const descEl   = document.getElementById('signal-desc');
+        const tagsEl   = document.getElementById('signal-tags');
+
+        if (bannerEl) bannerEl.className = `rounded-xl px-3.5 py-2 shadow-xl transition-all duration-300 border-2 ${banner.bannerBorder}`;
+        if (badgeEl)  badgeEl.className  = `px-3 py-1 rounded-lg text-xs font-black tracking-wide uppercase flex items-center gap-1.5 shadow border ${banner.badgeClass} flex-shrink-0`;
+        if (dotEl)    dotEl.className    = `h-2 w-2 rounded-full ${banner.dotClass}`;
+        if (titleEl)  titleEl.textContent = banner.title;
+        if (descEl)   descEl.innerHTML    = banner.desc;
+
+        if (tagsEl) {
+            tagsEl.innerHTML = banner.tags.map(t => `<span class="bg-slate-800 text-slate-100 border border-slate-600 px-2.5 py-0.5 rounded-md font-mono text-[11px] font-bold shadow-sm">${t}</span>`).join('');
+        }
+
+        // Update Strike Capsules Tag badges
+        Object.keys(strikeTags).forEach(strike => {
+            const info = strikeTags[strike];
+            const ceEl = document.getElementById(`ce-tag-wrap-${strike}`);
+            const peEl = document.getElementById(`pe-tag-wrap-${strike}`);
+
+            if (ceEl) {
+                ceEl.innerHTML = info.ceTag ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold border ${info.ceClass}">${info.ceTag}</span>` : '';
+            }
+            if (peEl) {
+                peEl.innerHTML = info.peTag ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold border ${info.peClass}">${info.peTag}</span>` : '';
+            }
         });
     }
 
@@ -1110,7 +1482,10 @@
         if (legFutDiffBadge) legFutDiffBadge.className = `px-1.5 py-0.5 rounded text-[10px] font-bold border ${futDiffBg}`;
         if (cardFutDiffVal) cardFutDiffVal.className = `block text-[10px] font-mono font-bold ${futDiffObj.isPos ? 'text-indigo-400' : 'text-rose-400'}`;
 
-        // 3. Update chart datasets & custom plugin drawing
+        // 3. Evaluate Confluence & Quick Reversal States
+        evaluateConfluenceAndReversals();
+
+        // 4. Update chart datasets & custom plugin drawing
         if (chartInstance) {
             const cePrices = state.strikesData.map(d => {
                 const key = d.ce.instrument_key;
@@ -1127,7 +1502,7 @@
             chartInstance.update('none'); // Update smoothly without lag
         }
 
-        // 4. Tick counter
+        // 5. Tick counter
         tickCount++;
         const tcEl = document.getElementById('tick-counter');
         if (tcEl) tcEl.textContent = `${tickCount} ticks`;
@@ -1419,7 +1794,7 @@
             chartInstance.render();
 
             const pad = 24;
-            const headerHeight = 72;
+            const headerHeight = 84;
             const w = srcCanvas.width + (pad * 2);
             const h = srcCanvas.height + headerHeight + (pad * 2);
 
@@ -1446,7 +1821,7 @@
             ctx.fill();
             ctx.stroke();
 
-            // 2a. Title & Subtitle on Left
+            // 2a. Title & Confluence Badge on Left
             const sym = state.symbol || 'NIFTY';
             const atm = state.atmStrike || '-';
             const detected = state.detectedAtm || '-';
@@ -1460,12 +1835,64 @@
             ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`${sym} Live Strike LTP & Mid-Point Curve`, headerX + 16, headerY + 22);
+            ctx.fillText(`${sym} Live Strike LTP & Mid-Point Analysis`, headerX + 16, headerY + 20);
 
-            // Subtitle
+            // Confluence Badge next to title
+            const confState = activeConfluenceState || {};
+            let confBadgeText = '⚪ SCANNING CONFLUENCE';
+            let confBadgeCol = '#94a3b8';
+            let confBadgeBg  = 'rgba(148, 163, 184, 0.15)';
+
+            if (confState.type === 'STRONG_SUPPORT') {
+                confBadgeText = '🟢 VERY STRONG SUPPORT';
+                confBadgeCol = '#34d399';
+                confBadgeBg = 'rgba(16, 185, 129, 0.2)';
+            } else if (confState.type === 'STRONG_RESISTANCE') {
+                confBadgeText = '🔴 VERY STRONG RESISTANCE';
+                confBadgeCol = '#fb7185';
+                confBadgeBg = 'rgba(244, 63, 94, 0.2)';
+            } else if (confState.type === 'BULLISH_REVERSAL') {
+                confBadgeText = '⚡ BULLISH REVERSAL RECLAIM';
+                confBadgeCol = '#38bdf8';
+                confBadgeBg = 'rgba(56, 189, 248, 0.2)';
+            } else if (confState.type === 'BEARISH_REVERSAL') {
+                confBadgeText = '⚠️ BEARISH TRAP REJECTION';
+                confBadgeCol = '#fb923c';
+                confBadgeBg = 'rgba(251, 146, 60, 0.2)';
+            }
+
+            ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            const titleWidth = ctx.measureText(`${sym} Live Strike LTP & Mid-Point Analysis`).width + 20;
+            const confBadgeW = ctx.measureText(confBadgeText).width + 14;
+            const confBadgeH = 18;
+            const confBadgeX = headerX + 16 + titleWidth + 10;
+            const confBadgeY = headerY + 20;
+
+            if (confBadgeX + confBadgeW < headerX + headerW - 250) {
+                ctx.fillStyle = confBadgeBg;
+                ctx.strokeStyle = confBadgeCol;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(confBadgeX, confBadgeY - (confBadgeH / 2), confBadgeW, confBadgeH, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = confBadgeCol;
+                ctx.textAlign = 'center';
+                ctx.fillText(confBadgeText, confBadgeX + (confBadgeW / 2), confBadgeY);
+            }
+
+            // Subtitle Line 1
             ctx.fillStyle = '#94a3b8';
             ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            ctx.fillText(`Center ATM: ${atm} (Open ATM: ${detected})  |  Range: ±${range} (${strikesCount} Strikes: ${firstStrike} – ${lastStrike})`, headerX + 16, headerY + 48);
+            ctx.textAlign = 'left';
+            ctx.fillText(`Center ATM: ${atm} (Open ATM: ${detected})  |  Range: ±${range} (${strikesCount} Strikes: ${firstStrike} – ${lastStrike})`, headerX + 16, headerY + 44);
+
+            // Subtitle Line 2: Confluence description snippet
+            const descSnippet = confState.desc ? (confState.desc.length > 90 ? confState.desc.slice(0, 87) + '…' : confState.desc) : '';
+            ctx.fillStyle = confState.type !== 'NEUTRAL' ? confBadgeCol : '#64748b';
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillText(descSnippet, headerX + 16, headerY + 65);
 
             // 2b. Metrics / Badges on Right
             const spotStr = liveSpotPrice ? liveSpotPrice.toFixed(2) : '-';
