@@ -185,8 +185,8 @@ class LiveStrikeChartController extends Controller
         // Custom ATM Strike if user specified in request
         $atmStrike = $request->filled('atm') ? (int) $request->input('atm') : $defaultAtmStrike;
 
-        // Strike Range (default +/- 10, customizable to e.g. 2, 3, 4, 5, 8, 10)
-        $range = max(1, min((int) $request->input('range', 10), 30));
+        // Strike Range (default +/- 8, customizable to e.g. 2, 3, 4, 5, 8, 10)
+        $range = max(1, min((int) $request->input('range', 8), 30));
         $strikeStep = $symbol === 'BANKNIFTY' ? 100 : 50;
 
         // Generate +/- N strikes around ATM center point
@@ -238,7 +238,50 @@ class LiveStrikeChartController extends Controller
             ];
         }
 
+        // 6. Current Month Future contract & price
+        $currentFutExpiry = DB::table('nse_expiries')
+            ->where('trading_symbol', $symbol)
+            ->where('instrument_type', 'FUT')
+            ->where('is_current', 1)
+            ->first();
+
+        $futInstrument = null;
+        if ($currentFutExpiry) {
+            $futInstrument = DB::table('instruments')
+                ->where('name', $symbol)
+                ->where('instrument_type', 'FUT')
+                ->where('expiry', $currentFutExpiry->expiry)
+                ->first();
+        }
+        if (!$futInstrument) {
+            $futInstrument = DB::table('instruments')
+                ->where('name', $symbol)
+                ->where('instrument_type', 'FUT')
+                ->orderBy('expiry')
+                ->first();
+        }
+
+        $futureKey    = $futInstrument ? $futInstrument->instrument_key : null;
+        $futureSymbol = $futInstrument ? $futInstrument->trading_symbol : "{$symbol} FUT";
+        $futurePrice  = 0;
+
+        if ($futureKey) {
+            $latestFutQuote = DB::table($tableName)
+                ->where('instrument_key', $futureKey)
+                ->orderByDesc('id')
+                ->first();
+            if ($latestFutQuote) {
+                $futurePrice = (float) $latestFutQuote->close;
+            }
+        }
+        if (!$futurePrice && $indexSpot > 0) {
+            $futurePrice = $indexSpot;
+        }
+
         $allInstrumentKeys = [$indexKey]; // Add index key to stream live index spot price
+        if ($futureKey) {
+            $allInstrumentKeys[] = $futureKey; // Stream live future price
+        }
         $strikesData = [];
         foreach ($strikesList as $strike) {
             $ceData = $instrumentsMap[$strike]['CE'] ?? null;
@@ -281,6 +324,9 @@ class LiveStrikeChartController extends Controller
             'indexSpot'          => $indexSpot,
             'indexClose'         => $indexClose,
             'indexKey'           => $indexKey,
+            'futurePrice'        => $futurePrice,
+            'futureKey'          => $futureKey,
+            'futureSymbol'       => $futureSymbol,
             'range'              => $range,
             'strikeStep'         => $strikeStep,
             'strikesData'        => $strikesData,
