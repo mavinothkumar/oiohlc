@@ -147,10 +147,37 @@ class LiveStrikeChartController extends Controller
             $detectedAtm = (float) $currentTrend->current_day_index_open;
         }
 
-        // Index spot & open reference
-        $indexOpen  = $currentTrend ? (float) ($currentTrend->current_day_index_open ?? 0) : 0;
+        // Index open price from column current_day_index_open
+        $indexOpen = 0;
+        if ($currentTrend && !empty($currentTrend->current_day_index_open)) {
+            $indexOpen = (float) $currentTrend->current_day_index_open;
+        } else {
+            $latestOpenRow = DB::table('daily_trend')
+                ->where('symbol_name', $symbol)
+                ->whereNotNull('current_day_index_open')
+                ->where('current_day_index_open', '>', 0)
+                ->orderByDesc('id')
+                ->first();
+            if ($latestOpenRow) {
+                $indexOpen = (float) $latestOpenRow->current_day_index_open;
+            }
+        }
+
         $indexClose = $currentTrend ? (float) ($currentTrend->index_close ?? 0) : 0;
         $indexKey   = $symbol === 'BANKNIFTY' ? 'NSE_INDEX|Nifty Bank' : 'NSE_INDEX|Nifty 50';
+
+        // Current Index Spot initial fallback
+        $tableName = function_exists('getTableName') ? getTableName('ohlc_quotes') : 'ohlc_quotes';
+        $indexSpot = $indexClose > 0 ? $indexClose : $indexOpen;
+        if (!$indexSpot || $indexSpot == 0) {
+            $latestIndexQuote = DB::table($tableName)
+                ->where('instrument_key', $indexKey)
+                ->orderByDesc('id')
+                ->first();
+            if ($latestIndexQuote) {
+                $indexSpot = (float) $latestIndexQuote->close;
+            }
+        }
 
         // Round to nearest 50
         $defaultAtmStrike = $detectedAtm > 0 ? (int) (round($detectedAtm / 50) * 50) : 23200;
@@ -183,7 +210,6 @@ class LiveStrikeChartController extends Controller
         }
 
         // 5. Fallback latest prices from ohlc_quotes
-        $tableName = function_exists('getTableName') ? getTableName('ohlc_quotes') : 'ohlc_quotes';
         $fallbackPrices = [];
         if ($instruments->isNotEmpty()) {
             $instKeys = $instruments->pluck('instrument_key')->toArray();
@@ -252,6 +278,7 @@ class LiveStrikeChartController extends Controller
             'detectedAtm'        => $defaultAtmStrike,
             'atmStrike'          => $atmStrike,
             'indexOpen'          => $indexOpen,
+            'indexSpot'          => $indexSpot,
             'indexClose'         => $indexClose,
             'indexKey'           => $indexKey,
             'range'              => $range,

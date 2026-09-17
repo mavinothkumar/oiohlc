@@ -54,12 +54,21 @@
                     </select>
                 </div>
 
-                {{-- Toggle Show/Hide Index Marker Filter --}}
+                {{-- Toggle Show Current Index Spot --}}
                 <label class="inline-flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
-                    <input type="checkbox" id="filter-show-index" checked class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
+                    <input type="checkbox" id="filter-show-spot" checked class="rounded bg-slate-900 border-slate-600 text-cyan-500 focus:ring-cyan-400 h-3.5 w-3.5">
+                    <span class="text-cyan-300 flex items-center gap-1">
+                        <span class="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        Spot (<span id="label-spot-val" class="font-mono">{{ number_format($indexSpot ?: $indexClose, 2) }}</span>)
+                    </span>
+                </label>
+
+                {{-- Toggle Show Index Open --}}
+                <label class="inline-flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition">
+                    <input type="checkbox" id="filter-show-open" checked class="rounded bg-slate-900 border-slate-600 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
                     <span class="text-amber-300 flex items-center gap-1">
                         <span class="h-2 w-2 rounded-full bg-amber-400"></span>
-                        Show Index (<span id="label-index-val" class="font-mono">{{ number_format($indexOpen ?: $indexClose, 2) }}</span>)
+                        Open (<span id="label-open-val" class="font-mono">{{ number_format($indexOpen, 2) }}</span>)
                     </span>
                 </label>
 
@@ -75,8 +84,17 @@
 
             {{-- Right: Live Summary Chips, WS Status & Details Toggle --}}
             <div class="flex flex-wrap items-center gap-2 text-xs">
-                {{-- Quick Mid Point & Index Chips --}}
+                {{-- Quick Spot, Open, Diff & Mid Point Chips --}}
                 <div class="hidden xl:flex items-center gap-1.5">
+                    <span class="inline-flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                        Spot: <strong class="font-mono text-cyan-300" id="chip-index-spot">₹{{ number_format($indexSpot ?: $indexClose, 2) }}</strong>
+                    </span>
+                    <span class="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                        Open: <strong class="font-mono text-amber-400" id="chip-index-open">{{ number_format($indexOpen, 2) }}</strong>
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] border" id="chip-index-diff">
+                        Diff: <span class="font-mono" id="chip-diff-val">--</span>
+                    </span>
                     <span class="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-md font-medium text-[11px]">
                         Curr Mid: <strong class="font-mono text-blue-400" id="chip-curr-mid">{{ number_format($currentMidPoint, 2) }}</strong>
                     </span>
@@ -139,19 +157,23 @@
                 <p class="text-[10px] text-slate-500 mt-0.5">daily_trend next expiry mid_point</p>
             </div>
 
-            {{-- Center ATM Strike & Index Price --}}
+            {{-- Center ATM Strike, Spot & Open Diff --}}
             <div class="bg-slate-950/60 border border-emerald-500/30 rounded-xl p-3 shadow">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-semibold text-emerald-300 uppercase">Center ATM & Index</span>
+                    <span class="text-[11px] font-semibold text-emerald-300 uppercase">Center ATM & Spot</span>
                     <span class="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                        Center Base
+                        Center
                     </span>
                 </div>
-                <div class="mt-1 flex items-baseline gap-1.5">
+                <div class="mt-1 flex items-baseline justify-between">
                     <span class="text-xl font-extrabold text-emerald-400 font-mono" id="card-atm-strike">
                         {{ $atmStrike }}
                     </span>
-                    <span class="text-[11px] text-slate-400">Index: <strong class="text-amber-400 font-mono" id="card-index-spot">{{ number_format($indexOpen ?: $indexClose, 2) }}</strong></span>
+                    <div class="text-right">
+                        <span class="text-xs text-cyan-300 font-mono font-bold" id="card-index-spot">Spot: {{ number_format($indexSpot ?: $indexClose, 2) }}</span>
+                        <span class="block text-[10px] text-amber-400 font-mono">Open: {{ number_format($indexOpen, 2) }}</span>
+                        <span class="block text-[10px] font-mono font-bold" id="card-diff-val">--</span>
+                    </div>
                 </div>
                 <p class="text-[10px] text-slate-500 mt-0.5">
                     Open ATM: <span class="font-semibold text-slate-300" id="card-detected-atm">{{ $detectedAtm }}</span>
@@ -186,7 +208,7 @@
             <div class="flex items-center gap-2">
                 <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span class="text-xs sm:text-sm font-bold text-slate-200">
-                    Live Strike Curve vs Current (<span id="legend-curr-mid" class="text-blue-400 font-mono">{{ number_format($currentMidPoint, 2) }}</span>) & Next Week (<span id="legend-next-mid" class="text-purple-400 font-mono">{{ number_format($nextMidPoint, 2) }}</span>) Mid-Point
+                    Strike Curve vs Current (<span id="legend-curr-mid" class="text-blue-400 font-mono">{{ number_format($currentMidPoint, 2) }}</span>) & Next Week (<span id="legend-next-mid" class="text-purple-400 font-mono">{{ number_format($nextMidPoint, 2) }}</span>) Mid-Point
                 </span>
             </div>
 
@@ -199,9 +221,18 @@
                     <span class="w-3.5 h-1 bg-purple-500 rounded"></span>
                     <span class="text-slate-300">Next Mid</span>
                 </div>
-                <div class="flex items-center gap-1.5" id="legend-index-wrapper">
+                <div class="flex items-center gap-1.5" id="legend-spot-wrapper">
+                    <span class="w-3 h-0.5 border-t-2 border-dashed border-cyan-400"></span>
+                    <span class="text-cyan-300 font-semibold">Spot: <span id="legend-spot-val" class="font-mono">{{ number_format($indexSpot ?: $indexClose, 2) }}</span></span>
+                </div>
+                <div class="flex items-center gap-1.5" id="legend-open-wrapper">
                     <span class="w-3 h-0.5 border-t-2 border-dashed border-amber-400"></span>
-                    <span class="text-amber-400 font-semibold">Index: <span id="legend-index-val" class="font-mono">{{ number_format($indexOpen ?: $indexClose, 2) }}</span></span>
+                    <span class="text-amber-400 font-semibold">Open: <span id="legend-open-val" class="font-mono">{{ number_format($indexOpen, 2) }}</span></span>
+                </div>
+                <div class="flex items-center gap-1.5" id="legend-diff-wrapper">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" id="legend-diff-badge">
+                        Δ Diff: <span id="legend-diff-val">--</span>
+                    </span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
@@ -264,6 +295,7 @@
         detectedAtm: {{ (int) $detectedAtm }},
         atmStrike: {{ (int) $atmStrike }},
         indexOpen: {{ (float) $indexOpen }},
+        indexSpot: {{ (float) $indexSpot }},
         indexClose: {{ (float) $indexClose }},
         indexKey: @json($indexKey),
         range: {{ (int) $range }},
@@ -273,8 +305,11 @@
     };
 
     let livePrices = {};
-    let liveIndexPrice = state.indexOpen || state.indexClose || 0;
-    let showIndexMarker = true;
+    let openPrice = state.indexOpen || 0;
+    let liveSpotPrice = state.indexSpot || state.indexClose || state.indexOpen || 0;
+    let showSpotMarker = true;
+    let showOpenMarker = true;
+
     let ws = null;
     let protobufRoot = null;
     let chartInstance = null;
@@ -291,84 +326,203 @@
         }
     });
 
+    // Helper to calculate pixel X position for any strike/index value along X axis
+    function getPixelXForValue(val, strikeLabels, xScale) {
+        if (!val || strikeLabels.length === 0) return null;
+        const firstStrike = strikeLabels[0];
+        const lastStrike  = strikeLabels[strikeLabels.length - 1];
+
+        if (val < firstStrike - 150 || val > lastStrike + 150) return null;
+
+        for (let i = 0; i < strikeLabels.length - 1; i++) {
+            const s1 = strikeLabels[i];
+            const s2 = strikeLabels[i + 1];
+            if (val >= s1 && val <= s2) {
+                const x1 = xScale.getPixelForValue(i);
+                const x2 = xScale.getPixelForValue(i + 1);
+                const ratio = (val - s1) / (s2 - s1);
+                return x1 + (x2 - x1) * ratio;
+            }
+        }
+
+        if (val < firstStrike) return xScale.getPixelForValue(0);
+        return xScale.getPixelForValue(strikeLabels.length - 1);
+    }
+
+    // Helper to format Difference string & class
+    function formatDiff(spot, open) {
+        if (!open || open === 0 || !spot || spot === 0) {
+            return { text: '--', isPos: true, diff: 0, pct: 0 };
+        }
+        const diff = spot - open;
+        const pct  = (diff / open) * 100;
+        const isPos = diff >= 0;
+        const sign = isPos ? '+' : '';
+        return {
+            text: `${sign}${diff.toFixed(2)} pts (${sign}${pct.toFixed(2)}%)`,
+            shortText: `${sign}${diff.toFixed(2)} (${sign}${pct.toFixed(2)}%)`,
+            isPos: isPos,
+            diff: diff,
+            pct: pct
+        };
+    }
+
     // ──────────────────────────────────────────────
-    // 1. IN-CHART CAPSULES & INDEX MARKER PLUGIN
+    // 1. IN-CHART CAPSULES, SPOT, OPEN & DIFFERENCE MARKER PLUGIN
     // ──────────────────────────────────────────────
-    const chartCapsuleAndIndexPlugin = {
-        id: 'chartCapsuleAndIndexPlugin',
+    const chartCapsuleAndReferencePlugin = {
+        id: 'chartCapsuleAndReferencePlugin',
         afterDatasetsDraw(chart) {
             const { ctx, scales: { x, y } } = chart;
             const strikeLabels = chart.data.labels;
             const ceMeta = chart.getDatasetMeta(2);
             const peMeta = chart.getDatasetMeta(3);
+            const topY = y.top;
+            const bottomY = y.bottom;
 
             ctx.save();
 
-            // A. DRAW INDEX VERTICAL REFERENCE LINE & BADGE (If showIndexMarker is true)
-            if (showIndexMarker && liveIndexPrice > 0 && strikeLabels.length > 0) {
-                const firstStrike = strikeLabels[0];
-                const lastStrike  = strikeLabels[strikeLabels.length - 1];
+            let spotPixelX = null;
+            let openPixelX = null;
 
-                if (liveIndexPrice >= firstStrike - 100 && liveIndexPrice <= lastStrike + 100) {
-                    // Calculate exact pixel X position for liveIndexPrice
-                    let indexPixelX = null;
-                    for (let i = 0; i < strikeLabels.length - 1; i++) {
-                        const s1 = strikeLabels[i];
-                        const s2 = strikeLabels[i + 1];
-                        if (liveIndexPrice >= s1 && liveIndexPrice <= s2) {
-                            const x1 = x.getPixelForValue(i);
-                            const x2 = x.getPixelForValue(i + 1);
-                            const ratio = (liveIndexPrice - s1) / (s2 - s1);
-                            indexPixelX = x1 + (x2 - x1) * ratio;
-                            break;
-                        }
-                    }
-
-                    if (indexPixelX === null) {
-                        if (liveIndexPrice < firstStrike) indexPixelX = x.getPixelForValue(0);
-                        else indexPixelX = x.getPixelForValue(strikeLabels.length - 1);
-                    }
-
-                    const topY = y.top;
-                    const bottomY = y.bottom;
-
-                    // Draw vertical dashed line for Index
-                    ctx.save();
-                    ctx.strokeStyle = '#f59e0b';
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 4]);
-                    ctx.beginPath();
-                    ctx.moveTo(indexPixelX, topY);
-                    ctx.lineTo(indexPixelX, bottomY);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // Draw Index Badge at the top of the line
-                    ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    const indexText = `📍 Index: ${liveIndexPrice.toFixed(2)}`;
-                    const badgeWidth = ctx.measureText(indexText).width + 16;
-                    const badgeHeight = 20;
-                    const badgeX = indexPixelX - (badgeWidth / 2);
-                    const badgeY = topY + 12;
-
-                    // Badge background
-                    ctx.fillStyle = 'rgba(217, 119, 6, 0.95)';
-                    ctx.strokeStyle = '#fef3c7';
-                    ctx.lineWidth = 1.2;
-                    ctx.beginPath();
-                    ctx.roundRect(badgeX, badgeY - (badgeHeight / 2), badgeWidth, badgeHeight, 6);
-                    ctx.fill();
-                    ctx.stroke();
-
-                    // Badge text
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(indexText, indexPixelX, badgeY);
-                }
+            if (showSpotMarker && liveSpotPrice > 0) {
+                spotPixelX = getPixelXForValue(liveSpotPrice, strikeLabels, x);
+            }
+            if (showOpenMarker && openPrice > 0) {
+                openPixelX = getPixelXForValue(openPrice, strikeLabels, x);
             }
 
-            // B. DRAW CE GREEN CAPSULES ABOVE CE POINTS
+            // A. SHADED RANGE ZONE & CONNECTING BRIDGE FOR DIFFERENCE (If both Spot and Open are shown)
+            if (spotPixelX !== null && openPixelX !== null && openPrice > 0 && liveSpotPrice > 0) {
+                const minX = Math.min(spotPixelX, openPixelX);
+                const maxX = Math.max(spotPixelX, openPixelX);
+                const diffObj = formatDiff(liveSpotPrice, openPrice);
+
+                // 1. Subtle shaded vertical zone between Open and Spot lines
+                ctx.fillStyle = diffObj.isPos ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+                ctx.fillRect(minX, topY, maxX - minX, bottomY - topY);
+
+                // 2. Connecting Bridge Line between the two markers
+                const bridgeY = topY + 44;
+                ctx.save();
+                ctx.strokeStyle = diffObj.isPos ? '#10b981' : '#f43f5e';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 2]);
+                ctx.beginPath();
+                ctx.moveTo(minX, bridgeY);
+                ctx.lineTo(maxX, bridgeY);
+                ctx.stroke();
+
+                // End ticks on bridge line
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(minX, bridgeY - 4);
+                ctx.lineTo(minX, bridgeY + 4);
+                ctx.moveTo(maxX, bridgeY - 4);
+                ctx.lineTo(maxX, bridgeY + 4);
+                ctx.stroke();
+                ctx.restore();
+
+                // 3. Difference Badge centered along the bridge
+                const midX = (minX + maxX) / 2;
+                ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const diffBadgeText = `Δ Diff: ${diffObj.text}`;
+                const diffBadgeWidth = ctx.measureText(diffBadgeText).width + 16;
+                const diffBadgeHeight = 19;
+                const diffBadgeX = midX - (diffBadgeWidth / 2);
+
+                // Pill background
+                ctx.fillStyle = diffObj.isPos ? 'rgba(6, 78, 59, 0.95)' : 'rgba(136, 19, 55, 0.95)';
+                ctx.strokeStyle = diffObj.isPos ? '#10b981' : '#f43f5e';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.roundRect(diffBadgeX, bridgeY - (diffBadgeHeight / 2), diffBadgeWidth, diffBadgeHeight, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // Pill text
+                ctx.fillStyle = diffObj.isPos ? '#ecfdf5' : '#fff1f2';
+                ctx.fillText(diffBadgeText, midX, bridgeY);
+            }
+
+            // B. DRAW CURRENT INDEX SPOT VERTICAL REFERENCE LINE & 'Spot' BADGE (Cyan)
+            if (spotPixelX !== null) {
+                // Draw vertical dashed line for Spot
+                ctx.save();
+                ctx.strokeStyle = '#06b6d4'; // Cyan-500
+                ctx.lineWidth = 2.2;
+                ctx.setLineDash([5, 3]);
+                ctx.beginPath();
+                ctx.moveTo(spotPixelX, topY);
+                ctx.lineTo(spotPixelX, bottomY);
+                ctx.stroke();
+                ctx.restore();
+
+                // Draw 'Spot' Badge at the top of the line
+                ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const spotText = `⚡ Spot: ${liveSpotPrice.toFixed(2)}`;
+                const badgeWidth = ctx.measureText(spotText).width + 16;
+                const badgeHeight = 22;
+                const badgeX = spotPixelX - (badgeWidth / 2);
+                const badgeY = topY + 12;
+
+                // Badge background
+                ctx.fillStyle = 'rgba(8, 145, 178, 0.95)';
+                ctx.strokeStyle = '#cffafe';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.roundRect(badgeX, badgeY - (badgeHeight / 2), badgeWidth, badgeHeight, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // Badge text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(spotText, spotPixelX, badgeY);
+            }
+
+            // C. DRAW INDEX OPEN VERTICAL REFERENCE LINE & 'Open' BADGE (Amber)
+            if (openPixelX !== null) {
+                // Draw vertical dashed line for Open
+                ctx.save();
+                ctx.strokeStyle = '#f59e0b'; // Amber-500
+                ctx.lineWidth = 2.2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(openPixelX, topY);
+                ctx.lineTo(openPixelX, bottomY);
+                ctx.stroke();
+                ctx.restore();
+
+                // Draw 'Open' Badge at the top of the line
+                ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const openText = `📍 Open: ${openPrice.toFixed(2)}`;
+                const badgeWidth = ctx.measureText(openText).width + 16;
+                const badgeHeight = 22;
+                const badgeX = openPixelX - (badgeWidth / 2);
+                const badgeY = topY + 12;
+
+                // Badge background
+                ctx.fillStyle = 'rgba(217, 119, 6, 0.95)';
+                ctx.strokeStyle = '#fef3c7';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.roundRect(badgeX, badgeY - (badgeHeight / 2), badgeWidth, badgeHeight, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // Badge text
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(openText, openPixelX, badgeY);
+            }
+
+            // D. DRAW CE GREEN CAPSULES ABOVE CE POINTS
             ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -408,7 +562,7 @@
                 });
             }
 
-            // C. DRAW PE RED CAPSULES BELOW PE POINTS
+            // E. DRAW PE RED CAPSULES BELOW PE POINTS
             if (peMeta && !peMeta.hidden) {
                 peMeta.data.forEach((element, index) => {
                     const val = chart.data.datasets[3].data[index];
@@ -532,12 +686,12 @@
                     }
                 ]
             },
-            plugins: [chartCapsuleAndIndexPlugin],
+            plugins: [chartCapsuleAndReferencePlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: {
-                    padding: { top: 28, bottom: 25, left: 10, right: 10 }
+                    padding: { top: 38, bottom: 25, left: 10, right: 10 }
                 },
                 animation: { duration: 250 },
                 interaction: {
@@ -580,7 +734,7 @@
                         }
                     },
                     y: {
-                        grace: '15%', // Gives headroom for top/bottom capsules
+                        grace: '18%', // Gives headroom for top/bottom capsules and difference bridge
                         grid: { color: 'rgba(51, 65, 85, 0.3)' },
                         ticks: {
                             color: '#94a3b8',
@@ -712,7 +866,24 @@
             }
         });
 
-        // 2. Update chart datasets without lag
+        // 2. Update Difference Displays in Header, Legends & Drawer
+        const diffObj = formatDiff(liveSpotPrice, openPrice);
+        const chipDiff = document.getElementById('chip-index-diff');
+        const chipDiffVal = document.getElementById('chip-diff-val');
+        const legDiffBadge = document.getElementById('legend-diff-badge');
+        const legDiffVal = document.getElementById('legend-diff-val');
+        const cardDiffVal = document.getElementById('card-diff-val');
+
+        if (chipDiffVal) chipDiffVal.textContent = diffObj.shortText;
+        if (legDiffVal) legDiffVal.textContent = diffObj.text;
+        if (cardDiffVal) cardDiffVal.textContent = `Diff: ${diffObj.text}`;
+
+        const diffBgColor = diffObj.isPos ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' : 'bg-rose-500/15 text-rose-300 border-rose-500/40';
+        if (chipDiff) chipDiff.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] border ${diffBgColor}`;
+        if (legDiffBadge) legDiffBadge.className = `px-1.5 py-0.5 rounded text-[10px] font-bold border ${diffBgColor}`;
+        if (cardDiffVal) cardDiffVal.className = `block text-[10px] font-mono font-bold ${diffObj.isPos ? 'text-emerald-400' : 'text-rose-400'}`;
+
+        // 3. Update chart datasets & custom plugin drawing
         if (chartInstance) {
             const cePrices = state.strikesData.map(d => {
                 const key = d.ce.instrument_key;
@@ -729,7 +900,7 @@
             chartInstance.update('none'); // Update smoothly without lag
         }
 
-        // 3. Tick counter
+        // 4. Tick counter
         tickCount++;
         const tcEl = document.getElementById('tick-counter');
         if (tcEl) tcEl.textContent = `${tickCount} ticks`;
@@ -854,14 +1025,17 @@
                     if (ltp !== null && ltp !== undefined) {
                         const parsedLtp = parseFloat(ltp);
                         if (key === state.indexKey) {
-                            liveIndexPrice = parsedLtp;
-                            // Update index chips/labels
-                            const idxLabel = document.getElementById('label-index-val');
-                            const legIdx = document.getElementById('legend-index-val');
-                            const cardIdx = document.getElementById('card-index-spot');
-                            if (idxLabel) idxLabel.textContent = parsedLtp.toFixed(2);
-                            if (legIdx) legIdx.textContent = parsedLtp.toFixed(2);
-                            if (cardIdx) cardIdx.textContent = parsedLtp.toFixed(2);
+                            liveSpotPrice = parsedLtp;
+                            // Update Spot Labels in Toolbar, Legend & Drawer
+                            const spotLabel = document.getElementById('label-spot-val');
+                            const legSpot = document.getElementById('legend-spot-val');
+                            const chipSpot = document.getElementById('chip-index-spot');
+                            const cardSpot = document.getElementById('card-index-spot');
+
+                            if (spotLabel) spotLabel.textContent = parsedLtp.toFixed(2);
+                            if (legSpot) legSpot.textContent = parsedLtp.toFixed(2);
+                            if (chipSpot) chipSpot.textContent = `₹${parsedLtp.toFixed(2)}`;
+                            if (cardSpot) cardSpot.textContent = `Spot: ${parsedLtp.toFixed(2)}`;
                         } else {
                             livePrices[key] = parsedLtp;
                         }
@@ -897,8 +1071,9 @@
             if (res.data && res.data.success) {
                 const d = res.data.data;
                 state = d;
-                if (!liveIndexPrice || liveIndexPrice === 0) {
-                    liveIndexPrice = d.indexOpen || d.indexClose || 0;
+                openPrice = d.indexOpen || openPrice;
+                if (!liveSpotPrice || liveSpotPrice === 0) {
+                    liveSpotPrice = d.indexSpot || d.indexClose || openPrice;
                 }
 
                 // Update Chips & Legends
@@ -907,15 +1082,19 @@
                 document.getElementById('legend-curr-mid').textContent = parseFloat(d.currentMidPoint).toFixed(2);
                 document.getElementById('legend-next-mid').textContent = parseFloat(d.nextMidPoint).toFixed(2);
 
-                const displayIndex = liveIndexPrice || d.indexOpen || d.indexClose;
-                document.getElementById('label-index-val').textContent = parseFloat(displayIndex).toFixed(2);
-                document.getElementById('legend-index-val').textContent = parseFloat(displayIndex).toFixed(2);
+                document.getElementById('chip-index-open').textContent = parseFloat(openPrice).toFixed(2);
+                document.getElementById('label-open-val').textContent = parseFloat(openPrice).toFixed(2);
+                document.getElementById('legend-open-val').textContent = parseFloat(openPrice).toFixed(2);
+
+                document.getElementById('chip-index-spot').textContent = `₹${parseFloat(liveSpotPrice).toFixed(2)}`;
+                document.getElementById('label-spot-val').textContent = parseFloat(liveSpotPrice).toFixed(2);
+                document.getElementById('legend-spot-val').textContent = parseFloat(liveSpotPrice).toFixed(2);
 
                 // Update Drawer Stats
                 document.getElementById('card-curr-midpoint').textContent = parseFloat(d.currentMidPoint).toFixed(2);
                 document.getElementById('card-next-midpoint').textContent = parseFloat(d.nextMidPoint).toFixed(2);
                 document.getElementById('card-atm-strike').textContent = d.atmStrike;
-                document.getElementById('card-index-spot').textContent = parseFloat(displayIndex).toFixed(2);
+                document.getElementById('card-index-spot').textContent = `Spot: ${parseFloat(liveSpotPrice).toFixed(2)}`;
                 document.getElementById('card-detected-atm').textContent = d.detectedAtm;
                 document.getElementById('label-detected-atm').textContent = d.detectedAtm;
 
@@ -946,7 +1125,7 @@
                     chartInstance.update();
                 }
 
-                // Re-render multi-line capsules
+                // Re-render multi-line capsules & difference
                 renderCapsules();
                 updateLiveValues();
 
@@ -968,19 +1147,41 @@
         // Render initial UI
         renderCapsules();
         initChart();
+        updateLiveValues();
 
         // Connect Protobuf & WebSocket
         await initProtobuf();
         await connectWebsocket();
 
-        // Show/Hide Index Marker Checkbox Toggle
-        const showIndexCheckbox = document.getElementById('filter-show-index');
-        const legendIndexWrapper = document.getElementById('legend-index-wrapper');
-        if (showIndexCheckbox) {
-            showIndexCheckbox.addEventListener('change', (e) => {
-                showIndexMarker = e.target.checked;
-                if (legendIndexWrapper) {
-                    legendIndexWrapper.style.display = showIndexMarker ? 'flex' : 'none';
+        // Show/Hide Spot Marker Checkbox Toggle
+        const showSpotCheckbox = document.getElementById('filter-show-spot');
+        const legendSpotWrapper = document.getElementById('legend-spot-wrapper');
+        if (showSpotCheckbox) {
+            showSpotCheckbox.addEventListener('change', (e) => {
+                showSpotMarker = e.target.checked;
+                if (legendSpotWrapper) {
+                    legendSpotWrapper.style.display = showSpotMarker ? 'flex' : 'none';
+                }
+                const legendDiffWrapper = document.getElementById('legend-diff-wrapper');
+                if (legendDiffWrapper) {
+                    legendDiffWrapper.style.display = (showSpotMarker && showOpenMarker) ? 'flex' : 'none';
+                }
+                if (chartInstance) chartInstance.update('none');
+            });
+        }
+
+        // Show/Hide Open Marker Checkbox Toggle
+        const showOpenCheckbox = document.getElementById('filter-show-open');
+        const legendOpenWrapper = document.getElementById('legend-open-wrapper');
+        if (showOpenCheckbox) {
+            showOpenCheckbox.addEventListener('change', (e) => {
+                showOpenMarker = e.target.checked;
+                if (legendOpenWrapper) {
+                    legendOpenWrapper.style.display = showOpenMarker ? 'flex' : 'none';
+                }
+                const legendDiffWrapper = document.getElementById('legend-diff-wrapper');
+                if (legendDiffWrapper) {
+                    legendDiffWrapper.style.display = (showSpotMarker && showOpenMarker) ? 'flex' : 'none';
                 }
                 if (chartInstance) chartInstance.update('none');
             });
