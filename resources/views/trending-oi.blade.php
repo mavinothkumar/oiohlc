@@ -132,41 +132,55 @@
     </div>
 
     {{-- ══════════ PREDICTIVE OI SIGNAL & SELLER PLAYBOOK (CLEAN 1-LINE WITH EXPANDABLE TRAY) ══════════ --}}
+    {{-- ══════════ DAILY HIGH-CONVICTION STRATEGY STATION (TOP RIBBON COCKPIT) ══════════ --}}
     <div id="toi-signal-banner" class="bg-slate-900 border-b border-slate-700 text-white shadow-sm transition-all duration-200">
         {{-- Clean Single-Line Summary Row --}}
-        <div class="px-3 py-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs">
+        <div class="px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs">
             
-            {{-- Left Group: Status Pill & Seller Action --}}
+            {{-- Left Group: Status Pill, Strategy & Anchor, Safe Band, Target/Loss --}}
             <div class="flex flex-wrap items-center gap-2 min-w-0">
-                {{-- State Badge --}}
-                <div id="toi-signal-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm bg-gray-700 text-gray-200 whitespace-nowrap">
-                    <span class="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></span>
-                    <span id="toi-signal-state-title">Analyzing Flow...</span>
+                {{-- Trade Status Badge --}}
+                <div id="toi-station-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm bg-slate-700 text-slate-200 whitespace-nowrap">
+                    <span id="toi-station-dot" class="w-2 h-2 rounded-full bg-slate-400 animate-pulse"></span>
+                    <span id="toi-station-status-text">Scanning Edge...</span>
                 </div>
 
-                {{-- Seller Action Pill --}}
-                <div class="flex items-center gap-1.5 bg-slate-800/90 border border-amber-500/40 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
-                    <span class="text-amber-400 font-bold">⚡ Seller:</span>
-                    <span id="toi-seller-action" class="font-bold text-emerald-400">Loading...</span>
-                    <span class="text-slate-500">|</span>
-                    <span id="toi-seller-strikes" class="font-mono text-amber-200 font-semibold">—</span>
+                {{-- Strategy & Recommended Anchor Strike --}}
+                <div id="toi-station-strat-pill" class="flex items-center gap-1.5 bg-slate-800/95 border border-slate-700 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
+                    <span class="text-amber-400 font-bold">🎯 Strategy:</span>
+                    <span id="toi-station-strat-name" class="font-bold text-white">Daily OAI V2</span>
+                    <span class="text-slate-600">|</span>
+                    <span id="toi-station-anchor-text" class="font-mono text-emerald-300 font-bold">Anchor: —</span>
                 </div>
 
-                {{-- PE Absorption Chip --}}
-                <div class="hidden md:flex items-center gap-1 bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300 whitespace-nowrap">
-                    <span class="text-slate-400 font-medium">PE Absorption:</span>
-                    <span id="toi-signal-absorption" class="font-semibold text-emerald-300">—</span>
+                {{-- Safe Spot Band & Option Chain Walls --}}
+                <div class="hidden sm:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 px-2.5 py-0.5 rounded-md text-[11px] text-slate-300 whitespace-nowrap">
+                    <span class="text-slate-400 font-medium">Safe Spot:</span>
+                    <span id="toi-station-safe-band" class="font-mono font-semibold text-emerald-400">—</span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-slate-400">Walls:</span>
+                    <span id="toi-station-walls" class="font-mono text-slate-300 text-[10.5px]">Supp: — / Res: —</span>
                 </div>
 
-                {{-- 1-line Headline Summary --}}
-                <div class="hidden xl:block text-slate-300 text-[11px] truncate max-w-md font-sans">
-                    <span id="toi-signal-headline">Evaluating Trending OI flow...</span>
+                {{-- Target & Stop Loss --}}
+                <div id="toi-station-pnl-chip" class="hidden md:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
+                    <span class="text-emerald-400 font-semibold" id="toi-station-target">🎯 Min: —</span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-rose-400 font-semibold" id="toi-station-stop">🛑 Max: —</span>
+                </div>
+
+                {{-- Hard Cutoff Chip --}}
+                <div class="hidden lg:flex items-center gap-1 bg-slate-800/60 border border-slate-700/60 px-2 py-0.5 rounded text-[10.5px] text-slate-400 whitespace-nowrap">
+                    <span>Cutoff:</span>
+                    <span class="font-mono font-bold text-amber-300">13:20 IST</span>
                 </div>
             </div>
 
-            {{-- Right Group: Confidence & Expand Toggle Button --}}
+            {{-- Right Group: View 16-Leg Basket & Expand Details Drawer --}}
             <div class="flex items-center gap-2 ml-auto">
-                <span id="toi-signal-conf" class="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">Conf: —%</span>
+                <button id="toi-station-basket-btn" class="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-2.5 py-0.5 rounded text-[11px] shadow-sm transition-colors cursor-pointer select-none">
+                    <span>👁️ View 16-Leg Basket</span>
+                </button>
                 <button id="toi-signal-details-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-600 hover:border-slate-500 px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer select-none">
                     <span id="toi-signal-btn-text">Details</span>
                     <span id="toi-signal-btn-icon" class="text-[9px]">▼</span>
@@ -177,40 +191,54 @@
         {{-- Expandable Detailed Drawer (Hidden by default) --}}
         <div id="toi-signal-details-drawer" class="hidden border-t border-slate-800 bg-slate-950/90 px-4 py-3 text-xs">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {{-- Column 1: AI Reasoning / OI Flow --}}
+                {{-- Column 1: Institutional Rationale & Option Chain Walls --}}
                 <div class="space-y-1.5">
                     <div class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
-                        <span>🔍 Flow Breakdown & Rationale</span>
+                        <span>🔍 Flow Breakdown & Option Chain Walls</span>
                     </div>
-                    <p id="toi-signal-drawer-headline" class="text-slate-200 text-xs font-medium leading-relaxed font-sans">
+                    <p id="toi-station-drawer-rationale" class="text-slate-200 text-xs font-medium leading-relaxed font-sans">
                         —
                     </p>
-                    <div id="toi-signal-reasons" class="space-y-1 text-[11px] text-slate-400 font-sans pt-1">
-                        <!-- Dynamic reasons -->
+                    <div class="bg-slate-900/90 p-2 rounded border border-slate-800 text-[11px] space-y-1 font-mono">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Major PE Support:</span>
+                            <span id="toi-drawer-support-wall" class="font-bold text-emerald-400">—</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Major CE Resistance:</span>
+                            <span id="toi-drawer-resistance-wall" class="font-bold text-rose-400">—</span>
+                        </div>
+                        <div class="flex justify-between pt-1 border-t border-slate-800 text-slate-400 text-[10px]">
+                            <span>Daily Trades Policy:</span>
+                            <span class="text-amber-300 font-semibold">Max 1–2 (Selective / Sit in Cash)</span>
+                        </div>
                     </div>
                 </div>
 
-                {{-- Column 2: Execution Guide & Invalidation --}}
+                {{-- Column 2: Strategy Execution Guide --}}
                 <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-2">
                     <div class="flex items-center justify-between text-[11px]">
                         <span class="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                            🎯 Seller Execution Plan
+                            🎯 Option Seller Playbook
                         </span>
-                        <span id="toi-signal-bias" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">—</span>
+                        <span id="toi-station-drawer-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">—</span>
                     </div>
-                    <p id="toi-seller-strategy-desc" class="text-slate-300 text-[11px] leading-relaxed font-sans">
-                        —
-                    </p>
+                    <div class="space-y-1 text-[11px] font-sans">
+                        <div class="text-slate-300">Action: <strong id="toi-station-drawer-action" class="text-emerald-400 font-semibold">—</strong></div>
+                        <div class="text-slate-300">Anchor Skew: <span id="toi-station-drawer-anchor" class="text-amber-200 font-mono font-bold">—</span></div>
+                        <div class="text-slate-300">Holding Duration: <span id="toi-station-drawer-duration" class="text-slate-200">—</span></div>
+                    </div>
                     <div class="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
-                        <span>Target Bias: <strong id="toi-drawer-bias-text" class="text-slate-200 font-semibold">—</strong></span>
-                        <span>Absorption: <strong id="toi-drawer-abs-text" class="text-emerald-400 font-semibold">—</strong></span>
+                        <span>Target: <strong id="toi-drawer-target-text" class="text-emerald-400 font-semibold">—</strong></span>
+                        <span>Max Stop: <strong id="toi-drawer-stop-text" class="text-rose-400 font-semibold">—</strong></span>
                     </div>
                 </div>
 
-                {{-- Column 3: Live Delta Momentum Matrix --}}
+                {{-- Column 3: Live Delta Momentum Matrix & Cutoff Clock --}}
                 <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-[11px] space-y-1.5">
-                    <div class="font-bold text-slate-300 uppercase tracking-wider text-[10px]">
-                        📊 3-Bar Delta Momentum
+                    <div class="flex items-center justify-between font-bold text-slate-300 uppercase tracking-wider text-[10px]">
+                        <span>📊 3-Bar Delta Matrix</span>
+                        <span class="text-amber-300 font-mono">Cutoff: 13:20 IST</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-[11px] pt-0.5 font-mono">
                         <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
@@ -226,8 +254,8 @@
                             <div id="toi-metric-pcr-mom" class="font-bold text-slate-200">—</div>
                         </div>
                         <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
-                            <div class="text-[9px] text-slate-400 uppercase">Confidence</div>
-                            <div id="toi-metric-conf-pct" class="font-bold text-emerald-400">—</div>
+                            <div class="text-[9px] text-slate-400 uppercase">Rule #1</div>
+                            <div class="font-bold text-emerald-400">Capital Guard</div>
                         </div>
                     </div>
                 </div>
@@ -422,6 +450,98 @@
     </div>
 </div>
 
+{{-- ══════════ 16-LEG STRATEGY BASKET MODAL ══════════ --}}
+<div id="toi-basket-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-bold text-sm">🎯 Execution Basket:</span>
+                <span id="toi-modal-strat-name" class="font-bold text-white text-sm">Daily OAI V2</span>
+                <span id="toi-modal-anchor-badge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-xs font-mono">Anchor: —</span>
+            </div>
+            <button id="toi-modal-basket-close" class="text-slate-400 hover:text-white text-lg font-bold px-2 py-0.5 rounded hover:bg-slate-800 transition-colors cursor-pointer">&times;</button>
+        </div>
+        
+        <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+            {{-- Quick Summary Bar --}}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs font-sans">
+                <div>
+                    <span class="text-slate-500 block text-[10px] uppercase">Setup</span>
+                    <strong id="toi-modal-setup" class="text-slate-800">—</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[10px] uppercase">Safe Spot Band</span>
+                    <strong id="toi-modal-safe-band" class="text-emerald-700 font-mono">—</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[10px] uppercase">Min Target / Max Stop</span>
+                    <strong id="toi-modal-pnl" class="text-indigo-700">+₹3,200 / -₹1,900</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block text-[10px] uppercase">Hard Cutoff</span>
+                    <strong class="text-rose-600">13:20 IST</strong>
+                </div>
+            </div>
+
+            {{-- 2 Column CE & PE Split --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{-- CE Table --}}
+                <div class="border border-emerald-200 rounded-lg p-3 bg-emerald-50/20">
+                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-emerald-200 text-xs font-bold text-emerald-800">
+                        <span>Call Options (CE Sold)</span>
+                        <span id="toi-modal-ce-lots" class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono">8 Lots</span>
+                    </div>
+                    <table class="w-full text-xs font-mono">
+                        <thead>
+                            <tr class="text-slate-500 border-b border-emerald-100 text-[10px]">
+                                <th class="text-left py-1">Leg</th>
+                                <th class="text-right py-1">Strike</th>
+                                <th class="text-right py-1">Lots</th>
+                                <th class="text-right py-1">Side</th>
+                            </tr>
+                        </thead>
+                        <tbody id="toi-modal-ce-tbody" class="divide-y divide-emerald-100">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- PE Table --}}
+                <div class="border border-rose-200 rounded-lg p-3 bg-rose-50/20">
+                    <div class="flex items-center justify-between pb-2 mb-2 border-b border-rose-200 text-xs font-bold text-rose-800">
+                        <span>Put Options (PE Sold)</span>
+                        <span id="toi-modal-pe-lots" class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-mono">8 Lots</span>
+                    </div>
+                    <table class="w-full text-xs font-mono">
+                        <thead>
+                            <tr class="text-slate-500 border-b border-rose-100 text-[10px]">
+                                <th class="text-left py-1">Leg</th>
+                                <th class="text-right py-1">Strike</th>
+                                <th class="text-right py-1">Lots</th>
+                                <th class="text-right py-1">Side</th>
+                            </tr>
+                        </thead>
+                        <tbody id="toi-modal-pe-tbody" class="divide-y divide-rose-100">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-[11px] text-slate-500">Execute on your broker terminal with these exact strikes & lot ratios.</span>
+            <div class="flex items-center gap-2">
+                <a id="toi-modal-builder-link" href="{{ route('backtests.basket-builder') }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1">
+                    <span>Open in Basket Builder</span>
+                    <span>↗</span>
+                </a>
+                <button id="toi-modal-footer-close" class="border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('styles')
 <style>
 /* ── Badges ──────────────────────────────────────────────────────── */
@@ -512,37 +632,63 @@
     const strikesDisplay     = document.getElementById('toi-selected-strikes-display');
     const spotVal            = document.getElementById('toi-spot-val');
 
-    // Signal Banner & Floating HUD DOM References
-    const signalBadge        = document.getElementById('toi-signal-badge');
-    const signalStateTitle   = document.getElementById('toi-signal-state-title');
-    const signalConf         = document.getElementById('toi-signal-conf');
-    const signalAbsorption   = document.getElementById('toi-signal-absorption');
-    const sellerAction       = document.getElementById('toi-seller-action');
-    const sellerStrikes      = document.getElementById('toi-seller-strikes');
-    const signalHeadline     = document.getElementById('toi-signal-headline');
-    const signalReasons      = document.getElementById('toi-signal-reasons');
-    const signalBias         = document.getElementById('toi-signal-bias');
-    const sellerStrategyDesc = document.getElementById('toi-seller-strategy-desc');
+    // Strategy Station DOM References
+    const stationBadge        = document.getElementById('toi-station-badge');
+    const stationDot          = document.getElementById('toi-station-dot');
+    const stationStatusText   = document.getElementById('toi-station-status-text');
+    const stationStratPill    = document.getElementById('toi-station-strat-pill');
+    const stationStratName    = document.getElementById('toi-station-strat-name');
+    const stationAnchorText   = document.getElementById('toi-station-anchor-text');
+    const stationSafeBand     = document.getElementById('toi-station-safe-band');
+    const stationWalls        = document.getElementById('toi-station-walls');
+    const stationPnlChip      = document.getElementById('toi-station-pnl-chip');
+    const stationTarget       = document.getElementById('toi-station-target');
+    const stationStop         = document.getElementById('toi-station-stop');
+    const stationBasketBtn    = document.getElementById('toi-station-basket-btn');
+    const stationDrawerRationale = document.getElementById('toi-station-drawer-rationale');
+    const drawerSupportWall   = document.getElementById('toi-drawer-support-wall');
+    const drawerResistanceWall= document.getElementById('toi-drawer-resistance-wall');
+    const stationDrawerBadge  = document.getElementById('toi-station-drawer-badge');
+    const stationDrawerAction = document.getElementById('toi-station-drawer-action');
+    const stationDrawerAnchor = document.getElementById('toi-station-drawer-anchor');
+    const stationDrawerDuration = document.getElementById('toi-station-drawer-duration');
+    const drawerTargetText    = document.getElementById('toi-drawer-target-text');
+    const drawerStopText      = document.getElementById('toi-drawer-stop-text');
 
-    const signalDetailsBtn   = document.getElementById('toi-signal-details-btn');
-    const signalDetailsDrawer= document.getElementById('toi-signal-details-drawer');
-    const signalBtnText      = document.getElementById('toi-signal-btn-text');
-    const signalBtnIcon      = document.getElementById('toi-signal-btn-icon');
-    const signalDrawerHeadline = document.getElementById('toi-signal-drawer-headline');
-    const drawerBiasText     = document.getElementById('toi-drawer-bias-text');
-    const drawerAbsText      = document.getElementById('toi-drawer-abs-text');
-    const metricCeDelta      = document.getElementById('toi-metric-ce-delta');
-    const metricPeDelta      = document.getElementById('toi-metric-pe-delta');
-    const metricPcrMom       = document.getElementById('toi-metric-pcr-mom');
-    const metricConfPct      = document.getElementById('toi-metric-conf-pct');
+    // 16-Leg Strategy Basket Modal DOM References
+    const basketModal         = document.getElementById('toi-basket-modal');
+    const modalStratName      = document.getElementById('toi-modal-strat-name');
+    const modalAnchorBadge    = document.getElementById('toi-modal-anchor-badge');
+    const modalBasketClose    = document.getElementById('toi-modal-basket-close');
+    const modalFooterClose    = document.getElementById('toi-modal-footer-close');
+    const modalSetup          = document.getElementById('toi-modal-setup');
+    const modalSafeBand       = document.getElementById('toi-modal-safe-band');
+    const modalPnl            = document.getElementById('toi-modal-pnl');
+    const modalCeLots         = document.getElementById('toi-modal-ce-lots');
+    const modalPeLots         = document.getElementById('toi-modal-pe-lots');
+    const modalCeTbody        = document.getElementById('toi-modal-ce-tbody');
+    const modalPeTbody        = document.getElementById('toi-modal-pe-tbody');
+    const modalBuilderLink    = document.getElementById('toi-modal-builder-link');
 
-    const floatingHud        = document.getElementById('toi-floating-hud');
-    const hudToggle          = document.getElementById('toi-hud-toggle');
-    const hudTimer           = document.getElementById('toi-hud-timer');
-    const hudState           = document.getElementById('toi-hud-state');
-    const hudSellerAction    = document.getElementById('toi-hud-seller-action');
-    const hudStrikes         = document.getElementById('toi-hud-strikes');
-    const hudReason          = document.getElementById('toi-hud-reason');
+    // Drawer Toggle Elements
+    const signalDetailsBtn    = document.getElementById('toi-signal-details-btn');
+    const signalDetailsDrawer = document.getElementById('toi-signal-details-drawer');
+    const signalBtnText       = document.getElementById('toi-signal-btn-text');
+    const signalBtnIcon       = document.getElementById('toi-signal-btn-icon');
+    const metricCeDelta       = document.getElementById('toi-metric-ce-delta');
+    const metricPeDelta       = document.getElementById('toi-metric-pe-delta');
+    const metricPcrMom        = document.getElementById('toi-metric-pcr-mom');
+
+    // Floating HUD DOM References
+    const floatingHud         = document.getElementById('toi-floating-hud');
+    const hudToggle           = document.getElementById('toi-hud-toggle');
+    const hudTimer            = document.getElementById('toi-hud-timer');
+    const hudState            = document.getElementById('toi-hud-state');
+    const hudSellerAction     = document.getElementById('toi-hud-seller-action');
+    const hudStrikes          = document.getElementById('toi-hud-strikes');
+    const hudReason           = document.getElementById('toi-hud-reason');
+
+    let currentStationData    = null;
 
     // Modal DOM
     const modal            = document.getElementById('toi-strike-modal');
@@ -744,7 +890,7 @@
                 currentAtmStrike       = data.atm_strike;
 
                 renderHeaderInfo(data);
-                renderSignalData(data.signal_data);
+                renderStrategyStation(data.daily_strategy_station, data.signal_data);
                 renderTable(data.rows || []);
                 renderCharts(data.chart || {});
 
@@ -824,51 +970,98 @@
         }
     }
 
-    // ── Render Signal Data & Playbook ────────────────────────────────────────
-    function renderSignalData(s) {
-        if (!s || !signalBadge) return;
+    // ── Render Daily Strategy Station (Top Ribbon Cockpit) ───────────────────
+    function renderStrategyStation(st, s) {
+        if (!st) return;
+        currentStationData = st;
 
         const colorMap = {
-            green:  { bg: 'bg-emerald-600 text-white', dot: 'bg-white', hud: 'text-emerald-400' },
-            red:    { bg: 'bg-rose-600 text-white', dot: 'bg-white', hud: 'text-rose-400' },
-            yellow: { bg: 'bg-amber-500 text-slate-900', dot: 'bg-slate-900', hud: 'text-amber-400' },
-            blue:   { bg: 'bg-sky-600 text-white', dot: 'bg-white', hud: 'text-sky-400' },
-            gray:   { bg: 'bg-slate-700 text-gray-200', dot: 'bg-gray-400', hud: 'text-gray-300' },
+            emerald: { bg: 'bg-emerald-600 text-white', dot: 'bg-white', text: 'text-emerald-400' },
+            rose:    { bg: 'bg-rose-600 text-white', dot: 'bg-white', text: 'text-rose-400' },
+            blue:    { bg: 'bg-sky-600 text-white', dot: 'bg-white', text: 'text-sky-400' },
+            amber:   { bg: 'bg-amber-600 text-white', dot: 'bg-amber-200', text: 'text-amber-400' },
+            slate:   { bg: 'bg-slate-700 text-slate-200', dot: 'bg-slate-400', text: 'text-slate-300' },
         };
 
-        const theme = colorMap[s.badge_color] || colorMap.gray;
+        const theme = colorMap[st.badge_color] || colorMap.slate;
 
-        // Executive 1-Line Summary Bar Elements
-        signalBadge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm ${theme.bg}`;
-        signalStateTitle.textContent = s.state_title;
-        const dot = signalBadge.querySelector('span');
-        if (dot) dot.className = `w-2 h-2 rounded-full ${theme.dot} animate-pulse`;
+        if (stationBadge) {
+            stationBadge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm whitespace-nowrap ${theme.bg}`;
+        }
+        if (stationDot) {
+            stationDot.className = `w-2 h-2 rounded-full ${theme.dot} animate-pulse`;
+        }
+        if (stationStatusText) {
+            stationStatusText.textContent = st.status_badge || 'Scanning Edge...';
+        }
 
-        signalConf.textContent = `Conf: ${s.confidence}%`;
-        signalAbsorption.textContent = s.absorption_score || 'Normal';
-
-        sellerAction.textContent = s.seller_action;
-        sellerStrikes.textContent = s.seller_strikes;
-        signalBias.textContent = s.bias;
-        sellerStrategyDesc.textContent = s.seller_strategy;
-
-        signalHeadline.textContent = s.headline;
-
-        // Expandable Detailed Drawer Elements
-        if (signalDrawerHeadline) signalDrawerHeadline.textContent = s.headline;
-        if (drawerBiasText) drawerBiasText.textContent = s.bias;
-        if (drawerAbsText) drawerAbsText.textContent = s.absorption_score || 'Normal';
-
-        if (signalReasons) {
-            if (s.reasons && s.reasons.length > 0) {
-                signalReasons.innerHTML = s.reasons.map(r => `<div class="flex items-start gap-1.5"><span class="text-amber-400 font-bold">•</span><span>${r}</span></div>`).join('');
+        if (stationStratName) {
+            stationStratName.textContent = st.strategy_name || 'Daily OAI V2';
+        }
+        if (stationAnchorText) {
+            if (st.recommended_anchor) {
+                stationAnchorText.textContent = `Anchor: ${fmt(st.recommended_anchor)} (${st.anchor_skew || ''})`;
+                stationAnchorText.className = 'font-mono text-emerald-300 font-bold';
             } else {
-                signalReasons.innerHTML = '';
+                stationAnchorText.textContent = 'Anchor: — (Flat)';
+                stationAnchorText.className = 'font-mono text-slate-400';
             }
         }
 
-        // Live Delta Momentum in Drawer
-        if (s.metrics) {
+        if (stationSafeBand) {
+            stationSafeBand.textContent = st.safe_range_text || '—';
+        }
+        if (stationWalls) {
+            stationWalls.textContent = `Supp: ${fmt(st.support_strike)} / Res: ${fmt(st.resistance_strike)}`;
+        }
+
+        if (stationTarget) {
+            stationTarget.textContent = `🎯 Min: ${st.target_pnl || '—'}`;
+        }
+        if (stationStop) {
+            stationStop.textContent = `🛑 Max: ${st.stop_loss_pnl || '—'}`;
+        }
+
+        // Toggle visibility of Basket button depending on recommended anchor
+        if (stationBasketBtn) {
+            if (st.recommended_anchor && st.basket_legs && st.basket_legs.length > 0) {
+                stationBasketBtn.classList.remove('hidden');
+            } else {
+                stationBasketBtn.classList.add('hidden');
+            }
+        }
+
+        // Drawer elements
+        if (stationDrawerRationale) {
+            stationDrawerRationale.textContent = st.rationale || st.headline || '—';
+        }
+        if (drawerSupportWall) {
+            drawerSupportWall.textContent = `${fmt(st.support_strike)} PE Wall`;
+        }
+        if (drawerResistanceWall) {
+            drawerResistanceWall.textContent = `${fmt(st.resistance_strike)} CE Wall`;
+        }
+        if (stationDrawerBadge) {
+            stationDrawerBadge.textContent = st.setup_title || '—';
+        }
+        if (stationDrawerAction) {
+            stationDrawerAction.textContent = st.action_label || '—';
+        }
+        if (stationDrawerAnchor) {
+            stationDrawerAnchor.textContent = st.recommended_anchor ? `${fmt(st.recommended_anchor)} (${st.anchor_skew})` : 'None (Flat)';
+        }
+        if (stationDrawerDuration) {
+            stationDrawerDuration.textContent = st.expected_duration || 'Flat';
+        }
+        if (drawerTargetText) {
+            drawerTargetText.textContent = st.target_pnl || '—';
+        }
+        if (drawerStopText) {
+            drawerStopText.textContent = st.stop_loss_pnl || '—';
+        }
+
+        // 3-Bar Delta Momentum in Drawer
+        if (s && s.metrics) {
             if (metricCeDelta) {
                 const v = s.metrics.ce_delta_3bar || 0;
                 metricCeDelta.textContent = fmtSigned(v);
@@ -884,19 +1077,81 @@
                 metricPcrMom.textContent = (v > 0 ? '+' : '') + v;
                 metricPcrMom.className = `font-bold ${v >= 0 ? 'text-green-400' : 'text-red-400'}`;
             }
-            if (metricConfPct) {
-                metricConfPct.textContent = `${s.confidence}%`;
-            }
         }
 
         // Floating HUD Elements
         if (hudState) {
-            hudState.textContent = s.state_title;
-            hudState.className = `font-bold text-xs mt-0.5 ${theme.hud}`;
+            hudState.textContent = st.setup_title || (s ? s.state_title : 'Active');
+            hudState.className = `font-bold text-xs mt-0.5 ${theme.text}`;
         }
-        if (hudSellerAction) hudSellerAction.textContent = s.seller_action;
-        if (hudStrikes) hudStrikes.textContent = s.seller_strikes;
-        if (hudReason) hudReason.textContent = s.headline;
+        if (hudSellerAction) {
+            hudSellerAction.textContent = st.action_label || (s ? s.seller_action : '—');
+        }
+        if (hudStrikes) {
+            hudStrikes.textContent = st.recommended_anchor ? `Anchor ATM: ${fmt(st.recommended_anchor)}` : (s ? s.seller_strikes : '—');
+        }
+        if (hudReason) {
+            hudReason.textContent = st.rationale || (s ? s.headline : '—');
+        }
+    }
+
+    // ── Open 16-Leg Basket Modal ─────────────────────────────────────────────
+    function openBasketModal() {
+        if (!currentStationData || !basketModal) return;
+        const st = currentStationData;
+
+        if (modalStratName) modalStratName.textContent = st.strategy_name || 'Daily OAI V2';
+        if (modalAnchorBadge) modalAnchorBadge.textContent = st.recommended_anchor ? `Anchor: ${fmt(st.recommended_anchor)}` : 'Anchor: —';
+        if (modalSetup) modalSetup.textContent = st.setup_title || '—';
+        if (modalSafeBand) modalSafeBand.textContent = st.safe_range_text || '—';
+        if (modalPnl) modalPnl.textContent = `${st.target_pnl || '—'} / ${st.stop_loss_pnl || '—'}`;
+
+        const legs = st.basket_legs || [];
+        const ceLegs = legs.filter(l => l.option_type === 'CE');
+        const peLegs = legs.filter(l => l.option_type === 'PE');
+
+        const totalCeLots = ceLegs.reduce((acc, l) => acc + (l.lots || 0), 0);
+        const totalPeLots = peLegs.reduce((acc, l) => acc + (l.lots || 0), 0);
+
+        if (modalCeLots) modalCeLots.textContent = `${totalCeLots} Lots`;
+        if (modalPeLots) modalPeLots.textContent = `${totalPeLots} Lots`;
+
+        if (modalCeTbody) {
+            modalCeTbody.innerHTML = ceLegs.map(l => `
+                <tr class="hover:bg-emerald-50/50">
+                    <td class="py-1.5 font-medium text-slate-700">#${l.leg_number}</td>
+                    <td class="py-1.5 text-right font-bold text-emerald-800">${fmt(l.strike)}</td>
+                    <td class="py-1.5 text-right font-semibold text-slate-800">${l.lots}</td>
+                    <td class="py-1.5 text-right text-[10px] font-bold text-rose-600">${l.side}</td>
+                </tr>
+            `).join('');
+        }
+
+        if (modalPeTbody) {
+            modalPeTbody.innerHTML = peLegs.map(l => `
+                <tr class="hover:bg-rose-50/50">
+                    <td class="py-1.5 font-medium text-slate-700">#${l.leg_number}</td>
+                    <td class="py-1.5 text-right font-bold text-rose-800">${fmt(l.strike)}</td>
+                    <td class="py-1.5 text-right font-semibold text-slate-800">${l.lots}</td>
+                    <td class="py-1.5 text-right text-[10px] font-bold text-rose-600">${l.side}</td>
+                </tr>
+            `).join('');
+        }
+
+        if (modalBuilderLink) {
+            modalBuilderLink.href = `{{ route('backtests.basket-builder') }}?strategy_id=${st.strategy_id || 3}&atm_strike=${st.recommended_anchor || ''}`;
+        }
+
+        basketModal.classList.remove('hidden');
+    }
+
+    if (stationBasketBtn) stationBasketBtn.addEventListener('click', openBasketModal);
+    if (modalBasketClose) modalBasketClose.addEventListener('click', () => basketModal.classList.add('hidden'));
+    if (modalFooterClose) modalFooterClose.addEventListener('click', () => basketModal.classList.add('hidden'));
+    if (basketModal) {
+        basketModal.addEventListener('click', (e) => {
+            if (e.target === basketModal) basketModal.classList.add('hidden');
+        });
     }
 
     // ── Render Table Rows (with limit slicing) ──────────────────────────────

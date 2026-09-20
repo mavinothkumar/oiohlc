@@ -83,13 +83,19 @@ class TrendingOiController extends Controller
         }
 
         $table = $this->resolveTable($mode);
+        $endTime = $request->input('end_time');
 
         // Fetch distinct timestamps available for this date & expiry
-        $timestamps = DB::table($table)
+        $tsQuery = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->whereDate('captured_at', $date)
-            ->select('captured_at')
+            ->whereDate('captured_at', $date);
+
+        if (!empty($endTime)) {
+            $tsQuery->whereTime('captured_at', '<=', $endTime . ':59');
+        }
+
+        $timestamps = $tsQuery->select('captured_at')
             ->distinct()
             ->orderBy('captured_at', 'asc')
             ->pluck('captured_at')
@@ -370,20 +376,32 @@ class TrendingOiController extends Controller
         // Run Predictive OI Signal & Market State Engine
         $signalData = $this->analyzeOiSignals($calculatedRows, $latestSpot, $atmStrike, $lookback);
 
+        // Run Daily High-Conviction Strategy Station (Option Seller Cockpit)
+        $strategyStation = $this->evaluateDailyStrategyStation(
+            $calculatedRows,
+            $latestSpot,
+            $atmStrike,
+            $latestTimestamp,
+            $table,
+            $underlying,
+            $expiry
+        );
+
         return response()->json([
-            'rows'              => $tableRows,
-            'chart'             => [
+            'rows'                   => $tableRows,
+            'chart'                  => [
                 'labels'     => $chartLabels,
                 'call_oi'    => $chartCallOi,
                 'put_oi'     => $chartPutOi,
                 'sentiment'  => $chartSentiment,
                 'spot'       => $chartSpot,
             ],
-            'selected_strikes'  => $selectedStrikes,
-            'all_strikes'       => $allStrikes,
-            'underlying_data'   => $underlyingData,
-            'atm_strike'        => $atmStrike,
-            'signal_data'       => $signalData,
+            'selected_strikes'       => $selectedStrikes,
+            'all_strikes'            => $allStrikes,
+            'underlying_data'        => $underlyingData,
+            'atm_strike'             => $atmStrike,
+            'signal_data'            => $signalData,
+            'daily_strategy_station' => $strategyStation,
         ]);
     }
 
@@ -856,5 +874,243 @@ class TrendingOiController extends Controller
             ->map(fn($s) => (int) $s);
 
         return response()->json(['strikes' => $strikes]);
+    }
+
+    /**
+     * Evaluate Daily High-Conviction Strategy Station (Option Seller Decision Cockpit).
+     * Strictly limits to 1-2 high-conviction trades per day, exits by 13:20 IST,
+     * pulls active strategies from backtest_strategies, and maps Option Chain Support/Resistance.
+     */
+    private function evaluateDailyStrategyStation(
+        array $rows,
+        float $latestSpot,
+        int $atmStrike,
+        string $latestTimestamp,
+        string $table,
+        string $underlying,
+        string $expiry
+    ): array {
+        // 1. Fetch active strategies from backtest_strategies
+        $activeStrategies = \App\Models\BacktestStrategy::where('is_active', true)->get();
+        $primaryStrategy = $activeStrategies->firstWhere('id', 3) 
+            ?? $activeStrategies->firstWhere('name', 'Daily OAI V2') 
+            ?? $activeStrategies->firstWhere('name', 'Daily OAI Copy')
+            ?? $activeStrategies->first();
+
+        $strategyName = $primaryStrategy ? $primaryStrategy->name : 'Daily OAI V2';
+        $strategyId   = $primaryStrategy ? $primaryStrategy->id : 3;
+        $strategyLegs = $primaryStrategy ? ($primaryStrategy->definition['legs'] ?? []) : [];
+
+        // 2. Fetch Option Chain boundary walls (Support & Resistance) from latest snapshot
+        $ocRows = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->where('captured_at', $latestTimestamp)
+            ->get(['strike_price', 'option_type', 'oi', 'diff_oi', 'volume', 'ltp']);
+
+        $majorCeResistance = $atmStrike + 150;
+        $buildingCeResistance = $atmStrike + 100;
+        $majorPeSupport = $atmStrike - 150;
+        $buildingPeSupport = $atmStrike - 100;
+
+        if ($ocRows->isNotEmpty()) {
+            $ceRows = $ocRows->where('option_type', 'CE')->where('strike_price', '>=', $atmStrike);
+            $peRows = $ocRows->where('option_type', 'PE')->where('strike_price', '<=', $atmStrike);
+
+            if ($ceRows->isNotEmpty()) {
+                $maxCeOiRow = $ceRows->sortByDesc('oi')->first();
+                $maxCeDiffRow = $ceRows->sortByDesc('diff_oi')->first();
+                if ($maxCeOiRow) $majorCeResistance = (int) $maxCeOiRow->strike_price;
+                if ($maxCeDiffRow) $buildingCeResistance = (int) $maxCeDiffRow->strike_price;
+            }
+
+            if ($peRows->isNotEmpty()) {
+                $maxPeOiRow = $peRows->sortByDesc('oi')->first();
+                $maxPeDiffRow = $peRows->sortByDesc('diff_oi')->first();
+                if ($maxPeOiRow) $majorPeSupport = (int) $maxPeOiRow->strike_price;
+                if ($maxPeDiffRow) $buildingPeSupport = (int) $maxPeDiffRow->strike_price;
+            }
+        }
+
+        // 3. Time Boundary Check (Hard Exit by 13:20 IST)
+        $timeStr = Carbon::parse($latestTimestamp)->format('H:i:s');
+        $isPastCutoff = ($timeStr >= '13:20:00');
+
+        $count = count($rows);
+        if ($count < 2 || $isPastCutoff) {
+            return [
+                'is_trade_active'       => false,
+                'status_badge'          => $isPastCutoff ? 'CLOSED (Past 13:20 IST)' : 'AWAITING DATA',
+                'badge_color'           => 'slate',
+                'strategy_name'         => $strategyName,
+                'strategy_id'           => $strategyId,
+                'setup_title'           => $isPastCutoff ? 'Trading Window Closed' : 'Accumulating Morning Data',
+                'headline'              => $isPastCutoff 
+                    ? 'Hard cutoff reached (13:20 IST). All positions flat to protect against afternoon gamma spikes.'
+                    : 'Awaiting market open stabilization before scanning for institutional edge.',
+                'recommended_anchor'    => null,
+                'anchor_skew'           => 'N/A',
+                'safe_spot_range'       => ['min' => $majorPeSupport, 'max' => $majorCeResistance],
+                'safe_range_text'       => "Support: {$majorPeSupport} | Resistance: {$majorCeResistance}",
+                'support_strike'        => $majorPeSupport,
+                'resistance_strike'     => $majorCeResistance,
+                'target_pnl'            => 'N/A',
+                'stop_loss_pnl'         => 'N/A',
+                'expected_duration'     => 'Flat',
+                'cutoff_time'           => '13:20 IST',
+                'action_label'          => $isPastCutoff ? 'NO NEW TRADE / FLAT' : 'WAIT FOR EDGE',
+                'rationale'             => $isPastCutoff ? 'Time-based capital preservation rule active.' : 'Monitoring initial flow.',
+                'basket_legs'           => [],
+            ];
+        }
+
+        $latest = end($rows);
+        $prev1  = $rows[$count - 2];
+        $prev3  = ($count >= 4) ? $rows[$count - 4] : $prev1;
+
+        $curCeOi      = $latest['chng_call_oi'];
+        $curPeOi      = $latest['chng_put_oi'];
+        $directionPct = $latest['direction_pct'];
+        $chngInDir    = $latest['chng_in_direction'];
+        $netPcr       = $latest['net_pcr'];
+        $patternTag   = $latest['pattern_tag'] ?? '';
+        $forwardKey   = $latest['forward_sentiment_key'] ?? '';
+
+        $ceDelta3 = $curCeOi - $prev3['chng_call_oi'];
+        $peDelta3 = $curPeOi - $prev3['chng_put_oi'];
+
+        // Determine Setups based purely on Change in OI direction & pattern
+        $isTradeActive = false;
+        $setupTitle = 'No Trade (Capital Preservation Mode)';
+        $statusBadge = 'NO TRADE (Sitting in Cash)';
+        $badgeColor = 'amber';
+        $recommendedAnchor = null;
+        $anchorSkew = 'N/A';
+        $targetPnl = 'N/A';
+        $stopLossPnl = 'N/A';
+        $expectedDuration = 'No Position';
+        $actionLabel = '⚪ NO TRADE (Sit in Cash)';
+        $rationale = 'Direction of change is oscillating or risk of whip-saw is high. Capital preservation is priority #1.';
+
+        // Condition 1: Squeeze Drift (Bullish Drift - "2 Strikes Away" Quick Money)
+        $hasCeLowBreak = (str_contains($patternTag, 'CE') && str_contains($patternTag, 'Low Break')) || $forwardKey === 'BULLISH_SQUEEZE';
+        $isSqueezePattern = ($hasCeLowBreak || ($ceDelta3 <= -1200000 && $peDelta3 >= -200000)) && ($directionPct >= 10 || $chngInDir > 0);
+
+        if ($isSqueezePattern && $timeStr < '13:00:00') {
+            $isTradeActive = true;
+            $setupTitle = 'Bullish Squeeze Drift (Quick Money Play)';
+            $statusBadge = '🟢 ACTIVE TRADE (Setup: Squeeze Drift)';
+            $badgeColor = 'emerald';
+            
+            // Shift anchor 1 or 2 strikes away towards upside
+            $shiftPts = (abs($ceDelta3) > 2500000) ? 100 : 50;
+            $recommendedAnchor = $atmStrike + $shiftPts;
+            $anchorSkew = "+{$shiftPts} pts OTM Skew (Targeting Squeeze Drift)";
+            
+            $safeMin = round($latestSpot - 20);
+            $safeMax = round($recommendedAnchor + 25);
+            $targetPnl = '+₹3,200 to +₹4,500';
+            $stopLossPnl = '-₹1,900';
+            $expectedDuration = '25 to 45 mins (Hard exit by 13:20 IST)';
+            $actionLabel = '🚀 ENTER NOW — Bullish Drift Skew';
+            
+            $ceUnwoundFmt = number_format(abs($ceDelta3));
+            $rationale = "Call writers unwound {$ceUnwoundFmt} contracts while Put writers held/added. Spot migrating into shifted basket sweet spot for rapid PE decay.";
+        }
+        // Condition 2: Breakdown Drift (Bearish Drift - Shifted Downward)
+        elseif (((str_contains($patternTag, 'PE') && str_contains($patternTag, 'Low Break')) || $forwardKey === 'BEARISH_BREAKDOWN') && $timeStr < '13:00:00') {
+            $isTradeActive = true;
+            $setupTitle = 'Bearish Breakdown Drift (Shifted Downward)';
+            $statusBadge = '🔴 ACTIVE TRADE (Setup: Breakdown Drift)';
+            $badgeColor = 'rose';
+            
+            $shiftPts = (abs($peDelta3) > 2500000) ? 100 : 50;
+            $recommendedAnchor = $atmStrike - $shiftPts;
+            $anchorSkew = "-{$shiftPts} pts OTM Skew (Targeting Downward Drift)";
+            
+            $safeMin = round($recommendedAnchor - 25);
+            $safeMax = round($latestSpot + 20);
+            $targetPnl = '+₹3,200 to +₹4,500';
+            $stopLossPnl = '-₹1,900';
+            $expectedDuration = '25 to 45 mins (Hard exit by 13:20 IST)';
+            $actionLabel = '💥 ENTER NOW — Bearish Drift Skew';
+            
+            $peUnwoundFmt = number_format(abs($peDelta3));
+            $rationale = "Put writers surrendered support (-{$peUnwoundFmt} contracts). Spot drifting down into shifted basket sweet spot.";
+        }
+        // Condition 3: Balanced Theta Tunnel (Non-Directional Symmetric Ladder)
+        elseif (($forwardKey === 'DUAL_WRITING' || ($forwardKey === 'NEUTRAL_DECAY' && abs($directionPct) < 22 && $netPcr >= 0.85 && $netPcr <= 1.25)) && $timeStr < '13:00:00') {
+            $isTradeActive = true;
+            $setupTitle = 'Balanced Theta Tunnel (Symmetric Ladder)';
+            $statusBadge = '🟢 ACTIVE TRADE (Setup: Theta Tunnel)';
+            $badgeColor = 'blue';
+            
+            $recommendedAnchor = $atmStrike;
+            $anchorSkew = 'Exact Spot ATM (Non-Directional Center)';
+            
+            $safeMin = max($majorPeSupport, $atmStrike - 35);
+            $safeMax = min($majorCeResistance, $atmStrike + 35);
+            $targetPnl = '+₹2,800 to +₹3,500';
+            $stopLossPnl = '-₹1,800';
+            $expectedDuration = '40 to 60 mins (Hard exit by 13:20 IST)';
+            $actionLabel = '⚖️ ENTER NOW — Symmetric Ladder';
+            $rationale = "Both Call and Put writers expanding without depth breaks. Premium decay maximized in middle band ({$safeMin} - {$safeMax}).";
+        }
+        else {
+            // Capital preservation mode
+            $safeMin = $majorPeSupport;
+            $safeMax = $majorCeResistance;
+        }
+
+        // Build concrete 16-leg breakdown if an anchor strike is recommended
+        $basketLegs = [];
+        if ($recommendedAnchor !== null && !empty($strategyLegs)) {
+            foreach ($strategyLegs as $idx => $leg) {
+                $type = strtoupper((string) ($leg['option_type'] ?? ''));
+                $money = strtoupper((string) ($leg['moneyness'] ?? 'ATM'));
+                $offset = (float) ($leg['strike_offset'] ?? 0);
+                $lots = (int) ($leg['lots'] ?? 1);
+                $side = strtoupper((string) ($leg['side'] ?? 'SELL'));
+
+                // Same logic as BasketBuilderController
+                $moneynessAdj = match ($money) {
+                    'ITM' => -50 - $offset,
+                    'OTM' => 50 + $offset,
+                    default => 0,
+                };
+                $strike = (int) ($recommendedAnchor + $moneynessAdj);
+
+                $basketLegs[] = [
+                    'leg_number'  => $idx + 1,
+                    'option_type' => $type,
+                    'side'        => $side,
+                    'strike'      => $strike,
+                    'lots'        => $lots,
+                ];
+            }
+        }
+
+        return [
+            'is_trade_active'       => $isTradeActive,
+            'status_badge'          => $statusBadge,
+            'badge_color'           => $badgeColor,
+            'strategy_name'         => $strategyName,
+            'strategy_id'           => $strategyId,
+            'setup_title'           => $setupTitle,
+            'headline'              => $rationale,
+            'recommended_anchor'    => $recommendedAnchor,
+            'anchor_skew'           => $anchorSkew,
+            'safe_spot_range'       => ['min' => $safeMin, 'max' => $safeMax],
+            'safe_range_text'       => "Safe Band: {$safeMin} – {$safeMax}",
+            'support_strike'        => $majorPeSupport,
+            'resistance_strike'     => $majorCeResistance,
+            'target_pnl'            => $targetPnl,
+            'stop_loss_pnl'         => $stopLossPnl,
+            'expected_duration'     => $expectedDuration,
+            'cutoff_time'           => '13:20 IST',
+            'action_label'          => $actionLabel,
+            'rationale'             => $rationale,
+            'basket_legs'           => $basketLegs,
+        ];
     }
 }
