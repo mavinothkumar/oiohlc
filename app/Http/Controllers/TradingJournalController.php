@@ -12,7 +12,13 @@ use Carbon\Carbon;
 
 class TradingJournalController extends Controller {
     public function index() {
-        return view( 'trading-journal.index' );
+        $backtestStrategies = DB::table( 'backtest_strategies' )
+                                ->select( 'id', 'slug', 'name', 'version' )
+                                ->where( 'is_active', 1 )
+                                ->orderBy( 'id', 'asc' )
+                                ->get();
+
+        return view( 'trading-journal.index', compact( 'backtestStrategies' ) );
     }
 
     public function getPanels() {

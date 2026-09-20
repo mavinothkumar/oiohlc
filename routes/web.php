@@ -266,6 +266,8 @@ Route::prefix( 'backtest' )->name( 'backtest.' )->group( function () {
 
 } );
 
+Route::get('/strategies', fn () => redirect()->route('backtest.strategies.index'));
+
 Route::get('/backtests/basket-builder', [BasketBuilderController::class, 'index'])
      ->name('backtests.basket-builder');
 

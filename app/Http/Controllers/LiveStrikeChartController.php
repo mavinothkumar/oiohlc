@@ -198,7 +198,7 @@ class LiveStrikeChartController extends Controller
             }
         }
 
-        // 4. Fetch instruments for current expiry
+        // 4. Fetch instruments for current expiry & next expiry
         $instruments = collect();
         if ($currentExpiry) {
             $instruments = DB::table('instruments')
@@ -209,13 +209,28 @@ class LiveStrikeChartController extends Controller
                 ->get();
         }
 
+        $nextInstruments = collect();
+        if ($nextExpiry) {
+            $nextInstruments = DB::table('instruments')
+                ->where('name', $symbol)
+                ->where('expiry', $nextExpiry->expiry)
+                ->whereIn('strike_price', $strikesList)
+                ->whereIn('instrument_type', ['CE', 'PE'])
+                ->get();
+        }
+
         // 5. Fallback latest prices from ohlc_quotes
+        $allInstKeys = $instruments->pluck('instrument_key')
+            ->merge($nextInstruments->pluck('instrument_key'))
+            ->filter()
+            ->unique()
+            ->toArray();
+
         $fallbackPrices = [];
-        if ($instruments->isNotEmpty()) {
-            $instKeys = $instruments->pluck('instrument_key')->toArray();
+        if (!empty($allInstKeys)) {
             $latestQuotes = DB::table($tableName)
                 ->select('instrument_key', 'close', 'ts_at')
-                ->whereIn('instrument_key', $instKeys)
+                ->whereIn('instrument_key', $allInstKeys)
                 ->orderByDesc('id')
                 ->get()
                 ->unique('instrument_key');
@@ -225,12 +240,25 @@ class LiveStrikeChartController extends Controller
             }
         }
 
-        // Structure strike items with CE & PE details
+        // Structure current expiry strike items
         $instrumentsMap = [];
         foreach ($instruments as $inst) {
             $strike = (int) $inst->strike_price;
             $type   = strtoupper($inst->instrument_type);
             $instrumentsMap[$strike][$type] = [
+                'instrument_key' => $inst->instrument_key,
+                'trading_symbol' => $inst->trading_symbol,
+                'lot_size'       => $inst->lot_size,
+                'fallback_price' => $fallbackPrices[$inst->instrument_key] ?? 0,
+            ];
+        }
+
+        // Structure next expiry strike items
+        $nextInstrumentsMap = [];
+        foreach ($nextInstruments as $inst) {
+            $strike = (int) $inst->strike_price;
+            $type   = strtoupper($inst->instrument_type);
+            $nextInstrumentsMap[$strike][$type] = [
                 'instrument_key' => $inst->instrument_key,
                 'trading_symbol' => $inst->trading_symbol,
                 'lot_size'       => $inst->lot_size,
@@ -282,8 +310,12 @@ class LiveStrikeChartController extends Controller
         if ($futureKey) {
             $allInstrumentKeys[] = $futureKey; // Stream live future price
         }
+
         $strikesData = [];
+        $nextStrikesData = [];
+
         foreach ($strikesList as $strike) {
+            // Current Expiry Strike Data
             $ceData = $instrumentsMap[$strike]['CE'] ?? null;
             $peData = $instrumentsMap[$strike]['PE'] ?? null;
 
@@ -309,6 +341,33 @@ class LiveStrikeChartController extends Controller
                     'price'          => $peData['fallback_price'] ?? 0,
                 ],
             ];
+
+            // Next Expiry Strike Data
+            $nextCeData = $nextInstrumentsMap[$strike]['CE'] ?? null;
+            $nextPeData = $nextInstrumentsMap[$strike]['PE'] ?? null;
+
+            if ($nextCeData && !empty($nextCeData['instrument_key'])) {
+                $allInstrumentKeys[] = $nextCeData['instrument_key'];
+            }
+            if ($nextPeData && !empty($nextPeData['instrument_key'])) {
+                $allInstrumentKeys[] = $nextPeData['instrument_key'];
+            }
+
+            $nextStrikesData[] = [
+                'strike'   => $strike,
+                'is_atm'   => ($strike === $atmStrike),
+                'offset'   => ($strike - $atmStrike) / $strikeStep,
+                'ce'       => [
+                    'instrument_key' => $nextCeData['instrument_key'] ?? null,
+                    'trading_symbol' => $nextCeData['trading_symbol'] ?? "{$symbol} {$strike} CE (Next)",
+                    'price'          => $nextCeData['fallback_price'] ?? 0,
+                ],
+                'pe'       => [
+                    'instrument_key' => $nextPeData['instrument_key'] ?? null,
+                    'trading_symbol' => $nextPeData['trading_symbol'] ?? "{$symbol} {$strike} PE (Next)",
+                    'price'          => $nextPeData['fallback_price'] ?? 0,
+                ],
+            ];
         }
 
         return [
@@ -330,6 +389,7 @@ class LiveStrikeChartController extends Controller
             'range'              => $range,
             'strikeStep'         => $strikeStep,
             'strikesData'        => $strikesData,
+            'nextStrikesData'    => $nextStrikesData,
             'allInstrumentKeys'  => array_values(array_unique($allInstrumentKeys)),
             'updatedAt'          => now()->format('d M Y, h:i:s A'),
         ];

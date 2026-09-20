@@ -70,6 +70,15 @@
                     <span id="label-fut-val" class="hidden">{{ number_format($futurePrice, 2) }}</span>
                 </label>
 
+                {{-- Toggle Show Dynamic Mid Points (Crossover Parity) --}}
+                <label class="inline-flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer select-none transition" title="Toggle Dynamic Mid-Point (Parity Crossover Lines)">
+                    <input type="checkbox" id="filter-show-dyn-mid" checked class="rounded bg-slate-900 border-slate-600 text-teal-500 focus:ring-teal-400 h-3.5 w-3.5">
+                    <span class="text-teal-300 flex items-center gap-1">
+                        <span class="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                        Dyn Mid
+                    </span>
+                </label>
+
                 {{-- Update Button --}}
                 <button type="button" id="btn-apply-filters" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-xs transition shadow flex items-center gap-1.5">
                     <svg id="apply-spinner" class="animate-spin h-3.5 w-3.5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -233,6 +242,15 @@
                         <span class="w-3.5 h-1 bg-purple-500 rounded"></span>
                         <span class="text-slate-300">Next Mid</span>
                     </div>
+                    {{-- Dynamic Mid Indicators --}}
+                    <div class="flex items-center gap-1.5" id="legend-dyn-curr-wrapper" style="display: none;">
+                        <span class="w-3 h-0.5 border-t-2 border-dashed border-teal-400"></span>
+                        <span class="text-teal-300 font-semibold">Dyn Curr: <span id="legend-dyn-curr-val" class="font-mono">--</span></span>
+                    </div>
+                    <div class="flex items-center gap-1.5" id="legend-dyn-next-wrapper" style="display: none;">
+                        <span class="w-3 h-0.5 border-t-2 border-dashed border-fuchsia-400"></span>
+                        <span class="text-fuchsia-300 font-semibold">Dyn Next: <span id="legend-dyn-next-val" class="font-mono">--</span></span>
+                    </div>
                     <div class="flex items-center gap-1.5" id="legend-spot-wrapper">
                         <span class="w-3 h-0.5 border-t-2 border-dashed border-cyan-400"></span>
                         <span class="text-cyan-300 font-semibold">Spot: <span id="legend-spot-val" class="font-mono">{{ number_format($indexSpot ?: $indexClose, 2) }}</span></span>
@@ -334,6 +352,7 @@
         range: {{ (int) $range }},
         strikeStep: {{ (int) $strikeStep }},
         strikesData: @json($strikesData),
+        nextStrikesData: @json($nextStrikesData ?? []),
         allInstrumentKeys: @json($allInstrumentKeys),
     };
 
@@ -344,6 +363,13 @@
     let showSpotMarker = true;
     let showOpenMarker = true;
     let showFutMarker = true;
+    let showDynMidMarker = true;
+
+    // Dynamic Mid-Point Parity Store: Scoped by Symbol & Date in localStorage
+    let dynamicMidData = {
+        curr: { strike: null, value: null, diff: null, timestamp: null, lastSeen: null, count: 0 },
+        next: { strike: null, value: null, diff: null, timestamp: null, lastSeen: null, count: 0 }
+    };
 
     let ws = null;
     let protobufRoot = null;
@@ -351,7 +377,7 @@
     let tickCount = 0;
     let isConnecting = false;
 
-    // Initialize initial prices from fallback
+    // Initialize initial prices from fallback (Current Expiry)
     state.strikesData.forEach(item => {
         if (item.ce.instrument_key && item.ce.price > 0) {
             livePrices[item.ce.instrument_key] = item.ce.price;
@@ -360,6 +386,18 @@
             livePrices[item.pe.instrument_key] = item.pe.price;
         }
     });
+
+    // Initialize initial prices from fallback (Next Expiry)
+    if (state.nextStrikesData) {
+        state.nextStrikesData.forEach(item => {
+            if (item.ce.instrument_key && item.ce.price > 0) {
+                livePrices[item.ce.instrument_key] = item.ce.price;
+            }
+            if (item.pe.instrument_key && item.pe.price > 0) {
+                livePrices[item.pe.instrument_key] = item.pe.price;
+            }
+        });
+    }
 
     // Helper to calculate pixel X position for any strike/index value along X axis
     function getPixelXForValue(val, strikeLabels, xScale) {
@@ -744,6 +782,112 @@
 
                     ctx.fillStyle = '#e9d5ff'; // Purple-200
                     ctx.fillText(text, badgeX - 7, badgeY);
+                }
+            }
+
+            // E2. DRAW DYNAMIC CURRENT & NEXT MID-POINT HORIZONTAL REFERENCE LINES & RIGHT BADGES
+            if (showDynMidMarker) {
+                const dynCurr = dynamicMidData?.curr;
+                const dynNext = dynamicMidData?.next;
+
+                // Dynamic Current Mid (Teal Line & Badge)
+                if (dynCurr && dynCurr.value && dynCurr.value > 0) {
+                    const dynCurrY = y.getPixelForValue(dynCurr.value);
+                    if (dynCurrY >= topY && dynCurrY <= bottomY) {
+                        // Horizontal dashed teal line
+                        ctx.save();
+                        ctx.strokeStyle = '#2dd4bf'; // Teal-400
+                        ctx.lineWidth = 2.0;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(x.left, dynCurrY);
+                        ctx.lineTo(x.right, dynCurrY);
+                        ctx.stroke();
+                        ctx.restore();
+
+                        // Right-aligned pill badge
+                        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'middle';
+                        const text = `⚡ Dyn Curr: ₹${parseFloat(dynCurr.value).toFixed(2)} (${dynCurr.strike})`;
+                        const textWidth = ctx.measureText(text).width;
+                        const badgeW = textWidth + 14;
+                        const badgeH = 18;
+                        const badgeX = x.right - 8;
+                        let badgeY = dynCurrY;
+
+                        // Prevent overlap with static curr mid if close
+                        if (currMidVal > 0) {
+                            const currMidY = y.getPixelForValue(currMidVal);
+                            if (Math.abs(badgeY - currMidY) < 20) {
+                                badgeY = currMidY + (badgeY >= currMidY ? 20 : -20);
+                            }
+                        }
+
+                        ctx.fillStyle = 'rgba(19, 78, 74, 0.95)'; // Teal-900
+                        ctx.strokeStyle = '#2dd4bf'; // Teal-400
+                        ctx.lineWidth = 1.2;
+                        ctx.beginPath();
+                        ctx.roundRect(badgeX - badgeW, badgeY - (badgeH / 2), badgeW, badgeH, 4);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#99f6e4'; // Teal-200
+                        ctx.fillText(text, badgeX - 7, badgeY);
+                    }
+                }
+
+                // Dynamic Next Mid (Fuchsia Line & Badge)
+                if (dynNext && dynNext.value && dynNext.value > 0) {
+                    const dynNextY = y.getPixelForValue(dynNext.value);
+                    if (dynNextY >= topY && dynNextY <= bottomY) {
+                        // Horizontal dashed fuchsia line
+                        ctx.save();
+                        ctx.strokeStyle = '#e879f9'; // Fuchsia-400
+                        ctx.lineWidth = 2.0;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(x.left, dynNextY);
+                        ctx.lineTo(x.right, dynNextY);
+                        ctx.stroke();
+                        ctx.restore();
+
+                        // Right-aligned pill badge
+                        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'middle';
+                        const text = `⚡ Dyn Next: ₹${parseFloat(dynNext.value).toFixed(2)} (${dynNext.strike})`;
+                        const textWidth = ctx.measureText(text).width;
+                        const badgeW = textWidth + 14;
+                        const badgeH = 18;
+                        const badgeX = x.right - 8;
+                        let badgeY = dynNextY;
+
+                        // Prevent overlap with static next mid or dyn curr
+                        if (nextMidVal > 0) {
+                            const nextMidY = y.getPixelForValue(nextMidVal);
+                            if (Math.abs(badgeY - nextMidY) < 20) {
+                                badgeY = nextMidY + (badgeY >= nextMidY ? 20 : -20);
+                            }
+                        }
+                        if (dynCurr && dynCurr.value > 0) {
+                            const dynCurrY = y.getPixelForValue(dynCurr.value);
+                            if (Math.abs(badgeY - dynCurrY) < 20) {
+                                badgeY = dynCurrY + (badgeY >= dynCurrY ? 20 : -20);
+                            }
+                        }
+
+                        ctx.fillStyle = 'rgba(112, 26, 117, 0.95)'; // Fuchsia-900
+                        ctx.strokeStyle = '#e879f9'; // Fuchsia-400
+                        ctx.lineWidth = 1.2;
+                        ctx.beginPath();
+                        ctx.roundRect(badgeX - badgeW, badgeY - (badgeH / 2), badgeW, badgeH, 4);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#f5d0fe'; // Fuchsia-200
+                        ctx.fillText(text, badgeX - 7, badgeY);
+                    }
                 }
             }
 
@@ -1428,6 +1572,177 @@
     }
 
     // ──────────────────────────────────────────────
+    // 3.8 DYNAMIC MID-POINT CALCULATION & STORAGE ENGINE
+    // ──────────────────────────────────────────────
+    function getDynMidStorageKey() {
+        return `oiohlc_dyn_mid_${state.symbol || 'NIFTY'}_${state.workingDate || ''}`;
+    }
+
+    function loadDynamicMidFromStorage() {
+        try {
+            const key = getDynMidStorageKey();
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed && typeof parsed === 'object') {
+                    if (parsed.curr && parsed.curr.value) {
+                        dynamicMidData.curr = parsed.curr;
+                    }
+                    if (parsed.next && parsed.next.value) {
+                        dynamicMidData.next = parsed.next;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load dynamic midpoint from localStorage:', e);
+        }
+        updateDynamicMidDisplays();
+    }
+
+    function saveDynamicMidToStorage() {
+        try {
+            const key = getDynMidStorageKey();
+            localStorage.setItem(key, JSON.stringify(dynamicMidData));
+        } catch (e) {
+            console.warn('Failed to save dynamic midpoint to localStorage:', e);
+        }
+    }
+
+    function updateDynamicMidDisplays() {
+        const dynCurrWrap = document.getElementById('legend-dyn-curr-wrapper');
+        const dynCurrVal  = document.getElementById('legend-dyn-curr-val');
+        const dynNextWrap = document.getElementById('legend-dyn-next-wrapper');
+        const dynNextVal  = document.getElementById('legend-dyn-next-val');
+
+        if (dynCurrVal && dynamicMidData.curr.value) {
+            dynCurrVal.textContent = `₹${parseFloat(dynamicMidData.curr.value).toFixed(2)} (${dynamicMidData.curr.strike})`;
+            if (dynCurrWrap) {
+                dynCurrWrap.style.display = showDynMidMarker ? 'flex' : 'none';
+            }
+        } else if (dynCurrWrap) {
+            dynCurrWrap.style.display = 'none';
+        }
+
+        if (dynNextVal && dynamicMidData.next.value) {
+            dynNextVal.textContent = `₹${parseFloat(dynamicMidData.next.value).toFixed(2)} (${dynamicMidData.next.strike})`;
+            if (dynNextWrap) {
+                dynNextWrap.style.display = showDynMidMarker ? 'flex' : 'none';
+            }
+        } else if (dynNextWrap) {
+            dynNextWrap.style.display = 'none';
+        }
+    }
+
+    function evaluateDynamicMidPoints() {
+        let updated = false;
+
+        // 1. Evaluate Current Expiry Strikes
+        if (state.strikesData && state.strikesData.length > 0) {
+            for (const item of state.strikesData) {
+                const strike = item.strike;
+                const ceKey = item.ce.instrument_key;
+                const peKey = item.pe.instrument_key;
+
+                const cePrice = ceKey && livePrices[ceKey] !== undefined ? livePrices[ceKey] : (item.ce.price || 0);
+                const pePrice = peKey && livePrices[peKey] !== undefined ? livePrices[peKey] : (item.pe.price || 0);
+
+                if (cePrice > 0 && pePrice > 0) {
+                    const diff = Math.abs(cePrice - pePrice);
+                    // Parity Crossover condition: CE & PE meet within +/- 1.0 point
+                    if (diff <= 1.0) {
+                        const midVal = (cePrice + pePrice) / 2;
+                        const active = dynamicMidData.curr;
+
+                        if (active && active.value !== null) {
+                            // Anti-saturation filter: If same strike within +/- 2.5 pts, keep level without jitter
+                            if (active.strike === strike && Math.abs(midVal - active.value) <= 2.5) {
+                                active.lastSeen = Date.now();
+                                active.count = (active.count || 1) + 1;
+                            } else {
+                                // Strike changed OR price moved beyond 2.5 pts saturation band
+                                dynamicMidData.curr = {
+                                    strike: strike,
+                                    value: midVal,
+                                    diff: parseFloat(diff.toFixed(2)),
+                                    timestamp: Date.now(),
+                                    lastSeen: Date.now(),
+                                    count: 1
+                                };
+                                updated = true;
+                            }
+                        } else {
+                            // First discovery
+                            dynamicMidData.curr = {
+                                strike: strike,
+                                value: midVal,
+                                diff: parseFloat(diff.toFixed(2)),
+                                timestamp: Date.now(),
+                                lastSeen: Date.now(),
+                                count: 1
+                            };
+                            updated = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Evaluate Next Expiry Strikes
+        if (state.nextStrikesData && state.nextStrikesData.length > 0) {
+            for (const item of state.nextStrikesData) {
+                const strike = item.strike;
+                const ceKey = item.ce.instrument_key;
+                const peKey = item.pe.instrument_key;
+
+                const cePrice = ceKey && livePrices[ceKey] !== undefined ? livePrices[ceKey] : (item.ce.price || 0);
+                const pePrice = peKey && livePrices[peKey] !== undefined ? livePrices[peKey] : (item.pe.price || 0);
+
+                if (cePrice > 0 && pePrice > 0) {
+                    const diff = Math.abs(cePrice - pePrice);
+                    // Parity Crossover condition: CE & PE meet within +/- 1.0 point
+                    if (diff <= 1.0) {
+                        const midVal = (cePrice + pePrice) / 2;
+                        const active = dynamicMidData.next;
+
+                        if (active && active.value !== null) {
+                            // Anti-saturation filter: If same strike within +/- 2.5 pts, keep level without jitter
+                            if (active.strike === strike && Math.abs(midVal - active.value) <= 2.5) {
+                                active.lastSeen = Date.now();
+                                active.count = (active.count || 1) + 1;
+                            } else {
+                                dynamicMidData.next = {
+                                    strike: strike,
+                                    value: midVal,
+                                    diff: parseFloat(diff.toFixed(2)),
+                                    timestamp: Date.now(),
+                                    lastSeen: Date.now(),
+                                    count: 1
+                                };
+                                updated = true;
+                            }
+                        } else {
+                            dynamicMidData.next = {
+                                strike: strike,
+                                value: midVal,
+                                diff: parseFloat(diff.toFixed(2)),
+                                timestamp: Date.now(),
+                                lastSeen: Date.now(),
+                                count: 1
+                            };
+                            updated = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (updated) {
+            saveDynamicMidToStorage();
+        }
+        updateDynamicMidDisplays();
+    }
+
+    // ──────────────────────────────────────────────
     // 4. UPDATE LIVE VALUES IN DOM & ON CHART
     // ──────────────────────────────────────────────
     function updateLiveValues() {
@@ -1482,7 +1797,8 @@
         if (legFutDiffBadge) legFutDiffBadge.className = `px-1.5 py-0.5 rounded text-[10px] font-bold border ${futDiffBg}`;
         if (cardFutDiffVal) cardFutDiffVal.className = `block text-[10px] font-mono font-bold ${futDiffObj.isPos ? 'text-indigo-400' : 'text-rose-400'}`;
 
-        // 3. Evaluate Confluence & Quick Reversal States
+        // 3. Evaluate Dynamic Mid-Points & Confluence & Quick Reversal States
+        evaluateDynamicMidPoints();
         evaluateConfluenceAndReversals();
 
         // 4. Update chart datasets & custom plugin drawing
@@ -1729,7 +2045,7 @@
                         `${d.strikesData[0].strike} to ${d.strikesData[d.strikesData.length - 1].strike}`;
                 }
 
-                // Hydrate fallback prices for new strikes if not in livePrices
+                // Hydrate fallback prices for new strikes if not in livePrices (Current Expiry)
                 d.strikesData.forEach(item => {
                     if (item.ce.instrument_key && !livePrices[item.ce.instrument_key] && item.ce.price > 0) {
                         livePrices[item.ce.instrument_key] = item.ce.price;
@@ -1738,6 +2054,21 @@
                         livePrices[item.pe.instrument_key] = item.pe.price;
                     }
                 });
+
+                // Hydrate fallback prices for new strikes if not in livePrices (Next Expiry)
+                if (d.nextStrikesData) {
+                    d.nextStrikesData.forEach(item => {
+                        if (item.ce.instrument_key && !livePrices[item.ce.instrument_key] && item.ce.price > 0) {
+                            livePrices[item.ce.instrument_key] = item.ce.price;
+                        }
+                        if (item.pe.instrument_key && !livePrices[item.pe.instrument_key] && item.pe.price > 0) {
+                            livePrices[item.pe.instrument_key] = item.pe.price;
+                        }
+                    });
+                }
+
+                // Load dynamic mid for the updated symbol/date from storage
+                loadDynamicMidFromStorage();
 
                 // Update Chart structure
                 if (chartInstance) {
@@ -1920,7 +2251,12 @@
             ctx.fillText(`${dateStr} ${timeStr}`, badgeCursorX, headerY + 18);
 
             // Draw metrics pills on second row
+            const dynCurrStr = (dynamicMidData?.curr?.value && showDynMidMarker) ? `₹${parseFloat(dynamicMidData.curr.value).toFixed(2)} (${dynamicMidData.curr.strike})` : null;
+            const dynNextStr = (dynamicMidData?.next?.value && showDynMidMarker) ? `₹${parseFloat(dynamicMidData.next.value).toFixed(2)} (${dynamicMidData.next.strike})` : null;
+
             const metrics = [
+                ...(dynNextStr ? [{ label: 'Dyn Next', val: dynNextStr, col: '#e879f9', bg: 'rgba(232, 121, 249, 0.15)' }] : []),
+                ...(dynCurrStr ? [{ label: 'Dyn Curr', val: dynCurrStr, col: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.15)' }] : []),
                 { label: 'Next Mid', val: nextMidStr, col: '#c084fc', bg: 'rgba(168, 85, 247, 0.15)' },
                 { label: 'Curr Mid', val: currMidStr, col: '#60a5fa', bg: 'rgba(59, 130, 246, 0.15)' },
                 { label: 'Fut Diff', val: futDiffObj.text, col: futDiffObj.isPos ? '#818cf8' : '#fb7185', bg: 'rgba(99, 102, 241, 0.15)' },
@@ -1994,6 +2330,9 @@
     // 7. DOM EVENT LISTENERS
     // ──────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
+        // Load stored Dynamic Midpoints from localStorage
+        loadDynamicMidFromStorage();
+
         // Render initial UI
         renderCapsules();
         initChart();
@@ -2002,6 +2341,16 @@
         // Connect Protobuf & WebSocket
         await initProtobuf();
         await connectWebsocket();
+
+        // Show/Hide Dynamic Mid Marker Checkbox Toggle
+        const showDynMidCheckbox = document.getElementById('filter-show-dyn-mid');
+        if (showDynMidCheckbox) {
+            showDynMidCheckbox.addEventListener('change', (e) => {
+                showDynMidMarker = e.target.checked;
+                updateDynamicMidDisplays();
+                if (chartInstance) chartInstance.update('none');
+            });
+        }
 
         // Show/Hide Spot Marker Checkbox Toggle
         const showSpotCheckbox = document.getElementById('filter-show-spot');

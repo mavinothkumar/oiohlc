@@ -307,17 +307,9 @@
             // Modal State
             showTemplateModal: false,
             isGenerating: false,
-            backtestStrategies: [
-                // Standard backtest strategies catalog (hydrated directly or fetched via API)
-                {
-                    "id": 1,
-                    "slug": "daily-oai",
-                    "name": "Daily OAI",
-                    "version": 2
-                }
-            ],
+            backtestStrategies: @json($backtestStrategies ?? []),
             templateForm: {
-                strategy_id: 1,
+                strategy_id: @json($backtestStrategies->first()->id ?? ''),
                 atm: ''
             },
 
@@ -328,6 +320,9 @@
             },
 
             openTemplateModal() {
+                if (!this.templateForm.strategy_id && this.backtestStrategies.length > 0) {
+                    this.templateForm.strategy_id = this.backtestStrategies[0].id;
+                }
                 this.showTemplateModal = true;
             },
 

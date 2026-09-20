@@ -59,6 +59,18 @@
                 </select>
             </div>
 
+            {{-- Lookback Trigger --}}
+            <div class="flex items-center gap-1">
+                <label class="text-gray-500 text-xs font-semibold">Lookback</label>
+                <select id="toi-lookback" class="border border-gray-300 rounded px-2 py-1 text-xs bg-white">
+                    <option value="auto" selected>Dynamic (Auto)</option>
+                    <option value="3">3 Bars (15m Early)</option>
+                    <option value="4">4 Bars (20m)</option>
+                    <option value="5">5 Bars (25m Confirmed)</option>
+                    <option value="8">8 Bars (40m Major)</option>
+                </select>
+            </div>
+
             {{-- Go Button --}}
             <button id="toi-go" class="bg-red-700 hover:bg-red-800 text-white font-bold px-4 py-1.5 rounded text-xs shadow transition-colors">
                 Go
@@ -119,6 +131,110 @@
         </div>
     </div>
 
+    {{-- ══════════ PREDICTIVE OI SIGNAL & SELLER PLAYBOOK (CLEAN 1-LINE WITH EXPANDABLE TRAY) ══════════ --}}
+    <div id="toi-signal-banner" class="bg-slate-900 border-b border-slate-700 text-white shadow-sm transition-all duration-200">
+        {{-- Clean Single-Line Summary Row --}}
+        <div class="px-3 py-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs">
+            
+            {{-- Left Group: Status Pill & Seller Action --}}
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
+                {{-- State Badge --}}
+                <div id="toi-signal-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm bg-gray-700 text-gray-200 whitespace-nowrap">
+                    <span class="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></span>
+                    <span id="toi-signal-state-title">Analyzing Flow...</span>
+                </div>
+
+                {{-- Seller Action Pill --}}
+                <div class="flex items-center gap-1.5 bg-slate-800/90 border border-amber-500/40 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
+                    <span class="text-amber-400 font-bold">⚡ Seller:</span>
+                    <span id="toi-seller-action" class="font-bold text-emerald-400">Loading...</span>
+                    <span class="text-slate-500">|</span>
+                    <span id="toi-seller-strikes" class="font-mono text-amber-200 font-semibold">—</span>
+                </div>
+
+                {{-- PE Absorption Chip --}}
+                <div class="hidden md:flex items-center gap-1 bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300 whitespace-nowrap">
+                    <span class="text-slate-400 font-medium">PE Absorption:</span>
+                    <span id="toi-signal-absorption" class="font-semibold text-emerald-300">—</span>
+                </div>
+
+                {{-- 1-line Headline Summary --}}
+                <div class="hidden xl:block text-slate-300 text-[11px] truncate max-w-md font-sans">
+                    <span id="toi-signal-headline">Evaluating Trending OI flow...</span>
+                </div>
+            </div>
+
+            {{-- Right Group: Confidence & Expand Toggle Button --}}
+            <div class="flex items-center gap-2 ml-auto">
+                <span id="toi-signal-conf" class="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono">Conf: —%</span>
+                <button id="toi-signal-details-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-600 hover:border-slate-500 px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer select-none">
+                    <span id="toi-signal-btn-text">Details</span>
+                    <span id="toi-signal-btn-icon" class="text-[9px]">▼</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- Expandable Detailed Drawer (Hidden by default) --}}
+        <div id="toi-signal-details-drawer" class="hidden border-t border-slate-800 bg-slate-950/90 px-4 py-3 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {{-- Column 1: AI Reasoning / OI Flow --}}
+                <div class="space-y-1.5">
+                    <div class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span>🔍 Flow Breakdown & Rationale</span>
+                    </div>
+                    <p id="toi-signal-drawer-headline" class="text-slate-200 text-xs font-medium leading-relaxed font-sans">
+                        —
+                    </p>
+                    <div id="toi-signal-reasons" class="space-y-1 text-[11px] text-slate-400 font-sans pt-1">
+                        <!-- Dynamic reasons -->
+                    </div>
+                </div>
+
+                {{-- Column 2: Execution Guide & Invalidation --}}
+                <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                            🎯 Seller Execution Plan
+                        </span>
+                        <span id="toi-signal-bias" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">—</span>
+                    </div>
+                    <p id="toi-seller-strategy-desc" class="text-slate-300 text-[11px] leading-relaxed font-sans">
+                        —
+                    </p>
+                    <div class="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
+                        <span>Target Bias: <strong id="toi-drawer-bias-text" class="text-slate-200 font-semibold">—</strong></span>
+                        <span>Absorption: <strong id="toi-drawer-abs-text" class="text-emerald-400 font-semibold">—</strong></span>
+                    </div>
+                </div>
+
+                {{-- Column 3: Live Delta Momentum Matrix --}}
+                <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-[11px] space-y-1.5">
+                    <div class="font-bold text-slate-300 uppercase tracking-wider text-[10px]">
+                        📊 3-Bar Delta Momentum
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] pt-0.5 font-mono">
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <div class="text-[9px] text-slate-400 uppercase">CE 3-Bar Delta</div>
+                            <div id="toi-metric-ce-delta" class="font-bold text-slate-200">—</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <div class="text-[9px] text-slate-400 uppercase">PE 3-Bar Delta</div>
+                            <div id="toi-metric-pe-delta" class="font-bold text-slate-200">—</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <div class="text-[9px] text-slate-400 uppercase">PCR Momentum</div>
+                            <div id="toi-metric-pcr-mom" class="font-bold text-slate-200">—</div>
+                        </div>
+                        <div class="bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+                            <div class="text-[9px] text-slate-400 uppercase">Confidence</div>
+                            <div id="toi-metric-conf-pct" class="font-bold text-emerald-400">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ══════════ DUAL GRAPHS (SHOW GRAPH VIEW) ══════════ --}}
     <div id="toi-graph-container" class="hidden p-4 bg-gray-100 border-b border-gray-300">
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -172,7 +288,7 @@
     {{-- ══════════ DATA TABLE CONTAINER ══════════ --}}
     <div id="toi-table-container" class="w-full">
         <div class="overflow-x-auto w-full" id="toi-table-wrap" style="max-height: calc(100vh - 170px); overflow-y: auto;">
-            <table id="toi-table" class="w-full border-collapse text-[11px] font-mono whitespace-nowrap text-right" style="min-width: 1450px;">
+            <table id="toi-table" class="w-full border-collapse text-[11px] font-mono whitespace-nowrap text-right" style="min-width: 1550px;">
                 <thead class="sticky top-0 z-20 bg-gray-50 text-gray-600 font-bold border-b border-gray-300 shadow-sm">
                     <tr class="h-9">
                         <th class="py-1 px-2 text-center border-r border-gray-200 w-10">#</th>
@@ -185,19 +301,20 @@
                         <th class="py-1 px-2 text-center border-r border-gray-200 w-20">Strength</th>
                         <th class="py-1 px-2 text-center border-r border-gray-200 w-24">Direction of chng.</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">Chng. In Direction</th>
+                        <th class="py-1 px-2 text-center border-r border-gray-200 w-36">OI Trigger / Tag</th>
+                        <th class="py-1 px-2 text-center border-r border-gray-200 w-44">Sentiment / Outlook (30m–1h)</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">Total Call Ltp</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">Call ltp chng.</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">CE + PE ltp Chng.</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">Put ltp chng.</th>
                         <th class="py-1 px-2 text-right border-r border-gray-200">Total Put Ltp</th>
                         <th class="py-1 px-2 text-center border-r border-gray-200 w-16">Net PCR</th>
-                        <th class="py-1 px-2 text-center border-r border-gray-200 w-24">Day H/L Diff. in OI</th>
-                        <th class="py-1 px-2 text-center w-20">Sentiment</th>
+                        <th class="py-1 px-2 text-center w-24">Day H/L Diff. in OI</th>
                     </tr>
                 </thead>
                 <tbody id="toi-tbody">
                     <tr>
-                        <td colspan="18" class="text-center py-10 text-gray-400 font-sans text-xs">
+                        <td colspan="19" class="text-center py-10 text-gray-400 font-sans text-xs">
                             Loading Trending OI data…
                         </td>
                     </tr>
@@ -207,6 +324,40 @@
         <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 text-gray-500 text-xs flex justify-between items-center font-sans">
             <span id="toi-table-count-summary">Showing 0 rows</span>
             <span class="text-[11px] text-gray-400">Trending OI Table</span>
+        </div>
+    </div>
+
+    {{-- ══════════ FLOATING LIVE ADVISOR (BOTTOM-RIGHT HUD) ══════════ --}}
+    <div id="toi-floating-hud" class="fixed bottom-5 right-5 z-40 bg-slate-900/95 backdrop-blur border border-slate-700 text-white rounded-xl shadow-2xl p-3 w-80 transition-all duration-300 text-xs select-none">
+        <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800">
+            <div class="flex items-center gap-2 font-bold text-xs text-gray-100">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Live OI Assistant</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="toi-hud-timer" class="text-[10px] font-mono text-gray-400">Next: 60s</span>
+                <button id="toi-hud-toggle" class="text-gray-400 hover:text-white text-xs px-1 rounded bg-slate-800 hover:bg-slate-700" title="Minimize / Expand">_</button>
+            </div>
+        </div>
+
+        <div id="toi-hud-body" class="space-y-2">
+            <div>
+                <div class="text-[9px] text-gray-400 uppercase tracking-wider font-semibold">Live Market Flow</div>
+                <div id="toi-hud-state" class="font-bold text-emerald-400 text-xs mt-0.5">Analyzing...</div>
+            </div>
+            
+            <div class="bg-slate-800/90 p-2 rounded border border-slate-700">
+                <div class="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Seller Strategy</div>
+                <div id="toi-hud-seller-action" class="font-semibold text-gray-100 text-xs mt-0.5">—</div>
+                <div id="toi-hud-strikes" class="text-[11px] font-mono text-amber-300 mt-1 font-semibold">—</div>
+            </div>
+
+            <p id="toi-hud-reason" class="text-[10px] text-gray-300 leading-snug line-clamp-2 font-sans">
+                Monitoring rolling high/low OI breaks and PE absorption...
+            </p>
         </div>
     </div>
 
@@ -277,14 +428,34 @@
 .badge-dlb { background: #dc2626; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
 .badge-dhb { background: #16a34a; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
 
+/* ── Predictive Sentiment & Outlook Badges ────────────────────────── */
+.badge-outlook-squeeze    { background: linear-gradient(135deg, #059669, #0d9488); color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 800; font-size: 10px; box-shadow: 0 1px 2px rgba(5,150,105,0.25); display: inline-block; }
+.badge-outlook-breakdown  { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 800; font-size: 10px; box-shadow: 0 1px 2px rgba(220,38,38,0.25); display: inline-block; }
+.badge-outlook-bullish    { background: #16a34a; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-outlook-bearish    { background: #dc2626; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-outlook-absorption { background: #d97706; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-outlook-strangle   { background: #4f46e5; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-outlook-unwind     { background: #64748b; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-outlook-decay      { background: #334155; color: #f8fafc; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 10px; display: inline-block; }
+
 .badge-sentiment-bearish { background: #dc2626; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 800; font-size: 10px; display: inline-block; }
 .badge-sentiment-bullish { background: #16a34a; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 800; font-size: 10px; display: inline-block; }
 
-.badge-strength-neg { background: #dc2626; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; }
-.badge-strength-pos { background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; }
+.badge-strength-neg { background: #dc2626; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-strength-pos { background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px; display: inline-block; }
 
 .badge-direction-down { background: #dc2626; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
 .badge-direction-up   { background: #16a34a; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+
+/* ── Pattern Tags (Support = Green, Resistance = Red) ─────────────── */
+.badge-pattern-support    { background: #15803d; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-pattern-resistance { background: #dc2626; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; display: inline-block; }
+.badge-pattern-default    { background: #475569; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 10px; display: inline-block; }
+
+/* ── Floating HUD ────────────────────────────────────────────────── */
+#toi-floating-hud.minimized { width: auto !important; padding: 6px 12px !important; }
+#toi-floating-hud.minimized #toi-hud-body { display: none !important; }
+#toi-floating-hud.minimized #toi-hud-timer { display: none !important; }
 
 /* ── Table rows ─────────────────────────────────────────────────── */
 .toi-row:hover { background-color: #fefce8 !important; }
@@ -312,6 +483,8 @@
     let oiChartInstance = null;
     let sentimentChartInstance = null;
     let autoRefreshTimer = null;
+    let countdownInterval = null;
+    let countdownRemaining = 60;
     let lastRawRows = [];
 
     // ── DOM References ──────────────────────────────────────────────────────
@@ -321,6 +494,7 @@
     const dateInput          = document.getElementById('toi-date');
     const expirySelect       = document.getElementById('toi-expiry');
     const intervalSelect     = document.getElementById('toi-interval');
+    const lookbackSelect     = document.getElementById('toi-lookback');
     const underlyingSelect   = document.getElementById('toi-underlying');
     const goBtn              = document.getElementById('toi-go');
     const strikesBtn         = document.getElementById('toi-strikes-btn');
@@ -338,6 +512,38 @@
     const strikesDisplay     = document.getElementById('toi-selected-strikes-display');
     const spotVal            = document.getElementById('toi-spot-val');
 
+    // Signal Banner & Floating HUD DOM References
+    const signalBadge        = document.getElementById('toi-signal-badge');
+    const signalStateTitle   = document.getElementById('toi-signal-state-title');
+    const signalConf         = document.getElementById('toi-signal-conf');
+    const signalAbsorption   = document.getElementById('toi-signal-absorption');
+    const sellerAction       = document.getElementById('toi-seller-action');
+    const sellerStrikes      = document.getElementById('toi-seller-strikes');
+    const signalHeadline     = document.getElementById('toi-signal-headline');
+    const signalReasons      = document.getElementById('toi-signal-reasons');
+    const signalBias         = document.getElementById('toi-signal-bias');
+    const sellerStrategyDesc = document.getElementById('toi-seller-strategy-desc');
+
+    const signalDetailsBtn   = document.getElementById('toi-signal-details-btn');
+    const signalDetailsDrawer= document.getElementById('toi-signal-details-drawer');
+    const signalBtnText      = document.getElementById('toi-signal-btn-text');
+    const signalBtnIcon      = document.getElementById('toi-signal-btn-icon');
+    const signalDrawerHeadline = document.getElementById('toi-signal-drawer-headline');
+    const drawerBiasText     = document.getElementById('toi-drawer-bias-text');
+    const drawerAbsText      = document.getElementById('toi-drawer-abs-text');
+    const metricCeDelta      = document.getElementById('toi-metric-ce-delta');
+    const metricPeDelta      = document.getElementById('toi-metric-pe-delta');
+    const metricPcrMom       = document.getElementById('toi-metric-pcr-mom');
+    const metricConfPct      = document.getElementById('toi-metric-conf-pct');
+
+    const floatingHud        = document.getElementById('toi-floating-hud');
+    const hudToggle          = document.getElementById('toi-hud-toggle');
+    const hudTimer           = document.getElementById('toi-hud-timer');
+    const hudState           = document.getElementById('toi-hud-state');
+    const hudSellerAction    = document.getElementById('toi-hud-seller-action');
+    const hudStrikes         = document.getElementById('toi-hud-strikes');
+    const hudReason          = document.getElementById('toi-hud-reason');
+
     // Modal DOM
     const modal            = document.getElementById('toi-strike-modal');
     const modalClose       = document.getElementById('toi-modal-close');
@@ -350,6 +556,33 @@
     const modalSummary     = document.getElementById('toi-modal-selected-summary');
     const modalGrid        = document.getElementById('toi-modal-grid');
 
+    // ── Signal Drawer Toggle ─────────────────────────────────────────────────
+    const LS_DRAWER_KEY = 'toi_signal_drawer_open_v2';
+    if (signalDetailsBtn && signalDetailsDrawer) {
+        const isDrawerSaved = localStorage.getItem(LS_DRAWER_KEY) === 'true';
+        if (isDrawerSaved) {
+            signalDetailsDrawer.classList.remove('hidden');
+            if (signalBtnText) signalBtnText.textContent = 'Less';
+            if (signalBtnIcon) signalBtnIcon.textContent = '▲';
+        }
+
+        signalDetailsBtn.addEventListener('click', () => {
+            const isHidden = signalDetailsDrawer.classList.toggle('hidden');
+            const isOpen = !isHidden;
+            if (signalBtnText) signalBtnText.textContent = isOpen ? 'Less' : 'Details';
+            if (signalBtnIcon) signalBtnIcon.textContent = isOpen ? '▲' : '▼';
+            localStorage.setItem(LS_DRAWER_KEY, isOpen ? 'true' : 'false');
+        });
+    }
+
+    // ── Floating HUD Toggle ──────────────────────────────────────────────────
+    if (hudToggle && floatingHud) {
+        hudToggle.addEventListener('click', () => {
+            const isMin = floatingHud.classList.toggle('minimized');
+            hudToggle.textContent = isMin ? '▲' : '_';
+        });
+    }
+
     // ── Mode Toggle ─────────────────────────────────────────────────────────
     function getMode() { return modeLive.checked ? 'live' : 'history'; }
 
@@ -357,6 +590,9 @@
         const isLive = getMode() === 'live';
         dateWrapper.style.opacity = isLive ? '0.4' : '1';
         dateWrapper.style.pointerEvents = isLive ? 'none' : '';
+        if (floatingHud) {
+            floatingHud.style.display = isLive ? 'block' : 'none';
+        }
     }
 
     modeLive.addEventListener('change', () => { applyModeUI(); reloadExpiries(); });
@@ -394,7 +630,6 @@
     // ── Graph View Toggle & Persistence ─────────────────────────────────────
     const LS_GRAPH_KEY = 'toi_show_graph_view_v2';
     const isGraphSaved = localStorage.getItem(LS_GRAPH_KEY);
-    // If user previously checked or not, honor it (default is open if saved true)
     if (isGraphSaved === 'true') {
         toggleGraph.checked = true;
         graphContainer.classList.remove('hidden');
@@ -441,6 +676,19 @@
         renderTable(lastRawRows);
     });
 
+    // ── Lookback Persistence ────────────────────────────────────────────────
+    const LS_LOOKBACK_KEY = 'toi_lookback_v2';
+    const savedLookback = localStorage.getItem(LS_LOOKBACK_KEY);
+    if (savedLookback && lookbackSelect) {
+        lookbackSelect.value = savedLookback;
+    }
+    if (lookbackSelect) {
+        lookbackSelect.addEventListener('change', () => {
+            localStorage.setItem(LS_LOOKBACK_KEY, lookbackSelect.value);
+            fetchData();
+        });
+    }
+
     // ── Reload Expiries ─────────────────────────────────────────────────────
     function reloadExpiries() {
         const url = `{{ route('api.trending-oi.expiries') }}?mode=${getMode()}&date=${dateInput.value}&underlying=${underlyingSelect.value}`;
@@ -478,6 +726,7 @@
             date: dateInput.value,
             underlying: underlyingSelect.value,
             interval: intervalSelect.value,
+            lookback: lookbackSelect ? lookbackSelect.value : 'auto',
         });
 
         if (currentSelectedStrikes && currentSelectedStrikes.length > 0) {
@@ -495,6 +744,7 @@
                 currentAtmStrike       = data.atm_strike;
 
                 renderHeaderInfo(data);
+                renderSignalData(data.signal_data);
                 renderTable(data.rows || []);
                 renderCharts(data.chart || {});
 
@@ -509,15 +759,27 @@
     goBtn.addEventListener('click', fetchData);
     intervalSelect.addEventListener('change', fetchData);
 
-    // ── Auto Refresh ─────────────────────────────────────────────────────────
+    // ── Auto Refresh with Countdown ──────────────────────────────────────────
     function scheduleAutoRefresh() {
         clearAutoRefresh();
+        countdownRemaining = 60;
+        if (hudTimer) hudTimer.textContent = `Next: ${countdownRemaining}s`;
+
+        countdownInterval = setInterval(() => {
+            countdownRemaining--;
+            if (countdownRemaining >= 0 && hudTimer) {
+                hudTimer.textContent = `Next: ${countdownRemaining}s`;
+            }
+        }, 1000);
+
         autoRefreshTimer = setTimeout(() => {
             if (getMode() === 'live') fetchData();
         }, 60000);
     }
+
     function clearAutoRefresh() {
         if (autoRefreshTimer) { clearTimeout(autoRefreshTimer); autoRefreshTimer = null; }
+        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -562,11 +824,86 @@
         }
     }
 
+    // ── Render Signal Data & Playbook ────────────────────────────────────────
+    function renderSignalData(s) {
+        if (!s || !signalBadge) return;
+
+        const colorMap = {
+            green:  { bg: 'bg-emerald-600 text-white', dot: 'bg-white', hud: 'text-emerald-400' },
+            red:    { bg: 'bg-rose-600 text-white', dot: 'bg-white', hud: 'text-rose-400' },
+            yellow: { bg: 'bg-amber-500 text-slate-900', dot: 'bg-slate-900', hud: 'text-amber-400' },
+            blue:   { bg: 'bg-sky-600 text-white', dot: 'bg-white', hud: 'text-sky-400' },
+            gray:   { bg: 'bg-slate-700 text-gray-200', dot: 'bg-gray-400', hud: 'text-gray-300' },
+        };
+
+        const theme = colorMap[s.badge_color] || colorMap.gray;
+
+        // Executive 1-Line Summary Bar Elements
+        signalBadge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm ${theme.bg}`;
+        signalStateTitle.textContent = s.state_title;
+        const dot = signalBadge.querySelector('span');
+        if (dot) dot.className = `w-2 h-2 rounded-full ${theme.dot} animate-pulse`;
+
+        signalConf.textContent = `Conf: ${s.confidence}%`;
+        signalAbsorption.textContent = s.absorption_score || 'Normal';
+
+        sellerAction.textContent = s.seller_action;
+        sellerStrikes.textContent = s.seller_strikes;
+        signalBias.textContent = s.bias;
+        sellerStrategyDesc.textContent = s.seller_strategy;
+
+        signalHeadline.textContent = s.headline;
+
+        // Expandable Detailed Drawer Elements
+        if (signalDrawerHeadline) signalDrawerHeadline.textContent = s.headline;
+        if (drawerBiasText) drawerBiasText.textContent = s.bias;
+        if (drawerAbsText) drawerAbsText.textContent = s.absorption_score || 'Normal';
+
+        if (signalReasons) {
+            if (s.reasons && s.reasons.length > 0) {
+                signalReasons.innerHTML = s.reasons.map(r => `<div class="flex items-start gap-1.5"><span class="text-amber-400 font-bold">•</span><span>${r}</span></div>`).join('');
+            } else {
+                signalReasons.innerHTML = '';
+            }
+        }
+
+        // Live Delta Momentum in Drawer
+        if (s.metrics) {
+            if (metricCeDelta) {
+                const v = s.metrics.ce_delta_3bar || 0;
+                metricCeDelta.textContent = fmtSigned(v);
+                metricCeDelta.className = `font-bold ${v >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            }
+            if (metricPeDelta) {
+                const v = s.metrics.pe_delta_3bar || 0;
+                metricPeDelta.textContent = fmtSigned(v);
+                metricPeDelta.className = `font-bold ${v >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            }
+            if (metricPcrMom) {
+                const v = s.metrics.pcr_momentum || 0;
+                metricPcrMom.textContent = (v > 0 ? '+' : '') + v;
+                metricPcrMom.className = `font-bold ${v >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            }
+            if (metricConfPct) {
+                metricConfPct.textContent = `${s.confidence}%`;
+            }
+        }
+
+        // Floating HUD Elements
+        if (hudState) {
+            hudState.textContent = s.state_title;
+            hudState.className = `font-bold text-xs mt-0.5 ${theme.hud}`;
+        }
+        if (hudSellerAction) hudSellerAction.textContent = s.seller_action;
+        if (hudStrikes) hudStrikes.textContent = s.seller_strikes;
+        if (hudReason) hudReason.textContent = s.headline;
+    }
+
     // ── Render Table Rows (with limit slicing) ──────────────────────────────
     function renderTable(rows) {
         lastRawRows = rows || [];
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="18" class="text-center py-10 text-gray-400 font-sans text-xs">No records found for the selected parameters.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="19" class="text-center py-10 text-gray-400 font-sans text-xs">No records found for the selected parameters.</td></tr>`;
             if (tableCountSummary) tableCountSummary.textContent = 'Showing 0 rows';
             return;
         }
@@ -596,7 +933,7 @@
             // Strength Badge
             const strengthVal = r.strength;
             const strengthCls = strengthVal >= 0 ? 'badge-strength-pos' : 'badge-strength-neg';
-            const strengthBadge = `<span class="${strengthCls}">${strengthVal}% <span class="opacity-75">•••</span></span>`;
+            const strengthBadge = `<span class="${strengthCls}">${strengthVal}%</span>`;
 
             // Direction of Change
             const dirVal = r.direction_pct;
@@ -613,9 +950,41 @@
                 dayHlDiffBadge = `<span class="${isHigh ? 'badge-dhb' : 'badge-dlb'}">${r.day_hl_diff_oi}</span>`;
             }
 
-            // Sentiment Badge
-            const isBullish = r.sentiment === 'Bullish';
-            const sentimentBadge = `<span class="${isBullish ? 'badge-sentiment-bullish' : 'badge-sentiment-bearish'}">${r.sentiment}</span>`;
+            // Pattern Tag Badge: Support in Green, Resistance in Red
+            let patternBadge = '<span class="text-gray-400 font-sans text-[10px]">—</span>';
+            if (r.pattern_tag && r.pattern_tag !== '-') {
+                const tags = r.pattern_tag.split(' | ');
+                patternBadge = tags.map(t => {
+                    let cls = 'badge-pattern-default';
+                    // Support in Green (Floor / Bullish): Any CE Low Break, Any PE High Break, PE New High
+                    if ((t.includes('Low Break') && t.includes('CE')) ||
+                        (t.includes('High Break') && t.includes('PE')) ||
+                        t.includes('PE New High')) {
+                        cls = 'badge-pattern-support';
+                    }
+                    // Resistance in Red (Ceiling / Bearish): Any CE High Break, Any PE Low Break, CE New High
+                    else if ((t.includes('High Break') && t.includes('CE')) ||
+                             (t.includes('Low Break') && t.includes('PE')) ||
+                             t.includes('CE New High')) {
+                        cls = 'badge-pattern-resistance';
+                    }
+                    return `<span class="${cls}">${t}</span>`;
+                }).join(' ');
+            }
+
+            // Outlook / Forward Sentiment Badge (30m-1h)
+            const badgeKey = r.forward_sentiment_badge || 'neutral_decay';
+            let outlookCls = 'badge-outlook-decay';
+            if (badgeKey === 'squeeze_up') outlookCls = 'badge-outlook-squeeze';
+            else if (badgeKey === 'breakdown_down') outlookCls = 'badge-outlook-breakdown';
+            else if (badgeKey === 'bullish_sell_pe') outlookCls = 'badge-outlook-bullish';
+            else if (badgeKey === 'bearish_sell_ce') outlookCls = 'badge-outlook-bearish';
+            else if (badgeKey === 'absorption') outlookCls = 'badge-outlook-absorption';
+            else if (badgeKey === 'dual_writing') outlookCls = 'badge-outlook-strangle';
+            else if (badgeKey === 'dual_unwind') outlookCls = 'badge-outlook-unwind';
+
+            const tooltipText = `30m–1h Outlook: ${r.forward_sentiment || r.sentiment || 'Neutral'}\nAction: ${r.forward_sentiment_action || 'Observe'}\nReason: ${r.forward_sentiment_reason || 'Balanced market activity'}`;
+            const outlookBadge = `<span class="${outlookCls} cursor-help" title="${tooltipText.replace(/"/g, '&quot;')}">${r.forward_sentiment || r.sentiment}</span>`;
 
             // Diff in OI text color
             const diffColor = r.diff_oi >= 0 ? 'text-green-700' : 'text-red-600 font-semibold';
@@ -634,6 +1003,8 @@
                 <td class="toi-td text-center">${strengthBadge}</td>
                 <td class="toi-td text-center">${dirBadge}</td>
                 <td class="toi-td font-semibold ${r.chng_in_direction >= 0 ? 'text-green-700' : 'text-red-600'}">${fmtSigned(r.chng_in_direction)}</td>
+                <td class="toi-td text-center">${patternBadge}</td>
+                <td class="toi-td text-center">${outlookBadge}</td>
                 <td class="toi-td text-gray-700">${fmt(r.total_call_ltp, 2)}</td>
                 <td class="toi-td ${callLtpColor}">${fmtSigned(r.call_ltp_chng, 2)}</td>
                 <td class="toi-td ${cePeLtpColor} font-bold">${fmtSigned(r.ce_pe_ltp_chng, 2)}</td>
@@ -641,7 +1012,6 @@
                 <td class="toi-td text-gray-700">${fmt(r.total_put_ltp, 2)}</td>
                 <td class="toi-td text-center font-bold text-indigo-900">${fmt(r.net_pcr, 2)}</td>
                 <td class="toi-td text-center">${dayHlDiffBadge}</td>
-                <td class="toi-td text-center">${sentimentBadge}</td>
             </tr>`;
         });
 
