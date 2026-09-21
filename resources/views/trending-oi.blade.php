@@ -5,41 +5,38 @@
 @section('content')
 <div class="w-full text-gray-800" id="trending-oi-root">
 
-    {{-- ══════════ TOP CONTROLS ══════════ --}}
-    <div class="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm shadow-sm">
-
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+    {{-- ══════════ TOP CONTROLS (SPACIOUS SINGLE LINE) ══════════ --}}
+    <div class="bg-white border-b border-gray-200 px-5 py-2.5 flex items-center justify-between gap-x-6 text-xs shadow-xs overflow-x-auto whitespace-nowrap">
+        <div class="flex items-center gap-x-5">
             {{-- Mode --}}
-            <div class="flex items-center gap-3 mr-1">
-                <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-xs">
+            <div class="flex items-center gap-3 pr-3 border-r border-gray-200">
+                <label class="flex items-center gap-1.5 cursor-pointer font-bold text-xs">
                     <input type="radio" name="mode" value="live" id="toi-mode-live" class="accent-red-600">
-                    <span class="text-red-600 flex items-center gap-1">● Live data</span>
+                    <span class="text-red-600 flex items-center gap-0.5">● Live</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs text-gray-600">
                     <input type="radio" name="mode" value="history" id="toi-mode-history">
-                    <span class="text-gray-600">Historical</span>
+                    <span>Hist</span>
                 </label>
             </div>
 
-            {{-- Name / Underlying --}}
-            <div class="flex items-center gap-1">
-                <label class="text-gray-500 text-xs font-semibold">Name</label>
-                <select id="toi-underlying" class="border border-gray-300 rounded px-2 py-1 text-xs bg-white min-w-[100px]">
+            {{-- Underlying --}}
+            <div class="flex items-center">
+                <select id="toi-underlying" class="border border-gray-300 rounded-md px-2.5 py-1.5 text-xs bg-white font-semibold text-gray-700 focus:outline-hidden focus:ring-1 focus:ring-red-600">
                     <option value="NSE_INDEX|Nifty 50">NIFTY</option>
                 </select>
             </div>
 
-            {{-- Date (Historical Mode) --}}
-            <div class="flex items-center gap-1" id="toi-date-wrapper">
-                <label class="text-gray-500 text-xs font-semibold">Date</label>
+            {{-- Date (Historical Mode only) --}}
+            <div class="flex items-center gap-2" id="toi-date-wrapper">
                 <input type="date" id="toi-date" value="{{ $selectedDate }}"
-                       class="border border-gray-300 rounded px-2 py-1 text-xs bg-white">
+                       class="border border-gray-300 rounded-md px-2.5 py-1.5 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-red-600">
             </div>
 
             {{-- Expiry Date --}}
-            <div class="flex items-center gap-1">
-                <label class="text-gray-500 text-xs font-semibold">Expiry Date</label>
-                <select id="toi-expiry" class="border border-gray-300 rounded px-2 py-1 text-xs bg-white min-w-[110px]">
+            <div class="flex items-center gap-2">
+                <label class="text-gray-500 text-[11px] font-medium">Expiry</label>
+                <select id="toi-expiry" class="border border-gray-300 rounded-md px-2.5 py-1.5 text-xs bg-white min-w-[110px] focus:outline-hidden focus:ring-1 focus:ring-red-600">
                     @foreach($expiries as $exp)
                         <option value="{{ $exp }}" {{ $exp === $selectedExpiry ? 'selected' : '' }}>
                             {{ \Carbon\Carbon::parse($exp)->format('d-M-Y') }}
@@ -49,141 +46,136 @@
             </div>
 
             {{-- Time Interval --}}
-            <div class="flex items-center gap-1">
-                <label class="text-gray-500 text-xs font-semibold">Time Interval</label>
-                <select id="toi-interval" class="border border-gray-300 rounded px-2 py-1 text-xs bg-white">
-                    <option value="1">1 min</option>
-                    <option value="3">3 min</option>
-                    <option value="5" selected>5 min</option>
-                    <option value="15">15 min</option>
+            <div class="flex items-center gap-2">
+                <label class="text-gray-500 text-[11px] font-medium">Interval</label>
+                <select id="toi-interval" class="border border-gray-300 rounded-md px-2.5 py-1.5 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-red-600">
+                    <option value="1">1m</option>
+                    <option value="3">3m</option>
+                    <option value="5" selected>5m</option>
+                    <option value="15">15m</option>
                 </select>
             </div>
 
             {{-- Lookback Trigger --}}
-            <div class="flex items-center gap-1">
-                <label class="text-gray-500 text-xs font-semibold">Lookback</label>
-                <select id="toi-lookback" class="border border-gray-300 rounded px-2 py-1 text-xs bg-white">
-                    <option value="auto" selected>Dynamic (Auto)</option>
-                    <option value="3">3 Bars (15m Early)</option>
-                    <option value="4">4 Bars (20m)</option>
-                    <option value="5">5 Bars (25m Confirmed)</option>
-                    <option value="8">8 Bars (40m Major)</option>
+            <div class="flex items-center gap-2">
+                <label class="text-gray-500 text-[11px] font-medium">Lookback</label>
+                <select id="toi-lookback" class="border border-gray-300 rounded-md px-2.5 py-1.5 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-red-600">
+                    <option value="auto" selected>Auto</option>
+                    <option value="3">3 Bars</option>
+                    <option value="4">4 Bars</option>
+                    <option value="5">5 Bars</option>
+                    <option value="8">8 Bars</option>
                 </select>
             </div>
 
             {{-- Go Button --}}
-            <button id="toi-go" class="bg-red-700 hover:bg-red-800 text-white font-bold px-4 py-1.5 rounded text-xs shadow transition-colors">
+            <button id="toi-go" class="bg-red-700 hover:bg-red-800 text-white font-bold px-5 py-1.5 rounded-md text-xs shadow-xs transition-colors cursor-pointer">
                 Go
             </button>
 
             {{-- Change Strike Prices Button --}}
             <button id="toi-strikes-btn"
-                    class="border border-red-700 text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5 rounded text-xs transition-colors">
-                Change Strike Prices
+                    class="border border-red-700 text-red-700 hover:bg-red-50 font-semibold px-3.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer flex items-center gap-1.5">
+                <span>⚙ Strikes</span>
             </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-700">
+        <div class="flex items-center gap-4 text-xs font-medium text-gray-700 pl-4 border-l border-gray-200">
             {{-- Show Graph View Checkbox --}}
             <label class="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-800">
                 <input type="checkbox" id="toi-toggle-graph" class="accent-red-600 rounded">
-                <span>Show Graph View</span>
+                <span>Graph</span>
             </label>
 
             {{-- Graph Height Selector (visible when graph is enabled) --}}
-            <div id="toi-graph-height-wrapper" class="hidden items-center gap-1">
-                <label class="text-gray-500 text-[11px] font-semibold">Graph Size</label>
-                <select id="toi-graph-height" class="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white">
-                    <option value="420">Medium (420px)</option>
-                    <option value="520" selected>Large (520px)</option>
-                    <option value="650">Extra Large (650px)</option>
+            <div id="toi-graph-height-wrapper" class="hidden items-center gap-1.5">
+                <select id="toi-graph-height" class="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white">
+                    <option value="420">420px</option>
+                    <option value="520" selected>520px</option>
+                    <option value="650">650px</option>
                 </select>
             </div>
 
             {{-- Show / Hide Table Checkbox --}}
             <label class="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-800">
                 <input type="checkbox" id="toi-toggle-table" checked class="accent-red-600 rounded">
-                <span>Show Table</span>
+                <span>Table</span>
             </label>
 
             {{-- Rows Limit Selector --}}
-            <div id="toi-rows-limit-wrapper" class="flex items-center gap-1">
-                <label class="text-gray-500 text-[11px] font-semibold">Rows</label>
-                <select id="toi-rows-limit" class="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white">
-                    <option value="15">15 rows</option>
-                    <option value="30">30 rows</option>
-                    <option value="50">50 rows</option>
-                    <option value="100">100 rows</option>
-                    <option value="all" selected>All rows</option>
+            <div id="toi-rows-limit-wrapper" class="flex items-center gap-1.5">
+                <select id="toi-rows-limit" class="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white">
+                    <option value="15">15 r</option>
+                    <option value="30">30 r</option>
+                    <option value="50">50 r</option>
+                    <option value="100">100 r</option>
+                    <option value="all" selected>All</option>
                 </select>
             </div>
         </div>
     </div>
 
-    {{-- ══════════ SELECTED STRIKES & SPOT HEADER ══════════ --}}
-    <div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
-        <div class="text-gray-700 leading-relaxed font-mono">
-            <span class="font-bold text-gray-900 font-sans">Selected Strike Prices:</span>
-            <span id="toi-selected-strikes-display" class="text-gray-600 font-medium ml-1">Loading...</span>
-        </div>
-        <div id="toi-spot-info" class="font-semibold text-gray-800 text-right whitespace-nowrap">
-            Underlying: <span id="toi-spot-val" class="text-indigo-700 font-bold">—</span>
-        </div>
-    </div>
-
-    {{-- ══════════ PREDICTIVE OI SIGNAL & SELLER PLAYBOOK (CLEAN 1-LINE WITH EXPANDABLE TRAY) ══════════ --}}
     {{-- ══════════ DAILY HIGH-CONVICTION STRATEGY STATION (TOP RIBBON COCKPIT) ══════════ --}}
-    <div id="toi-signal-banner" class="bg-slate-900 border-b border-slate-700 text-white shadow-sm transition-all duration-200">
+    <div id="toi-signal-banner" class="bg-slate-900 border-b border-slate-700 text-white shadow-xs transition-all duration-200">
         {{-- Clean Single-Line Summary Row --}}
-        <div class="px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs">
+        <div class="px-3 py-1.5 flex items-center justify-between gap-x-2.5 text-xs whitespace-nowrap overflow-x-auto">
             
-            {{-- Left Group: Status Pill, Strategy & Anchor, Safe Band, Target/Loss --}}
-            <div class="flex flex-wrap items-center gap-2 min-w-0">
+            {{-- Left Group: Status Pill, Strategy & Anchor, Safe Band, Spot, Strikes Range, Target/Loss --}}
+            <div class="flex items-center gap-2 min-w-0">
                 {{-- Trade Status Badge --}}
-                <div id="toi-station-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-sm bg-slate-700 text-slate-200 whitespace-nowrap">
+                <div id="toi-station-badge" class="px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wide uppercase flex items-center gap-1.5 shadow-xs bg-slate-700 text-slate-200 whitespace-nowrap">
                     <span id="toi-station-dot" class="w-2 h-2 rounded-full bg-slate-400 animate-pulse"></span>
                     <span id="toi-station-status-text">Scanning Edge...</span>
                 </div>
 
                 {{-- Strategy & Recommended Anchor Strike --}}
-                <div id="toi-station-strat-pill" class="flex items-center gap-1.5 bg-slate-800/95 border border-slate-700 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
-                    <span class="text-amber-400 font-bold">🎯 Strategy:</span>
-                    <span id="toi-station-strat-name" class="font-bold text-white">Daily OAI V2</span>
+                <div id="toi-station-strat-pill" class="flex items-center gap-1.5 bg-slate-800/95 border border-slate-700 px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
+                    <span id="toi-station-strat-name" class="font-bold text-amber-400">Daily OAI V2</span>
                     <span class="text-slate-600">|</span>
                     <span id="toi-station-anchor-text" class="font-mono text-emerald-300 font-bold">Anchor: —</span>
                 </div>
 
-                {{-- Safe Spot Band & Option Chain Walls --}}
-                <div class="hidden sm:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 px-2.5 py-0.5 rounded-md text-[11px] text-slate-300 whitespace-nowrap">
-                    <span class="text-slate-400 font-medium">Safe Spot:</span>
+                {{-- Safe Spot Band --}}
+                <div class="flex items-center gap-1 bg-slate-800/80 border border-slate-700/80 px-2 py-0.5 rounded text-[11px] text-slate-300 whitespace-nowrap">
+                    <span class="text-slate-400 text-[10.5px]">Safe:</span>
                     <span id="toi-station-safe-band" class="font-mono font-semibold text-emerald-400">—</span>
-                    <span class="text-slate-600">|</span>
-                    <span class="text-slate-400">Walls:</span>
-                    <span id="toi-station-walls" class="font-mono text-slate-300 text-[10.5px]">Supp: — / Res: —</span>
+                </div>
+
+                {{-- Spot Info --}}
+                <div id="toi-spot-pill" class="flex items-center gap-1 bg-slate-800/80 border border-slate-700/80 px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
+                    <span class="text-slate-400 text-[10.5px]">Spot:</span>
+                    <span id="toi-spot-val" class="font-mono font-bold text-cyan-300">—</span>
+                </div>
+
+                {{-- Selected Strikes Summary --}}
+                <div id="toi-strikes-pill" class="flex items-center gap-1 bg-slate-800/80 border border-slate-700/80 px-2 py-0.5 rounded text-[11px] whitespace-nowrap cursor-help" title="Selected Strikes">
+                    <span class="text-slate-400 text-[10.5px]">Strikes:</span>
+                    <span id="toi-selected-strikes-display" class="font-mono font-bold text-amber-200">—</span>
                 </div>
 
                 {{-- Target & Stop Loss --}}
-                <div id="toi-station-pnl-chip" class="hidden md:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700 px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap">
-                    <span class="text-emerald-400 font-semibold" id="toi-station-target">🎯 Min: —</span>
+                <div id="toi-station-pnl-chip" class="hidden xl:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded text-[11px] whitespace-nowrap">
+                    <span class="text-emerald-400 font-semibold font-mono" id="toi-station-target">🎯 Min: —</span>
                     <span class="text-slate-600">|</span>
-                    <span class="text-rose-400 font-semibold" id="toi-station-stop">🛑 Max: —</span>
-                </div>
-
-                {{-- Hard Cutoff Chip --}}
-                <div class="hidden lg:flex items-center gap-1 bg-slate-800/60 border border-slate-700/60 px-2 py-0.5 rounded text-[10.5px] text-slate-400 whitespace-nowrap">
-                    <span>Cutoff:</span>
-                    <span class="font-mono font-bold text-amber-300">13:20 IST</span>
+                    <span class="text-rose-400 font-semibold font-mono" id="toi-station-stop">🛑 Max: —</span>
                 </div>
             </div>
 
-            {{-- Right Group: View 16-Leg Basket & Expand Details Drawer --}}
-            <div class="flex items-center gap-2 ml-auto">
-                <button id="toi-station-basket-btn" class="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-2.5 py-0.5 rounded text-[11px] shadow-sm transition-colors cursor-pointer select-none">
-                    <span>👁️ View 16-Leg Basket</span>
+            {{-- Right Group: Action Buttons --}}
+            <div class="flex items-center gap-1.5 ml-auto shrink-0">
+                <button id="toi-station-logs-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 border border-slate-700 hover:border-cyan-400 px-2 py-0.5 rounded text-[10.5px] font-bold transition-colors cursor-pointer select-none shadow-xs" title="View recorded strategy setup calls audit logs">
+                    <span>📜 Signal Logs</span>
+                    <span id="toi-calls-count-badge" class="ml-0.5 bg-cyan-950 text-cyan-300 text-[9px] px-1 py-0.2 rounded-full font-mono border border-cyan-800">0</span>
                 </button>
-                <button id="toi-signal-details-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-600 hover:border-slate-500 px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer select-none">
+                <button id="toi-station-buildup-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 border border-slate-700 hover:border-amber-400 px-2 py-0.5 rounded text-[10.5px] font-bold transition-colors cursor-pointer select-none shadow-xs">
+                    <span>🔥 OI Buildup</span>
+                </button>
+                <button id="toi-station-basket-btn" class="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10.5px] shadow-xs transition-colors cursor-pointer select-none">
+                    <span>👁️ 16-Leg Basket</span>
+                </button>
+                <button id="toi-signal-details-btn" class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-600 hover:border-slate-500 px-2 py-0.5 rounded text-[10.5px] font-medium transition-colors cursor-pointer select-none">
                     <span id="toi-signal-btn-text">Details</span>
-                    <span id="toi-signal-btn-icon" class="text-[9px]">▼</span>
+                    <span id="toi-signal-btn-icon" class="text-[8px]">▼</span>
                 </button>
             </div>
         </div>
@@ -191,7 +183,7 @@
         {{-- Expandable Detailed Drawer (Hidden by default) --}}
         <div id="toi-signal-details-drawer" class="hidden border-t border-slate-800 bg-slate-950/90 px-4 py-3 text-xs">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {{-- Column 1: Institutional Rationale & Option Chain Walls --}}
+                {{-- Column 1: Institutional Rationale, Option Chain Walls & Full Strikes --}}
                 <div class="space-y-1.5">
                     <div class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
                         <span>🔍 Flow Breakdown & Option Chain Walls</span>
@@ -212,6 +204,10 @@
                             <span>Daily Trades Policy:</span>
                             <span class="text-amber-300 font-semibold">Max 1–2 (Selective / Sit in Cash)</span>
                         </div>
+                    </div>
+                    <div class="mt-2 text-[10.5px]">
+                        <span class="text-slate-400 font-semibold">All Active Strikes:</span>
+                        <div id="toi-selected-strikes-full" class="text-slate-200 font-mono mt-0.5 break-words bg-slate-900/70 p-1.5 rounded border border-slate-800 text-[10px] max-h-16 overflow-y-auto">—</div>
                     </div>
                 </div>
 
@@ -263,39 +259,92 @@
         </div>
     </div>
 
-    {{-- ══════════ DUAL GRAPHS (SHOW GRAPH VIEW) ══════════ --}}
+    {{-- ══════════ GRAPHS SECTION (SHOW GRAPH VIEW) ══════════ --}}
     <div id="toi-graph-container" class="hidden p-4 bg-gray-100 border-b border-gray-300">
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4" id="toi-charts-grid">
             {{-- Graph 1: Trending OI --}}
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-                    <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1.5">
-                        📈 Trending OI
-                    </h3>
-                    <div class="flex flex-wrap items-center gap-3 text-[11px]">
-                        <span class="flex items-center gap-1 text-green-700 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span> Change in Call OI</span>
-                        <span class="flex items-center gap-1 text-red-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Change in Put OI</span>
-                        <span class="flex items-center gap-1 text-cyan-600 font-semibold"><span class="w-3 h-0.5 border-t-2 border-dashed border-cyan-500 inline-block"></span> Spot Price</span>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                        <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1.5">
+                            📈 Trending OI
+                        </h3>
+                        <div class="flex flex-wrap items-center gap-2 text-[10.5px]">
+                            <span class="flex items-center gap-1 text-green-700 font-semibold"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Call OI</span>
+                            <span class="flex items-center gap-1 text-red-600 font-semibold"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Put OI</span>
+                            <span class="flex items-center gap-1 text-cyan-600 font-semibold"><span class="w-2.5 h-0.5 border-t-2 border-dashed border-cyan-500 inline-block"></span> Spot</span>
+                        </div>
                     </div>
-                </div>
-                <div id="toi-chart-oi-wrapper" class="relative w-full h-[520px]">
-                    <canvas id="toi-chart-oi"></canvas>
+                    <div id="toi-chart-oi-wrapper" class="relative w-full h-[520px]">
+                        <canvas id="toi-chart-oi"></canvas>
+                    </div>
                 </div>
             </div>
 
             {{-- Graph 2: Trending OI Sentiment --}}
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
-                    <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1.5">
-                        📊 Trending OI Sentiment
-                    </h3>
-                    <div class="flex flex-wrap items-center gap-3 text-[11px]">
-                        <span class="flex items-center gap-1 text-red-600 font-semibold"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Sentiment (Diff in OI)</span>
-                        <span class="flex items-center gap-1 text-cyan-600 font-semibold"><span class="w-3 h-0.5 border-t-2 border-dashed border-cyan-500 inline-block"></span> Spot Price</span>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                        <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1.5">
+                            📊 Trending OI Sentiment
+                        </h3>
+                        <div class="flex flex-wrap items-center gap-2 text-[10.5px]">
+                            <span class="flex items-center gap-1 text-red-600 font-semibold"><span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Sentiment</span>
+                            <span class="flex items-center gap-1 text-cyan-600 font-semibold"><span class="w-2.5 h-0.5 border-t-2 border-dashed border-cyan-500 inline-block"></span> Spot</span>
+                        </div>
+                    </div>
+                    <div id="toi-chart-sentiment-wrapper" class="relative w-full h-[520px]">
+                        <canvas id="toi-chart-sentiment"></canvas>
                     </div>
                 </div>
-                <div id="toi-chart-sentiment-wrapper" class="relative w-full h-[520px]">
-                    <canvas id="toi-chart-sentiment"></canvas>
+            </div>
+
+            {{-- Graph 3: OI Buildup (Top 10 CE & PE - SB, LB, LU, SC across 5M, 15M, 30M, Today) --}}
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col justify-between" id="toi-buildup-card">
+                <div>
+                    <div class="flex items-center justify-between mb-2 border-b border-gray-100 pb-2">
+                        <div class="flex items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1">
+                                🔥 OI Buildup
+                            </h3>
+                            <span id="toi-buildup-window" class="text-[10px] bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-200">
+                                —
+                            </span>
+                        </div>
+                        {{-- Timeframe Tabs (5M, 15M, 30M, Today) --}}
+                        <div class="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded text-[10.5px] font-semibold">
+                            <button type="button" data-tf="5m" id="toi-buildup-tab-5m" class="toi-tf-tab px-2 py-0.5 rounded bg-white text-gray-900 shadow-xs cursor-pointer font-bold transition-colors">5M</button>
+                            <button type="button" data-tf="15m" id="toi-buildup-tab-15m" class="toi-tf-tab px-2 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">15M</button>
+                            <button type="button" data-tf="30m" id="toi-buildup-tab-30m" class="toi-tf-tab px-2 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">30M</button>
+                            <button type="button" data-tf="today" id="toi-buildup-tab-today" class="toi-tf-tab px-2 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">Today</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] mb-1.5 px-1 text-slate-600">
+                        <span id="toi-buildup-mode-desc" class="font-semibold text-slate-700">Top 8 Activity (5M)</span>
+                        <div class="flex items-center gap-2.5 text-[10px] font-medium text-slate-600">
+                            <span class="flex items-center gap-1" title="Short Buildup (Call/Put Writing)"><span class="w-2.5 h-2.5 rounded-xs bg-red-600 inline-block"></span> SB</span>
+                            <span class="flex items-center gap-1" title="Short Covering (Short Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-[#1e3a8a] inline-block"></span> SC</span>
+                            <span class="flex items-center gap-1" title="Long Buildup (Call/Put Buying)"><span class="w-2.5 h-2.5 rounded-xs bg-green-600 inline-block"></span> LB</span>
+                            <span class="flex items-center gap-1" title="Long Unwinding (Long Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-yellow-500 inline-block"></span> LU</span>
+                        </div>
+                    </div>
+
+                    <div id="toi-chart-buildup-wrapper" class="relative w-full h-[520px]">
+                        <canvas id="toi-chart-buildup"></canvas>
+                    </div>
+                </div>
+
+                {{-- Summary Footer --}}
+                <div class="mt-2 pt-2 border-t border-gray-100 bg-gray-50/90 p-2 rounded text-[10.5px] flex flex-col gap-1 font-sans">
+                    <div class="flex justify-between items-center text-slate-700 font-mono text-[10.5px]">
+                        <span>CE Net Chg: <strong id="toi-buildup-ce-sum" class="text-red-600 font-bold">+0.0 L</strong></span>
+                        <span>PE Net Chg: <strong id="toi-buildup-pe-sum" class="text-blue-600 font-bold">+0.0 L</strong></span>
+                    </div>
+                    <div class="text-[10px] font-medium text-slate-500 flex justify-between items-center">
+                        <span>Dominant Flow:</span>
+                        <span id="toi-buildup-dominant" class="font-bold text-slate-800 text-[10px] truncate max-w-[210px] text-right">—</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -542,6 +591,64 @@
     </div>
 </div>
 
+{{-- ══════════ STRATEGY CALL LOGS (VERTICAL TIMELINE & AUDIT JOURNAL) MODAL ══════════ --}}
+<div id="toi-calls-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150 font-sans">
+        {{-- Header --}}
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xl">📜</span>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        Strategy Signal Audit & Wave Journal
+                        <span id="toi-calls-modal-count" class="bg-cyan-900 text-cyan-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0 Signal Waves</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">
+                        Consolidated setup waves • Distinct trigger timestamps • Anchor skew & spot evolution • Anti-whip-saw audit
+                    </p>
+                </div>
+            </div>
+            <button id="toi-calls-modal-close" class="text-slate-400 hover:text-white text-lg font-bold p-1 hover:bg-slate-800 rounded transition-colors cursor-pointer">&times;</button>
+        </div>
+
+        {{-- Vertical Timeline Container --}}
+        <div class="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-100/70">
+            <div id="toi-calls-timeline-list" class="space-y-4">
+                <div class="py-16 text-center text-slate-400 font-sans">
+                    <svg class="animate-spin inline h-6 w-6 mr-2 text-cyan-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <div>Loading consolidated signal wave journal...</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Pagination & Actions Footer --}}
+        <div class="px-5 py-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2">
+                <span id="toi-calls-page-info" class="text-slate-600 font-medium">Showing 0 of 0 Signals</span>
+                <span class="text-slate-300">|</span>
+                <span class="text-slate-400 text-[11px]">Hard Cutoff 13:20 IST</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" id="toi-calls-prev-btn" disabled class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-md text-xs shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1">
+                    <span>◀</span>
+                    <span>Prev</span>
+                </button>
+                <span id="toi-calls-page-num" class="text-xs font-mono font-bold text-slate-800 px-2">Page 1 / 1</span>
+                <button type="button" id="toi-calls-next-btn" disabled class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-md text-xs shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1">
+                    <span>Next</span>
+                    <span>▶</span>
+                </button>
+                <button type="button" id="toi-calls-modal-footer-close" class="border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-4 py-1.5 rounded-md transition-colors cursor-pointer ml-2">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('styles')
 <style>
 /* ── Badges ──────────────────────────────────────────────────────── */
@@ -602,6 +709,9 @@
     let currentAtmStrike = null;
     let oiChartInstance = null;
     let sentimentChartInstance = null;
+    let buildupChartInstance = null;
+    let currentBuildupData = null;
+    let currentBuildupTf = '5m'; // '5m', '15m', '30m', 'today'
     let autoRefreshTimer = null;
     let countdownInterval = null;
     let countdownRemaining = 60;
@@ -630,6 +740,7 @@
     const errorEl            = document.getElementById('toi-error');
     const tbody              = document.getElementById('toi-tbody');
     const strikesDisplay     = document.getElementById('toi-selected-strikes-display');
+    const strikesFullDisplay = document.getElementById('toi-selected-strikes-full');
     const spotVal            = document.getElementById('toi-spot-val');
 
     // Strategy Station DOM References
@@ -670,6 +781,19 @@
     const modalPeTbody        = document.getElementById('toi-modal-pe-tbody');
     const modalBuilderLink    = document.getElementById('toi-modal-builder-link');
 
+    // Strategy Call Logs Modal DOM References
+    const stationLogsBtn       = document.getElementById('toi-station-logs-btn');
+    const callsCountBadge      = document.getElementById('toi-calls-count-badge');
+    const callsModal           = document.getElementById('toi-calls-modal');
+    const callsModalClose      = document.getElementById('toi-calls-modal-close');
+    const callsModalFooterClose= document.getElementById('toi-calls-modal-footer-close');
+    const callsModalCount      = document.getElementById('toi-calls-modal-count');
+    const callsTimelineList    = document.getElementById('toi-calls-timeline-list');
+    const callsPrevBtn         = document.getElementById('toi-calls-prev-btn');
+    const callsNextBtn         = document.getElementById('toi-calls-next-btn');
+    const callsPageInfo        = document.getElementById('toi-calls-page-info');
+    const callsPageNum         = document.getElementById('toi-calls-page-num');
+
     // Drawer Toggle Elements
     const signalDetailsBtn    = document.getElementById('toi-signal-details-btn');
     const signalDetailsDrawer = document.getElementById('toi-signal-details-drawer');
@@ -678,6 +802,16 @@
     const metricCeDelta       = document.getElementById('toi-metric-ce-delta');
     const metricPeDelta       = document.getElementById('toi-metric-pe-delta');
     const metricPcrMom        = document.getElementById('toi-metric-pcr-mom');
+
+    // OI Buildup (Multi-Timeframe 5M, 15M, 30M, Today) DOM References
+    const stationBuildupBtn   = document.getElementById('toi-station-buildup-btn');
+    const buildupCard         = document.getElementById('toi-buildup-card');
+    const buildupWindow       = document.getElementById('toi-buildup-window');
+    const buildupTfTabs       = document.querySelectorAll('.toi-tf-tab');
+    const buildupModeDesc     = document.getElementById('toi-buildup-mode-desc');
+    const buildupCeSum        = document.getElementById('toi-buildup-ce-sum');
+    const buildupPeSum        = document.getElementById('toi-buildup-pe-sum');
+    const buildupDominant     = document.getElementById('toi-buildup-dominant');
 
     // Floating HUD DOM References
     const floatingHud         = document.getElementById('toi-floating-hud');
@@ -751,7 +885,7 @@
     @endif
     applyModeUI();
 
-    // ── Graph Height & Persistence ──────────────────────────────────────────
+    // ── Graph Height Persistence ────────────────────────────────────────────
     const LS_GRAPH_HEIGHT_KEY = 'toi_graph_height_v2';
     const savedGraphHeight = localStorage.getItem(LS_GRAPH_HEIGHT_KEY);
     if (savedGraphHeight) {
@@ -762,10 +896,13 @@
         const h = (graphHeightSelect.value || '520') + 'px';
         const oiWrap = document.getElementById('toi-chart-oi-wrapper');
         const senWrap = document.getElementById('toi-chart-sentiment-wrapper');
+        const bldWrap = document.getElementById('toi-chart-buildup-wrapper');
         if (oiWrap) oiWrap.style.height = h;
         if (senWrap) senWrap.style.height = h;
+        if (bldWrap) bldWrap.style.height = h;
         if (oiChartInstance) oiChartInstance.resize();
         if (sentimentChartInstance) sentimentChartInstance.resize();
+        if (buildupChartInstance) buildupChartInstance.resize();
     }
 
     graphHeightSelect.addEventListener('change', () => {
@@ -893,6 +1030,11 @@
                 renderStrategyStation(data.daily_strategy_station, data.signal_data);
                 renderTable(data.rows || []);
                 renderCharts(data.chart || {});
+                renderStrikeBuildup(data.strike_buildup || { '5m': data.strike_buildup_5m });
+
+                if (callsCountBadge && data.strategy_calls_count !== undefined) {
+                    callsCountBadge.textContent = data.strategy_calls_count;
+                }
 
                 if (getMode() === 'live') scheduleAutoRefresh();
             })
@@ -952,20 +1094,32 @@
 
     // ── Render Header Info ───────────────────────────────────────────────────
     function renderHeaderInfo(data) {
-        // Selected Strikes display
+        // Selected Strikes compact display for ribbon
         if (currentSelectedStrikes && currentSelectedStrikes.length > 0) {
-            strikesDisplay.textContent = currentSelectedStrikes.join(', ');
+            const sorted = [...currentSelectedStrikes].map(Number).sort((a, b) => a - b);
+            const minS = sorted[0];
+            const maxS = sorted[sorted.length - 1];
+            const count = sorted.length;
+            if (strikesDisplay) {
+                strikesDisplay.textContent = `${fmt(minS)}–${fmt(maxS)} (${count})`;
+                strikesDisplay.title = sorted.join(', ');
+            }
+            if (strikesFullDisplay) {
+                strikesFullDisplay.textContent = sorted.join(', ');
+            }
         } else {
-            strikesDisplay.textContent = 'None';
+            if (strikesDisplay) strikesDisplay.textContent = 'None';
+            if (strikesFullDisplay) strikesFullDisplay.textContent = 'None';
         }
 
-        // Spot info
+        // Spot info formatted cleanly for the single-line ribbon
         const u = data.underlying_data;
-        if (u) {
+        if (u && spotVal) {
             const chgSign = u.change >= 0 ? '+' : '';
-            const chgColor = u.change >= 0 ? 'text-green-600' : 'text-red-600';
-            spotVal.innerHTML = `<span class="text-gray-900">${u.name}</span> at <span class="text-indigo-700">${fmt(u.spot, 2)}</span>, Chg: <span class="${chgColor}">${chgSign}${fmt(u.change, 2)} (${chgSign}${u.change_pct}%)</span> as on <span class="text-gray-500 font-normal">${u.time}</span>`;
-        } else {
+            const chgColor = u.change >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            spotVal.innerHTML = `<span class="text-cyan-300 font-bold">${fmt(u.spot, 2)}</span> <span class="${chgColor} font-semibold">(${chgSign}${fmt(u.change, 2)})</span>`;
+            spotVal.title = `${u.name} spot ${fmt(u.spot, 2)}, Chg: ${chgSign}${fmt(u.change, 2)} (${chgSign}${u.change_pct}%) as on ${u.time}`;
+        } else if (spotVal) {
             spotVal.textContent = '—';
         }
     }
@@ -1154,6 +1308,237 @@
         });
     }
 
+    // ── Strategy Call Logs Modal Handlers ────────────────────────────────────
+    let currentCallsPage = 1;
+    const callsPerPage = 5;
+
+    function openCallsModal() {
+        if (!callsModal) return;
+        callsModal.classList.remove('hidden');
+        callsModal.classList.add('flex');
+        currentCallsPage = 1;
+        loadStrategyCalls(1);
+    }
+
+    function closeCallsModal() {
+        if (!callsModal) return;
+        callsModal.classList.add('hidden');
+        callsModal.classList.remove('flex');
+    }
+
+    function loadStrategyCalls(page = 1) {
+        if (!callsTimelineList) return;
+        currentCallsPage = page;
+        callsTimelineList.innerHTML = `
+            <div class="py-16 text-center text-slate-400 font-sans">
+                <svg class="animate-spin inline h-6 w-6 mr-2 text-cyan-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <div class="text-xs">Loading consolidated signal wave journal...</div>
+            </div>
+        `;
+
+        const dateVal = dateInput ? dateInput.value : '';
+        const undVal = underlyingSelect ? underlyingSelect.value : 'NSE_INDEX|Nifty 50';
+
+        fetch(`{{ route('api.trending-oi.strategy-calls') }}?date=${dateVal}&underlying=${encodeURIComponent(undVal)}&page=${page}&per_page=${callsPerPage}`)
+            .then(r => r.json())
+            .then(data => {
+                const calls = data.calls || [];
+                const total = data.total_count || 0;
+                const totalPages = data.total_pages || 1;
+
+                if (callsModalCount) callsModalCount.textContent = `${total} Signal Waves`;
+                if (callsCountBadge) callsCountBadge.textContent = total;
+
+                if (callsPageInfo) {
+                    callsPageInfo.textContent = total > 0 
+                        ? `Showing ${data.from}–${data.to} of ${total} Signal Waves`
+                        : '0 Signal Waves';
+                }
+                if (callsPageNum) {
+                    callsPageNum.textContent = `Page ${data.current_page} / ${totalPages}`;
+                }
+
+                if (callsPrevBtn) {
+                    callsPrevBtn.disabled = (data.current_page <= 1);
+                }
+                if (callsNextBtn) {
+                    callsNextBtn.disabled = (data.current_page >= totalPages);
+                }
+
+                if (calls.length === 0) {
+                    callsTimelineList.innerHTML = `
+                        <div class="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 font-sans shadow-2xs">
+                            <div class="text-3xl mb-2">☕</div>
+                            <div class="text-sm font-semibold text-slate-700">No Signal Waves Recorded Yet</div>
+                            <div class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Market is accumulating flow or operating in Capital Preservation Mode. No high-conviction trade setups triggered for this session.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                callsTimelineList.innerHTML = calls.map((c) => {
+                    const borderCls = c.badge_color === 'emerald' ? 'border-l-emerald-500'
+                                    : c.badge_color === 'rose'    ? 'border-l-rose-500'
+                                    : c.badge_color === 'blue'    ? 'border-l-sky-500'
+                                    : 'border-l-amber-500';
+
+                    const badgeBg = c.badge_color === 'emerald' ? 'bg-emerald-500 text-white'
+                                  : c.badge_color === 'rose'    ? 'bg-rose-500 text-white'
+                                  : c.badge_color === 'blue'    ? 'bg-sky-600 text-white'
+                                  : 'bg-amber-500 text-white';
+
+                    const spotDelta = c.spot_change || 0;
+                    const spotDeltaColor = spotDelta > 0 ? 'text-emerald-600' : (spotDelta < 0 ? 'text-rose-600' : 'text-slate-600');
+                    const legsCount = c.basket_legs_count || 0;
+                    const collapseId = `toi-call-legs-${c.id}`;
+
+                    return `
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden border-l-4 ${borderCls} transition-all hover:shadow-md">
+                            {{-- Top Bar: Trigger Time, Active Window, Outcome Badge --}}
+                            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="inline-flex items-center gap-1.5 font-mono font-bold text-slate-900 bg-white px-2.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+                                        <span class="text-amber-500">⚡</span>
+                                        <span>Signal Raised:</span>
+                                        <span class="text-indigo-700 font-extrabold">${c.signal_time} IST</span>
+                                    </span>
+                                    <span class="text-slate-400 font-mono text-[11px]">${c.trade_date}</span>
+                                    <span class="inline-flex items-center gap-1.5 font-mono text-[11px] bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded">
+                                        <span>⏱ Active Window:</span>
+                                        <strong class="font-bold text-slate-800">${c.active_time_range}</strong>
+                                        <span class="text-slate-500 font-semibold">(${c.duration_text})</span>
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${c.outcome_status === 'ACTIVE' ? `
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            ACTIVE NOW
+                                        </span>
+                                    ` : `
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                            CONCLUDED
+                                        </span>
+                                    `}
+                                </div>
+                            </div>
+
+                            {{-- Setup Title & Recommended Anchor Skew --}}
+                            <div class="px-4 py-2 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide uppercase ${badgeBg}">
+                                        ${c.setup_title}
+                                    </span>
+                                    <span class="text-slate-300 font-medium text-xs">${c.action_label}</span>
+                                </div>
+                                <div class="flex items-center gap-2 font-mono text-xs">
+                                    <span class="text-slate-400 text-[11px]">Recommended Anchor:</span>
+                                    <span class="font-bold text-amber-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                                        ${c.recommended_anchor ? fmt(c.recommended_anchor) : '—'}
+                                    </span>
+                                    <span class="text-amber-200/80 text-[11px] font-sans">(${c.anchor_skew || 'ATM Center'})</span>
+                                </div>
+                            </div>
+
+                            {{-- 4 Metric Tiles: Entry Spot, Last Spot, Spot Movement, Safe Band & Risk --}}
+                            <div class="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-white border-b border-slate-100 text-xs">
+                                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                                    <span class="text-slate-500 text-[10px] uppercase block font-semibold">Entry Spot (At Signal)</span>
+                                    <strong class="font-mono text-sm text-slate-800">${fmt(c.entry_spot, 2)}</strong>
+                                </div>
+                                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                                    <span class="text-slate-500 text-[10px] uppercase block font-semibold">Exit / Latest Spot</span>
+                                    <strong class="font-mono text-sm text-slate-800">${fmt(c.last_spot, 2)}</strong>
+                                </div>
+                                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                                    <span class="text-slate-500 text-[10px] uppercase block font-semibold">Spot Movement</span>
+                                    <strong class="font-mono text-sm ${spotDeltaColor}">${c.spot_change_text} pts</strong>
+                                </div>
+                                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+                                    <span class="text-slate-500 text-[10px] uppercase block font-semibold">Safe Band | Target</span>
+                                    <div class="font-mono text-[11px] text-emerald-700 font-bold truncate" title="${c.safe_range_text}">${c.safe_range_text}</div>
+                                    <div class="font-mono text-[10px] text-slate-500 truncate">${c.target_pnl || '—'} / ${c.stop_loss_pnl || '—'}</div>
+                                </div>
+                            </div>
+
+                            {{-- Flow Rationale & Delta Metrics --}}
+                            <div class="px-4 py-3 bg-slate-50/50 text-xs font-sans space-y-2">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-indigo-600 font-bold shrink-0 mt-0.5">🧠 Flow Rationale:</span>
+                                    <p class="text-slate-700 leading-relaxed font-normal">${c.rationale || 'Rule-based setup triggered based on institutional change in OI flows.'}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                                    ${c.flow_metrics && Object.keys(c.flow_metrics).length > 0 ? `
+                                        <div class="flex flex-wrap items-center gap-1.5 text-[10.5px] font-mono text-slate-600">
+                                            <span class="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Net PCR: <strong class="text-indigo-900">${fmt(c.flow_metrics.net_pcr, 2)}</strong></span>
+                                            <span class="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Direction: <strong class="text-slate-800">${c.flow_metrics.direction_pct}%</strong></span>
+                                            <span class="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">CE 3-Bar Δ: <strong class="${c.flow_metrics.ce_delta_3bar >= 0 ? 'text-green-600':'text-red-600'}">${fmtSigned(c.flow_metrics.ce_delta_3bar)}</strong></span>
+                                            <span class="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">PE 3-Bar Δ: <strong class="${c.flow_metrics.pe_delta_3bar >= 0 ? 'text-green-600':'text-red-600'}">${fmtSigned(c.flow_metrics.pe_delta_3bar)}</strong></span>
+                                        </div>
+                                    ` : '<div></div>'}
+
+                                    ${legsCount > 0 ? `
+                                        <button type="button" onclick="const el = document.getElementById('${collapseId}'); el.classList.toggle('hidden'); this.querySelector('span.arrow').textContent = el.classList.contains('hidden') ? '▼' : '▲';" class="text-indigo-600 hover:text-indigo-800 text-[11px] font-semibold flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded transition-colors shadow-2xs">
+                                            <span>👁️ View ${legsCount}-Leg Basket</span>
+                                            <span class="arrow text-[8px]">▼</span>
+                                        </button>
+                                    ` : ''}
+                                </div>
+
+                                {{-- Collapsible 16-Leg Structure --}}
+                                ${legsCount > 0 ? `
+                                    <div id="${collapseId}" class="hidden mt-2 pt-2 border-t border-slate-200 animate-in fade-in duration-100">
+                                        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pre-Calculated Execution Legs (Anchor ${c.recommended_anchor})</div>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5 font-mono text-[10.5px]">
+                                            ${c.basket_legs.map(l => `
+                                                <div class="p-1.5 rounded border ${l.option_type === 'CE' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'} text-center shadow-2xs">
+                                                    <div class="font-extrabold">${l.strike} ${l.option_type}</div>
+                                                    <div class="text-[9px] text-slate-500">${l.lots} Lots • ${l.side}</div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                callsTimelineList.innerHTML = `
+                    <div class="bg-rose-50 text-rose-700 p-6 rounded-xl border border-rose-200 text-center text-xs">
+                        Failed to load strategy call logs: ${err.message}
+                    </div>
+                `;
+            });
+    }
+
+    if (callsPrevBtn) {
+        callsPrevBtn.addEventListener('click', () => {
+            if (currentCallsPage > 1) {
+                loadStrategyCalls(currentCallsPage - 1);
+            }
+        });
+    }
+    if (callsNextBtn) {
+        callsNextBtn.addEventListener('click', () => {
+            loadStrategyCalls(currentCallsPage + 1);
+        });
+    }
+
+    if (stationLogsBtn) stationLogsBtn.addEventListener('click', openCallsModal);
+    if (callsModalClose) callsModalClose.addEventListener('click', closeCallsModal);
+    if (callsModalFooterClose) callsModalFooterClose.addEventListener('click', closeCallsModal);
+    if (callsModal) {
+        callsModal.addEventListener('click', (e) => {
+            if (e.target === callsModal) closeCallsModal();
+        });
+    }
+
     // ── Render Table Rows (with limit slicing) ──────────────────────────────
     function renderTable(rows) {
         lastRawRows = rows || [];
@@ -1243,9 +1628,9 @@
 
             // Diff in OI text color
             const diffColor = r.diff_oi >= 0 ? 'text-green-700' : 'text-red-600 font-semibold';
-            const callLtpColor = r.call_ltp_chg >= 0 ? 'text-green-700' : 'text-red-600';
-            const putLtpColor = r.put_ltp_chg >= 0 ? 'text-green-700' : 'text-red-600';
-            const cePeLtpColor = r.ce_pe_ltp_chg >= 0 ? 'text-green-700' : 'text-red-600';
+            const callLtpColor = r.call_ltp_chng > 0 ? 'text-green-700 font-semibold' : (r.call_ltp_chng < 0 ? 'text-red-600 font-semibold' : 'text-gray-600 font-semibold');
+            const putLtpColor  = r.put_ltp_chng > 0 ? 'text-green-700 font-semibold' : (r.put_ltp_chng < 0 ? 'text-red-600 font-semibold' : 'text-gray-600 font-semibold');
+            const cePeLtpColor = r.ce_pe_ltp_chng > 0 ? 'text-green-700 font-bold' : (r.ce_pe_ltp_chng < 0 ? 'text-red-600 font-bold' : 'text-gray-600 font-bold');
 
             html += `<tr class="${rowCls} toi-row border-b border-gray-200 transition-colors h-8">
                 <td class="toi-td text-center text-gray-500 font-sans">${idx + 1}</td>
@@ -1262,7 +1647,7 @@
                 <td class="toi-td text-center">${outlookBadge}</td>
                 <td class="toi-td text-gray-700">${fmt(r.total_call_ltp, 2)}</td>
                 <td class="toi-td ${callLtpColor}">${fmtSigned(r.call_ltp_chng, 2)}</td>
-                <td class="toi-td ${cePeLtpColor} font-bold">${fmtSigned(r.ce_pe_ltp_chng, 2)}</td>
+                <td class="toi-td ${cePeLtpColor}">${fmtSigned(r.ce_pe_ltp_chng, 2)}</td>
                 <td class="toi-td ${putLtpColor}">${fmtSigned(r.put_ltp_chng, 2)}</td>
                 <td class="toi-td text-gray-700">${fmt(r.total_put_ltp, 2)}</td>
                 <td class="toi-td text-center font-bold text-indigo-900">${fmt(r.net_pcr, 2)}</td>
@@ -1458,8 +1843,195 @@
             setTimeout(() => {
                 if (oiChartInstance) oiChartInstance.resize();
                 if (sentimentChartInstance) sentimentChartInstance.resize();
+                if (buildupChartInstance) buildupChartInstance.resize();
             }, 50);
         }
+    }
+
+    // ── Render Strike OI Buildup (Multi-Timeframe 5M, 15M, 30M, Today) ─────────
+    function renderStrikeBuildup(bldData) {
+        if (!bldData) return;
+        currentBuildupData = bldData;
+        updateBuildupChartView();
+    }
+
+    function updateBuildupChartView() {
+        if (!currentBuildupData) return;
+        const bldCtx = document.getElementById('toi-chart-buildup');
+        if (!bldCtx) return;
+
+        // Extract dataset for active timeframe (5m, 15m, 30m, today)
+        const tfData = (currentBuildupData[currentBuildupTf]) 
+                    ? currentBuildupData[currentBuildupTf] 
+                    : (currentBuildupData['5m'] || currentBuildupData);
+
+        // Window label & summary text
+        if (buildupWindow) {
+            buildupWindow.textContent = tfData.window_label || '—';
+        }
+        if (tfData.summary) {
+            if (buildupCeSum) buildupCeSum.textContent = tfData.summary.total_ce_chg_lakh || tfData.summary.total_ce_added_lakh || '+0.0 L';
+            if (buildupPeSum) buildupPeSum.textContent = tfData.summary.total_pe_chg_lakh || tfData.summary.total_pe_added_lakh || '+0.0 L';
+            if (buildupDominant) buildupDominant.textContent = tfData.summary.dominant || '—';
+        }
+
+        const tfLabels = { '5m': '5M', '15m': '15M', '30m': '30M', 'today': 'Today' };
+        if (buildupModeDesc) {
+            buildupModeDesc.textContent = `Top 8 Activity (${tfLabels[currentBuildupTf] || currentBuildupTf.toUpperCase()})`;
+        }
+
+        if (buildupChartInstance) {
+            buildupChartInstance.destroy();
+            buildupChartInstance = null;
+        }
+
+        let items = tfData.top_items || [];
+        // Fallback for legacy single-buildup structure
+        if (items.length === 0 && tfData.top_buildup) {
+            items = tfData.top_buildup;
+        }
+
+        if (items.length === 0) {
+            return;
+        }
+
+        const labels = items.map(x => x.label || `${x.strike} ${x.option_type}`);
+        const dataVals = items.map(x => x.diff_oi_val_lakh);
+        const colors = items.map(x => x.bar_color || '#dc2626');
+        const formattedLabels = items.map(x => x.diff_oi_lakh);
+        const rawDiffs = items.map(x => x.diff_oi);
+
+        const barValueLabelsPlugin = {
+            id: 'barValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const valStr = dataset.formattedLabels ? dataset.formattedLabels[index] : null;
+                        if (!valStr) return;
+                        ctx.save();
+                        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                        const textWidth = ctx.measureText(valStr).width;
+                        const barWidth = Math.abs(bar.x - bar.base);
+
+                        // If bar width is sufficient, place white bold text centered inside the bar
+                        if (barWidth > textWidth + 18) {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(valStr, (bar.base + bar.x) / 2, bar.y);
+                        } else {
+                            // Otherwise place dark bold text outside the bar
+                            ctx.fillStyle = '#1e293b';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(valStr, bar.x + 6, bar.y);
+                        }
+                        ctx.restore();
+                    });
+                });
+            }
+        };
+
+        buildupChartInstance = new Chart(bldCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataVals,
+                    backgroundColor: colors,
+                    borderRadius: 4,
+                    barThickness: 28,
+                    formattedLabels: formattedLabels,
+                    rawDiffs: rawDiffs,
+                    itemsMeta: items,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: { right: 40 }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const item = context.dataset.itemsMeta ? context.dataset.itemsMeta[context.dataIndex] : null;
+                                if (!item) return '';
+                                const sign = item.diff_oi >= 0 ? '+' : '';
+                                const ltpSign = item.diff_ltp >= 0 ? '+' : '';
+                                return [
+                                    `${item.buildup_name} (${item.buildup_type})`,
+                                    `ΔOI: ${item.diff_oi_lakh} (${sign}${fmt(item.diff_oi)} contracts)`,
+                                    `ΔLTP: ${ltpSign}${item.diff_ltp}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '|ΔOI| (Lakh contracts)',
+                            font: { weight: 'bold', size: 11 },
+                            color: '#475569'
+                        },
+                        grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                        ticks: {
+                            font: { size: 11, family: 'monospace' },
+                            callback: function(val) {
+                                return val + ' L';
+                            }
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { weight: 'bold', size: 11 },
+                            color: '#1e293b'
+                        }
+                    }
+                }
+            },
+            plugins: [barValueLabelsPlugin]
+        });
+    }
+
+    // Timeframe tabs event listeners (5M, 15M, 30M, Today)
+    if (buildupTfTabs && buildupTfTabs.length > 0) {
+        buildupTfTabs.forEach(tabBtn => {
+            tabBtn.addEventListener('click', () => {
+                const tf = tabBtn.getAttribute('data-tf');
+                if (!tf || tf === currentBuildupTf) return;
+                currentBuildupTf = tf;
+                buildupTfTabs.forEach(t => {
+                    t.className = 'toi-tf-tab px-2 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors';
+                });
+                tabBtn.className = 'toi-tf-tab px-2 py-0.5 rounded bg-white text-gray-900 shadow-xs cursor-pointer font-bold transition-colors';
+                updateBuildupChartView();
+            });
+        });
+    }
+
+    // Quick jump button from Top Ribbon
+    if (stationBuildupBtn) {
+        stationBuildupBtn.addEventListener('click', () => {
+            if (!toggleGraph.checked) {
+                toggleGraph.checked = true;
+                toggleGraph.dispatchEvent(new Event('change'));
+            }
+            setTimeout(() => {
+                const target = document.getElementById('toi-buildup-card') || graphContainer;
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        });
     }
 
     // ── Strike Selection Modal ───────────────────────────────────────────────

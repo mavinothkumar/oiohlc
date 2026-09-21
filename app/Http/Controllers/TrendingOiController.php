@@ -387,6 +387,30 @@ class TrendingOiController extends Controller
             $expiry
         );
 
+        // Consolidate chronological signals for the session into strategy_call_logs
+        $this->syncChronologicalStrategyCalls(
+            $calculatedRows,
+            $table,
+            $underlying,
+            $expiry,
+            $strategyStation
+        );
+
+        // Calculate Multi-Timeframe Strike OI Buildup (5M, 15M, 30M, Today)
+        $strikeBuildup = $this->calculateMultiTimeframeBuildup(
+            $table,
+            $underlying,
+            $expiry,
+            $timestamps,
+            $atmStrike
+        );
+
+        $tradeDate = Carbon::parse($latestTimestamp)->toDateString();
+        $strategyCallsCount = DB::table('strategy_call_logs')
+            ->where('trade_date', $tradeDate)
+            ->where('underlying', $underlying)
+            ->count();
+
         return response()->json([
             'rows'                   => $tableRows,
             'chart'                  => [
@@ -402,6 +426,9 @@ class TrendingOiController extends Controller
             'atm_strike'             => $atmStrike,
             'signal_data'            => $signalData,
             'daily_strategy_station' => $strategyStation,
+            'strategy_calls_count'   => $strategyCallsCount,
+            'strike_buildup'         => $strikeBuildup,
+            'strike_buildup_5m'      => $strikeBuildup['5m'] ?? null,
         ]);
     }
 
@@ -1090,6 +1117,8 @@ class TrendingOiController extends Controller
             }
         }
 
+
+
         return [
             'is_trade_active'       => $isTradeActive,
             'status_badge'          => $statusBadge,
@@ -1112,5 +1141,585 @@ class TrendingOiController extends Controller
             'rationale'             => $rationale,
             'basket_legs'           => $basketLegs,
         ];
+    }
+
+    /**
+     * Calculate Multi-Timeframe Strike-Level OI Buildup (5M, 15M, 30M, Today).
+     * Classifies each strike into SB (Short Build), LB (Long Build), LU (Long Unwind), SC (Short Cover).
+     * Ranks top 10 items by absolute OI change magnitude across CE & PE.
+     */
+    private function calculateMultiTimeframeBuildup(
+        string $table,
+        string $underlying,
+        string $expiry,
+        array $timestamps,
+        int $atmStrike
+    ): array {
+        $count = count($timestamps);
+        if ($count < 1) {
+            return [
+                '5m'    => $this->emptyBuildupPayload('5M'),
+                '15m'   => $this->emptyBuildupPayload('15M'),
+                '30m'   => $this->emptyBuildupPayload('30M'),
+                'today' => $this->emptyBuildupPayload('Today'),
+            ];
+        }
+
+        $latestTimestamp = end($timestamps);
+        $carbonLatest = Carbon::parse($latestTimestamp);
+
+        // Find closest timestamps for 5m, 15m, 30m, and today base
+        $ts5m = $this->findClosestTimestamp($carbonLatest->copy()->subMinutes(5), $timestamps);
+        $ts15m = $this->findClosestTimestamp($carbonLatest->copy()->subMinutes(15), $timestamps);
+        $ts30m = $this->findClosestTimestamp($carbonLatest->copy()->subMinutes(30), $timestamps);
+        $tsToday = reset($timestamps);
+
+        // Query all required timestamps in one single query
+        $neededTimestamps = array_unique(array_filter([$ts5m, $ts15m, $ts30m, $tsToday, $latestTimestamp]));
+        $rows = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->whereIn('captured_at', $neededTimestamps)
+            ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);
+
+        // Group rows by captured_at
+        $groupedByTs = [];
+        foreach ($rows as $r) {
+            $key = ((int) $r->strike_price) . '_' . $r->option_type;
+            $groupedByTs[$r->captured_at][$key] = $r;
+        }
+
+        $latestMap = $groupedByTs[$latestTimestamp] ?? [];
+
+        return [
+            '5m'    => $this->buildTimeframeDataset($latestMap, $groupedByTs[$ts5m] ?? null, $ts5m, $latestTimestamp, '5 Min', $atmStrike),
+            '15m'   => $this->buildTimeframeDataset($latestMap, $groupedByTs[$ts15m] ?? null, $ts15m, $latestTimestamp, '15 Min', $atmStrike),
+            '30m'   => $this->buildTimeframeDataset($latestMap, $groupedByTs[$ts30m] ?? null, $ts30m, $latestTimestamp, '30 Min', $atmStrike),
+            'today' => $this->buildTimeframeDataset($latestMap, $groupedByTs[$tsToday] ?? null, $tsToday, $latestTimestamp, 'Today', $atmStrike),
+        ];
+    }
+
+    /**
+     * Build timeframe dataset with (SB, LB, LU, SC) classification.
+     */
+    private function buildTimeframeDataset(
+        array $latestMap,
+        ?array $prevMap,
+        ?string $prevTs,
+        string $latestTs,
+        string $tfName,
+        int $atmStrike
+    ): array {
+        $currTimeShort = Carbon::parse($latestTs)->format('H:i');
+        $prevTimeShort = $prevTs ? Carbon::parse($prevTs)->format('H:i') : '—';
+        $windowLabel = ($prevTs && $prevTs !== $latestTs) ? "{$prevTimeShort} – {$currTimeShort} ({$tfName})" : "Market Open – {$currTimeShort} ({$tfName})";
+
+        if (empty($latestMap) || empty($prevMap) || $prevTs === $latestTs) {
+            return [
+                'window_label' => $windowLabel,
+                'time_curr'    => $currTimeShort,
+                'time_prev'    => $prevTimeShort,
+                'top_items'    => [],
+                'summary'      => [
+                    'total_ce_chg_lakh' => '+0.0 L',
+                    'total_pe_chg_lakh' => '+0.0 L',
+                    'dominant'          => 'Neutral (Opening)',
+                ]
+            ];
+        }
+
+        $items = [];
+        $totalCeChg = 0;
+        $totalPeChg = 0;
+
+        foreach ($latestMap as $key => $curr) {
+            $prev = $prevMap[$key] ?? null;
+            $prevOi = $prev ? (int) $prev->oi : 0;
+            $prevLtp = $prev ? (float) $prev->ltp : (float) $curr->ltp;
+
+            $diffOi = ((int) $curr->oi) - $prevOi;
+            $diffLtp = round(((float) $curr->ltp) - $prevLtp, 2);
+
+            [$strikeStr, $type] = explode('_', $key);
+            $strike = (int) $strikeStr;
+
+            // Buildup classification & color mapping:
+            // SB - Red (#dc2626)
+            // SC - Navy Blue (#1e3a8a)
+            // LB - Green (#16a34a)
+            // LU - Yellow (#eab308)
+            if ($diffOi > 0 && $diffLtp >= 0) {
+                $bType = 'LB';
+                $bName = 'Long Buildup';
+                $barColor = '#16a34a'; // Green
+            } elseif ($diffOi > 0 && $diffLtp < 0) {
+                $bType = 'SB';
+                $bName = 'Short Buildup';
+                $barColor = '#dc2626'; // Red
+            } elseif ($diffOi < 0 && $diffLtp <= 0) {
+                $bType = 'LU';
+                $bName = 'Long Unwinding';
+                $barColor = '#eab308'; // Yellow
+            } elseif ($diffOi < 0 && $diffLtp > 0) {
+                $bType = 'SC';
+                $bName = 'Short Covering';
+                $barColor = '#1e3a8a'; // Navy Blue
+            } else {
+                $bType = $diffOi >= 0 ? 'SB' : 'LU';
+                $bName = $diffOi >= 0 ? 'Short Buildup' : 'Long Unwinding';
+                $barColor = $diffOi >= 0 ? '#dc2626' : '#eab308';
+            }
+
+            if ($type === 'CE') {
+                $totalCeChg += $diffOi;
+            } else {
+                $totalPeChg += $diffOi;
+            }
+
+            if ($diffOi != 0) {
+                $items[] = [
+                    'strike'           => $strike,
+                    'option_type'      => $type,
+                    'label'            => "{$strike} {$type}",
+                    'label_full'       => "{$strike} {$type}",
+                    'buildup_type'     => $bType,
+                    'buildup_name'     => $bName,
+                    'diff_oi'          => $diffOi,
+                    'abs_diff_oi'      => abs($diffOi),
+                    'diff_oi_val_lakh' => round(abs($diffOi) / 100000, 2),
+                    'signed_val_lakh'  => round($diffOi / 100000, 2),
+                    'diff_oi_lakh'     => ($diffOi >= 0 ? '+' : '') . round($diffOi / 100000, 1) . ' L',
+                    'diff_ltp'         => $diffLtp,
+                    'bar_color'        => $barColor,
+                    'dist_atm'         => abs($strike - $atmStrike),
+                ];
+            }
+        }
+
+        // Sort by magnitude (abs_diff_oi) descending across ALL CE and PE (top 8)
+        usort($items, fn($a, $b) => $b['abs_diff_oi'] <=> $a['abs_diff_oi']);
+
+        if ($totalCeChg > $totalPeChg * 1.35) {
+            $dominant = 'Call Writing / CE Buildup Dominant (Ceiling Resistance)';
+        } elseif ($totalPeChg > $totalCeChg * 1.35) {
+            $dominant = 'Put Writing / PE Buildup Dominant (Floor Support)';
+        } else {
+            $dominant = 'Dual Flow (Rangebound Momentum)';
+        }
+
+        return [
+            'window_label' => $windowLabel,
+            'time_curr'    => $currTimeShort,
+            'time_prev'    => $prevTimeShort,
+            'top_items'    => array_slice($items, 0, 8), // Top 8 items
+            'summary'      => [
+                'total_ce_chg_lakh' => ($totalCeChg >= 0 ? '+' : '') . round($totalCeChg / 100000, 1) . ' L',
+                'total_pe_chg_lakh' => ($totalPeChg >= 0 ? '+' : '') . round($totalPeChg / 100000, 1) . ' L',
+                'dominant'          => $dominant,
+            ]
+        ];
+    }
+
+    private function findClosestTimestamp(Carbon $targetTime, array $timestamps): ?string
+    {
+        $closest = null;
+        $minDiff = PHP_INT_MAX;
+        foreach ($timestamps as $ts) {
+            $c = Carbon::parse($ts);
+            $diff = abs($c->diffInSeconds($targetTime));
+            if ($diff < $minDiff) {
+                $minDiff = $diff;
+                $closest = $ts;
+            }
+        }
+        return $closest;
+    }
+
+    private function emptyBuildupPayload(string $tfName): array
+    {
+        return [
+            'window_label' => "Market Open ({$tfName})",
+            'time_curr'    => '—',
+            'time_prev'    => '—',
+            'top_items'    => [],
+            'summary'      => [
+                'total_ce_chg_lakh' => '0.0 L',
+                'total_pe_chg_lakh' => '0.0 L',
+                'dominant'          => 'Neutral',
+            ]
+        ];
+    }
+
+    /**
+     * Consolidate chronological signals for the session into distinct signal waves/episodes.
+     * Prevents repetitive 5-minute row duplication and cleanly tracks when each new signal was raised,
+     * its duration, anchor skew, spot migration, and why/how flow rationale.
+     */
+    private function syncChronologicalStrategyCalls(
+        array $rows,
+        string $table,
+        string $underlying,
+        string $expiry,
+        array $latestStation
+    ): void {
+        $count = count($rows);
+        if ($count < 2) return;
+
+        try {
+            // 1. Fetch active primary strategy once
+            $activeStrategies = \App\Models\BacktestStrategy::where('is_active', true)->get();
+            $primaryStrategy = $activeStrategies->firstWhere('id', 3) 
+                ?? $activeStrategies->firstWhere('name', 'Daily OAI V2') 
+                ?? $activeStrategies->firstWhere('name', 'Daily OAI Copy')
+                ?? $activeStrategies->first();
+
+            $strategyName = $primaryStrategy ? $primaryStrategy->name : 'Daily OAI V2';
+            $strategyId   = $primaryStrategy ? $primaryStrategy->id : 3;
+            $strategyLegs = $primaryStrategy ? ($primaryStrategy->definition['legs'] ?? []) : [];
+
+            $mode = ($table === 'option_chains_history') ? 'history' : 'live';
+            $firstRow = $rows[0];
+            $latestRow = end($rows);
+            $tradeDate = Carbon::parse($latestRow['timestamp'])->toDateString();
+            $isHistoricalSession = ($mode === 'history');
+
+            // 2. Iterate chronologically and group consecutive active bars into waves
+            $waves = [];
+            $currentWave = null;
+
+            for ($i = 0; $i < $count; $i++) {
+                $subRows = array_slice($rows, 0, $i + 1);
+                $subCount = count($subRows);
+                $curRow = $rows[$i];
+                $timeStr = $curRow['time'];
+
+                if ($subCount < 2 || $timeStr >= '13:20:00') {
+                    if ($currentWave !== null) {
+                        $currentWave['outcome_status'] = 'CONCLUDED';
+                        $waves[] = $currentWave;
+                        $currentWave = null;
+                    }
+                    continue;
+                }
+
+                $latest = $curRow;
+                $prev1  = $subRows[$subCount - 2];
+                $prev3  = ($subCount >= 4) ? $subRows[$subCount - 4] : $prev1;
+
+                $curCeOi      = $latest['chng_call_oi'];
+                $curPeOi      = $latest['chng_put_oi'];
+                $directionPct = $latest['direction_pct'];
+                $chngInDir    = $latest['chng_in_direction'];
+                $netPcr       = $latest['net_pcr'];
+                $patternTag   = $latest['pattern_tag'] ?? '';
+                $forwardKey   = $latest['forward_sentiment_key'] ?? '';
+
+                $ceDelta3 = $curCeOi - $prev3['chng_call_oi'];
+                $peDelta3 = $curPeOi - $prev3['chng_put_oi'];
+
+                $isTradeActive = false;
+                $setupTitle = '';
+                $statusBadge = '';
+                $badgeColor = 'amber';
+                $actionLabel = '';
+                $recommendedAnchor = null;
+                $anchorSkew = '';
+                $safeMin = null;
+                $safeMax = null;
+                $targetPnl = '';
+                $stopLossPnl = '';
+                $expectedDuration = '';
+                $rationale = '';
+
+                $barAtmStrike = (int) (round($latest['spot'] / 50) * 50);
+
+                // Condition 1: Squeeze Drift
+                $hasCeLowBreak = (str_contains($patternTag, 'CE') && str_contains($patternTag, 'Low Break')) || $forwardKey === 'BULLISH_SQUEEZE';
+                $isSqueezePattern = ($hasCeLowBreak || ($ceDelta3 <= -1200000 && $peDelta3 >= -200000)) && ($directionPct >= 10 || $chngInDir > 0);
+
+                if ($isSqueezePattern && $timeStr < '13:00:00') {
+                    $isTradeActive = true;
+                    $setupTitle = 'Bullish Squeeze Drift (Quick Money Play)';
+                    $statusBadge = '🟢 ACTIVE TRADE (Setup: Squeeze Drift)';
+                    $badgeColor = 'emerald';
+                    $shiftPts = (abs($ceDelta3) > 2500000) ? 100 : 50;
+                    $recommendedAnchor = $barAtmStrike + $shiftPts;
+                    $anchorSkew = "+{$shiftPts} pts OTM Skew (Targeting Squeeze Drift)";
+                    $safeMin = round($latest['spot'] - 20);
+                    $safeMax = round($recommendedAnchor + 25);
+                    $targetPnl = '+₹3,200 to +₹4,500';
+                    $stopLossPnl = '-₹1,900';
+                    $expectedDuration = '25 to 45 mins (Hard exit by 13:20 IST)';
+                    $actionLabel = '🚀 ENTER NOW — Bullish Drift Skew';
+                    $ceUnwoundFmt = number_format(abs($ceDelta3));
+                    $rationale = "Call writers unwound {$ceUnwoundFmt} contracts while Put writers held/added. Spot migrating into shifted basket sweet spot for rapid PE decay.";
+                }
+                // Condition 2: Breakdown Drift
+                elseif (((str_contains($patternTag, 'PE') && str_contains($patternTag, 'Low Break')) || $forwardKey === 'BEARISH_BREAKDOWN') && $timeStr < '13:00:00') {
+                    $isTradeActive = true;
+                    $setupTitle = 'Bearish Breakdown Drift (Shifted Downward)';
+                    $statusBadge = '🔴 ACTIVE TRADE (Setup: Breakdown Drift)';
+                    $badgeColor = 'rose';
+                    $shiftPts = (abs($peDelta3) > 2500000) ? 100 : 50;
+                    $recommendedAnchor = $barAtmStrike - $shiftPts;
+                    $anchorSkew = "-{$shiftPts} pts OTM Skew (Targeting Downward Drift)";
+                    $safeMin = round($recommendedAnchor - 25);
+                    $safeMax = round($latest['spot'] + 20);
+                    $targetPnl = '+₹3,200 to +₹4,500';
+                    $stopLossPnl = '-₹1,900';
+                    $expectedDuration = '25 to 45 mins (Hard exit by 13:20 IST)';
+                    $actionLabel = '💥 ENTER NOW — Bearish Drift Skew';
+                    $peUnwoundFmt = number_format(abs($peDelta3));
+                    $rationale = "Put writers surrendered support (-{$peUnwoundFmt} contracts). Spot drifting down into shifted basket sweet spot.";
+                }
+                // Condition 3: Balanced Theta Tunnel
+                elseif (($forwardKey === 'DUAL_WRITING' || ($forwardKey === 'NEUTRAL_DECAY' && abs($directionPct) < 22 && $netPcr >= 0.85 && $netPcr <= 1.25)) && $timeStr < '13:00:00') {
+                    $isTradeActive = true;
+                    $setupTitle = 'Balanced Theta Tunnel (Symmetric Ladder)';
+                    $statusBadge = '🟢 ACTIVE TRADE (Setup: Theta Tunnel)';
+                    $badgeColor = 'blue';
+                    $recommendedAnchor = $barAtmStrike;
+                    $anchorSkew = 'Exact Spot ATM (Non-Directional Center)';
+                    $safeMin = round($barAtmStrike - 40);
+                    $safeMax = round($barAtmStrike + 40);
+                    $targetPnl = '+₹2,800 to +₹3,500';
+                    $stopLossPnl = '-₹1,800';
+                    $expectedDuration = '40 to 60 mins (Hard exit by 13:20 IST)';
+                    $actionLabel = '⚖️ ENTER NOW — Symmetric Ladder';
+                    $rationale = "Both Call and Put writers expanding without depth breaks. Premium decay maximized in middle band ({$safeMin} – {$safeMax}).";
+                }
+
+                if ($isTradeActive) {
+                    if ($currentWave !== null && $currentWave['setup_title'] === $setupTitle) {
+                        // Ongoing continuation of the same wave
+                        $currentWave['end_time'] = $curRow['time'];
+                        $currentWave['last_captured_at'] = $curRow['timestamp'];
+                        $currentWave['bars_count']++;
+                        $currentWave['duration_minutes'] = $currentWave['bars_count'] * 5;
+                        $currentWave['last_spot'] = (float) $curRow['spot'];
+                        $currentWave['spot_change'] = round((float) $curRow['spot'] - $currentWave['entry_spot'], 2);
+                    } else {
+                        // Conclude previous wave if different setup
+                        if ($currentWave !== null) {
+                            $currentWave['outcome_status'] = 'CONCLUDED';
+                            $waves[] = $currentWave;
+                        }
+
+                        // Build 16-leg structure for this wave's recommended anchor
+                        $basketLegs = [];
+                        if ($recommendedAnchor !== null && !empty($strategyLegs)) {
+                            foreach ($strategyLegs as $idx => $leg) {
+                                $type = strtoupper((string) ($leg['option_type'] ?? ''));
+                                $money = strtoupper((string) ($leg['moneyness'] ?? 'ATM'));
+                                $offset = (float) ($leg['strike_offset'] ?? 0);
+                                $lots = (int) ($leg['lots'] ?? 1);
+                                $side = strtoupper((string) ($leg['side'] ?? 'SELL'));
+
+                                $moneynessAdj = match ($money) {
+                                    'ITM' => -50 - $offset,
+                                    'OTM' => 50 + $offset,
+                                    default => 0,
+                                };
+                                $strike = (int) ($recommendedAnchor + $moneynessAdj);
+
+                                $basketLegs[] = [
+                                    'leg_number'  => $idx + 1,
+                                    'option_type' => $type,
+                                    'side'        => $side,
+                                    'strike'      => $strike,
+                                    'lots'        => $lots,
+                                ];
+                            }
+                        }
+
+                        // Start new signal wave
+                        $currentWave = [
+                            'signal_time'        => $curRow['time'],
+                            'end_time'           => $curRow['time'],
+                            'captured_at'        => $curRow['timestamp'],
+                            'last_captured_at'   => $curRow['timestamp'],
+                            'duration_minutes'   => 5,
+                            'bars_count'         => 1,
+                            'strategy_name'      => $strategyName,
+                            'strategy_id'        => $strategyId,
+                            'setup_title'        => $setupTitle,
+                            'status_badge'       => $statusBadge,
+                            'badge_color'        => $badgeColor,
+                            'action_label'       => $actionLabel,
+                            'recommended_anchor' => $recommendedAnchor,
+                            'anchor_skew'        => $anchorSkew,
+                            'entry_spot'         => (float) $curRow['spot'],
+                            'last_spot'          => (float) $curRow['spot'],
+                            'spot_change'        => 0.00,
+                            'safe_spot_min'      => $safeMin,
+                            'safe_spot_max'      => $safeMax,
+                            'support_strike'     => $safeMin,
+                            'resistance_strike'  => $safeMax,
+                            'target_pnl'         => $targetPnl,
+                            'stop_loss_pnl'      => $stopLossPnl,
+                            'expected_duration'  => $expectedDuration,
+                            'headline'           => $rationale,
+                            'rationale'          => $rationale,
+                            'flow_metrics'       => [
+                                'ce_delta_3bar'     => $ceDelta3,
+                                'pe_delta_3bar'     => $peDelta3,
+                                'net_pcr'           => $netPcr,
+                                'direction_pct'     => $directionPct,
+                                'chng_in_direction' => $chngInDir,
+                                'chng_call_oi'      => $curCeOi,
+                                'chng_put_oi'       => $curPeOi,
+                                'pattern_tag'       => $patternTag,
+                            ],
+                            'basket_legs'        => $basketLegs,
+                            'outcome_status'     => 'ACTIVE',
+                        ];
+                    }
+                } else {
+                    // Market is inactive or in capital preservation
+                    if ($currentWave !== null) {
+                        $currentWave['outcome_status'] = 'CONCLUDED';
+                        $waves[] = $currentWave;
+                        $currentWave = null;
+                    }
+                }
+            }
+
+            // Final check on ongoing wave at end of session
+            if ($currentWave !== null) {
+                // If historical session or past cutoff, finalize as CONCLUDED
+                if ($isHistoricalSession || $latestRow['time'] >= '13:20:00') {
+                    $currentWave['outcome_status'] = 'CONCLUDED';
+                } else {
+                    $currentWave['outcome_status'] = 'ACTIVE';
+                }
+                $waves[] = $currentWave;
+            }
+
+            // 3. Batch sync waves into strategy_call_logs
+            foreach ($waves as $wave) {
+                DB::table('strategy_call_logs')->updateOrInsert(
+                    [
+                        'trade_date'  => $tradeDate,
+                        'signal_time' => $wave['signal_time'],
+                        'setup_title' => $wave['setup_title'],
+                        'underlying'  => $underlying,
+                    ],
+                    [
+                        'mode'               => $mode,
+                        'end_time'           => $wave['end_time'],
+                        'captured_at'        => $wave['captured_at'],
+                        'last_captured_at'   => $wave['last_captured_at'],
+                        'duration_minutes'   => $wave['duration_minutes'],
+                        'bars_count'         => $wave['bars_count'],
+                        'expiry'             => $expiry,
+                        'strategy_name'      => $wave['strategy_name'],
+                        'strategy_id'        => $wave['strategy_id'],
+                        'status_badge'       => $wave['status_badge'],
+                        'badge_color'        => $wave['badge_color'],
+                        'action_label'       => $wave['action_label'],
+                        'recommended_anchor' => $wave['recommended_anchor'],
+                        'anchor_skew'        => $wave['anchor_skew'],
+                        'entry_spot'         => $wave['entry_spot'],
+                        'last_spot'          => $wave['last_spot'],
+                        'spot_change'        => $wave['spot_change'],
+                        'safe_spot_min'      => $wave['safe_spot_min'],
+                        'safe_spot_max'      => $wave['safe_spot_max'],
+                        'support_strike'     => $wave['support_strike'],
+                        'resistance_strike'  => $wave['resistance_strike'],
+                        'target_pnl'         => $wave['target_pnl'],
+                        'stop_loss_pnl'      => $wave['stop_loss_pnl'],
+                        'expected_duration'  => $wave['expected_duration'],
+                        'cutoff_time'        => '13:20 IST',
+                        'headline'           => $wave['headline'],
+                        'rationale'          => $wave['rationale'],
+                        'flow_metrics'       => json_encode($wave['flow_metrics']),
+                        'basket_legs'        => json_encode($wave['basket_legs']),
+                        'outcome_status'     => $wave['outcome_status'],
+                        'updated_at'         => now(),
+                        'created_at'         => now(),
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::error("Failed to sync chronological strategy calls: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * AJAX: Get recorded strategy call logs with pagination and wave metrics.
+     */
+    public function getStrategyCalls(Request $request)
+    {
+        $date = $request->input('date');
+        $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, min(50, (int) $request->input('per_page', 5)));
+
+        $query = DB::table('strategy_call_logs')
+            ->where('underlying', $underlying);
+
+        if (!empty($date)) {
+            $query->where('trade_date', $date);
+        }
+
+        $totalCount = $query->count();
+        $totalPages = $totalCount > 0 ? (int) ceil($totalCount / $perPage) : 1;
+        $offset = ($page - 1) * $perPage;
+
+        $logs = $query->orderByDesc('trade_date')
+            ->orderByDesc('signal_time')
+            ->skip($offset)
+            ->take($perPage)
+            ->get();
+
+        return response()->json([
+            'date'         => $date,
+            'total_count'  => $totalCount,
+            'current_page' => $page,
+            'per_page'     => $perPage,
+            'total_pages'  => $totalPages,
+            'from'         => $totalCount > 0 ? $offset + 1 : 0,
+            'to'           => min($offset + $perPage, $totalCount),
+            'calls'        => $logs->map(function ($log) {
+                $signalTimeShort = substr($log->signal_time, 0, 5);
+                $endTimeShort = $log->end_time ? substr($log->end_time, 0, 5) : $signalTimeShort;
+                $entrySpot = (float) $log->entry_spot;
+                $lastSpot = $log->last_spot ? (float) $log->last_spot : $entrySpot;
+                $spotChange = (float) ($log->spot_change ?? ($lastSpot - $entrySpot));
+                $spotChangeFormatted = ($spotChange >= 0 ? '+' : '') . number_format($spotChange, 2);
+
+                return [
+                    'id'                 => $log->id,
+                    'trade_date'         => $log->trade_date,
+                    'signal_time'        => $signalTimeShort,
+                    'end_time'           => $endTimeShort,
+                    'active_time_range'  => "{$signalTimeShort} – {$endTimeShort} IST",
+                    'duration_minutes'   => (int) $log->duration_minutes,
+                    'bars_count'         => (int) $log->bars_count,
+                    'duration_text'      => "{$log->duration_minutes}m • {$log->bars_count} " . ($log->bars_count === 1 ? 'bar' : 'bars'),
+                    'captured_at'        => $log->captured_at,
+                    'setup_title'        => $log->setup_title,
+                    'status_badge'       => $log->status_badge,
+                    'badge_color'        => $log->badge_color,
+                    'action_label'       => $log->action_label,
+                    'recommended_anchor' => $log->recommended_anchor,
+                    'anchor_skew'        => $log->anchor_skew,
+                    'entry_spot'         => $entrySpot,
+                    'last_spot'          => $lastSpot,
+                    'spot_change'        => $spotChange,
+                    'spot_change_text'   => $spotChangeFormatted,
+                    'safe_range_text'    => "{$log->safe_spot_min} – {$log->safe_spot_max}",
+                    'target_pnl'         => $log->target_pnl,
+                    'stop_loss_pnl'      => $log->stop_loss_pnl,
+                    'expected_duration'  => $log->expected_duration,
+                    'cutoff_time'        => $log->cutoff_time,
+                    'rationale'          => $log->rationale,
+                    'flow_metrics'       => json_decode($log->flow_metrics, true) ?: [],
+                    'basket_legs'        => json_decode($log->basket_legs ?? '[]', true) ?: [],
+                    'basket_legs_count'  => count(json_decode($log->basket_legs ?? '[]', true) ?: []),
+                    'outcome_status'     => $log->outcome_status,
+                ];
+            }),
+        ]);
     }
 }

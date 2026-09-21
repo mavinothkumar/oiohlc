@@ -41,6 +41,7 @@ Route::get( '/trending-oi', [ App\Http\Controllers\TrendingOiController::class, 
 Route::get( '/api/trending-oi/data', [ App\Http\Controllers\TrendingOiController::class, 'getData' ] )->name( 'api.trending-oi.data' );
 Route::get( '/api/trending-oi/expiries', [ App\Http\Controllers\TrendingOiController::class, 'getExpiries' ] )->name( 'api.trending-oi.expiries' );
 Route::get( '/api/trending-oi/strikes', [ App\Http\Controllers\TrendingOiController::class, 'getStrikes' ] )->name( 'api.trending-oi.strikes' );
+Route::get( '/api/trending-oi/strategy-calls', [ App\Http\Controllers\TrendingOiController::class, 'getStrategyCalls' ] )->name( 'api.trending-oi.strategy-calls' );
 Route::get( '/buildups', [ App\Http\Controllers\BuildUpSummaryController::class, 'index' ] )->name( 'buildups.index' );
 Route::get( '/buildup/strike', [ App\Http\Controllers\BuildUpSummaryController::class, 'strike' ] )->name( 'buildups.strike' );
 Route::get( '/option-chain-diff', [ App\Http\Controllers\OptionChainDiffController::class, 'index' ] )->name( 'option-chain-diff' );
