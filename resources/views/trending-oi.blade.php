@@ -592,10 +592,10 @@
 </div>
 
 {{-- ══════════ STRATEGY CALL LOGS (VERTICAL TIMELINE & AUDIT JOURNAL) MODAL ══════════ --}}
-<div id="toi-calls-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden items-center justify-center p-3">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150 font-sans">
-        {{-- Header --}}
-        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+<div id="toi-calls-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5" style="background-color: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px);">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-4xl flex flex-col font-sans overflow-hidden" style="height: 88vh; max-height: 88vh; display: flex; flex-direction: column;">
+        {{-- Header (Fixed top) --}}
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
             <div class="flex items-center gap-2.5">
                 <span class="text-xl">📜</span>
                 <div>
@@ -611,21 +611,21 @@
             <button id="toi-calls-modal-close" class="text-slate-400 hover:text-white text-lg font-bold p-1 hover:bg-slate-800 rounded transition-colors cursor-pointer">&times;</button>
         </div>
 
-        {{-- Vertical Timeline Container --}}
-        <div class="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-100/70">
+        {{-- Vertical Timeline Container (Smooth Internal Scroll) --}}
+        <div class="flex-1 p-4 sm:p-5 bg-slate-100/90" style="min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;">
             <div id="toi-calls-timeline-list" class="space-y-4">
                 <div class="py-16 text-center text-slate-400 font-sans">
                     <svg class="animate-spin inline h-6 w-6 mr-2 text-cyan-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                     </svg>
-                    <div>Loading consolidated signal wave journal...</div>
+                    <div class="text-xs font-medium">Loading consolidated signal wave journal...</div>
                 </div>
             </div>
         </div>
 
-        {{-- Pagination & Actions Footer --}}
-        <div class="px-5 py-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {{-- Pagination & Actions Footer (Fixed bottom) --}}
+        <div class="px-5 py-3 bg-white border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
             <div class="flex items-center gap-2">
                 <span id="toi-calls-page-info" class="text-slate-600 font-medium">Showing 0 of 0 Signals</span>
                 <span class="text-slate-300">|</span>
@@ -1316,6 +1316,7 @@
         if (!callsModal) return;
         callsModal.classList.remove('hidden');
         callsModal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
         currentCallsPage = 1;
         loadStrategyCalls(1);
     }
@@ -1324,6 +1325,7 @@
         if (!callsModal) return;
         callsModal.classList.add('hidden');
         callsModal.classList.remove('flex');
+        document.body.style.overflow = '';
     }
 
     function loadStrategyCalls(page = 1) {
