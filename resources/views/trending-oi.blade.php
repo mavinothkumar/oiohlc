@@ -379,6 +379,12 @@
                         <button type="button" data-matrix-filter="PE" class="toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">PE Only</button>
                     </div>
 
+                    {{-- CE / PE Row Color Indicators --}}
+                    <div class="flex items-center gap-2 text-[10.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-xs bg-[#edfcf2] border-l-3 border-emerald-600 inline-block"></span> CE Rows</span>
+                        <span class="flex items-center gap-1.5 ml-1"><span class="w-3 h-2 rounded-xs bg-[#eef4ff] border-l-3 border-blue-600 inline-block"></span> PE Rows</span>
+                    </div>
+
                     {{-- Color Legend Pills --}}
                     <div class="flex items-center gap-2 text-[10.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
                         <span class="flex items-center gap-1" title="Short Buildup (Call/Put Writing)"><span class="w-2.5 h-2.5 rounded-xs bg-[#dc2626] inline-block"></span> SB (Short Buildup)</span>
@@ -755,8 +761,14 @@
 #toi-table-wrap::-webkit-scrollbar       { width: 6px; height: 6px; }
 #toi-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-/* ── Buildup Matrix Table ────────────────────────────────────────── */
-#toi-matrix-table tr:hover td.sticky { background-color: #fef3c7 !important; }
+/* ── Buildup Matrix Table CE / PE Distinction ───────────────────── */
+.toi-matrix-row-ce { background-color: #f7fdf9; }
+.toi-matrix-row-ce.toi-matrix-alt { background-color: #edfcf2; }
+.toi-matrix-row-ce:hover, .toi-matrix-row-ce:hover td.sticky { background-color: #dcfce7 !important; }
+
+.toi-matrix-row-pe { background-color: #f8faff; }
+.toi-matrix-row-pe.toi-matrix-alt { background-color: #eef4ff; }
+.toi-matrix-row-pe:hover, .toi-matrix-row-pe:hover td.sticky { background-color: #dbeafe !important; }
 </style>
 @endpush
 
@@ -2178,28 +2190,47 @@
             return;
         }
 
-        // 3. Render Table Rows
+        // 3. Render Table Rows with Distinct CE and PE Styling
         let tbodyHtml = '';
         filteredRows.forEach((row, idx) => {
             const isCe = row.option_type === 'CE';
+            const rowClass = isCe ? 'toi-matrix-row-ce' : 'toi-matrix-row-pe';
+            const altClass = (idx % 2 === 1) ? 'toi-matrix-alt' : '';
+
+            // Sticky column classes with distinct left border and background tint
+            const stickyStrikeClass = isCe
+                ? 'border-l-4 border-l-emerald-600 bg-[#edfcf2] text-slate-900'
+                : 'border-l-4 border-l-blue-600 bg-[#eef4ff] text-slate-900';
+
+            const stickyOiClass = isCe
+                ? 'bg-[#edfcf2] text-emerald-950 border-r-2 border-slate-300'
+                : 'bg-[#eef4ff] text-blue-950 border-r-2 border-slate-300';
+
             const typeBadge = isCe
-                ? `<span class="text-emerald-700 font-bold ml-1">CE</span>`
-                : `<span class="text-blue-700 font-bold ml-1">PE</span>`;
+                ? `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-extrabold ml-1">CE</span>`
+                : `<span class="bg-blue-100 text-blue-800 border border-blue-300 text-[10px] px-1.5 py-0.5 rounded font-extrabold ml-1">PE</span>`;
 
-            const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
+            // Micro-tag on every cell badge so user immediately knows CE vs PE in middle & late columns
+            const optTag = isCe
+                ? `<span class="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-black/25 mr-1 leading-none tracking-wider text-emerald-100">CE</span>`
+                : `<span class="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-black/25 mr-1 leading-none tracking-wider text-blue-100">PE</span>`;
 
-            tbodyHtml += `<tr class="${rowBg} hover:bg-amber-50/70 transition-colors">`;
+            const emptyDash = isCe
+                ? `<span class="text-emerald-300/80 font-mono text-xs select-none">—</span>`
+                : `<span class="text-blue-300/80 font-mono text-xs select-none">—</span>`;
+
+            tbodyHtml += `<tr class="${rowClass} ${altClass} transition-colors">`;
 
             // Col 1: Strike (Sticky left-0)
             tbodyHtml += `
-                <td class="sticky left-0 z-10 ${rowBg} border-r border-gray-200 px-3 py-1.5 text-left font-mono font-bold text-slate-900 min-w-[100px] w-[100px] shadow-xs">
+                <td class="sticky left-0 z-10 ${stickyStrikeClass} border-r border-gray-200 px-3 py-1.5 text-left font-mono font-bold min-w-[100px] w-[100px] shadow-xs">
                     <span>${row.strike_price}</span>${typeBadge}
                 </td>
             `;
 
             // Col 2: Total OI (Sticky left-[100px])
             tbodyHtml += `
-                <td class="sticky left-[100px] z-10 ${rowBg} border-r-2 border-slate-300 px-3 py-1.5 text-right font-mono font-bold text-slate-800 min-w-[90px] w-[90px] shadow-xs">
+                <td class="sticky left-[100px] z-10 ${stickyOiClass} px-3 py-1.5 text-right font-mono font-bold min-w-[90px] w-[90px] shadow-xs">
                     ${row.total_oi_lakh}
                 </td>
             `;
@@ -2212,16 +2243,16 @@
                     const tooltip = `${cell.strike} | ${cell.name} (${cell.type})&#10;ΔOI: ${cell.diff_oi_lakh}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
                     tbodyHtml += `
                         <td class="border-r border-gray-100 p-1 text-center font-mono" title="${tooltip}">
-                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-block" 
+                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-flex items-center" 
                                  style="background-color: ${cell.color}; color: ${cell.text_color};">
-                                ${cell.diff_oi_lakh}
+                                ${optTag}<span>${cell.diff_oi_lakh}</span>
                             </div>
                         </td>
                     `;
                 } else {
                     tbodyHtml += `
-                        <td class="border-r border-gray-100 px-2 py-1 text-center text-gray-300 font-mono text-xs select-none">
-                            —
+                        <td class="border-r border-gray-100 px-2 py-1 text-center">
+                            ${emptyDash}
                         </td>
                     `;
                 }
