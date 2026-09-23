@@ -1414,6 +1414,34 @@ class TrendingOiController extends Controller
         $latestTs = end($ts5mList);
         $latestMap = $dataByTs[$latestTs] ?? [];
 
+        // Datewise Day-of-Week Expiry cycle thresholds (in Lakh contracts)
+        // 1. Wednesday - 1st Day of Expiry - 10 +/- L
+        // 2. Thursday  - 2nd Day Expiry    - 15 +/- L
+        // 3. Friday    - 3rd Day Expiry    - 20 +/- L
+        // 4. Monday    - 4th Day Expiry    - 20 +/- L
+        // 5. Tuesday   - Expiry Day        - 25 +/- L
+        $dayThresholds = [
+            'Wednesday' => 10,
+            'Thursday'  => 15,
+            'Friday'    => 20,
+            'Monday'    => 20,
+            'Tuesday'   => 25,
+            'Saturday'  => 20,
+            'Sunday'    => 20,
+        ];
+
+        $latestCarbon = Carbon::parse($latestTs);
+        $dayName = $latestCarbon->format('l');
+        $defaultThresholdLakh = $dayThresholds[$dayName] ?? 20;
+        $dayDescriptions = [
+            'Wednesday' => '1st Day of Expiry (10L)',
+            'Thursday'  => '2nd Day of Expiry (15L)',
+            'Friday'    => '3rd Day of Expiry (20L)',
+            'Monday'    => '4th Day of Expiry (20L)',
+            'Tuesday'   => 'Expiry Day (25L)',
+        ];
+        $dayDescription = $dayDescriptions[$dayName] ?? ($dayName . " ({$defaultThresholdLakh}L)");
+
         // 3. Compute 5-min intervals and Top 5 buildups for each interval
         $intervals = [];
         $uniqueStrikes = [];
@@ -1453,15 +1481,16 @@ class TrendingOiController extends Controller
                 }
 
                 $diffs[] = [
-                    'strike'       => $strikeKey,
-                    'diff_oi'      => $diffOi,
-                    'abs_diff_oi'  => abs($diffOi),
-                    'diff_oi_lakh' => ($diffOi >= 0 ? '+' : '') . round($diffOi / 100000, 1) . ' L',
-                    'diff_ltp'     => $diffLtp,
-                    'type'         => $bType,
-                    'name'         => $bName,
-                    'color'        => $bColor,
-                    'text_color'   => $textColor,
+                    'strike'         => $strikeKey,
+                    'diff_oi'        => $diffOi,
+                    'abs_diff_oi'    => abs($diffOi),
+                    'diff_oi_lakh'   => ($diffOi >= 0 ? '+' : '') . round($diffOi / 100000, 1) . ' L',
+                    'diff_ltp'       => $diffLtp,
+                    'type'           => $bType,
+                    'name'           => $bName,
+                    'color'          => $bColor,
+                    'text_color'     => $textColor,
+                    'is_highlighted' => abs($diffOi) >= ($defaultThresholdLakh * 100000),
                 ];
             }
 
@@ -1514,10 +1543,15 @@ class TrendingOiController extends Controller
         usort($strikeRows, fn($a, $b) => $b['total_oi'] <=> $a['total_oi']);
 
         return [
-            'columns'       => $columns,
-            'rows'          => $strikeRows,
-            'total_strikes' => count($strikeRows),
-            'latest_time'   => reset($columns) ?: '—',
+            'columns'           => $columns,
+            'rows'              => $strikeRows,
+            'total_strikes'     => count($strikeRows),
+            'latest_time'       => reset($columns) ?: '—',
+            'trade_date'        => $latestCarbon->toDateString(),
+            'day_of_week'       => $dayName,
+            'day_desc'          => $dayDescription,
+            'default_threshold' => $defaultThresholdLakh,
+            'threshold_rules'   => $dayThresholds,
         ];
     }
 

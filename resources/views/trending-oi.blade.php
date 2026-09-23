@@ -379,6 +379,25 @@
                         <button type="button" data-matrix-filter="PE" class="toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">PE Only</button>
                     </div>
 
+                    {{-- Datewise Highlight Threshold Selector --}}
+                    <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-300 rounded px-2 py-0.5 shadow-2xs">
+                        <span class="text-[10.5px] font-bold text-amber-900 flex items-center gap-1">
+                            ⚡ Highlight:
+                        </span>
+                        <select id="toi-matrix-threshold-select" class="text-[11px] bg-transparent border-none font-bold text-amber-900 focus:outline-none cursor-pointer py-0.5 pr-1">
+                            <option value="auto">Auto (Day Rule)</option>
+                            <option value="10">Wed (≥ 10L)</option>
+                            <option value="15">Thu (≥ 15L)</option>
+                            <option value="20">Fri/Mon (≥ 20L)</option>
+                            <option value="25">Tue Expiry (≥ 25L)</option>
+                            <option value="5">Low (≥ 5L)</option>
+                            <option value="30">High (≥ 30L)</option>
+                        </select>
+                        <span id="toi-matrix-threshold-badge" class="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-900 border border-amber-300 font-mono">
+                            Auto
+                        </span>
+                    </div>
+
                     {{-- CE / PE Row Color Indicators --}}
                     <div class="flex items-center gap-2 text-[10.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
                         <span class="flex items-center gap-1.5"><span class="w-3 h-2 rounded-xs bg-[#edfcf2] border-l-3 border-emerald-600 inline-block"></span> CE Rows</span>
@@ -391,6 +410,7 @@
                         <span class="flex items-center gap-1" title="Short Covering (Short Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-[#1e3a8a] inline-block"></span> SC (Short Covering)</span>
                         <span class="flex items-center gap-1" title="Long Buildup (Call/Put Buying)"><span class="w-2.5 h-2.5 rounded-xs bg-[#16a34a] inline-block"></span> LB (Long Buildup)</span>
                         <span class="flex items-center gap-1" title="Long Unwinding (Long Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-[#eab308] inline-block"></span> LU (Long Unwinding)</span>
+                        <span class="flex items-center gap-1 border-l border-slate-200 pl-1.5 ml-0.5 text-amber-800" title="Threshold met (Cell ring + Time bar highlight)"><span class="w-2.5 h-2.5 rounded-xs ring-2 ring-amber-400 bg-red-600 inline-block"></span> High OI (★)</span>
                     </div>
                 </div>
             </div>
@@ -769,6 +789,20 @@
 .toi-matrix-row-pe { background-color: #f8faff; }
 .toi-matrix-row-pe.toi-matrix-alt { background-color: #eef4ff; }
 .toi-matrix-row-pe:hover, .toi-matrix-row-pe:hover td.sticky { background-color: #dbeafe !important; }
+
+/* ── Matrix High Volume Highlight Styles ────────────────────────── */
+.toi-matrix-th-highlight {
+    background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%) !important;
+    color: #78350f !important;
+    border-bottom: 2px solid #f59e0b !important;
+    box-shadow: inset 0 -2px 0 #d97706;
+}
+.toi-matrix-cell-highlight {
+    background-color: rgba(254, 243, 199, 0.45) !important;
+}
+.toi-matrix-badge-highlight {
+    box-shadow: 0 0 0 2px #f59e0b, 0 2px 4px rgba(0, 0, 0, 0.18) !important;
+}
 </style>
 @endpush
 
@@ -889,16 +923,19 @@
     const buildupDominant     = document.getElementById('toi-buildup-dominant');
 
     // 5-Minute Top OI Buildup Matrix DOM References
-    const matrixCard          = document.getElementById('toi-buildup-matrix-card');
-    const matrixCountBadge    = document.getElementById('toi-matrix-count');
-    const matrixSearchInput   = document.getElementById('toi-matrix-search');
-    const matrixFilterTabs    = document.querySelectorAll('.toi-matrix-tab');
-    const matrixHeaderRow     = document.getElementById('toi-matrix-header-row');
-    const matrixTbody         = document.getElementById('toi-matrix-tbody');
+    const matrixCard             = document.getElementById('toi-buildup-matrix-card');
+    const matrixCountBadge       = document.getElementById('toi-matrix-count');
+    const matrixSearchInput      = document.getElementById('toi-matrix-search');
+    const matrixFilterTabs       = document.querySelectorAll('.toi-matrix-tab');
+    const matrixThresholdSelect  = document.getElementById('toi-matrix-threshold-select');
+    const matrixThresholdBadge   = document.getElementById('toi-matrix-threshold-badge');
+    const matrixHeaderRow        = document.getElementById('toi-matrix-header-row');
+    const matrixTbody            = document.getElementById('toi-matrix-tbody');
 
-    let currentMatrixData     = null;
-    let currentMatrixFilter   = 'ALL';
-    let currentMatrixSearch   = '';
+    let currentMatrixData        = null;
+    let currentMatrixFilter      = 'ALL';
+    let currentMatrixSearch      = '';
+    let currentMatrixThreshold   = 'auto';
 
     // Floating HUD DOM References
     const floatingHud         = document.getElementById('toi-floating-hud');
@@ -2151,13 +2188,53 @@
 
         const { columns, rows, total_strikes } = currentMatrixData;
 
-        // 1. Render Header Row (Strike, Total OI, and time columns from recent to old)
+        // Resolve effective datewise threshold in Lakh contracts
+        const effectiveTh = getEffectiveThreshold();
+        if (matrixThresholdBadge) {
+            let dayText = '';
+            if (currentMatrixThreshold === 'auto') {
+                dayText = (currentMatrixData && currentMatrixData.day_desc) 
+                    ? currentMatrixData.day_desc 
+                    : `${effectiveTh}L (Day Auto)`;
+            } else {
+                dayText = `Manual: ${effectiveTh}L`;
+            }
+            matrixThresholdBadge.textContent = `${effectiveTh}L`;
+            matrixThresholdBadge.title = `Active threshold: ${dayText}`;
+        }
+
+        // Pre-scan all strikes to identify time columns that meet/exceed datewise threshold
+        const highVolTimesMap = {};
+        rows.forEach(r => {
+            if (!r.cells) return;
+            columns.forEach(t => {
+                const c = r.cells[t];
+                if (c && Math.abs(c.diff_oi) >= (effectiveTh * 100000)) {
+                    highVolTimesMap[t] = (highVolTimesMap[t] || 0) + 1;
+                }
+            });
+        });
+
+        // 1. Render Header Row (Strike, Total OI, and time columns from recent to old with high-vol highlight)
         let headerHtml = `
             <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
             <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
         `;
         columns.forEach(time => {
-            headerHtml += `<th class="sticky top-0 z-20 bg-gray-50 border-r border-gray-200 px-2.5 py-2 text-center font-mono font-bold text-slate-700 min-w-[85px]">${time}</th>`;
+            const highCount = highVolTimesMap[time] || 0;
+            if (highCount > 0) {
+                headerHtml += `
+                    <th class="sticky top-0 z-20 toi-matrix-th-highlight border-r border-amber-300 px-2 py-2 text-center font-mono font-black min-w-[85px] cursor-help shadow-xs"
+                        title="⚡ High OI Bar: ${highCount} strike(s) with |ΔOI| ≥ ${effectiveTh}L at ${time}">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block animate-pulse"></span>
+                            <span>${time}</span>
+                        </div>
+                    </th>
+                `;
+            } else {
+                headerHtml += `<th class="sticky top-0 z-20 bg-gray-50 border-r border-gray-200 px-2.5 py-2 text-center font-mono font-bold text-slate-700 min-w-[85px]">${time}</th>`;
+            }
         });
         matrixHeaderRow.innerHTML = headerHtml;
 
@@ -2190,7 +2267,7 @@
             return;
         }
 
-        // 3. Render Table Rows with Distinct CE and PE Styling
+        // 3. Render Table Rows with Distinct CE and PE Styling & Datewise OI Highlighting
         let tbodyHtml = '';
         filteredRows.forEach((row, idx) => {
             const isCe = row.option_type === 'CE';
@@ -2240,12 +2317,20 @@
                 const cell = row.cells ? row.cells[time] : null;
                 if (cell) {
                     const ltpPrefix = cell.diff_ltp > 0 ? '+' : '';
-                    const tooltip = `${cell.strike} | ${cell.name} (${cell.type})&#10;ΔOI: ${cell.diff_oi_lakh}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
+                    const isHighVol = Math.abs(cell.diff_oi) >= (effectiveTh * 100000);
+
+                    const cellHighlightClass = isHighVol ? 'toi-matrix-cell-highlight' : '';
+                    const badgeHighlightClass = isHighVol ? 'toi-matrix-badge-highlight ring-2 ring-amber-400 ring-offset-1 ring-offset-white' : '';
+                    const highVolStar = isHighVol ? `<span class="ml-1 text-[9px] text-amber-200 font-extrabold" title="High OI Bar (≥ ${effectiveTh}L)">★</span>` : '';
+                    const highVolNotice = isHighVol ? `&#10;⚡ HIGH VOLUME BUILDUP: |ΔOI| ≥ ${effectiveTh}L` : '';
+
+                    const tooltip = `${cell.strike} | ${cell.name} (${cell.type})&#10;ΔOI: ${cell.diff_oi_lakh}${highVolNotice}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
+
                     tbodyHtml += `
-                        <td class="border-r border-gray-100 p-1 text-center font-mono" title="${tooltip}">
-                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-flex items-center" 
+                        <td class="border-r border-gray-100 p-1 text-center font-mono ${cellHighlightClass}" title="${tooltip}">
+                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-flex items-center ${badgeHighlightClass}" 
                                  style="background-color: ${cell.color}; color: ${cell.text_color};">
-                                ${optTag}<span>${cell.diff_oi_lakh}</span>
+                                ${optTag}<span>${cell.diff_oi_lakh}</span>${highVolStar}
                             </div>
                         </td>
                     `;
@@ -2262,6 +2347,33 @@
         });
 
         matrixTbody.innerHTML = tbodyHtml;
+    }
+
+    // Helper: Determine effective datewise OI highlight threshold (Lakh)
+    function getEffectiveThreshold() {
+        if (currentMatrixThreshold !== 'auto') {
+            return parseFloat(currentMatrixThreshold);
+        }
+        if (currentMatrixData && currentMatrixData.default_threshold) {
+            return currentMatrixData.default_threshold;
+        }
+        // Fallback calculation by date input
+        const dStr = dateInput ? dateInput.value : '';
+        if (dStr) {
+            const d = new Date(dStr + 'T12:00:00');
+            const day = d.getDay(); // 0: Sun, 1: Mon, 2: Tue, 3: Wed, 4: Thu, 5: Fri, 6: Sat
+            const map = { 3: 10, 4: 15, 5: 20, 1: 20, 2: 25, 6: 20, 0: 20 };
+            return map[day] || 20;
+        }
+        return 20;
+    }
+
+    // Buildup Matrix Threshold selector
+    if (matrixThresholdSelect) {
+        matrixThresholdSelect.addEventListener('change', (e) => {
+            currentMatrixThreshold = e.target.value;
+            updateMatrixTableView();
+        });
     }
 
     // Buildup Matrix Filter tab buttons (ALL, CE, PE)
