@@ -405,6 +405,14 @@ class TrendingOiController extends Controller
             $atmStrike
         );
 
+        // Calculate 5-Minute Top OI Buildup Matrix (Recent to Old)
+        $buildupMatrix = $this->calculate5mBuildupMatrix(
+            $table,
+            $underlying,
+            $expiry,
+            $timestamps
+        );
+
         $tradeDate = Carbon::parse($latestTimestamp)->toDateString();
         $strategyCallsCount = DB::table('strategy_call_logs')
             ->where('trade_date', $tradeDate)
@@ -429,6 +437,7 @@ class TrendingOiController extends Controller
             'strategy_calls_count'   => $strategyCallsCount,
             'strike_buildup'         => $strikeBuildup,
             'strike_buildup_5m'      => $strikeBuildup['5m'] ?? null,
+            'buildup_matrix'         => $buildupMatrix,
         ]);
     }
 
@@ -1347,6 +1356,168 @@ class TrendingOiController extends Controller
                 'total_pe_chg_lakh' => '0.0 L',
                 'dominant'          => 'Neutral',
             ]
+        ];
+    }
+
+    /**
+     * Calculate 5-Minute Top OI Buildup Matrix across all intervals of the day.
+     * Captures Top 5 OI buildups for each 5-min step (recent to old) and tracks
+     * the union of all active strikes with their latest Total OI.
+     */
+    private function calculate5mBuildupMatrix(
+        string $table,
+        string $underlying,
+        string $expiry,
+        array $timestamps
+    ): array {
+        if (empty($timestamps)) {
+            return ['columns' => [], 'rows' => [], 'total_strikes' => 0];
+        }
+
+        // 1. Sample 5-minute timestamps
+        $ts5mList = [];
+        $lastMinute = -1;
+        foreach ($timestamps as $ts) {
+            $c = Carbon::parse($ts);
+            $m = (int) $c->format('i');
+            if ($m % 5 === 0 && $m !== $lastMinute) {
+                $ts5mList[] = $ts;
+                $lastMinute = $m;
+            }
+        }
+        if (!empty($timestamps) && !in_array(end($timestamps), $ts5mList)) {
+            $ts5mList[] = end($timestamps);
+        }
+
+        if (count($ts5mList) < 2) {
+            return ['columns' => [], 'rows' => [], 'total_strikes' => 0];
+        }
+
+        // 2. Fetch all strike data for the 5-minute timestamps
+        $rows = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->whereIn('captured_at', $ts5mList)
+            ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);
+
+        if ($rows->isEmpty()) {
+            return ['columns' => [], 'rows' => [], 'total_strikes' => 0];
+        }
+
+        // Group rows by captured_at and strike_key
+        $dataByTs = [];
+        foreach ($rows as $r) {
+            $key = ((int) $r->strike_price) . ' ' . $r->option_type;
+            $dataByTs[$r->captured_at][$key] = $r;
+        }
+
+        $latestTs = end($ts5mList);
+        $latestMap = $dataByTs[$latestTs] ?? [];
+
+        // 3. Compute 5-min intervals and Top 5 buildups for each interval
+        $intervals = [];
+        $uniqueStrikes = [];
+
+        for ($i = 1; $i < count($ts5mList); $i++) {
+            $tCurr = $ts5mList[$i];
+            $tPrev = $ts5mList[$i - 1];
+            $timeLabel = Carbon::parse($tCurr)->format('H:i');
+
+            $currMap = $dataByTs[$tCurr] ?? [];
+            $prevMap = $dataByTs[$tPrev] ?? [];
+
+            $diffs = [];
+            foreach ($currMap as $strikeKey => $currItem) {
+                $prevItem = $prevMap[$strikeKey] ?? null;
+                $prevOi = $prevItem ? (int) $prevItem->oi : 0;
+                $prevLtp = $prevItem ? (float) $prevItem->ltp : (float) $currItem->ltp;
+
+                $diffOi = ((int) $currItem->oi) - $prevOi;
+                $diffLtp = round(((float) $currItem->ltp) - $prevLtp, 2);
+
+                if ($diffOi == 0) continue;
+
+                // Buildup Classification:
+                // SB (Short Buildup)  : ΔOI > 0, ΔLTP <= 0 -> Red
+                // SC (Short Covering) : ΔOI < 0, ΔLTP >= 0 -> Navy Blue
+                // LB (Long Buildup)   : ΔOI > 0, ΔLTP > 0  -> Green
+                // LU (Long Unwinding) : ΔOI < 0, ΔLTP < 0  -> Yellow
+                if ($diffOi > 0 && $diffLtp <= 0) {
+                    $bType = 'SB'; $bName = 'Short Buildup'; $bColor = '#dc2626'; $textColor = '#ffffff';
+                } elseif ($diffOi < 0 && $diffLtp >= 0) {
+                    $bType = 'SC'; $bName = 'Short Covering'; $bColor = '#1e3a8a'; $textColor = '#ffffff';
+                } elseif ($diffOi > 0 && $diffLtp > 0) {
+                    $bType = 'LB'; $bName = 'Long Buildup'; $bColor = '#16a34a'; $textColor = '#ffffff';
+                } else {
+                    $bType = 'LU'; $bName = 'Long Unwinding'; $bColor = '#eab308'; $textColor = '#1e293b';
+                }
+
+                $diffs[] = [
+                    'strike'       => $strikeKey,
+                    'diff_oi'      => $diffOi,
+                    'abs_diff_oi'  => abs($diffOi),
+                    'diff_oi_lakh' => ($diffOi >= 0 ? '+' : '') . round($diffOi / 100000, 1) . ' L',
+                    'diff_ltp'     => $diffLtp,
+                    'type'         => $bType,
+                    'name'         => $bName,
+                    'color'        => $bColor,
+                    'text_color'   => $textColor,
+                ];
+            }
+
+            // Rank by absolute magnitude descending and pick top 5
+            usort($diffs, fn($a, $b) => $b['abs_diff_oi'] <=> $a['abs_diff_oi']);
+            $top5 = array_slice($diffs, 0, 5);
+
+            $top5Map = [];
+            foreach ($top5 as $item) {
+                $top5Map[$item['strike']] = $item;
+                $uniqueStrikes[$item['strike']] = true;
+            }
+
+            $intervals[] = [
+                'time'     => $timeLabel,
+                'ts'       => $tCurr,
+                'top5_map' => $top5Map,
+            ];
+        }
+
+        // Columns: recent time to old time (left to right)
+        $columns = array_reverse(array_column($intervals, 'time'));
+        $intervalsRev = array_reverse($intervals);
+
+        // Build strike rows
+        $strikeRows = [];
+        foreach (array_keys($uniqueStrikes) as $strikeKey) {
+            $latestItem = $latestMap[$strikeKey] ?? null;
+            $totalOi = $latestItem ? (int) $latestItem->oi : 0;
+            [$sPrice, $oType] = explode(' ', $strikeKey);
+
+            $cells = [];
+            foreach ($intervalsRev as $interval) {
+                $time = $interval['time'];
+                $cellData = $interval['top5_map'][$strikeKey] ?? null;
+                $cells[$time] = $cellData;
+            }
+
+            $strikeRows[] = [
+                'strike'        => $strikeKey,
+                'strike_price'  => (int) $sPrice,
+                'option_type'   => $oType,
+                'total_oi'      => $totalOi,
+                'total_oi_lakh' => round($totalOi / 100000, 1) . ' L',
+                'cells'         => $cells,
+            ];
+        }
+
+        // Sort strikes by Total OI descending
+        usort($strikeRows, fn($a, $b) => $b['total_oi'] <=> $a['total_oi']);
+
+        return [
+            'columns'       => $columns,
+            'rows'          => $strikeRows,
+            'total_strikes' => count($strikeRows),
+            'latest_time'   => reset($columns) ?: '—',
         ];
     }
 

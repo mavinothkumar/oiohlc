@@ -348,6 +348,66 @@
                 </div>
             </div>
         </div>
+
+        {{-- ══════════ 5-MINUTE TOP OI BUILDUP MATRIX SECTION ══════════ --}}
+        <div class="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4" id="toi-buildup-matrix-card">
+            {{-- Header & Controls --}}
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-gray-800 tracking-wide flex items-center gap-1.5">
+                        ⚡ 5-Minute Top OI Buildup Matrix
+                    </h3>
+                    <span id="toi-matrix-count" class="text-[11px] bg-slate-100 text-slate-700 font-mono font-bold px-2 py-0.5 rounded border border-slate-200">
+                        0 Strikes Active
+                    </span>
+                    <span class="text-[11px] text-gray-500 font-sans hidden sm:inline">
+                        (Top 5 Buildups per 5-min interval, Recent → Old)
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5">
+                    {{-- Search Strike Filter --}}
+                    <div class="relative">
+                        <input type="text" id="toi-matrix-search" placeholder="Filter strike (e.g. 25000, CE)..." 
+                               class="text-xs bg-gray-50 border border-gray-300 rounded px-2.5 py-1 text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-500 w-44">
+                    </div>
+
+                    {{-- Type Filter Tabs --}}
+                    <div class="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded text-[11px] font-semibold">
+                        <button type="button" data-matrix-filter="ALL" class="toi-matrix-tab px-2.5 py-0.5 rounded bg-white text-gray-900 shadow-xs cursor-pointer font-bold transition-colors">ALL</button>
+                        <button type="button" data-matrix-filter="CE" class="toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">CE Only</button>
+                        <button type="button" data-matrix-filter="PE" class="toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors">PE Only</button>
+                    </div>
+
+                    {{-- Color Legend Pills --}}
+                    <div class="flex items-center gap-2 text-[10.5px] font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
+                        <span class="flex items-center gap-1" title="Short Buildup (Call/Put Writing)"><span class="w-2.5 h-2.5 rounded-xs bg-[#dc2626] inline-block"></span> SB (Short Buildup)</span>
+                        <span class="flex items-center gap-1" title="Short Covering (Short Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-[#1e3a8a] inline-block"></span> SC (Short Covering)</span>
+                        <span class="flex items-center gap-1" title="Long Buildup (Call/Put Buying)"><span class="w-2.5 h-2.5 rounded-xs bg-[#16a34a] inline-block"></span> LB (Long Buildup)</span>
+                        <span class="flex items-center gap-1" title="Long Unwinding (Long Exit)"><span class="w-2.5 h-2.5 rounded-xs bg-[#eab308] inline-block"></span> LU (Long Unwinding)</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Table Container with Sticky Strike & Total OI columns --}}
+            <div class="overflow-x-auto w-full mt-3 rounded border border-gray-200" style="max-height: 520px; overflow-y: auto;">
+                <table id="toi-matrix-table" class="w-full border-collapse text-[11px] font-mono whitespace-nowrap text-center">
+                    <thead class="sticky top-0 z-20 bg-gray-100 text-gray-700 font-bold border-b border-gray-300 shadow-sm">
+                        <tr id="toi-matrix-header-row" class="h-9">
+                            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
+                            <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toi-matrix-tbody" class="divide-y divide-gray-100 bg-white">
+                        <tr>
+                            <td colspan="10" class="text-center py-8 text-gray-400 font-sans text-xs">
+                                Loading 5-minute buildup matrix…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     {{-- ══════════ LOADING INDICATOR ══════════ --}}
@@ -694,6 +754,9 @@
 #toi-table-wrap { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 #toi-table-wrap::-webkit-scrollbar       { width: 6px; height: 6px; }
 #toi-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Buildup Matrix Table ────────────────────────────────────────── */
+#toi-matrix-table tr:hover td.sticky { background-color: #fef3c7 !important; }
 </style>
 @endpush
 
@@ -812,6 +875,18 @@
     const buildupCeSum        = document.getElementById('toi-buildup-ce-sum');
     const buildupPeSum        = document.getElementById('toi-buildup-pe-sum');
     const buildupDominant     = document.getElementById('toi-buildup-dominant');
+
+    // 5-Minute Top OI Buildup Matrix DOM References
+    const matrixCard          = document.getElementById('toi-buildup-matrix-card');
+    const matrixCountBadge    = document.getElementById('toi-matrix-count');
+    const matrixSearchInput   = document.getElementById('toi-matrix-search');
+    const matrixFilterTabs    = document.querySelectorAll('.toi-matrix-tab');
+    const matrixHeaderRow     = document.getElementById('toi-matrix-header-row');
+    const matrixTbody         = document.getElementById('toi-matrix-tbody');
+
+    let currentMatrixData     = null;
+    let currentMatrixFilter   = 'ALL';
+    let currentMatrixSearch   = '';
 
     // Floating HUD DOM References
     const floatingHud         = document.getElementById('toi-floating-hud');
@@ -1031,6 +1106,7 @@
                 renderTable(data.rows || []);
                 renderCharts(data.chart || {});
                 renderStrikeBuildup(data.strike_buildup || { '5m': data.strike_buildup_5m });
+                render5mBuildupMatrix(data.buildup_matrix || null);
 
                 if (callsCountBadge && data.strategy_calls_count !== undefined) {
                     callsCountBadge.textContent = data.strategy_calls_count;
@@ -2033,6 +2109,151 @@
                     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 100);
+        });
+    }
+
+    // ── 5-Minute Top OI Buildup Matrix Renderer ──────────────────────────────
+    function render5mBuildupMatrix(matrixData) {
+        currentMatrixData = matrixData;
+        updateMatrixTableView();
+    }
+
+    function updateMatrixTableView() {
+        if (!matrixTbody || !matrixHeaderRow) return;
+
+        if (!currentMatrixData || !currentMatrixData.rows || currentMatrixData.rows.length === 0) {
+            matrixHeaderRow.innerHTML = `
+                <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
+                <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+            `;
+            matrixTbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-8 text-gray-400 font-sans text-xs">
+                        No 5-minute buildup activity recorded for this session.
+                    </td>
+                </tr>
+            `;
+            if (matrixCountBadge) matrixCountBadge.textContent = '0 Strikes Active';
+            return;
+        }
+
+        const { columns, rows, total_strikes } = currentMatrixData;
+
+        // 1. Render Header Row (Strike, Total OI, and time columns from recent to old)
+        let headerHtml = `
+            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
+            <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+        `;
+        columns.forEach(time => {
+            headerHtml += `<th class="sticky top-0 z-20 bg-gray-50 border-r border-gray-200 px-2.5 py-2 text-center font-mono font-bold text-slate-700 min-w-[85px]">${time}</th>`;
+        });
+        matrixHeaderRow.innerHTML = headerHtml;
+
+        // 2. Filter Rows based on Option Type (ALL, CE, PE) and Search query
+        const filteredRows = rows.filter(r => {
+            if (currentMatrixFilter === 'CE' && r.option_type !== 'CE') return false;
+            if (currentMatrixFilter === 'PE' && r.option_type !== 'PE') return false;
+
+            if (currentMatrixSearch) {
+                const q = currentMatrixSearch.toLowerCase();
+                const strikeText = (r.strike || '').toLowerCase();
+                const priceText = String(r.strike_price || '');
+                if (!strikeText.includes(q) && !priceText.includes(q)) return false;
+            }
+            return true;
+        });
+
+        if (matrixCountBadge) {
+            matrixCountBadge.textContent = `${filteredRows.length} of ${total_strikes} Strikes`;
+        }
+
+        if (filteredRows.length === 0) {
+            matrixTbody.innerHTML = `
+                <tr>
+                    <td colspan="${columns.length + 2}" class="text-center py-8 text-gray-400 font-sans text-xs">
+                        No strikes match the filter "${currentMatrixSearch || currentMatrixFilter}".
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // 3. Render Table Rows
+        let tbodyHtml = '';
+        filteredRows.forEach((row, idx) => {
+            const isCe = row.option_type === 'CE';
+            const typeBadge = isCe
+                ? `<span class="text-emerald-700 font-bold ml-1">CE</span>`
+                : `<span class="text-blue-700 font-bold ml-1">PE</span>`;
+
+            const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
+
+            tbodyHtml += `<tr class="${rowBg} hover:bg-amber-50/70 transition-colors">`;
+
+            // Col 1: Strike (Sticky left-0)
+            tbodyHtml += `
+                <td class="sticky left-0 z-10 ${rowBg} border-r border-gray-200 px-3 py-1.5 text-left font-mono font-bold text-slate-900 min-w-[100px] w-[100px] shadow-xs">
+                    <span>${row.strike_price}</span>${typeBadge}
+                </td>
+            `;
+
+            // Col 2: Total OI (Sticky left-[100px])
+            tbodyHtml += `
+                <td class="sticky left-[100px] z-10 ${rowBg} border-r-2 border-slate-300 px-3 py-1.5 text-right font-mono font-bold text-slate-800 min-w-[90px] w-[90px] shadow-xs">
+                    ${row.total_oi_lakh}
+                </td>
+            `;
+
+            // Dynamic 5-min intervals (Recent to Old)
+            columns.forEach(time => {
+                const cell = row.cells ? row.cells[time] : null;
+                if (cell) {
+                    const ltpPrefix = cell.diff_ltp > 0 ? '+' : '';
+                    const tooltip = `${cell.strike} | ${cell.name} (${cell.type})&#10;ΔOI: ${cell.diff_oi_lakh}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
+                    tbodyHtml += `
+                        <td class="border-r border-gray-100 p-1 text-center font-mono" title="${tooltip}">
+                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-block" 
+                                 style="background-color: ${cell.color}; color: ${cell.text_color};">
+                                ${cell.diff_oi_lakh}
+                            </div>
+                        </td>
+                    `;
+                } else {
+                    tbodyHtml += `
+                        <td class="border-r border-gray-100 px-2 py-1 text-center text-gray-300 font-mono text-xs select-none">
+                            —
+                        </td>
+                    `;
+                }
+            });
+
+            tbodyHtml += `</tr>`;
+        });
+
+        matrixTbody.innerHTML = tbodyHtml;
+    }
+
+    // Buildup Matrix Filter tab buttons (ALL, CE, PE)
+    if (matrixFilterTabs && matrixFilterTabs.length > 0) {
+        matrixFilterTabs.forEach(tabBtn => {
+            tabBtn.addEventListener('click', () => {
+                const filter = tabBtn.getAttribute('data-matrix-filter');
+                if (!filter || filter === currentMatrixFilter) return;
+                currentMatrixFilter = filter;
+                matrixFilterTabs.forEach(t => {
+                    t.className = 'toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors';
+                });
+                tabBtn.className = 'toi-matrix-tab px-2.5 py-0.5 rounded bg-white text-gray-900 shadow-xs cursor-pointer font-bold transition-colors';
+                updateMatrixTableView();
+            });
+        });
+    }
+
+    // Buildup Matrix Search Filter Input
+    if (matrixSearchInput) {
+        matrixSearchInput.addEventListener('input', (e) => {
+            currentMatrixSearch = e.target.value.trim();
+            updateMatrixTableView();
         });
     }
 
