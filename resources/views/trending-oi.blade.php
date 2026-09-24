@@ -392,7 +392,16 @@
                             <option value="25">Tue Expiry (≥ 25L)</option>
                             <option value="5">Low (≥ 5L)</option>
                             <option value="30">High (≥ 30L)</option>
+                            <option value="custom">Custom (Specify L)...</option>
                         </select>
+
+                        {{-- Custom Input Box (Visible when 'custom' is selected) --}}
+                        <div id="toi-matrix-custom-wrap" class="hidden items-center gap-1 pl-1.5 border-l border-amber-300">
+                            <input type="number" id="toi-matrix-custom-input" min="0.1" max="500" step="0.5" placeholder="e.g. 12" 
+                                   class="w-16 text-[11px] font-bold text-amber-950 bg-white border border-amber-400 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono text-center">
+                            <span class="text-[10px] font-bold text-amber-900">L</span>
+                        </div>
+
                         <span id="toi-matrix-threshold-badge" class="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-900 border border-amber-300 font-mono">
                             Auto
                         </span>
@@ -926,6 +935,7 @@
     const LS_HUD_MINIMIZED       = 'toi_hud_minimized';
     const LS_MATRIX_FILTER       = 'toi_matrix_filter';
     const LS_MATRIX_THRESHOLD    = 'toi_matrix_threshold';
+    const LS_MATRIX_CUSTOM_TH    = 'toi_matrix_custom_threshold';
     const LS_MATRIX_SEARCH       = 'toi_matrix_search';
 
     // 5-Minute Top OI Buildup Matrix DOM References
@@ -934,6 +944,8 @@
     const matrixSearchInput      = document.getElementById('toi-matrix-search');
     const matrixFilterTabs       = document.querySelectorAll('.toi-matrix-tab');
     const matrixThresholdSelect  = document.getElementById('toi-matrix-threshold-select');
+    const matrixCustomWrap       = document.getElementById('toi-matrix-custom-wrap');
+    const matrixCustomInput      = document.getElementById('toi-matrix-custom-input');
     const matrixThresholdBadge   = document.getElementById('toi-matrix-threshold-badge');
     const matrixHeaderRow        = document.getElementById('toi-matrix-header-row');
     const matrixTbody            = document.getElementById('toi-matrix-tbody');
@@ -943,13 +955,21 @@
     let currentMatrixFilter      = localStorage.getItem(LS_MATRIX_FILTER) || 'ALL';
     let currentMatrixSearch      = localStorage.getItem(LS_MATRIX_SEARCH) || '';
     let currentMatrixThreshold   = localStorage.getItem(LS_MATRIX_THRESHOLD) || 'auto';
+    let currentMatrixCustomTh    = localStorage.getItem(LS_MATRIX_CUSTOM_TH) || '10';
 
     // Initialize UI controls to stored values
     if (matrixSearchInput && currentMatrixSearch) {
         matrixSearchInput.value = currentMatrixSearch;
     }
+    if (matrixCustomInput && currentMatrixCustomTh) {
+        matrixCustomInput.value = currentMatrixCustomTh;
+    }
     if (matrixThresholdSelect && currentMatrixThreshold) {
         matrixThresholdSelect.value = currentMatrixThreshold;
+        if (currentMatrixThreshold === 'custom' && matrixCustomWrap) {
+            matrixCustomWrap.classList.remove('hidden');
+            matrixCustomWrap.classList.add('flex');
+        }
     }
     if (matrixFilterTabs && matrixFilterTabs.length > 0) {
         matrixFilterTabs.forEach(t => {
@@ -2383,6 +2403,10 @@
 
     // Helper: Determine effective datewise OI highlight threshold (Lakh)
     function getEffectiveThreshold() {
+        if (currentMatrixThreshold === 'custom') {
+            const customVal = parseFloat(matrixCustomInput ? matrixCustomInput.value : '');
+            return (!isNaN(customVal) && customVal > 0) ? customVal : 10;
+        }
         if (currentMatrixThreshold !== 'auto') {
             return parseFloat(currentMatrixThreshold);
         }
@@ -2405,6 +2429,29 @@
         matrixThresholdSelect.addEventListener('change', (e) => {
             currentMatrixThreshold = e.target.value;
             localStorage.setItem(LS_MATRIX_THRESHOLD, currentMatrixThreshold);
+            if (currentMatrixThreshold === 'custom') {
+                if (matrixCustomWrap) {
+                    matrixCustomWrap.classList.remove('hidden');
+                    matrixCustomWrap.classList.add('flex');
+                }
+                if (matrixCustomInput) {
+                    matrixCustomInput.focus();
+                }
+            } else {
+                if (matrixCustomWrap) {
+                    matrixCustomWrap.classList.add('hidden');
+                    matrixCustomWrap.classList.remove('flex');
+                }
+            }
+            updateMatrixTableView();
+        });
+    }
+
+    // Buildup Matrix Custom Threshold Input
+    if (matrixCustomInput) {
+        matrixCustomInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            localStorage.setItem(LS_MATRIX_CUSTOM_TH, val);
             updateMatrixTableView();
         });
     }
