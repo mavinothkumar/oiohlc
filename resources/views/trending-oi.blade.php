@@ -922,6 +922,12 @@
     const buildupPeSum        = document.getElementById('toi-buildup-pe-sum');
     const buildupDominant     = document.getElementById('toi-buildup-dominant');
 
+    // ── LocalStorage Keys ────────────────────────────────────────────────────
+    const LS_HUD_MINIMIZED       = 'toi_hud_minimized';
+    const LS_MATRIX_FILTER       = 'toi_matrix_filter';
+    const LS_MATRIX_THRESHOLD    = 'toi_matrix_threshold';
+    const LS_MATRIX_SEARCH       = 'toi_matrix_search';
+
     // 5-Minute Top OI Buildup Matrix DOM References
     const matrixCard             = document.getElementById('toi-buildup-matrix-card');
     const matrixCountBadge       = document.getElementById('toi-matrix-count');
@@ -932,10 +938,29 @@
     const matrixHeaderRow        = document.getElementById('toi-matrix-header-row');
     const matrixTbody            = document.getElementById('toi-matrix-tbody');
 
+    // Restore stored states for Matrix
     let currentMatrixData        = null;
-    let currentMatrixFilter      = 'ALL';
-    let currentMatrixSearch      = '';
-    let currentMatrixThreshold   = 'auto';
+    let currentMatrixFilter      = localStorage.getItem(LS_MATRIX_FILTER) || 'ALL';
+    let currentMatrixSearch      = localStorage.getItem(LS_MATRIX_SEARCH) || '';
+    let currentMatrixThreshold   = localStorage.getItem(LS_MATRIX_THRESHOLD) || 'auto';
+
+    // Initialize UI controls to stored values
+    if (matrixSearchInput && currentMatrixSearch) {
+        matrixSearchInput.value = currentMatrixSearch;
+    }
+    if (matrixThresholdSelect && currentMatrixThreshold) {
+        matrixThresholdSelect.value = currentMatrixThreshold;
+    }
+    if (matrixFilterTabs && matrixFilterTabs.length > 0) {
+        matrixFilterTabs.forEach(t => {
+            const f = t.getAttribute('data-matrix-filter');
+            if (f === currentMatrixFilter) {
+                t.className = 'toi-matrix-tab px-2.5 py-0.5 rounded bg-white text-gray-900 shadow-xs cursor-pointer font-bold transition-colors';
+            } else {
+                t.className = 'toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors';
+            }
+        });
+    }
 
     // Floating HUD DOM References
     const floatingHud         = document.getElementById('toi-floating-hud');
@@ -981,9 +1006,16 @@
 
     // ── Floating HUD Toggle ──────────────────────────────────────────────────
     if (hudToggle && floatingHud) {
+        const isHudSavedMin = localStorage.getItem(LS_HUD_MINIMIZED) === 'true';
+        if (isHudSavedMin) {
+            floatingHud.classList.add('minimized');
+            hudToggle.textContent = '▲';
+        }
+
         hudToggle.addEventListener('click', () => {
             const isMin = floatingHud.classList.toggle('minimized');
             hudToggle.textContent = isMin ? '▲' : '_';
+            localStorage.setItem(LS_HUD_MINIMIZED, isMin ? 'true' : 'false');
         });
     }
 
@@ -2372,6 +2404,7 @@
     if (matrixThresholdSelect) {
         matrixThresholdSelect.addEventListener('change', (e) => {
             currentMatrixThreshold = e.target.value;
+            localStorage.setItem(LS_MATRIX_THRESHOLD, currentMatrixThreshold);
             updateMatrixTableView();
         });
     }
@@ -2383,6 +2416,7 @@
                 const filter = tabBtn.getAttribute('data-matrix-filter');
                 if (!filter || filter === currentMatrixFilter) return;
                 currentMatrixFilter = filter;
+                localStorage.setItem(LS_MATRIX_FILTER, filter);
                 matrixFilterTabs.forEach(t => {
                     t.className = 'toi-matrix-tab px-2.5 py-0.5 rounded text-gray-500 hover:text-gray-900 cursor-pointer transition-colors';
                 });
@@ -2396,6 +2430,7 @@
     if (matrixSearchInput) {
         matrixSearchInput.addEventListener('input', (e) => {
             currentMatrixSearch = e.target.value.trim();
+            localStorage.setItem(LS_MATRIX_SEARCH, currentMatrixSearch);
             updateMatrixTableView();
         });
     }
