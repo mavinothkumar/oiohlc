@@ -115,7 +115,7 @@ class DeltaNeutralStrategyController extends Controller
         }
 
         $strikeStep = $symbol === 'BANKNIFTY' ? 100 : 50;
-        $lotSize = $symbol === 'BANKNIFTY' ? 15 : 25; // Standard NSE lot sizes
+        $lotSize = $symbol === 'BANKNIFTY' ? 15 : 65; // Standard NSE lot sizes (NIFTY is 65)
 
         // 1. Working date
         $workingDay = DB::table('nse_working_days')
@@ -173,6 +173,20 @@ class DeltaNeutralStrategyController extends Controller
                 $indexSpot = (float) $latestIndexQuote->close;
             }
         }
+
+        // Check latest spot price from option_chains if available
+        $latestSpotInChain = DB::table('option_chains')
+            ->where('trading_symbol', $symbol)
+            ->where('expiry', $selectedExpiry)
+            ->whereNotNull('underlying_spot_price')
+            ->where('underlying_spot_price', '>', 0)
+            ->orderByDesc('id')
+            ->value('underlying_spot_price');
+
+        if ($latestSpotInChain && (float) $latestSpotInChain > 0) {
+            $indexSpot = (float) $latestSpotInChain;
+        }
+
         if (!$indexSpot) {
             $indexSpot = $symbol === 'BANKNIFTY' ? 51000 : 23300;
         }
@@ -194,9 +208,18 @@ class DeltaNeutralStrategyController extends Controller
         }
 
         // 4. Fetch instruments and option chain data
+        $selectedExpiryRow = $expiries->firstWhere('expiry_date', $selectedExpiry) ?? $expiries->first();
+        $selectedExpiryTimestamp = $selectedExpiryRow ? $selectedExpiryRow->expiry : null;
+
         $instruments = DB::table('instruments')
             ->where('name', $symbol)
-            ->where('expiry', $selectedExpiry)
+            ->where(function ($q) use ($selectedExpiry, $selectedExpiryTimestamp) {
+                if ($selectedExpiryTimestamp) {
+                    $q->where('expiry', $selectedExpiryTimestamp);
+                } else {
+                    $q->where('expiry', $selectedExpiry);
+                }
+            })
             ->whereIn('strike_price', $strikesList)
             ->whereIn('instrument_type', ['CE', 'PE'])
             ->get();
@@ -225,12 +248,14 @@ class DeltaNeutralStrategyController extends Controller
             }
         }
 
-        // Option chains table for Greeks, OI, Diff OI, Volume, Buildup
+        // Option chains table for Greeks, OI, Diff OI, Volume, Buildup (latest snapshot first)
         $chainTable = 'option_chains';
         $chainData = DB::table($chainTable)
             ->where('trading_symbol', $symbol)
             ->where('expiry', $selectedExpiry)
             ->whereIn('strike_price', $strikesList)
+            ->orderByDesc('captured_at')
+            ->orderByDesc('id')
             ->get()
             ->groupBy(fn($item) => ((int) $item->strike_price) . '_' . strtoupper($item->option_type));
 

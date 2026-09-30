@@ -254,8 +254,8 @@
                                 <th class="py-2 px-2.5">Action</th>
                                 <th class="py-2 px-2.5">Strike</th>
                                 <th class="py-2 px-2.5">Type</th>
-                                <th class="py-2 px-2.5 text-right">Qty</th>
-                                <th class="py-2 px-2.5 text-right">Entry</th>
+                                <th class="py-2 px-2.5 text-right" title="Click quantity to edit">Qty ✏️</th>
+                                <th class="py-2 px-2.5 text-right" title="Click entry price to edit">Entry ✏️</th>
                                 <th class="py-2 px-2.5 text-right">Live LTP</th>
                                 <th class="py-2 px-2.5 text-right">Live P&L</th>
                                 <th class="py-2 px-2.5 text-right">OI & Chg%</th>
@@ -380,23 +380,29 @@
         </div>
 
         {{-- Dynamic Suggested Shift Widget --}}
-        <div id="suggested-shift-container" class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+        <div id="suggested-shift-container" class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
             
             {{-- Col 1: Diagnosis of Imbalance --}}
-            <div class="space-y-1">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Imbalance Diagnostic</div>
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    <span>Imbalance Diagnostic</span>
+                    <span id="diag-urgency-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Normal</span>
+                </div>
                 <div class="text-sm font-bold text-slate-200" id="diag-status-text">Positions are well balanced</div>
                 <p class="text-xs text-slate-400" id="diag-details-text">
-                    Current Leg Ratio: <span class="font-mono text-white font-bold" id="diag-leg-ratio">1.0 : 1.0</span> (Safe threshold &lt; 2.5:1)
+                    Current Leg Ratio: <span class="font-mono text-white font-bold" id="diag-leg-ratio">1.0 : 1.0</span> (Safe threshold &lt; 1.6:1)
                 </p>
+                <div class="text-[11px] font-mono text-cyan-400" id="diag-delta-text">
+                    Net Delta: 0.00 (Neutral)
+                </div>
             </div>
 
             {{-- Col 2: Actionable Shift Suggestion --}}
-            <div class="space-y-1 border-t md:border-t-0 md:border-l md:border-r border-slate-800/80 md:px-4">
+            <div class="space-y-1.5 border-t lg:border-t-0 lg:border-l lg:border-r border-slate-800/80 lg:px-4">
                 <div class="text-[11px] font-semibold text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                    <span>💡 Recommended Action</span>
+                    <span>💡 Recommended Loss Defense</span>
                 </div>
-                <div class="text-xs font-medium text-slate-300" id="shift-recommendation-text">
+                <div class="text-xs font-medium text-slate-200 leading-relaxed" id="shift-recommendation-text">
                     Hold position. Theta decay working smoothly.
                 </div>
                 <div class="text-[11px] text-emerald-400 font-mono font-bold" id="shift-benefit-preview">
@@ -406,13 +412,21 @@
 
             {{-- Col 3: Execute Shift Action --}}
             <div class="flex flex-col gap-2">
-                <button type="button" id="btn-preview-shift" disabled class="bg-slate-800 text-slate-500 font-bold px-4 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed">
+                {{-- Action 1: 1-Click Roll Untested Leg --}}
+                <button type="button" id="btn-preview-shift" disabled class="bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed">
                     <span>🔄 1-Click Roll Untested Leg</span>
                 </button>
-                <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
+
+                {{-- Action 2: 1-Click Buy Protection Wing --}}
+                <button type="button" id="btn-buy-hedge-wing" disabled class="bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50">
+                    <span>🛡️ 1-Click Buy Protection Wing</span>
+                </button>
+
+                {{-- Action 3: Deep Defense / Full Iron Fly --}}
+                <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1 border-t border-slate-800/60">
                     <span>Deep Defense:</span>
-                    <button type="button" id="btn-convert-ironfly" class="text-cyan-400 hover:text-cyan-300 font-bold transition underline">
-                        + Buy Wings (Iron Fly Hedge)
+                    <button type="button" id="btn-convert-ironfly" class="text-indigo-400 hover:text-indigo-300 font-bold transition underline">
+                        + Buy Both Wings (Iron Fly)
                     </button>
                 </div>
             </div>
@@ -555,6 +569,117 @@
         </div>
     </div>
 
+    {{-- ════════════════════════ 7. OPTION CHAIN ADD LEG MODAL ════════════════════════ --}}
+    <div id="modal-add-leg" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+            
+            {{-- Modal Header --}}
+            <div class="p-3.5 sm:p-4 border-b border-slate-800 bg-slate-950/70 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📋</span>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                            Option Chain Strike Selector
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            Select strikes directly from the live option chain. Recommended strikes are highlighted based on delta neutrality.
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Action (SELL/BUY) & Global Lots --}}
+                <div class="flex items-center gap-2.5">
+                    <div class="inline-flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700 text-xs">
+                        <button type="button" id="oc-action-sell" class="px-3 py-1 rounded-lg font-bold bg-rose-600 text-white shadow cursor-pointer">
+                            SELL (Short Writing)
+                        </button>
+                        <button type="button" id="oc-action-buy" class="px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white cursor-pointer">
+                            BUY (Hedge Wing)
+                        </button>
+                    </div>
+
+                    <div class="inline-flex items-center bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 text-xs font-mono">
+                        <span class="text-slate-400 mr-1.5 text-[11px]">Lots:</span>
+                        <input type="number" id="oc-default-qty" value="{{ $lotSize }}" step="{{ $lotSize }}" min="{{ $lotSize }}" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center text-emerald-400 font-bold focus:outline-none">
+                    </div>
+
+                    <button type="button" id="btn-close-add-modal" class="text-slate-400 hover:text-white text-lg font-bold p-1 ml-1 cursor-pointer">✕</button>
+                </div>
+            </div>
+
+            {{-- Market Recommendations Ribbon --}}
+            <div class="bg-slate-950/90 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-1.5 text-slate-300 font-semibold">
+                    <span>💡 Market Suggestions:</span>
+                </div>
+                <div class="flex items-center flex-wrap gap-2" id="oc-recommendations-bar">
+                    {{-- Dynamically populated with Quick 1-Click buttons --}}
+                </div>
+            </div>
+
+            {{-- Option Chain Table Container --}}
+            <div class="overflow-y-auto flex-1 overflow-x-auto p-1 sm:p-2 bg-slate-900/60">
+                <table class="w-full text-xs font-mono border-collapse min-w-[760px]">
+                    <thead class="sticky top-0 bg-slate-950 text-slate-400 border-b border-slate-800 z-10 font-sans uppercase text-[10px] tracking-wider">
+                        <tr>
+                            <th class="py-2 px-2 text-center text-emerald-400 bg-emerald-950/30">Add</th>
+                            <th class="py-2 px-2 text-center text-slate-400 bg-emerald-950/20">Lots</th>
+                            <th class="py-2 px-2 text-center text-slate-300 bg-emerald-950/20">Delta</th>
+                            <th class="py-2 px-3 text-right text-emerald-300 bg-emerald-950/20">CE Price</th>
+                            <th class="py-2 px-4 text-center text-white bg-slate-900 font-black border-x border-slate-800">Strike</th>
+                            <th class="py-2 px-3 text-left text-rose-300 bg-rose-950/20">PE Price</th>
+                            <th class="py-2 px-2 text-center text-slate-300 bg-rose-950/20">Delta</th>
+                            <th class="py-2 px-2 text-center text-slate-400 bg-rose-950/20">Lots</th>
+                            <th class="py-2 px-2 text-center text-rose-400 bg-rose-950/30">Add</th>
+                        </tr>
+                    </thead>
+                    <tbody id="oc-table-body" class="divide-y divide-slate-800/60 text-xs">
+                        {{-- Populated dynamically with strikes --}}
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="p-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> <strong>15Δ</strong>: High Safety Strangle</span>
+                    <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-cyan-400"></span> <strong>25Δ</strong>: Balanced Theta</span>
+                    <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> <strong>ATM</strong>: Maximum Decay</span>
+                </div>
+                <button type="button" id="btn-done-add-modal" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer">
+                    Done
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ════════════════════════ 8. CLEAR BASKET CONFIRMATION MODAL ════════════════════════ --}}
+    <div id="modal-clear-basket" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl border border-rose-500/30">
+                🗑️
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Clear Active Strategy Basket?</h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    This will remove all active option legs from your basket. You can deploy a fresh strategy anytime.
+                </p>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" id="btn-cancel-clear-basket" class="w-1/2 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-clear-basket" class="w-1/2 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition shadow-lg cursor-pointer">
+                    Yes, Clear Basket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ════════════════════════ 9. FLOATING TOAST NOTIFICATIONS ════════════════════════ --}}
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
 </div>
 
 {{-- ════════════════════════ JAVASCRIPT ENGINE: CHART.JS, PROTOBUF, WEBSOCKET ════════════════════════ --}}
@@ -613,6 +738,46 @@
     }
 
     // ─────────────────────────────────────────────────────────────
+    // 0. TOAST NOTIFICATION ENGINE
+    // ─────────────────────────────────────────────────────────────
+    function showToast(title, message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        const bgClass = type === 'success' 
+            ? 'bg-slate-900/95 border-emerald-500/60 text-emerald-200' 
+            : 'bg-slate-900/95 border-slate-700 text-white';
+        const icon = type === 'success' ? '✓' : 'ℹ️';
+
+        toast.className = `${bgClass} border rounded-2xl p-3.5 shadow-2xl backdrop-blur-md pointer-events-auto flex items-start gap-2.5 max-w-sm transition-all duration-300 transform translate-y-3 opacity-0 font-sans text-xs`;
+        toast.innerHTML = `
+            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold flex-shrink-0 text-xs">
+                ${icon}
+            </div>
+            <div class="flex-1">
+                <div class="font-bold text-white text-xs tracking-tight">${title}</div>
+                <div class="text-[11px] text-slate-300 mt-0.5 leading-snug whitespace-pre-line">${message}</div>
+            </div>
+            <button type="button" class="text-slate-400 hover:text-white font-bold ml-1 text-sm leading-none cursor-pointer">✕</button>
+        `;
+
+        toast.querySelector('button').onclick = () => {
+            toast.remove();
+        };
+
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.remove('translate-y-3', 'opacity-0');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-3');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // 1. BASKET STORAGE & MANAGEMENT
     // ─────────────────────────────────────────────────────────────
     function getStorageKey() {
@@ -622,19 +787,37 @@
     function loadActiveBasket() {
         try {
             const raw = localStorage.getItem(getStorageKey());
-            return raw ? JSON.parse(raw) : [];
+            const basket = raw ? JSON.parse(raw) : [];
+            // Automatically upgrade old default qty 25 to 65 for NIFTY
+            if (state.symbol === 'NIFTY' && state.lotSize === 65) {
+                let updated = false;
+                basket.forEach(l => {
+                    if (l.qty === 25) {
+                        l.qty = 65;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    localStorage.setItem(getStorageKey(), JSON.stringify(basket));
+                }
+            }
+            return basket;
         } catch (e) {
             return [];
         }
     }
 
-    function saveActiveBasket() {
+    function saveActiveBasket(shouldRenderTable = true) {
         try {
             localStorage.setItem(getStorageKey(), JSON.stringify(activeBasket));
         } catch (e) {
             console.error('Error saving basket:', e);
         }
-        renderBasketTable();
+        if (shouldRenderTable) {
+            renderBasketTable();
+        } else {
+            updateBasketLiveOnly();
+        }
         updateCorridorAndRecovery();
         renderPayoffChart();
     }
@@ -685,18 +868,106 @@
             return;
         }
 
+        let rowsHtml = '';
+        activeBasket.forEach((leg, index) => {
+            const currentLtp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
+            const legPnl = leg.action === 'SELL' ? (leg.entryPrice - currentLtp) * leg.qty : (currentLtp - leg.entryPrice) * leg.qty;
+
+            const isPnlPositive = legPnl >= 0;
+            const pnlColor = isPnlPositive ? 'text-emerald-400' : 'text-rose-400';
+            const actionBg = leg.action === 'SELL' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+            const typeColor = leg.type === 'CE' ? 'text-emerald-400' : 'text-rose-400';
+
+            let statusTag = '';
+            let quickActionButton = '';
+            if (leg.action === 'SELL') {
+                if (legPnl <= -600 || currentLtp >= (leg.entryPrice * 1.30)) {
+                    statusTag = '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🚨 TESTED</span>';
+                    quickActionButton = `<button type="button" class="btn-row-add-wing text-[10px] bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/60 text-cyan-300 px-1.5 py-0.5 rounded font-bold transition mr-1 cursor-pointer" data-strike="${leg.strike}" data-type="${leg.type}" title="Buy protection wing to cap runaway loss on this leg">+ Wing</button>`;
+                } else if (legPnl >= 350 || currentLtp <= (leg.entryPrice * 0.70)) {
+                    statusTag = '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/40">💎 DECAYED</span>';
+                    quickActionButton = `<button type="button" class="btn-row-roll-untested text-[10px] bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 px-1.5 py-0.5 rounded font-bold transition mr-1 cursor-pointer" data-index="${index}" title="Roll this decayed leg closer to spot to lock in profit and collect fresh credit">Roll Closer</button>`;
+                }
+            }
+
+            rowsHtml += `
+                <tr class="hover:bg-slate-800/40 transition">
+                    <td class="py-2 px-2.5">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${actionBg}">${leg.action}</span>
+                    </td>
+                    <td class="py-2 px-2.5 font-bold text-white text-xs">
+                        <div class="flex items-center">
+                            <span>${leg.strike}</span>
+                            ${statusTag}
+                        </div>
+                    </td>
+                    <td class="py-2 px-2.5 font-bold ${typeColor} text-xs">${leg.type}</td>
+                    <td class="py-2 px-2 text-right">
+                        <input type="number" 
+                            class="basket-qty-input w-16 bg-slate-950 border border-slate-700/80 hover:border-slate-500 rounded px-1.5 py-0.5 text-right text-slate-200 font-mono font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition text-xs" 
+                            data-index="${index}" 
+                            value="${leg.qty}" 
+                            step="${state.lotSize}" 
+                            min="${state.lotSize}"
+                            title="Edit Quantity (Shares)">
+                    </td>
+                    <td class="py-2 px-2 text-right">
+                        <div class="inline-flex items-center gap-0.5 bg-slate-950 border border-slate-700/80 hover:border-emerald-500/60 rounded px-1.5 py-0.5 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition" title="Click to edit entry price">
+                            <span class="text-slate-500 font-mono text-[11px]">₹</span>
+                            <input type="number" 
+                                class="basket-entry-input w-20 bg-transparent text-right text-emerald-400 font-mono font-bold focus:outline-none text-xs" 
+                                data-index="${index}" 
+                                value="${leg.entryPrice.toFixed(2)}" 
+                                step="0.05" 
+                                min="0.05">
+                        </div>
+                    </td>
+                    <td class="py-2 px-2.5 text-right font-bold text-cyan-300 font-mono">
+                        <span id="basket-ltp-${index}">₹${currentLtp.toFixed(2)}</span>
+                    </td>
+                    <td class="py-2 px-2.5 text-right font-extrabold font-mono">
+                        <span id="basket-pnl-${index}" class="${pnlColor}">
+                            ${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}
+                        </span>
+                    </td>
+                    <td class="py-2 px-2.5 text-right">
+                        <span class="font-bold ${leg.oiChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${leg.oiChange >= 0 ? '+' : ''}${leg.oiChange}%
+                        </span>
+                    </td>
+                    <td class="py-2 px-2.5 text-center">
+                        <span class="text-[10px] text-slate-400 font-sans">${leg.buildup || 'Neutral'}</span>
+                    </td>
+                    <td class="py-2 px-2.5 text-center">
+                        <div class="flex items-center justify-center">
+                            ${quickActionButton}
+                            <button type="button" class="btn-delete-leg text-slate-500 hover:text-rose-400 font-bold transition p-1 cursor-pointer" data-index="${index}" title="Remove Leg">
+                                ✕
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = rowsHtml;
+        updateBasketLiveOnly();
+    }
+
+    function updateBasketLiveOnly() {
+        if (!activeBasket || activeBasket.length === 0) return;
+
         let totalCredit = 0;
         let currentValue = 0;
         let totalPnl = 0;
         let totalTheta = 0;
         let totalNetDelta = 0;
 
-        let rowsHtml = '';
         activeBasket.forEach((leg, index) => {
             const currentLtp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
             const legCredit = leg.entryPrice * leg.qty;
             const legCurrVal = currentLtp * leg.qty;
-            
+
             // For SELL legs: Profit = (Entry - Current) * Qty
             // For BUY legs:  Profit = (Current - Entry) * Qty
             const legPnl = leg.action === 'SELL' ? (leg.entryPrice - currentLtp) * leg.qty : (currentLtp - leg.entryPrice) * leg.qty;
@@ -705,78 +976,122 @@
             currentValue += legCurrVal;
             totalPnl += legPnl;
 
-            // Approximate Greek estimations
-            const approxDelta = leg.type === 'CE' ? 0.35 : -0.35;
-            totalNetDelta += (leg.action === 'SELL' ? -approxDelta : approxDelta);
+            // Dynamic Delta calculation per leg
+            let legDelta = 0;
+            const strikeObj = state.strikesData ? state.strikesData.find(s => s.strike === leg.strike) : null;
+            if (strikeObj) {
+                if (leg.type === 'CE' && strikeObj.ce && strikeObj.ce.delta) {
+                    legDelta = Math.abs(strikeObj.ce.delta);
+                } else if (leg.type === 'PE' && strikeObj.pe && strikeObj.pe.delta) {
+                    legDelta = -Math.abs(strikeObj.pe.delta);
+                }
+            }
+            if (legDelta === 0) {
+                const diff = (liveSpot - leg.strike);
+                if (leg.type === 'CE') {
+                    legDelta = 1 / (1 + Math.exp(-diff / 140));
+                } else {
+                    legDelta = -(1 / (1 + Math.exp(diff / 140)));
+                }
+            }
+
+            const positionDelta = (leg.action === 'SELL' ? -legDelta : legDelta) * (leg.qty / state.lotSize);
+            totalNetDelta += positionDelta;
             totalTheta += (currentLtp * 0.12 * leg.qty);
 
             const isPnlPositive = legPnl >= 0;
-            const pnlColor = isPnlPositive ? 'text-emerald-400' : 'text-rose-400';
-            const actionBg = leg.action === 'SELL' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-            const typeColor = leg.type === 'CE' ? 'text-emerald-400' : 'text-rose-400';
+            const ltpEl = document.getElementById(`basket-ltp-${index}`);
+            if (ltpEl) {
+                ltpEl.textContent = `₹${currentLtp.toFixed(2)}`;
+            }
 
-            rowsHtml += `
-                <tr class="hover:bg-slate-800/40 transition">
-                    <td class="py-2.5 px-2.5">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${actionBg}">${leg.action}</span>
-                    </td>
-                    <td class="py-2.5 px-2.5 font-bold text-white">${leg.strike}</td>
-                    <td class="py-2.5 px-2.5 font-bold ${typeColor}">${leg.type}</td>
-                    <td class="py-2.5 px-2.5 text-right font-medium text-slate-300">${leg.qty}</td>
-                    <td class="py-2.5 px-2.5 text-right font-medium text-slate-300">₹${leg.entryPrice.toFixed(2)}</td>
-                    <td class="py-2.5 px-2.5 text-right font-bold text-cyan-300">₹${currentLtp.toFixed(2)}</td>
-                    <td class="py-2.5 px-2.5 text-right font-extrabold ${pnlColor}">
-                        ${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}
-                    </td>
-                    <td class="py-2.5 px-2.5 text-right">
-                        <span class="font-bold ${leg.oiChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${leg.oiChange >= 0 ? '+' : ''}${leg.oiChange}%
-                        </span>
-                    </td>
-                    <td class="py-2.5 px-2.5 text-center">
-                        <span class="text-[10px] text-slate-400 font-sans">${leg.buildup || 'Neutral'}</span>
-                    </td>
-                    <td class="py-2.5 px-2.5 text-center">
-                        <button type="button" class="btn-delete-leg text-slate-500 hover:text-rose-400 font-bold transition p-1" data-index="${index}" title="Remove Leg">
-                            ✕
-                        </button>
-                    </td>
-                </tr>
-            `;
+            const pnlEl = document.getElementById(`basket-pnl-${index}`);
+            if (pnlEl) {
+                pnlEl.textContent = `${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}`;
+                pnlEl.className = isPnlPositive ? 'text-emerald-400' : 'text-rose-400';
+            }
         });
 
-        tbody.innerHTML = rowsHtml;
-
         // Update Summary Cards
-        document.getElementById('basket-total-credit').textContent = `₹${totalCredit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-        document.getElementById('basket-current-value').textContent = `₹${currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-        
-        const pnlEl = document.getElementById('basket-live-pnl');
-        pnlEl.textContent = `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-        pnlEl.className = `text-base font-extrabold font-mono ${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        const creditEl = document.getElementById('basket-total-credit');
+        if (creditEl) creditEl.textContent = `₹${totalCredit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
-        document.getElementById('basket-total-theta').textContent = `+₹${Math.round(totalTheta).toLocaleString('en-IN')}/day`;
+        const valEl = document.getElementById('basket-current-value');
+        if (valEl) valEl.textContent = `₹${currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+        const pnlEl = document.getElementById('basket-live-pnl');
+        if (pnlEl) {
+            pnlEl.textContent = `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+            pnlEl.className = `text-base font-extrabold font-mono ${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+
+        const thetaEl = document.getElementById('basket-total-theta');
+        if (thetaEl) thetaEl.textContent = `+₹${Math.round(totalTheta).toLocaleString('en-IN')}/day`;
 
         // Update Decay Progress
-        const initCombined = activeBasket.reduce((sum, leg) => sum + leg.entryPrice, 0);
+        const initCombined = activeBasket.reduce((sum, leg) => sum + (leg.action === 'SELL' ? leg.entryPrice : -leg.entryPrice), 0);
         const currCombined = activeBasket.reduce((sum, leg) => {
             const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
-            return sum + ltp;
+            return sum + (leg.action === 'SELL' ? ltp : -ltp);
         }, 0);
 
-        document.getElementById('label-init-comb').textContent = `₹${initCombined.toFixed(2)}`;
-        document.getElementById('label-curr-comb').textContent = `₹${currCombined.toFixed(2)}`;
+        const initEl = document.getElementById('label-init-comb');
+        if (initEl) initEl.textContent = `₹${initCombined.toFixed(2)}`;
+
+        const currEl = document.getElementById('label-curr-comb');
+        if (currEl) currEl.textContent = `₹${currCombined.toFixed(2)}`;
 
         const decayPct = initCombined > 0 ? Math.max(0, Math.min(100, Math.round(((initCombined - currCombined) / initCombined) * 100))) : 0;
-        document.getElementById('decay-pct-badge').textContent = `${decayPct}% Decayed`;
-        document.getElementById('decay-progress-bar').style.width = `${decayPct}%`;
-        document.getElementById('label-profit-captured').textContent = `${decayPct}%`;
+        const decayBadge = document.getElementById('decay-pct-badge');
+        if (decayBadge) decayBadge.textContent = `${decayPct}% Decayed`;
+
+        const decayBar = document.getElementById('decay-progress-bar');
+        if (decayBar) decayBar.style.width = `${decayPct}%`;
+
+        const capEl = document.getElementById('label-profit-captured');
+        if (capEl) capEl.textContent = `${decayPct}%`;
 
         // Update Live Greeks Cards
-        document.getElementById('greek-net-delta').textContent = totalNetDelta.toFixed(2);
-        document.getElementById('greek-net-theta').textContent = `+${Math.round(totalTheta)}`;
-        document.getElementById('greek-net-vega').textContent = `-${Math.round(totalCredit * 0.08)}`;
-        document.getElementById('greek-net-gamma').textContent = `-0.0012`;
+        const deltaEl = document.getElementById('greek-net-delta');
+        if (deltaEl) deltaEl.textContent = `${totalNetDelta >= 0 ? '+' : ''}${totalNetDelta.toFixed(2)}`;
+
+        // Update Top Corridor Net Delta Skew
+        const metricDeltaEl = document.getElementById('metric-net-delta');
+        if (metricDeltaEl) {
+            metricDeltaEl.textContent = `${totalNetDelta >= 0 ? '+' : ''}${totalNetDelta.toFixed(2)}`;
+            metricDeltaEl.className = `text-lg font-extrabold font-mono ${Math.abs(totalNetDelta) <= 0.15 ? 'text-cyan-400' : (totalNetDelta > 0 ? 'text-emerald-400' : 'text-rose-400')}`;
+        }
+
+        const metricDeltaLabel = document.getElementById('metric-net-delta-label');
+        if (metricDeltaLabel) {
+            if (Math.abs(totalNetDelta) <= 0.15) {
+                metricDeltaLabel.textContent = '(Neutral)';
+                metricDeltaLabel.className = 'text-xs text-slate-400 font-semibold';
+            } else if (totalNetDelta > 0.15) {
+                metricDeltaLabel.textContent = '(Bullish / PE Decayed)';
+                metricDeltaLabel.className = 'text-xs text-emerald-400 font-bold';
+            } else {
+                metricDeltaLabel.textContent = '(Short Call Stress / Rally ⚠️)';
+                metricDeltaLabel.className = 'text-xs text-rose-400 font-bold';
+            }
+        }
+
+        const diagDeltaEl = document.getElementById('diag-delta-text');
+        if (diagDeltaEl) {
+            diagDeltaEl.textContent = `Net Delta: ${totalNetDelta >= 0 ? '+' : ''}${totalNetDelta.toFixed(2)} (${Math.abs(totalNetDelta) <= 0.15 ? 'Neutral' : (totalNetDelta > 0 ? 'Bullish Skew' : 'Bearish / Call Stress')})`;
+            diagDeltaEl.className = `text-[11px] font-mono font-bold ${Math.abs(totalNetDelta) <= 0.15 ? 'text-cyan-400' : (totalNetDelta > 0 ? 'text-emerald-400' : 'text-rose-400')}`;
+        }
+
+        const greekThetaEl = document.getElementById('greek-net-theta');
+        if (greekThetaEl) greekThetaEl.textContent = `+${Math.round(totalTheta)}`;
+
+        const vegaEl = document.getElementById('greek-net-vega');
+        if (vegaEl) vegaEl.textContent = `-${Math.round(totalCredit * 0.08)}`;
+
+        const gammaEl = document.getElementById('greek-net-gamma');
+        if (gammaEl) gammaEl.textContent = `-0.0012`;
+
+        updateCorridorAndRecovery();
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -791,7 +1106,7 @@
         const peLegs = activeBasket.filter(l => l.type === 'PE' && l.action === 'SELL');
         const ceLegs = activeBasket.filter(l => l.type === 'CE' && l.action === 'SELL');
 
-        const combinedCredit = activeBasket.reduce((sum, l) => sum + l.entryPrice, 0);
+        const combinedCredit = activeBasket.reduce((sum, l) => sum + (l.action === 'SELL' ? l.entryPrice : -l.entryPrice), 0);
 
         const peStrike = peLegs.length > 0 ? Math.min(...peLegs.map(l => l.strike)) : (state.atmStrike - 200);
         const ceStrike = ceLegs.length > 0 ? Math.max(...ceLegs.map(l => l.strike)) : (state.atmStrike + 200);
@@ -865,76 +1180,248 @@
         document.getElementById('vix-band-pts').textContent = Math.round(liveVix1Day);
 
         // Update Recovery Diagnostic & Imbalance Checker
-        checkRecoveryDiagnosis(peLegs, ceLegs, distToLower, distToUpper);
+        checkRecoveryDiagnosis(distToLower, distToUpper);
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 4. SHIFT & RECOVERY ADVISOR (OPPOSITE MOVE DEFENSE)
+    // 4. SHIFT & RECOVERY ADVISOR (THE ACTIVE LOSS RECOVERY ENGINE)
     // ─────────────────────────────────────────────────────────────
-    function checkRecoveryDiagnosis(peLegs, ceLegs, distToLower, distToUpper) {
+    function checkRecoveryDiagnosis(distToLower = 400, distToUpper = 400) {
         const diagStatus = document.getElementById('diag-status-text');
         const diagRatio = document.getElementById('diag-leg-ratio');
         const diagRec = document.getElementById('shift-recommendation-text');
         const diagBenefit = document.getElementById('shift-benefit-preview');
         const triggerBadge = document.getElementById('shift-trigger-indicator');
+        const urgencyBadge = document.getElementById('diag-urgency-badge');
         const btnShift = document.getElementById('btn-preview-shift');
+        const btnHedge = document.getElementById('btn-buy-hedge-wing');
         const stratBadge = document.getElementById('strategy-status-badge');
 
-        if (peLegs.length === 0 || ceLegs.length === 0) {
-            diagStatus.textContent = 'Awaiting multi-leg deployment';
+        if (!activeBasket || activeBasket.length === 0) {
+            if (diagStatus) diagStatus.textContent = 'Awaiting strategy basket deployment';
             return;
         }
 
-        const peLtp = livePrices[peLegs[0].instrumentKey] !== undefined ? livePrices[peLegs[0].instrumentKey] : peLegs[0].entryPrice;
-        const ceLtp = livePrices[ceLegs[0].instrumentKey] !== undefined ? livePrices[ceLegs[0].instrumentKey] : ceLegs[0].entryPrice;
+        const shortLegs = activeBasket.filter(l => l.action === 'SELL');
+        const shortCeLegs = shortLegs.filter(l => l.type === 'CE');
+        const shortPeLegs = shortLegs.filter(l => l.type === 'PE');
 
-        const ratio = peLtp > ceLtp ? (peLtp / Math.max(1, ceLtp)) : (ceLtp / Math.max(1, peLtp));
-        const isUpMove = ceLtp > peLtp; // Call expanding, Put decaying
-        const isDownMove = peLtp > ceLtp; // Put expanding, Call decaying
+        if (shortCeLegs.length === 0 && shortPeLegs.length === 0) {
+            if (diagStatus) diagStatus.textContent = 'No short legs active in basket';
+            return;
+        }
 
-        diagRatio.textContent = isUpMove ? `1.0 : ${ratio.toFixed(1)} (CE Dominant)` : `${ratio.toFixed(1)} : 1.0 (PE Dominant)`;
+        // Calculate P&L and metrics for every short leg
+        let totalPnl = 0;
+        let totalCredit = 0;
+        const evaluatedShorts = shortLegs.map((leg, index) => {
+            const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
+            const pnl = (leg.entryPrice - ltp) * leg.qty;
+            const pnlPct = ((leg.entryPrice - ltp) / leg.entryPrice) * 100;
+            totalPnl += pnl;
+            totalCredit += (leg.entryPrice * leg.qty);
+            return {
+                ...leg,
+                index,
+                ltp,
+                pnl,
+                pnlPct
+            };
+        });
 
-        // Ratio Triggers
-        if (ratio >= 2.5 || distToLower < 80 || distToUpper < 80) {
-            // ACTION REQUIRED
-            stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
-            stratBadge.textContent = '⚠️ ADJUSTMENT RECOMMENDED';
+        // Group evaluated legs by CE and PE
+        const evCe = evaluatedShorts.filter(l => l.type === 'CE');
+        const evPe = evaluatedShorts.filter(l => l.type === 'PE');
 
-            triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 animate-pulse';
-            triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-amber-400"></span><span>Trigger Active (Ratio > 2.5x)</span>`;
+        // Worst losing leg (Tested leg)
+        let worstCe = evCe.length > 0 ? evCe.reduce((min, l) => l.pnl < min.pnl ? l : min, evCe[0]) : null;
+        let worstPe = evPe.length > 0 ? evPe.reduce((min, l) => l.pnl < min.pnl ? l : min, evPe[0]) : null;
 
-            btnShift.disabled = false;
-            btnShift.className = 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer';
+        // Best decayed leg (Untested leg with profit)
+        let bestCe = evCe.length > 0 ? evCe.reduce((max, l) => l.pnl > max.pnl ? l : max, evCe[0]) : null;
+        let bestPe = evPe.length > 0 ? evPe.reduce((max, l) => l.pnl > max.pnl ? l : max, evPe[0]) : null;
 
-            if (isUpMove) {
-                const decayedPe = peLegs[0];
-                const suggestedNewPeStrike = decayedPe.strike + (state.strikeStep * 2);
-                diagStatus.textContent = `Market Rallying: PE has decayed to ₹${peLtp.toFixed(1)}`;
-                diagRec.textContent = `Roll Untested ${decayedPe.strike} PE ➔ ${suggestedNewPeStrike} PE to book +₹${(decayedPe.entryPrice - peLtp).toFixed(1)} profit and collect fresh credit.`;
-                diagBenefit.textContent = `★ Extends Upper Breakeven by +55 pts & restores Delta to 0`;
-                btnShift.onclick = () => executeRoll(decayedPe, suggestedNewPeStrike, 'PE');
-            } else {
-                const decayedCe = ceLegs[0];
-                const suggestedNewCeStrike = decayedCe.strike - (state.strikeStep * 2);
-                diagStatus.textContent = `Market Dropping: CE has decayed to ₹${ceLtp.toFixed(1)}`;
-                diagRec.textContent = `Roll Untested ${decayedCe.strike} CE ➔ ${suggestedNewCeStrike} CE to book +₹${(decayedCe.entryPrice - ceLtp).toFixed(1)} profit and collect fresh credit.`;
-                diagBenefit.textContent = `★ Extends Lower Breakeven by +55 pts & restores Delta to 0`;
-                btnShift.onclick = () => executeRoll(decayedCe, suggestedNewCeStrike, 'CE');
+        const cePnlSum = evCe.reduce((s, l) => s + l.pnl, 0);
+        const pePnlSum = evPe.reduce((s, l) => s + l.pnl, 0);
+
+        // Determine Directional Pressure Side
+        const isUpStress = cePnlSum < pePnlSum; // Call side has worse loss
+        const testedLeg = isUpStress ? worstCe : worstPe;
+        const decayedLeg = isUpStress ? bestPe : bestCe;
+
+        // Ratio between tested leg LTP and decayed leg LTP
+        let ratio = 1.0;
+        if (testedLeg && decayedLeg) {
+            const highLtp = Math.max(testedLeg.ltp, decayedLeg.ltp);
+            const lowLtp = Math.max(0.1, Math.min(testedLeg.ltp, decayedLeg.ltp));
+            ratio = highLtp / lowLtp;
+        }
+
+        if (diagRatio) {
+            diagRatio.textContent = isUpStress 
+                ? `1.0 : ${ratio.toFixed(1)} (CE Dominant)`
+                : `${ratio.toFixed(1)} : 1.0 (PE Dominant)`;
+        }
+
+        // Trigger Checks:
+        // 1. Total Strategy Loss < -₹500
+        // 2. Tested leg loss < -₹800 or premium expanded > 30%
+        // 3. Ratio between tested and decayed leg >= 1.6
+        // 4. Proximity to upper/lower breakeven < 150 pts
+        const isLoss = totalPnl < -500;
+        const isSevereLoss = totalPnl < -1800;
+        const isSkewed = ratio >= 1.6;
+        const isLegBlowout = testedLeg && (testedLeg.pnl < -800 || testedLeg.ltp >= (testedLeg.entryPrice * 1.30));
+        const isNearBE = (isUpStress && distToUpper < 150) || (!isUpStress && distToLower < 150);
+
+        const isActionRequired = isLoss || isSkewed || isLegBlowout || isNearBE;
+
+        if (isActionRequired && testedLeg && decayedLeg) {
+            // Urgency badge
+            if (urgencyBadge) {
+                urgencyBadge.textContent = isSevereLoss ? '🚨 HIGH DEFENSE' : '⚠️ ADJUSTMENT NEEDED';
+                urgencyBadge.className = isSevereLoss 
+                    ? 'px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-600 text-white animate-pulse'
+                    : 'px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500 text-slate-950 animate-pulse';
             }
+
+            if (stratBadge) {
+                stratBadge.className = isSevereLoss 
+                    ? 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                    : 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+                stratBadge.textContent = `⚠️ ADJUSTMENT REQUIRED (P&L -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})`;
+            }
+
+            if (triggerBadge) {
+                triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 animate-pulse';
+                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>Defense Triggered: ${isUpStress ? 'Call Under Stress' : 'Put Under Stress'} (Loss -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})</span>`;
+            }
+
+            // Diagnostic status
+            if (diagStatus) {
+                diagStatus.textContent = isUpStress 
+                    ? `Market Rally Stress: Tested ${testedLeg.strike} CE (LTP ₹${testedLeg.ltp.toFixed(1)}, Loss -₹${Math.round(Math.abs(testedLeg.pnl)).toLocaleString('en-IN')})`
+                    : `Market Drop Stress: Tested ${testedLeg.strike} PE (LTP ₹${testedLeg.ltp.toFixed(1)}, Loss -₹${Math.round(Math.abs(testedLeg.pnl)).toLocaleString('en-IN')})`;
+                diagStatus.className = 'text-sm font-extrabold text-rose-300';
+            }
+
+            // Suggested new strike for rolling the decayed untested leg closer to ATM
+            let suggestedRollStrike;
+            if (isUpStress) {
+                suggestedRollStrike = Math.min(state.atmStrike - state.strikeStep, decayedLeg.strike + (state.strikeStep * 3));
+                if (suggestedRollStrike <= decayedLeg.strike) {
+                    suggestedRollStrike = decayedLeg.strike + (state.strikeStep * 2);
+                }
+            } else {
+                suggestedRollStrike = Math.max(state.atmStrike + state.strikeStep, decayedLeg.strike - (state.strikeStep * 3));
+                if (suggestedRollStrike >= decayedLeg.strike) {
+                    suggestedRollStrike = decayedLeg.strike - (state.strikeStep * 2);
+                }
+            }
+
+            // Find price of suggested roll strike from strikesData
+            const rollStrikeObj = state.strikesData.find(s => s.strike === suggestedRollStrike);
+            const rollInst = rollStrikeObj ? (isUpStress ? rollStrikeObj.pe : rollStrikeObj.ce) : null;
+            const rollKey = rollInst ? rollInst.instrument_key : null;
+            const rollPrice = rollInst && rollInst.ltp > 0 ? rollInst.ltp : (livePrices[rollKey] || 65);
+
+            // Suggested protective wing to buy
+            let suggestedWingStrike;
+            if (isUpStress) {
+                suggestedWingStrike = testedLeg.strike + (state.strikeStep * 3);
+            } else {
+                suggestedWingStrike = testedLeg.strike - (state.strikeStep * 3);
+            }
+
+            const wingStrikeObj = state.strikesData.find(s => s.strike === suggestedWingStrike);
+            const wingInst = wingStrikeObj ? (isUpStress ? wingStrikeObj.ce : wingStrikeObj.pe) : null;
+            const wingKey = wingInst ? wingInst.instrument_key : null;
+            const wingPrice = wingInst && wingInst.ltp > 0 ? wingInst.ltp : (livePrices[wingKey] || 20);
+
+            // Estimated fresh credit & locked profit
+            const bookedProfit = Math.round(decayedLeg.pnl);
+            const freshCredit = Math.round(rollPrice * decayedLeg.qty);
+
+            if (diagRec) {
+                diagRec.innerHTML = `
+                    <div class="space-y-1.5">
+                        <div class="font-bold text-white text-xs">
+                            <span class="text-emerald-400">Step 1 (Recover Loss):</span> Roll untested <span class="text-cyan-300 font-mono font-bold">${decayedLeg.strike} ${decayedLeg.type}</span> ➔ <span class="text-emerald-400 font-mono font-bold">${suggestedRollStrike} ${decayedLeg.type}</span> (@ ~₹${rollPrice.toFixed(1)}).
+                        </div>
+                        <div class="text-[11px] text-slate-300 pl-2 border-l-2 border-emerald-500/40">
+                            • Locks in <span class="text-emerald-400 font-bold">+₹${bookedProfit.toLocaleString('en-IN')}</span> profit from decayed leg.<br>
+                            • Collects fresh <span class="text-cyan-300 font-bold">+₹${freshCredit.toLocaleString('en-IN')}</span> credit to offset CE loss.
+                        </div>
+                        <div class="font-bold text-white text-xs pt-0.5">
+                            <span class="text-cyan-400">Step 2 (Cap Risk):</span> Buy <span class="text-cyan-300 font-mono font-bold">${suggestedWingStrike} ${testedLeg.type}</span> Wing (@ ~₹${wingPrice.toFixed(1)}) to cap runaway upside risk.
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (diagBenefit) {
+                diagBenefit.textContent = `★ Cuts deficit by +₹${(freshCredit + bookedProfit).toLocaleString('en-IN')} & restores Delta to Neutral`;
+            }
+
+            // Enable 1-Click Roll Button
+            if (btnShift) {
+                btnShift.disabled = false;
+                btnShift.className = 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5 cursor-pointer';
+                btnShift.innerHTML = `<span>🔄 1-Click Roll ${decayedLeg.strike} ${decayedLeg.type} ➔ ${suggestedRollStrike} ${decayedLeg.type}</span>`;
+                btnShift.onclick = () => executeRoll(decayedLeg, suggestedRollStrike, decayedLeg.type);
+            }
+
+            // Enable 1-Click Protection Wing Button
+            if (btnHedge) {
+                btnHedge.disabled = false;
+                btnHedge.className = 'bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer opacity-100';
+                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy ${suggestedWingStrike} ${testedLeg.type} Wing (@ ₹${wingPrice.toFixed(1)})</span>`;
+                btnHedge.onclick = () => executeBuyWing(suggestedWingStrike, testedLeg.type, wingPrice, wingKey);
+            }
+
         } else {
-            // ALL CLEAR
-            stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-            stratBadge.textContent = '✅ SAFE & BALANCED';
+            // ALL CLEAR / SAFE
+            if (urgencyBadge) {
+                urgencyBadge.textContent = 'Normal';
+                urgencyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+            }
 
-            triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
-            triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>No Adjustment Needed (Ratio Balanced)</span>`;
+            if (stratBadge) {
+                stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                stratBadge.textContent = '✅ SAFE & BALANCED';
+            }
 
-            btnShift.disabled = true;
-            btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-4 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
+            if (triggerBadge) {
+                triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
+                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>No Adjustment Needed (Ratio Balanced)</span>`;
+            }
 
-            diagStatus.textContent = 'Strategy running inside optimal decay corridor';
-            diagRec.textContent = 'Hold position. Both legs are decaying symmetrically with no directional stress.';
-            diagBenefit.textContent = 'Theta decay adding steadily to daily P&L';
+            if (btnShift) {
+                btnShift.disabled = true;
+                btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
+                btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
+                btnShift.onclick = null;
+            }
+
+            if (btnHedge) {
+                btnHedge.disabled = true;
+                btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
+                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
+                btnHedge.onclick = null;
+            }
+
+            if (diagStatus) {
+                diagStatus.textContent = 'Strategy running inside optimal decay corridor';
+                diagStatus.className = 'text-sm font-bold text-slate-200';
+            }
+
+            if (diagRec) {
+                diagRec.textContent = 'Hold position. Both legs are decaying symmetrically with no directional stress.';
+            }
+
+            if (diagBenefit) {
+                diagBenefit.textContent = 'Theta decay adding steadily to daily P&L';
+            }
         }
     }
 
@@ -946,7 +1433,7 @@
         const newPrice = newInst && newInst.ltp > 0 ? newInst.ltp : (livePrices[newKey] || 45);
 
         // Remove old decayed leg, insert new shifted leg
-        activeBasket = activeBasket.filter(l => l.id !== oldLeg.id);
+        activeBasket = activeBasket.filter(l => l.id !== oldLeg.id && !(l.strike === oldLeg.strike && l.type === oldLeg.type && l.action === oldLeg.action));
         activeBasket.push({
             id: `${type}_${newStrike}_${Date.now()}`,
             action: 'SELL',
@@ -956,11 +1443,38 @@
             entryPrice: newPrice,
             instrumentKey: newKey,
             oiChange: newInst ? newInst.oi_change_pct : 0,
-            buildup: newInst ? newInst.buildup : 'Neutral'
+            buildup: newInst ? newInst.buildup : 'Shifted Leg'
         });
 
-        saveActiveBasket();
-        alert(`Successfully rolled untested ${oldLeg.strike} ${type} to ${newStrike} ${type}!\n\nFresh credit collected: ₹${newPrice.toFixed(2)}\nSafety corridor widened.`);
+        if (newKey && !state.allInstrumentKeys.includes(newKey)) {
+            state.allInstrumentKeys.push(newKey);
+            subscribeKeys();
+        }
+
+        saveActiveBasket(true);
+        showToast('Strike Rolled Successfully', `Rolled untested ${oldLeg.strike} ${type} ➔ ${newStrike} ${type}.\nFresh credit collected: ₹${newPrice.toFixed(2)} | Delta restored to neutral.`, 'success');
+    }
+
+    function executeBuyWing(strike, type, price, key = null) {
+        activeBasket.push({
+            id: `BUY_${type}_${strike}_${Date.now()}`,
+            action: 'BUY',
+            strike: strike,
+            type: type,
+            qty: state.lotSize,
+            entryPrice: price > 0 ? price : 20,
+            instrumentKey: key,
+            oiChange: 0,
+            buildup: 'Protective Wing'
+        });
+
+        if (key && !state.allInstrumentKeys.includes(key)) {
+            state.allInstrumentKeys.push(key);
+            subscribeKeys();
+        }
+
+        saveActiveBasket(true);
+        showToast('Hedge Wing Deployed', `Bought ${strike} ${type} @ ₹${price.toFixed(2)}.\nCapped runaway risk. Strategy converted to defined-risk Iron Condor!`, 'success');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1186,8 +1700,7 @@
                 if (updated) {
                     tickCount++;
                     document.getElementById('tick-counter').textContent = `${tickCount} ticks`;
-                    renderBasketTable();
-                    updateCorridorAndRecovery();
+                    updateBasketLiveOnly();
                 }
             }
         } catch (e) {
@@ -1234,21 +1747,548 @@
             });
         });
 
-        // Delete Leg from Basket
+        // Basket Click Actions: Delete Leg, In-Row Hedge Wing, and In-Row Roll Closer
         document.getElementById('basket-table-body').addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-delete-leg');
-            if (btn) {
-                const idx = parseInt(btn.dataset.index, 10);
+            const btnDel = e.target.closest('.btn-delete-leg');
+            if (btnDel) {
+                const idx = parseInt(btnDel.dataset.index, 10);
                 activeBasket.splice(idx, 1);
-                saveActiveBasket();
+                saveActiveBasket(true);
+                return;
+            }
+
+            const btnWing = e.target.closest('.btn-row-add-wing');
+            if (btnWing) {
+                const strike = parseInt(btnWing.dataset.strike, 10);
+                const type = btnWing.dataset.type;
+                const wingStrike = type === 'CE' ? (strike + state.strikeStep * 3) : (strike - state.strikeStep * 3);
+                const wingObj = state.strikesData.find(s => s.strike === wingStrike);
+                const wingInst = wingObj ? (type === 'CE' ? wingObj.ce : wingObj.pe) : null;
+                const wingPrice = wingInst && wingInst.ltp > 0 ? wingInst.ltp : (livePrices[wingInst?.instrument_key] || 20);
+                executeBuyWing(wingStrike, type, wingPrice, wingInst?.instrument_key || null);
+                return;
+            }
+
+            const btnRoll = e.target.closest('.btn-row-roll-untested');
+            if (btnRoll) {
+                const idx = parseInt(btnRoll.dataset.index, 10);
+                const leg = activeBasket[idx];
+                if (leg) {
+                    const newStrike = leg.type === 'PE'
+                        ? Math.min(state.atmStrike - state.strikeStep, leg.strike + (state.strikeStep * 2))
+                        : Math.max(state.atmStrike + state.strikeStep, leg.strike - (state.strikeStep * 2));
+                    executeRoll(leg, newStrike, leg.type);
+                }
+                return;
             }
         });
 
-        // Clear Basket
+        // Inline Real-Time Edit Entry Price & Quantity in Active Basket Table
+        const basketTableBody = document.getElementById('basket-table-body');
+
+        // 1. Real-time typing response without destroying inputs or focus
+        basketTableBody.addEventListener('input', (e) => {
+            const entryInp = e.target.closest('.basket-entry-input');
+            if (entryInp) {
+                const idx = parseInt(entryInp.dataset.index, 10);
+                const val = parseFloat(entryInp.value);
+                if (!isNaN(val) && val > 0 && activeBasket[idx]) {
+                    activeBasket[idx].entryPrice = val;
+                    try {
+                        localStorage.setItem(getStorageKey(), JSON.stringify(activeBasket));
+                    } catch (err) {}
+                    updateBasketLiveOnly();
+                    renderPayoffChart();
+                }
+            }
+
+            const qtyInp = e.target.closest('.basket-qty-input');
+            if (qtyInp) {
+                const idx = parseInt(qtyInp.dataset.index, 10);
+                const val = parseInt(qtyInp.value, 10);
+                if (!isNaN(val) && val > 0 && activeBasket[idx]) {
+                    activeBasket[idx].qty = val;
+                    try {
+                        localStorage.setItem(getStorageKey(), JSON.stringify(activeBasket));
+                    } catch (err) {}
+                    updateBasketLiveOnly();
+                    renderPayoffChart();
+                }
+            }
+        });
+
+        // 2. Commit and format on blur / change
+        basketTableBody.addEventListener('change', (e) => {
+            const entryInp = e.target.closest('.basket-entry-input');
+            if (entryInp) {
+                const idx = parseInt(entryInp.dataset.index, 10);
+                const val = parseFloat(entryInp.value);
+                if (!isNaN(val) && val > 0 && activeBasket[idx]) {
+                    activeBasket[idx].entryPrice = val;
+                    entryInp.value = val.toFixed(2);
+                    saveActiveBasket(false); // false = do not re-render table DOM
+                    showToast('Entry Price Saved', `Strike ${activeBasket[idx].strike} ${activeBasket[idx].type} entry set to ₹${val.toFixed(2)}`, 'success');
+                } else if (activeBasket[idx]) {
+                    entryInp.value = activeBasket[idx].entryPrice.toFixed(2);
+                }
+            }
+
+            const qtyInp = e.target.closest('.basket-qty-input');
+            if (qtyInp) {
+                const idx = parseInt(qtyInp.dataset.index, 10);
+                const val = parseInt(qtyInp.value, 10);
+                if (!isNaN(val) && val > 0 && activeBasket[idx]) {
+                    activeBasket[idx].qty = val;
+                    saveActiveBasket(false); // false = do not re-render table DOM
+                    showToast('Quantity Saved', `Strike ${activeBasket[idx].strike} ${activeBasket[idx].type} qty set to ${val} shares`, 'success');
+                } else if (activeBasket[idx]) {
+                    qtyInp.value = activeBasket[idx].qty;
+                }
+            }
+        });
+
+        // 3. Pressing Enter cleanly commits and unfocuses
+        basketTableBody.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const inp = e.target.closest('.basket-entry-input, .basket-qty-input');
+                if (inp) {
+                    inp.blur();
+                }
+            }
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        // 8. CLEAR BASKET CUSTOM MODAL
+        // ─────────────────────────────────────────────────────────────
+        const modalClear = document.getElementById('modal-clear-basket');
         document.getElementById('btn-clear-basket').addEventListener('click', () => {
-            if (confirm('Clear active basket?')) {
-                activeBasket = [];
+            modalClear.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-cancel-clear-basket').addEventListener('click', () => {
+            modalClear.classList.add('hidden');
+        });
+
+        modalClear.addEventListener('click', (e) => {
+            if (e.target === modalClear) modalClear.classList.add('hidden');
+        });
+
+        document.getElementById('btn-confirm-clear-basket').addEventListener('click', () => {
+            activeBasket = [];
+            saveActiveBasket();
+            modalClear.classList.add('hidden');
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        // 9. OPTION CHAIN ADD LEG MODAL
+        // ─────────────────────────────────────────────────────────────
+        const addModal = document.getElementById('modal-add-leg');
+        const ocTableBody = document.getElementById('oc-table-body');
+        const ocDefaultQtyInput = document.getElementById('oc-default-qty');
+        const btnOcSell = document.getElementById('oc-action-sell');
+        const btnOcBuy = document.getElementById('oc-action-buy');
+        const recommendationsBar = document.getElementById('oc-recommendations-bar');
+
+        let ocAction = 'SELL'; // default SELL (option writing)
+
+        // Action toggle
+        btnOcSell.addEventListener('click', () => {
+            ocAction = 'SELL';
+            btnOcSell.className = 'px-3 py-1 rounded-lg font-bold bg-rose-600 text-white shadow cursor-pointer';
+            btnOcBuy.className = 'px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white cursor-pointer';
+            renderOptionChainTable();
+        });
+
+        btnOcBuy.addEventListener('click', () => {
+            ocAction = 'BUY';
+            btnOcBuy.className = 'px-3 py-1 rounded-lg font-bold bg-emerald-600 text-white shadow cursor-pointer';
+            btnOcSell.className = 'px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white cursor-pointer';
+            renderOptionChainTable();
+        });
+
+        // Global Lots sync
+        ocDefaultQtyInput.addEventListener('input', (e) => {
+            const qty = parseInt(e.target.value, 10) || state.lotSize;
+            document.querySelectorAll('.oc-lots-input').forEach(inp => inp.value = qty);
+        });
+
+        // Open Modal
+        document.getElementById('btn-add-custom-leg').addEventListener('click', () => {
+            renderOptionChainTable();
+            addModal.classList.remove('hidden');
+        });
+
+        // Close Modal
+        document.getElementById('btn-close-add-modal').addEventListener('click', () => {
+            addModal.classList.add('hidden');
+        });
+        document.getElementById('btn-done-add-modal').addEventListener('click', () => {
+            addModal.classList.add('hidden');
+        });
+        addModal.addEventListener('click', (e) => {
+            if (e.target === addModal) addModal.classList.add('hidden');
+        });
+
+        // Calculate Market Suggested Strikes
+        function getMarketRecommendations() {
+            let safeCe = null, safePe = null;
+            let balCe = null, balPe = null;
+            let eqCe = null, eqPe = null;
+            let minDiffSafeCe = 999, minDiffSafePe = 999;
+            let minDiffBalCe = 999, minDiffBalPe = 999;
+            let minEqDiff = 999;
+
+            state.strikesData.forEach(item => {
+                const ce = item.ce;
+                const pe = item.pe;
+
+                if (ce && ce.delta) {
+                    const diffSafe = Math.abs(ce.delta - 0.18);
+                    if (diffSafe < minDiffSafeCe) { minDiffSafeCe = diffSafe; safeCe = item.strike; }
+
+                    const diffBal = Math.abs(ce.delta - 0.25);
+                    if (diffBal < minDiffBalCe) { minDiffBalCe = diffBal; balCe = item.strike; }
+                }
+
+                if (pe && pe.delta) {
+                    const diffSafe = Math.abs(Math.abs(pe.delta) - 0.18);
+                    if (diffSafe < minDiffSafePe) { minDiffSafePe = diffSafe; safePe = item.strike; }
+
+                    const diffBal = Math.abs(Math.abs(pe.delta) - 0.25);
+                    if (diffBal < minDiffBalPe) { minDiffBalPe = diffBal; balPe = item.strike; }
+                }
+
+                if (ce && pe && ce.ltp > 5 && pe.ltp > 5) {
+                    const diff = Math.abs(ce.ltp - pe.ltp);
+                    if (diff < minEqDiff) { minEqDiff = diff; eqCe = item.strike; eqPe = item.strike; }
+                }
+            });
+
+            return {
+                atm: state.atmStrike,
+                safeCe: safeCe || (state.atmStrike + (state.strikeStep * 4)),
+                safePe: safePe || (state.atmStrike - (state.strikeStep * 4)),
+                balCe: balCe || (state.atmStrike + (state.strikeStep * 2)),
+                balPe: balPe || (state.atmStrike - (state.strikeStep * 2)),
+                eqCe: eqCe || state.atmStrike,
+                eqPe: eqPe || state.atmStrike
+            };
+        }
+
+        // Render Option Chain Table & Suggestions
+        function renderOptionChainTable() {
+            const rec = getMarketRecommendations();
+            const defaultQty = parseInt(ocDefaultQtyInput.value, 10) || state.lotSize;
+
+            // Render Top Suggestions Bar
+            recommendationsBar.innerHTML = `
+                <button type="button" class="btn-quick-rec px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold transition flex items-center gap-1 cursor-pointer" data-ce="${rec.atm}" data-pe="${rec.atm}" title="Maximum time decay at ATM">
+                    🎯 ATM Straddle (${rec.atm})
+                </button>
+                <button type="button" class="btn-quick-rec px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold transition flex items-center gap-1 cursor-pointer" data-ce="${rec.safeCe}" data-pe="${rec.safePe}" title="High Probability (~85%) Safe Strangle">
+                    🛡️ Recommended Safe (15Δ: ${rec.safePe} PE / ${rec.safeCe} CE)
+                </button>
+                <button type="button" class="btn-quick-rec px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 font-bold transition flex items-center gap-1 cursor-pointer" data-ce="${rec.balCe}" data-pe="${rec.balPe}" title="Optimal Balanced Strangle">
+                    ⚖️ Balanced (25Δ: ${rec.balPe} PE / ${rec.balCe} CE)
+                </button>
+            `;
+
+            // Render Table Rows
+            let rowsHtml = '';
+            state.strikesData.forEach(item => {
+                const strike = item.strike;
+                const isAtm = item.is_atm;
+                const isSafeCe = strike === rec.safeCe;
+                const isSafePe = strike === rec.safePe;
+                const isBalCe = strike === rec.balCe;
+                const isBalPe = strike === rec.balPe;
+
+                const ce = item.ce;
+                const pe = item.pe;
+
+                const ceLtp = ce && ce.instrument_key && livePrices[ce.instrument_key] !== undefined ? livePrices[ce.instrument_key] : (ce?.ltp || 0);
+                const peLtp = pe && pe.instrument_key && livePrices[pe.instrument_key] !== undefined ? livePrices[pe.instrument_key] : (pe?.ltp || 0);
+
+                const ceDelta = ce?.delta !== undefined ? ce.delta : 0.50;
+                const peDelta = pe?.delta !== undefined ? pe.delta : -0.50;
+
+                const ceOiChg = ce?.oi_change_pct || 0;
+                const peOiChg = pe?.oi_change_pct || 0;
+
+                const ceBuildup = ce?.buildup || 'Neutral';
+                const peBuildup = pe?.buildup || 'Neutral';
+
+                const addBtnColor = ocAction === 'SELL' ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white';
+
+                rowsHtml += `
+                    <tr class="hover:bg-slate-800/50 transition ${isAtm ? 'bg-amber-950/20' : ''}">
+                        {{-- 1. ADD CE BUTTON --}}
+                        <td class="py-2 px-2 text-center bg-emerald-950/20">
+                            <button type="button" 
+                                class="btn-oc-add-ce px-2.5 py-1 rounded-lg font-bold text-[11px] ${addBtnColor} shadow transition cursor-pointer"
+                                data-strike="${strike}"
+                                data-key="${ce?.instrument_key || ''}"
+                                data-price="${ceLtp}">
+                                + Add
+                            </button>
+                        </td>
+
+                        {{-- 2. CE LOTS --}}
+                        <td class="py-2 px-2 text-center bg-emerald-950/10">
+                            <input type="number" 
+                                id="oc-lots-ce-${strike}"
+                                value="${defaultQty}" 
+                                step="${state.lotSize}" 
+                                min="${state.lotSize}" 
+                                class="oc-lots-input w-12 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-center text-emerald-400 font-bold focus:outline-none">
+                        </td>
+
+                        {{-- 3. CE DELTA --}}
+                        <td class="py-2 px-2 text-center bg-emerald-950/10 font-bold text-slate-300">
+                            ${ceDelta.toFixed(2)}
+                            ${isSafeCe ? '<div class="text-[9px] text-emerald-400 font-bold">15Δ</div>' : ''}
+                            ${isBalCe ? '<div class="text-[9px] text-cyan-400 font-bold">25Δ</div>' : ''}
+                        </td>
+
+                        {{-- 4. CE PRICE & OI --}}
+                        <td class="py-2 px-3 text-right bg-emerald-950/10">
+                            <div class="font-extrabold text-emerald-300 text-sm">₹${ceLtp.toFixed(2)}</div>
+                            <div class="text-[10px] text-slate-400">
+                                <span class="${ceOiChg >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${ceOiChg >= 0 ? '+' : ''}${ceOiChg}%</span>
+                                <span class="text-slate-500">|</span>
+                                <span>${ceBuildup}</span>
+                            </div>
+                        </td>
+
+                        {{-- 5. STRIKE & CENTER RECOMMENDATIONS --}}
+                        <td class="py-2 px-4 text-center bg-slate-900 font-sans border-x border-slate-800">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <span class="font-extrabold font-mono text-sm text-white">${strike}</span>
+                                ${isAtm ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">ATM</span>' : ''}
+                            </div>
+                            <div class="flex items-center justify-center gap-1 mt-0.5">
+                                ${isSafeCe && isSafePe ? '<span class="text-[9px] font-bold text-emerald-400">🛡️ Rec Safe</span>' : ''}
+                                ${isBalCe && isBalPe ? '<span class="text-[9px] font-bold text-cyan-400">⚖️ Balanced</span>' : ''}
+                                <button type="button" class="btn-oc-add-both text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 px-1.5 py-0.2 rounded font-sans transition cursor-pointer" data-strike="${strike}" title="Add both CE & PE at ${strike}">
+                                    + Both
+                                </button>
+                            </div>
+                        </td>
+
+                        {{-- 6. PE PRICE & OI --}}
+                        <td class="py-2 px-3 text-left bg-rose-950/10">
+                            <div class="font-extrabold text-rose-300 text-sm">₹${peLtp.toFixed(2)}</div>
+                            <div class="text-[10px] text-slate-400">
+                                <span class="${peOiChg >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${peOiChg >= 0 ? '+' : ''}${peOiChg}%</span>
+                                <span class="text-slate-500">|</span>
+                                <span>${peBuildup}</span>
+                            </div>
+                        </td>
+
+                        {{-- 7. PE DELTA --}}
+                        <td class="py-2 px-2 text-center bg-rose-950/10 font-bold text-slate-300">
+                            ${peDelta.toFixed(2)}
+                            ${isSafePe ? '<div class="text-[9px] text-emerald-400 font-bold">15Δ</div>' : ''}
+                            ${isBalPe ? '<div class="text-[9px] text-cyan-400 font-bold">25Δ</div>' : ''}
+                        </td>
+
+                        {{-- 8. PE LOTS --}}
+                        <td class="py-2 px-2 text-center bg-rose-950/10">
+                            <input type="number" 
+                                id="oc-lots-pe-${strike}"
+                                value="${defaultQty}" 
+                                step="${state.lotSize}" 
+                                min="${state.lotSize}" 
+                                class="oc-lots-input w-12 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-center text-emerald-400 font-bold focus:outline-none">
+                        </td>
+
+                        {{-- 9. ADD PE BUTTON --}}
+                        <td class="py-2 px-2 text-center bg-rose-950/20">
+                            <button type="button" 
+                                class="btn-oc-add-pe px-2.5 py-1 rounded-lg font-bold text-[11px] ${addBtnColor} shadow transition cursor-pointer"
+                                data-strike="${strike}"
+                                data-key="${pe?.instrument_key || ''}"
+                                data-price="${peLtp}">
+                                + Add
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            ocTableBody.innerHTML = rowsHtml;
+        }
+
+        // Add CE Click Handler
+        ocTableBody.addEventListener('click', (e) => {
+            const btnCe = e.target.closest('.btn-oc-add-ce');
+            if (btnCe) {
+                const strike = parseInt(btnCe.dataset.strike, 10);
+                const lotsInp = document.getElementById(`oc-lots-ce-${strike}`);
+                const qty = parseInt(lotsInp?.value, 10) || state.lotSize;
+                const strikeObj = state.strikesData.find(s => s.strike === strike);
+                const ce = strikeObj ? strikeObj.ce : null;
+                const key = btnCe.dataset.key;
+                const price = parseFloat(btnCe.dataset.price) || 50;
+
+                activeBasket.push({
+                    id: `${ocAction}_CE_${strike}_${Date.now()}`,
+                    action: ocAction,
+                    strike: strike,
+                    type: 'CE',
+                    qty: qty,
+                    entryPrice: price,
+                    instrumentKey: key || null,
+                    oiChange: ce ? ce.oi_change_pct : 0,
+                    buildup: ce ? ce.buildup : 'Option Chain'
+                });
+
+                if (key && !state.allInstrumentKeys.includes(key)) {
+                    state.allInstrumentKeys.push(key);
+                    subscribeKeys();
+                }
+
                 saveActiveBasket();
+                btnCe.textContent = '✓ Added';
+                btnCe.className = 'px-2.5 py-1 rounded-lg font-bold text-[11px] bg-emerald-500 text-slate-950 shadow transition';
+                setTimeout(() => {
+                    btnCe.textContent = '+ Add';
+                    const addBtnColor = ocAction === 'SELL' ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white';
+                    btnCe.className = `btn-oc-add-ce px-2.5 py-1 rounded-lg font-bold text-[11px] ${addBtnColor} shadow transition cursor-pointer`;
+                }, 1200);
+            }
+
+            const btnPe = e.target.closest('.btn-oc-add-pe');
+            if (btnPe) {
+                const strike = parseInt(btnPe.dataset.strike, 10);
+                const lotsInp = document.getElementById(`oc-lots-pe-${strike}`);
+                const qty = parseInt(lotsInp?.value, 10) || state.lotSize;
+                const strikeObj = state.strikesData.find(s => s.strike === strike);
+                const pe = strikeObj ? strikeObj.pe : null;
+                const key = btnPe.dataset.key;
+                const price = parseFloat(btnPe.dataset.price) || 50;
+
+                activeBasket.push({
+                    id: `${ocAction}_PE_${strike}_${Date.now()}`,
+                    action: ocAction,
+                    strike: strike,
+                    type: 'PE',
+                    qty: qty,
+                    entryPrice: price,
+                    instrumentKey: key || null,
+                    oiChange: pe ? pe.oi_change_pct : 0,
+                    buildup: pe ? pe.buildup : 'Option Chain'
+                });
+
+                if (key && !state.allInstrumentKeys.includes(key)) {
+                    state.allInstrumentKeys.push(key);
+                    subscribeKeys();
+                }
+
+                saveActiveBasket();
+                btnPe.textContent = '✓ Added';
+                btnPe.className = 'px-2.5 py-1 rounded-lg font-bold text-[11px] bg-emerald-500 text-slate-950 shadow transition';
+                setTimeout(() => {
+                    btnPe.textContent = '+ Add';
+                    const addBtnColor = ocAction === 'SELL' ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white';
+                    btnPe.className = `btn-oc-add-pe px-2.5 py-1 rounded-lg font-bold text-[11px] ${addBtnColor} shadow transition cursor-pointer`;
+                }, 1200);
+            }
+
+            const btnBoth = e.target.closest('.btn-oc-add-both');
+            if (btnBoth) {
+                const strike = parseInt(btnBoth.dataset.strike, 10);
+                const lotsInp = document.getElementById(`oc-lots-ce-${strike}`);
+                const qty = parseInt(lotsInp?.value, 10) || state.lotSize;
+                const strikeObj = state.strikesData.find(s => s.strike === strike);
+                const ce = strikeObj?.ce;
+                const pe = strikeObj?.pe;
+                const ceLtp = ce && ce.instrument_key && livePrices[ce.instrument_key] !== undefined ? livePrices[ce.instrument_key] : (ce?.ltp || 50);
+                const peLtp = pe && pe.instrument_key && livePrices[pe.instrument_key] !== undefined ? livePrices[pe.instrument_key] : (pe?.ltp || 50);
+
+                activeBasket.push({
+                    id: `${ocAction}_CE_${strike}_${Date.now()}`,
+                    action: ocAction,
+                    strike: strike,
+                    type: 'CE',
+                    qty: qty,
+                    entryPrice: ceLtp,
+                    instrumentKey: ce?.instrument_key || null,
+                    oiChange: ce ? ce.oi_change_pct : 0,
+                    buildup: ce ? ce.buildup : 'Option Chain'
+                });
+
+                activeBasket.push({
+                    id: `${ocAction}_PE_${strike}_${Date.now() + 1}`,
+                    action: ocAction,
+                    strike: strike,
+                    type: 'PE',
+                    qty: qty,
+                    entryPrice: peLtp,
+                    instrumentKey: pe?.instrument_key || null,
+                    oiChange: pe ? pe.oi_change_pct : 0,
+                    buildup: pe ? pe.buildup : 'Option Chain'
+                });
+
+                if (ce?.instrument_key && !state.allInstrumentKeys.includes(ce.instrument_key)) state.allInstrumentKeys.push(ce.instrument_key);
+                if (pe?.instrument_key && !state.allInstrumentKeys.includes(pe.instrument_key)) state.allInstrumentKeys.push(pe.instrument_key);
+                subscribeKeys();
+
+                saveActiveBasket();
+                btnBoth.textContent = '✓ Added Both';
+                btnBoth.className = 'text-[10px] bg-emerald-500 text-slate-950 font-bold px-1.5 py-0.2 rounded font-sans transition';
+                setTimeout(() => {
+                    btnBoth.textContent = '+ Both';
+                    btnBoth.className = 'btn-oc-add-both text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 px-1.5 py-0.2 rounded font-sans transition cursor-pointer';
+                }, 1200);
+            }
+        });
+
+        // Quick Suggestions Click Handler
+        recommendationsBar.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-quick-rec');
+            if (btn) {
+                const ceStrike = parseInt(btn.dataset.ce, 10);
+                const peStrike = parseInt(btn.dataset.pe, 10);
+                const qty = parseInt(ocDefaultQtyInput.value, 10) || state.lotSize;
+
+                const ceObj = state.strikesData.find(s => s.strike === ceStrike)?.ce;
+                const peObj = state.strikesData.find(s => s.strike === peStrike)?.pe;
+
+                const ceLtp = ceObj && ceObj.instrument_key && livePrices[ceObj.instrument_key] !== undefined ? livePrices[ceObj.instrument_key] : (ceObj?.ltp || 50);
+                const peLtp = peObj && peObj.instrument_key && livePrices[peObj.instrument_key] !== undefined ? livePrices[peObj.instrument_key] : (peObj?.ltp || 50);
+
+                activeBasket.push({
+                    id: `${ocAction}_CE_${ceStrike}_${Date.now()}`,
+                    action: ocAction,
+                    strike: ceStrike,
+                    type: 'CE',
+                    qty: qty,
+                    entryPrice: ceLtp,
+                    instrumentKey: ceObj?.instrument_key || null,
+                    oiChange: ceObj ? ceObj.oi_change_pct : 0,
+                    buildup: ceObj ? ceObj.buildup : 'Market Suggestion'
+                });
+
+                activeBasket.push({
+                    id: `${ocAction}_PE_${peStrike}_${Date.now() + 1}`,
+                    action: ocAction,
+                    strike: peStrike,
+                    type: 'PE',
+                    qty: qty,
+                    entryPrice: peLtp,
+                    instrumentKey: peObj?.instrument_key || null,
+                    oiChange: peObj ? peObj.oi_change_pct : 0,
+                    buildup: peObj ? peObj.buildup : 'Market Suggestion'
+                });
+
+                if (ceObj?.instrument_key && !state.allInstrumentKeys.includes(ceObj.instrument_key)) state.allInstrumentKeys.push(ceObj.instrument_key);
+                if (peObj?.instrument_key && !state.allInstrumentKeys.includes(peObj.instrument_key)) state.allInstrumentKeys.push(peObj.instrument_key);
+                subscribeKeys();
+
+                saveActiveBasket();
+                addModal.classList.add('hidden');
+                showToast('Strategy Deployed', `Added ${peStrike} PE & ${ceStrike} CE (${qty} shares each)!`, 'success');
             }
         });
 
@@ -1282,15 +2322,21 @@
             const buyCe = state.atmStrike + wingDistance;
             const buyPe = state.atmStrike - wingDistance;
 
+            const ceObj = state.strikesData.find(s => s.strike === buyCe)?.ce;
+            const peObj = state.strikesData.find(s => s.strike === buyPe)?.pe;
+
+            const cePrice = ceObj && ceObj.ltp > 0 ? ceObj.ltp : (livePrices[ceObj?.instrument_key] || 15);
+            const pePrice = peObj && peObj.ltp > 0 ? peObj.ltp : (livePrices[peObj?.instrument_key] || 15);
+
             activeBasket.push({
                 id: 'BUY_CE_' + Date.now(),
                 action: 'BUY',
                 strike: buyCe,
                 type: 'CE',
                 qty: state.lotSize,
-                entryPrice: 8.50,
-                instrumentKey: null,
-                oiChange: 0,
+                entryPrice: cePrice,
+                instrumentKey: ceObj?.instrument_key || null,
+                oiChange: ceObj?.oi_change_pct || 0,
                 buildup: 'Hedge Wing'
             });
 
@@ -1300,14 +2346,22 @@
                 strike: buyPe,
                 type: 'PE',
                 qty: state.lotSize,
-                entryPrice: 9.00,
-                instrumentKey: null,
-                oiChange: 0,
+                entryPrice: pePrice,
+                instrumentKey: peObj?.instrument_key || null,
+                oiChange: peObj?.oi_change_pct || 0,
                 buildup: 'Hedge Wing'
             });
 
-            saveActiveBasket();
-            alert(`Added protective wings (${buyPe} PE & ${buyCe} CE)!\nTail risk capped. Converted to Iron Fly.`);
+            if (ceObj?.instrument_key && !state.allInstrumentKeys.includes(ceObj.instrument_key)) {
+                state.allInstrumentKeys.push(ceObj.instrument_key);
+            }
+            if (peObj?.instrument_key && !state.allInstrumentKeys.includes(peObj.instrument_key)) {
+                state.allInstrumentKeys.push(peObj.instrument_key);
+            }
+            subscribeKeys();
+
+            saveActiveBasket(true);
+            showToast('Hedge Wings Added', `Added ${buyPe} PE (@ ₹${pePrice.toFixed(1)}) & ${buyCe} CE (@ ₹${cePrice.toFixed(1)}) protective wings.\nTail risk capped (Iron Fly).`, 'success');
         });
 
         // Filter Selectors
