@@ -435,33 +435,121 @@
     </div>
 
     {{-- ════════════════════════ 5. LIVE PAYOFF DIAGRAM & SCENARIO SLIDER ════════════════════════ --}}
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3.5">
+        {{-- Section Header & Scenario Simulator --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
             <div>
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📈</span>
                     <h3 class="text-sm sm:text-base font-extrabold text-white tracking-wide uppercase">
                         Live Payoff Risk Graph & Recovery Simulator
                     </h3>
+                    <span id="payoff-strategy-type" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                        Active Basket
+                    </span>
                 </div>
-                <p class="text-xs text-slate-400">
-                    Visual profit/loss profile across spot prices at expiry. Drag slider to test "What-If" market scenarios.
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Visual expiry profit & loss profile calculated across spot prices for your active basket. Drag the simulator slider to stress-test market movements.
                 </p>
             </div>
 
             {{-- Scenario Simulator Spot Slider --}}
-            <div class="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs">
-                <span class="text-slate-400 font-semibold">Simulate Spot Move:</span>
-                <input type="range" id="sim-spot-slider" min="{{ $atmStrike - 600 }}" max="{{ $atmStrike + 600 }}" step="25" value="{{ $indexSpot }}" class="w-32 accent-emerald-500 cursor-pointer">
-                <span id="sim-spot-label" class="font-mono font-extrabold text-cyan-400">{{ number_format($indexSpot, 0) }}</span>
-                <span id="sim-pnl-label" class="font-mono font-bold text-emerald-400">P&L: ₹0</span>
-                <button type="button" id="btn-reset-sim" class="text-[10px] text-slate-400 hover:text-white underline">Reset</button>
+            <div class="flex flex-wrap items-center gap-2 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5 text-xs shadow-inner">
+                <span class="text-slate-400 font-semibold flex items-center gap-1">
+                    <span>🎯</span> Simulate Spot Move:
+                </span>
+                <input type="range" id="sim-spot-slider" min="{{ $atmStrike - 800 }}" max="{{ $atmStrike + 800 }}" step="25" value="{{ $indexSpot }}" class="w-28 sm:w-36 accent-emerald-500 cursor-pointer">
+                <span id="sim-spot-label" class="font-mono font-extrabold text-cyan-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-700 text-xs">{{ number_format($indexSpot, 0) }}</span>
+                <span id="sim-pnl-label" class="font-mono font-extrabold px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">P&L: ₹0</span>
+                <div class="flex items-center gap-1 border-l border-slate-700 pl-2">
+                    <button type="button" id="btn-sim-minus-1" class="text-[10px] bg-slate-700 hover:bg-slate-650 text-slate-300 px-1.5 py-0.5 rounded font-bold transition cursor-pointer" title="Simulate -1% Market Drop">-1%</button>
+                    <button type="button" id="btn-sim-plus-1" class="text-[10px] bg-slate-700 hover:bg-slate-650 text-slate-300 px-1.5 py-0.5 rounded font-bold transition cursor-pointer" title="Simulate +1% Market Rally">+1%</button>
+                    <button type="button" id="btn-reset-sim" class="text-[10px] text-slate-400 hover:text-white underline ml-1 cursor-pointer">Reset</button>
+                </div>
             </div>
         </div>
 
-        {{-- Payoff Canvas --}}
-        <div class="w-full h-64 sm:h-72 relative">
-            <canvas id="payoffChart" class="w-full h-full"></canvas>
+        {{-- Active Basket Strategy Legs Strip --}}
+        <div id="payoff-legs-container" class="flex flex-wrap items-center gap-2 bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5">
+            <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5 flex-shrink-0">
+                <span>🧺</span> Active Strategy Legs:
+            </span>
+            <div id="payoff-legs-list" class="flex flex-wrap items-center gap-1.5 flex-1">
+                {{-- Dynamically populated with active leg badges --}}
+            </div>
+        </div>
+
+        {{-- Strategy Risk & Payoff KPI Cards --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+            {{-- Max Profit --}}
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+                <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                    <span>Max Profit</span>
+                    <span class="text-emerald-400">▲</span>
+                </div>
+                <div id="payoff-max-profit" class="text-base sm:text-lg font-black font-mono text-emerald-400 mt-0.5">
+                    +₹0
+                </div>
+                <div id="payoff-max-profit-sub" class="text-[10px] text-slate-400 mt-0.5">
+                    Combined net credit
+                </div>
+            </div>
+
+            {{-- Max Loss --}}
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+                <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                    <span>Max Loss (Tail Risk)</span>
+                    <span class="text-rose-400">▼</span>
+                </div>
+                <div id="payoff-max-loss" class="text-base sm:text-lg font-black font-mono text-rose-400 mt-0.5">
+                    Uncapped Loss ⚠️
+                </div>
+                <div id="payoff-max-loss-sub" class="text-[10px] text-slate-400 mt-0.5">
+                    Naked short legs active
+                </div>
+            </div>
+
+            {{-- Breakeven Range --}}
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+                <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                    <span>Breakeven Range</span>
+                    <span class="text-cyan-400">↔</span>
+                </div>
+                <div id="payoff-be-range" class="text-xs sm:text-sm font-extrabold font-mono text-cyan-300 mt-0.5 truncate">
+                    0 - 0
+                </div>
+                <div id="payoff-be-sub" class="text-[10px] text-slate-400 mt-0.5">
+                    Safety Buffer: ±0 pts
+                </div>
+            </div>
+
+            {{-- Expiry P&L at Current Spot --}}
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2.5">
+                <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+                    <span>At Spot Expiry</span>
+                    <span class="text-amber-400">📍</span>
+                </div>
+                <div id="payoff-current-spot-pnl" class="text-base sm:text-lg font-black font-mono text-emerald-300 mt-0.5">
+                    +₹0
+                </div>
+                <div id="payoff-current-spot-sub" class="text-[10px] text-slate-400 mt-0.5">
+                    At spot {{ number_format($indexSpot, 0) }}
+                </div>
+            </div>
+        </div>
+
+        {{-- Payoff Empty State (shown when activeBasket has 0 legs) --}}
+        <div id="payoff-empty-state" class="hidden text-center py-10 px-4 bg-slate-950/50 border border-dashed border-slate-800 rounded-xl">
+            <span class="text-3xl">📊</span>
+            <h4 class="text-sm font-bold text-white mt-2">Active Basket is Empty</h4>
+            <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                No active strategy legs found. Deploy a pair from the Intelligent Strike Scanner below or click "+ Add Leg" to generate the live payoff graph.
+            </p>
+        </div>
+
+        {{-- Payoff Canvas Container --}}
+        <div id="payoff-canvas-container" class="w-full relative" style="position: relative; height: 320px;">
+            <canvas id="payoffChart"></canvas>
         </div>
     </div>
 
@@ -865,6 +953,7 @@
             document.getElementById('basket-current-value').textContent = '₹0.00';
             document.getElementById('basket-live-pnl').textContent = '₹0.00';
             document.getElementById('basket-total-theta').textContent = '+₹0.00/day';
+            renderPayoffChart();
             return;
         }
 
@@ -898,7 +987,7 @@
                     <td class="py-2 px-2.5 font-bold text-white text-xs">
                         <div class="flex items-center">
                             <span>${leg.strike}</span>
-                            ${statusTag}
+                            <span id="basket-tag-${index}">${statusTag}</span>
                         </div>
                     </td>
                     <td class="py-2 px-2.5 font-bold ${typeColor} text-xs">${leg.type}</td>
@@ -940,7 +1029,7 @@
                     </td>
                     <td class="py-2 px-2.5 text-center">
                         <div class="flex items-center justify-center">
-                            ${quickActionButton}
+                            <span id="basket-action-btn-${index}">${quickActionButton}</span>
                             <button type="button" class="btn-delete-leg text-slate-500 hover:text-rose-400 font-bold transition p-1 cursor-pointer" data-index="${index}" title="Remove Leg">
                                 ✕
                             </button>
@@ -952,6 +1041,7 @@
 
         tbody.innerHTML = rowsHtml;
         updateBasketLiveOnly();
+        renderPayoffChart();
     }
 
     function updateBasketLiveOnly() {
@@ -1009,6 +1099,30 @@
             if (pnlEl) {
                 pnlEl.textContent = `${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}`;
                 pnlEl.className = isPnlPositive ? 'text-emerald-400' : 'text-rose-400';
+            }
+
+            // Update live tag and action button dynamically without re-rendering table
+            const tagEl = document.getElementById(`basket-tag-${index}`);
+            const actionEl = document.getElementById(`basket-action-btn-${index}`);
+            if (leg.action === 'SELL') {
+                if (legPnl <= -600 || currentLtp >= (leg.entryPrice * 1.30)) {
+                    if (tagEl && !tagEl.innerHTML.includes('TESTED')) {
+                        tagEl.innerHTML = '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">🚨 TESTED</span>';
+                    }
+                    if (actionEl && !actionEl.innerHTML.includes('btn-row-add-wing')) {
+                        actionEl.innerHTML = `<button type="button" class="btn-row-add-wing text-[10px] bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/60 text-cyan-300 px-1.5 py-0.5 rounded font-bold transition mr-1 cursor-pointer" data-strike="${leg.strike}" data-type="${leg.type}" title="Buy protection wing to cap runaway loss on this leg">+ Wing</button>`;
+                    }
+                } else if (legPnl >= 350 || currentLtp <= (leg.entryPrice * 0.70)) {
+                    if (tagEl && !tagEl.innerHTML.includes('DECAYED')) {
+                        tagEl.innerHTML = '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/40">💎 DECAYED</span>';
+                    }
+                    if (actionEl && !actionEl.innerHTML.includes('btn-row-roll-untested')) {
+                        actionEl.innerHTML = `<button type="button" class="btn-row-roll-untested text-[10px] bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 px-1.5 py-0.5 rounded font-bold transition mr-1 cursor-pointer" data-index="${index}" title="Roll this decayed leg closer to spot to lock in profit and collect fresh credit">Roll Closer</button>`;
+                    }
+                } else {
+                    if (tagEl && tagEl.innerHTML !== '') tagEl.innerHTML = '';
+                    if (actionEl && actionEl.innerHTML !== '') actionEl.innerHTML = '';
+                }
             }
         });
 
@@ -1092,6 +1206,31 @@
         if (gammaEl) gammaEl.textContent = `-0.0012`;
 
         updateCorridorAndRecovery();
+
+        // Keep Payoff Risk Graph legs updated with live P&L
+        try {
+            const payoffLegsList = document.getElementById('payoff-legs-list');
+            if (payoffLegsList && activeBasket && activeBasket.length > 0) {
+                payoffLegsList.innerHTML = activeBasket.map(leg => {
+                    const isSell = leg.action === 'SELL';
+                    const isCe = leg.type === 'CE';
+                    const entry = parseFloat(leg.entryPrice || 0);
+                    const qty = parseInt(leg.qty || state.lotSize, 10);
+                    const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : entry;
+                    const pnl = isSell ? (entry - ltp) * qty : (ltp - entry) * qty;
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${isSell ? 'bg-rose-500/10 text-rose-300 border-rose-500/30' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'}">
+                            <span class="px-1 py-0.2 rounded text-[10px] ${isSell ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/30 text-emerald-200'}">${leg.action}</span>
+                            <span class="${isCe ? 'text-emerald-300' : 'text-rose-300'} font-extrabold">${leg.strike} ${leg.type}</span>
+                            <span class="text-slate-400 font-sans text-[11px]">(${qty} @ ₹${entry.toFixed(1)})</span>
+                            <span class="text-[11px] ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-extrabold">${pnl >= 0 ? '+' : ''}₹${Math.round(pnl)}</span>
+                        </span>
+                    `;
+                }).join('');
+            }
+        } catch (e) {
+            console.warn('payoffLegsList update error:', e);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1214,6 +1353,11 @@
         // Calculate P&L and metrics for every short leg
         let totalPnl = 0;
         let totalCredit = 0;
+        let estTheta = 0;
+        activeBasket.forEach(leg => {
+            const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
+            estTheta += (ltp * 0.12 * leg.qty);
+        });
         const evaluatedShorts = shortLegs.map((leg, index) => {
             const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : leg.entryPrice;
             const pnl = (leg.entryPrice - ltp) * leg.qty;
@@ -1263,21 +1407,159 @@
                 : `${ratio.toFixed(1)} : 1.0 (PE Dominant)`;
         }
 
-        // Trigger Checks:
-        // 1. Total Strategy Loss < -₹500
-        // 2. Tested leg loss < -₹800 or premium expanded > 30%
-        // 3. Ratio between tested and decayed leg >= 1.6
-        // 4. Proximity to upper/lower breakeven < 150 pts
-        const isLoss = totalPnl < -500;
+        // ─────────────────────────────────────────────────────────────
+        // 1. STRATEGY IN PROFIT (totalPnl >= 0)
+        // ─────────────────────────────────────────────────────────────
+        if (totalPnl >= 0) {
+            // Check if spot is threatening breakeven (very close to BE edges)
+            const isThreateningBE = (isUpStress && distToUpper < 80) || (!isUpStress && distToLower < 80);
+
+            if (isThreateningBE) {
+                if (urgencyBadge) {
+                    urgencyBadge.textContent = '⚠️ BE PROXIMITY';
+                    urgencyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-slate-950';
+                }
+                if (stratBadge) {
+                    stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+                    stratBadge.textContent = `⚠️ APPROACHING BREAKEVEN (P&L +₹${Math.round(totalPnl).toLocaleString('en-IN')})`;
+                }
+                if (triggerBadge) {
+                    triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5';
+                    triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-amber-400"></span><span>Spot near ${isUpStress ? 'Upper' : 'Lower'} BE (Profit +₹${Math.round(totalPnl).toLocaleString('en-IN')})</span>`;
+                }
+            } else {
+                // Normal healthy profit!
+                if (urgencyBadge) {
+                    urgencyBadge.textContent = 'PROFITABLE';
+                    urgencyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                }
+                if (stratBadge) {
+                    stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                    stratBadge.textContent = `✅ SAFE & IN PROFIT (+₹${Math.round(totalPnl).toLocaleString('en-IN')})`;
+                }
+                if (triggerBadge) {
+                    triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
+                    triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>Healthy Decay (Net Profit +₹${Math.round(totalPnl).toLocaleString('en-IN')})</span>`;
+                }
+            }
+
+            // Diagnostic status
+            if (diagStatus) {
+                diagStatus.textContent = `Strategy Profitable: Running safely inside corridor (+₹${Math.round(totalPnl).toLocaleString('en-IN')})`;
+                diagStatus.className = 'text-sm font-bold text-emerald-300';
+            }
+
+            // If a decayed leg has profit > 250, offer an optional roll to lock in gains
+            if (decayedLeg && decayedLeg.pnl > 250) {
+                let suggestedRollStrike;
+                if (isUpStress) {
+                    suggestedRollStrike = Math.min(state.atmStrike - state.strikeStep, decayedLeg.strike + (state.strikeStep * 2));
+                    if (suggestedRollStrike <= decayedLeg.strike) suggestedRollStrike = decayedLeg.strike + state.strikeStep;
+                } else {
+                    suggestedRollStrike = Math.max(state.atmStrike + state.strikeStep, decayedLeg.strike - (state.strikeStep * 2));
+                    if (suggestedRollStrike >= decayedLeg.strike) suggestedRollStrike = decayedLeg.strike - state.strikeStep;
+                }
+
+                const rollStrikeObj = state.strikesData ? state.strikesData.find(s => s.strike === suggestedRollStrike) : null;
+                const rollInst = rollStrikeObj ? (isUpStress ? rollStrikeObj.pe : rollStrikeObj.ce) : null;
+                const rollPrice = rollInst && rollInst.ltp > 0 ? rollInst.ltp : (livePrices[rollInst?.instrument_key] || 45);
+
+                if (diagRec) {
+                    diagRec.innerHTML = `
+                        <div class="space-y-1">
+                            <div class="font-bold text-white text-xs">
+                                <span class="text-emerald-400">Position Status:</span> Net profit is <span class="text-emerald-400 font-bold">+₹${Math.round(totalPnl).toLocaleString('en-IN')}</span>. Theta decay is active (+₹${Math.round(estTheta).toLocaleString('en-IN')}/day).
+                            </div>
+                            <div class="text-[11px] text-slate-300 pl-2 border-l-2 border-emerald-500/40">
+                                💡 <span class="text-teal-300 font-bold">Optional Profit Lock:</span> Untested <span class="text-cyan-300 font-mono font-bold">${decayedLeg.strike} ${decayedLeg.type}</span> has locked <span class="text-emerald-400 font-bold">+₹${Math.round(decayedLeg.pnl).toLocaleString('en-IN')}</span> profit. You can optionally roll it to <span class="text-emerald-300 font-bold font-mono">${suggestedRollStrike}</span> (@ ~₹${rollPrice.toFixed(1)}) to compound decay, or simply <span class="text-white font-bold">HOLD</span>.
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (diagBenefit) {
+                    diagBenefit.textContent = `★ Position is running smoothly. Holding position continues daily time decay.`;
+                }
+
+                // Enable button as an optional optimization
+                if (btnShift) {
+                    btnShift.disabled = false;
+                    btnShift.className = 'bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer';
+                    btnShift.innerHTML = `<span>💎 Optional: Lock +₹${Math.round(decayedLeg.pnl)} & Roll to ${suggestedRollStrike}</span>`;
+                    btnShift.onclick = () => executeRoll(decayedLeg, suggestedRollStrike, decayedLeg.type);
+                }
+            } else {
+                if (diagRec) {
+                    diagRec.textContent = `Hold position. Both legs are decaying safely within corridor bounds. Total profit: +₹${Math.round(totalPnl).toLocaleString('en-IN')}.`;
+                }
+                if (diagBenefit) {
+                    diagBenefit.textContent = `Theta decay adding steadily to daily P&L (+₹${Math.round(estTheta)}/day).`;
+                }
+                if (btnShift) {
+                    btnShift.disabled = true;
+                    btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
+                    btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
+                    btnShift.onclick = null;
+                }
+            }
+
+            if (btnHedge) {
+                btnHedge.disabled = true;
+                btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
+                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
+                btnHedge.onclick = null;
+            }
+
+            return; // Finished for profit state
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 2. STRATEGY IN DEFICIT (totalPnl < 0)
+        // ─────────────────────────────────────────────────────────────
         const isSevereLoss = totalPnl < -1800;
-        const isSkewed = ratio >= 1.6;
-        const isLegBlowout = testedLeg && (testedLeg.pnl < -800 || testedLeg.ltp >= (testedLeg.entryPrice * 1.30));
-        const isNearBE = (isUpStress && distToUpper < 150) || (!isUpStress && distToLower < 150);
+        const isModerateLoss = totalPnl < -500;
 
-        const isActionRequired = isLoss || isSkewed || isLegBlowout || isNearBE;
+        // Minor normal oscillation (between 0 and -500) within safe distance
+        if (!isModerateLoss && ratio < 1.8 && distToLower > 150 && distToUpper > 150) {
+            if (urgencyBadge) {
+                urgencyBadge.textContent = 'Normal';
+                urgencyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+            }
+            if (stratBadge) {
+                stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                stratBadge.textContent = `✅ SAFE & BALANCED (P&L -₹${Math.round(Math.abs(totalPnl))})`;
+            }
+            if (triggerBadge) {
+                triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
+                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>Normal Oscillation (Minor -₹${Math.round(Math.abs(totalPnl))})</span>`;
+            }
+            if (diagStatus) {
+                diagStatus.textContent = 'Strategy running inside optimal decay corridor';
+                diagStatus.className = 'text-sm font-bold text-slate-200';
+            }
+            if (diagRec) {
+                diagRec.textContent = `Hold position. Minor intraday swing of -₹${Math.round(Math.abs(totalPnl))}. Theta decay (+₹${Math.round(estTheta)}/day) will steadily recover this.`;
+            }
+            if (diagBenefit) {
+                diagBenefit.textContent = 'Theta decay adding steadily to daily P&L';
+            }
+            if (btnShift) {
+                btnShift.disabled = true;
+                btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
+                btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
+                btnShift.onclick = null;
+            }
+            if (btnHedge) {
+                btnHedge.disabled = true;
+                btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
+                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
+                btnHedge.onclick = null;
+            }
+            return;
+        }
 
-        if (isActionRequired && testedLeg && decayedLeg) {
-            // Urgency badge
+        // Active Loss Defense Triggered (Loss < -500, or heavy skew / tested leg)
+        if (testedLeg && decayedLeg) {
             if (urgencyBadge) {
                 urgencyBadge.textContent = isSevereLoss ? '🚨 HIGH DEFENSE' : '⚠️ ADJUSTMENT NEEDED';
                 urgencyBadge.className = isSevereLoss 
@@ -1289,15 +1571,14 @@
                 stratBadge.className = isSevereLoss 
                     ? 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
                     : 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
-                stratBadge.textContent = `⚠️ ADJUSTMENT REQUIRED (P&L -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})`;
+                stratBadge.textContent = `⚠️ ADJUSTMENT REQUIRED (Loss -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})`;
             }
 
             if (triggerBadge) {
                 triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 animate-pulse';
-                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>Defense Triggered: ${isUpStress ? 'Call Under Stress' : 'Put Under Stress'} (Loss -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})</span>`;
+                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-rose-400"></span><span>Defense Triggered: ${isUpStress ? 'Call Under Stress' : 'Put Under Stress'} (Net Loss -₹${Math.round(Math.abs(totalPnl)).toLocaleString('en-IN')})</span>`;
             }
 
-            // Diagnostic status
             if (diagStatus) {
                 diagStatus.textContent = isUpStress 
                     ? `Market Rally Stress: Tested ${testedLeg.strike} CE (LTP ₹${testedLeg.ltp.toFixed(1)}, Loss -₹${Math.round(Math.abs(testedLeg.pnl)).toLocaleString('en-IN')})`
@@ -1319,13 +1600,11 @@
                 }
             }
 
-            // Find price of suggested roll strike from strikesData
             const rollStrikeObj = state.strikesData.find(s => s.strike === suggestedRollStrike);
             const rollInst = rollStrikeObj ? (isUpStress ? rollStrikeObj.pe : rollStrikeObj.ce) : null;
             const rollKey = rollInst ? rollInst.instrument_key : null;
             const rollPrice = rollInst && rollInst.ltp > 0 ? rollInst.ltp : (livePrices[rollKey] || 65);
 
-            // Suggested protective wing to buy
             let suggestedWingStrike;
             if (isUpStress) {
                 suggestedWingStrike = testedLeg.strike + (state.strikeStep * 3);
@@ -1338,7 +1617,6 @@
             const wingKey = wingInst ? wingInst.instrument_key : null;
             const wingPrice = wingInst && wingInst.ltp > 0 ? wingInst.ltp : (livePrices[wingKey] || 20);
 
-            // Estimated fresh credit & locked profit
             const bookedProfit = Math.round(decayedLeg.pnl);
             const freshCredit = Math.round(rollPrice * decayedLeg.qty);
 
@@ -1363,7 +1641,6 @@
                 diagBenefit.textContent = `★ Cuts deficit by +₹${(freshCredit + bookedProfit).toLocaleString('en-IN')} & restores Delta to Neutral`;
             }
 
-            // Enable 1-Click Roll Button
             if (btnShift) {
                 btnShift.disabled = false;
                 btnShift.className = 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5 cursor-pointer';
@@ -1371,56 +1648,11 @@
                 btnShift.onclick = () => executeRoll(decayedLeg, suggestedRollStrike, decayedLeg.type);
             }
 
-            // Enable 1-Click Protection Wing Button
             if (btnHedge) {
                 btnHedge.disabled = false;
                 btnHedge.className = 'bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer opacity-100';
                 btnHedge.innerHTML = `<span>🛡️ 1-Click Buy ${suggestedWingStrike} ${testedLeg.type} Wing (@ ₹${wingPrice.toFixed(1)})</span>`;
                 btnHedge.onclick = () => executeBuyWing(suggestedWingStrike, testedLeg.type, wingPrice, wingKey);
-            }
-
-        } else {
-            // ALL CLEAR / SAFE
-            if (urgencyBadge) {
-                urgencyBadge.textContent = 'Normal';
-                urgencyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
-            }
-
-            if (stratBadge) {
-                stratBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-                stratBadge.textContent = '✅ SAFE & BALANCED';
-            }
-
-            if (triggerBadge) {
-                triggerBadge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5';
-                triggerBadge.innerHTML = `<span class="h-2 w-2 rounded-full bg-emerald-400"></span><span>No Adjustment Needed (Ratio Balanced)</span>`;
-            }
-
-            if (btnShift) {
-                btnShift.disabled = true;
-                btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
-                btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
-                btnShift.onclick = null;
-            }
-
-            if (btnHedge) {
-                btnHedge.disabled = true;
-                btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
-                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
-                btnHedge.onclick = null;
-            }
-
-            if (diagStatus) {
-                diagStatus.textContent = 'Strategy running inside optimal decay corridor';
-                diagStatus.className = 'text-sm font-bold text-slate-200';
-            }
-
-            if (diagRec) {
-                diagRec.textContent = 'Hold position. Both legs are decaying symmetrically with no directional stress.';
-            }
-
-            if (diagBenefit) {
-                diagBenefit.textContent = 'Theta decay adding steadily to daily P&L';
             }
         }
     }
@@ -1481,95 +1713,333 @@
     // 5. LIVE PAYOFF CHART (RISK GRAPH - CHART.JS)
     // ─────────────────────────────────────────────────────────────
     function renderPayoffChart(simulatedSpot = null) {
-        const ctx = document.getElementById('payoffChart').getContext('2d');
-        if (!activeBasket || activeBasket.length === 0) {
-            if (payoffChartInstance) payoffChartInstance.destroy();
-            return;
-        }
+        try {
+            const emptyEl = document.getElementById('payoff-empty-state');
+            const canvasContainer = document.getElementById('payoff-canvas-container');
+            const stratTypeBadge = document.getElementById('payoff-strategy-type');
+            const legsList = document.getElementById('payoff-legs-list');
+            const maxProfitEl = document.getElementById('payoff-max-profit');
+            const maxProfitSub = document.getElementById('payoff-max-profit-sub');
+            const maxLossEl = document.getElementById('payoff-max-loss');
+            const maxLossSub = document.getElementById('payoff-max-loss-sub');
+            const beRangeEl = document.getElementById('payoff-be-range');
+            const beSubEl = document.getElementById('payoff-be-sub');
+            const currentSpotEl = document.getElementById('payoff-current-spot-pnl');
+            const currentSpotSub = document.getElementById('payoff-current-spot-sub');
 
-        const centerStrike = state.atmStrike;
-        const step = state.strikeStep;
-        const spotPoints = [];
-        const payoffValues = [];
-
-        // Generate spot price range: ATM ± 15 steps
-        for (let i = -14; i <= 14; i++) {
-            const spotAtExpiry = centerStrike + (i * step);
-            spotPoints.push(spotAtExpiry);
-
-            // Calculate Strategy Expiry P&L at this spot
-            let pnlAtSpot = 0;
-            activeBasket.forEach(leg => {
-                let intrinsic = 0;
-                if (leg.type === 'CE') {
-                    intrinsic = Math.max(0, spotAtExpiry - leg.strike);
-                } else {
-                    intrinsic = Math.max(0, leg.strike - spotAtExpiry);
+            if (!activeBasket || activeBasket.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (canvasContainer) canvasContainer.classList.add('hidden');
+                if (payoffChartInstance) {
+                    try { payoffChartInstance.destroy(); } catch (e) {}
+                    payoffChartInstance = null;
                 }
+                if (stratTypeBadge) stratTypeBadge.textContent = 'Empty Basket';
+                if (legsList) legsList.innerHTML = '<span class="text-slate-500 italic text-xs">No active legs in basket</span>';
+                if (maxProfitEl) maxProfitEl.textContent = '₹0';
+                if (maxLossEl) maxLossEl.textContent = '₹0';
+                if (beRangeEl) beRangeEl.textContent = '0 - 0';
+                if (currentSpotEl) currentSpotEl.textContent = '₹0';
+                return;
+            }
 
-                if (leg.action === 'SELL') {
-                    pnlAtSpot += (leg.entryPrice - intrinsic) * leg.qty;
-                } else {
-                    pnlAtSpot += (intrinsic - leg.entryPrice) * leg.qty;
+            if (emptyEl) emptyEl.classList.add('hidden');
+            if (canvasContainer) canvasContainer.classList.remove('hidden');
+
+            // 1. Identify Strategy Configuration
+            const shortLegs = activeBasket.filter(l => l.action === 'SELL');
+            const longLegs = activeBasket.filter(l => l.action === 'BUY');
+            let stratTitle = `${activeBasket.length}-Leg Basket`;
+            if (shortLegs.length === 2 && longLegs.length === 0) {
+                const pe = shortLegs.find(l => l.type === 'PE');
+                const ce = shortLegs.find(l => l.type === 'CE');
+                if (pe && ce) {
+                    stratTitle = parseFloat(pe.strike) === parseFloat(ce.strike) ? 'ATM Short Straddle' : 'Delta-Neutral Strangle';
                 }
-            });
+            } else if (shortLegs.length === 2 && longLegs.length === 2) {
+                const pe = shortLegs.find(l => l.type === 'PE');
+                const ce = shortLegs.find(l => l.type === 'CE');
+                if (pe && ce) {
+                    stratTitle = parseFloat(pe.strike) === parseFloat(ce.strike) ? 'Iron Fly (Defined Risk)' : 'Iron Condor (Defined Risk)';
+                }
+            } else if (shortLegs.length > 0 && longLegs.length === 0) {
+                stratTitle = `${shortLegs.length}-Leg Short Writing`;
+            }
 
-            payoffValues.push(Math.round(pnlAtSpot));
-        }
+            if (stratTypeBadge) stratTypeBadge.textContent = stratTitle;
 
-        if (payoffChartInstance) {
-            payoffChartInstance.destroy();
-        }
+            // 2. Render Active Leg Badges
+            if (legsList) {
+                legsList.innerHTML = activeBasket.map(leg => {
+                    const isSell = leg.action === 'SELL';
+                    const isCe = leg.type === 'CE';
+                    const entry = parseFloat(leg.entryPrice || 0);
+                    const qty = parseInt(leg.qty || state.lotSize, 10);
+                    const ltp = livePrices[leg.instrumentKey] !== undefined ? livePrices[leg.instrumentKey] : entry;
+                    const pnl = isSell ? (entry - ltp) * qty : (ltp - entry) * qty;
+                    return `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${isSell ? 'bg-rose-500/10 text-rose-300 border-rose-500/30' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'}">
+                            <span class="px-1 py-0.2 rounded text-[10px] ${isSell ? 'bg-rose-500/30 text-rose-200' : 'bg-emerald-500/30 text-emerald-200'}">${leg.action}</span>
+                            <span class="${isCe ? 'text-emerald-300' : 'text-rose-300'} font-extrabold">${leg.strike} ${leg.type}</span>
+                            <span class="text-slate-400 font-sans text-[11px]">(${qty} @ ₹${entry.toFixed(1)})</span>
+                            <span class="text-[11px] ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-extrabold">${pnl >= 0 ? '+' : ''}₹${Math.round(pnl)}</span>
+                        </span>
+                    `;
+                }).join('');
+            }
 
-        payoffChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: spotPoints,
-                datasets: [
-                    {
-                        label: 'Expiry P&L (₹)',
-                        data: payoffValues,
-                        borderColor: '#10b981',
-                        borderWidth: 2.5,
-                        pointRadius: 1,
-                        fill: {
-                            target: 'origin',
-                            above: 'rgba(16, 185, 129, 0.15)',
-                            below: 'rgba(244, 63, 94, 0.15)'
-                        },
-                        tension: 0.1
+            // 3. Strategy Payoff Engine across Spot Range
+            function calcPayoffAt(spotPrice) {
+                let pnl = 0;
+                activeBasket.forEach(leg => {
+                    let intr = 0;
+                    const strike = parseFloat(leg.strike);
+                    const entry = parseFloat(leg.entryPrice || 0);
+                    const qty = parseInt(leg.qty || state.lotSize, 10);
+                    if (leg.type === 'CE') {
+                        intr = Math.max(0, spotPrice - strike);
+                    } else {
+                        intr = Math.max(0, strike - spotPrice);
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: (ctx) => ` Projected P&L: ₹${ctx.parsed.y.toLocaleString('en-IN')}`
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(51, 65, 85, 0.3)' },
-                        ticks: { color: '#94a3b8', font: { size: 10 } }
-                    },
-                    y: {
-                        grid: { color: 'rgba(51, 65, 85, 0.3)' },
-                        ticks: {
-                            color: '#94a3b8',
-                            font: { size: 10 },
-                            callback: (v) => `₹${v.toLocaleString('en-IN')}`
+                    pnl += leg.action === 'SELL' ? (entry - intr) * qty : (intr - entry) * qty;
+                });
+                return pnl;
+            }
+
+            const basketStrikes = activeBasket.map(l => parseFloat(l.strike));
+            const minStrike = Math.min(...basketStrikes, state.atmStrike);
+            const maxStrike = Math.max(...basketStrikes, state.atmStrike);
+            const step = state.strikeStep || 50;
+            const spanMin = Math.round(minStrike - (step * 14));
+            const spanMax = Math.round(maxStrike + (step * 14));
+
+            // Generate dense sample points
+            const sampleStep = Math.max(10, Math.round(step / 2));
+            const rawPoints = [];
+            for (let s = spanMin; s <= spanMax; s += sampleStep) {
+                rawPoints.push(s);
+            }
+
+            // Also add exact strikes, liveSpot, and simulatedSpot
+            basketStrikes.forEach(stk => rawPoints.push(stk));
+            rawPoints.push(Math.round(liveSpot));
+            if (simulatedSpot !== null && !isNaN(simulatedSpot)) {
+                rawPoints.push(Math.round(simulatedSpot));
+            }
+
+            // Find Breakevens via sign crossing
+            const breakevens = [];
+            for (let s = spanMin; s <= spanMax; s += 5) {
+                const p1 = calcPayoffAt(s);
+                const p2 = calcPayoffAt(s + 5);
+                if ((p1 <= 0 && p2 >= 0) || (p1 >= 0 && p2 <= 0)) {
+                    if (p2 !== p1) {
+                        const be = Math.round(s + (0 - p1) * 5 / (p2 - p1));
+                        if (!breakevens.includes(be)) {
+                            breakevens.push(be);
+                            rawPoints.push(be);
                         }
                     }
                 }
             }
-        });
+            breakevens.sort((a, b) => a - b);
+
+            // Sort and deduplicate all x spots
+            const uniqueSpots = Array.from(new Set(rawPoints)).sort((a, b) => a - b);
+
+            let maxProfit = -Infinity;
+            let minProfit = Infinity;
+            const payoffPoints = uniqueSpots.map(s => {
+                const pnl = calcPayoffAt(s);
+                if (pnl > maxProfit) maxProfit = pnl;
+                if (pnl < minProfit) minProfit = pnl;
+                return { x: s, y: Math.round(pnl) };
+            });
+
+            // 4. Update Strategy KPI Cards
+            let shortCeQty = 0, longCeQty = 0, shortPeQty = 0, longPeQty = 0;
+            activeBasket.forEach(l => {
+                const q = parseInt(l.qty || state.lotSize, 10);
+                if (l.type === 'CE') {
+                    if (l.action === 'SELL') shortCeQty += q; else longCeQty += q;
+                } else {
+                    if (l.action === 'SELL') shortPeQty += q; else longPeQty += q;
+                }
+            });
+            const hasUnhedgedCe = shortCeQty > longCeQty;
+            const hasUnhedgedPe = shortPeQty > longPeQty;
+
+            if (maxProfitEl) {
+                maxProfitEl.textContent = `+₹${Math.round(maxProfit).toLocaleString('en-IN')}`;
+            }
+
+            if (maxLossEl) {
+                if (hasUnhedgedCe || hasUnhedgedPe) {
+                    maxLossEl.textContent = 'Uncapped Loss ⚠️';
+                    maxLossEl.className = 'text-base sm:text-lg font-black font-mono text-rose-400 mt-0.5';
+                    if (maxLossSub) maxLossSub.textContent = (hasUnhedgedCe && hasUnhedgedPe) ? 'Naked CE & PE tail risk' : (hasUnhedgedCe ? 'Naked upside rally risk' : 'Naked downside drop risk');
+                } else {
+                    const maxLossVal = Math.round(Math.abs(minProfit));
+                    maxLossEl.textContent = `-₹${maxLossVal.toLocaleString('en-IN')}`;
+                    maxLossEl.className = 'text-base sm:text-lg font-black font-mono text-amber-300 mt-0.5';
+                    if (maxLossSub) maxLossSub.textContent = 'Defined risk with wings';
+                }
+            }
+
+            if (beRangeEl) {
+                if (breakevens.length >= 2) {
+                    const lowerBe = Math.min(...breakevens);
+                    const upperBe = Math.max(...breakevens);
+                    beRangeEl.textContent = `${lowerBe.toLocaleString('en-IN')} - ${upperBe.toLocaleString('en-IN')}`;
+                    const buffer = Math.round(Math.min(Math.abs(liveSpot - lowerBe), Math.abs(upperBe - liveSpot)));
+                    const bufferPct = ((buffer / liveSpot) * 100).toFixed(1);
+                    if (beSubEl) beSubEl.textContent = `Safety Buffer: ±${buffer} pts (${bufferPct}%)`;
+                } else if (breakevens.length === 1) {
+                    beRangeEl.textContent = `BE: ${breakevens[0].toLocaleString('en-IN')}`;
+                    if (beSubEl) beSubEl.textContent = `Buffer: ±${Math.abs(Math.round(liveSpot - breakevens[0]))} pts`;
+                } else {
+                    beRangeEl.textContent = maxProfit > 0 ? 'Full Profit Zone' : 'Deficit';
+                    if (beSubEl) beSubEl.textContent = 'No breakeven cross';
+                }
+            }
+
+            const currentSpotPnl = Math.round(calcPayoffAt(liveSpot));
+            if (currentSpotEl) {
+                currentSpotEl.textContent = `${currentSpotPnl >= 0 ? '+' : ''}₹${currentSpotPnl.toLocaleString('en-IN')}`;
+                currentSpotEl.className = `text-base sm:text-lg font-black font-mono mt-0.5 ${currentSpotPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                if (currentSpotSub) currentSpotSub.textContent = `At spot ${Math.round(liveSpot).toLocaleString('en-IN')}`;
+            }
+
+            // 5. Draw Canvas Chart
+            const canvasEl = document.getElementById('payoffChart');
+            if (!canvasEl) return;
+            const ctx = canvasEl.getContext('2d');
+
+            const datasets = [
+                {
+                    label: 'Expiry P&L',
+                    data: payoffPoints,
+                    borderColor: '#10b981',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: 'origin',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    tension: 0.1
+                },
+                {
+                    label: `Current Spot (${Math.round(liveSpot)})`,
+                    data: [{ x: Math.round(liveSpot), y: currentSpotPnl }],
+                    borderColor: '#ffffff',
+                    backgroundColor: '#06b6d4',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: false
+                }
+            ];
+
+            if (simulatedSpot !== null && !isNaN(simulatedSpot)) {
+                const simPnlVal = Math.round(calcPayoffAt(simulatedSpot));
+                datasets.push({
+                    label: `Simulated Spot (${Math.round(simulatedSpot)})`,
+                    data: [{ x: Math.round(simulatedSpot), y: simPnlVal }],
+                    borderColor: '#ffffff',
+                    backgroundColor: '#f59e0b',
+                    borderWidth: 2.5,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    showLine: false
+                });
+            }
+
+            if (breakevens.length > 0) {
+                datasets.push({
+                    label: 'Breakevens',
+                    data: breakevens.map(b => ({ x: b, y: 0 })),
+                    borderColor: '#f1f5f9',
+                    backgroundColor: '#e2e8f0',
+                    borderWidth: 1.5,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    showLine: false
+                });
+            }
+
+            function drawChart() {
+                if (typeof Chart === 'undefined') {
+                    setTimeout(drawChart, 150);
+                    return;
+                }
+
+                if (payoffChartInstance) {
+                    try { payoffChartInstance.destroy(); } catch (e) {}
+                    payoffChartInstance = null;
+                }
+
+                payoffChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'nearest',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    boxWidth: 8,
+                                    boxHeight: 8,
+                                    color: '#94a3b8',
+                                    font: { size: 10, weight: 'bold' }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: (items) => {
+                                        if (!items || !items.length) return '';
+                                        return `Spot at Expiry: ${items[0].parsed.x ? items[0].parsed.x.toLocaleString('en-IN') : ''}`;
+                                    },
+                                    label: (item) => {
+                                        const y = item.parsed.y;
+                                        const lbl = item.dataset.label || 'Projected P&L';
+                                        return ` ${lbl}: ${y >= 0 ? '+' : ''}₹${Math.round(y).toLocaleString('en-IN')}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: { size: 10 },
+                                    callback: (v) => v.toLocaleString('en-IN')
+                                }
+                            },
+                            y: {
+                                grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    font: { size: 10 },
+                                    callback: (v) => `₹${v.toLocaleString('en-IN')}`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            drawChart();
+        } catch (err) {
+            console.error('renderPayoffChart error:', err);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -1711,7 +2181,7 @@
     // ─────────────────────────────────────────────────────────────
     // 7. EVENT LISTENERS & INTERACTION
     // ─────────────────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', async () => {
+    async function initApp() {
         renderBasketTable();
         updateCorridorAndRecovery();
         renderPayoffChart();
@@ -2292,29 +2762,61 @@
             }
         });
 
-        // Scenario Slider
+        // Scenario Slider & Stress Tester
         const simSlider = document.getElementById('sim-spot-slider');
         const simLabel = document.getElementById('sim-spot-label');
         const simPnl = document.getElementById('sim-pnl-label');
-        simSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
-            simLabel.textContent = val.toFixed(0);
 
-            // Compute hypothetical P&L at slider spot
+        function updateSimulation(val) {
+            if (!simSlider) return;
+            simSlider.value = val;
+            if (simLabel) simLabel.textContent = Math.round(val).toLocaleString('en-IN');
+
             let pnl = 0;
             activeBasket.forEach(leg => {
                 let intr = leg.type === 'CE' ? Math.max(0, val - leg.strike) : Math.max(0, leg.strike - val);
                 pnl += leg.action === 'SELL' ? (leg.entryPrice - intr) * leg.qty : (intr - leg.entryPrice) * leg.qty;
             });
-            simPnl.textContent = `P&L: ${pnl >= 0 ? '+' : ''}₹${Math.round(pnl).toLocaleString('en-IN')}`;
-            simPnl.className = `font-mono font-bold ${pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-        });
+            if (simPnl) {
+                simPnl.textContent = `P&L: ${pnl >= 0 ? '+' : ''}₹${Math.round(pnl).toLocaleString('en-IN')}`;
+                simPnl.className = `font-mono font-extrabold px-2 py-0.5 rounded text-xs border ${pnl >= 0 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`;
+            }
 
-        document.getElementById('btn-reset-sim').addEventListener('click', () => {
-            simSlider.value = liveSpot;
-            simLabel.textContent = liveSpot.toFixed(0);
-            simPnl.textContent = 'P&L: ₹0';
-        });
+            renderPayoffChart(val);
+        }
+
+        if (simSlider) {
+            simSlider.addEventListener('input', (e) => {
+                updateSimulation(parseFloat(e.target.value));
+            });
+        }
+
+        const btnResetSim = document.getElementById('btn-reset-sim');
+        if (btnResetSim) {
+            btnResetSim.addEventListener('click', () => {
+                if (simSlider) simSlider.value = liveSpot;
+                if (simLabel) simLabel.textContent = Math.round(liveSpot).toLocaleString('en-IN');
+                if (simPnl) {
+                    simPnl.textContent = 'P&L: ₹0';
+                    simPnl.className = 'font-mono font-extrabold px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-300 border border-slate-700';
+                }
+                renderPayoffChart(null);
+            });
+        }
+
+        const btnSimMinus1 = document.getElementById('btn-sim-minus-1');
+        if (btnSimMinus1) {
+            btnSimMinus1.addEventListener('click', () => {
+                updateSimulation(Math.round(liveSpot * 0.99));
+            });
+        }
+
+        const btnSimPlus1 = document.getElementById('btn-sim-plus-1');
+        if (btnSimPlus1) {
+            btnSimPlus1.addEventListener('click', () => {
+                updateSimulation(Math.round(liveSpot * 1.01));
+            });
+        }
 
         // Iron Fly Hedge Quick Add
         document.getElementById('btn-convert-ironfly').addEventListener('click', () => {
@@ -2393,7 +2895,13 @@
             const expiry = document.getElementById('filter-expiry').value;
             window.location.href = `/delta-neutral?symbol=${symbol}&expiry=${expiry}&atm=${input.value}`;
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
 
 })();
 </script>
