@@ -13,6 +13,10 @@
                    class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition text-sm shadow-sm">
                     📊 FII &amp; DII
                 </a>
+                <a href="{{ route('delta.neutral') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition text-sm shadow-sm">
+                    ⚖️ Delta Neutral
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">
@@ -22,6 +26,7 @@
                         </svg>
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-bold border-b border-emerald-100">⚖️ Delta Neutral</a>
                         <a href="{{ route('straddle.chart') }}" class="block px-4 py-2 text-indigo-700 hover:bg-indigo-50 font-bold border-b border-indigo-100">📊 Straddle Chart</a>
                         <a href="{{ route('option-chain-view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-blue-700">📋 Option Chain View</a>
                         <a href="{{ route('trending-oi.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-red-700">📈 Trending OI</a>
@@ -63,6 +68,7 @@
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('quant-strategy.index') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ High-Probability (80%+)</a>
+                        <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 font-bold text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100 border-b border-emerald-100">⚖️ Delta Neutral Strategy</a>
                         <a href="{{ route('backtest.strategies.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Strategies</a>
                         <a href="{{ route('backtests.basket-builder') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Builder</a>
                         <a href="{{ route('test.oi-buildup.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI Builups</a>

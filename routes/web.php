@@ -26,6 +26,11 @@ Route::get( '/mid-point', [ MidPointController::class, 'index' ] )->name( 'mid-p
 Route::get( '/live-strike-chart', [ \App\Http\Controllers\LiveStrikeChartController::class, 'index' ] )->name( 'live.strike.chart' );
 Route::get( '/api/live-strike-chart/data', [ \App\Http\Controllers\LiveStrikeChartController::class, 'getData' ] )->name( 'api.live.strike.chart.data' );
 Route::get( '/api/live-strike-chart/ws-url', [ \App\Http\Controllers\LiveStrikeChartController::class, 'getWsUrl' ] )->name( 'api.live.strike.chart.ws-url' );
+
+// Delta Neutral Strategy (Live Stream, VIX, Safe Corridor, Strike Shifter)
+Route::get( '/delta-neutral', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'index' ] )->name( 'delta.neutral' );
+Route::get( '/api/delta-neutral/data', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'getData' ] )->name( 'api.delta.neutral.data' );
+Route::get( '/api/delta-neutral/ws-url', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'getWsUrl' ] )->name( 'api.delta.neutral.ws-url' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity
