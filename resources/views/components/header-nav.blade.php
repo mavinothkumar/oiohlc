@@ -22,6 +22,7 @@
                         </svg>
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('straddle.chart') }}" class="block px-4 py-2 text-indigo-700 hover:bg-indigo-50 font-bold border-b border-indigo-100">📊 Straddle Chart</a>
                         <a href="{{ route('option-chain-view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-blue-700">📋 Option Chain View</a>
                         <a href="{{ route('trending-oi.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-red-700">📈 Trending OI</a>
                         <a href="{{ route('trading-journal.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Trading Journal</a>
@@ -60,7 +61,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
-                    <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                    <div class="absolute z-20 left-0 mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('quant-strategy.index') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ High-Probability (80%+)</a>
                         <a href="{{ route('backtest.strategies.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Strategies</a>
                         <a href="{{ route('backtests.basket-builder') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Builder</a>
                         <a href="{{ route('test.oi-buildup.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">OI Builups</a>

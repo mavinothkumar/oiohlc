@@ -67,7 +67,7 @@ class GenerateDailyStrategies extends Command {
         $baseLotSize = 65; // Matches your UI frontend logic for 1 Lot
 
         // 3a. Define the raw, uncombined legs for Daily IAO
-        $rawIaoLegsITM    = [
+        $rawIaoLegsITM = [
             // --- ITM Legs ---
             [ 'strike' => $itm_2, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
             [ 'strike' => $itm_2, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
@@ -117,7 +117,7 @@ class GenerateDailyStrategies extends Command {
             [ 'strike' => $otm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
             [ 'strike' => $otm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
         ];
-        $rawIaoLegsOTM    = [
+        $rawIaoLegsOTM = [
             // --- ITM Legs ---
             [ 'strike' => $atm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
             [ 'strike' => $atm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
@@ -142,6 +142,19 @@ class GenerateDailyStrategies extends Command {
             [ 'strike' => $otm_2 - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
             [ 'strike' => $otm_2 + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
         ];
+        $rawStraddle   = [
+            // --- ITM Legs ---
+            [ 'strike' => $atm - 200, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 150, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 100, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm - 50, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm, 'type' => 'PE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 50, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 100, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 150, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+            [ 'strike' => $atm + 200, 'type' => 'CE', 'qty' => 1 * $baseLotSize ],
+        ];
 
         // 3b. Consolidate duplicates for Daily IAO by adding their quantities together
 
@@ -149,6 +162,9 @@ class GenerateDailyStrategies extends Command {
         // 3c. Define the final Panels and their Legs
         $strategies = [
             [
+                'name' => 'Daily Raw Straddle',
+                'legs' => array_values( $this->consolidateLegs( $rawStraddle ) ),
+            ],[
                 'name' => 'Daily IAO ITM',
                 'legs' => array_values( $this->consolidateLegs( $rawIaoLegsITM ) ),
             ],

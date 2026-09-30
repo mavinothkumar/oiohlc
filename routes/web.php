@@ -283,3 +283,13 @@ Route::prefix('trading-journal')->name('trading-journal.')->group(function () {
 
     Route::post('/from-template', [App\Http\Controllers\TradingJournalController::class, 'generateFromTemplate'])->name('from-template');
 });
+
+// High-Probability Quant Strategy (80%+ Target)
+Route::get('/high-probability-strategy', [\App\Http\Controllers\QuantStrategyController::class, 'index'])->name('quant-strategy.index');
+Route::get('/api/quant-strategy/signal', [\App\Http\Controllers\QuantStrategyController::class, 'apiSignal'])->name('api.quant-strategy.signal');
+
+// Straddle Combined Premium & VWAP Chart
+Route::get('/straddle-chart', [\App\Http\Controllers\StraddleChartController::class, 'index'])->name('straddle.chart');
+Route::get('/api/straddle-chart/data', [\App\Http\Controllers\StraddleChartController::class, 'getData'])->name('api.straddle.chart.data');
+
+

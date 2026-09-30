@@ -175,11 +175,14 @@ class TradingJournalController extends Controller {
         $atm = (float) $validated['atm'];
         $entryTime = $parameters['entry_time'] ?? '09:15';
 
+        // Shift existing panels down so newly generated strategy appears at top
+        StrategyPanel::query()->increment('sort_order');
+
         // 2. Create Strategy Panel
         $panel = StrategyPanel::create([
             'name'       => $strategy->name . ' (ATM ' . $atm . ')',
             'entry_time' => $entryTime,
-            'sort_order' => StrategyPanel::max('sort_order') + 1,
+            'sort_order' => 0,
         ]);
 
         $legsData = [];
@@ -194,20 +197,13 @@ class TradingJournalController extends Controller {
                 // Standard NIFTY lot size multiplier is 65 (adjust if needed)
                 $quantity = $lots * 65;
 
-                // Calculate Base Strike based on Moneyness rules
-                $baseStrike = $atm;
-                if ($moneyness === 'ITM') {
-                    $baseStrike = $atm - 50;
-                } elseif ($moneyness === 'OTM') {
-                    $baseStrike = $atm + 50;
-                }
-
-                // Calculate final Strike using offset
-                if ($optionType === 'CE') {
-                    $strikePrice = $baseStrike + $offset;
-                } else {
-                    $strikePrice = $baseStrike - $offset;
-                }
+                // Calculate Strike based on Moneyness and Offset (consistent with BasketBuilder & TrendingOi)
+                $moneynessAdj = match ($moneyness) {
+                    'ITM'   => -50 - $offset,
+                    'OTM'   => 50 + $offset,
+                    default => 0,
+                };
+                $strikePrice = $atm + $moneynessAdj;
 
                 $legsData[] = [
                     'strike_price' => $strikePrice,
