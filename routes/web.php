@@ -297,4 +297,15 @@ Route::get('/api/quant-strategy/signal', [\App\Http\Controllers\QuantStrategyCon
 Route::get('/straddle-chart', [\App\Http\Controllers\StraddleChartController::class, 'index'])->name('straddle.chart');
 Route::get('/api/straddle-chart/data', [\App\Http\Controllers\StraddleChartController::class, 'getData'])->name('api.straddle.chart.data');
 
+// Strategy-Agnostic Options Analytics & Risk Management Framework
+Route::get('/options-analytics/{positionId?}', [\App\Http\Controllers\OptionsAnalyticsController::class, 'index'])->name('options-analytics.index');
+Route::get('/api/options-analytics/{position}/data', [\App\Http\Controllers\OptionsAnalyticsController::class, 'analytics'])->name('api.options-analytics.data');
+Route::post('/api/options-analytics/{position}/simulate-action', [\App\Http\Controllers\OptionsAnalyticsController::class, 'simulateAction'])->name('api.options-analytics.simulate-action');
+Route::post('/api/options-analytics/create-from-strategy', [\App\Http\Controllers\OptionsAnalyticsController::class, 'createFromStrategy'])->name('api.options-analytics.create-from-strategy');
+Route::post('/api/options-analytics/{position}/legs/{leg}', [\App\Http\Controllers\OptionsAnalyticsController::class, 'updateLeg'])->name('api.options-analytics.update-leg');
+
+// Strategy Premium & Greek Velocity Analytics (Unified Big Chart & Strategy Builder)
+Route::get('/strategy-premium-analytics', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'index'])->name('strategy.premium.analytics');
+Route::get('/api/strategy-premium-analytics/data', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'getData'])->name('api.strategy.premium.analytics.data');
+
 

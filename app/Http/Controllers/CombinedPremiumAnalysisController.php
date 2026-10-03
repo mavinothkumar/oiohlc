@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CombinedPremiumAnalysisController extends Controller {
     public function index( Request $request ) {
@@ -269,17 +270,20 @@ class CombinedPremiumAnalysisController extends Controller {
     }
 
     public function strikeOptimizer( Request $request ) {
-        $selectedExpiry = $request->input( 'expiry', DB::table( 'nse_expiries' )
-                                                       ->where( 'trading_symbol', 'NIFTY' )
-                                                       ->where( 'instrument_type', 'OPT' )
-                                                       ->where( 'is_current', 1 )
-                                                       ->value( 'expiry_date' ) ?? today()->toDateString() );
+        $defaultExpiry = today()->toDateString();
+        if ( Schema::hasTable( 'nse_expiries' ) ) {
+            $defaultExpiry = DB::table( 'nse_expiries' )
+                               ->where( 'trading_symbol', 'NIFTY' )
+                               ->where( 'instrument_type', 'OPT' )
+                               ->where( 'is_current', 1 )
+                               ->value( 'expiry_date' ) ?? $defaultExpiry;
+        }
+        $selectedExpiry = $request->input( 'expiry', $defaultExpiry );
 
         $selectedDateTime    = $request->input( 'date' );
         $selectedEndDateTime = $request->input( 'end_date' );
         $selectedStrike = $request->input( 'selected_strike' );
-        $strikeCount = $request->input( 'strike_count', 3 );
-        $strikeStep = $request->input( 'strike_step', 100 );
+        $strikeStep = (float)$request->input( 'strike_step', 100 );
         $selectedDate        = ! empty( $selectedDateTime ) ? Carbon::parse( $selectedDateTime )->format( 'Y-m-d' ) : today()->toDateString();
         if ( empty( $selectedDate ) ) {
             $selectedDateTime = $selectedDate . ' 09:15:00';
@@ -289,14 +293,51 @@ class CombinedPremiumAnalysisController extends Controller {
         }
 
         $table = getTableName( 'option_chains' );
+        if ( ! Schema::hasTable( $table ) && Schema::hasTable( 'option_chains' ) ) {
+            $table = 'option_chains';
+        }
 
-        $dailyTrend = DB::table( 'daily_trend' )
-                        ->where( 'symbol_name', 'NIFTY' )
-                        ->where( 'trading_date', $selectedDate )
-                        ->select( 'current_day_index_open', 'index_high', 'index_low', 'index_close' )
-                        ->first();
+        // 1. Resolve Backtest Strategies from /backtest/strategies
+        $backtestStrategies = collect();
+        if ( Schema::hasTable( 'backtest_strategies' ) ) {
+            $backtestStrategies = DB::table( 'backtest_strategies' )
+                                    ->where( 'is_active', true )
+                                    ->orWhereNotNull( 'name' )
+                                    ->orderBy( 'name' )
+                                    ->get();
+        }
 
-        if ( ! $dailyTrend || ! $dailyTrend->current_day_index_open ) {
+        $selectedStrategyId = (int)$request->input( 'strategy_id', $backtestStrategies->first()?->id ?? 1 );
+        $selectedStrategy   = $backtestStrategies->firstWhere( 'id', $selectedStrategyId ) ?? $backtestStrategies->first();
+
+        // 2. Decode strategy legs
+        $rawLegs = [];
+        if ( $selectedStrategy && ! empty( $selectedStrategy->definition ) ) {
+            $def = is_array( $selectedStrategy->definition )
+                ? $selectedStrategy->definition
+                : json_decode( $selectedStrategy->definition, true );
+            $rawLegs = $def['legs'] ?? [];
+        }
+
+        // Default fallback: Standard 1-lot ATM Straddle
+        if ( empty( $rawLegs ) ) {
+            $rawLegs = [
+                [ 'lots' => 1, 'side' => 'SELL', 'moneyness' => 'ATM', 'option_type' => 'CE', 'strike_offset' => 0 ],
+                [ 'lots' => 1, 'side' => 'SELL', 'moneyness' => 'ATM', 'option_type' => 'PE', 'strike_offset' => 0 ],
+            ];
+        }
+
+        // 3. Resolve Nifty open price / ATM center
+        $dailyTrend = null;
+        if ( Schema::hasTable( 'daily_trend' ) ) {
+            $dailyTrend = DB::table( 'daily_trend' )
+                            ->where( 'symbol_name', 'NIFTY' )
+                            ->where( 'trading_date', $selectedDate )
+                            ->select( 'current_day_index_open', 'index_high', 'index_low', 'index_close' )
+                            ->first();
+        }
+
+        if ( ( ! $dailyTrend || ! $dailyTrend->current_day_index_open ) && Schema::hasTable( 'nse_working_days' ) && Schema::hasTable( 'daily_trend' ) ) {
             $previousWorkingDay = DB::table( 'nse_working_days' )
                                     ->where( 'previous', 1 )
                                     ->orderBy( 'working_date', 'desc' )
@@ -313,12 +354,21 @@ class CombinedPremiumAnalysisController extends Controller {
             }
         }
 
-        $openPrice     = $selectedStrike ?? $dailyTrend->current_day_index_open;
-        $nearestStrike = round( $openPrice / $strikeStep ) * $strikeStep;
+        $openPrice = $selectedStrike ?? ($dailyTrend->current_day_index_open ?? null);
+        if ( empty( $openPrice ) ) {
+            $spotVal = DB::table( $table )
+                         ->where( 'trading_symbol', 'NIFTY' )
+                         ->where( 'captured_at', '>=', $selectedDateTime )
+                         ->value( 'underlying_spot_price' );
+            $openPrice = $spotVal ? (float)$spotVal : 22550.0;
+        }
 
+        $nearestStrike = round( (float)$openPrice / $strikeStep ) * $strikeStep;
+
+        // 4. Generate the 15 ATM strikes centered around nearest strike
         $strikes = [];
-        for ( $i = - 8; $i <= 8; $i ++ ) {
-            $strikes[] = $nearestStrike + ( $i * $strikeStep );
+        for ( $i = - 7; $i <= 7; $i ++ ) {
+            $strikes[] = (float)( $nearestStrike + ( $i * $strikeStep ) );
         }
         sort( $strikes );
 
@@ -337,108 +387,112 @@ class CombinedPremiumAnalysisController extends Controller {
             return $sign . number_format( $abs, 2 );
         };
 
-        $results     = [];
-        $results_otm = [];
+        // 5. Pre-resolve legs for each of the 15 ATM strike centers and collect all needed strikes
+        $step = 50.0; // Index strike step for moneyness calculation in Nifty
+        $allNeededStrikes = [];
+        $resolvedAtmStrategies = [];
 
         foreach ( $strikes as $atmStrike ) {
-            // Standard: PE: ATM-200, ATM-100, ATM | CE: ATM, ATM+100, ATM+200
-            $putStrikes = [];
-            for ( $i = $strikeCount; $i >= 0; $i -- ) {
-                $strike = $atmStrike - ( $i * $strikeStep );
-                if ( in_array( $strike, $strikes ) ) {
-                    $putStrikes[] = $strike;
-                }
-            }
-            sort( $putStrikes );
+            $legsForAtm = [];
+            foreach ( $rawLegs as $leg ) {
+                $lots = max( 1, (int)( $leg['lots'] ?? 1 ) );
+                $side = strtoupper( $leg['side'] ?? 'SELL' );
+                $opt = strtoupper( $leg['option_type'] ?? 'CE' );
+                $mon = strtoupper( $leg['moneyness'] ?? 'ATM' );
+                $offset = (float)( $leg['strike_offset'] ?? 0 );
 
-            $callStrikes = [];
-            for ( $i = 0; $i <= $strikeCount; $i ++ ) {
-                $strike = $atmStrike + ( $i * $strikeStep );
-                if ( in_array( $strike, $strikes ) ) {
-                    $callStrikes[] = $strike;
-                }
-            }
-            sort( $callStrikes );
+                $moneynessAdjustment = match ( $mon ) {
+                    'ITM' => - $step - $offset,
+                    'OTM' => $step + $offset,
+                    default => 0.0,
+                };
 
-            // OTM version: PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300
-            $putStrikesOTM = [];
-            for ( $i = $strikeCount; $i >= 1; $i -- ) {
-                $strike = $atmStrike - ( $i * $strikeStep );
-                if ( in_array( $strike, $strikes ) ) {
-                    $putStrikesOTM[] = $strike;
-                }
-            }
-            sort( $putStrikesOTM );
+                $stk = (float)( $atmStrike + $moneynessAdjustment );
+                $allNeededStrikes[] = (int)$stk;
 
-            $callStrikesOTM = [];
-            for ( $i = 1; $i <= $strikeCount; $i ++ ) {
-                $strike = $atmStrike + ( $i * $strikeStep );
-                if ( in_array( $strike, $strikes ) ) {
-                    $callStrikesOTM[] = $strike;
-                }
+                $legsForAtm[] = [
+                    'strike'      => $stk,
+                    'option_type' => $opt,
+                    'side'        => $side,
+                    'lots'        => $lots,
+                    'moneyness'   => $mon,
+                    'offset'      => (int)$offset,
+                ];
             }
-            sort( $callStrikesOTM );
+            $resolvedAtmStrategies[(int)$atmStrike] = $legsForAtm;
+        }
 
-            if ( count( $putStrikes ) < 2 || count( $callStrikes ) < 2 ) {
-                continue;
-            }
+        $allNeededStrikes = array_values( array_unique( $allNeededStrikes ) );
 
-            // Process standard strikes
-            $peData = DB::table( $table )
-                        ->whereIn( 'strike_price', $putStrikes )
-                        ->where( 'option_type', 'PE' )
+        // 6. Fast bulk retrieval of option chains across all needed strikes
+        $optionRows = DB::table( $table )
+                        ->whereIn( 'strike_price', $allNeededStrikes )
                         ->where( 'expiry', $selectedExpiry )
                         ->whereBetween( 'captured_at', [ $selectedDateTime, $selectedEndDateTime ] )
                         ->orderBy( 'captured_at' )
-                        ->get();
+                        ->get( [ 'captured_at', 'strike_price', 'option_type', 'ltp', 'volume', 'oi' ] );
 
-            $ceData = DB::table( $table )
-                        ->whereIn( 'strike_price', $callStrikes )
-                        ->where( 'option_type', 'CE' )
-                        ->where( 'expiry', $selectedExpiry )
-                        ->whereBetween( 'captured_at', [ $selectedDateTime, $selectedEndDateTime ] )
-                        ->orderBy( 'captured_at' )
-                        ->get();
+        // 7. Organize in-memory lookup maps
+        $dataByTimestamp = [];
+        $strikeTotals = [];
 
-            if ( $peData->isEmpty() || $ceData->isEmpty() ) {
-                continue;
+        foreach ( $optionRows as $row ) {
+            $ts = $row->captured_at;
+            $opt = $row->option_type;
+            $stk = (int)$row->strike_price;
+
+            if ( ! isset( $dataByTimestamp[ $ts ] ) ) {
+                $dataByTimestamp[ $ts ] = [ 'CE' => [], 'PE' => [] ];
             }
+            $dataByTimestamp[ $ts ][ $opt ][ $stk ] = (float)$row->ltp;
 
-            $totalPutVolume  = $peData->sum( 'volume' );
-            $totalPutOI      = $peData->sum( 'oi' );
-            $totalCallVolume = $ceData->sum( 'volume' );
-            $totalCallOI     = $ceData->sum( 'oi' );
-
-            $grouped = [];
-            foreach ( $peData as $row ) {
-                $key = $row->captured_at;
-                if ( ! isset( $grouped[ $key ] ) ) {
-                    $grouped[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
-                }
-                $grouped[ $key ]['pe'] += $row->ltp;
+            if ( ! isset( $strikeTotals[ $opt ][ $stk ] ) ) {
+                $strikeTotals[ $opt ][ $stk ] = [ 'volume' => 0, 'oi' => 0 ];
             }
-            foreach ( $ceData as $row ) {
-                $key = $row->captured_at;
-                if ( ! isset( $grouped[ $key ] ) ) {
-                    $grouped[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
-                }
-                $grouped[ $key ]['ce'] += $row->ltp;
-            }
+            $strikeTotals[ $opt ][ $stk ]['volume'] += (int)$row->volume;
+            $strikeTotals[ $opt ][ $stk ]['oi'] = (int)$row->oi;
+        }
 
-            ksort( $grouped );
+        // 8. Compute performance metrics for each of the 15 ATM centers
+        $results = [];
 
-            if ( count( $grouped ) < 5 ) {
-                continue;
-            }
+        foreach ( $strikes as $atmStrike ) {
+            $atmInt = (int)$atmStrike;
+            $legsForAtm = $resolvedAtmStrategies[ $atmInt ] ?? [];
+
+            $callStrikes = collect( $legsForAtm )->where( 'option_type', 'CE' )->pluck( 'strike' )->unique()->sort()->values()->toArray();
+            $putStrikes = collect( $legsForAtm )->where( 'option_type', 'PE' )->pluck( 'strike' )->unique()->sort()->values()->toArray();
 
             $combinedPremiums = [];
-            foreach ( $grouped as $ts => $data ) {
-                $combinedPremiums[] = $data['pe'] + $data['ce'];
+            $validTimestamps = [];
+
+            foreach ( $dataByTimestamp as $ts => $typeData ) {
+                $totalLtp = 0;
+                $hasData = false;
+
+                foreach ( $legsForAtm as $leg ) {
+                    $stk = (int)$leg['strike'];
+                    $opt = $leg['option_type'];
+                    $lots = $leg['lots'];
+                    if ( isset( $typeData[ $opt ][ $stk ] ) ) {
+                        $totalLtp += ( $typeData[ $opt ][ $stk ] * $lots );
+                        $hasData = true;
+                    }
+                }
+
+                if ( $hasData ) {
+                    $combinedPremiums[] = $totalLtp;
+                    $validTimestamps[] = $ts;
+                }
+            }
+
+            if ( count( $combinedPremiums ) < 2 ) {
+                continue;
             }
 
             $startingPremium = $combinedPremiums[0] ?? 0;
             $endingPremium   = $combinedPremiums[ count( $combinedPremiums ) - 1 ] ?? 0;
-            $totalReturn     = $startingPremium - $endingPremium;
+            $totalReturn     = $startingPremium - $endingPremium; // Positive return for net premium decay
             $returnPercent   = $startingPremium > 0 ? ( $totalReturn / $startingPremium ) * 100 : 0;
 
             $vwapValues    = [];
@@ -462,12 +516,11 @@ class CombinedPremiumAnalysisController extends Controller {
             $stabilityScore = count( $combinedPremiums ) > 0 ?
                 ( ( count( $combinedPremiums ) - $belowVwapCount ) / count( $combinedPremiums ) ) * 100 : 0;
 
-            // --- NEW: Calculate Max Profit and Max Loss ---
             $maxProfit = 0;
             $maxLoss = 0;
             foreach ( $combinedPremiums as $premium ) {
-                $profit = $startingPremium - $premium;  // Positive when premium goes down (good for sellers)
-                $loss = $premium - $startingPremium;    // Positive when premium goes up (bad for sellers)
+                $profit = $startingPremium - $premium;
+                $loss = $premium - $startingPremium;
                 if ( $profit > $maxProfit ) {
                     $maxProfit = $profit;
                 }
@@ -476,10 +529,33 @@ class CombinedPremiumAnalysisController extends Controller {
                 }
             }
 
+            $totalCallVolume = 0;
+            $totalCallOI     = 0;
+            $totalPutVolume  = 0;
+            $totalPutOI      = 0;
+
+            foreach ( $legsForAtm as $leg ) {
+                $stk = (int)$leg['strike'];
+                $opt = $leg['option_type'];
+                $lots = $leg['lots'];
+
+                $vol = $strikeTotals[ $opt ][ $stk ]['volume'] ?? 0;
+                $oi  = $strikeTotals[ $opt ][ $stk ]['oi'] ?? 0;
+
+                if ( $opt === 'CE' ) {
+                    $totalCallVolume += ( $vol * $lots );
+                    $totalCallOI += ( $oi * $lots );
+                } else {
+                    $totalPutVolume += ( $vol * $lots );
+                    $totalPutOI += ( $oi * $lots );
+                }
+            }
+
             $results[] = [
                 'atm_strike'            => $atmStrike,
                 'put_strikes'           => $putStrikes,
                 'call_strikes'          => $callStrikes,
+                'strategy_legs'         => $legsForAtm,
                 'total_strikes'         => count( $putStrikes ) + count( $callStrikes ),
                 'starting_premium'      => round( $startingPremium, 2 ),
                 'ending_premium'        => round( $endingPremium, 2 ),
@@ -491,7 +567,7 @@ class CombinedPremiumAnalysisController extends Controller {
                 'stability_score'       => round( $stabilityScore, 2 ),
                 'premium_data'          => $combinedPremiums,
                 'vwap_data'             => $vwapValues,
-                'timestamps'            => array_keys( $grouped ),
+                'timestamps'            => $validTimestamps,
                 'put_volume'            => $totalPutVolume,
                 'put_oi'                => $totalPutOI,
                 'call_volume'           => $totalCallVolume,
@@ -501,142 +577,22 @@ class CombinedPremiumAnalysisController extends Controller {
                 'call_volume_formatted' => $formatInrCompact( $totalCallVolume ),
                 'call_oi_formatted'     => $formatInrCompact( $totalCallOI ),
             ];
-
-            // Process OTM strikes if valid
-            if ( count( $putStrikesOTM ) >= 2 && count( $callStrikesOTM ) >= 2 ) {
-                $peDataOTM = DB::table( $table )
-                               ->whereIn( 'strike_price', $putStrikesOTM )
-                               ->where( 'option_type', 'PE' )
-                               ->where( 'expiry', $selectedExpiry )
-                               ->where( 'captured_at', '>=', $selectedDateTime )
-                               ->orderBy( 'captured_at' )
-                               ->get();
-
-                $ceDataOTM = DB::table( $table )
-                               ->whereIn( 'strike_price', $callStrikesOTM )
-                               ->where( 'option_type', 'CE' )
-                               ->where( 'expiry', $selectedExpiry )
-                               ->where( 'captured_at', '>=', $selectedDateTime )
-                               ->orderBy( 'captured_at' )
-                               ->get();
-
-                if ( ! $peDataOTM->isEmpty() && ! $ceDataOTM->isEmpty() ) {
-                    $totalPutVolumeOTM  = $peDataOTM->sum( 'volume' );
-                    $totalPutOIOTM      = $peDataOTM->sum( 'oi' );
-                    $totalCallVolumeOTM = $ceDataOTM->sum( 'volume' );
-                    $totalCallOIOTM     = $ceDataOTM->sum( 'oi' );
-
-                    $groupedOTM = [];
-                    foreach ( $peDataOTM as $row ) {
-                        $key = $row->captured_at;
-                        if ( ! isset( $groupedOTM[ $key ] ) ) {
-                            $groupedOTM[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
-                        }
-                        $groupedOTM[ $key ]['pe'] += $row->ltp;
-                    }
-                    foreach ( $ceDataOTM as $row ) {
-                        $key = $row->captured_at;
-                        if ( ! isset( $groupedOTM[ $key ] ) ) {
-                            $groupedOTM[ $key ] = [ 'pe' => 0, 'ce' => 0 ];
-                        }
-                        $groupedOTM[ $key ]['ce'] += $row->ltp;
-                    }
-
-                    ksort( $groupedOTM );
-
-                    if ( count( $groupedOTM ) >= 5 ) {
-                        $combinedPremiumsOTM = [];
-                        foreach ( $groupedOTM as $ts => $data ) {
-                            $combinedPremiumsOTM[] = $data['pe'] + $data['ce'];
-                        }
-
-                        $startingPremiumOTM = $combinedPremiumsOTM[0] ?? 0;
-                        $endingPremiumOTM   = $combinedPremiumsOTM[ count( $combinedPremiumsOTM ) - 1 ] ?? 0;
-                        $totalReturnOTM     = $startingPremiumOTM - $endingPremiumOTM;
-                        $returnPercentOTM   = $startingPremiumOTM > 0 ? ( $totalReturnOTM / $startingPremiumOTM ) * 100 : 0;
-
-                        $vwapValuesOTM    = [];
-                        $cumulativePVOTM  = 0;
-                        $cumulativeVolOTM = 0;
-                        foreach ( $combinedPremiumsOTM as $premium ) {
-                            $cumulativePVOTM += $premium;
-                            $cumulativeVolOTM ++;
-                            $vwapValuesOTM[] = $cumulativePVOTM / $cumulativeVolOTM;
-                        }
-
-                        $crossedVwapOTM    = false;
-                        $belowVwapCountOTM = 0;
-                        foreach ( $combinedPremiumsOTM as $i => $premium ) {
-                            if ( $i > 0 && $premium < $vwapValuesOTM[ $i ] ) {
-                                $crossedVwapOTM = true;
-                                $belowVwapCountOTM ++;
-                            }
-                        }
-
-                        $stabilityScoreOTM = count( $combinedPremiumsOTM ) > 0 ?
-                            ( ( count( $combinedPremiumsOTM ) - $belowVwapCountOTM ) / count( $combinedPremiumsOTM ) ) * 100 : 0;
-
-                        // --- NEW: Calculate Max Profit and Max Loss for OTM ---
-                        $maxProfitOTM = 0;
-                        $maxLossOTM = 0;
-                        foreach ( $combinedPremiumsOTM as $premium ) {
-                            $profitOTM = $startingPremiumOTM - $premium;
-                            $lossOTM = $premium - $startingPremiumOTM;
-                            if ( $profitOTM > $maxProfitOTM ) {
-                                $maxProfitOTM = $profitOTM;
-                            }
-                            if ( $lossOTM > $maxLossOTM ) {
-                                $maxLossOTM = $lossOTM;
-                            }
-                        }
-
-                        $results_otm[] = [
-                            'atm_strike'            => $atmStrike,
-                            'put_strikes'           => $putStrikesOTM,
-                            'call_strikes'          => $callStrikesOTM,
-                            'total_strikes'         => count( $putStrikesOTM ) + count( $callStrikesOTM ),
-                            'starting_premium'      => round( $startingPremiumOTM, 2 ),
-                            'ending_premium'        => round( $endingPremiumOTM, 2 ),
-                            'total_return'          => round( $totalReturnOTM, 2 ),
-                            'return_percent'        => round( $returnPercentOTM, 2 ),
-                            'max_profit'            => round( $maxProfitOTM, 2 ),
-                            'max_loss'              => round( $maxLossOTM, 2 ),
-                            'crossed_vwap'          => $crossedVwapOTM,
-                            'stability_score'       => round( $stabilityScoreOTM, 2 ),
-                            'premium_data'          => $combinedPremiumsOTM,
-                            'vwap_data'             => $vwapValuesOTM,
-                            'timestamps'            => array_keys( $groupedOTM ),
-                            'put_volume'            => $totalPutVolumeOTM,
-                            'put_oi'                => $totalPutOIOTM,
-                            'call_volume'           => $totalCallVolumeOTM,
-                            'call_oi'               => $totalCallOIOTM,
-                            'put_volume_formatted'  => $formatInrCompact( $totalPutVolumeOTM ),
-                            'put_oi_formatted'      => $formatInrCompact( $totalPutOIOTM ),
-                            'call_volume_formatted' => $formatInrCompact( $totalCallVolumeOTM ),
-                            'call_oi_formatted'     => $formatInrCompact( $totalCallOIOTM ),
-                        ];
-                    }
-                }
-            }
         }
 
         usort( $results, function ( $a, $b ) {
             return $a['atm_strike'] - $b['atm_strike'];
         } );
 
-        usort( $results_otm, function ( $a, $b ) {
-            return $a['atm_strike'] - $b['atm_strike'];
-        } );
-
         $topResults    = array_slice( $results, 0, 15 );
-        $topResultsOTM = array_slice( $results_otm, 0, 15 );
-
-        $atmStrike = $nearestStrike;
+        $topResultsOTM = [];
+        $results_otm   = [];
+        $atmStrike     = $nearestStrike;
 
         return view( 'strike-optimizer', compact(
             'selectedExpiry', 'selectedDate', 'openPrice',
             'strikes', 'topResults', 'topResultsOTM', 'results', 'results_otm',
-            'atmStrike', 'selectedDateTime', 'selectedEndDateTime', 'selectedStrike','strikeStep'
+            'atmStrike', 'selectedDateTime', 'selectedEndDateTime', 'selectedStrike', 'strikeStep',
+            'backtestStrategies', 'selectedStrategyId', 'selectedStrategy'
         ) );
     }
 }

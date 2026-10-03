@@ -414,12 +414,12 @@
             <div class="flex flex-col gap-2">
                 {{-- Action 1: 1-Click Roll Untested Leg --}}
                 <button type="button" id="btn-preview-shift" disabled class="bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed">
-                    <span>🔄 1-Click Roll Untested Leg</span>
+                    <span id="btn-preview-shift-text" class="pointer-events-none">🔄 1-Click Roll Untested Leg</span>
                 </button>
 
                 {{-- Action 2: 1-Click Buy Protection Wing --}}
                 <button type="button" id="btn-buy-hedge-wing" disabled class="bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50">
-                    <span>🛡️ 1-Click Buy Protection Wing</span>
+                    <span id="btn-buy-hedge-wing-text" class="pointer-events-none">🛡️ 1-Click Buy Protection Wing</span>
                 </button>
 
                 {{-- Action 3: Deep Defense / Full Iron Fly --}}
@@ -1006,17 +1006,17 @@
                             <input type="number" 
                                 class="basket-entry-input w-20 bg-transparent text-right text-emerald-400 font-mono font-bold focus:outline-none text-xs" 
                                 data-index="${index}" 
-                                value="${leg.entryPrice.toFixed(2)}" 
+                                value="${Number(leg.entryPrice || 0).toFixed(2)}" 
                                 step="0.05" 
                                 min="0.05">
                         </div>
                     </td>
                     <td class="py-2 px-2.5 text-right font-bold text-cyan-300 font-mono">
-                        <span id="basket-ltp-${index}">₹${currentLtp.toFixed(2)}</span>
+                        <span id="basket-ltp-${index}">₹${Number(currentLtp || 0).toFixed(2)}</span>
                     </td>
                     <td class="py-2 px-2.5 text-right font-extrabold font-mono">
                         <span id="basket-pnl-${index}" class="${pnlColor}">
-                            ${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}
+                            ${isPnlPositive ? '+' : ''}₹${Number(legPnl || 0).toFixed(2)}
                         </span>
                     </td>
                     <td class="py-2 px-2.5 text-right">
@@ -1092,12 +1092,12 @@
             const isPnlPositive = legPnl >= 0;
             const ltpEl = document.getElementById(`basket-ltp-${index}`);
             if (ltpEl) {
-                ltpEl.textContent = `₹${currentLtp.toFixed(2)}`;
+                ltpEl.textContent = `₹${Number(currentLtp || 0).toFixed(2)}`;
             }
 
             const pnlEl = document.getElementById(`basket-pnl-${index}`);
             if (pnlEl) {
-                pnlEl.textContent = `${isPnlPositive ? '+' : ''}₹${legPnl.toFixed(2)}`;
+                pnlEl.textContent = `${isPnlPositive ? '+' : ''}₹${Number(legPnl || 0).toFixed(2)}`;
                 pnlEl.className = isPnlPositive ? 'text-emerald-400' : 'text-rose-400';
             }
 
@@ -1485,8 +1485,16 @@
                 if (btnShift) {
                     btnShift.disabled = false;
                     btnShift.className = 'bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer';
-                    btnShift.innerHTML = `<span>💎 Optional: Lock +₹${Math.round(decayedLeg.pnl)} & Roll to ${suggestedRollStrike}</span>`;
-                    btnShift.onclick = () => executeRoll(decayedLeg, suggestedRollStrike, decayedLeg.type);
+                    const shiftLabel = `💎 Optional: Lock +₹${Math.round(decayedLeg.pnl)} & Roll to ${suggestedRollStrike}`;
+                    const btnShiftText = document.getElementById('btn-preview-shift-text');
+                    if (btnShiftText && btnShiftText.textContent !== shiftLabel) btnShiftText.textContent = shiftLabel;
+                    btnShift.dataset.action = 'roll';
+                    btnShift.dataset.oldStrike = decayedLeg.strike;
+                    btnShift.dataset.oldType = decayedLeg.type;
+                    btnShift.dataset.oldAction = decayedLeg.action || 'SELL';
+                    btnShift.dataset.oldId = decayedLeg.id || '';
+                    btnShift.dataset.qty = decayedLeg.qty || state.lotSize;
+                    btnShift.dataset.newStrike = suggestedRollStrike;
                 }
             } else {
                 if (diagRec) {
@@ -1498,16 +1506,18 @@
                 if (btnShift) {
                     btnShift.disabled = true;
                     btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
-                    btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
-                    btnShift.onclick = null;
+                    const btnShiftText = document.getElementById('btn-preview-shift-text');
+                    if (btnShiftText) btnShiftText.textContent = '🔄 1-Click Roll Untested Leg';
+                    delete btnShift.dataset.action;
                 }
             }
 
             if (btnHedge) {
                 btnHedge.disabled = true;
                 btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
-                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
-                btnHedge.onclick = null;
+                const btnHedgeText = document.getElementById('btn-buy-hedge-wing-text');
+                if (btnHedgeText) btnHedgeText.textContent = '🛡️ 1-Click Buy Protection Wing';
+                delete btnHedge.dataset.action;
             }
 
             return; // Finished for profit state
@@ -1546,14 +1556,16 @@
             if (btnShift) {
                 btnShift.disabled = true;
                 btnShift.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed';
-                btnShift.innerHTML = `<span>🔄 1-Click Roll Untested Leg</span>`;
-                btnShift.onclick = null;
+                const btnShiftText = document.getElementById('btn-preview-shift-text');
+                if (btnShiftText) btnShiftText.textContent = '🔄 1-Click Roll Untested Leg';
+                delete btnShift.dataset.action;
             }
             if (btnHedge) {
                 btnHedge.disabled = true;
                 btnHedge.className = 'bg-slate-800 text-slate-500 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50';
-                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy Protection Wing</span>`;
-                btnHedge.onclick = null;
+                const btnHedgeText = document.getElementById('btn-buy-hedge-wing-text');
+                if (btnHedgeText) btnHedgeText.textContent = '🛡️ 1-Click Buy Protection Wing';
+                delete btnHedge.dataset.action;
             }
             return;
         }
@@ -1644,38 +1656,66 @@
             if (btnShift) {
                 btnShift.disabled = false;
                 btnShift.className = 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5 cursor-pointer';
-                btnShift.innerHTML = `<span>🔄 1-Click Roll ${decayedLeg.strike} ${decayedLeg.type} ➔ ${suggestedRollStrike} ${decayedLeg.type}</span>`;
-                btnShift.onclick = () => executeRoll(decayedLeg, suggestedRollStrike, decayedLeg.type);
+                const shiftLabel = `🔄 1-Click Roll ${decayedLeg.strike} ${decayedLeg.type} ➔ ${suggestedRollStrike} ${decayedLeg.type}`;
+                const btnShiftText = document.getElementById('btn-preview-shift-text');
+                if (btnShiftText && btnShiftText.textContent !== shiftLabel) btnShiftText.textContent = shiftLabel;
+                btnShift.dataset.action = 'roll';
+                btnShift.dataset.oldStrike = decayedLeg.strike;
+                btnShift.dataset.oldType = decayedLeg.type;
+                btnShift.dataset.oldAction = decayedLeg.action || 'SELL';
+                btnShift.dataset.oldId = decayedLeg.id || '';
+                btnShift.dataset.qty = decayedLeg.qty || state.lotSize;
+                btnShift.dataset.newStrike = suggestedRollStrike;
             }
 
             if (btnHedge) {
                 btnHedge.disabled = false;
                 btnHedge.className = 'bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer opacity-100';
-                btnHedge.innerHTML = `<span>🛡️ 1-Click Buy ${suggestedWingStrike} ${testedLeg.type} Wing (@ ₹${wingPrice.toFixed(1)})</span>`;
-                btnHedge.onclick = () => executeBuyWing(suggestedWingStrike, testedLeg.type, wingPrice, wingKey);
+                const hedgeLabel = `🛡️ 1-Click Buy ${suggestedWingStrike} ${testedLeg.type} Wing (@ ₹${Number(wingPrice).toFixed(1)})`;
+                const btnHedgeText = document.getElementById('btn-buy-hedge-wing-text');
+                if (btnHedgeText && btnHedgeText.textContent !== hedgeLabel) btnHedgeText.textContent = hedgeLabel;
+                btnHedge.dataset.action = 'wing';
+                btnHedge.dataset.strike = suggestedWingStrike;
+                btnHedge.dataset.type = testedLeg.type;
+                btnHedge.dataset.price = wingPrice;
+                btnHedge.dataset.key = wingKey || '';
             }
         }
     }
 
     function executeRoll(oldLeg, newStrike, type) {
+        if (!oldLeg) return;
+        newStrike = parseFloat(newStrike);
+        const oldStrike = parseFloat(oldLeg.strike);
+        type = type || oldLeg.type;
+
         // Find instrument for new strike from strikesData
-        const strikeObj = state.strikesData.find(s => s.strike === newStrike);
+        const strikeObj = state.strikesData.find(s => parseFloat(s.strike) === newStrike);
         const newInst = strikeObj ? (type === 'CE' ? strikeObj.ce : strikeObj.pe) : null;
         const newKey = newInst ? newInst.instrument_key : null;
-        const newPrice = newInst && newInst.ltp > 0 ? newInst.ltp : (livePrices[newKey] || 45);
+        const newPrice = newInst && parseFloat(newInst.ltp) > 0 
+            ? parseFloat(newInst.ltp) 
+            : (parseFloat(livePrices[newKey]) || 45);
+
+        const legQty = parseInt(oldLeg.qty || state.lotSize, 10);
 
         // Remove old decayed leg, insert new shifted leg
-        activeBasket = activeBasket.filter(l => l.id !== oldLeg.id && !(l.strike === oldLeg.strike && l.type === oldLeg.type && l.action === oldLeg.action));
+        activeBasket = activeBasket.filter(l => {
+            if (oldLeg.id && l.id === oldLeg.id) return false;
+            if (parseFloat(l.strike) === oldStrike && l.type === type && l.action === (oldLeg.action || 'SELL')) return false;
+            return true;
+        });
+
         activeBasket.push({
             id: `${type}_${newStrike}_${Date.now()}`,
             action: 'SELL',
             strike: newStrike,
             type: type,
-            qty: oldLeg.qty,
+            qty: legQty,
             entryPrice: newPrice,
             instrumentKey: newKey,
-            oiChange: newInst ? newInst.oi_change_pct : 0,
-            buildup: newInst ? newInst.buildup : 'Shifted Leg'
+            oiChange: newInst ? (parseFloat(newInst.oi_change_pct) || 0) : 0,
+            buildup: newInst ? (newInst.buildup || 'Shifted Leg') : 'Shifted Leg'
         });
 
         if (newKey && !state.allInstrumentKeys.includes(newKey)) {
@@ -1684,17 +1724,35 @@
         }
 
         saveActiveBasket(true);
-        showToast('Strike Rolled Successfully', `Rolled untested ${oldLeg.strike} ${type} ➔ ${newStrike} ${type}.\nFresh credit collected: ₹${newPrice.toFixed(2)} | Delta restored to neutral.`, 'success');
+        showToast('Strike Rolled Successfully', `Rolled untested ${oldStrike} ${type} ➔ ${newStrike} ${type}.\nFresh credit collected: ₹${Number(newPrice).toFixed(2)} | Delta restored to neutral.`, 'success');
     }
 
     function executeBuyWing(strike, type, price, key = null) {
+        strike = parseFloat(strike);
+        price = parseFloat(price) || 20;
+
+        // Check if identical wing is already in basket to prevent duplicate double-clicks
+        const existing = activeBasket.find(l => parseFloat(l.strike) === strike && l.type === type && l.action === 'BUY');
+        if (existing) {
+            showToast('Wing Already Active', `Protective Wing ${strike} ${type} is already active in your basket.`, 'info');
+            return;
+        }
+
+        // If key not provided, try to find from strikesData
+        if (!key) {
+            const sObj = state.strikesData.find(s => parseFloat(s.strike) === strike);
+            const inst = sObj ? (type === 'CE' ? sObj.ce : sObj.pe) : null;
+            if (inst && inst.instrument_key) key = inst.instrument_key;
+            if (inst && parseFloat(inst.ltp) > 0 && price === 20) price = parseFloat(inst.ltp);
+        }
+
         activeBasket.push({
             id: `BUY_${type}_${strike}_${Date.now()}`,
             action: 'BUY',
             strike: strike,
             type: type,
             qty: state.lotSize,
-            entryPrice: price > 0 ? price : 20,
+            entryPrice: price,
             instrumentKey: key,
             oiChange: 0,
             buildup: 'Protective Wing'
@@ -1706,7 +1764,7 @@
         }
 
         saveActiveBasket(true);
-        showToast('Hedge Wing Deployed', `Bought ${strike} ${type} @ ₹${price.toFixed(2)}.\nCapped runaway risk. Strategy converted to defined-risk Iron Condor!`, 'success');
+        showToast('Hedge Wing Deployed', `Bought ${strike} ${type} @ ₹${Number(price).toFixed(2)}.\nCapped runaway risk. Strategy converted to defined-risk Iron Condor!`, 'success');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -2252,6 +2310,45 @@
                 return;
             }
         });
+
+        // ─────────────────────────────────────────────────────────────
+        // Intelligent Playbook Action Buttons (1-Click Roll & 1-Click Buy Wing)
+        // ─────────────────────────────────────────────────────────────
+        const btnShiftAction = document.getElementById('btn-preview-shift');
+        if (btnShiftAction) {
+            btnShiftAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (btnShiftAction.disabled) return;
+                const oldStrike = parseFloat(btnShiftAction.dataset.oldStrike);
+                const newStrike = parseFloat(btnShiftAction.dataset.newStrike);
+                const type = btnShiftAction.dataset.oldType;
+                const oldId = btnShiftAction.dataset.oldId;
+                const qty = parseInt(btnShiftAction.dataset.qty, 10) || state.lotSize;
+                if (!newStrike || !type) return;
+
+                const oldLeg = activeBasket.find(l => (oldId && l.id === oldId) || (parseFloat(l.strike) === oldStrike && l.type === type && l.action === 'SELL'))
+                    || { id: oldId, strike: oldStrike, type: type, qty: qty, action: 'SELL' };
+
+                executeRoll(oldLeg, newStrike, type);
+            });
+        }
+
+        const btnHedgeAction = document.getElementById('btn-buy-hedge-wing');
+        if (btnHedgeAction) {
+            btnHedgeAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (btnHedgeAction.disabled) return;
+                const strike = parseFloat(btnHedgeAction.dataset.strike);
+                const type = btnHedgeAction.dataset.type;
+                const price = parseFloat(btnHedgeAction.dataset.price) || 20;
+                const key = btnHedgeAction.dataset.key || null;
+                if (!strike || !type) return;
+
+                executeBuyWing(strike, type, price, key);
+            });
+        }
 
         // Inline Real-Time Edit Entry Price & Quantity in Active Basket Table
         const basketTableBody = document.getElementById('basket-table-body');

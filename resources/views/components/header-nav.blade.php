@@ -17,6 +17,14 @@
                    class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition text-sm shadow-sm">
                     ⚖️ Delta Neutral
                 </a>
+                <a href="{{ route('options-analytics.index') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-cyan-700 hover:bg-cyan-800 transition text-sm shadow-sm {{ request()->routeIs('options-analytics.*') ? 'ring-2 ring-cyan-400' : '' }}">
+                    🎯 Strategy Analytics
+                </a>
+                <a href="{{ route('strategy.premium.analytics') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-teal-600 hover:bg-teal-700 transition text-sm shadow-sm {{ request()->routeIs('strategy.premium.analytics') ? 'ring-2 ring-teal-300 ring-offset-1' : '' }}">
+                    📈 Strategy Matrix
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">
@@ -37,6 +45,7 @@
                         <a href="{{ route('live.strike.chart') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-semibold">⚡ Live Strike Chart</a>
                         <a href="{{ route('oi-buildup.live') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Live OI Build</a>
                         <a href="{{ route('options.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Option Analysis</a>
+                        <a href="{{ route('strategy.premium.analytics') }}" class="block px-4 py-2 text-cyan-800 hover:bg-cyan-50 font-bold border-b border-cyan-100">📈 Strategy Premium Matrix</a>
                         <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Combined Premium</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Greeks</a>
                         <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Multi Greeks</a>
@@ -67,6 +76,7 @@
                         </svg>
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('strategy.premium.analytics') }}" class="block px-4 py-2 font-bold text-teal-700 bg-teal-50/70 hover:bg-teal-100 border-b border-teal-100">📈 Strategy Premium Matrix</a>
                         <a href="{{ route('quant-strategy.index') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ High-Probability (80%+)</a>
                         <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 font-bold text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100 border-b border-emerald-100">⚖️ Delta Neutral Strategy</a>
                         <a href="{{ route('backtest.strategies.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Strategies</a>

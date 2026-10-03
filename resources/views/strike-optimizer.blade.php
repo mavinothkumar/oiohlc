@@ -1,68 +1,107 @@
 @extends('layouts.app')
 
 @section('title')
-    Strike Optimizer – Based on Nifty Open Price
+    Strike Optimizer – Strategy Combinations
 @endsection
 
 @section('content')
-    <div class="bg-gray-50 text-gray-800 font-sans p-2 md:p-4">
-        <div class="w-full mx-auto">
-            <h1 class="text-2xl font-bold mb-4">🎯 Strike Optimizer – Based on Nifty Open</h1>
+    <div class="bg-gray-50 text-gray-800 font-sans px-2 sm:px-3 py-3 min-h-screen w-full">
+        <div class="w-full">
+            {{-- Top Header --}}
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2 text-slate-900">
+                    <span>🎯</span>
+                    <span>Strike Optimizer – Strategy Combinations</span>
+                </h1>
+                
+                @if(!empty($selectedStrategy))
+                    <div class="flex items-center gap-1.5 text-xs font-mono-num">
+                        <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold border border-blue-200">
+                            {{ count($topResults[0]['strategy_legs'] ?? []) }} Legs Configured
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold border border-slate-300">
+                            Total Lots: {{ collect($topResults[0]['strategy_legs'] ?? [])->sum('lots') }}L
+                        </span>
+                    </div>
+                @endif
+            </div>
 
             {{-- Compact Info Banner --}}
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4">
-                <div class="flex items-center flex-wrap gap-2 text-sm text-blue-700">
-                    <span class="font-medium text-blue-800">📊 Analysis Based on Nifty Open</span>
-                    <span class="text-gray-400">|</span>
-                    <span><strong>Open:</strong> {{ number_format($openPrice, 2) }}</span>
-                    <span class="text-gray-400">|</span>
-                    <span><strong>ATM:</strong> <span class="font-bold text-blue-800">{{ $atmStrike }}</span></span>
-                    <span class="text-gray-400">|</span>
-                    <span><strong>Strikes:</strong> {{ implode(', ', $strikes) }}</span>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3 shadow-xs">
+                <div class="flex items-center flex-wrap gap-2 text-xs text-blue-900 font-mono-num">
+                    <span class="font-bold text-blue-950 flex items-center gap-1">
+                        <span>📊</span>
+                        <span>Strategy: <strong class="text-blue-700">{{ $selectedStrategy->name ?? 'Custom' }}</strong></span>
+                    </span>
+                    <span class="text-slate-300">|</span>
+                    <span><strong>Open Spot:</strong> {{ number_format($openPrice, 2) }}</span>
+                    <span class="text-slate-300">|</span>
+                    <span><strong>ATM Center:</strong> <span class="font-bold text-blue-800">{{ $atmStrike }}</span></span>
+                    <span class="text-slate-300">|</span>
+                    <span><strong>15 Variations:</strong> <span class="text-slate-600">{{ implode(', ', $strikes) }}</span></span>
                 </div>
             </div>
 
-            {{-- Compact Filter Form --}}
-            <form method="GET" class="bg-white rounded-lg shadow border border-gray-200 p-3 mb-4">
+            {{-- Compact Filter Form with Strategy Dropdown --}}
+            <form method="GET" class="bg-white rounded-lg shadow-xs border border-gray-200 p-2.5 mb-3">
                 <div class="flex flex-wrap gap-2 items-end">
+                    {{-- Expiry --}}
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Expiry</label>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">Expiry</label>
                         <input type="date" name="expiry" value="{{ $selectedExpiry }}"
-                            class="w-40 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
+                            class="w-36 border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
+                    {{-- Start Date & Time --}}
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">Start Time</label>
                         <input type="datetime-local" name="date" value="{{ \Carbon\Carbon::parse($selectedDateTime)->format('Y-m-d\TH:i') }}"
-                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Date & Time</label>
-                        <input type="datetime-local" name="end_date" value="{{ $selectedEndDateTime }}"
-                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" step="60">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Strike</label>
-                        <input type="text" name="selected_strike" value="{{ $selectedStrike ?? '' }}"
-                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
+                            class="w-44 border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium focus:ring-blue-500 focus:border-blue-500" step="60">
                     </div>
 
+                    {{-- End Date & Time --}}
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Strike Step</label>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">End Time</label>
+                        <input type="datetime-local" name="end_date" value="{{ \Carbon\Carbon::parse($selectedEndDateTime)->format('Y-m-d\TH:i') }}"
+                            class="w-44 border border-gray-300 rounded px-2 py-1 text-xs bg-white font-medium focus:ring-blue-500 focus:border-blue-500" step="60">
+                    </div>
+
+                    {{-- Strategy Dropdown (/backtest/strategies) --}}
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">Strategy (/backtest/strategies)</label>
+                        <select name="strategy_id" class="w-56 border border-gray-300 rounded px-2 py-1 text-xs bg-white font-bold text-slate-800 shadow-xs focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
+                            @foreach($backtestStrategies as $strat)
+                                <option value="{{ $strat->id }}" {{ $selectedStrategyId == $strat->id ? 'selected' : '' }}>
+                                    {{ $strat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- ATM / Strike Override --}}
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">ATM Center (Optional)</label>
+                        <input type="text" name="selected_strike" value="{{ $selectedStrike ?? '' }}" placeholder="Auto (Open)"
+                            class="w-32 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    {{-- Strike Step --}}
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 mb-0.5">Strike Step</label>
                         <input type="text" name="strike_step" value="{{ $strikeStep ?? '100' }}"
-                            class="w-48 border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
+                            class="w-20 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <div>
                         <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1.5 rounded transition text-sm h-[34px]">
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1 rounded transition text-xs h-[30px] shadow-xs flex items-center gap-1 active:scale-95">
                             🔍 Analyze
                         </button>
                     </div>
                 </div>
             </form>
 
-            {{-- Results Table: Standard (ATM strikes) --}}
+            {{-- Results Table: Selected Strategy (15 ATM Strikes Variations) --}}
             @if(count($topResults) > 0)
                 @php
                     $ceVolValues = array_column($topResults, 'call_volume');
@@ -75,36 +114,43 @@
                     $maxPEOI = !empty($peOIValues) ? max($peOIValues) : 0;
                 @endphp
 
-                <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden mb-6">
-                    <div class="p-3 border-b border-gray-200">
-                        <h2 class="text-lg font-semibold">📊 Strike Combinations Performance (ATM Strikes)</h2>
-                        <p class="text-xs text-gray-500">PE: ATM, ATM-100, ATM-200 | CE: ATM, ATM+100, ATM+200</p>
+                <div class="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden mb-6">
+                    <div class="p-2.5 px-3 border-b border-gray-200 bg-gray-50/80 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-1.5">
+                                <span>🎯</span>
+                                <span>Strike Combinations Performance – {{ $selectedStrategy->name ?? 'Strategy Matrix' }}</span>
+                            </h2>
+                            <p class="text-[11px] text-gray-500">
+                                15 ATM variations computed using <strong>{{ $selectedStrategy->name ?? 'selected strategy' }}</strong> legs across market session
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-xs border-collapse">
+                            <thead class="bg-slate-100/90 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-600 tracking-tight select-none">
                             <tr>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">#</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">ATM</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">CE Strikes</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">PE Strikes</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">CE Vol</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">PE Vol</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">CE OI</th>
-                                <th class="px-3 py-2 text-left font-semibold text-gray-600">PE OI</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Start ₹</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">End ₹</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Return ₹</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Return %</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Profit ₹</th>
-                                <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Loss ₹</th>
-                                <th class="px-3 py-2 text-center font-semibold text-gray-600">VWAP</th>
-                                <th class="px-3 py-2 text-center font-semibold text-gray-600">Stability</th>
-                                <th class="px-3 py-2 text-center font-semibold text-gray-600">View</th>
+                                <th class="px-2 py-2 text-center w-8 whitespace-nowrap">#</th>
+                                <th class="px-2.5 py-2 text-left whitespace-nowrap">ATM Center</th>
+                                <th class="px-2.5 py-2 text-left min-w-[140px]">CE Strikes</th>
+                                <th class="px-2.5 py-2 text-left min-w-[140px]">PE Strikes</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">CE Vol</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">PE Vol</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">CE OI</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">PE OI</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">Start ₹</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">End ₹</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">Return ₹</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">Return %</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">Max Profit</th>
+                                <th class="px-2.5 py-2 text-right whitespace-nowrap">Max Loss</th>
+                                <th class="px-2.5 py-2 text-center whitespace-nowrap">VWAP</th>
+                                <th class="px-2.5 py-2 text-center whitespace-nowrap">Stability</th>
+                                <th class="px-2.5 py-2 text-center whitespace-nowrap">Actions</th>
                             </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200">
+                            <tbody class="divide-y divide-gray-200 font-mono-num text-[11px]">
                             @foreach($topResults as $index => $result)
                                 @php
                                     $isAtm = $result['atm_strike'] == $atmStrike;
@@ -112,139 +158,184 @@
                                     $isMaxPEVol = $result['put_volume'] == $maxPEVol && $maxPEVol > 0;
                                     $isMaxCEOI = $result['call_oi'] == $maxCEOI && $maxCEOI > 0;
                                     $isMaxPEOI = $result['put_oi'] == $maxPEOI && $maxPEOI > 0;
-                                    $date = $selectedDateTime;
-                                    $query = http_build_query([
+
+                                    $cpaQuery = http_build_query([
                                         'put_strikes' => $result['put_strikes'],
                                         'call_strikes' => $result['call_strikes'],
                                         'expiry' => $selectedExpiry,
-                                        'date' => $date,
+                                        'date' => $selectedDateTime,
                                         'chart_view' => 'combined',
                                     ]);
-                                    // VWAP status: Green if price below VWAP (good), Red if above VWAP (bad)
+                                    $spaQuery = http_build_query([
+                                        'strategy_id' => $selectedStrategyId,
+                                        'custom_atm' => $result['atm_strike'],
+                                        'expiry' => $selectedExpiry,
+                                        'date' => $selectedDate,
+                                        'start_time' => \Carbon\Carbon::parse($selectedDateTime)->format('H:i'),
+                                        'end_time' => \Carbon\Carbon::parse($selectedEndDateTime)->format('H:i'),
+                                    ]);
+
                                     $latestPremium = $result['premium_data'][count($result['premium_data']) - 1] ?? 0;
                                     $latestVWAP = $result['vwap_data'][count($result['vwap_data']) - 1] ?? 0;
                                     $vwapStatus = $latestPremium < $latestVWAP ? 'below' : 'above';
-                                    $vwapColor = $vwapStatus === 'below' ? 'green' : 'red';
                                 @endphp
-                                <tr class="{{ $isAtm ? 'bg-blue-50 border-2 border-blue-300' : ($index < 5 ? 'bg-green-50' : '') }}">
-                                    <td class="px-3 py-2 font-medium text-gray-800">{{ $index + 1 }}</td>
-                                    <td class="px-3 py-2 font-medium {{ $isAtm ? 'text-blue-800 font-bold' : 'text-gray-800' }}">
+                                <tr class="{{ $isAtm ? 'bg-blue-50/90 font-bold ring-1 ring-inset ring-blue-300' : ($index < 5 ? 'bg-emerald-50/25 hover:bg-emerald-50/50' : 'hover:bg-slate-50/80') }} transition-colors">
+                                    <td class="px-2 py-1.5 text-center font-bold text-slate-500 whitespace-nowrap">{{ $index + 1 }}</td>
+                                    <td class="px-2.5 py-1.5 font-bold {{ $isAtm ? 'text-blue-900' : 'text-slate-900' }} whitespace-nowrap">
                                         {{ $result['atm_strike'] }}
                                         @if($isAtm)
-                                            <span class="ml-1 text-xs bg-blue-200 px-1 rounded">ATM</span>
+                                            <span class="ml-1 text-[9px] bg-blue-200 text-blue-950 px-1 py-0.2 rounded font-black border border-blue-300">ATM</span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex flex-wrap gap-1">
-                                            @foreach($result['call_strikes'] as $strike)
-                                                <span
-                                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-blue-800 text-white' : 'bg-blue-100 text-blue-800' }}">
-                                                    {{ $strike }}
-                                                    @if($strike == $result['atm_strike'])
-                                                        <span class="ml-0.5 text-[10px]">★</span>
+                                    
+                                    {{-- Ultra-compact CE Strikes chips --}}
+                                    <td class="px-2.5 py-1.5">
+                                        <div class="flex flex-wrap items-center gap-1 min-w-[140px] max-w-[260px]">
+                                            @forelse($result['call_strikes'] as $strike)
+                                                @php
+                                                    $legMatch = collect($result['strategy_legs'] ?? [])->firstWhere('strike', $strike);
+                                                    $isAtmStrike = $strike == $result['atm_strike'];
+                                                    $lots = $legMatch['lots'] ?? 1;
+                                                @endphp
+                                                <span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-mono leading-none whitespace-nowrap {{ $isAtmStrike ? 'bg-blue-800 text-white font-bold ring-1 ring-blue-900 shadow-xs' : 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold' }}">
+                                                    <span>{{ $strike }}</span>
+                                                    @if($lots > 1)
+                                                        <span class="px-0.5 rounded bg-blue-900/30 text-[9px] font-bold">{{ $lots }}L</span>
+                                                    @endif
+                                                    @if($isAtmStrike)
+                                                        <span class="text-amber-300 text-[8px]">★</span>
                                                     @endif
                                                 </span>
-                                            @endforeach
-                                        </div>
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex flex-wrap gap-1">
-                                            @foreach($result['put_strikes'] as $strike)
-                                                <span
-                                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {{ $strike == $result['atm_strike'] ? 'bg-red-800 text-white' : 'bg-red-100 text-red-800' }}">
-                                                    {{ $strike }}
-                                                    @if($strike == $result['atm_strike'])
-                                                        <span class="ml-0.5 text-[10px]">★</span>
-                                                    @endif
-                                                </span>
-                                            @endforeach
+                                            @empty
+                                                <span class="text-[10px] text-slate-400">—</span>
+                                            @endforelse
                                         </div>
                                     </td>
 
-                                    <td class="px-3 py-2 text-xs text-gray-600">
+                                    {{-- Ultra-compact PE Strikes chips --}}
+                                    <td class="px-2.5 py-1.5">
+                                        <div class="flex flex-wrap items-center gap-1 min-w-[140px] max-w-[260px]">
+                                            @forelse($result['put_strikes'] as $strike)
+                                                @php
+                                                    $legMatch = collect($result['strategy_legs'] ?? [])->firstWhere('strike', $strike);
+                                                    $isAtmStrike = $strike == $result['atm_strike'];
+                                                    $lots = $legMatch['lots'] ?? 1;
+                                                @endphp
+                                                <span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-mono leading-none whitespace-nowrap {{ $isAtmStrike ? 'bg-rose-800 text-white font-bold ring-1 ring-rose-900 shadow-xs' : 'bg-rose-50 text-rose-700 border border-rose-200 font-semibold' }}">
+                                                    <span>{{ $strike }}</span>
+                                                    @if($lots > 1)
+                                                        <span class="px-0.5 rounded bg-rose-900/30 text-[9px] font-bold">{{ $lots }}L</span>
+                                                    @endif
+                                                    @if($isAtmStrike)
+                                                        <span class="text-amber-300 text-[8px]">★</span>
+                                                    @endif
+                                                </span>
+                                            @empty
+                                                <span class="text-[10px] text-slate-400">—</span>
+                                            @endforelse
+                                        </div>
+                                    </td>
+
+                                    {{-- CE Vol --}}
+                                    <td class="px-2.5 py-1.5 text-right whitespace-nowrap">
                                         @if($isMaxCEVol)
-                                            <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
+                                            <span class="inline-block border border-orange-400 rounded px-1.5 py-0.5 bg-orange-50 font-bold text-orange-950 whitespace-nowrap leading-tight">
                                                 {{ $result['call_volume_formatted'] }}
                                             </span>
                                         @else
-                                            {{ $result['call_volume_formatted'] }}
+                                            <span class="text-slate-600 font-medium whitespace-nowrap">{{ $result['call_volume_formatted'] }}</span>
                                         @endif
                                     </td>
 
-                                    <td class="px-3 py-2 text-xs text-gray-600">
+                                    {{-- PE Vol --}}
+                                    <td class="px-2.5 py-1.5 text-right whitespace-nowrap">
                                         @if($isMaxPEVol)
-                                            <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
+                                            <span class="inline-block border border-orange-400 rounded px-1.5 py-0.5 bg-orange-50 font-bold text-orange-950 whitespace-nowrap leading-tight">
                                                 {{ $result['put_volume_formatted'] }}
                                             </span>
                                         @else
-                                            {{ $result['put_volume_formatted'] }}
+                                            <span class="text-slate-600 font-medium whitespace-nowrap">{{ $result['put_volume_formatted'] }}</span>
                                         @endif
                                     </td>
 
-                                    <td class="px-3 py-2 text-xs text-gray-600">
+                                    {{-- CE OI --}}
+                                    <td class="px-2.5 py-1.5 text-right whitespace-nowrap">
                                         @if($isMaxCEOI)
-                                            <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
+                                            <span class="inline-block border border-orange-400 rounded px-1.5 py-0.5 bg-orange-50 font-bold text-orange-950 whitespace-nowrap leading-tight">
                                                 {{ $result['call_oi_formatted'] }}
                                             </span>
                                         @else
-                                            {{ $result['call_oi_formatted'] }}
+                                            <span class="text-slate-600 font-medium whitespace-nowrap">{{ $result['call_oi_formatted'] }}</span>
                                         @endif
                                     </td>
 
-                                    <td class="px-3 py-2 text-xs text-gray-600">
+                                    {{-- PE OI --}}
+                                    <td class="px-2.5 py-1.5 text-right whitespace-nowrap">
                                         @if($isMaxPEOI)
-                                            <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
+                                            <span class="inline-block border border-orange-400 rounded px-1.5 py-0.5 bg-orange-50 font-bold text-orange-950 whitespace-nowrap leading-tight">
                                                 {{ $result['put_oi_formatted'] }}
                                             </span>
                                         @else
-                                            {{ $result['put_oi_formatted'] }}
+                                            <span class="text-slate-600 font-medium whitespace-nowrap">{{ $result['put_oi_formatted'] }}</span>
                                         @endif
                                     </td>
 
-                                    <td class="px-3 py-2 text-right font-medium text-gray-800">₹{{ number_format($result['starting_premium'], 2) }}</td>
-                                    <td class="px-3 py-2 text-right font-medium text-gray-800">₹{{ number_format($result['ending_premium'], 2) }}</td>
-                                    <td class="px-3 py-2 text-right font-medium {{ $result['total_return'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                        ₹{{ number_format($result['total_return'], 2) }}
+                                    {{-- Premiums & Returns --}}
+                                    <td class="px-2.5 py-1.5 text-right text-slate-700 font-medium whitespace-nowrap">&#8377;{{ number_format($result['starting_premium'], 1) }}</td>
+                                    <td class="px-2.5 py-1.5 text-right text-slate-700 font-medium whitespace-nowrap">&#8377;{{ number_format($result['ending_premium'], 1) }}</td>
+                                    <td class="px-2.5 py-1.5 text-right font-bold {{ $result['total_return'] >= 0 ? 'text-emerald-600' : 'text-rose-600' }} whitespace-nowrap">
+                                        {{ $result['total_return'] >= 0 ? '+' : '' }}&#8377;{{ number_format($result['total_return'], 1) }}
                                     </td>
-                                    <td class="px-3 py-2 text-right font-medium {{ $result['return_percent'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                        {{ $result['return_percent'] }}%
+                                    <td class="px-2.5 py-1.5 text-right font-bold {{ $result['return_percent'] >= 0 ? 'text-emerald-600' : 'text-rose-600' }} whitespace-nowrap">
+                                        {{ $result['return_percent'] >= 0 ? '+' : '' }}{{ number_format($result['return_percent'], 2) }}%
                                     </td>
-                                    <td class="px-3 py-2 text-right font-medium text-green-600">
-                                        ₹{{ number_format($result['max_profit'], 2) }}
+                                    <td class="px-2.5 py-1.5 text-right font-bold text-emerald-600 whitespace-nowrap">
+                                        &#8377;{{ number_format($result['max_profit'], 1) }}
                                     </td>
-                                    <td class="px-3 py-2 text-right font-medium text-red-600">
-                                        ₹{{ number_format($result['max_loss'], 2) }}
+                                    <td class="px-2.5 py-1.5 text-right font-bold text-rose-600 whitespace-nowrap">
+                                        &#8377;{{ number_format($result['max_loss'], 1) }}
                                     </td>
-                                    <td class="px-3 py-2 text-center">
+
+                                    {{-- VWAP --}}
+                                    <td class="px-2.5 py-1.5 text-center whitespace-nowrap">
                                         @if($vwapStatus === 'below')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                                </svg>
-                                                Below
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 leading-none">
+                                                &darr; Below
                                             </span>
                                         @else
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                                                </svg>
-                                                Above
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 leading-none">
+                                                &uarr; Above
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="px-3 py-2 text-center font-medium">
-                                        <span class="{{ $result['stability_score'] > 80 ? 'text-green-600' : ($result['stability_score'] > 50 ? 'text-yellow-600' : 'text-red-600') }}">
-                                            {{ $result['stability_score'] }}%
+
+                                    {{-- Stability --}}
+                                    <td class="px-2.5 py-1.5 text-center font-bold whitespace-nowrap">
+                                        <span class="{{ $result['stability_score'] > 80 ? 'text-emerald-600' : ($result['stability_score'] > 50 ? 'text-amber-600' : 'text-rose-600') }}">
+                                            {{ number_format($result['stability_score'], 1) }}%
                                         </span>
                                     </td>
-                                    <td>
-                                        <a
-                                            target="_blank"
-                                            href="{{ url('/combined-premium-analysis') . '?' . $query }}"
-                                            class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-emerald-700"
-                                        >
-                                            View
-                                        </a>
+
+                                    {{-- Actions --}}
+                                    <td class="px-2.5 py-1.5 text-center whitespace-nowrap">
+                                        <div class="flex items-center gap-1 justify-center">
+                                            <a
+                                                target="_blank"
+                                                href="{{ route('strategy.premium.analytics') . '?' . $spaQuery }}"
+                                                class="inline-flex items-center justify-center rounded bg-teal-600 hover:bg-teal-700 px-2 py-0.5 text-[10px] font-bold text-white transition shadow-xs active:scale-95"
+                                                title="View in Strategy Matrix (Unified Big Chart with Greeks & Health Audit)"
+                                            >
+                                                Matrix
+                                            </a>
+                                            <a
+                                                target="_blank"
+                                                href="{{ url('/combined-premium-analysis') . '?' . $cpaQuery }}"
+                                                class="inline-flex items-center justify-center rounded bg-slate-700 hover:bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-100 transition shadow-xs active:scale-95"
+                                                title="View in Combined Premium Analysis"
+                                            >
+                                                CPA
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -252,190 +343,15 @@
                         </table>
                     </div>
                 </div>
-
-                {{-- Results Table: OTM (No ATM strike) --}}
-                @if(count($topResultsOTM) > 0)
-                    @php
-                        $ceVolValuesOTM = array_column($topResultsOTM, 'call_volume');
-                        $peVolValuesOTM = array_column($topResultsOTM, 'put_volume');
-                        $ceOIValuesOTM = array_column($topResultsOTM, 'call_oi');
-                        $peOIValuesOTM = array_column($topResultsOTM, 'put_oi');
-                        $maxCEVolOTM = !empty($ceVolValuesOTM) ? max($ceVolValuesOTM) : 0;
-                        $maxPEVolOTM = !empty($peVolValuesOTM) ? max($peVolValuesOTM) : 0;
-                        $maxCEOIOTM = !empty($ceOIValuesOTM) ? max($ceOIValuesOTM) : 0;
-                        $maxPEOIOTM = !empty($peOIValuesOTM) ? max($peOIValuesOTM) : 0;
-                    @endphp
-
-                    <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden mb-6">
-                        <div class="p-3 border-b border-gray-200">
-                            <h2 class="text-lg font-semibold">📊 Strike Combinations Performance (OTM Only – No ATM)</h2>
-                            <p class="text-xs text-gray-500">PE: ATM-300, ATM-200, ATM-100 | CE: ATM+100, ATM+200, ATM+300</p>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">#</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">ATM Base</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">CE Strikes</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">PE Strikes</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">CE Vol</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">PE Vol</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">CE OI</th>
-                                    <th class="px-3 py-2 text-left font-semibold text-gray-600">PE OI</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Start ₹</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">End ₹</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Return ₹</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Return %</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Profit ₹</th>
-                                    <th class="px-3 py-2 text-right font-semibold text-gray-600">Max Loss ₹</th>
-                                    <th class="px-3 py-2 text-center font-semibold text-gray-600">VWAP</th>
-                                    <th class="px-3 py-2 text-center font-semibold text-gray-600">Stability</th>
-                                    <th class="px-3 py-2 text-center font-semibold text-gray-600">View</th>
-                                </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                @foreach($topResultsOTM as $index => $result)
-                                    @php
-                                        $isAtm = $result['atm_strike'] == $atmStrike;
-                                        $isMaxCEVol = $result['call_volume'] == $maxCEVolOTM && $maxCEVolOTM > 0;
-                                        $isMaxPEVol = $result['put_volume'] == $maxPEVolOTM && $maxPEVolOTM > 0;
-                                        $isMaxCEOI = $result['call_oi'] == $maxCEOIOTM && $maxCEOIOTM > 0;
-                                        $isMaxPEOI = $result['put_oi'] == $maxPEOIOTM && $maxPEOIOTM > 0;
-                                        $date = $selectedDateTime;
-                                        $query = http_build_query([
-                                            'put_strikes' => $result['put_strikes'],
-                                            'call_strikes' => $result['call_strikes'],
-                                            'expiry' => $selectedExpiry,
-                                            'date' => $date,
-                                            'chart_view' => 'combined',
-                                        ]);
-                                        $latestPremium = $result['premium_data'][count($result['premium_data']) - 1] ?? 0;
-                                        $latestVWAP = $result['vwap_data'][count($result['vwap_data']) - 1] ?? 0;
-                                        $vwapStatus = $latestPremium < $latestVWAP ? 'below' : 'above';
-                                        $vwapColor = $vwapStatus === 'below' ? 'green' : 'red';
-                                    @endphp
-                                    <tr class="{{ $index < 3 ? 'bg-purple-50' : '' }}">
-                                        <td class="px-3 py-2 font-medium text-gray-800">{{ $index + 1 }}</td>
-                                        <td class="px-3 py-2 font-medium text-gray-800">
-                                            {{ $result['atm_strike'] }}
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <div class="flex flex-wrap gap-1">
-                                                @foreach($result['call_strikes'] as $strike)
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                        {{ $strike }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <div class="flex flex-wrap gap-1">
-                                                @foreach($result['put_strikes'] as $strike)
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                        {{ $strike }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        </td>
-
-                                        <td class="px-3 py-2 text-xs text-gray-600">
-                                            @if($isMaxCEVol)
-                                                <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
-                                                    {{ $result['call_volume_formatted'] }}
-                                                </span>
-                                            @else
-                                                {{ $result['call_volume_formatted'] }}
-                                            @endif
-                                        </td>
-
-                                        <td class="px-3 py-2 text-xs text-gray-600">
-                                            @if($isMaxPEVol)
-                                                <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
-                                                    {{ $result['put_volume_formatted'] }}
-                                                </span>
-                                            @else
-                                                {{ $result['put_volume_formatted'] }}
-                                            @endif
-                                        </td>
-
-                                        <td class="px-3 py-2 text-xs text-gray-600">
-                                            @if($isMaxCEOI)
-                                                <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
-                                                    {{ $result['call_oi_formatted'] }}
-                                                </span>
-                                            @else
-                                                {{ $result['call_oi_formatted'] }}
-                                            @endif
-                                        </td>
-
-                                        <td class="px-3 py-2 text-xs text-gray-600">
-                                            @if($isMaxPEOI)
-                                                <span class="inline-block border-2 border-orange-500 rounded px-1 py-0.5 bg-orange-50 font-bold">
-                                                    {{ $result['put_oi_formatted'] }}
-                                                </span>
-                                            @else
-                                                {{ $result['put_oi_formatted'] }}
-                                            @endif
-                                        </td>
-
-                                        <td class="px-3 py-2 text-right font-medium text-gray-800">₹{{ number_format($result['starting_premium'], 2) }}</td>
-                                        <td class="px-3 py-2 text-right font-medium text-gray-800">₹{{ number_format($result['ending_premium'], 2) }}</td>
-                                        <td class="px-3 py-2 text-right font-medium {{ $result['total_return'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                            ₹{{ number_format($result['total_return'], 2) }}
-                                        </td>
-                                        <td class="px-3 py-2 text-right font-medium {{ $result['return_percent'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                            {{ $result['return_percent'] }}%
-                                        </td>
-                                        <td class="px-3 py-2 text-right font-medium text-green-600">
-                                            ₹{{ number_format($result['max_profit'], 2) }}
-                                        </td>
-                                        <td class="px-3 py-2 text-right font-medium text-red-600">
-                                            ₹{{ number_format($result['max_loss'], 2) }}
-                                        </td>
-                                        <td class="px-3 py-2 text-center">
-                                            @if($vwapStatus === 'below')
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                                    </svg>
-                                                    Below
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                                                    </svg>
-                                                    Above
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="px-3 py-2 text-center font-medium">
-                                            <span class="{{ $result['stability_score'] > 80 ? 'text-green-600' : ($result['stability_score'] > 50 ? 'text-yellow-600' : 'text-red-600') }}">
-                                                {{ $result['stability_score'] }}%
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a
-                                                target="_blank"
-                                                href="{{ url('/combined-premium-analysis') . '?' . $query }}"
-                                                class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-emerald-700"
-                                            >
-                                                View
-                                            </a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+            @else
+                <div class="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded-xl mb-6 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">⚠️</span>
+                        <div>
+                            <p class="font-bold">No data found for the selected configuration.</p>
+                            <p class="text-xs text-yellow-700 mt-0.5">Please check if option chain records exist for expiry <strong>{{ $selectedExpiry }}</strong> on date <strong>{{ $selectedDate }}</strong>.</p>
                         </div>
                     </div>
-                @endif
-
-            @else
-                <div class="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg mb-6">
-                    No data found for the selected date. Please check if option chain data exists for {{ $selectedDate }}.
                 </div>
             @endif
         </div>

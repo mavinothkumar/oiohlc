@@ -35,6 +35,29 @@ class Instrument extends Model
         'mtf_bracket',
         'intraday_margin',
         'intraday_leverage',
+        'underlying_id',
+        'symbol',
+        'strike',
+        'status',
+        'metadata',
     ];
+
+    protected $casts = [
+        'metadata' => 'array',
+        'strike' => 'float',
+        'strike_price' => 'float',
+        'lot_size' => 'integer',
+        'tick_size' => 'float',
+    ];
+
+    public function underlying()
+    {
+        return $this->belongsTo(Underlying::class, 'underlying_id');
+    }
+
+    public function getEffectiveStrikeAttribute(): float
+    {
+        return (float) ($this->strike ?? $this->strike_price ?? 0);
+    }
 }
 
