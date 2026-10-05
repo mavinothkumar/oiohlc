@@ -311,5 +311,6 @@ Route::get('/api/strategy-premium-analytics/data', [\App\Http\Controllers\Strate
 // Matching Strike Analysis (Current & Next Week Expiry with Delta / Price Difference Match)
 Route::get('/matching-strike-analysis', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('matching.strike.analysis');
 Route::get('/strike-matcher', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('strike.matcher');
+Route::get('/api/matching-strike-analysis/ws-url', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'getWsUrl'])->name('api.matching-strike-analysis.ws-url');
 
 

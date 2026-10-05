@@ -117,11 +117,15 @@ class MatchingStrikeAnalysisController extends Controller
         foreach ($expiries as $idx => $expiry) {
             $rows = collect();
             if ($actualTs && Schema::hasTable($table)) {
+                $selectCols = ['strike_price', 'option_type', 'ltp', 'delta', 'underlying_spot_price', 'volume', 'oi'];
+                if (Schema::hasColumn($table, 'instrument_key')) {
+                    $selectCols[] = 'instrument_key';
+                }
                 $rows = DB::table($table)
                     ->where('trading_symbol', $symbol)
                     ->where('captured_at', $actualTs)
                     ->where('expiry', $expiry)
-                    ->get(['strike_price', 'option_type', 'ltp', 'delta', 'underlying_spot_price', 'volume', 'oi']);
+                    ->get($selectCols);
             }
 
             $spotPrice = (float)($rows->first()->underlying_spot_price ?? 22550.0);
@@ -178,6 +182,8 @@ class MatchingStrikeAnalysisController extends Controller
                             'pe_oi' => (int)$pe->oi,
                             'ce_vol' => (int)$ce->volume,
                             'pe_vol' => (int)$pe->volume,
+                            'ce_instrument_key' => $ce->instrument_key ?? '',
+                            'pe_instrument_key' => $pe->instrument_key ?? '',
                         ];
                     }
                 }
@@ -215,5 +221,37 @@ class MatchingStrikeAnalysisController extends Controller
             'expiries',
             'columnsData'
         ));
+    }
+
+    /**
+     * Authorize Upstox WebSocket Feed URL
+     */
+    public function getWsUrl()
+    {
+        $token = config('services.upstox.analytics_token');
+        if (!$token) {
+            return response()->json(['error' => 'Upstox access token not configured in services.upstox.analytics_token'], 400);
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Accept'        => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+            ])->get('https://api.upstox.com/v3/feed/market-data-feed/authorize');
+
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+
+            return response()->json([
+                'error'   => 'Failed to fetch WS URL from Upstox',
+                'details' => $response->body()
+            ], $response->status());
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error'   => 'Exception fetching WS URL',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 }
