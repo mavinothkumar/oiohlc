@@ -308,4 +308,8 @@ Route::post('/api/options-analytics/{position}/legs/{leg}', [\App\Http\Controlle
 Route::get('/strategy-premium-analytics', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'index'])->name('strategy.premium.analytics');
 Route::get('/api/strategy-premium-analytics/data', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'getData'])->name('api.strategy.premium.analytics.data');
 
+// Matching Strike Analysis (Current & Next Week Expiry with Delta / Price Difference Match)
+Route::get('/matching-strike-analysis', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('matching.strike.analysis');
+Route::get('/strike-matcher', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('strike.matcher');
+
 

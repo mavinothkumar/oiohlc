@@ -25,6 +25,10 @@
                    class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-teal-600 hover:bg-teal-700 transition text-sm shadow-sm {{ request()->routeIs('strategy.premium.analytics') ? 'ring-2 ring-teal-300 ring-offset-1' : '' }}">
                     📈 Strategy Matrix
                 </a>
+                <a href="{{ route('matching.strike.analysis') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-amber-600 hover:bg-amber-700 transition text-sm shadow-sm {{ request()->routeIs('matching.strike.analysis') || request()->routeIs('strike.matcher') ? 'ring-2 ring-amber-300 ring-offset-1' : '' }}">
+                    ⚖️ Strike Matcher
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">
@@ -34,6 +38,7 @@
                         </svg>
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('matching.strike.analysis') }}" class="block px-4 py-2 text-amber-700 hover:bg-amber-50 font-bold border-b border-amber-100">⚖️ Strike Matcher</a>
                         <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-bold border-b border-emerald-100">⚖️ Delta Neutral</a>
                         <a href="{{ route('straddle.chart') }}" class="block px-4 py-2 text-indigo-700 hover:bg-indigo-50 font-bold border-b border-indigo-100">📊 Straddle Chart</a>
                         <a href="{{ route('option-chain-view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100 font-semibold text-blue-700">📋 Option Chain View</a>
@@ -77,6 +82,7 @@
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-64 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
                         <a href="{{ route('strategy.premium.analytics') }}" class="block px-4 py-2 font-bold text-teal-700 bg-teal-50/70 hover:bg-teal-100 border-b border-teal-100">📈 Strategy Premium Matrix</a>
+                        <a href="{{ route('matching.strike.analysis') }}" class="block px-4 py-2 font-bold text-amber-700 bg-amber-50/70 hover:bg-amber-100 border-b border-amber-100">⚖️ Strike Matcher (30-60 Rs)</a>
                         <a href="{{ route('quant-strategy.index') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ High-Probability (80%+)</a>
                         <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 font-bold text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100 border-b border-emerald-100">⚖️ Delta Neutral Strategy</a>
                         <a href="{{ route('backtest.strategies.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-100">Backtest Strategies</a>
