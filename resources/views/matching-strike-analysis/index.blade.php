@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title')
-    Matching Strike Analysis – Current & Next Week Expiry
+    Matching Strike Analysis – 5 Expiries Multi-Comparison
 @endsection
 
 @section('content')
@@ -19,11 +19,11 @@
                             <h1 class="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                                 <span>Matching Strike Analysis</span>
                                 <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                    Current &amp; Next Week Expiry
+                                    5 Expiries Comparison
                                 </span>
                             </h1>
                             <p class="text-xs text-slate-500">
-                                Matching CE and PE strikes in target price range (&#8377;{{ number_format($minPrice, 0) }} – &#8377;{{ number_format($maxPrice, 0) }}) with max price difference &le; &#8377;{{ number_format($maxPriceDiff, 1) }}
+                                Matching CE and PE strikes in target price range (&#8377;{{ number_format($minPrice, 0) }} – &#8377;{{ number_format($maxPrice, 0) }}) with max price difference &le; &#8377;{{ number_format($maxPriceDiff, 1) }} across 5 weekly &amp; monthly expiries
                             </p>
                         </div>
                     </div>
@@ -87,6 +87,22 @@
                     </div>
 
                     <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1" title="Max Delta of CE and PE legs (|CE Δ| and |PE Δ| must be &le; Max Δ)">
+                            Max &Delta; (CE &amp; PE)
+                        </label>
+                        <input type="number" step="0.01" min="0.01" max="1.0" name="max_greek_delta" value="{{ $maxGreekDelta ?? '' }}" placeholder="e.g. 0.20"
+                               class="w-24 border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white font-mono font-bold text-slate-800 shadow-xs focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1" title="Optional: Max Delta difference between CE and PE legs (|CE Δ| - |PE Δ|)">
+                            Max &Delta; Diff
+                        </label>
+                        <input type="number" step="0.01" min="0.01" max="1.0" name="max_delta_diff" value="{{ $maxDeltaDiff ?? '' }}" placeholder="Any"
+                               class="w-20 border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white font-mono text-slate-800 shadow-xs focus:ring-indigo-500">
+                    </div>
+
+                    <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Custom ATM</label>
                         <input type="text" name="custom_atm" value="{{ $customAtm ?? '' }}" placeholder="Auto Spot"
                                class="w-24 border border-slate-300 rounded-lg px-2 py-1 text-xs bg-white font-mono text-slate-800 shadow-xs focus:ring-indigo-500">
@@ -106,24 +122,55 @@
             </div>
 
             {{-- ═══════════════════════════════════════════════════════════════════ --}}
-            {{-- 2. CURRENT WEEK & NEXT WEEK TABLES (SIDE BY SIDE)                   --}}
+            {{-- 2. EXPIRY SELECTOR TABS & NAVIGATION BAR                             --}}
             {{-- ═══════════════════════════════════════════════════════════════════ --}}
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            @if(count($columnsData) > 0)
+                <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase mr-1">View Expiries:</span>
+                        <button type="button" onclick="setExpiryFilter('all')" id="tab-all-expiries"
+                                class="expiry-tab-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-xs cursor-pointer">
+                            🌐 All ({{ count($columnsData) }} Expiries)
+                        </button>
+                        @foreach($columnsData as $colIndex => $col)
+                            <button type="button" onclick="setExpiryFilter({{ $colIndex }})" id="tab-expiry-{{ $colIndex }}"
+                                    class="expiry-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 cursor-pointer flex items-center gap-1">
+                                <span class="font-bold">{{ $col['badge'] }}:</span>
+                                <span class="font-mono-num">{{ \Carbon\Carbon::parse($col['expiry'])->format('d M') }}</span>
+                                <span class="text-[10px] font-mono-num px-1.5 py-0.2 rounded {{ count($col['matched_pairs']) > 0 ? 'bg-emerald-100 text-emerald-800 font-bold' : 'bg-slate-200 text-slate-600' }}">
+                                    {{ count($col['matched_pairs']) }}
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono-num">
+                        <span>Showing <strong>5 Expiries</strong> with real-time Black-Scholes Greek &Delta; values</span>
+                    </div>
+                </div>
+            @endif
+
+            {{-- ═══════════════════════════════════════════════════════════════════ --}}
+            {{-- 3. EXPIRY TABLES (SIDE-BY-SIDE / MULTI-EXPIRY GRID)                 --}}
+            {{-- ═══════════════════════════════════════════════════════════════════ --}}
+            <div id="expiries-container" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
                 @forelse($columnsData as $colIndex => $col)
-                    <div class="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col">
+                    <div id="expiry-card-{{ $colIndex }}" class="expiry-card bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col">
                         {{-- Column Card Header --}}
                         <div class="px-3.5 py-2.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm">{{ $col['is_current'] ? '⚡' : '📅' }}</span>
+                                    <span class="text-sm">{{ $col['is_current'] ? '⚡' : ($col['is_next'] ? '📅' : '📆') }}</span>
                                     <h2 class="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
                                         {{ $col['label'] }}:
                                         <span class="text-indigo-700 font-mono-num ml-1">
                                             {{ \Carbon\Carbon::parse($col['expiry'])->format('d M Y') }}
                                         </span>
                                     </h2>
-                                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold font-mono-num {{ $col['is_current'] ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-blue-100 text-blue-900 border border-blue-200' }}">
-                                        {{ $col['is_current'] ? 'CURRENT' : 'NEXT' }}
+                                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold font-mono-num {{ $col['is_current'] ? 'bg-amber-100 text-amber-900 border border-amber-200' : ($col['is_next'] ? 'bg-blue-100 text-blue-900 border border-blue-200' : 'bg-purple-100 text-purple-900 border border-purple-200') }}">
+                                        {{ $col['badge'] }}
+                                    </span>
+                                    <span class="px-1.5 py-0.2 rounded text-[10px] font-semibold font-mono-num bg-slate-100 text-slate-600 border border-slate-200">
+                                        {{ $col['dte_label'] ?? '' }}
                                     </span>
                                 </div>
                                 <div class="flex items-center gap-2 text-[11px] font-mono-num text-slate-500 mt-0.5">
@@ -143,12 +190,12 @@
                         </div>
 
                         {{-- Table of Matched Pairs --}}
-                        <div class="overflow-x-auto custom-scrollbar flex-1 max-h-[420px]">
+                        <div class="overflow-x-auto custom-scrollbar flex-1 max-h-[440px]">
                             @if(count($col['matched_pairs']) > 0)
                                 <table class="w-full text-xs border-collapse">
                                     <thead class="bg-slate-100 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-600 tracking-tight select-none sticky top-0 z-10 shadow-xs">
                                     <tr>
-                                        <th class="px-2 py-2 text-right whitespace-nowrap text-blue-800 bg-blue-50/50">CE &Delta;</th>
+                                        <th class="px-2 py-2 text-right whitespace-nowrap text-blue-800 bg-blue-50/50" title="Call Delta (0 to +1.0)">CE &Delta;</th>
                                         <th class="px-2 py-2 text-right whitespace-nowrap text-blue-900 bg-blue-50/80 font-black">CE Price</th>
                                         <th class="px-2 py-2 text-center whitespace-nowrap text-blue-950 font-black bg-blue-100/60">CE Strike</th>
                                         <th class="px-2 py-2 text-center whitespace-nowrap text-slate-600">CE Dist</th>
@@ -156,8 +203,9 @@
                                         <th class="px-2 py-2 text-center whitespace-nowrap text-slate-600">PE Dist</th>
                                         <th class="px-2 py-2 text-center whitespace-nowrap text-rose-950 font-black bg-rose-100/60">PE Strike</th>
                                         <th class="px-2 py-2 text-right whitespace-nowrap text-rose-900 bg-rose-50/80 font-black">PE Price</th>
-                                        <th class="px-2 py-2 text-right whitespace-nowrap text-rose-800 bg-rose-50/50">PE &Delta;</th>
-                                        <th class="px-2 py-2 text-center whitespace-nowrap text-slate-700 font-bold">Diff</th>
+                                        <th class="px-2 py-2 text-right whitespace-nowrap text-rose-800 bg-rose-50/50" title="Put Delta (0 to -1.0)">PE &Delta;</th>
+                                        <th class="px-2 py-2 text-center whitespace-nowrap text-slate-700 font-bold" title="Price Difference between CE and PE">Diff</th>
+                                        <th class="px-2 py-2 text-center whitespace-nowrap text-purple-900 bg-purple-50/70 font-bold" title="Net Delta (CE Δ + PE Δ). Closer to 0 means Delta Neutral">Net &Delta;</th>
                                         <th class="px-2 py-2 text-right whitespace-nowrap text-slate-800 font-black">Combined</th>
                                         <th class="px-2 py-2 text-center whitespace-nowrap text-slate-600 font-bold">Action</th>
                                     </tr>
@@ -166,6 +214,7 @@
                                     @foreach($col['matched_pairs'] as $pIndex => $p)
                                         @php
                                             $isTightMatch = $p['price_diff'] <= 1.0;
+                                            $isDeltaNeutral = abs($p['net_delta']) <= 0.05;
                                             $cpaQuery = http_build_query([
                                                 'put_strikes' => [$p['pe_strike']],
                                                 'call_strikes' => [$p['ce_strike']],
@@ -184,7 +233,7 @@
                                             ]);
                                         @endphp
                                         <tr class="pair-row hover:bg-indigo-50/40 transition-colors {{ $isTightMatch ? 'bg-emerald-50/20' : '' }}">
-                                            <td class="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap">
+                                            <td class="px-2 py-1.5 text-right font-semibold text-blue-700 whitespace-nowrap" title="CE Delta: {{ number_format($p['ce_delta'], 4) }}">
                                                 {{ $p['ce_delta'] >= 0 ? '+' : '' }}{{ number_format($p['ce_delta'], 3) }}
                                             </td>
                                             <td class="px-2 py-1.5 text-right font-black text-blue-900 bg-blue-50/30 whitespace-nowrap">
@@ -212,12 +261,18 @@
                                             <td class="px-2 py-1.5 text-right font-black text-rose-900 bg-rose-50/30 whitespace-nowrap">
                                                 &#8377;{{ number_format($p['pe_price'], 2) }}
                                             </td>
-                                            <td class="px-2 py-1.5 text-right font-semibold text-rose-700 whitespace-nowrap">
+                                            <td class="px-2 py-1.5 text-right font-semibold text-rose-700 whitespace-nowrap" title="PE Delta: {{ number_format($p['pe_delta'], 4) }}">
                                                 {{ number_format($p['pe_delta'], 3) }}
                                             </td>
                                             <td class="px-2 py-1.5 text-center font-bold whitespace-nowrap">
                                                 <span class="px-1 rounded text-[10px] {{ $p['price_diff'] <= 1.0 ? 'bg-emerald-100 text-emerald-900' : 'text-slate-600' }}">
                                                     &#8377;{{ number_format($p['price_diff'], 2) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center font-bold whitespace-nowrap bg-purple-50/20">
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono {{ $isDeltaNeutral ? 'bg-emerald-100 text-emerald-900 font-black' : 'bg-slate-100 text-slate-700' }}"
+                                                      title="Net Delta: {{ $p['net_delta'] >= 0 ? '+' : '' }}{{ number_format($p['net_delta'], 4) }} (Delta Diff: {{ number_format($p['greek_diff'], 4) }})">
+                                                    {{ $p['net_delta'] >= 0 ? '+' : '' }}{{ number_format($p['net_delta'], 3) }}
                                                 </span>
                                             </td>
                                             <td class="px-2 py-1.5 text-right font-black text-slate-900 whitespace-nowrap">
@@ -261,7 +316,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="col-span-2 bg-yellow-50 border border-yellow-300 text-yellow-800 p-6 rounded-xl text-center space-y-2">
+                    <div class="col-span-full bg-yellow-50 border border-yellow-300 text-yellow-800 p-6 rounded-xl text-center space-y-2">
                         <span class="text-2xl">⚠️</span>
                         <p class="font-bold text-sm">No Option Chain Data Found</p>
                         <p class="text-xs text-yellow-700">No records found for date {{ $selectedDate }}. Please verify if data exists for this trading day.</p>
@@ -580,6 +635,51 @@
         tickCount: 0,
         ws: null,
         protobufRoot: null,
+    };
+
+    // Expiry Switcher Tab Filter
+    window.setExpiryFilter = function(filter) {
+        const cards = document.querySelectorAll('.expiry-card');
+        const tabBtns = document.querySelectorAll('.expiry-tab-btn');
+        const container = document.getElementById('expiries-container');
+
+        tabBtns.forEach(btn => {
+            btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
+            btn.classList.add('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+        });
+
+        if (filter === 'all') {
+            const allBtn = document.getElementById('tab-all-expiries');
+            if (allBtn) {
+                allBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+                allBtn.classList.remove('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+            }
+            cards.forEach(card => {
+                card.classList.remove('hidden');
+                card.classList.remove('col-span-full');
+            });
+            if (container) {
+                container.className = 'grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4';
+            }
+        } else {
+            const activeBtn = document.getElementById('tab-expiry-' + filter);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+                activeBtn.classList.remove('bg-slate-100', 'text-slate-700', 'hover:bg-slate-200');
+            }
+            cards.forEach((card, idx) => {
+                if (idx === parseInt(filter, 10)) {
+                    card.classList.remove('hidden');
+                    card.classList.add('col-span-full');
+                } else {
+                    card.classList.add('hidden');
+                    card.classList.remove('col-span-full');
+                }
+            });
+            if (container) {
+                container.className = 'grid grid-cols-1 gap-4';
+            }
+        }
     };
 
     // Show / Hide Rules Guide Toggle (Retained in localStorage!)

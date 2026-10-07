@@ -31,15 +31,13 @@ class FetchOptionChainData extends Command {
         $now   = now()->copy()->second( 0 );
 
         foreach ( $instruments as $inst ) {
-            // Get both current and next expiries using orWhere
+            // Get up to 5 upcoming expiries for options
             $expiries = DB::table( 'nse_expiries' )
                           ->where( 'trading_symbol', $inst['symbol'] )
-                          ->where( function($q) {
-                              $q->where( 'is_current', 1 )
-                                ->orWhere( 'is_next', 1 );
-                          })
                           ->where( 'instrument_type', 'OPT' )
-                          ->orderBy('expiry_date')
+                          ->where( 'expiry_date', '>=', today()->toDateString() )
+                          ->orderBy( 'expiry_date' )
+                          ->take( 5 )
                           ->get();
 
             info('$expiries',[$expiries]);
@@ -206,15 +204,13 @@ class FetchOptionChainData extends Command {
         ];
 
         foreach ($underlyings as $inst) {
-            // Get both current and next expiries for options
+            // Get up to 5 upcoming expiries for options
             $optExpiries = DB::table('nse_expiries')
                              ->where('trading_symbol', $inst['symbol'])
                              ->where('instrument_type', 'OPT')
-                             ->where(function($query) {
-                                 $query->where('is_current', 1)
-                                       ->orWhere('is_next', 1);
-                             })
+                             ->where('expiry_date', '>=', today()->toDateString())
                              ->orderBy('expiry_date')
+                             ->take(5)
                              ->get();
 
             $futExpiry = DB::table('nse_expiries')

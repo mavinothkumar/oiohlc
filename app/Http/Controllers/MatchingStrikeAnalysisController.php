@@ -54,7 +54,8 @@ class MatchingStrikeAnalysisController extends Controller
         $minPrice = (float)$request->input('min_price', 30.0);
         $maxPrice = (float)$request->input('max_price', 60.0);
         $maxPriceDiff = (float)$request->input('max_delta', 3.0); // max price difference / delta
-        $maxGreekDelta = $request->input('max_greek_delta'); // optional greek delta difference limit
+        $maxGreekDelta = $request->input('max_greek_delta'); // max individual delta for CE and PE legs (e.g. 0.2 => |delta| <= 0.2)
+        $maxDeltaDiff = $request->input('max_delta_diff'); // optional max difference between CE delta and PE delta (|CE delta| - |PE delta|)
         $customAtm = $request->input('custom_atm');
         $customAtm = ($customAtm !== null && $customAtm !== '' && is_numeric($customAtm)) ? (float)$customAtm : null;
 
@@ -79,7 +80,7 @@ class MatchingStrikeAnalysisController extends Controller
             }
         }
 
-        // 4. Resolve Expiries (Current Week & Next Week)
+        // 4. Resolve Expiries (Up to 5 Expiries)
         $expiries = [];
         if ($actualTs && Schema::hasTable($table)) {
             $expiries = DB::table($table)
@@ -89,18 +90,18 @@ class MatchingStrikeAnalysisController extends Controller
                 ->pluck('expiry')
                 ->sort()
                 ->values()
-                ->take(2)
+                ->take(5)
                 ->toArray();
         }
 
-        // Fallback to nse_expiries table if less than 2 expiries found
-        if (count($expiries) < 2 && Schema::hasTable('nse_expiries')) {
+        // Fallback to nse_expiries table if less than 5 expiries found
+        if (count($expiries) < 5 && Schema::hasTable('nse_expiries')) {
             $dbExpiries = DB::table('nse_expiries')
                 ->where('trading_symbol', $symbol)
                 ->where('instrument_type', 'OPT')
                 ->where('expiry_date', '>=', $selectedDate)
                 ->orderBy('expiry_date')
-                ->take(2)
+                ->take(5)
                 ->pluck('expiry_date')
                 ->toArray();
 
@@ -109,6 +110,7 @@ class MatchingStrikeAnalysisController extends Controller
                     $expiries[] = $de;
                 }
             }
+            $expiries = array_slice($expiries, 0, 5);
         }
 
         // 5. Build Matching Pairs for Each Expiry Column
@@ -116,47 +118,133 @@ class MatchingStrikeAnalysisController extends Controller
 
         foreach ($expiries as $idx => $expiry) {
             $rows = collect();
-            if ($actualTs && Schema::hasTable($table)) {
+            if (Schema::hasTable($table)) {
                 $selectCols = ['strike_price', 'option_type', 'ltp', 'delta', 'underlying_spot_price', 'volume', 'oi'];
                 if (Schema::hasColumn($table, 'instrument_key')) {
                     $selectCols[] = 'instrument_key';
                 }
-                $rows = DB::table($table)
-                    ->where('trading_symbol', $symbol)
-                    ->where('captured_at', $actualTs)
-                    ->where('expiry', $expiry)
-                    ->get($selectCols);
+                if (Schema::hasColumn($table, 'iv')) {
+                    $selectCols[] = 'iv';
+                }
+
+                if ($actualTs) {
+                    $rows = DB::table($table)
+                        ->where('trading_symbol', $symbol)
+                        ->where('captured_at', $actualTs)
+                        ->where('expiry', $expiry)
+                        ->get($selectCols);
+                }
+
+                // If no records found at exact $actualTs, look for closest snapshot for this expiry on selected date
+                if ($rows->isEmpty()) {
+                    $expTsQuery = DB::table($table)
+                        ->where('trading_symbol', $symbol)
+                        ->where('expiry', $expiry)
+                        ->whereDate('captured_at', $selectedDate);
+
+                    if (!empty($requestedTime)) {
+                        $targetTs = Carbon::parse("{$selectedDate} {$requestedTime}")->toDateTimeString();
+                        $expTsQuery->where('captured_at', '<=', $targetTs);
+                    }
+
+                    $expActualTs = $expTsQuery->max('captured_at');
+                    if ($expActualTs) {
+                        $rows = DB::table($table)
+                            ->where('trading_symbol', $symbol)
+                            ->where('captured_at', $expActualTs)
+                            ->where('expiry', $expiry)
+                            ->get($selectCols);
+                    }
+                }
             }
 
-            $spotPrice = (float)($rows->first()->underlying_spot_price ?? 22550.0);
+            $spotPrice = (float)($rows->first()->underlying_spot_price ?? 0);
+            if ($spotPrice <= 0) {
+                // Fallback to spot from other columns or default
+                $spotPrice = 22550.0;
+                foreach ($columnsData as $cd) {
+                    if ($cd['spot_price'] > 0) {
+                        $spotPrice = $cd['spot_price'];
+                        break;
+                    }
+                }
+            }
+
             $calculatedAtm = round($spotPrice / $step) * $step;
             $atmStrike = ($customAtm !== null && $customAtm > 0) ? $customAtm : $calculatedAtm;
 
-            // CE rows in price range
+            // Days to Expiry (DTE) for Greek delta calculation
+            $selectedCarbon = Carbon::parse($selectedDate)->setTime(15, 30);
+            $expiryCarbon = Carbon::parse($expiry)->endOfDay();
+            $dteHours = $selectedCarbon->diffInHours($expiryCarbon, false);
+            $dteDays = max(0.05, $dteHours / 24.0);
+            $dteCalendarDays = max(0, Carbon::parse($selectedDate)->diffInDays(Carbon::parse($expiry), false));
+
+            // CE rows in price range with calculated delta
             $ceRows = $rows->where('option_type', 'CE')
                 ->where('ltp', '>=', $minPrice)
                 ->where('ltp', '<=', $maxPrice)
                 ->sortBy('strike_price')
-                ->values();
+                ->values()
+                ->map(function ($ce) use ($spotPrice, $dteDays) {
+                    $ceDelta = (float)($ce->delta ?? 0);
+                    if ($ceDelta == 0.0 && $spotPrice > 0 && (float)$ce->strike_price > 0) {
+                        $ceIv = (float)($ce->iv ?? 13.5);
+                        if ($ceIv <= 0) $ceIv = 13.5;
+                        $greeks = \App\Services\Quant\ProbabilityEngine::calculateGreeks($spotPrice, (float)$ce->strike_price, $dteDays, $ceIv);
+                        $ceDelta = (float)$greeks['delta_ce'];
+                    }
+                    $ce->calculated_delta = round($ceDelta, 4);
+                    return $ce;
+                });
 
-            // PE rows in price range
+            // Filter CE rows by max leg delta if specified
+            if ($maxGreekDelta !== null && $maxGreekDelta !== '' && is_numeric($maxGreekDelta)) {
+                $maxLimit = (float)$maxGreekDelta;
+                $ceRows = $ceRows->filter(fn($ce) => abs($ce->calculated_delta) <= $maxLimit)->values();
+            }
+
+            // PE rows in price range with calculated delta
             $peRows = $rows->where('option_type', 'PE')
                 ->where('ltp', '>=', $minPrice)
                 ->where('ltp', '<=', $maxPrice)
                 ->sortBy('strike_price')
-                ->values();
+                ->values()
+                ->map(function ($pe) use ($spotPrice, $dteDays) {
+                    $peDelta = (float)($pe->delta ?? 0);
+                    if ($peDelta == 0.0 && $spotPrice > 0 && (float)$pe->strike_price > 0) {
+                        $peIv = (float)($pe->iv ?? 13.5);
+                        if ($peIv <= 0) $peIv = 13.5;
+                        $greeks = \App\Services\Quant\ProbabilityEngine::calculateGreeks($spotPrice, (float)$pe->strike_price, $dteDays, $peIv);
+                        $peDelta = (float)$greeks['delta_pe'];
+                    }
+                    if ($peDelta > 0) {
+                        $peDelta = -$peDelta;
+                    }
+                    $pe->calculated_delta = round($peDelta, 4);
+                    return $pe;
+                });
+
+            // Filter PE rows by max leg delta if specified
+            if ($maxGreekDelta !== null && $maxGreekDelta !== '' && is_numeric($maxGreekDelta)) {
+                $maxLimit = (float)$maxGreekDelta;
+                $peRows = $peRows->filter(fn($pe) => abs($pe->calculated_delta) <= $maxLimit)->values();
+            }
 
             // Matching pairs where |CE price - PE price| <= maxPriceDiff
             $matchedPairs = [];
             foreach ($ceRows as $ce) {
+                $ceDelta = $ce->calculated_delta;
+
                 foreach ($peRows as $pe) {
                     $priceDiff = abs((float)$ce->ltp - (float)$pe->ltp);
                     if ($priceDiff <= $maxPriceDiff) {
-                        $greekDiff = abs((float)$ce->delta - abs((float)$pe->delta));
+                        $peDelta = $pe->calculated_delta;
+                        $greekDiff = abs(abs($ceDelta) - abs($peDelta));
 
-                        // Optional greek delta filter if specified
-                        if ($maxGreekDelta !== null && $maxGreekDelta !== '' && is_numeric($maxGreekDelta)) {
-                            if ($greekDiff > (float)$maxGreekDelta) {
+                        // Optional greek delta difference filter (|CE delta| - |PE delta| <= maxDeltaDiff)
+                        if ($maxDeltaDiff !== null && $maxDeltaDiff !== '' && is_numeric($maxDeltaDiff)) {
+                            if ($greekDiff > (float)$maxDeltaDiff) {
                                 continue;
                             }
                         }
@@ -165,7 +253,7 @@ class MatchingStrikeAnalysisController extends Controller
                         $peDist = $atmStrike - (float)$pe->strike_price;
 
                         $matchedPairs[] = [
-                            'ce_delta' => (float)$ce->delta,
+                            'ce_delta' => $ceDelta,
                             'ce_price' => (float)$ce->ltp,
                             'ce_strike' => (float)$ce->strike_price,
                             'ce_dist' => (int)$ceDist,
@@ -173,11 +261,11 @@ class MatchingStrikeAnalysisController extends Controller
                             'pe_dist' => (int)$peDist,
                             'pe_strike' => (float)$pe->strike_price,
                             'pe_price' => (float)$pe->ltp,
-                            'pe_delta' => (float)$pe->delta,
+                            'pe_delta' => $peDelta,
                             'price_diff' => round($priceDiff, 2),
                             'greek_diff' => round($greekDiff, 4),
                             'combined_price' => round((float)$ce->ltp + (float)$pe->ltp, 2),
-                            'net_delta' => round((float)$ce->delta + (float)$pe->delta, 4),
+                            'net_delta' => round($ceDelta + $peDelta, 4),
                             'ce_oi' => (int)$ce->oi,
                             'pe_oi' => (int)$pe->oi,
                             'ce_vol' => (int)$ce->volume,
@@ -192,17 +280,37 @@ class MatchingStrikeAnalysisController extends Controller
             // Sort matched pairs by price difference ascending (closest match first)
             usort($matchedPairs, fn($a, $b) => $a['price_diff'] <=> $b['price_diff']);
 
+            $label = match ($idx) {
+                0 => 'Current Week Expiry',
+                1 => 'Next Week Expiry',
+                2 => 'Expiry 3',
+                3 => 'Expiry 4',
+                4 => 'Expiry 5',
+                default => 'Expiry ' . ($idx + 1),
+            };
+
+            $badge = match ($idx) {
+                0 => 'CURRENT',
+                1 => 'NEXT',
+                2 => 'EXPIRY 3',
+                3 => 'EXPIRY 4',
+                4 => 'EXPIRY 5',
+                default => 'EXP ' . ($idx + 1),
+            };
+
             $columnsData[] = [
                 'expiry' => $expiry,
                 'is_current' => ($idx === 0),
                 'is_next' => ($idx === 1),
-                'label' => ($idx === 0) ? 'Current Week Expiry' : 'Next Week Expiry',
+                'idx' => $idx,
+                'label' => $label,
+                'badge' => $badge,
+                'dte' => $dteCalendarDays,
+                'dte_label' => ($dteCalendarDays === 0) ? '0d (Today)' : "{$dteCalendarDays}d DTE",
                 'spot_price' => $spotPrice,
                 'atm_strike' => $atmStrike,
                 'ce_count' => $ceRows->count(),
                 'pe_count' => $peRows->count(),
-                'ce_rows' => $ceRows,
-                'pe_rows' => $peRows,
                 'matched_pairs' => $matchedPairs,
                 'avg_combined' => count($matchedPairs) > 0 ? round(collect($matchedPairs)->avg('combined_price'), 2) : 0,
             ];
@@ -217,6 +325,7 @@ class MatchingStrikeAnalysisController extends Controller
             'maxPrice',
             'maxPriceDiff',
             'maxGreekDelta',
+            'maxDeltaDiff',
             'customAtm',
             'expiries',
             'columnsData'

@@ -308,6 +308,10 @@ Route::post('/api/options-analytics/{position}/legs/{leg}', [\App\Http\Controlle
 Route::get('/strategy-premium-analytics', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'index'])->name('strategy.premium.analytics');
 Route::get('/api/strategy-premium-analytics/data', [\App\Http\Controllers\StrategyPremiumAnalyticsController::class, 'getData'])->name('api.strategy.premium.analytics.data');
 
+// Multi-Chart Strategy Grid (2×3 or 3×3) — Strike reaction comparison across strategies
+Route::get('/strategy-multi-chart', [\App\Http\Controllers\MultiChartStrategyController::class, 'index'])->name('strategy.multi.chart');
+Route::get('/api/strategy-multi-chart/data', [\App\Http\Controllers\MultiChartStrategyController::class, 'getChartData'])->name('api.strategy.multi.chart.data');
+
 // Matching Strike Analysis (Current & Next Week Expiry with Delta / Price Difference Match)
 Route::get('/matching-strike-analysis', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('matching.strike.analysis');
 Route::get('/strike-matcher', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('strike.matcher');

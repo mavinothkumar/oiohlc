@@ -18,23 +18,65 @@ class TradingJournalController extends Controller {
                                 ->orderBy( 'id', 'asc' )
                                 ->get();
 
-        return view( 'trading-journal.index', compact( 'backtestStrategies' ) );
+        $expiries = DB::table( 'nse_expiries' )
+                        ->where( 'trading_symbol', 'NIFTY' )
+                        ->where( 'instrument_type', 'OPT' )
+                        ->where( 'expiry_date', '>=', today()->toDateString() )
+                        ->orderBy( 'expiry_date' )
+                        ->take( 5 )
+                        ->get();
+
+        $availableExpiries = [];
+        foreach ( $expiries as $idx => $exp ) {
+            $value = match ($idx) {
+                0 => 'Current',
+                1 => 'Next',
+                default => 'Expiry ' . ($idx + 1),
+            };
+
+            $dateFormatted = Carbon::parse($exp->expiry_date)->format('d M');
+            $label = match ($idx) {
+                0 => "Current ({$dateFormatted})",
+                1 => "Next ({$dateFormatted})",
+                default => "Expiry " . ($idx + 1) . " ({$dateFormatted})",
+            };
+
+            $availableExpiries[] = [
+                'value'       => $value,
+                'label'       => $label,
+                'expiry_date' => $exp->expiry_date,
+                'expiry'      => $exp->expiry,
+            ];
+        }
+
+        return view( 'trading-journal.index', compact( 'backtestStrategies', 'availableExpiries' ) );
     }
 
     public function getPanels() {
         $panels = StrategyPanel::with( 'legs' )->orderBy( 'sort_order', 'asc' )->get();
 
-        $currentExpiry = DB::table( 'nse_expiries' )
-                           ->where( 'is_current', 1 )
-                           ->where( 'trading_symbol', 'NIFTY' )
-                           ->where( 'instrument_type', 'OPT' )
-                           ->value( 'expiry' );
-        // Fallback if no next flag, just get the next date after current
-        $nextExpiry = DB::table( 'nse_expiries' )
-                        ->where( 'is_next', 1 )
-                        ->where( 'instrument_type', 'OPT' )
+        $expiries = DB::table( 'nse_expiries' )
                         ->where( 'trading_symbol', 'NIFTY' )
-                        ->value( 'expiry' );
+                        ->where( 'instrument_type', 'OPT' )
+                        ->where( 'expiry_date', '>=', today()->toDateString() )
+                        ->orderBy( 'expiry_date' )
+                        ->take( 5 )
+                        ->get();
+
+        $expiryMap = [];
+        foreach ( $expiries as $idx => $exp ) {
+            if ( $idx === 0 ) {
+                $expiryMap['Current'] = $exp->expiry;
+            } elseif ( $idx === 1 ) {
+                $expiryMap['Next'] = $exp->expiry;
+            }
+            $expiryMap['Expiry ' . ($idx + 1)] = $exp->expiry;
+            $expiryMap['Exp' . ($idx + 1)] = $exp->expiry;
+            $expiryMap[$exp->expiry_date] = $exp->expiry;
+            $expiryMap[(string)$exp->expiry] = $exp->expiry;
+        }
+
+        $defaultExpiry = $expiries->first()->expiry ?? null;
 
         foreach ( $panels as $panel ) {
             // Find closest ohlc_quotes time matching panel->entry_time for today
@@ -42,7 +84,7 @@ class TradingJournalController extends Controller {
             $entryDateTime = $today . ' ' . $panel->entry_time;
 
             foreach ( $panel->legs as $leg ) {
-                $expiryToUse = $leg->expiry_type === 'Next' ? $nextExpiry : $currentExpiry;
+                $expiryToUse = $expiryMap[$leg->expiry_type] ?? $defaultExpiry;
 
                 // Find instrument key
                 $instrument = Instrument::where( 'name', 'NIFTY' )
@@ -81,7 +123,7 @@ class TradingJournalController extends Controller {
             'legs'                => 'required|array',
             'legs.*.strike_price' => 'required|numeric',
             'legs.*.option_type'  => 'required|string|in:CE,PE',
-            'legs.*.expiry_type'  => 'required|string|in:Current,Next',
+            'legs.*.expiry_type'  => 'required|string',
             'legs.*.quantity'     => 'required|integer',
             'legs.*.side'         => 'required|string|in:Buy,Sell',
         ] );
@@ -161,6 +203,7 @@ class TradingJournalController extends Controller {
         $validated = $request->validate([
             'strategy_id' => 'required|integer',
             'atm'         => 'required|numeric',
+            'expiry_type' => 'nullable|string',
         ]);
 
         // 1. Fetch template strategy definition
@@ -174,6 +217,7 @@ class TradingJournalController extends Controller {
 
         $atm = (float) $validated['atm'];
         $entryTime = $parameters['entry_time'] ?? '09:15';
+        $targetExpiryType = $validated['expiry_type'] ?? 'Current';
 
         // Shift existing panels down so newly generated strategy appears at top
         StrategyPanel::query()->increment('sort_order');
@@ -208,7 +252,7 @@ class TradingJournalController extends Controller {
                 $legsData[] = [
                     'strike_price' => $strikePrice,
                     'option_type'  => $optionType,
-                    'expiry_type'  => 'Current',
+                    'expiry_type'  => $targetExpiryType,
                     'quantity'     => $quantity,
                     'side'         => $side,
                 ];

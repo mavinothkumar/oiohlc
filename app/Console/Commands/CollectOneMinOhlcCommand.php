@@ -52,8 +52,10 @@ class  CollectOneMinOhlcCommand extends Command {
 
         $_optExpiries = DB::table( 'nse_expiries' )
                           ->where( 'trading_symbol', $inst['symbol'] )
-                          ->where( fn( $q ) => $q->where( 'is_current', 1 )->orWhere( 'is_next', 1 ) )
+                          ->where( 'expiry_date', '>=', today()->toDateString() )
                           ->where( 'instrument_type', 'OPT' )
+                          ->orderBy( 'expiry_date', 'asc' )
+                          ->take( 5 )
                           ->get();
 
         $_futExpiry = DB::table( 'nse_expiries' )

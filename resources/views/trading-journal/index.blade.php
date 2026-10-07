@@ -31,7 +31,7 @@
     <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
         <div>
             <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Trading Journal</h1>
-            <p class="text-slate-400 mt-1">Live Strategy Tracker (Upstox WebSocket)</p>
+            <p class="text-slate-400 mt-1">Live Strategy Tracker (Upstox WebSocket) &bull; 5 Expiries Tracker</p>
         </div>
         <div class="flex flex-wrap gap-3 items-center">
             <!-- Common / Bulk Time Update Control -->
@@ -183,9 +183,14 @@
                                         </select>
                                     </td>
                                     <td class="py-3 px-2">
-                                        <select x-model="leg.expiry_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-24">
-                                            <option value="Current">Current</option>
-                                            <option value="Next">Next</option>
+                                        <select x-model="leg.expiry_type" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none text-white w-32 text-xs">
+                                            <template x-for="exp in availableExpiries" :key="exp.value">
+                                                <option :value="exp.value" x-text="exp.label" :selected="leg.expiry_type === exp.value"></option>
+                                            </template>
+                                            <template x-if="!availableExpiries || availableExpiries.length === 0">
+                                                <option value="Current">Current</option>
+                                                <option value="Next">Next</option>
+                                            </template>
                                         </select>
                                     </td>
                                     <td class="py-3 px-2">
@@ -269,6 +274,20 @@
                         </select>
                     </div>
 
+                    <!-- Target Expiry Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Target Expiry</label>
+                        <select x-model="templateForm.expiry_type" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <template x-for="exp in availableExpiries" :key="exp.value">
+                                <option :value="exp.value" x-text="exp.label"></option>
+                            </template>
+                            <template x-if="!availableExpiries || availableExpiries.length === 0">
+                                <option value="Current">Current</option>
+                                <option value="Next">Next</option>
+                            </template>
+                        </select>
+                    </div>
+
                     <!-- NIFTY ATM Strike Input -->
                     <div>
                         <label class="block text-sm font-medium text-slate-300 mb-1">NIFTY Index ATM Strike</label>
@@ -307,9 +326,11 @@
             // Modal State
             showTemplateModal: false,
             isGenerating: false,
+            availableExpiries: @json($availableExpiries ?? []),
             backtestStrategies: @json($backtestStrategies ?? []),
             templateForm: {
                 strategy_id: @json($backtestStrategies->first()->id ?? ''),
+                expiry_type: 'Current',
                 atm: ''
             },
 
@@ -372,7 +393,8 @@
                 try {
                     const response = await axios.post('/trading-journal/from-template', {
                         strategy_id: this.templateForm.strategy_id,
-                        atm: this.templateForm.atm
+                        atm: this.templateForm.atm,
+                        expiry_type: this.templateForm.expiry_type || 'Current'
                     });
 
                     if (response.data.success) {
