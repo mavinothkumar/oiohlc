@@ -317,4 +317,9 @@ Route::get('/matching-strike-analysis', [\App\Http\Controllers\MatchingStrikeAna
 Route::get('/strike-matcher', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'index'])->name('strike.matcher');
 Route::get('/api/matching-strike-analysis/ws-url', [\App\Http\Controllers\MatchingStrikeAnalysisController::class, 'getWsUrl'])->name('api.matching-strike-analysis.ws-url');
 
+// NIFTY Multi-Chart Matrix (4x2, 3x3, 4x3, 3x4) with ATM Center, Indicators, Logic Lines
+Route::get('/nifty-matrix-chart', [\App\Http\Controllers\NiftyMatrixChartController::class, 'index'])->name('nifty.matrix.chart');
+Route::match(['GET', 'POST'], '/api/nifty-matrix-chart/data', [\App\Http\Controllers\NiftyMatrixChartController::class, 'getData'])->name('api.nifty.matrix.chart.data');
+
+
 

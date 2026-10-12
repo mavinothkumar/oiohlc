@@ -33,6 +33,10 @@
                    class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-amber-600 hover:bg-amber-700 transition text-sm shadow-sm {{ request()->routeIs('matching.strike.analysis') || request()->routeIs('strike.matcher') ? 'ring-2 ring-amber-300 ring-offset-1' : '' }}">
                     ⚖️ Strike Matcher
                 </a>
+                <a href="{{ route('nifty.matrix.chart') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-blue-600 hover:bg-blue-700 transition text-sm shadow-sm {{ request()->routeIs('nifty.matrix.chart') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }}">
+                    ⊞ NIFTY Matrix
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">

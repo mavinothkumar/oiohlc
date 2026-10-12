@@ -181,64 +181,48 @@
     @endphp
     <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg backdrop-blur-md overflow-hidden transition-all duration-300 {{ $accentClass }}">
         
-        {{-- ALWAYS-VISIBLE SLEEK STRATEGY HEALTH SHOW/HIDE BAR --}}
+        {{-- ALWAYS-VISIBLE SLEEK STRATEGY HEALTH HEADER (JUST INSTITUTIONAL VERDICT & ACTION) --}}
         <div class="p-2 sm:px-3 flex flex-wrap items-center justify-between gap-2.5 cursor-pointer select-none hover:bg-slate-850 transition"
              @click="toggleHealth()">
             
-            {{-- Left: Status & Key Headline --}}
-            <div class="flex items-center flex-wrap gap-2">
-                <span class="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">STRATEGY HEALTH:</span>
-                
-                {{-- Status Badge --}}
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wide {{ $badgeClass }} flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full {{ $j['status_color'] === 'emerald' ? 'bg-emerald-400' : ($j['status_color'] === 'amber' ? 'bg-amber-400' : 'bg-rose-400') }}"></span>
-                    {{ $j['status'] }}
-                </span>
+            {{-- Left: Institutional Verdict & Action --}}
+            <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+                {{-- Verdict Group --}}
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] uppercase font-black tracking-wider text-slate-400">INSTITUTIONAL VERDICT:</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wide {{ $badgeClass }} flex items-center gap-1.5 shadow-sm">
+                        <span class="w-2 h-2 rounded-full animate-pulse {{ $j['status_color'] === 'emerald' ? 'bg-emerald-400' : ($j['status_color'] === 'amber' ? 'bg-amber-400' : ($j['status_color'] === 'cyan' ? 'bg-cyan-400' : 'bg-rose-400')) }}"></span>
+                        {{ $j['verdict'] ?? $j['status'] }}
+                    </span>
+                </div>
 
-                {{-- Headline --}}
-                <span class="text-xs sm:text-sm font-extrabold text-white">
-                    &bull; {{ $j['headline'] }}
-                </span>
+                <span class="text-slate-600 hidden sm:inline">&bull;</span>
+
+                {{-- Action Group --}}
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] uppercase font-black tracking-wider text-amber-400">ACTION:</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black tracking-wide bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-teal-500/20 border border-amber-500/40 text-amber-200 flex items-center gap-1.5 shadow-sm">
+                        <span>⚡</span>
+                        <span>{{ $j['action'] ?? $j['actionable_suggestion'] }}</span>
+                    </span>
+                </div>
             </div>
 
-            {{-- Right: Essential Metrics & Show/Hide Toggle Button --}}
-            <div class="flex items-center flex-wrap gap-2 text-xs font-mono-num ml-auto">
-                {{-- Quick Metric: Net Decay --}}
-                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold">
-                    <span class="text-slate-400 uppercase text-[9px] mr-1">Decay:</span>
-                    <span class="{{ $analytics['summary']['net_decay_points'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
-                        {{ $analytics['summary']['net_decay_points'] >= 0 ? '+' : '' }}{{ $analytics['summary']['net_decay_points'] }} pts
-                    </span>
-                    <span class="text-slate-500 text-[10px]">({{ $analytics['summary']['decay_pct'] }}%)</span>
-                </span>
-
-                {{-- Quick Metric: Velocity --}}
-                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold text-cyan-300">
-                    <span class="text-slate-400 uppercase text-[9px] mr-1">Velocity:</span>
-                    {{ $analytics['summary']['decay_velocity'] }} pts/h
-                </span>
-
-                {{-- Quick Metric: Net Delta --}}
-                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-bold {{ abs($analytics['summary']['latest_delta']) < 20 ? 'text-emerald-400' : 'text-amber-400' }}">
-                    <span class="text-slate-400 uppercase text-[9px] mr-1">Net &Delta;:</span>
-                    {{ $analytics['summary']['latest_delta'] >= 0 ? '+' : '' }}{{ $analytics['summary']['latest_delta'] }}
-                </span>
-
-                {{-- Basket Summary --}}
-                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-semibold text-slate-300">
+            {{-- Right: Basket Tag & Interactive Details Toggle --}}
+            <div class="flex items-center gap-2 ml-auto text-xs font-mono-num">
+                <span class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-semibold text-slate-300 hidden md:inline">
                     {{ $analytics['strategy_name'] }} ({{ $analytics['total_lots'] }}L)
                 </span>
 
-                {{-- Show / Hide Toggle Button --}}
                 <button type="button"
-                        class="px-2.5 py-1 rounded-lg font-bold text-xs bg-slate-950 hover:bg-slate-800 border border-slate-700 text-teal-300 transition flex items-center gap-1 active:scale-95 shadow">
-                    <span x-text="showHealth ? 'Hide Details' : 'Show Details'"></span>
+                        class="px-2.5 py-1 rounded-lg font-bold text-xs bg-slate-950 hover:bg-slate-800 border border-slate-700 text-teal-300 transition flex items-center gap-1.5 active:scale-95 shadow">
+                    <span x-text="showHealth ? 'Hide Details' : 'Show Details & Matrix'"></span>
                     <span class="text-[9px]" x-text="showHealth ? '▲' : '▼'"></span>
                 </button>
             </div>
         </div>
 
-        {{-- COLLAPSIBLE BODY (DETAILED GUIDANCE, CHIPS, BASKET LEGS & BREAKDOWN) --}}
+        {{-- COLLAPSIBLE BODY (DETAILED GUIDANCE, LIVE SNAPSHOT, MASTER MATRIX TABLE & BASKET) --}}
         <div x-show="showHealth"
              x-cloak
              x-transition:enter="transition ease-out duration-200"
@@ -246,8 +230,93 @@
              x-transition:enter-end="opacity-100 translate-y-0"
              class="p-3 pt-0 border-t border-slate-800/80 space-y-3">
             
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-3">
-                {{-- Actionable Suggestion & Drivers (Left 8 cols) --}}
+            {{-- 1. LIVE INDICATORS STRIP (CURRENT MARKET CONDITIONS SNAPSHOT) --}}
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num pt-3">
+                <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">
+                    <span>📊 LIVE SNAPSHOT:</span>
+                </div>
+
+                {{-- Net Decay --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">Decay:</span>
+                    <span class="{{ $analytics['summary']['net_decay_points'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
+                        {{ $analytics['summary']['net_decay_points'] >= 0 ? '+' : '' }}{{ $analytics['summary']['net_decay_points'] }} pts
+                    </span>
+                    <span class="text-slate-500 text-[10px]">({{ $analytics['summary']['decay_pct'] }}%)</span>
+                </span>
+
+                {{-- Velocity --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-cyan-300">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">Velocity:</span>
+                    {{ $analytics['summary']['decay_velocity'] }} pts/h
+                </span>
+
+                {{-- Net Delta --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold {{ abs($analytics['summary']['latest_delta']) < 20 ? 'text-emerald-400' : 'text-amber-400' }}">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">Net &Delta;:</span>
+                    {{ $analytics['summary']['latest_delta'] >= 0 ? '+' : '' }}{{ $analytics['summary']['latest_delta'] }}
+                </span>
+
+                {{-- Gamma --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-teal-300">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">&Gamma;:</span>
+                    {{ number_format($analytics['summary']['latest_gamma'] ?? 0, 5) }}
+                </span>
+
+                {{-- Theta --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-emerald-300">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">&Theta;:</span>
+                    +{{ round($analytics['summary']['latest_theta']) }}
+                </span>
+
+                {{-- IV --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-indigo-300">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">IV:</span>
+                    {{ number_format($analytics['summary']['latest_iv'] ?? 0, 1) }}%
+                </span>
+
+                {{-- VWAP Status --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">VWAP:</span>
+                    <span class="{{ ($analytics['summary']['latest_vwap_diff'] ?? 0) <= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
+                        {{ $analytics['summary']['vwap_status'] ?? 'BELOW' }} ({{ ($analytics['summary']['latest_vwap_diff'] ?? 0) >= 0 ? '+' : '' }}&#8377;{{ number_format($analytics['summary']['latest_vwap_diff'] ?? 0, 2) }})
+                    </span>
+                </span>
+
+                {{-- RVOL --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">RVOL:</span>
+                    <span class="{{ ($analytics['summary']['latest_rvol'] ?? 1.0) >= 1.5 ? 'text-orange-400 font-extrabold' : 'text-slate-200' }}">
+                        {{ number_format($analytics['summary']['latest_rvol'] ?? 1.0, 2) }}x
+                    </span>
+                </span>
+
+                {{-- ADX --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">ADX:</span>
+                    <span class="{{ ($analytics['summary']['latest_adx'] ?? 0) <= 20 ? 'text-emerald-400 font-black' : (($analytics['summary']['latest_adx'] ?? 0) >= 25 ? 'text-rose-400 font-black' : 'text-amber-300') }}">
+                        {{ number_format($analytics['summary']['latest_adx'] ?? 0, 1) }}
+                        <span class="text-[9px] font-normal text-slate-400">({{ $analytics['summary']['adx_trend'] ?? 'Range' }})</span>
+                    </span>
+                </span>
+
+                {{-- RSI --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">RSI:</span>
+                    <span class="{{ ($analytics['summary']['latest_rsi'] ?? 50) >= 70 ? 'text-rose-400 font-black' : (($analytics['summary']['latest_rsi'] ?? 50) <= 30 ? 'text-emerald-400 font-black' : 'text-yellow-300') }}">
+                        {{ number_format($analytics['summary']['latest_rsi'] ?? 50, 1) }}
+                    </span>
+                </span>
+
+                {{-- ATR --}}
+                <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-bold text-fuchsia-300">
+                    <span class="text-slate-400 uppercase text-[9px] mr-1">ATR:</span>
+                    &#8377;{{ number_format($analytics['summary']['latest_atr'] ?? 0, 2) }}
+                </span>
+            </div>
+
+            {{-- 2. ACTIONABLE RECOMMENDATION & FACTOR CHIPS --}}
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
                 <div class="lg:col-span-8 space-y-2">
                     <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-3 flex items-start gap-2.5">
                         <span class="text-base flex-shrink-0 mt-0.5">💡</span>
@@ -270,32 +339,11 @@
                     </div>
                 </div>
 
-                {{-- Detailed Execution KPIs & Audit Trigger (Right 4 cols) --}}
-                <div class="lg:col-span-4 flex flex-col justify-between gap-2.5 border-t lg:border-t-0 lg:border-l border-slate-800 pt-2 lg:pt-0 lg:pl-3">
-                    <div class="grid grid-cols-3 gap-2 font-mono-num text-xs text-center">
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">NET DECAY</span>
-                            <span class="text-sm font-black {{ $analytics['summary']['net_decay_points'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
-                                {{ $analytics['summary']['net_decay_points'] >= 0 ? '+' : '' }}{{ $analytics['summary']['net_decay_points'] }}
-                            </span>
-                        </div>
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">VELOCITY</span>
-                            <span class="text-sm font-black text-cyan-300">
-                                {{ $analytics['summary']['decay_velocity'] }}
-                            </span>
-                        </div>
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">THETA</span>
-                            <span class="text-sm font-black text-teal-300">
-                                +{{ round($analytics['summary']['latest_theta']) }}
-                            </span>
-                        </div>
-                    </div>
-
+                {{-- Progression Table Shortcut Button --}}
+                <div class="lg:col-span-4 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-slate-800 pt-2 lg:pt-0 lg:pl-3">
                     <button type="button"
                             @click="showTable = !showTable"
-                            class="w-full py-2 px-3 rounded-xl font-bold text-xs bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-teal-300 shadow transition flex items-center justify-between active:scale-98">
+                            class="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-teal-300 shadow transition flex items-center justify-between active:scale-98">
                         <span class="flex items-center gap-1.5">
                             <span>⏱️</span>
                             <span x-text="showTable ? 'Hide Time Progression Table' : 'View Time Progression Table'"></span>
@@ -303,6 +351,127 @@
                         <span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400"
                               x-text="showTable ? '▲' : '▼'"></span>
                     </button>
+                </div>
+            </div>
+
+            {{-- 3. MASTER INSTITUTIONAL REGIME & COMBINATION MATRIX TABLE --}}
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <span>🏛️</span>
+                            <span>Master Institutional Decision Matrix</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400 hidden md:inline">
+                            (Cross-examines Net OI, Greeks, VWAP cushion & Volatility)
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] font-mono-num">
+                        <span class="text-slate-400 uppercase font-bold">Active Match:</span>
+                        <span class="px-2 py-0.5 rounded font-black {{ $badgeClass }}">
+                            {{ $j['verdict'] ?? $j['status'] }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/60 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 whitespace-nowrap">
+                                <th class="py-2 px-3">Market Regime / Pattern</th>
+                                <th class="py-2 px-3">Price vs VWAP</th>
+                                <th class="py-2 px-3">Net OI Flow</th>
+                                <th class="py-2 px-3">Delta (&Delta;) &amp; Gamma (&Gamma;)</th>
+                                <th class="py-2 px-3">IV (&nu;) &amp; Theta (&Theta;)</th>
+                                <th class="py-2 px-3">Momentum (ADX / RVOL)</th>
+                                <th class="py-2 px-3">Action / Playbook</th>
+                                <th class="py-2 px-3 text-center">Live Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60 font-mono-num text-[11px]">
+                            @foreach($j['decision_matrix'] ?? [] as $regime)
+                                @php
+                                    $isActive = !empty($regime['is_active']);
+                                    $rowBg = $isActive 
+                                        ? 'bg-gradient-to-r from-teal-950/60 via-slate-900/90 to-teal-950/40 border-l-4 border-l-teal-400 font-semibold' 
+                                        : 'hover:bg-slate-900/40 text-slate-300';
+                                @endphp
+                                <tr class="transition {{ $rowBg }}">
+                                    {{-- Regime Name & Category --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap">
+                                        <div class="flex items-center gap-2">
+                                            @if($isActive)
+                                                <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span>
+                                            @else
+                                                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                                            @endif
+                                            <div>
+                                                <span class="font-bold {{ $isActive ? 'text-teal-300' : 'text-slate-100' }}">
+                                                    {{ $regime['name'] }}
+                                                </span>
+                                                <span class="text-[9px] text-slate-400 block font-normal">
+                                                    {{ $regime['category'] }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {{-- Price vs VWAP --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-medium {{ $isActive ? 'text-white' : 'text-slate-300' }}">
+                                        {{ $regime['price_vwap'] }}
+                                    </td>
+
+                                    {{-- Net OI Flow --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-medium {{ $isActive ? 'text-white' : 'text-slate-300' }}">
+                                        {{ $regime['net_oi'] }}
+                                    </td>
+
+                                    {{-- Delta & Gamma --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-medium {{ $isActive ? 'text-cyan-300' : 'text-slate-300' }}">
+                                        {{ $regime['delta_gamma'] }}
+                                    </td>
+
+                                    {{-- IV & Theta --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-medium {{ $isActive ? 'text-indigo-300' : 'text-slate-300' }}">
+                                        {{ $regime['iv_theta'] }}
+                                    </td>
+
+                                    {{-- Momentum --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-medium {{ $isActive ? 'text-amber-300' : 'text-slate-300' }}">
+                                        {{ $regime['momentum'] }}
+                                    </td>
+
+                                    {{-- Action --}}
+                                    <td class="py-2.5 px-3 whitespace-nowrap font-bold">
+                                        @if($isActive)
+                                            <span class="text-amber-300 flex items-center gap-1">
+                                                <span>⚡</span>
+                                                <span>{{ $regime['action'] }}</span>
+                                            </span>
+                                        @else
+                                            <span class="text-slate-400 font-normal">
+                                                {{ $regime['action'] }}
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Match Status --}}
+                                    <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                        @if($isActive)
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-teal-500/20 text-teal-300 border border-teal-500/40 inline-flex items-center gap-1 shadow-sm">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                                                ACTIVE REGIME
+                                            </span>
+                                        @else
+                                            <span class="text-[10px] text-slate-500 font-normal">
+                                                INACTIVE
+                                            </span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -494,6 +663,22 @@
                         <span class="w-3.5 h-[2.5px] rounded-sm bg-cyan-400"></span>
                         <span>📊 Net OI</span>
                     </button>
+
+                    {{-- RVOL Toggle --}}
+                    <button type="button" @click="toggleDataset(9)"
+                            :class="datasetVisibility[9] ? 'bg-orange-500/20 text-orange-300 border-orange-500/40 shadow-sm' : 'bg-slate-950 text-slate-500 border-slate-800 opacity-60'"
+                            class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="Relative Volume (RVOL): Volume surge multiplier vs 20-period moving average">
+                        <span class="w-3.5 h-[2px] rounded-sm bg-orange-400"></span>
+                        <span>⚡ RVOL</span>
+                    </button>
+
+                    {{-- Interval Volume Toggle --}}
+                    <button type="button" @click="toggleDataset(10)"
+                            :class="datasetVisibility[10] ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-sm' : 'bg-slate-950 text-slate-500 border-slate-800 opacity-60'"
+                            class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="Interval Traded Volume">
+                        <span class="w-3.5 h-[2px] rounded-sm bg-sky-400"></span>
+                        <span>📶 Volume</span>
+                    </button>
                 </div>
 
                 {{-- Group 2: Strategy Greeks (Rating 3) --}}
@@ -538,6 +723,35 @@
                             class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="Implied Volatility (Thickness: 3)">
                         <span class="w-3.5 h-[1.5px] rounded-sm bg-yellow-400"></span>
                         <span>⚡ IV</span>
+                    </button>
+                </div>
+
+                {{-- Group 3: Technical Indicators (RSI, ADX, ATR) --}}
+                <div class="flex items-center flex-wrap gap-1.5 font-bold">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 mr-1 select-none">INDICATORS:</span>
+
+                    {{-- RSI Toggle --}}
+                    <button type="button" @click="toggleDataset(11)"
+                            :class="datasetVisibility[11] ? 'bg-lime-500/20 text-lime-300 border-lime-500/40 shadow-sm' : 'bg-slate-950 text-slate-500 border-slate-800 opacity-60'"
+                            class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="RSI (14): Momentum & Overbought/Oversold">
+                        <span class="w-3.5 h-[1.5px] rounded-sm bg-lime-400"></span>
+                        <span>📈 RSI(14)</span>
+                    </button>
+
+                    {{-- ADX Toggle --}}
+                    <button type="button" @click="toggleDataset(12)"
+                            :class="datasetVisibility[12] ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-sm' : 'bg-slate-950 text-slate-500 border-slate-800 opacity-60'"
+                            class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="ADX (14): Trend Strength (<20 Range/Decay-friendly, >25 Strong Trend)">
+                        <span class="w-3.5 h-[1.5px] rounded-sm bg-indigo-400"></span>
+                        <span>🧭 ADX(14)</span>
+                    </button>
+
+                    {{-- ATR Toggle --}}
+                    <button type="button" @click="toggleDataset(13)"
+                            :class="datasetVisibility[13] ? 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40 shadow-sm' : 'bg-slate-950 text-slate-500 border-slate-800 opacity-60'"
+                            class="px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5" title="ATR (14): Volatility in Points per 5-min bar">
+                        <span class="w-3.5 h-[1.5px] rounded-sm bg-fuchsia-400"></span>
+                        <span>🌊 ATR(14)</span>
                     </button>
                 </div>
 
@@ -594,6 +808,11 @@
                         <th class="py-2.5 px-3">&Theta; Theta</th>
                         <th class="py-2.5 px-3">&nu; Vega</th>
                         <th class="py-2.5 px-3">IV</th>
+                        <th class="py-2.5 px-3">Volume</th>
+                        <th class="py-2.5 px-3">RVOL</th>
+                        <th class="py-2.5 px-3">RSI(14)</th>
+                        <th class="py-2.5 px-3">ADX(14)</th>
+                        <th class="py-2.5 px-3">ATR(14)</th>
                         <th class="py-2.5 px-3 text-right">Interval Signal</th>
                     </tr>
                 </thead>
@@ -619,6 +838,21 @@
                         <td class="py-2 px-3 text-teal-300">{{ $row['theta'] }}</td>
                         <td class="py-2 px-3 text-slate-400">{{ $row['vega'] }}</td>
                         <td class="py-2 px-3 text-amber-400">{{ $row['iv'] }}%</td>
+                        <td class="py-2 px-3 text-sky-300 font-mono-num font-semibold">
+                            {{ ($row['interval_vol'] ?? 0) >= 100000 ? number_format(($row['interval_vol'] ?? 0) / 100000, 2) . 'L' : number_format(($row['interval_vol'] ?? 0) / 1000, 1) . 'k' }}
+                        </td>
+                        <td class="py-2 px-3 font-mono-num font-extrabold {{ ($row['rvol'] ?? 1.0) >= 1.5 ? 'text-orange-400' : 'text-slate-300' }}">
+                            {{ number_format($row['rvol'] ?? 1.0, 2) }}x
+                        </td>
+                        <td class="py-2 px-3 font-mono-num font-bold {{ ($row['rsi'] ?? 50) >= 70 ? 'text-rose-400' : (($row['rsi'] ?? 50) <= 30 ? 'text-emerald-400' : 'text-lime-300') }}">
+                            {{ number_format($row['rsi'] ?? 50, 1) }}
+                        </td>
+                        <td class="py-2 px-3 font-mono-num font-bold {{ ($row['adx'] ?? 0) <= 20 ? 'text-emerald-400' : (($row['adx'] ?? 0) >= 25 ? 'text-rose-400' : 'text-indigo-300') }}">
+                            {{ number_format($row['adx'] ?? 0, 1) }}
+                        </td>
+                        <td class="py-2 px-3 text-fuchsia-300 font-mono-num font-semibold">
+                            &#8377;{{ number_format($row['atr'] ?? 0, 2) }}
+                        </td>
                         <td class="py-2 px-3 text-right">
                             <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase {{ $row['signal_badge'] }}">
                                 {{ $row['signal'] }}
@@ -627,7 +861,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="14" class="text-center py-6 text-slate-500 italic">
+                        <td colspan="19" class="text-center py-6 text-slate-500 italic">
                             No progression intervals recorded for the chosen timeframe.
                         </td>
                     </tr>
@@ -773,6 +1007,20 @@ const rightSideLineLabelsPlugin = {
                 formattedVal = (lastValue >= 0 ? '+' : '') + lastValue.toFixed(2);
             } else if (yAxisID === 'yGamma') {
                 formattedVal = lastValue.toFixed(5);
+            } else if (yAxisID === 'yRVOL') {
+                formattedVal = lastValue.toFixed(2) + 'x';
+            } else if (yAxisID === 'yVolume') {
+                if (Math.abs(lastValue) >= 100000) {
+                    formattedVal = (lastValue / 100000).toFixed(2) + 'L';
+                } else {
+                    formattedVal = (lastValue / 1000).toFixed(1) + 'k';
+                }
+            } else if (yAxisID === 'yRSI') {
+                formattedVal = lastValue.toFixed(1);
+            } else if (yAxisID === 'yADX') {
+                formattedVal = lastValue.toFixed(1);
+            } else if (yAxisID === 'yATR') {
+                formattedVal = '₹' + lastValue.toFixed(2);
             } else {
                 formattedVal = lastValue.toFixed(2);
             }
@@ -895,12 +1143,16 @@ function strategyPremiumApp() {
         chartHeight: {{ $chartHeight }},
         // Dataset visibility state retained across browser reloads
         datasetVisibility: (function() {
-            const defaultVis = [true, true, false, false, false, false, false, false, false]; // Default: Premium & VWAP on
+            // Indices: 0:Premium, 1:VWAP, 2:OI-VWAP, 3:NetOI, 4:Delta, 5:Theta, 6:Gamma, 7:Vega, 8:IV, 9:RVOL, 10:Volume, 11:RSI, 12:ADX, 13:ATR
+            const defaultVis = [true, true, false, false, false, false, false, false, false, true, false, false, false, false]; // Default: Premium, VWAP, & RVOL on
             try {
                 const saved = localStorage.getItem('spa_dataset_visibility');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    if (Array.isArray(parsed) && parsed.length === defaultVis.length) {
+                    if (Array.isArray(parsed)) {
+                        while (parsed.length < defaultVis.length) {
+                            parsed.push(defaultVis[parsed.length]);
+                        }
                         return parsed.map(v => Boolean(v));
                     }
                 }
@@ -1146,6 +1398,81 @@ function strategyPremiumApp() {
                             pointHoverRadius: 4,
                             yAxisID: 'yIV',
                             hidden: !this.datasetVisibility[8]
+                        },
+                        // 9: Relative Volume (RVOL)
+                        {
+                            label: 'Relative Volume (RVOL)',
+                            shortLabel: 'RVOL',
+                            data: chartData.rvol || [],
+                            borderColor: '#fb923c', // Orange
+                            backgroundColor: 'transparent',
+                            borderWidth: 2.2,
+                            borderDash: [],
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'yRVOL',
+                            hidden: !this.datasetVisibility[9]
+                        },
+                        // 10: Interval Volume
+                        {
+                            label: 'Interval Volume',
+                            shortLabel: 'Volume',
+                            data: chartData.interval_vol || [],
+                            borderColor: '#38bdf8', // Sky Blue
+                            backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                            borderWidth: 1.8,
+                            borderDash: [],
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'yVolume',
+                            hidden: !this.datasetVisibility[10]
+                        },
+                        // 11: RSI(14)
+                        {
+                            label: 'Relative Strength Index (RSI)',
+                            shortLabel: 'RSI',
+                            data: chartData.rsi || [],
+                            borderColor: '#a3e635', // Lime
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.8,
+                            borderDash: [],
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'yRSI',
+                            hidden: !this.datasetVisibility[11]
+                        },
+                        // 12: ADX(14)
+                        {
+                            label: 'Average Directional Index (ADX)',
+                            shortLabel: 'ADX',
+                            data: chartData.adx || [],
+                            borderColor: '#818cf8', // Indigo
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.8,
+                            borderDash: [],
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'yADX',
+                            hidden: !this.datasetVisibility[12]
+                        },
+                        // 13: ATR(14)
+                        {
+                            label: 'Average True Range (ATR)',
+                            shortLabel: 'ATR',
+                            data: chartData.atr || [],
+                            borderColor: '#e879f9', // Fuchsia
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.8,
+                            borderDash: [],
+                            tension: 0.2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            yAxisID: 'yATR',
+                            hidden: !this.datasetVisibility[13]
                         }
                     ]
                 },
@@ -1191,6 +1518,16 @@ function strategyPremiumApp() {
                                         return lbl + ': ' + (val >= 0 ? '+' : '') + val.toFixed(2) + '/1% IV';
                                     } else if (context.dataset.yAxisID === 'yGamma') {
                                         return lbl + ': ' + val.toFixed(5);
+                                    } else if (context.dataset.yAxisID === 'yRVOL') {
+                                        return lbl + ': ' + val.toFixed(2) + 'x';
+                                    } else if (context.dataset.yAxisID === 'yVolume') {
+                                        return lbl + ': ' + (val >= 100000 ? (val / 100000).toFixed(2) + 'L' : (val / 1000).toFixed(1) + 'k');
+                                    } else if (context.dataset.yAxisID === 'yRSI') {
+                                        return lbl + ': ' + val.toFixed(1) + (val >= 70 ? ' (Overbought)' : (val <= 30 ? ' (Oversold)' : ''));
+                                    } else if (context.dataset.yAxisID === 'yADX') {
+                                        return lbl + ': ' + val.toFixed(1) + (val >= 25 ? ' (Strong Trend)' : (val <= 20 ? ' (Range-Bound)' : ''));
+                                    } else if (context.dataset.yAxisID === 'yATR') {
+                                        return lbl + ': ₹' + val.toFixed(2) + ' /bar';
                                     }
                                     return lbl + ': ' + val.toFixed(3);
                                 }
@@ -1266,6 +1603,48 @@ function strategyPremiumApp() {
                             position: 'right',
                             grid: { drawOnChartArea: false },
                             display: false,
+                        },
+                        // Y-Axis 8: RVOL (Independent scale)
+                        yRVOL: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            display: false,
+                            min: 0,
+                        },
+                        // Y-Axis 9: Volume (Independent scale)
+                        yVolume: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            display: false,
+                            min: 0,
+                        },
+                        // Y-Axis 10: RSI (0 to 100 scale)
+                        yRSI: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            display: false,
+                            min: 0,
+                            max: 100,
+                        },
+                        // Y-Axis 11: ADX (0 to 100 scale)
+                        yADX: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            display: false,
+                            min: 0,
+                            max: 100,
+                        },
+                        // Y-Axis 12: ATR (Points fluctuation scale)
+                        yATR: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            display: false,
+                            min: 0,
                         }
                     }
                 },

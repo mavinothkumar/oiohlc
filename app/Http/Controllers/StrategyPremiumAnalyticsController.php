@@ -408,12 +408,19 @@ class StrategyPremiumAnalyticsController extends Controller
 
         $totalLotsAcrossLegs = array_sum(array_column($resolvedLegs, 'lots'));
 
+        $prevLegVolumes = [];
+        $intervalVolumeSeries = [];
+        $rvolSeries = [];
+        $rollingVolsWindow = [];
+        $rvolWindowSize = 20;
+
         foreach ($groupedByTime as $tKey => $slot) {
             $timeLabel = Carbon::parse($tKey)->format('H:i');
             $labels[] = $timeLabel;
 
             $slotLtp = 0.0;
             $slotVol = 0.0;
+            $slotDeltaVol = 0;
             $slotDiffOi = 0.0;
             $slotDelta = 0.0;
             $slotGamma = 0.0;
@@ -443,6 +450,12 @@ class StrategyPremiumAnalyticsController extends Controller
                 $slotLtp += ($lots * $ltp);
                 $slotVol += ($lots * $vol);
                 $slotDiffOi += ($lots * $diffOi);
+
+                // Delta volume for this contract (incremental volume traded in this time interval)
+                $prevVol = $prevLegVolumes[$key] ?? null;
+                $deltaVol = ($prevVol !== null) ? max(0, $vol - $prevVol) : 0;
+                $prevLegVolumes[$key] = $vol;
+                $slotDeltaVol += ($lots * $deltaVol);
 
                 // Combined Greeks with side sign & lots
                 $slotDelta += ($lots * $sign * $delta);
@@ -477,6 +490,16 @@ class StrategyPremiumAnalyticsController extends Controller
             $combinedThetaSeries[] = round($slotTheta, 2);
             $combinedVegaSeries[] = round($slotVega, 2);
             $combinedIvSeries[] = round($avgSlotIv, 2);
+
+            // Interval Volume & 20-period Rolling RVOL (Relative Volume Surge)
+            $intervalVolumeSeries[] = $slotDeltaVol;
+            $rollingVolsWindow[] = $slotDeltaVol;
+            if (count($rollingVolsWindow) > $rvolWindowSize) {
+                array_shift($rollingVolsWindow);
+            }
+            $avgVol = array_sum($rollingVolsWindow) / count($rollingVolsWindow);
+            $slotRvol = ($avgVol > 0) ? round($slotDeltaVol / $avgVol, 2) : 1.0;
+            $rvolSeries[] = $slotRvol;
 
             // Inception Baseline capture (at 09:15 or first time-step)
             if ($baseTimestamp === null) {
@@ -521,6 +544,9 @@ class StrategyPremiumAnalyticsController extends Controller
             } elseif (abs($slotGamma) > abs($baseGamma) * 1.5 && abs($baseGamma) > 0.0001) {
                 $signal = 'GAMMA SPIKE';
                 $signalBadge = 'bg-purple-500/20 text-purple-300 border border-purple-500/30';
+            } elseif ($slotRvol >= 2.0) {
+                $signal = 'VOLUME SURGE';
+                $signalBadge = 'bg-orange-500/20 text-orange-300 border border-orange-500/30';
             }
 
             $progressionTable[] = [
@@ -537,11 +563,106 @@ class StrategyPremiumAnalyticsController extends Controller
                 'theta' => round($slotTheta, 2),
                 'vega' => round($slotVega, 2),
                 'iv' => round($avgSlotIv, 2),
+                'interval_vol' => $slotDeltaVol,
+                'rvol' => $slotRvol,
                 'realized_decay' => round($realizedDecay, 2),
                 'decay_velocity' => $decayVelocity,
                 'signal' => $signal,
                 'signal_badge' => $signalBadge,
             ];
+        }
+
+        // ── 5B. Compute Technical Indicators (RSI, ATR, ADX, VWAP Status) ────
+        $nPts = count($combinedLtp);
+        $rsiPeriod = 14;
+        $rsiSeries = [];
+        $atrSeries = [];
+        $adxSeries = [];
+
+        $gains = []; $losses = []; $avgGain = 0; $avgLoss = 0;
+        $trs = []; $avgTr = 0;
+        $plusDMs = []; $minusDMs = []; $trAdxList = []; $dxList = [];
+        $avgPlusDM = 0; $avgMinusDM = 0; $avgTrADX = 0;
+        $prevLtp = null;
+
+        for ($i = 0; $i < $nPts; $i++) {
+            $curLtp = $combinedLtp[$i];
+
+            if ($prevLtp === null) {
+                $rsiSeries[] = 50.0;
+                $atrSeries[] = 0.0;
+                $adxSeries[] = 0.0;
+                $prevLtp = $curLtp;
+                if (isset($progressionTable[$i])) {
+                    $progressionTable[$i]['rsi'] = 50.0;
+                    $progressionTable[$i]['atr'] = 0.0;
+                    $progressionTable[$i]['adx'] = 0.0;
+                    $progressionTable[$i]['vwap_status'] = ($progressionTable[$i]['vwap_diff'] >= 0 ? 'ABOVE' : 'BELOW');
+                }
+                continue;
+            }
+
+            $change = $curLtp - $prevLtp;
+            $gain = $change > 0 ? $change : 0;
+            $loss = $change < 0 ? abs($change) : 0;
+            $tr = abs($change);
+            $plusDM = $change > 0 ? $change : 0;
+            $minusDM = $change < 0 ? abs($change) : 0;
+            $prevLtp = $curLtp;
+
+            if ($i <= $rsiPeriod) {
+                $gains[] = $gain; $losses[] = $loss;
+                $avgGain = array_sum($gains) / count($gains);
+                $avgLoss = array_sum($losses) / count($losses);
+
+                $trs[] = $tr;
+                $avgTr = array_sum($trs) / count($trs);
+
+                $plusDMs[] = $plusDM; $minusDMs[] = $minusDM; $trAdxList[] = max(0.01, $tr);
+                $avgPlusDM = array_sum($plusDMs) / count($plusDMs);
+                $avgMinusDM = array_sum($minusDMs) / count($minusDMs);
+                $avgTrADX = array_sum($trAdxList) / count($trAdxList);
+            } else {
+                $avgGain = (($avgGain * ($rsiPeriod - 1)) + $gain) / $rsiPeriod;
+                $avgLoss = (($avgLoss * ($rsiPeriod - 1)) + $loss) / $rsiPeriod;
+
+                $avgTr = (($avgTr * ($rsiPeriod - 1)) + $tr) / $rsiPeriod;
+
+                $avgPlusDM = (($avgPlusDM * ($rsiPeriod - 1)) + $plusDM) / $rsiPeriod;
+                $avgMinusDM = (($avgMinusDM * ($rsiPeriod - 1)) + $minusDM) / $rsiPeriod;
+                $avgTrADX = (($avgTrADX * ($rsiPeriod - 1)) + max(0.01, $tr)) / $rsiPeriod;
+            }
+
+            // RSI calculation
+            if ($avgLoss == 0) {
+                $rsi = 100.0;
+            } else {
+                $rs = $avgGain / $avgLoss;
+                $rsi = round(100 - (100 / (1 + $rs)), 1);
+            }
+            $rsiSeries[] = $rsi;
+
+            // ATR calculation
+            $atrSeries[] = round($avgTr, 2);
+
+            // ADX calculation
+            $plusDI = $avgTrADX > 0 ? (100 * $avgPlusDM / $avgTrADX) : 0;
+            $minusDI = $avgTrADX > 0 ? (100 * $avgMinusDM / $avgTrADX) : 0;
+            $diSum = $plusDI + $minusDI;
+            $dx = ($diSum > 0) ? (100 * abs($plusDI - $minusDI) / $diSum) : 0;
+            $dxList[] = $dx;
+            if (count($dxList) > $rsiPeriod) {
+                array_shift($dxList);
+            }
+            $adx = round(array_sum($dxList) / count($dxList), 1);
+            $adxSeries[] = $adx;
+
+            if (isset($progressionTable[$i])) {
+                $progressionTable[$i]['rsi'] = $rsi;
+                $progressionTable[$i]['atr'] = round($avgTr, 2);
+                $progressionTable[$i]['adx'] = $adx;
+                $progressionTable[$i]['vwap_status'] = ($progressionTable[$i]['vwap_diff'] >= 0 ? 'ABOVE' : 'BELOW');
+            }
         }
 
         // 6. Overall Judgment & Executive Strategy Suggestion
@@ -574,7 +695,12 @@ class StrategyPremiumAnalyticsController extends Controller
             currentTheta: $latestTheta,
             currentIv: $latestIv,
             baseIv: $baseIv,
-            totalHours: $totalHours
+            totalHours: $totalHours,
+            netOiChange: (float)($latestSlot['net_oi_change'] ?? 0.0),
+            rvol: (float)($latestSlot['rvol'] ?? 1.0),
+            adx: (float)($latestSlot['adx'] ?? 0.0),
+            rsi: (float)($latestSlot['rsi'] ?? 50.0),
+            atr: (float)($latestSlot['atr'] ?? 0.0)
         );
 
         // Grouped strikes matrix for Basket Builder parity
@@ -617,11 +743,19 @@ class StrategyPremiumAnalyticsController extends Controller
                 'decay_pct' => $decayPct,
                 'decay_velocity' => $latestDecayVelocity,
                 'latest_vwap' => $latestVwap,
+                'latest_vwap_diff' => round($latestPremium - $latestVwap, 2),
+                'vwap_status' => ($latestPremium >= $latestVwap) ? 'ABOVE' : 'BELOW',
                 'latest_delta' => $latestDelta,
                 'latest_gamma' => $latestGamma,
                 'latest_theta' => $latestTheta,
                 'latest_vega' => $latestVega,
                 'latest_iv' => $latestIv,
+                'latest_rvol' => end($rvolSeries) ?: 1.0,
+                'latest_interval_vol' => end($intervalVolumeSeries) ?: 0,
+                'latest_rsi' => end($rsiSeries) ?: 50.0,
+                'latest_atr' => end($atrSeries) ?: 0.0,
+                'latest_adx' => end($adxSeries) ?: 0.0,
+                'adx_trend' => (end($adxSeries) >= 25 ? 'Strong Trend' : (end($adxSeries) <= 20 ? 'Range-Bound' : 'Moderate')),
                 'total_hours' => round($totalHours, 1),
             ],
             'judgment' => $judgment,
@@ -636,6 +770,11 @@ class StrategyPremiumAnalyticsController extends Controller
                 'theta' => $combinedThetaSeries,
                 'vega' => $combinedVegaSeries,
                 'iv' => $combinedIvSeries,
+                'interval_vol' => $intervalVolumeSeries,
+                'rvol' => $rvolSeries,
+                'rsi' => $rsiSeries,
+                'atr' => $atrSeries,
+                'adx' => $adxSeries,
             ],
             'progression_table' => $progressionTableLatestToOld,
         ];
@@ -657,70 +796,303 @@ class StrategyPremiumAnalyticsController extends Controller
         float $currentTheta,
         float $currentIv,
         float $baseIv,
-        float $totalHours
+        float $totalHours,
+        float $netOiChange = 0.0,
+        float $rvol = 1.0,
+        float $adx = 0.0,
+        float $rsi = 50.0,
+        float $atr = 0.0
     ): array {
-        $status = 'ON TRACK';
-        $statusColor = 'emerald';
-        $headline = 'Decay Progressing Within Expectations';
-        $reasons = [];
-        $actionableSuggestion = 'Maintain existing position. Greek decay velocity is stable.';
-
         $isBelowVwap = $currentPremium <= $currentVwap;
         $absDelta = abs($currentDelta);
         $ivDrift = $currentIv - $baseIv;
+        $vwapDiff = $currentPremium - $currentVwap;
+
+        // Determine Matched Institutional Regime
+        $matchedRegime = 'consolidation';
+        $status = 'NEUTRAL CONSOLIDATION';
+        $statusColor = 'slate';
+        $verdict = 'Neutral Consolidation (Sideways Balance)';
+        $action = 'Hold Strategy; Monitor VWAP Cushion';
+        $actionType = 'MONITOR';
+        $actionColor = 'slate';
+        $headline = 'Balanced Sideways Decay Dynamics';
+        $reasons = [];
+        $actionableSuggestion = 'Monitor underlying spot movement relative to ATM boundaries.';
 
         if ($decayPct >= 60.0) {
+            $matchedRegime = 'vega_crush';
             $status = 'PROFIT TARGET REACHED';
             $statusColor = 'cyan';
+            $verdict = sprintf('Target Profit Captured (+%.1f%% Decay)', $decayPct);
+            $action = 'Book Profit / Tighten Stop-Loss to Entry';
+            $actionType = 'BOOK_PROFIT';
+            $actionColor = 'cyan';
             $headline = sprintf("Substantial Premium Decay Captured (+%.1f%% / +%.1f pts)", $decayPct, $decayPoints);
-            $reasons[] = sprintf("Over 60%% of combined entry premium has decayed successfully in %.1f hours.", $totalHours);
+            $reasons[] = sprintf("Over 60%% of entry premium decayed in %.1f hours.", $totalHours);
             $reasons[] = "Risk-to-reward ratio of remaining decay is deteriorating against tail-risk.";
             $actionableSuggestion = "Consider booking profits or tightening stop-loss to entry premium.";
-        } elseif ($absDelta >= 35.0) {
-            $status = 'CAUTION: DELTA IMBALANCE';
+        } elseif ($absDelta >= 35.0 || ($currentGamma > 0.0015 && $absDelta >= 25.0)) {
+            $matchedRegime = 'gamma_squeeze';
+            $status = 'CAUTION: GAMMA SQUEEZE';
             $statusColor = 'amber';
-            $headline = sprintf("Significant Directional Exposure (&Delta; = %+.1f)", $currentDelta);
-            $reasons[] = sprintf("Net Delta has drifted to %+.1f, exceeding neutral monitoring boundaries.", $currentDelta);
-            $reasons[] = "One side of the strategy is absorbing directional momentum.";
-            $actionableSuggestion = $currentDelta > 0
-                ? "Position is net long delta. Consider rolling PE strike higher or hedging tested CE."
-                : "Position is net short delta. Consider rolling CE strike lower or hedging tested PE.";
+            $verdict = 'Gamma Squeeze Risk (Expiry Tail-Risk)';
+            $action = 'Close Naked ATM Shorts / Buy Protective Wings';
+            $actionType = 'HEDGE';
+            $actionColor = 'amber';
+            $headline = sprintf("Extreme Greek Imbalance (&Delta; = %+.1f, &Gamma; = %.5f)", $currentDelta, $currentGamma);
+            $reasons[] = sprintf("Net Delta has drifted to %+.1f, and Gamma is accelerating.", $currentDelta);
+            $reasons[] = "Position is vulnerable to sharp rapid whipsaws against short strikes.";
+            $actionableSuggestion = "Square off naked ATM shorts or convert position to defined-risk Iron Fly by purchasing wings.";
         } elseif (!$isBelowVwap && $decayPoints < 0) {
-            $status = 'STRESS: PREMIUM EXPANSION';
-            $statusColor = 'rose';
-            $headline = sprintf("Combined Premium Trading Above VWAP (Bleeding %.1f pts)", abs($decayPoints));
-            $reasons[] = sprintf("Current premium (₹%.2f) has broken above VWAP (₹%.2f).", $currentPremium, $currentVwap);
-            $reasons[] = "Adverse volatility expansion or sharp intraday rally challenging short legs.";
-            $actionableSuggestion = "Review risk thresholds. If premium remains sustained above VWAP, consider partial de-risking.";
-        } elseif ($absDelta < 15.0 && $isBelowVwap && $decayVelocity > 0) {
+            if ($currentDelta >= 20.0) {
+                $matchedRegime = 'bullish_breakout';
+                $status = 'STRESS: BULLISH EXPANSION';
+                $statusColor = 'rose';
+                $verdict = 'Bullish Breakout (Call Momentum Expansion)';
+                $action = 'Exit Short Calls Immediately / Shift to Bull Spreads';
+                $actionType = 'EXIT_CE';
+                $actionColor = 'rose';
+                $headline = sprintf("Premium Trading Above VWAP with Long Delta Bias (&Delta; = %+.1f)", $currentDelta);
+                $reasons[] = sprintf("Current premium (₹%.2f) broke above VWAP (₹%.2f).", $currentPremium, $currentVwap);
+                $reasons[] = "Strong directional rally challenging short CE legs.";
+                $actionableSuggestion = "Exit or hedge untested CE legs. Do not hold naked short calls against momentum expansion.";
+            } elseif ($currentDelta <= -20.0) {
+                $matchedRegime = 'put_panic';
+                $status = 'STRESS: PUT UNWINDING';
+                $statusColor = 'rose';
+                $verdict = 'Put Short Covering Panic (Bearish Breakdown)';
+                $action = 'Exit Short Puts Immediately / Roll PE Down';
+                $actionType = 'EXIT_PE';
+                $actionColor = 'rose';
+                $headline = sprintf("Premium Trading Above VWAP with Short Delta Bias (&Delta; = %+.1f)", $currentDelta);
+                $reasons[] = sprintf("Current premium (₹%.2f) broke above VWAP (₹%.2f).", $currentPremium, $currentVwap);
+                $reasons[] = "Sharp selloff challenging short PE legs; put sellers are covering.";
+                $actionableSuggestion = "Exit short PE legs immediately or roll them aggressively lower to maintain delta safety.";
+            } else {
+                $matchedRegime = 'gamma_squeeze';
+                $status = 'STRESS: PREMIUM EXPANSION';
+                $statusColor = 'rose';
+                $verdict = 'Adverse Premium Expansion Above VWAP';
+                $action = 'Review Stop-Loss / De-risk Short Exposure';
+                $actionType = 'HEDGE';
+                $actionColor = 'rose';
+                $headline = sprintf("Combined Premium Trading Above VWAP (Bleeding %.1f pts)", abs($decayPoints));
+                $reasons[] = sprintf("Current premium (₹%.2f) has broken above VWAP (₹%.2f).", $currentPremium, $currentVwap);
+                $reasons[] = "Adverse volatility or sharp price whipsaw is hurting short legs.";
+                $actionableSuggestion = "Review risk limits. If premium sustains above VWAP, consider partial de-risking.";
+            }
+        } elseif ($ivDrift <= -2.5 && $isBelowVwap) {
+            $matchedRegime = 'vega_crush';
+            $status = 'HEALTHY: VEGA COLLAPSE';
+            $statusColor = 'cyan';
+            $verdict = 'Post-Event Volatility Crush (Vega Implosion)';
+            $action = 'Ride Rapid Vega Decay; Book at 60%+ Target';
+            $actionType = 'RIDE_DECAY';
+            $actionColor = 'cyan';
+            $headline = sprintf("IV Crushed by %.1f%% Providing Strong Volatility Tailwind", abs($ivDrift));
+            $reasons[] = sprintf("IV collapsed by %.1f%% from 09:15 baseline (%.1f%% -> %.1f%%).", abs($ivDrift), $baseIv, $currentIv);
+            $reasons[] = "Combined premium is accelerating downwards well beneath VWAP.";
+            $actionableSuggestion = "Favorable tailwind for option sellers. Let theta and vega work, with target at 60%+ decay.";
+        } elseif ($isBelowVwap && $absDelta < 15.0 && $decayVelocity > 0 && $adx <= 25.0) {
+            $matchedRegime = 'optimal_theta';
             $status = 'HEALTHY: OPTIMAL DECAY';
             $statusColor = 'emerald';
+            $verdict = 'Optimal Theta Decay (Range-Bound Absorption)';
+            $action = 'Hold Short Straddle / Iron Condor (Decay On Track)';
+            $actionType = 'HOLD';
+            $actionColor = 'emerald';
             $headline = sprintf("Optimal Theta Acceleration (+%.1f pts/hr)", $decayVelocity);
             $reasons[] = sprintf("Realized decay velocity (%.1f pts/hr) confirms solid theta capture.", $decayVelocity);
-            $reasons[] = sprintf("Net delta (%.1f) remains near delta-neutral balance.", $currentDelta);
+            $reasons[] = sprintf("Net delta (%+.1f) remains near delta-neutral balance.", $currentDelta);
             $reasons[] = sprintf("Combined price is comfortably below VWAP cushion by %.2f pts.", $currentVwap - $currentPremium);
-            $actionableSuggestion = "Favorable environment for short premium. Hold position without intervention.";
+            $actionableSuggestion = "Ideal environment for short premium. Hold existing position without manual intervention.";
+        } elseif ($currentDelta <= -5.0 && $currentDelta >= -25.0 && $isBelowVwap) {
+            $matchedRegime = 'call_wall';
+            $status = 'DIRECTIONAL: CALL WALL';
+            $statusColor = 'amber';
+            $verdict = 'Call Resistance Wall (Upper Ceiling Defended)';
+            $action = 'Deploy Bear Call Spreads / Roll CE Strikes Down';
+            $actionType = 'ROLL_CE';
+            $actionColor = 'amber';
+            $headline = sprintf("Call Resistance Active with Negative Delta Bias (&Delta; = %+.1f)", $currentDelta);
+            $reasons[] = "Underlying spot is encountering resistance at higher strikes.";
+            $reasons[] = "Net delta drift is slightly negative, indicating call writers are dominating.";
+            $actionableSuggestion = "Consider rolling CE strikes down or holding bear call spreads to capture additional premium.";
+        } elseif ($currentDelta >= 5.0 && $currentDelta <= 25.0 && $isBelowVwap) {
+            $matchedRegime = 'put_floor';
+            $status = 'DIRECTIONAL: PUT FLOOR';
+            $statusColor = 'emerald';
+            $verdict = 'Put Support Floor (Institutional Base Defended)';
+            $action = 'Deploy Bull Put Spreads / Roll PE Strikes Up';
+            $actionType = 'ROLL_PE';
+            $actionColor = 'emerald';
+            $headline = sprintf("Put Support Floor Active with Positive Delta Bias (&Delta; = %+.1f)", $currentDelta);
+            $reasons[] = "Underlying spot is finding solid institutional support at lower strikes.";
+            $reasons[] = "Net delta drift is mildly positive, indicating put writers are holding firm.";
+            $actionableSuggestion = "Consider rolling PE strikes higher or deploying bull put spreads to capture rising spot cushion.";
         } else {
+            $matchedRegime = 'consolidation';
             $status = 'NEUTRAL CONSOLIDATION';
             $statusColor = 'slate';
+            $verdict = 'Neutral Consolidation (Sideways Balance)';
+            $action = 'Maintain Balanced Position; Monitor VWAP Cushion';
+            $actionType = 'MONITOR';
+            $actionColor = 'slate';
             $headline = "Balanced Sideways Decay Dynamics";
             $reasons[] = sprintf("Net decay of %.1f pts observed over %.1f hours.", $decayPoints, $totalHours);
             $reasons[] = "Greeks and directional pressure remain within standard tolerances.";
             $actionableSuggestion = "Monitor underlying spot movement relative to ATM boundaries.";
         }
 
-        if ($ivDrift >= 2.0) {
+        if ($ivDrift >= 2.0 && $matchedRegime !== 'bullish_breakout' && $matchedRegime !== 'put_panic') {
             $reasons[] = sprintf("IV increased by +%.1f%% since 09:15, slowing down time decay.", $ivDrift);
-        } elseif ($ivDrift <= -2.0) {
+        } elseif ($ivDrift <= -2.0 && $matchedRegime !== 'vega_crush') {
             $reasons[] = sprintf("IV crushed by %.1f%%, providing an additional volatility tailwind.", abs($ivDrift));
         }
+
+        // Full Master Institutional Decision Matrix (8 Regimes)
+        $decisionMatrix = [
+            [
+                'id' => 'optimal_theta',
+                'name' => 'Optimal Theta Decay',
+                'category' => 'Range-Bound / Non-Directional',
+                'price_vwap' => 'Price ≤ VWAP (Cushion Intact)',
+                'net_oi' => 'OI Rising (+Writing)',
+                'delta_gamma' => '|Δ| < 15 · Low Γ',
+                'iv_theta' => 'IV Flat/Crush (ΔIV ≤ 0%) · High +Θ',
+                'momentum' => 'ADX < 20 · RVOL ≤ 1.2x',
+                'action' => 'Hold Short Straddle / Iron Condor',
+                'action_type' => 'HOLD',
+                'badge_color' => 'emerald',
+                'is_active' => ($matchedRegime === 'optimal_theta'),
+            ],
+            [
+                'id' => 'bullish_breakout',
+                'name' => 'Long Breakout Accumulation',
+                'category' => 'Bullish Momentum Expansion',
+                'price_vwap' => 'Price > VWAP (Upward Expansion)',
+                'net_oi' => 'CE OI Surging / PE Unwinding',
+                'delta_gamma' => 'Δ > +25 · High Γ Expansion',
+                'iv_theta' => 'IV Expanding (+1.5%+)',
+                'momentum' => 'ADX > 25 · RVOL > 1.5x · RSI > 60',
+                'action' => 'Exit Naked CE Shorts / Buy Call Spreads',
+                'action_type' => 'EXIT',
+                'badge_color' => 'rose',
+                'is_active' => ($matchedRegime === 'bullish_breakout'),
+            ],
+            [
+                'id' => 'put_panic',
+                'name' => 'Put Short Covering Panic',
+                'category' => 'Bearish Breakdown / Unwinding',
+                'price_vwap' => 'Put Prem > VWAP (Spot Plunging)',
+                'net_oi' => 'PE OI Plunging (Panic Cover)',
+                'delta_gamma' => 'Δ < -25 · High Γ Spike',
+                'iv_theta' => 'IV Spiking (+2.0%+)',
+                'momentum' => 'ADX > 25 · RVOL > 2.0x · RSI < 40',
+                'action' => 'Exit Short Puts Immediately / Roll Down',
+                'action_type' => 'EXIT',
+                'badge_color' => 'rose',
+                'is_active' => ($matchedRegime === 'put_panic'),
+            ],
+            [
+                'id' => 'call_wall',
+                'name' => 'Call Resistance Wall',
+                'category' => 'Bearish Supply Ceiling Defense',
+                'price_vwap' => 'Price ≤ VWAP (Rejected at Upper)',
+                'net_oi' => 'Heavy CE OI Writing at Strikes',
+                'delta_gamma' => '-25 ≤ Δ ≤ -5 · Low Γ',
+                'iv_theta' => 'IV Stable/Falling · High +Θ',
+                'momentum' => 'ADX 20-25 · RVOL 1.0-1.5x',
+                'action' => 'Sell Bear Call Spreads / Roll CE Down',
+                'action_type' => 'ROLL',
+                'badge_color' => 'amber',
+                'is_active' => ($matchedRegime === 'call_wall'),
+            ],
+            [
+                'id' => 'put_floor',
+                'name' => 'Put Support Floor',
+                'category' => 'Bullish Demand Base Defense',
+                'price_vwap' => 'Price ≤ VWAP (Holding Base)',
+                'net_oi' => 'Heavy PE OI Writing at Strikes',
+                'delta_gamma' => '+5 ≤ Δ ≤ +25 · Low Γ',
+                'iv_theta' => 'IV Stable/Falling · High +Θ',
+                'momentum' => 'ADX 20-25 · RVOL 1.0-1.5x',
+                'action' => 'Deploy Bull Put Spreads / Roll PE Up',
+                'action_type' => 'ROLL',
+                'badge_color' => 'emerald',
+                'is_active' => ($matchedRegime === 'put_floor'),
+            ],
+            [
+                'id' => 'vega_crush',
+                'name' => 'Post-Event Volatility Crush',
+                'category' => 'Vega Implosion Tailwind',
+                'price_vwap' => 'Price ≪ VWAP (Plunging Below)',
+                'net_oi' => 'OI Flat or Increasing',
+                'delta_gamma' => '|Δ| < 20 · Low Γ',
+                'iv_theta' => 'IV Crushing (ΔIV < -2.5%)',
+                'momentum' => 'ADX Dropping · RSI 40-60',
+                'action' => 'Ride Rapid Vega Decay; Book at 60%+ Target',
+                'action_type' => 'RIDE_DECAY',
+                'badge_color' => 'cyan',
+                'is_active' => ($matchedRegime === 'vega_crush'),
+            ],
+            [
+                'id' => 'gamma_squeeze',
+                'name' => 'Gamma Squeeze / Expiry Trap',
+                'category' => '0DTE Expiry Tail-Risk',
+                'price_vwap' => 'Erratic Whipsaw Crossing VWAP',
+                'net_oi' => 'Heavy Pinning / Strike Shifting',
+                'delta_gamma' => '|Δ| > 35 · Extreme Γ Spike',
+                'iv_theta' => 'IV Erratic · Extreme Spot Sensitivity',
+                'momentum' => 'ADX > 30 · RVOL > 2.5x',
+                'action' => 'Close Naked ATM Shorts / Buy Wing Hedges',
+                'action_type' => 'HEDGE',
+                'badge_color' => 'amber',
+                'is_active' => ($matchedRegime === 'gamma_squeeze'),
+            ],
+            [
+                'id' => 'consolidation',
+                'name' => 'Neutral Consolidation',
+                'category' => 'Balanced Chop / Non-Directional',
+                'price_vwap' => 'Price Hovering at VWAP (±5 pts)',
+                'net_oi' => 'Balanced CE/PE Additions',
+                'delta_gamma' => '|Δ| < 15 · Low/Moderate Γ',
+                'iv_theta' => 'IV Flat (±1%) · Steady Θ',
+                'momentum' => 'ADX < 20 · RVOL ~ 1.0x',
+                'action' => 'Hold Strategy; Monitor ATM Boundary',
+                'action_type' => 'MONITOR',
+                'badge_color' => 'slate',
+                'is_active' => ($matchedRegime === 'consolidation'),
+            ],
+        ];
 
         return [
             'status' => $status,
             'status_color' => $statusColor,
+            'verdict' => $verdict,
+            'action' => $action,
+            'action_type' => $actionType,
+            'action_color' => $actionColor,
+            'matched_regime' => $matchedRegime,
             'headline' => $headline,
             'reasons' => $reasons,
             'actionable_suggestion' => $actionableSuggestion,
+            'current_metrics' => [
+                'vwap_status' => $isBelowVwap ? 'BELOW' : 'ABOVE',
+                'vwap_diff' => round($vwapDiff, 2),
+                'net_oi_change' => round($netOiChange, 0),
+                'delta' => round($currentDelta, 2),
+                'gamma' => round($currentGamma, 5),
+                'theta' => round($currentTheta, 1),
+                'iv' => round($currentIv, 2),
+                'iv_drift' => round($ivDrift, 2),
+                'adx' => round($adx, 1),
+                'rsi' => round($rsi, 1),
+                'rvol' => round($rvol, 2),
+                'atr' => round($atr, 2),
+            ],
+            'decision_matrix' => $decisionMatrix,
         ];
     }
 
