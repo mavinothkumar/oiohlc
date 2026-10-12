@@ -372,6 +372,41 @@ class NiftyMatrixChartController extends Controller
             }
         }
 
+        // Resolve instrument keys for live stream subscription
+        $indexKey = 'NSE_INDEX|Nifty 50';
+        $allSubscribedKeys = [$indexKey];
+
+        $futExpiry = DB::table('nse_expiries')
+            ->where('trading_symbol', $symbol)
+            ->where('instrument_type', 'FUT')
+            ->where('is_current', 1)
+            ->value('expiry');
+
+        $futKey = 'NSE_FO|48704';
+        if ($futExpiry) {
+            $foundFut = DB::table('instruments')
+                ->where('name', $symbol)
+                ->where('instrument_type', 'FUT')
+                ->where('expiry', $futExpiry)
+                ->value('instrument_key');
+            if ($foundFut) $futKey = $foundFut;
+        }
+        $allSubscribedKeys[] = $futKey;
+
+        $expTs = DB::table('nse_expiries')->where('expiry_date', $expiryDate)->value('expiry');
+        $instKeysMap = [];
+        if ($expTs && !empty($optionStrikes)) {
+            $instRows = DB::table('instruments')
+                ->where('name', $symbol)
+                ->where('expiry', $expTs)
+                ->whereIn('strike_price', $optionStrikes)
+                ->get(['instrument_key', 'instrument_type', 'strike_price']);
+
+            foreach ($instRows as $ir) {
+                $instKeysMap[(string)(float)$ir->strike_price][$ir->instrument_type] = $ir->instrument_key;
+            }
+        }
+
         // 2. Process each tile in tilesReq
         $resultTiles = [];
         foreach ($tilesReq as $tile) {
@@ -393,12 +428,13 @@ class NiftyMatrixChartController extends Controller
                 ];
 
                 $resultTiles[$tileId] = [
-                    'id'          => $tileId,
-                    'type'        => 'INDEX',
-                    'strike'      => 0,
-                    'candles'     => $candles,
-                    'indicators'  => $enriched,
-                    'logic_lines' => $logicLines,
+                    'id'             => $tileId,
+                    'type'           => 'INDEX',
+                    'strike'         => 0,
+                    'instrument_key' => $indexKey,
+                    'candles'        => $candles,
+                    'indicators'     => $enriched,
+                    'logic_lines'    => $logicLines,
                 ];
             } elseif ($type === 'FUT') {
                 $candles = $this->fetchFuturesCandles($startDate, $bucketMinutes);
@@ -414,12 +450,13 @@ class NiftyMatrixChartController extends Controller
                 ];
 
                 $resultTiles[$tileId] = [
-                    'id'          => $tileId,
-                    'type'        => 'FUT',
-                    'strike'      => 0,
-                    'candles'     => $candles,
-                    'indicators'  => $enriched,
-                    'logic_lines' => $logicLines,
+                    'id'             => $tileId,
+                    'type'           => 'FUT',
+                    'strike'         => 0,
+                    'instrument_key' => $futKey,
+                    'candles'        => $candles,
+                    'indicators'     => $enriched,
+                    'logic_lines'    => $logicLines,
                 ];
             } else {
                 // Option Strike tile (Contains CE & PE of the same strike)
@@ -440,29 +477,116 @@ class NiftyMatrixChartController extends Controller
                     'nw_mid' => $nwMid, // Next week MidPoint (Red)
                 ];
 
+                // Option A: Strike Combined Average VWAP across CE & PE
+                $allOptionTs = array_unique(array_merge(array_keys($ceBuckets), array_keys($peBuckets)));
+                sort($allOptionTs);
+
+                $combinedVwap = [];
+                $currDate = null;
+                $cumPV = 0.0;
+                $cumVol = 0.0;
+
+                foreach ($allOptionTs as $ts) {
+                    $ce = $ceBuckets[$ts] ?? null;
+                    $pe = $peBuckets[$ts] ?? null;
+
+                    $date = $ce['date'] ?? $pe['date'] ?? null;
+                    if ($date && $date !== $currDate) {
+                        $currDate = $date;
+                        $cumPV = 0.0;
+                        $cumVol = 0.0;
+                    }
+
+                    $pvThisBucket = 0.0;
+                    $volThisBucket = 0.0;
+
+                    if ($ce) {
+                        $typCe = ($ce['high'] + $ce['low'] + $ce['close']) / 3.0;
+                        $volCe = max(1, (int)($ce['volume'] ?? 0));
+                        $pvThisBucket += ($typCe * $volCe);
+                        $volThisBucket += $volCe;
+                    }
+                    if ($pe) {
+                        $typPe = ($pe['high'] + $pe['low'] + $pe['close']) / 3.0;
+                        $volPe = max(1, (int)($pe['volume'] ?? 0));
+                        $pvThisBucket += ($typPe * $volPe);
+                        $volThisBucket += $volPe;
+                    }
+
+                    $cumPV += $pvThisBucket;
+                    $cumVol += $volThisBucket;
+
+                    $val = $cumVol > 0 ? round($cumPV / $cumVol, 2) : 0;
+                    if ($val > 0) {
+                        $combinedVwap[] = ['time' => $ts, 'value' => $val];
+                    }
+                }
+
+                $ceInstKey = $instKeysMap[(string)$strike]['CE'] ?? null;
+                $peInstKey = $instKeysMap[(string)$strike]['PE'] ?? null;
+                if ($ceInstKey) $allSubscribedKeys[] = $ceInstKey;
+                if ($peInstKey) $allSubscribedKeys[] = $peInstKey;
+
                 $resultTiles[$tileId] = [
-                    'id'          => $tileId,
-                    'type'        => $type, // BOTH, CE, or PE
-                    'strike'      => $strike,
-                    'ce_candles'  => $ceCandles,
-                    'pe_candles'  => $peCandles,
-                    'candles'     => $type === 'PE' ? $peCandles : $ceCandles,
-                    'indicators'  => null, // NO EMA/VWMA/VWAP for options!
-                    'logic_lines' => $optionLogicLines,
+                    'id'                => $tileId,
+                    'type'              => $type, // BOTH, CE, or PE
+                    'strike'            => $strike,
+                    'ce_instrument_key' => $ceInstKey,
+                    'pe_instrument_key' => $peInstKey,
+                    'ce_candles'        => $ceCandles,
+                    'pe_candles'        => $peCandles,
+                    'candles'           => $type === 'PE' ? $peCandles : $ceCandles,
+                    'indicators'        => [
+                        'vwap' => $combinedVwap,
+                    ],
+                    'logic_lines'       => $optionLogicLines,
                 ];
             }
         }
 
         return response()->json([
-            'success'     => true,
-            'timeframe'   => $timeframe,
-            'days_back'   => $daysBack,
-            'expiry_date' => $expiryDate,
-            'cw_mid'      => $cwMid,
-            'nw_mid'      => $nwMid,
-            'pdc'         => $pdc,
-            'tiles'       => $resultTiles,
+            'success'             => true,
+            'timeframe'           => $timeframe,
+            'days_back'           => $daysBack,
+            'expiry_date'         => $expiryDate,
+            'cw_mid'              => $cwMid,
+            'nw_mid'              => $nwMid,
+            'pdc'                 => $pdc,
+            'tiles'               => $resultTiles,
+            'all_instrument_keys' => array_values(array_unique(array_filter($allSubscribedKeys))),
         ]);
+    }
+
+    /**
+     * Authorize Upstox WebSocket Feed URL for live ticks.
+     */
+    public function getWsUrl(): JsonResponse
+    {
+        $token = config('services.upstox.analytics_token');
+        if (!$token) {
+            return response()->json(['error' => 'Upstox access token not configured in services.upstox.analytics_token'], 400);
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Accept'        => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+            ])->get('https://api.upstox.com/v3/feed/market-data-feed/authorize');
+
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+
+            return response()->json([
+                'error'   => 'Failed to fetch WS URL from Upstox',
+                'details' => $response->body()
+            ], $response->status());
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error'   => 'Exception fetching WS URL',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

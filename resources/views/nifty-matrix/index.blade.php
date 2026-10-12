@@ -3,8 +3,9 @@
 @section('title', 'NIFTY Multi-Chart Matrix (ATM Centered)')
 
 @push('styles')
-    <!-- TradingView Lightweight Charts -->
+    <!-- TradingView Lightweight Charts & Protobuf -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
     <style>
         body {
             background-color: #0b0e14 !important;
@@ -181,70 +182,95 @@
 @section('content')
 <div class="matrix-main-wrap w-full flex flex-col min-h-screen -mt-4 -mx-2">
     <!-- Top Toolbar -->
-    <div class="matrix-toolbar px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <!-- 1. Spot, ATM & Recenter -->
-        <div class="flex items-center flex-wrap gap-2">
-            <div class="flex items-center bg-gray-800/90 px-2.5 py-1 rounded border border-gray-700">
-                <span class="font-bold text-white tracking-wider mr-2 text-sm">NIFTY 50</span>
-                <span class="text-gray-400 mr-1 text-[11px]">Spot:</span>
-                <span id="spotDisplay" class="font-mono font-bold text-emerald-400 mr-2 text-sm">{{ number_format($spot, 2) }}</span>
-                <span class="text-gray-400 mr-1 text-[11px]">ATM:</span>
-                <span id="atmDisplay" class="font-mono font-bold text-blue-400 text-sm">{{ number_format($atm, 0) }}</span>
+    <!-- Top Toolbar (Unified Single-Line Compact Layout) -->
+    <div class="matrix-toolbar px-2.5 py-1.5 flex items-center justify-between gap-1.5 text-xs overflow-x-auto whitespace-nowrap">
+        <!-- 1. Spot, ATM, Recenter, Expiry & Levels -->
+        <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center bg-gray-800/90 px-2 py-0.5 rounded border border-gray-700 text-[11px]">
+                <span class="font-bold text-white tracking-wider mr-1.5 text-xs">NIFTY</span>
+                <span class="text-gray-400 mr-1 text-[10px]">Spot:</span>
+                <span id="spotDisplay" class="font-mono font-bold text-emerald-400 mr-1.5 text-xs">{{ number_format($spot, 2) }}</span>
+                <span class="text-gray-400 mr-1 text-[10px]">ATM:</span>
+                <span id="atmDisplay" class="font-mono font-bold text-blue-400 text-xs">{{ number_format($atm, 0) }}</span>
             </div>
 
-            <button id="recenterBtn" title="Recenter grid around current Spot ATM" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium flex items-center gap-1 transition shadow-sm">
-                <span>⚡ Recenter ATM</span>
+            <button id="recenterBtn" title="Recenter grid around current Spot ATM" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium text-[11px] flex items-center gap-1 transition shadow-sm">
+                <span>⚡ ATM</span>
             </button>
 
-            <!-- Expiry Selection -->
-            <div class="flex items-center bg-gray-800 rounded border border-gray-700 p-0.5">
-                <button type="button" data-expiry="{{ $currentExpiry }}" class="expiry-btn px-2 py-0.5 rounded text-[11px] font-semibold transition {{ $selectedExpiry === $currentExpiry ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white' }}">
-                    Current ({{ \Carbon\Carbon::parse($currentExpiry)->format('d M') }})
-                </button>
-                @if($nextExpiry && $nextExpiry !== $currentExpiry)
-                <button type="button" data-expiry="{{ $nextExpiry }}" class="expiry-btn px-2 py-0.5 rounded text-[11px] font-semibold transition {{ $selectedExpiry === $nextExpiry ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white' }}">
-                    Next ({{ \Carbon\Carbon::parse($nextExpiry)->format('d M') }})
-                </button>
-                @endif
-                <select id="allExpiriesSelect" class="bg-gray-900 text-gray-300 text-[11px] rounded px-1.5 py-0.5 border-0 focus:ring-1 focus:ring-blue-500 ml-1">
+            <!-- WebSocket Live Feed Status Badge -->
+            <div id="wsStatusBadge" class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-800 border border-gray-700 text-[11px] font-semibold text-gray-300" title="Upstox WebSocket Market Data Stream">
+                <span id="wsDot" class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="wsText">Connecting feed...</span>
+            </div>
+
+            <!-- Expiry Selection Dropdown -->
+            <div class="flex items-center bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
+                <label for="allExpiriesSelect" class="text-gray-400 font-semibold mr-1">Exp:</label>
+                <select id="allExpiriesSelect" class="bg-gray-900 text-gray-200 border-0 rounded px-1 py-0 text-[11px] font-semibold focus:ring-1 focus:ring-blue-500">
                     @foreach($expiries as $exp)
                         <option value="{{ $exp->expiry_date }}" {{ $selectedExpiry === $exp->expiry_date ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::parse($exp->expiry_date)->format('d M Y') }} {{ $exp->is_current ? '★' : '' }}
+                            {{ \Carbon\Carbon::parse($exp->expiry_date)->format('d M') }} {{ $exp->is_current ? '(CW)' : ($exp->is_next ? '(NW)' : '') }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
             <!-- MidPoints & Previous Day Close Info -->
-            <div class="flex items-center gap-1.5 bg-gray-800/80 px-2 py-1 rounded border border-gray-700 text-[11px]">
+            <div class="flex items-center gap-1 bg-gray-800/80 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
                 <span class="text-gray-400" title="Previous Day Close">PDC:</span>
-                <span class="font-mono font-bold text-white">{{ number_format($pdc, 2) }}</span>
-                <span class="text-gray-500">|</span>
-                <span class="text-emerald-400 font-semibold" title="Current Week MidPoint">CW Mid:</span>
-                <input type="number" step="0.01" id="cwMidInput" value="{{ $cwMid }}" class="w-14 bg-gray-900 text-emerald-300 font-mono font-bold text-center rounded px-1 py-0 border border-gray-700 text-[11px]">
-                <span class="text-red-400 font-semibold ml-1" title="Next Week MidPoint">NW Mid:</span>
-                <input type="number" step="0.01" id="nwMidInput" value="{{ $nwMid }}" class="w-14 bg-gray-900 text-red-300 font-mono font-bold text-center rounded px-1 py-0 border border-gray-700 text-[11px]">
+                <span class="font-mono font-bold text-white text-[11px]">{{ number_format($pdc, 2) }}</span>
+                <span class="text-gray-600">|</span>
+                <span class="text-emerald-400 font-semibold" title="Current Week MidPoint">CW:</span>
+                <input type="number" step="0.01" id="cwMidInput" value="{{ $cwMid }}" class="w-12 bg-gray-900 text-emerald-300 font-mono font-bold text-center rounded px-1 py-0 border border-gray-700 text-[11px]">
+                <span class="text-red-400 font-semibold ml-0.5" title="Next Week MidPoint">NW:</span>
+                <input type="number" step="0.01" id="nwMidInput" value="{{ $nwMid }}" class="w-12 bg-gray-900 text-red-300 font-mono font-bold text-center rounded px-1 py-0 border border-gray-700 text-[11px]">
             </div>
         </div>
 
-        <!-- 2. Grid Size, Chart Height & Timeframe -->
-        <div class="flex items-center flex-wrap gap-2">
-            <!-- Grid Layout Selector -->
-            <div class="flex items-center bg-gray-800 rounded border border-gray-700 p-0.5">
-                <span class="text-gray-400 px-1 text-[10px] uppercase font-bold">Grid:</span>
-                <button class="layout-btn btn-toggle {{ $layout === '1x1' ? 'active' : '' }}" data-layout="1x1">1×1</button>
-                <button class="layout-btn btn-toggle {{ $layout === '2x2' ? 'active' : '' }}" data-layout="2x2">2×2</button>
-                <button class="layout-btn btn-toggle {{ $layout === '3x2' ? 'active' : '' }}" data-layout="3x2">3×2</button>
-                <button class="layout-btn btn-toggle {{ $layout === '4x2' ? 'active' : '' }}" data-layout="4x2">4×2</button>
-                <button class="layout-btn btn-toggle {{ $layout === '3x3' ? 'active' : '' }}" data-layout="3x3">3×3</button>
-                <button class="layout-btn btn-toggle {{ $layout === '4x3' ? 'active' : '' }}" data-layout="4x3">4×3</button>
-                <button class="layout-btn btn-toggle {{ $layout === '3x4' ? 'active' : '' }}" data-layout="3x4">3×4</button>
+        <!-- 2. Controls in Dropdowns: Grid, TF, Days, Height, Indicators, Labels, Zen -->
+        <div class="flex items-center gap-1.5 shrink-0">
+            <!-- Grid Layout Dropdown -->
+            <div class="flex items-center bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
+                <label for="gridLayoutSelect" class="text-gray-400 font-semibold mr-1">⊞ Grid:</label>
+                <select id="gridLayoutSelect" class="bg-gray-900 text-gray-200 border-0 rounded px-1 py-0 text-[11px] font-semibold focus:ring-1 focus:ring-blue-500">
+                    <option value="1x1" {{ $layout === '1x1' ? 'selected' : '' }}>1×1 (Focus)</option>
+                    <option value="2x2" {{ $layout === '2x2' ? 'selected' : '' }}>2×2 (4 Tiles)</option>
+                    <option value="3x2" {{ $layout === '3x2' ? 'selected' : '' }}>3×2 (6 Tiles)</option>
+                    <option value="4x2" {{ $layout === '4x2' ? 'selected' : '' }}>4×2 (8 Tiles)</option>
+                    <option value="3x3" {{ $layout === '3x3' ? 'selected' : '' }}>3×3 (9 Tiles)</option>
+                    <option value="4x3" {{ $layout === '4x3' ? 'selected' : '' }}>4×3 (12 Tiles)</option>
+                    <option value="3x4" {{ $layout === '3x4' ? 'selected' : '' }}>3×4 (12 Tiles)</option>
+                </select>
+            </div>
+
+            <!-- Timeframe Dropdown -->
+            <div class="flex items-center bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
+                <label for="timeframeSelect" class="text-gray-400 font-semibold mr-1">⏱ TF:</label>
+                <select id="timeframeSelect" class="bg-gray-900 text-gray-200 border-0 rounded px-1 py-0 text-[11px] font-semibold focus:ring-1 focus:ring-blue-500">
+                    <option value="1m" {{ $timeframe === '1m' ? 'selected' : '' }}>1 min</option>
+                    <option value="3m" {{ $timeframe === '3m' ? 'selected' : '' }}>3 min</option>
+                    <option value="5m" {{ $timeframe === '5m' ? 'selected' : '' }}>5 min</option>
+                    <option value="15m" {{ $timeframe === '15m' ? 'selected' : '' }}>15 min</option>
+                </select>
+            </div>
+
+            <!-- Days Dropdown -->
+            <div class="flex items-center bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
+                <label for="daysBackSelect" class="text-gray-400 font-semibold mr-1">📅 Days:</label>
+                <select id="daysBackSelect" class="bg-gray-900 text-gray-200 border-0 rounded px-1 py-0 text-[11px] font-semibold focus:ring-1 focus:ring-blue-500">
+                    <option value="1" {{ $daysBack === '1' ? 'selected' : '' }}>1D (Today)</option>
+                    <option value="2" {{ $daysBack === '2' ? 'selected' : '' }}>2 Days</option>
+                    <option value="3" {{ $daysBack === '3' ? 'selected' : '' }}>3 Days</option>
+                    <option value="5" {{ $daysBack === '5' ? 'selected' : '' }}>5 Days</option>
+                    <option value="all" {{ $daysBack === 'all' ? 'selected' : '' }}>All Days</option>
+                </select>
             </div>
 
             <!-- Height Dropdown -->
-            <div class="flex items-center bg-gray-800 px-2 py-0.5 rounded border border-gray-700">
-                <label for="chartHeightSelect" class="text-gray-400 text-[11px] font-semibold mr-1.5">Height:</label>
-                <select id="chartHeightSelect" class="bg-gray-900 text-gray-200 border border-gray-700 rounded px-1.5 py-0.5 text-[11px] font-bold focus:ring-1 focus:ring-blue-500">
+            <div class="flex items-center bg-gray-800 px-1.5 py-0.5 rounded border border-gray-700 text-[11px]">
+                <label for="chartHeightSelect" class="text-gray-400 font-semibold mr-1">Height:</label>
+                <select id="chartHeightSelect" class="bg-gray-900 text-gray-200 border-0 rounded px-1.5 py-0.5 text-[11px] font-semibold focus:ring-1 focus:ring-blue-500">
                     <option value="200" {{ $chartHeight == '200' ? 'selected' : '' }}>200px</option>
                     <option value="300" {{ $chartHeight == '300' ? 'selected' : '' }}>300px</option>
                     <option value="400" {{ $chartHeight == '400' ? 'selected' : '' }}>400px</option>
@@ -252,73 +278,70 @@
                 </select>
             </div>
 
-            <!-- Timeframe -->
-            <div class="flex items-center bg-gray-800 rounded border border-gray-700 p-0.5">
-                <span class="text-gray-400 px-1 text-[10px] uppercase font-bold">TF:</span>
-                <button class="tf-btn btn-toggle {{ $timeframe === '1m' ? 'active' : '' }}" data-tf="1m">1m</button>
-                <button class="tf-btn btn-toggle {{ $timeframe === '3m' ? 'active' : '' }}" data-tf="3m">3m</button>
-                <button class="tf-btn btn-toggle {{ $timeframe === '5m' ? 'active' : '' }}" data-tf="5m">5m</button>
-                <button class="tf-btn btn-toggle {{ $timeframe === '15m' ? 'active' : '' }}" data-tf="15m">15m</button>
+            <!-- Indicators Dropdown Popover -->
+            <div class="relative inline-block text-left" id="indicatorDropdownWrap">
+                <button type="button" id="indicatorMenuBtn" class="px-2 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded font-semibold border border-gray-700 flex items-center gap-1 transition text-[11px]">
+                    <span>📈 Indicators</span>
+                    <span id="activeIndCount" class="bg-blue-600 text-white rounded-full px-1.5 py-0 text-[9px] font-bold">5</span>
+                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="indicatorMenu" class="hidden absolute right-0 mt-1 w-60 rounded-md shadow-2xl bg-[#1a1e29] border border-gray-700 p-2.5 z-50 text-[11px] space-y-1.5">
+                    <div class="text-[10px] uppercase font-bold text-gray-400 pb-1 border-b border-gray-700/60 flex justify-between items-center">
+                        <span>Index & Fut Indicators</span>
+                        <span class="text-[9px] text-gray-500">(Not for Options)</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 pt-0.5">
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #06b6d4;">
+                            <input type="checkbox" id="chkEma9" checked class="accent-cyan-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">EMA 9</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #c084fc;">
+                            <input type="checkbox" id="chkEma21" checked class="accent-purple-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">EMA 21</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #fb923c;">
+                            <input type="checkbox" id="chkSma20" checked class="accent-orange-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">SMA 20</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #60a5fa;">
+                            <input type="checkbox" id="chkVwma20" checked class="accent-blue-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">VWMA 20</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #facc15;">
+                            <input type="checkbox" id="chkVwap" checked class="accent-yellow-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">VWAP</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #f43f5e;">
+                            <input type="checkbox" id="chkEma246" class="accent-rose-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">EMA 246</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #d97706;">
+                            <input type="checkbox" id="chkSma246" class="accent-amber-500 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">SMA 246</span>
+                        </label>
+                        <label class="flex items-center gap-1.5 cursor-pointer px-1 py-0.5 rounded hover:bg-gray-800 transition" style="color: #84cc16;">
+                            <input type="checkbox" id="chkVwma246" class="accent-lime-400 rounded w-3.5 h-3.5">
+                            <span class="font-semibold">VWMA 246</span>
+                        </label>
+                    </div>
+                </div>
             </div>
-
-            <!-- Days Back -->
-            <div class="flex items-center bg-gray-800 rounded border border-gray-700 p-0.5">
-                <span class="text-gray-400 px-1 text-[10px] uppercase font-bold">Days:</span>
-                <button class="days-btn btn-toggle {{ $daysBack === '1' ? 'active' : '' }}" data-days="1">1D</button>
-                <button class="days-btn btn-toggle {{ $daysBack === '2' ? 'active' : '' }}" data-days="2">2D</button>
-                <button class="days-btn btn-toggle {{ $daysBack === '3' ? 'active' : '' }}" data-days="3">3D</button>
-                <button class="days-btn btn-toggle {{ $daysBack === '5' ? 'active' : '' }}" data-days="5">5D</button>
-                <button class="days-btn btn-toggle {{ $daysBack === 'all' ? 'active' : '' }}" data-days="all" title="Show maximum available days of contract">All</button>
-            </div>
-        </div>
-
-        <!-- 3. Indicators (Index & Fut), Labels Toggle & Zen Mode -->
-        <div class="flex items-center flex-wrap gap-1.5">
-            <span class="text-gray-400 text-[10px] uppercase font-bold mr-0.5">Ind:</span>
-            <!-- Core Moving Averages -->
-            <span class="indicator-badge active" data-ind="ema9" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4;" title="EMA 9 (Cyan)">
-                <input type="checkbox" id="chkEma9" checked class="accent-cyan-400 pointer-events-none w-3 h-3"> EMA 9
-            </span>
-            <span class="indicator-badge active" data-ind="ema21" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;" title="EMA 21 (Purple)">
-                <input type="checkbox" id="chkEma21" checked class="accent-purple-400 pointer-events-none w-3 h-3"> EMA 21
-            </span>
-            <span class="indicator-badge active" data-ind="sma20" style="background: rgba(249, 115, 22, 0.2); color: #fb923c;" title="SMA 20 (Orange)">
-                <input type="checkbox" id="chkSma20" checked class="accent-orange-400 pointer-events-none w-3 h-3"> SMA 20
-            </span>
-            <span class="indicator-badge active" data-ind="vwma20" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;" title="VWMA 20 (Blue)">
-                <input type="checkbox" id="chkVwma20" checked class="accent-blue-400 pointer-events-none w-3 h-3"> VWMA 20
-            </span>
-            <span class="indicator-badge active" data-ind="vwap" style="background: rgba(234, 179, 8, 0.2); color: #facc15;" title="Session VWAP (Yellow)">
-                <input type="checkbox" id="chkVwap" checked class="accent-yellow-400 pointer-events-none w-3 h-3"> VWAP
-            </span>
-
-            <!-- 246 Period Indicators (New Option) -->
-            <span class="indicator-badge" data-ind="ema246" style="background: rgba(244, 63, 94, 0.2); color: #f43f5e;" title="EMA 246 (Rose)">
-                <input type="checkbox" id="chkEma246" class="accent-rose-400 pointer-events-none w-3 h-3"> EMA 246
-            </span>
-            <span class="indicator-badge" data-ind="sma246" style="background: rgba(217, 119, 6, 0.2); color: #d97706;" title="SMA 246 (Amber)">
-                <input type="checkbox" id="chkSma246" class="accent-amber-500 pointer-events-none w-3 h-3"> SMA 246
-            </span>
-            <span class="indicator-badge" data-ind="vwma246" style="background: rgba(132, 204, 22, 0.2); color: #84cc16;" title="VWMA 246 (Lime)">
-                <input type="checkbox" id="chkVwma246" class="accent-lime-400 pointer-events-none w-3 h-3"> VWMA 246
-            </span>
 
             <!-- Show/Hide Indicator Price Labels Toggle -->
-            <button id="toggleLabelsBtn" class="px-2 py-0.5 rounded text-[11px] font-semibold border border-gray-700 bg-gray-800 text-gray-300 hover:text-white transition flex items-center gap-1" title="Show or hide price axis labels to prevent candle override">
+            <button id="toggleLabelsBtn" class="px-2 py-0.5 rounded text-[11px] font-semibold border border-gray-700 bg-gray-800 text-gray-300 hover:text-white transition flex items-center gap-1" title="Show or hide price axis labels">
                 <span>🏷️</span>
                 <span id="labelStatusText">Labels: OFF</span>
             </button>
 
             <!-- Distraction Free Mode Button -->
-            <button id="zenModeBtn" class="px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 text-white rounded font-bold flex items-center gap-1 transition shadow-sm" title="Toggle Distraction-Free View (Hide headers & maximize charts. Shortcut: Press 'D' or Escape)">
+            <button id="zenModeBtn" class="px-2 py-0.5 bg-indigo-700 hover:bg-indigo-600 text-white rounded font-bold text-[11px] flex items-center gap-1 transition shadow-sm" title="Toggle Distraction-Free View (D or Escape)">
                 <span id="zenIcon">🖥️</span>
-                <span id="zenText">Distraction Free</span>
+                <span id="zenText">Zen</span>
             </button>
 
             <!-- Refresh Button -->
-            <button id="refreshDataBtn" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded font-semibold border border-gray-600 flex items-center gap-1 transition">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                <span>Refresh</span>
+            <button id="refreshDataBtn" class="px-2 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded font-semibold border border-gray-600 flex items-center gap-1 transition text-[11px]" title="Refresh Data">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             </button>
         </div>
     </div>
@@ -400,12 +423,18 @@ document.addEventListener('DOMContentLoaded', function () {
             vwma20: true,
             vwma246: false,
             vwap: true,
-        }
+        },
+        allInstrumentKeys: [],
+        instrumentKeyMap: {}, // key -> array of { tileId, type, strike }
+        liveCandles: {}       // key -> { time, open, high, low, close }
     };
 
     var charts = {};       // tileId -> LightweightChart instance
     var seriesMap = {};    // tileId -> { ceSeries, peSeries, ema9, ema21, ema246, sma20, sma246, vwma20, vwma246, vwap, lines: [] }
     var rawDataMap = {};   // tileId -> raw data bundle from server
+    var ws = null;
+    var protobufRoot = null;
+    var isConnectingWs = false;
 
     // ── Indicator Colors ───────────────────────────────────────────────────
     var COLORS = {
@@ -470,8 +499,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 fontSize: 10,
             },
             grid: {
-                vertLines: { color: COLORS.grid },
-                horzLines: { color: COLORS.grid },
+                vertLines: { visible: false },
+                horzLines: { visible: false },
             },
             crosshair: {
                 mode: LightweightCharts.CrosshairMode.Normal,
@@ -556,10 +585,24 @@ document.addEventListener('DOMContentLoaded', function () {
         var vwma246Series= createLine(COLORS.vwma246, 'VWMA 246');
         var vwapSeries   = createLine(COLORS.vwap, 'VWAP');
 
+        // Vertical line series for Previous Day Session Close (light gray)
+        var vlineSeries = chart.addHistogramSeries({
+            color: 'rgba(156, 163, 175, 0.35)', // subtle light gray
+            priceScaleId: 'vlines',
+            priceLineVisible: false,
+            lastValueVisible: false,
+            base: 0,
+        });
+        chart.priceScale('vlines').applyOptions({
+            visible: false,
+            scaleMargins: { top: 0, bottom: 0 },
+        });
+
         charts[tile.id] = chart;
         seriesMap[tile.id] = {
             ceSeries: ceSeries,
             peSeries: peSeries,
+            vlineSeries: vlineSeries,
             ema9: ema9Series,
             ema21: ema21Series,
             ema246: ema246Series,
@@ -591,6 +634,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     var peColor = peData.close >= peData.open ? '#06b6d4' : '#f97316';
                     parts.push(`<span style="color:#06b6d4;font-weight:bold;">PE:</span> <span style="color:${peColor}">O:${peData.open.toFixed(2)} H:${peData.high.toFixed(2)} L:${peData.low.toFixed(2)} C:${peData.close.toFixed(2)}</span>`);
                 }
+
+                var vwapData = param.seriesData.get(vwapSeries);
+                if (vwapData && state.indicators.vwap) {
+                    var vwapLbl = (tile.type === 'INDEX' || tile.type === 'FUT') ? 'VWAP' : 'Comb VWAP';
+                    parts.push(`<span style="color:#facc15;font-weight:bold;">${vwapLbl}:</span> <span style="color:#facc15">${vwapData.value.toFixed(2)}</span>`);
+                }
+
                 legendElem.innerHTML = parts.join(' | ');
             }
         });
@@ -640,11 +690,43 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function (resp) {
             if (!resp.success || !resp.tiles) return;
 
+            // Reset instrument map
+            state.instrumentKeyMap = {};
+            var keysToSub = resp.all_instrument_keys || [];
+
             Object.keys(resp.tiles).forEach(function (tileId) {
                 var tileData = resp.tiles[tileId];
                 rawDataMap[tileId] = tileData;
                 applyTileData(tileId, tileData);
+
+                // Build lookup map for WebSocket updates
+                if (tileData.instrument_key) {
+                    if (!state.instrumentKeyMap[tileData.instrument_key]) state.instrumentKeyMap[tileData.instrument_key] = [];
+                    state.instrumentKeyMap[tileData.instrument_key].push({
+                        tileId: tileId,
+                        kind: tileData.type // 'INDEX' or 'FUT'
+                    });
+                }
+                if (tileData.ce_instrument_key) {
+                    if (!state.instrumentKeyMap[tileData.ce_instrument_key]) state.instrumentKeyMap[tileData.ce_instrument_key] = [];
+                    state.instrumentKeyMap[tileData.ce_instrument_key].push({
+                        tileId: tileId,
+                        kind: 'CE',
+                        strike: tileData.strike
+                    });
+                }
+                if (tileData.pe_instrument_key) {
+                    if (!state.instrumentKeyMap[tileData.pe_instrument_key]) state.instrumentKeyMap[tileData.pe_instrument_key] = [];
+                    state.instrumentKeyMap[tileData.pe_instrument_key].push({
+                        tileId: tileId,
+                        kind: 'PE',
+                        strike: tileData.strike
+                    });
+                }
             });
+
+            state.allInstrumentKeys = keysToSub;
+            subscribeKeys();
         })
         .catch(function (err) {
             console.error('Error fetching matrix data:', err);
@@ -738,7 +820,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } else {
             // OPTION STRIKE: Dual CE & PE on the same chart
-            // Hide all indicators on option charts
+            // Hide other indicators on option charts
             s.ema9.applyOptions({ visible: false, lastValueVisible: false });
             s.ema21.applyOptions({ visible: false, lastValueVisible: false });
             s.ema246.applyOptions({ visible: false, lastValueVisible: false });
@@ -746,7 +828,19 @@ document.addEventListener('DOMContentLoaded', function () {
             s.sma246.applyOptions({ visible: false, lastValueVisible: false });
             s.vwma20.applyOptions({ visible: false, lastValueVisible: false });
             s.vwma246.applyOptions({ visible: false, lastValueVisible: false });
-            s.vwap.applyOptions({ visible: false, lastValueVisible: false });
+
+            // Option A: Strike Combined (CE + PE) Average VWAP
+            var optVwapData = (data.indicators && data.indicators.vwap) ? data.indicators.vwap : [];
+            var showOptVwap = state.indicators.vwap && optVwapData.length > 0;
+            s.vwap.applyOptions({
+                visible: showOptVwap,
+                color: COLORS.vwap,
+                title: (state.showLabels && showOptVwap) ? 'Comb VWAP' : '',
+                lastValueVisible: (state.showLabels && showOptVwap),
+            });
+            if (showOptVwap) {
+                s.vwap.setData(optVwapData);
+            }
 
             var showCe = (tile.type === 'BOTH' || tile.type === 'CE');
             var showPe = (tile.type === 'BOTH' || tile.type === 'PE');
@@ -803,6 +897,41 @@ document.addEventListener('DOMContentLoaded', function () {
                     title: state.showLabels ? `NW Mid: ${optLines.nw_mid}` : '',
                 }));
             }
+        }
+
+        // ── Previous Day Session Close Vertical Line & Marker ──────────────
+        var allCandles = (tile.type === 'INDEX' || tile.type === 'FUT')
+            ? (data.candles || [])
+            : (data.ce_candles || data.pe_candles || data.candles || []);
+
+        var sessionCloseTimes = [];
+        if (Array.isArray(allCandles) && allCandles.length > 1) {
+            for (var ci = 0; ci < allCandles.length - 1; ci++) {
+                if (allCandles[ci].date && allCandles[ci + 1].date && allCandles[ci].date !== allCandles[ci + 1].date) {
+                    sessionCloseTimes.push(allCandles[ci].time);
+                }
+            }
+        }
+
+        if (s.vlineSeries) {
+            var vlineData = sessionCloseTimes.map(function (t) {
+                return { time: t, value: 100, color: 'rgba(156, 163, 175, 0.35)' };
+            });
+            s.vlineSeries.setData(vlineData);
+        }
+
+        if (s.ceSeries) {
+            var closeMarkers = sessionCloseTimes.map(function (t) {
+                return {
+                    time: t,
+                    position: 'aboveBar',
+                    color: '#9ca3af',
+                    shape: 'arrowDown',
+                    text: 'Prev Close',
+                    size: 0.8,
+                };
+            });
+            s.ceSeries.setMarkers(closeMarkers);
         }
 
         // Fit time-scale
@@ -995,30 +1124,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('recenterBtn').addEventListener('click', recenterAroundAtm);
     document.getElementById('refreshDataBtn').addEventListener('click', loadData);
 
-    // Days Back buttons
-    document.querySelectorAll('.days-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.days-btn').forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            state.daysBack = btn.getAttribute('data-days');
-            loadData();
-        });
-    });
-
-    // Timeframe buttons
-    document.querySelectorAll('.tf-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.tf-btn').forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            state.timeframe = btn.getAttribute('data-tf');
-            loadData();
-        });
-    });
-
-    // Layout buttons
-    document.querySelectorAll('.layout-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var targetLayout = btn.getAttribute('data-layout');
+    // Grid Layout dropdown
+    var gridLayoutSel = document.getElementById('gridLayoutSelect');
+    if (gridLayoutSel) {
+        gridLayoutSel.addEventListener('change', function (e) {
+            var targetLayout = e.target.value;
             var url = new URL(window.location.href);
             url.searchParams.set('layout', targetLayout);
             url.searchParams.set('expiry', state.selectedExpiry);
@@ -1027,46 +1137,74 @@ document.addEventListener('DOMContentLoaded', function () {
             url.searchParams.set('chart_height', state.chartHeight);
             window.location.href = url.toString();
         });
-    });
+    }
 
-    // Expiry Toggle buttons
-    document.querySelectorAll('.expiry-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            state.selectedExpiry = btn.getAttribute('data-expiry');
-            document.getElementById('allExpiriesSelect').value = state.selectedExpiry;
-            document.querySelectorAll('.expiry-btn').forEach(function (b) {
-                b.classList.remove('bg-blue-600', 'text-white');
-                b.classList.add('text-gray-400');
-            });
-            btn.classList.add('bg-blue-600', 'text-white');
-            btn.classList.remove('text-gray-400');
+    // Timeframe dropdown
+    var tfSel = document.getElementById('timeframeSelect');
+    if (tfSel) {
+        tfSel.addEventListener('change', function (e) {
+            state.timeframe = e.target.value;
             loadData();
         });
-    });
+    }
 
-    document.getElementById('allExpiriesSelect').addEventListener('change', function (e) {
-        state.selectedExpiry = e.target.value;
-        loadData();
-    });
-
-    // Indicator Badge Click Handlers (Index/Fut only)
-    document.querySelectorAll('.indicator-badge').forEach(function (badge) {
-        badge.addEventListener('click', function () {
-            var indKey = badge.getAttribute('data-ind');
-            var chk = badge.querySelector('input[type="checkbox"]');
-            var newVal = !chk.checked;
-            chk.checked = newVal;
-            state.indicators[indKey] = newVal;
-
-            if (newVal) badge.classList.add('active');
-            else badge.classList.remove('active');
-
-            // Reapply indicator visibility across Index & Fut panes
-            Object.keys(rawDataMap).forEach(function (tileId) {
-                applyTileData(tileId, rawDataMap[tileId]);
-            });
+    // Days Back dropdown
+    var daysSel = document.getElementById('daysBackSelect');
+    if (daysSel) {
+        daysSel.addEventListener('change', function (e) {
+            state.daysBack = e.target.value;
+            loadData();
         });
+    }
+
+    // Expiry dropdown
+    var expSel = document.getElementById('allExpiriesSelect');
+    if (expSel) {
+        expSel.addEventListener('change', function (e) {
+            state.selectedExpiry = e.target.value;
+            loadData();
+        });
+    }
+
+    // Indicator Popover Menu toggle & clicks
+    var indMenuBtn = document.getElementById('indicatorMenuBtn');
+    var indMenu = document.getElementById('indicatorMenu');
+    var indWrap = document.getElementById('indicatorDropdownWrap');
+
+    if (indMenuBtn && indMenu) {
+        indMenuBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            indMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function (e) {
+            if (indWrap && !indWrap.contains(e.target)) {
+                indMenu.classList.add('hidden');
+            }
+        });
+    }
+
+    function updateActiveIndCount() {
+        var count = Object.values(state.indicators).filter(Boolean).length;
+        var badge = document.getElementById('activeIndCount');
+        if (badge) badge.innerText = count;
+    }
+
+    ['ema9', 'ema21', 'ema246', 'sma20', 'sma246', 'vwma20', 'vwma246', 'vwap'].forEach(function (k) {
+        var cap = k.charAt(0).toUpperCase() + k.slice(1);
+        var chk = document.getElementById('chk' + cap);
+        if (chk) {
+            chk.checked = !!state.indicators[k];
+            chk.addEventListener('change', function () {
+                state.indicators[k] = chk.checked;
+                updateActiveIndCount();
+                Object.keys(rawDataMap).forEach(function (tileId) {
+                    applyTileData(tileId, rawDataMap[tileId]);
+                });
+            });
+        }
     });
+    updateActiveIndCount();
 
     // Per-tile Strike / Type changes
     document.querySelectorAll('.tile-type-select').forEach(function (sel) {
@@ -1095,9 +1233,248 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── WebSocket Engine (Upstox Live Stream Feed) ──────────────────────────
+    function getTimeframeSeconds(tf) {
+        if (tf === '1m') return 60;
+        if (tf === '3m') return 180;
+        if (tf === '5m') return 300;
+        if (tf === '15m') return 900;
+        return 300;
+    }
+
+    async function initProtobuf() {
+        try {
+            protobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
+            console.log('[Matrix] MarketDataFeed Protobuf schema loaded successfully.');
+        } catch (e) {
+            console.warn('[Matrix] Protobuf load error:', e);
+        }
+    }
+
+    async function connectWebsocket() {
+        if (isConnectingWs) return;
+        isConnectingWs = true;
+
+        var dot = document.getElementById('wsDot');
+        var text = document.getElementById('wsText');
+
+        if (dot && text) {
+            dot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+            text.textContent = 'Connecting feed...';
+        }
+
+        try {
+            var res = await fetch('{{ route('api.nifty.matrix.chart.ws-url') }}');
+            var data = await res.json();
+            if (!data || !data.data || !data.data.authorizedRedirectUri) {
+                throw new Error('Authorized WebSocket redirect URI missing');
+            }
+
+            var wsUrl = data.data.authorizedRedirectUri;
+            ws = new WebSocket(wsUrl);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = function () {
+                isConnectingWs = false;
+                if (dot && text) {
+                    dot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50';
+                    text.textContent = 'Live Feed Active';
+                }
+                console.log('[Matrix] WebSocket connected.');
+                subscribeKeys();
+            };
+
+            ws.onclose = function () {
+                isConnectingWs = false;
+                if (dot && text) {
+                    dot.className = 'inline-block w-2 h-2 rounded-full bg-red-500';
+                    text.textContent = 'Disconnected';
+                }
+                console.warn('[Matrix] WebSocket disconnected. Reconnecting in 5s...');
+                setTimeout(connectWebsocket, 5000);
+            };
+
+            ws.onerror = function (e) {
+                console.error('[Matrix] WebSocket Error:', e);
+            };
+
+            ws.onmessage = function (event) {
+                decodeProtobuf(event.data);
+            };
+
+        } catch (err) {
+            isConnectingWs = false;
+            if (dot && text) {
+                dot.className = 'inline-block w-2 h-2 rounded-full bg-red-500';
+                text.textContent = 'Offline';
+            }
+            console.warn('[Matrix] WebSocket connect failed:', err.message);
+        }
+    }
+
+    function subscribeKeys() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (!state.allInstrumentKeys || state.allInstrumentKeys.length === 0) return;
+
+        var subMessage = {
+            guid: 'nifty_matrix_' + Date.now(),
+            method: 'sub',
+            data: {
+                mode: 'full',
+                instrumentKeys: state.allInstrumentKeys
+            }
+        };
+
+        ws.send(new TextEncoder().encode(JSON.stringify(subMessage)));
+        console.log(`[Matrix] Subscribed to ${state.allInstrumentKeys.length} instruments on live stream.`);
+    }
+
+    function decodeProtobuf(buffer) {
+        if (!protobufRoot) return;
+
+        try {
+            var arr = new Uint8Array(buffer);
+            if (arr.length > 0 && arr[0] === 123) return; // JSON text message
+
+            var FeedResponse = protobufRoot.lookupType('com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse');
+            var message = FeedResponse.decode(arr);
+            var obj = FeedResponse.toObject(message, { enums: String, bytes: String });
+
+            if (obj && obj.feeds) {
+                for (var key in obj.feeds) {
+                    var feed = obj.feeds[key];
+                    var ltp = null;
+                    if (feed.fullFeed && feed.fullFeed.marketFF && feed.fullFeed.marketFF.ltpc) {
+                        ltp = feed.fullFeed.marketFF.ltpc.ltp;
+                    } else if (feed.fullFeed && feed.fullFeed.indexFF && feed.fullFeed.indexFF.ltpc) {
+                        ltp = feed.fullFeed.indexFF.ltpc.ltp;
+                    } else if (feed.ltpc) {
+                        ltp = feed.ltpc.ltp;
+                    }
+
+                    if (ltp !== null && ltp > 0) {
+                        handleLiveTick(key, ltp, feed);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[Matrix] Protobuf decode error:', e);
+        }
+    }
+
+    function handleLiveTick(instrumentKey, ltp, feed) {
+        // 1. Update Global Header Spot & ATM if Spot Index Key
+        if (instrumentKey === 'NSE_INDEX|Nifty 50') {
+            state.spot = ltp;
+            var spotEl = document.getElementById('spotDisplay');
+            if (spotEl) spotEl.textContent = ltp.toFixed(2);
+
+            var newAtm = Math.round(ltp / state.step) * state.step;
+            var atmEl = document.getElementById('atmDisplay');
+            if (atmEl) atmEl.textContent = newAtm.toString();
+        }
+
+        // 2. Identify associated tiles and series
+        var targets = state.instrumentKeyMap[instrumentKey];
+        if (!targets || targets.length === 0) return;
+
+        var intervalSec = getTimeframeSeconds(state.timeframe);
+        // Current time rounded to interval bucket (UTC unix epoch seconds)
+        var nowSec = Math.floor(Date.now() / 1000);
+        var bucketTs = Math.floor(nowSec / intervalSec) * intervalSec;
+
+        targets.forEach(function (t) {
+            var tileId = t.tileId;
+            var kind = t.kind; // 'INDEX', 'FUT', 'CE', or 'PE'
+            var s = seriesMap[tileId];
+            var tile = state.tiles.find(function (item) { return item.id === parseInt(tileId); });
+            if (!s || !tile) return;
+
+            var targetSeries = null;
+            if (kind === 'INDEX' || kind === 'FUT' || kind === 'CE') {
+                targetSeries = s.ceSeries;
+            } else if (kind === 'PE') {
+                targetSeries = s.peSeries;
+            }
+
+            if (!targetSeries) return;
+
+            // Form or update active candle for this series
+            var candleKey = tileId + '_' + kind;
+            var liveCandle = state.liveCandles[candleKey];
+
+            if (!liveCandle || liveCandle.time !== bucketTs) {
+                // Initialize new candle bucket with initial tick
+                liveCandle = {
+                    time: bucketTs,
+                    open: ltp,
+                    high: ltp,
+                    low: ltp,
+                    close: ltp
+                };
+            } else {
+                // Update running candle with new high, low, close
+                liveCandle.high = Math.max(liveCandle.high, ltp);
+                liveCandle.low = Math.min(liveCandle.low, ltp);
+                liveCandle.close = ltp;
+            }
+            state.liveCandles[candleKey] = liveCandle;
+
+            // Push tick to Lightweight Charts
+            try {
+                targetSeries.update({
+                    time: liveCandle.time,
+                    open: liveCandle.open,
+                    high: liveCandle.high,
+                    low: liveCandle.low,
+                    close: liveCandle.close
+                });
+            } catch (err) {
+                // Silently skip if chart scale is not ready
+            }
+
+            // Update Tile Header LTP Badge
+            updateTileLtpHeader(tileId, tile);
+        });
+    }
+
+    function updateTileLtpHeader(tileId, tile) {
+        var ltpEl = document.getElementById('ltp_' + tileId);
+        if (!ltpEl) return;
+
+        var isIndexOrFut = (tile.type === 'INDEX' || tile.type === 'FUT');
+        if (isIndexOrFut) {
+            var k = tileId + '_' + tile.type;
+            var c = state.liveCandles[k];
+            if (c) {
+                var color = c.close >= c.open ? '#34d399' : '#f87171';
+                ltpEl.innerHTML = `<span style="color:${color}">₹${c.close.toFixed(2)}</span>`;
+            }
+        } else {
+            var ceCandle = state.liveCandles[tileId + '_CE'];
+            var peCandle = state.liveCandles[tileId + '_PE'];
+            var badges = [];
+
+            if (tile.type === 'BOTH' || tile.type === 'CE') {
+                if (ceCandle) {
+                    badges.push(`<span style="color:#089981">CE: ₹${ceCandle.close.toFixed(2)}</span>`);
+                }
+            }
+            if (tile.type === 'BOTH' || tile.type === 'PE') {
+                if (peCandle) {
+                    badges.push(`<span style="color:#06b6d4">PE: ₹${peCandle.close.toFixed(2)}</span>`);
+                }
+            }
+            if (badges.length > 0) {
+                ltpEl.innerHTML = badges.join(' | ');
+            }
+        }
+    }
+
     // ── Boot ───────────────────────────────────────────────────────────────
     initAllCharts();
     loadData();
+    initProtobuf().then(connectWebsocket);
 });
 </script>
 @endsection
