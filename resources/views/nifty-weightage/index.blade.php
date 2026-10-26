@@ -156,6 +156,17 @@
                 <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">30s</span>
             </div>
 
+            <!-- Breadth Alarm Controls (Quick 1-Click Enable/Disable Toggle + Settings) -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded text-xs overflow-hidden">
+                <button id="btn-quick-toggle-alarm" title="Click to Quick Enable / Disable Alarm (For Testing)" class="flex items-center gap-1.5 px-2.5 py-1 text-amber-400 hover:bg-amber-950/50 font-semibold transition cursor-pointer">
+                    <span id="alarm-bell-icon">🔔</span>
+                    <span id="alarm-btn-label">Alarm ON (80%)</span>
+                </button>
+                <button id="btn-open-alarm" title="Configure Alarm Sounds & Threshold %" class="px-2 py-1 border-l border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition cursor-pointer">
+                    ⚙️
+                </button>
+            </div>
+
             <!-- Reload Button -->
             <button id="btn-reload" title="Refresh Data" class="p-1.5 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,11 +222,25 @@
                 </div>
             </div>
 
-            <!-- Candle Scrubber Slider -->
-            <div class="mt-2 pt-2 border-t border-gray-800/80 flex items-center gap-3 text-xs text-gray-400">
-                <span class="font-mono">09:15</span>
-                <input id="candle-slider" type="range" min="0" max="74" value="0" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                <span class="font-mono">15:25</span>
+            <!-- Candle Scrubber Slider with Dynamic Time Bubble Above Dot -->
+            <div class="mt-4 pt-3 border-t border-gray-800/80 flex items-center gap-3 text-xs text-gray-400">
+                <span class="font-mono text-[11px]" id="slider-start-label">09:15</span>
+                
+                <div class="relative flex-1 flex items-center py-2" id="slider-track-wrap">
+                    <!-- Floating Time Pill Directly Above the Slider Dot -->
+                    <div id="slider-time-bubble" class="absolute -top-6 transform -translate-x-1/2 pointer-events-none transition-all duration-75 ease-out z-20 flex flex-col items-center" style="left: 0%;">
+                        <div class="px-2 py-0.5 bg-sky-500 text-white font-mono font-black text-[11px] rounded shadow-lg border border-sky-300 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
+                            <span id="slider-bubble-time">09:15</span>
+                        </div>
+                        <!-- Little triangle caret pointing directly to the slider dot -->
+                        <div class="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-sky-500 -mt-[1px]"></div>
+                    </div>
+
+                    <input id="candle-slider" type="range" min="0" max="74" value="0" class="w-full h-2 bg-gray-700/80 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
+                </div>
+
+                <span class="font-mono text-[11px]" id="slider-end-label">15:25</span>
             </div>
         </div>
 
@@ -454,6 +479,206 @@
         <div>Contrib: <span id="pop-pts" class="font-bold"></span></div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- BREADTH EXTREME ALARM SETTINGS MODAL       -->
+<!-- ========================================== -->
+<div id="alarm-settings-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#131722] border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-5 space-y-4">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🔔</span>
+                <div>
+                    <h3 class="text-sm font-bold text-white">NIFTY 50 Breadth Extreme Alarm</h3>
+                    <p class="text-xs text-gray-400">Continuous audio alarm until manually stopped or ESC pressed</p>
+                </div>
+            </div>
+            <button id="btn-close-alarm-modal" class="p-1 text-gray-400 hover:text-white rounded hover:bg-gray-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Alarm Enable Toggle -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-[#1a1e29] border border-gray-800">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white block">Alarm Active Status</span>
+                    <span id="alarm-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-600/40">ENABLED</span>
+                </div>
+                <span class="text-[11px] text-gray-400 block mt-0.5">Toggle OFF to mute all sounds and popups during testing</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="alarm-enabled-toggle" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+        </div>
+
+        <!-- Threshold Adjustments (Up % and Down %) -->
+        <div class="space-y-3">
+            <!-- UP / Green Threshold -->
+            <div class="p-3 rounded-lg bg-[#1a1e29] border border-emerald-900/40 space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        UP (Green) Threshold
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="alarm-up-num" min="50" max="98" value="80" class="w-16 bg-[#131722] border border-emerald-700/60 rounded px-2 py-0.5 text-center font-mono font-bold text-emerald-400 text-xs focus:outline-none">
+                        <span class="text-emerald-400 font-bold">%</span>
+                    </div>
+                </div>
+                <input type="range" id="alarm-up-slider" min="50" max="98" value="80" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                    <span>50%</span>
+                    <span>80% (Default)</span>
+                    <span>95%</span>
+                </div>
+            </div>
+
+            <!-- DOWN / Red Threshold -->
+            <div class="p-3 rounded-lg bg-[#1a1e29] border border-rose-900/40 space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold text-rose-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                        DOWN (Red) Threshold
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="alarm-down-num" min="50" max="98" value="80" class="w-16 bg-[#131722] border border-rose-700/60 rounded px-2 py-0.5 text-center font-mono font-bold text-rose-400 text-xs focus:outline-none">
+                        <span class="text-rose-400 font-bold">%</span>
+                    </div>
+                </div>
+                <input type="range" id="alarm-down-slider" min="50" max="98" value="80" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                    <span>50%</span>
+                    <span>80% (Default)</span>
+                    <span>95%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trigger Calculation Metric -->
+        <div class="p-3 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1 text-xs">
+            <span class="font-bold text-gray-300 block mb-1">Trigger Metric Criteria:</span>
+            <div class="grid grid-cols-3 gap-2">
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
+                    <input type="radio" name="trigger-by" value="either" checked class="text-blue-500 accent-blue-500">
+                    <span>Either (Count or Wt)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
+                    <input type="radio" name="trigger-by" value="count" class="text-blue-500 accent-blue-500">
+                    <span>Stock Count %</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
+                    <input type="radio" name="trigger-by" value="weight" class="text-blue-500 accent-blue-500">
+                    <span>Weight % Only</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 10 Selectable Sounds & Live Test Preview -->
+        <div class="p-3 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-white flex items-center gap-1">
+                    <span>🎵 Alarm Sound:</span>
+                    <span class="text-[10px] font-normal text-gray-400">(10 Tones)</span>
+                </span>
+                <div class="flex items-center gap-1.5">
+                    <button id="btn-test-sound" title="Preview audio tone" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded flex items-center gap-1 text-[11px] transition shadow">
+                        <span>▶ Tone</span>
+                    </button>
+                    <button id="btn-test-bull-modal" title="Test Bull Alarm Modal" class="px-2 py-0.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 font-bold rounded flex items-center gap-1 text-[11px] transition shadow">
+                        <span>🐂 Bull</span>
+                    </button>
+                    <button id="btn-test-bear-modal" title="Test Bear Alarm Modal" class="px-2 py-0.5 bg-rose-950/80 hover:bg-rose-900 border border-rose-600/60 text-rose-300 font-bold rounded flex items-center gap-1 text-[11px] transition shadow">
+                        <span>🐻 Bear</span>
+                    </button>
+                </div>
+            </div>
+            
+            <select id="alarm-sound-select" class="w-full bg-[#131722] border border-gray-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer font-medium">
+                <option value="siren">1. 🚨 Siren Warning (Emergency Warble)</option>
+                <option value="chime">2. 🔔 Classic Bell Chime (Harmonic Twin Bells)</option>
+                <option value="pulse">3. ⚡ Digital Cyber Pulse (High-Tech Double Beep)</option>
+                <option value="gong">4. 💥 Deep Resonant Gong (Sub-Bass Strike)</option>
+                <option value="bull_horn">5. 🚀 Bull Horn Fanfare (Ascending Major Chord)</option>
+                <option value="bear_drop">6. ⚠️ Bear Drop Klaxon (Descending Warning)</option>
+                <option value="sonar">7. 🎵 Radar Sonar Ping (Submarine Echo)</option>
+                <option value="rapid_beeps">8. 🔥 Rapid Fire Trader Pips (Fast 4-Tone Alert)</option>
+                <option value="fanfare">9. 🎺 Trumpet Breakout (Bright Brass Fanfare)</option>
+                <option value="caution_klaxon">10. 🛑 Urgent Caution Buzzer (Industrial Sawtooth)</option>
+            </select>
+
+            <!-- Volume Slider -->
+            <div class="flex items-center justify-between pt-1 text-[11px] text-gray-400">
+                <span>Sound Volume:</span>
+                <div class="flex items-center gap-2 w-48">
+                    <input type="range" id="alarm-volume-slider" min="10" max="100" value="80" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    <span id="alarm-vol-label" class="font-mono text-white text-[10px] w-6 text-right">80%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="flex items-center justify-between pt-2 border-t border-gray-800 text-xs">
+            <span class="text-[11px] text-gray-400">Preferences saved locally in browser</span>
+            <div class="flex items-center gap-2">
+                <button id="btn-save-alarm-settings" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition">
+                    Save &amp; Apply
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- ACTIVE TRIGGERED ALARM POPUP (CONTINUOUS)  -->
+<!-- ========================================== -->
+<div id="active-alarm-overlay" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div id="active-alarm-card" class="rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300">
+        <!-- Top Pill Badge (Cleanly inside card, no overlap) -->
+        <div class="flex justify-center">
+            <div id="alarm-banner-badge" class="px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest text-white shadow-md bg-black/35 border border-white/20 flex items-center gap-2">
+                <span id="alarm-badge-left-icon">🐂</span>
+                <span id="alarm-badge-title">BULLISH BREADTH EXTREME</span>
+                <span id="alarm-badge-right-icon">🐂</span>
+            </div>
+        </div>
+
+        <!-- Distinct Sentiment Icon (Bull 🐂 or Bear 🐻) -->
+        <div class="flex justify-center">
+            <div id="alarm-sentiment-icon" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 select-none">
+                🐂
+            </div>
+        </div>
+
+        <!-- Metrics & Breadth Breakdown -->
+        <div class="space-y-1">
+            <div class="text-5xl sm:text-6xl font-black font-mono tracking-tight text-white drop-shadow-md" id="alarm-active-pct">
+                84%
+            </div>
+            <div class="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow-sm" id="alarm-active-direction">
+                BULLISH SURGE DETECTED
+            </div>
+            <p class="text-xs sm:text-sm text-white/90 font-medium max-w-sm mx-auto leading-relaxed pt-1" id="alarm-active-details">
+                At 09:55 - 42 stocks Green (87.2% weight) · Threshold 80% breached!
+            </p>
+        </div>
+
+        <!-- Clean Dark/Bordered Stop Alarm Button -->
+        <div class="pt-2 flex justify-center">
+            <button id="btn-stop-active-alarm" class="px-6 py-2.5 bg-gray-950/80 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 hover:border-white/60 shadow-xl transition inline-flex items-center gap-2 cursor-pointer">
+                <span class="text-base">🔕</span>
+                <span>Stop Alarm</span>
+                <span class="text-[10px] text-gray-300 font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/20">ESC</span>
+            </button>
+        </div>
+
+        <p class="text-[11px] text-white/75 font-medium">
+            Audio loops continuously until stopped or dismissed
+        </p>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -470,6 +695,31 @@
         let searchQuery = '';
         let sectorFilter = 'all';
         let sortMode = 'weight_desc';
+
+        // Breadth Extreme Alarm State
+        const defaultAlarmSettings = {
+            enabled: true,
+            upThreshold: 80,
+            downThreshold: 80,
+            triggerBy: 'either', // 'either', 'count', 'weight'
+            sound: 'siren',
+            volume: 0.8
+        };
+
+        let alarmSettings = { ...defaultAlarmSettings };
+        let alarmAudioLoopInterval = null;
+        let isAlarmRinging = false;
+        let lastAlertedCandleKey = null;
+
+        // Load saved alarm settings from localStorage
+        try {
+            const saved = localStorage.getItem('nifty_breadth_alarm_settings');
+            if (saved) {
+                alarmSettings = { ...alarmSettings, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.warn('Could not read alarm settings:', e);
+        }
 
         // Lightweight Charts instance
         let chart = null;
@@ -489,16 +739,172 @@
         const sortSelect = document.getElementById('sort-select');
         const btnZen = document.getElementById('btn-zen');
 
+        // Alarm UI Elements
+        const btnOpenAlarm = document.getElementById('btn-open-alarm');
+        const alarmBtnLabel = document.getElementById('alarm-btn-label');
+        const alarmSettingsModal = document.getElementById('alarm-settings-modal');
+        const btnCloseAlarmModal = document.getElementById('btn-close-alarm-modal');
+        const btnSaveAlarmSettings = document.getElementById('btn-save-alarm-settings');
+        const btnTestSound = document.getElementById('btn-test-sound');
+        const btnTestBullModal = document.getElementById('btn-test-bull-modal');
+        const btnTestBearModal = document.getElementById('btn-test-bear-modal');
+        const alarmEnabledToggle = document.getElementById('alarm-enabled-toggle');
+        const alarmUpNum = document.getElementById('alarm-up-num');
+        const alarmUpSlider = document.getElementById('alarm-up-slider');
+        const alarmDownNum = document.getElementById('alarm-down-num');
+        const alarmDownSlider = document.getElementById('alarm-down-slider');
+        const alarmSoundSelect = document.getElementById('alarm-sound-select');
+        const alarmVolumeSlider = document.getElementById('alarm-volume-slider');
+        const alarmVolLabel = document.getElementById('alarm-vol-label');
+        const activeAlarmOverlay = document.getElementById('active-alarm-overlay');
+        const btnStopActiveAlarm = document.getElementById('btn-stop-active-alarm');
+
+        // Sync Alarm UI with loaded settings
+        syncAlarmSettingsUI();
+
         // Init App
         initChart();
         loadData();
+
+        // Quick 1-Click Alarm Mute / Unmute in Top Toolbar (Convenient for Testing)
+        const btnQuickToggleAlarm = document.getElementById('btn-quick-toggle-alarm');
+        if (btnQuickToggleAlarm) {
+            btnQuickToggleAlarm.addEventListener('click', () => {
+                alarmSettings.enabled = !alarmSettings.enabled;
+                if (!alarmSettings.enabled) {
+                    stopAlarm();
+                }
+                alarmEnabledToggle.checked = alarmSettings.enabled;
+                syncAlarmStatusBadge();
+                updateAlarmToolbarButton();
+                try {
+                    localStorage.setItem('nifty_breadth_alarm_settings', JSON.stringify(alarmSettings));
+                } catch (e) {}
+            });
+        }
+
+        // Alarm Enable Toggle inside Settings Modal
+        alarmEnabledToggle.addEventListener('change', (e) => {
+            alarmSettings.enabled = e.target.checked;
+            if (!alarmSettings.enabled) {
+                stopAlarm();
+            }
+            syncAlarmStatusBadge();
+            updateAlarmToolbarButton();
+            try {
+                localStorage.setItem('nifty_breadth_alarm_settings', JSON.stringify(alarmSettings));
+            } catch (err) {}
+        });
+
+        // Alarm Settings Listeners
+        btnOpenAlarm.addEventListener('click', () => {
+            syncAlarmSettingsUI();
+            alarmSettingsModal.classList.remove('hidden');
+        });
+        btnCloseAlarmModal.addEventListener('click', () => {
+            alarmSettingsModal.classList.add('hidden');
+        });
+        alarmSettingsModal.addEventListener('click', (e) => {
+            if (e.target === alarmSettingsModal) alarmSettingsModal.classList.add('hidden');
+        });
+
+        // Sliders & Number inputs sync
+        alarmUpSlider.addEventListener('input', (e) => {
+            alarmUpNum.value = e.target.value;
+        });
+        alarmUpNum.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value) || 50;
+            val = Math.max(50, Math.min(98, val));
+            alarmUpSlider.value = val;
+        });
+
+        alarmDownSlider.addEventListener('input', (e) => {
+            alarmDownNum.value = e.target.value;
+        });
+        alarmDownNum.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value) || 50;
+            val = Math.max(50, Math.min(98, val));
+            alarmDownSlider.value = val;
+        });
+
+        alarmVolumeSlider.addEventListener('input', (e) => {
+            alarmVolLabel.textContent = `${e.target.value}%`;
+        });
+
+        // Test Sound Button
+        btnTestSound.addEventListener('click', () => {
+            const chosen = alarmSoundSelect.value;
+            const vol = parseInt(alarmVolumeSlider.value) / 100;
+            playSoundByName(chosen, vol);
+        });
+
+        // Test Bull / Bear Alarm Modal Previews
+        if (btnTestBullModal) {
+            btnTestBullModal.addEventListener('click', () => {
+                triggerAlarm({
+                    direction: 'UP',
+                    score: 86,
+                    threshold: alarmSettings.upThreshold,
+                    time: '11:45',
+                    count: 43,
+                    weight: 88.4,
+                    pts: 142.5,
+                    topStock: 'RELIANCE'
+                });
+            });
+        }
+        if (btnTestBearModal) {
+            btnTestBearModal.addEventListener('click', () => {
+                triggerAlarm({
+                    direction: 'DOWN',
+                    score: 84,
+                    threshold: alarmSettings.downThreshold,
+                    time: '14:20',
+                    count: 41,
+                    weight: 85.2,
+                    pts: -168.0,
+                    topStock: 'HDFCBANK'
+                });
+            });
+        }
+
+        // Save Alarm Settings
+        btnSaveAlarmSettings.addEventListener('click', () => {
+            alarmSettings.enabled = alarmEnabledToggle.checked;
+            alarmSettings.upThreshold = parseInt(alarmUpNum.value) || 80;
+            alarmSettings.downThreshold = parseInt(alarmDownNum.value) || 80;
+            alarmSettings.sound = alarmSoundSelect.value;
+            alarmSettings.volume = parseInt(alarmVolumeSlider.value) / 100;
+
+            const selectedTrigger = document.querySelector('input[name="trigger-by"]:checked');
+            if (selectedTrigger) {
+                alarmSettings.triggerBy = selectedTrigger.value;
+            }
+
+            try {
+                localStorage.setItem('nifty_breadth_alarm_settings', JSON.stringify(alarmSettings));
+            } catch (e) {}
+
+            updateAlarmToolbarButton();
+            alarmSettingsModal.classList.add('hidden');
+        });
+
+        // Stop Active Alarm Button & ESC key
+        btnStopActiveAlarm.addEventListener('click', stopAlarm);
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isAlarmRinging) {
+                stopAlarm();
+            }
+        });
 
         // Event Listeners
         dateSelect.addEventListener('change', () => loadData());
         btnReload.addEventListener('click', () => loadData());
         
         candleSlider.addEventListener('input', (e) => {
-            selectCandleByIndex(parseInt(e.target.value));
+            const idx = parseInt(e.target.value);
+            updateSliderBubble(idx);
+            selectCandleByIndex(idx);
         });
 
         btnStepPrev.addEventListener('click', () => stepCandle(-1));
@@ -728,8 +1134,14 @@
                     candleSeries.setData(data.lw_chart_candles);
                     chart.timeScale().fitContent();
 
-                    // Update slider range
+                    // Update slider range & boundary time labels
                     candleSlider.max = Math.max(0, data.timestamps.length - 1);
+                    if (data.timestamps.length > 0) {
+                        const startLbl = document.getElementById('slider-start-label');
+                        const endLbl = document.getElementById('slider-end-label');
+                        if (startLbl) startLbl.textContent = data.timestamps[0];
+                        if (endLbl) endLbl.textContent = data.timestamps[data.timestamps.length - 1];
+                    }
 
                     // If user was tracking the latest candle, advance with the live stream
                     if (wasAtLatest) {
@@ -750,6 +1162,24 @@
                 });
         }
 
+        // Update Floating Time Bubble Directly Above the Slider Dot
+        function updateSliderBubble(index) {
+            if (!currentData || !currentData.timestamps[index]) return;
+            const timeStr = currentData.timestamps[index];
+            const bubbleTime = document.getElementById('slider-bubble-time');
+            const bubble = document.getElementById('slider-time-bubble');
+            if (bubbleTime) bubbleTime.textContent = timeStr;
+
+            const min = parseInt(candleSlider.min) || 0;
+            const max = parseInt(candleSlider.max) || 1;
+            const pct = max > min ? ((index - min) / (max - min)) * 100 : 0;
+
+            if (bubble) {
+                // Compensates for browser range slider thumb width (~16px)
+                bubble.style.left = `calc(${pct}% + (${8 - pct * 0.16}px))`;
+            }
+        }
+
         // Select a candle by index (0 to 74)
         function selectCandleByIndex(index) {
             if (!currentData || !currentData.timestamps[index]) return;
@@ -757,9 +1187,26 @@
             selectedTime = currentData.timestamps[index];
             candleSlider.value = index;
 
+            // Move the floating time bubble directly above the slider dot!
+            updateSliderBubble(index);
+
             const nCandle = currentData.nifty_candles[index];
             if (nCandle) {
                 updateChartHeaderReadout(nCandle);
+
+                // Anchor a prominent arrow marker & label directly on this candle on the chart!
+                // Remains pinned to this exact candle even when zooming in/out or panning!
+                if (candleSeries) {
+                    candleSeries.setMarkers([
+                        {
+                            time: nCandle.timestamp,
+                            position: 'aboveBar',
+                            color: '#38bdf8',
+                            shape: 'arrowDown',
+                            text: `${nCandle.time_str} (${nCandle.move_pts >= 0 ? '+' : ''}${nCandle.move_pts})`,
+                        }
+                    ]);
+                }
             }
 
             // Toggle snap-to-live button if looking at earlier candles
@@ -897,22 +1344,86 @@
 
             // Update Sector Leadership list
             renderSectorSummary(b.sector_summary);
+
+            // Check if Breadth Alarm conditions are met!
+            checkAlarmConditions(b);
         }
 
-        // Render Heatmap Time Header (75 columns)
+        // Render Heatmap Time Header (Dual-Deck: Hour Groups + 5m Candle Notches)
         function renderHeatmapTimeHeader() {
             const container = document.getElementById('heatmap-time-header');
             container.innerHTML = '';
+            container.className = 'flex flex-col';
 
-            currentData.timestamps.forEach((t, idx) => {
-                const col = document.createElement('div');
-                col.className = 'time-header-cell px-1 py-1 text-[10px] text-gray-400 font-mono text-center cursor-pointer hover:bg-gray-700 transition flex-shrink-0';
-                col.style.width = '14px';
-                col.textContent = (idx % 6 === 0) ? t.substring(0, 2) : ''; // Display hour marks
-                col.title = `Jump to ${t}`;
-                col.addEventListener('click', () => selectCandleByIndex(idx));
-                container.appendChild(col);
+            const timestamps = currentData.timestamps;
+            if (!timestamps || timestamps.length === 0) return;
+
+            // 1. Top Deck: Hour Bands
+            const topRow = document.createElement('div');
+            topRow.className = 'flex items-center border-b border-gray-800 text-[10px] text-gray-400 font-mono';
+            
+            // Group timestamps by hour
+            let hourGroups = [];
+            let curHour = null;
+            let curCount = 0;
+            
+            timestamps.forEach((t) => {
+                const hour = t.substring(0, 2);
+                if (hour !== curHour) {
+                    if (curHour !== null) {
+                        hourGroups.push({ hour: curHour, count: curCount });
+                    }
+                    curHour = hour;
+                    curCount = 1;
+                } else {
+                    curCount++;
+                }
             });
+            if (curHour !== null) {
+                hourGroups.push({ hour: curHour, count: curCount });
+            }
+
+            hourGroups.forEach(grp => {
+                const hourDiv = document.createElement('div');
+                hourDiv.className = 'py-0.5 border-r border-gray-800/80 bg-[#161b26] text-center font-bold text-gray-300 truncate';
+                hourDiv.style.width = `${grp.count * 14}px`;
+                hourDiv.textContent = `${grp.hour}:00`;
+                hourDiv.title = `Hour ${grp.hour}:00 (${grp.count} five-min candles)`;
+                topRow.appendChild(hourDiv);
+            });
+
+            // 2. Bottom Deck: 5-Minute Candle markers (Every single column has a clear tick/marker)
+            const bottomRow = document.createElement('div');
+            bottomRow.className = 'flex items-center';
+
+            timestamps.forEach((t, idx) => {
+                const col = document.createElement('div');
+                col.className = 'time-header-cell text-[9px] text-gray-400 font-mono flex items-center justify-center cursor-pointer hover:bg-gray-700 transition flex-shrink-0';
+                col.style.width = '14px';
+                col.style.height = '20px';
+
+                const minute = t.substring(3, 5);
+                if (minute === '00') {
+                    col.textContent = '00';
+                    col.className += ' font-bold text-gray-200 bg-gray-800/40';
+                } else if (minute === '30') {
+                    col.textContent = '30';
+                    col.className += ' font-semibold text-gray-300 bg-gray-800/20';
+                } else if (minute === '15' || minute === '45') {
+                    col.textContent = '|';
+                    col.className += ' text-gray-400 font-bold';
+                } else {
+                    col.textContent = '·';
+                    col.className += ' text-gray-500 font-black';
+                }
+
+                col.title = `Time: ${t} (5m candle - Click to inspect)`;
+                col.addEventListener('click', () => selectCandleByIndex(idx));
+                bottomRow.appendChild(col);
+            });
+
+            container.appendChild(topRow);
+            container.appendChild(bottomRow);
         }
 
         // Render Matrix Table of All 50 Stocks with Heatmap Cells
@@ -1202,6 +1713,364 @@
             });
             renderMatrixTable();
         };
+
+        // ==========================================
+        // BREADTH EXTREME ALARM & AUDIO SYNTHESIS
+        // ==========================================
+
+        function syncAlarmSettingsUI() {
+            alarmEnabledToggle.checked = alarmSettings.enabled;
+            alarmUpNum.value = alarmSettings.upThreshold;
+            alarmUpSlider.value = alarmSettings.upThreshold;
+            alarmDownNum.value = alarmSettings.downThreshold;
+            alarmDownSlider.value = alarmSettings.downThreshold;
+            alarmSoundSelect.value = alarmSettings.sound;
+            alarmVolumeSlider.value = Math.round(alarmSettings.volume * 100);
+            alarmVolLabel.textContent = `${Math.round(alarmSettings.volume * 100)}%`;
+
+            const triggerRadio = document.querySelector(`input[name="trigger-by"][value="${alarmSettings.triggerBy}"]`);
+            if (triggerRadio) triggerRadio.checked = true;
+
+            syncAlarmStatusBadge();
+            updateAlarmToolbarButton();
+        }
+
+        function syncAlarmStatusBadge() {
+            const badge = document.getElementById('alarm-status-badge');
+            if (badge) {
+                if (alarmSettings.enabled) {
+                    badge.textContent = 'ENABLED';
+                    badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-600/40';
+                } else {
+                    badge.textContent = 'DISABLED (MUTED)';
+                    badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
+                }
+            }
+        }
+
+        function updateAlarmToolbarButton() {
+            const bellIcon = document.getElementById('alarm-bell-icon');
+            const quickBtn = document.getElementById('btn-quick-toggle-alarm');
+            if (alarmSettings.enabled) {
+                alarmBtnLabel.textContent = `Alarm ON (${alarmSettings.upThreshold}%)`;
+                if (bellIcon) bellIcon.textContent = '🔔';
+                if (quickBtn) {
+                    quickBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 text-amber-400 hover:bg-amber-950/50 font-semibold transition cursor-pointer';
+                }
+            } else {
+                alarmBtnLabel.textContent = 'Alarm OFF (Muted)';
+                if (bellIcon) bellIcon.textContent = '🔕';
+                if (quickBtn) {
+                    quickBtn.className = 'flex items-center gap-1.5 px-2.5 py-1 text-gray-400 hover:bg-gray-800 font-semibold transition cursor-pointer opacity-75';
+                }
+            }
+        }
+
+        // Web Audio API Sound Engine (10 Custom Synthesized Sounds)
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSoundByName(name, volume = 0.8) {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            
+            const masterGain = ctx.createGain();
+            masterGain.gain.setValueAtTime(volume, now);
+            masterGain.connect(ctx.destination);
+
+            switch(name) {
+                case 'siren': {
+                    // 1. Dual frequency rising/falling emergency warble siren
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.linearRampToValueAtTime(580, now + 0.35);
+                    osc.frequency.linearRampToValueAtTime(880, now + 0.7);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.75);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.75);
+                    break;
+                }
+                case 'chime': {
+                    // 2. Harmonic twin bells chime
+                    [1318.5, 1760.0].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.1));
+                        gain.gain.setValueAtTime(0.5, now + (i * 0.1));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.1) + 0.85);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.1));
+                        osc.stop(now + (i * 0.1) + 0.85);
+                    });
+                    break;
+                }
+                case 'pulse': {
+                    // 3. Digital cyber double beep
+                    [1500, 1900].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.12));
+                        gain.gain.setValueAtTime(0.45, now + (i * 0.12));
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + (i * 0.12) + 0.09);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.12));
+                        osc.stop(now + (i * 0.12) + 0.09);
+                    });
+                    break;
+                }
+                case 'gong': {
+                    // 4. Deep resonant strike gong
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(175, now);
+                    osc.frequency.exponentialRampToValueAtTime(75, now + 1.2);
+                    gain.gain.setValueAtTime(0.7, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 1.2);
+                    break;
+                }
+                case 'bull_horn': {
+                    // 5. Ascending major chord (C5, E5, G5, C6)
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.08));
+                        gain.gain.setValueAtTime(0.4, now + (i * 0.08));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.08) + 0.45);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.08));
+                        osc.stop(now + (i * 0.08) + 0.45);
+                    });
+                    break;
+                }
+                case 'bear_drop': {
+                    // 6. Descending warning buzzer (G4, Eb4, C4)
+                    [783.99, 622.25, 523.25].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.12));
+                        gain.gain.setValueAtTime(0.35, now + (i * 0.12));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.12) + 0.38);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.12));
+                        osc.stop(now + (i * 0.12) + 0.38);
+                    });
+                    break;
+                }
+                case 'sonar': {
+                    // 7. Submarine sonar ping
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1046.5, now);
+                    gain.gain.setValueAtTime(0.55, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 1.1);
+                    break;
+                }
+                case 'rapid_beeps': {
+                    // 8. Rapid fire 4-pip alert
+                    [1200, 1400, 1600, 1800].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.07));
+                        gain.gain.setValueAtTime(0.25, now + (i * 0.07));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.07) + 0.05);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.07));
+                        osc.stop(now + (i * 0.07) + 0.05);
+                    });
+                    break;
+                }
+                case 'fanfare': {
+                    // 9. Trumpet breakout fanfare
+                    [587.33, 739.99, 880.00, 1174.66].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.09));
+                        gain.gain.setValueAtTime(0.4, now + (i * 0.09));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.09) + 0.45);
+                        osc.connect(gain);
+                        gain.connect(masterGain);
+                        osc.start(now + (i * 0.09));
+                        osc.stop(now + (i * 0.09) + 0.45);
+                    });
+                    break;
+                }
+                case 'caution_klaxon': {
+                    // 10. Urgent sawtooth klaxon
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.linearRampToValueAtTime(880, now + 0.2);
+                    osc.frequency.linearRampToValueAtTime(440, now + 0.4);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                    break;
+                }
+            }
+        }
+
+        // Check Breadth Extreme Conditions & Trigger Alarm
+        function checkAlarmConditions(breadth) {
+            if (!alarmSettings.enabled || !breadth) return;
+
+            const candleKey = `${currentData.date}_${breadth.time}`;
+            if (lastAlertedCandleKey === candleKey) return; // Don't re-trigger on same candle while inspecting
+
+            let greenScore = breadth.green_count_pct;
+            let redScore   = breadth.red_count_pct;
+
+            if (alarmSettings.triggerBy === 'weight') {
+                greenScore = Math.round(breadth.green_weight);
+                redScore   = Math.round(breadth.red_weight);
+            } else if (alarmSettings.triggerBy === 'either') {
+                greenScore = Math.max(breadth.green_count_pct, Math.round(breadth.green_weight));
+                redScore   = Math.max(breadth.red_count_pct, Math.round(breadth.red_weight));
+            }
+
+            if (greenScore >= alarmSettings.upThreshold) {
+                lastAlertedCandleKey = candleKey;
+                triggerAlarm({
+                    direction: 'UP',
+                    score: greenScore,
+                    threshold: alarmSettings.upThreshold,
+                    time: breadth.time,
+                    count: breadth.green_count,
+                    weight: breadth.green_weight,
+                    pts: breadth.net_green_pts,
+                    topStock: breadth.top_contributors[0]?.symbol || 'NIFTY'
+                });
+            } else if (redScore >= alarmSettings.downThreshold) {
+                lastAlertedCandleKey = candleKey;
+                triggerAlarm({
+                    direction: 'DOWN',
+                    score: redScore,
+                    threshold: alarmSettings.downThreshold,
+                    time: breadth.time,
+                    count: breadth.red_count,
+                    weight: breadth.red_weight,
+                    pts: breadth.net_red_pts,
+                    topStock: breadth.top_draggers[0]?.symbol || 'NIFTY'
+                });
+            }
+        }
+
+        // Trigger Alarm (Continuous Looping Audio + Fullscreen Alert Modal)
+        function triggerAlarm(alertData) {
+            if (isAlarmRinging) return;
+            isAlarmRinging = true;
+
+            // 1. Play sound immediately
+            playSoundByName(alarmSettings.sound, alarmSettings.volume);
+
+            // 2. Loop continuously every 1.5 seconds until manually closed!
+            if (alarmAudioLoopInterval) clearInterval(alarmAudioLoopInterval);
+            alarmAudioLoopInterval = setInterval(() => {
+                playSoundByName(alarmSettings.sound, alarmSettings.volume);
+            }, 1500);
+
+            // 3. Show Active Alarm Modal
+            const activeCard = document.getElementById('active-alarm-card');
+            const pctEl = document.getElementById('alarm-active-pct');
+            const dirEl = document.getElementById('alarm-active-direction');
+            const detEl = document.getElementById('alarm-active-details');
+            const bannerBadge = document.getElementById('alarm-banner-badge');
+            const sentimentIcon = document.getElementById('alarm-sentiment-icon');
+
+            pctEl.textContent = `${alertData.score}%`;
+
+            if (alertData.direction === 'UP') {
+                activeCard.className = 'rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300 bg-gradient-to-b from-emerald-700 via-emerald-800 to-teal-950 border-2 border-emerald-400 text-white shadow-emerald-950/80 animate-bounce-subtle';
+                bannerBadge.className = 'px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest text-white shadow-md bg-black/35 border border-white/20 flex items-center gap-2';
+                const bTitle = document.getElementById('alarm-badge-title');
+                const bLeft = document.getElementById('alarm-badge-left-icon');
+                const bRight = document.getElementById('alarm-badge-right-icon');
+                if (bTitle) bTitle.textContent = 'BULLISH BREADTH EXTREME';
+                if (bLeft) bLeft.textContent = '🐂';
+                if (bRight) bRight.textContent = '🐂';
+                if (sentimentIcon) {
+                    sentimentIcon.textContent = '🐂';
+                    sentimentIcon.className = 'w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 border-emerald-300/60 bg-emerald-500/25 text-white select-none animate-pulse';
+                }
+                pctEl.className = 'text-5xl sm:text-6xl font-black font-mono tracking-tight text-white drop-shadow-md';
+                dirEl.textContent = `BULLISH SURGE DETECTED (≥ ${alertData.threshold}%)`;
+                dirEl.className = 'text-base sm:text-lg font-black uppercase tracking-wider text-emerald-100 drop-shadow-sm';
+                detEl.className = 'text-xs sm:text-sm text-white/90 font-medium max-w-sm mx-auto leading-relaxed pt-1';
+                detEl.textContent = `At ${alertData.time} · ${alertData.count} stocks Green (${alertData.weight.toFixed(1)}% Weight) · Net: +${alertData.pts.toFixed(1)} pts · Led by ${alertData.topStock}`;
+            } else {
+                activeCard.className = 'rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300 bg-gradient-to-b from-red-700 via-red-800 to-rose-950 border-2 border-red-400 text-white shadow-rose-950/80 animate-bounce-subtle';
+                bannerBadge.className = 'px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest text-white shadow-md bg-black/35 border border-white/20 flex items-center gap-2';
+                const bTitle = document.getElementById('alarm-badge-title');
+                const bLeft = document.getElementById('alarm-badge-left-icon');
+                const bRight = document.getElementById('alarm-badge-right-icon');
+                if (bTitle) bTitle.textContent = 'BEARISH BREADTH EXTREME';
+                if (bLeft) bLeft.textContent = '🐻';
+                if (bRight) bRight.textContent = '🐻';
+                if (sentimentIcon) {
+                    sentimentIcon.textContent = '🐻';
+                    sentimentIcon.className = 'w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 border-rose-300/60 bg-rose-500/25 text-white select-none animate-pulse';
+                }
+                pctEl.className = 'text-5xl sm:text-6xl font-black font-mono tracking-tight text-white drop-shadow-md';
+                dirEl.textContent = `BEARISH DUMP DETECTED (≥ ${alertData.threshold}%)`;
+                dirEl.className = 'text-base sm:text-lg font-black uppercase tracking-wider text-rose-100 drop-shadow-sm';
+                detEl.className = 'text-xs sm:text-sm text-white/90 font-medium max-w-sm mx-auto leading-relaxed pt-1';
+                detEl.textContent = `At ${alertData.time} · ${alertData.count} stocks Red (${alertData.weight.toFixed(1)}% Weight) · Net: ${alertData.pts.toFixed(1)} pts · Dragged by ${alertData.topStock}`;
+            }
+
+            activeAlarmOverlay.classList.remove('hidden');
+        }
+
+        // Stop Alarm Function (Stops audio loop and closes modal)
+        function stopAlarm() {
+            if (alarmAudioLoopInterval) {
+                clearInterval(alarmAudioLoopInterval);
+                alarmAudioLoopInterval = null;
+            }
+            isAlarmRinging = false;
+            activeAlarmOverlay.classList.add('hidden');
+        }
 
     })();
 </script>
