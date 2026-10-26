@@ -81,6 +81,12 @@
         </div>
 
         <div class="flex items-center gap-4 text-xs font-medium text-gray-700 pl-4 border-l border-gray-200">
+            {{-- Skip 09:15 Open Checkbox --}}
+            <label class="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-800 hover:text-red-700 transition-colors" title="Skip initial 09:15 market open candle to prevent baseline distortion in live market calculations">
+                <input type="checkbox" id="toi-skip-open" class="accent-red-600 rounded">
+                <span>Skip 09:15 Open</span>
+            </label>
+
             {{-- Show Graph View Checkbox --}}
             <label class="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-800">
                 <input type="checkbox" id="toi-toggle-graph" class="accent-red-600 rounded">
@@ -363,6 +369,9 @@
                     <span class="text-[11px] text-gray-500 font-sans hidden sm:inline">
                         (Top 5 Buildups per 5-min interval, Recent → Old)
                     </span>
+                    <span id="toi-matrix-skip-badge" class="hidden text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded shadow-2xs">
+                        ⚡ 09:15 Skipped
+                    </span>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
@@ -425,12 +434,15 @@
             </div>
 
             {{-- Table Container with Sticky Strike & Total OI columns --}}
-            <div class="overflow-x-auto w-full mt-3 rounded border border-gray-200" style="max-height: 520px; overflow-y: auto;">
+            <div class="overflow-x-auto w-full mt-3 rounded border border-gray-200" id="toi-matrix-wrap" style="max-height: 520px; overflow-y: auto;">
                 <table id="toi-matrix-table" class="w-full border-collapse text-[11px] font-mono whitespace-nowrap text-center">
                     <thead class="sticky top-0 z-20 bg-gray-100 text-gray-700 font-bold border-b border-gray-300 shadow-sm">
                         <tr id="toi-matrix-header-row" class="h-9">
-                            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
-                            <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+                            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-2 py-1.5 text-left font-bold text-slate-800 min-w-[85px] w-[85px] shadow-sm">Strike</th>
+                            <th class="sticky left-[85px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-2 py-1.5 text-right font-bold text-slate-800 min-w-[75px] w-[75px] shadow-sm cursor-help" title="Net Change in OI during this session, with total contract OI below.">
+                                <span>Net ΔOI</span>
+                                <span class="text-[8.5px] font-normal text-gray-500 block leading-none mt-0.5">Tot OI</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="toi-matrix-tbody" class="divide-y divide-gray-100 bg-white">
@@ -786,9 +798,10 @@
 .toi-td        { padding: 4px 8px; border-right: 1px solid #f1f5f9; white-space: nowrap; }
 
 /* ── Custom Scrollbar ────────────────────────────────────────────── */
-#toi-table-wrap { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-#toi-table-wrap::-webkit-scrollbar       { width: 6px; height: 6px; }
-#toi-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+#toi-table-wrap, #toi-matrix-wrap { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+#toi-table-wrap::-webkit-scrollbar, #toi-matrix-wrap::-webkit-scrollbar       { width: 8px; height: 8px; }
+#toi-table-wrap::-webkit-scrollbar-thumb, #toi-matrix-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+#toi-table-wrap::-webkit-scrollbar-thumb:hover, #toi-matrix-wrap::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ── Buildup Matrix Table CE / PE Distinction ───────────────────── */
 .toi-matrix-row-ce { background-color: #f7fdf9; }
@@ -847,6 +860,7 @@
     const goBtn              = document.getElementById('toi-go');
     const strikesBtn         = document.getElementById('toi-strikes-btn');
     const toggleGraph        = document.getElementById('toi-toggle-graph');
+    const skipOpenChk        = document.getElementById('toi-skip-open');
     const graphContainer     = document.getElementById('toi-graph-container');
     const graphHeightWrapper = document.getElementById('toi-graph-height-wrapper');
     const graphHeightSelect  = document.getElementById('toi-graph-height');
@@ -937,6 +951,7 @@
     const LS_MATRIX_THRESHOLD    = 'toi_matrix_threshold';
     const LS_MATRIX_CUSTOM_TH    = 'toi_matrix_custom_threshold';
     const LS_MATRIX_SEARCH       = 'toi_matrix_search';
+    const LS_SKIP_OPEN           = 'toi_skip_open';
 
     // 5-Minute Top OI Buildup Matrix DOM References
     const matrixCard             = document.getElementById('toi-buildup-matrix-card');
@@ -950,12 +965,24 @@
     const matrixHeaderRow        = document.getElementById('toi-matrix-header-row');
     const matrixTbody            = document.getElementById('toi-matrix-tbody');
 
-    // Restore stored states for Matrix
+    // Restore stored states for Matrix and Skip Open
     let currentMatrixData        = null;
     let currentMatrixFilter      = localStorage.getItem(LS_MATRIX_FILTER) || 'ALL';
     let currentMatrixSearch      = localStorage.getItem(LS_MATRIX_SEARCH) || '';
     let currentMatrixThreshold   = localStorage.getItem(LS_MATRIX_THRESHOLD) || 'auto';
     let currentMatrixCustomTh    = localStorage.getItem(LS_MATRIX_CUSTOM_TH) || '10';
+    let currentSkipOpen          = localStorage.getItem(LS_SKIP_OPEN) !== null
+        ? (localStorage.getItem(LS_SKIP_OPEN) === 'true')
+        : {{ ($skipOpen ?? false) ? 'true' : 'false' }};
+
+    if (skipOpenChk) {
+        skipOpenChk.checked = currentSkipOpen;
+        skipOpenChk.addEventListener('change', () => {
+            currentSkipOpen = skipOpenChk.checked;
+            localStorage.setItem(LS_SKIP_OPEN, currentSkipOpen ? 'true' : 'false');
+            fetchData();
+        });
+    }
 
     // Initialize UI controls to stored values
     if (matrixSearchInput && currentMatrixSearch) {
@@ -1186,6 +1213,7 @@
             underlying: underlyingSelect.value,
             interval: intervalSelect.value,
             lookback: lookbackSelect ? lookbackSelect.value : 'auto',
+            skip_open: (skipOpenChk && skipOpenChk.checked) ? '1' : '0',
         });
 
         if (currentSelectedStrikes && currentSelectedStrikes.length > 0) {
@@ -2224,8 +2252,11 @@
 
         if (!currentMatrixData || !currentMatrixData.rows || currentMatrixData.rows.length === 0) {
             matrixHeaderRow.innerHTML = `
-                <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
-                <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+                <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-2 py-1.5 text-left font-bold text-slate-800 min-w-[85px] w-[85px] shadow-sm">Strike</th>
+                <th class="sticky left-[85px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-2 py-1.5 text-right font-bold text-slate-800 min-w-[75px] w-[75px] shadow-sm cursor-help" title="Net Change in OI during this session, with total contract OI below.">
+                    <span>Net ΔOI</span>
+                    <span class="text-[8.5px] font-normal text-gray-500 block leading-none mt-0.5">Tot OI</span>
+                </th>
             `;
             matrixTbody.innerHTML = `
                 <tr>
@@ -2235,10 +2266,22 @@
                 </tr>
             `;
             if (matrixCountBadge) matrixCountBadge.textContent = '0 Strikes Active';
+            const matrixSkipBadge = document.getElementById('toi-matrix-skip-badge');
+            if (matrixSkipBadge) matrixSkipBadge.classList.add('hidden');
             return;
         }
 
         const { columns, rows, total_strikes } = currentMatrixData;
+
+        // Toggle 09:15 skip badge in matrix header
+        const matrixSkipBadge = document.getElementById('toi-matrix-skip-badge');
+        if (matrixSkipBadge) {
+            if (currentMatrixData && currentMatrixData.skip_open) {
+                matrixSkipBadge.classList.remove('hidden');
+            } else {
+                matrixSkipBadge.classList.add('hidden');
+            }
+        }
 
         // Resolve effective datewise threshold in Lakh contracts
         const effectiveTh = getEffectiveThreshold();
@@ -2267,10 +2310,13 @@
             });
         });
 
-        // 1. Render Header Row (Strike, Total OI, and time columns from recent to old with high-vol highlight)
+        // 1. Render Header Row (Strike, Net ΔOI, and time columns from recent to old with high-vol highlight)
         let headerHtml = `
-            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-3 py-2 text-left font-bold text-slate-800 min-w-[100px] w-[100px] shadow-sm">Strike</th>
-            <th class="sticky left-[100px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-3 py-2 text-right font-bold text-slate-800 min-w-[90px] w-[90px] shadow-sm">Total OI</th>
+            <th class="sticky left-0 top-0 z-30 bg-gray-100 border-r border-gray-300 px-2 py-1.5 text-left font-bold text-slate-800 min-w-[85px] w-[85px] shadow-sm">Strike</th>
+            <th class="sticky left-[85px] top-0 z-30 bg-gray-100 border-r-2 border-slate-300 px-2 py-1.5 text-right font-bold text-slate-800 min-w-[75px] w-[75px] shadow-sm cursor-help" title="Net Change in OI during this session (from market base to latest bar), with total contract OI below.">
+                <span>Net ΔOI</span>
+                <span class="text-[8.5px] font-normal text-gray-500 block leading-none mt-0.5">Tot OI</span>
+            </th>
         `;
         columns.forEach(time => {
             const highCount = highVolTimesMap[time] || 0;
@@ -2352,15 +2398,20 @@
 
             // Col 1: Strike (Sticky left-0)
             tbodyHtml += `
-                <td class="sticky left-0 z-10 ${stickyStrikeClass} border-r border-gray-200 px-3 py-1.5 text-left font-mono font-bold min-w-[100px] w-[100px] shadow-xs">
+                <td class="sticky left-0 z-10 ${stickyStrikeClass} border-r border-gray-200 px-2 py-1 text-left font-mono font-bold min-w-[85px] w-[85px] shadow-xs">
                     <span>${row.strike_price}</span>${typeBadge}
                 </td>
             `;
 
-            // Col 2: Total OI (Sticky left-[100px])
+            // Col 2: Net ΔOI (Sticky left-[85px]) with Total Contract OI below
+            const diffColor = row.day_diff_oi > 0 
+                ? (isCe ? 'text-emerald-700' : 'text-blue-700') 
+                : (row.day_diff_oi < 0 ? 'text-amber-700' : 'text-slate-600');
+
             tbodyHtml += `
-                <td class="sticky left-[100px] z-10 ${stickyOiClass} px-3 py-1.5 text-right font-mono font-bold min-w-[90px] w-[90px] shadow-xs">
-                    ${row.total_oi_lakh}
+                <td class="sticky left-[85px] z-10 ${stickyOiClass} px-2 py-1 text-right font-mono font-bold min-w-[75px] w-[75px] shadow-xs" title="Net Session Buildup (ΔOI): ${row.day_diff_oi_lakh}&#10;Total Outstanding Contract OI: ${row.total_oi_lakh}">
+                    <div class="text-[11.5px] font-black ${diffColor} leading-tight">${row.day_diff_oi_lakh}</div>
+                    <div class="text-[9px] text-gray-400 font-normal leading-none mt-0.5">Tot: ${row.total_oi_lakh}</div>
                 </td>
             `;
 
@@ -2370,22 +2421,62 @@
                 if (cell) {
                     const ltpPrefix = cell.diff_ltp > 0 ? '+' : '';
                     const isHighVol = Math.abs(cell.diff_oi) >= (effectiveTh * 100000);
+                    const isTop5 = cell.is_top5 !== false;
 
-                    const cellHighlightClass = isHighVol ? 'toi-matrix-cell-highlight' : '';
-                    const badgeHighlightClass = isHighVol ? 'toi-matrix-badge-highlight ring-2 ring-amber-400 ring-offset-1 ring-offset-white' : '';
-                    const highVolStar = isHighVol ? `<span class="ml-1 text-[9px] text-amber-200 font-extrabold" title="High OI Bar (≥ ${effectiveTh}L)">★</span>` : '';
-                    const highVolNotice = isHighVol ? `&#10;⚡ HIGH VOLUME BUILDUP: |ΔOI| ≥ ${effectiveTh}L` : '';
+                    if (isTop5) {
+                        const cellHighlightClass = isHighVol ? 'toi-matrix-cell-highlight' : '';
+                        const badgeHighlightClass = isHighVol ? 'toi-matrix-badge-highlight ring-2 ring-amber-400 ring-offset-1 ring-offset-white' : '';
+                        const highVolStar = isHighVol ? `<span class="ml-1 text-[9px] text-amber-200 font-extrabold" title="High OI Bar (≥ ${effectiveTh}L)">★</span>` : '';
+                        const highVolNotice = isHighVol ? `&#10;⚡ HIGH VOLUME BUILDUP: |ΔOI| ≥ ${effectiveTh}L` : '';
 
-                    const tooltip = `${cell.strike} | ${cell.name} (${cell.type})&#10;ΔOI: ${cell.diff_oi_lakh}${highVolNotice}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
+                        const tooltip = `${cell.strike} | ${cell.name} (${cell.type}) [Top 5 Mover]&#10;ΔOI: ${cell.diff_oi_lakh}${highVolNotice}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
 
-                    tbodyHtml += `
-                        <td class="border-r border-gray-100 p-1 text-center font-mono ${cellHighlightClass}" title="${tooltip}">
-                            <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-flex items-center ${badgeHighlightClass}" 
-                                 style="background-color: ${cell.color}; color: ${cell.text_color};">
-                                ${optTag}<span>${cell.diff_oi_lakh}</span>${highVolStar}
-                            </div>
-                        </td>
-                    `;
+                        tbodyHtml += `
+                            <td class="border-r border-gray-100 p-1 text-center font-mono ${cellHighlightClass}" title="${tooltip}">
+                                <div class="px-2 py-0.5 rounded text-[10.5px] font-bold shadow-xs whitespace-nowrap inline-flex items-center ${badgeHighlightClass}" 
+                                     style="background-color: ${cell.color}; color: ${cell.text_color};">
+                                    ${optTag}<span>${cell.diff_oi_lakh}</span>${highVolStar}
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        // Interval where strike had buildup/change, but was not in the Top 5 of that specific 5-min bar
+                        const tooltip = `${cell.strike} | ${cell.name} (${cell.type}) [Calculation Bar]&#10;ΔOI: ${cell.diff_oi_lakh}&#10;ΔLTP: ${ltpPrefix}${cell.diff_ltp}`;
+
+                        // Muted ghost classification styling to keep visual focus strictly on Top 5
+                        const ghostStyles = {
+                            'SB': {
+                                wrap: 'background-color: #fef2f2; border: 1px solid #fecaca; color: #991b1b;',
+                                typePill: '<span class="text-[7.5px] font-black px-1 py-0.2 rounded bg-red-100 text-red-700 mr-0.5 leading-none">SB</span>',
+                            },
+                            'LB': {
+                                wrap: 'background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;',
+                                typePill: '<span class="text-[7.5px] font-black px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 mr-0.5 leading-none">LB</span>',
+                            },
+                            'SC': {
+                                wrap: 'background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;',
+                                typePill: '<span class="text-[7.5px] font-black px-1 py-0.2 rounded bg-blue-100 text-blue-700 mr-0.5 leading-none">SC</span>',
+                            },
+                            'LU': {
+                                wrap: 'background-color: #fefce8; border: 1px solid #fef08a; color: #854d0e;',
+                                typePill: '<span class="text-[7.5px] font-black px-1 py-0.2 rounded bg-amber-100 text-amber-800 mr-0.5 leading-none">LU</span>',
+                            },
+                        };
+
+                        const g = ghostStyles[cell.type] || ghostStyles['SB'];
+                        const subtleOptTag = isCe
+                            ? `<span class="text-[7.5px] font-extrabold uppercase px-1 py-0.2 rounded bg-emerald-100/80 text-emerald-800 mr-0.5 leading-none">CE</span>`
+                            : `<span class="text-[7.5px] font-extrabold uppercase px-1 py-0.2 rounded bg-blue-100/80 text-blue-800 mr-0.5 leading-none">PE</span>`;
+
+                        tbodyHtml += `
+                            <td class="border-r border-gray-100 p-0.5 text-center font-mono opacity-70 hover:opacity-100 transition-opacity" title="${tooltip}">
+                                <div class="px-1.5 py-0.5 rounded text-[9.5px] font-semibold whitespace-nowrap inline-flex items-center shadow-2xs" 
+                                     style="${g.wrap}">
+                                    ${subtleOptTag}${g.typePill}<span>${cell.diff_oi_lakh}</span>
+                                </div>
+                            </td>
+                        `;
+                    }
                 } else {
                     tbodyHtml += `
                         <td class="border-r border-gray-100 px-2 py-1 text-center">

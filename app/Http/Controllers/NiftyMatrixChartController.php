@@ -75,8 +75,8 @@ class NiftyMatrixChartController extends Controller
         $spot = (float)($latestSpotRow->underlying_spot_price ?? 22350.0);
         $atm  = (float)(round($spot / $step) * $step);
 
-        // 5. Grid Layout (Supported: 1x1, 2x2, 3x2, 4x2, 3x3, 4x3, 3x4)
-        $allowedLayouts = ['1x1', '2x2', '3x2', '4x2', '3x3', '4x3', '3x4'];
+        // 5. Grid Layout (Supported: 1x1, 2x2, 3x2, 4x2, 3x3, 4x3, 3x4, 4x4, 4x5)
+        $allowedLayouts = ['1x1', '2x2', '3x2', '4x2', '3x3', '4x3', '3x4', '4x4', '4x5'];
         $layout = in_array($request->input('layout'), $allowedLayouts) ? $request->input('layout') : '4x2';
 
         // 6. Timeframe (default 5m) & Days Back (default 'all')
@@ -184,36 +184,68 @@ class NiftyMatrixChartController extends Controller
                     'label'     => number_format($strike, 0, '', '') . ' CE & PE',
                 ];
             }
-        } elseif ($layout === '4x3' || $layout === '3x4') {
-            // 12 tiles: Tile 0 = INDEX, Tile 1 = FUT, Tiles 2..11 = 10 strikes around ATM
+        } elseif ($layout === '4x3' || $layout === '3x4' || $layout === '4x4' || $layout === '4x5') {
+            // Layouts with first 4 dedicated tiles:
+            // 0: Nifty Index 5m
+            // 1: Nifty Index 15m
+            // 2: Nifty Future 5m
+            // 3: Nifty Fut 15m
+            // Remaining tiles: Nifty options (CE & PE) centered around ATM
             $tiles[] = [
                 'id'        => 0,
                 'type'      => 'INDEX',
                 'strike'    => 0,
                 'offset'    => 0,
+                'timeframe' => '5m',
                 'is_center' => false,
-                'label'     => 'NIFTY 50 INDEX',
+                'label'     => 'NIFTY INDEX (5m)',
             ];
             $tiles[] = [
                 'id'        => 1,
+                'type'      => 'INDEX',
+                'strike'    => 0,
+                'offset'    => 0,
+                'timeframe' => '15m',
+                'is_center' => false,
+                'label'     => 'NIFTY INDEX (15m)',
+            ];
+            $tiles[] = [
+                'id'        => 2,
                 'type'      => 'FUT',
                 'strike'    => 0,
                 'offset'    => 0,
+                'timeframe' => '5m',
                 'is_center' => false,
-                'label'     => 'NIFTY FUTURE',
+                'label'     => 'NIFTY FUT (5m)',
+            ];
+            $tiles[] = [
+                'id'        => 3,
+                'type'      => 'FUT',
+                'strike'    => 0,
+                'offset'    => 0,
+                'timeframe' => '15m',
+                'is_center' => false,
+                'label'     => 'NIFTY FUT (15m)',
             ];
 
-            $offsets = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
-            for ($i = 0; $i < 10; $i++) {
-                $offset = $offsets[$i];
+            // Determine number of option tiles based on grid
+            $optCount = match($layout) {
+                '4x4' => 12,  // 4 + 12 = 16 tiles (4x4)
+                '4x5' => 16,  // 4 + 16 = 20 tiles (4x5)
+                default => 8, // 4 + 8 = 12 tiles (4x3 / 3x4)
+            };
+
+            $half = (int)floor($optCount / 2);
+            for ($i = 0; $i < $optCount; $i++) {
+                $offset = $i - $half;
                 $strike = $atm + ($offset * $step);
                 $tiles[] = [
-                    'id'        => $i + 2,
+                    'id'        => $i + 4,
                     'type'      => 'BOTH',
                     'strike'    => $strike,
                     'offset'    => $offset,
                     'is_center' => ($offset === 0),
-                    'label'     => number_format($strike, 0, '', '') . ' CE & PE',
+                    'label'     => number_format($strike, 0, '', '') . ' CE & PE' . ($offset === 0 ? ' (ATM)' : ''),
                 ];
             }
         }
@@ -414,8 +446,19 @@ class NiftyMatrixChartController extends Controller
             $type   = strtoupper($tile['type'] ?? 'BOTH');
             $strike = (float)($tile['strike'] ?? 0);
 
+            // Check if this tile specifies an individual timeframe override
+            $tileTf = $tile['timeframe'] ?? $timeframe;
+            $tileBucketMinutes = match ($tileTf) {
+                '1m' => 1,
+                '3m' => 3,
+                '15m' => 15,
+                '30m' => 30,
+                '60m', '1h' => 60,
+                default => 5,
+            };
+
             if ($type === 'INDEX') {
-                $candles = $this->fetchIndexCandles($startDate, $bucketMinutes, $expiryDate);
+                $candles = $this->fetchIndexCandles($startDate, $tileBucketMinutes, $expiryDate);
                 $enriched = $this->enrichIndicators($candles);
 
                 // Index logic lines (2 Resistance + 2 Support)
@@ -431,13 +474,14 @@ class NiftyMatrixChartController extends Controller
                     'id'             => $tileId,
                     'type'           => 'INDEX',
                     'strike'         => 0,
+                    'timeframe'      => $tileTf,
                     'instrument_key' => $indexKey,
                     'candles'        => $candles,
                     'indicators'     => $enriched,
                     'logic_lines'    => $logicLines,
                 ];
             } elseif ($type === 'FUT') {
-                $candles = $this->fetchFuturesCandles($startDate, $bucketMinutes);
+                $candles = $this->fetchFuturesCandles($startDate, $tileBucketMinutes);
                 $enriched = $this->enrichIndicators($candles);
 
                 // Futures logic lines (2 Resistance + 2 Support)
@@ -453,6 +497,7 @@ class NiftyMatrixChartController extends Controller
                     'id'             => $tileId,
                     'type'           => 'FUT',
                     'strike'         => 0,
+                    'timeframe'      => $tileTf,
                     'instrument_key' => $futKey,
                     'candles'        => $candles,
                     'indicators'     => $enriched,
@@ -739,47 +784,66 @@ class NiftyMatrixChartController extends Controller
     }
 
     /**
-     * Resample Spot prices from option_chains into candles via indexed instrument key.
+     * Resample Spot prices from option_chains and option_chains_history into candles.
      */
     protected function fetchIndexCandles(?string $startDate, int $minutes, ?string $expiryDate = null): array
     {
-        $table = $this->resolveOptionChainsTable();
-
-        $instKey = 'NSE_FO|44600';
+        $instKey = null;
         if ($expiryDate) {
             $expTs = DB::table('nse_expiries')->where('expiry_date', $expiryDate)->value('expiry');
             if ($expTs) {
-                $foundKey = DB::table('instruments')
+                $instKey = DB::table('instruments')
                     ->where('name', 'NIFTY')
                     ->where('instrument_type', 'CE')
                     ->where('expiry', $expTs)
                     ->value('instrument_key');
-                if ($foundKey) {
-                    $instKey = $foundKey;
-                }
             }
         }
 
-        $query = DB::table($table)
-            ->where('instrument_key', $instKey)
-            ->select(['captured_at', 'underlying_spot_price'])
-            ->orderBy('captured_at');
-
-        if ($startDate) {
-            $query->where('captured_at', '>=', $startDate);
-        } else {
-            $query->where('captured_at', '>=', today()->subDays(5)->toDateTimeString());
+        if (!$instKey) {
+            // Fallback: pick any active NIFTY CE instrument present in option_chains
+            $instKey = DB::table('option_chains')->where('instrument_key', 'LIKE', 'NSE_FO|%')->value('instrument_key') ?? 'NSE_FO|44698';
         }
 
-        $rows = $query->get();
+        // 1. Query today's live option_chains
+        $todayQuery = DB::table('option_chains')
+            ->where('instrument_key', $instKey)
+            ->where('underlying_spot_price', '>', 0)
+            ->select(['captured_at', 'underlying_spot_price']);
+
+        if ($startDate) {
+            $todayQuery->where('captured_at', '>=', $startDate);
+        }
+
+        // 2. Query option_chains_history for previous sessions if needed
+        $needHistory = (!$startDate || $startDate < today()->toDateString());
+        $allRows = collect();
+
+        if ($needHistory && \Illuminate\Support\Facades\Schema::hasTable('option_chains_history')) {
+            $histQuery = DB::table('option_chains_history')
+                ->where('instrument_key', $instKey)
+                ->where('underlying_spot_price', '>', 0)
+                ->select(['captured_at', 'underlying_spot_price']);
+
+            if ($startDate) {
+                $histQuery->where('captured_at', '>=', $startDate);
+            } else {
+                $histQuery->where('captured_at', '>=', today()->subDays(5)->toDateTimeString());
+            }
+
+            $allRows = $histQuery->orderBy('captured_at')->get();
+        }
+
+        $todayRows = $todayQuery->orderBy('captured_at')->get();
+        $allRows = $allRows->concat($todayRows);
+
         $buckets = [];
         $prevClose = null;
 
-        foreach ($rows as $r) {
+        foreach ($allRows as $r) {
             $spot = (float)$r->underlying_spot_price;
             if ($spot <= 0) continue;
 
-            // DB captured_at is IST "YYYY-MM-DD HH:MM:SS". Parsing as UTC preserves exact IST clock numbers for Lightweight Charts.
             $dt = Carbon::parse($r->captured_at, 'UTC');
             $bucketTs = $this->alignToTimeframe($dt, $minutes)->timestamp;
 
@@ -805,7 +869,7 @@ class NiftyMatrixChartController extends Controller
             }
         }
 
-        // Ensure every candle has realistic body/wick definition for crisp display
+        // Ensure every candle has realistic body/wick definition
         foreach ($buckets as &$b) {
             if (abs($b['high'] - $b['low']) < 0.1) {
                 $b['high'] = round($b['high'] + 1.25, 2);
@@ -819,32 +883,59 @@ class NiftyMatrixChartController extends Controller
     }
 
     /**
-     * Resample NIFTY Futures from ohlc_quotes_history.
+     * Resample NIFTY Futures from ohlc_quotes and ohlc_quotes_history.
      */
     protected function fetchFuturesCandles(?string $startDate, int $minutes): array
     {
         $futKey = 'NSE_FO|48704';
-        $table = function_exists('getTableName') ? getTableName('ohlc_quotes') : 'ohlc_quotes_history';
-        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
-            $table = 'ohlc_quotes';
+        $futExpiry = DB::table('nse_expiries')
+            ->where('trading_symbol', 'NIFTY')
+            ->where('instrument_type', 'FUT')
+            ->where('is_current', 1)
+            ->value('expiry');
+
+        if ($futExpiry) {
+            $foundKey = DB::table('instruments')
+                ->where('name', 'NIFTY')
+                ->where('instrument_type', 'FUT')
+                ->where('expiry', $futExpiry)
+                ->value('instrument_key');
+            if ($foundKey) $futKey = $foundKey;
         }
 
-        $query = DB::table($table)
-            ->where('instrument_key', $futKey)
-            ->select(['ts_at', 'open', 'high', 'low', 'close', 'volume'])
-            ->orderBy('ts_at');
+        // 1. Query today's live quotes
+        $todayRows = collect();
+        if (\Illuminate\Support\Facades\Schema::hasTable('ohlc_quotes')) {
+            $todayQ = DB::table('ohlc_quotes')
+                ->where('instrument_key', $futKey)
+                ->select(['ts_at', 'open', 'high', 'low', 'close', 'volume']);
 
-        if ($startDate) {
-            $query->where('ts_at', '>=', $startDate);
-        } else {
-            $query->where('ts_at', '>=', today()->subDays(5)->toDateTimeString());
+            if ($startDate) {
+                $todayQ->where('ts_at', '>=', $startDate);
+            }
+            $todayRows = $todayQ->orderBy('ts_at')->get();
         }
 
-        $rows = $query->get();
+        // 2. Query historical quotes if requested
+        $histRows = collect();
+        $needHistory = (!$startDate || $startDate < today()->toDateString());
+        if ($needHistory && \Illuminate\Support\Facades\Schema::hasTable('ohlc_quotes_history')) {
+            $histQ = DB::table('ohlc_quotes_history')
+                ->where('instrument_key', $futKey)
+                ->select(['ts_at', 'open', 'high', 'low', 'close', 'volume']);
+
+            if ($startDate) {
+                $histQ->where('ts_at', '>=', $startDate);
+            } else {
+                $histQ->where('ts_at', '>=', today()->subDays(5)->toDateTimeString());
+            }
+            $histRows = $histQ->orderBy('ts_at')->get();
+        }
+
+        $allRows = $histRows->concat($todayRows);
         $buckets = [];
 
-        foreach ($rows as $r) {
-            // DB ts_at is IST "YYYY-MM-DD HH:MM:SS". Parsing as UTC preserves exact IST clock numbers for Lightweight Charts.
+        foreach ($allRows as $r) {
             $dt = Carbon::parse($r->ts_at, 'UTC');
             $bucketTs = $this->alignToTimeframe($dt, $minutes)->timestamp;
 

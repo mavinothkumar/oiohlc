@@ -55,6 +55,7 @@ class TrendingOiController extends Controller
         $selectedExpiry = $request->input('expiry', $defaultExpiry);
         $mode           = $request->input('mode', 'live');
         $interval       = $request->input('interval', '5');
+        $skipOpen       = filter_var($request->input('skip_open', false), FILTER_VALIDATE_BOOLEAN);
 
         return view('trending-oi', compact(
             'today',
@@ -62,7 +63,8 @@ class TrendingOiController extends Controller
             'selectedExpiry',
             'expiries',
             'mode',
-            'interval'
+            'interval',
+            'skipOpen'
         ));
     }
 
@@ -84,12 +86,17 @@ class TrendingOiController extends Controller
 
         $table = $this->resolveTable($mode);
         $endTime = $request->input('end_time');
+        $skipOpen = filter_var($request->input('skip_open', false), FILTER_VALIDATE_BOOLEAN);
 
         // Fetch distinct timestamps available for this date & expiry
         $tsQuery = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
             ->whereDate('captured_at', $date);
+
+        if ($skipOpen) {
+            $tsQuery->whereTime('captured_at', '>', '09:15:59');
+        }
 
         if (!empty($endTime)) {
             $tsQuery->whereTime('captured_at', '<=', $endTime . ':59');
@@ -410,7 +417,8 @@ class TrendingOiController extends Controller
             $table,
             $underlying,
             $expiry,
-            $timestamps
+            $timestamps,
+            $skipOpen
         );
 
         $tradeDate = Carbon::parse($latestTimestamp)->toDateString();
@@ -438,6 +446,7 @@ class TrendingOiController extends Controller
             'strike_buildup'         => $strikeBuildup,
             'strike_buildup_5m'      => $strikeBuildup['5m'] ?? null,
             'buildup_matrix'         => $buildupMatrix,
+            'skip_open'              => $skipOpen,
         ]);
     }
 
@@ -1368,10 +1377,11 @@ class TrendingOiController extends Controller
         string $table,
         string $underlying,
         string $expiry,
-        array $timestamps
+        array $timestamps,
+        bool $skipOpen = false
     ): array {
         if (empty($timestamps)) {
-            return ['columns' => [], 'rows' => [], 'total_strikes' => 0];
+            return ['columns' => [], 'rows' => [], 'total_strikes' => 0, 'skip_open' => $skipOpen];
         }
 
         // 1. Sample 5-minute timestamps
@@ -1390,7 +1400,7 @@ class TrendingOiController extends Controller
         }
 
         if (count($ts5mList) < 2) {
-            return ['columns' => [], 'rows' => [], 'total_strikes' => 0];
+            return ['columns' => [], 'rows' => [], 'total_strikes' => 0, 'skip_open' => $skipOpen];
         }
 
         // 2. Fetch all strike data for the 5-minute timestamps
@@ -1500,14 +1510,20 @@ class TrendingOiController extends Controller
 
             $top5Map = [];
             foreach ($top5 as $item) {
-                $top5Map[$item['strike']] = $item;
+                $top5Map[$item['strike']] = true;
                 $uniqueStrikes[$item['strike']] = true;
             }
 
+            $allDiffsMap = [];
+            foreach ($diffs as $item) {
+                $item['is_top5'] = isset($top5Map[$item['strike']]);
+                $allDiffsMap[$item['strike']] = $item;
+            }
+
             $intervals[] = [
-                'time'     => $timeLabel,
-                'ts'       => $tCurr,
-                'top5_map' => $top5Map,
+                'time'          => $timeLabel,
+                'ts'            => $tCurr,
+                'all_diffs_map' => $allDiffsMap,
             ];
         }
 
@@ -1517,30 +1533,48 @@ class TrendingOiController extends Controller
 
         // Build strike rows
         $strikeRows = [];
+        $firstTs = reset($ts5mList);
+        $firstMap = $dataByTs[$firstTs] ?? [];
+
         foreach (array_keys($uniqueStrikes) as $strikeKey) {
             $latestItem = $latestMap[$strikeKey] ?? null;
             $totalOi = $latestItem ? (int) $latestItem->oi : 0;
+
+            $firstItem = $firstMap[$strikeKey] ?? null;
+            $baseOi = $firstItem ? (int) $firstItem->oi : 0;
+            $dayDiffOi = $totalOi - $baseOi;
+            $dayDiffOiLakh = ($dayDiffOi >= 0 ? '+' : '') . round($dayDiffOi / 100000, 1) . ' L';
+
             [$sPrice, $oType] = explode(' ', $strikeKey);
 
             $cells = [];
             foreach ($intervalsRev as $interval) {
                 $time = $interval['time'];
-                $cellData = $interval['top5_map'][$strikeKey] ?? null;
+                $cellData = $interval['all_diffs_map'][$strikeKey] ?? null;
                 $cells[$time] = $cellData;
             }
 
             $strikeRows[] = [
-                'strike'        => $strikeKey,
-                'strike_price'  => (int) $sPrice,
-                'option_type'   => $oType,
-                'total_oi'      => $totalOi,
-                'total_oi_lakh' => round($totalOi / 100000, 1) . ' L',
-                'cells'         => $cells,
+                'strike'           => $strikeKey,
+                'strike_price'     => (int) $sPrice,
+                'option_type'      => $oType,
+                'total_oi'         => $totalOi,
+                'total_oi_lakh'    => round($totalOi / 100000, 1) . ' L',
+                'day_diff_oi'      => $dayDiffOi,
+                'day_diff_oi_lakh' => $dayDiffOiLakh,
+                'cells'            => $cells,
             ];
         }
 
-        // Sort strikes by Total OI descending
-        usort($strikeRows, fn($a, $b) => $b['total_oi'] <=> $a['total_oi']);
+        // Sort strikes by Net Day Diff descending
+        usort($strikeRows, function($a, $b) {
+            $diffA = abs($a['day_diff_oi']);
+            $diffB = abs($b['day_diff_oi']);
+            if ($diffB !== $diffA) {
+                return $diffB <=> $diffA;
+            }
+            return $b['total_oi'] <=> $a['total_oi'];
+        });
 
         return [
             'columns'           => $columns,
@@ -1552,6 +1586,7 @@ class TrendingOiController extends Controller
             'day_desc'          => $dayDescription,
             'default_threshold' => $defaultThresholdLakh,
             'threshold_rules'   => $dayThresholds,
+            'skip_open'         => $skipOpen,
         ];
     }
 

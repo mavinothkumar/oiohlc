@@ -322,5 +322,9 @@ Route::get('/nifty-matrix-chart', [\App\Http\Controllers\NiftyMatrixChartControl
 Route::match(['GET', 'POST'], '/api/nifty-matrix-chart/data', [\App\Http\Controllers\NiftyMatrixChartController::class, 'getData'])->name('api.nifty.matrix.chart.data');
 Route::get('/api/nifty-matrix-chart/ws-url', [\App\Http\Controllers\NiftyMatrixChartController::class, 'getWsUrl'])->name('api.nifty.matrix.chart.ws-url');
 
+// NIFTY 50 Weightage & Candle Breadth Monitor (5-min Candle Matrix & Breadth Ratio)
+Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
+Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
+
 
 

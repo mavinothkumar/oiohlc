@@ -37,6 +37,10 @@
                    class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-blue-600 hover:bg-blue-700 transition text-sm shadow-sm {{ request()->routeIs('nifty.matrix.chart') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }}">
                     ⊞ NIFTY Matrix
                 </a>
+                <a href="{{ route('nifty.weightage.monitor') }}"
+                   class="inline-flex items-center gap-1 px-3 py-2 rounded font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition text-sm shadow-sm {{ request()->routeIs('nifty.weightage.monitor') ? 'ring-2 ring-emerald-300 ring-offset-1' : '' }}">
+                    📊 Weightage Monitor
+                </a>
                 <!-- Dropdown -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-blue-50 focus:outline-none text-gray-700">
@@ -46,6 +50,7 @@
                         </svg>
                     </button>
                     <div class="absolute z-20 left-0 mt-1 w-60 bg-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none group-hover:pointer-events-auto group-focus:pointer-events-auto">
+                        <a href="{{ route('nifty.weightage.monitor') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-bold border-b border-emerald-100">📊 Weightage Monitor</a>
                         <a href="{{ route('matching.strike.analysis') }}" class="block px-4 py-2 text-amber-700 hover:bg-amber-50 font-bold border-b border-amber-100">⚖️ Strike Matcher</a>
                         <a href="{{ route('delta.neutral') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-bold border-b border-emerald-100">⚖️ Delta Neutral</a>
                         <a href="{{ route('straddle.chart') }}" class="block px-4 py-2 text-indigo-700 hover:bg-indigo-50 font-bold border-b border-indigo-100">📊 Straddle Chart</a>

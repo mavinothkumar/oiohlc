@@ -34,6 +34,8 @@
         .matrix-toolbar {
             background: #131722;
             border-bottom: 1px solid #2a2e39;
+            position: relative;
+            z-index: 1000;
         }
         .matrix-card {
             background: #131722;
@@ -99,13 +101,23 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 6px;
         }
+        .grid-layout-4x4 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .grid-layout-4x5 {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 6px;
+        }
         @media (max-width: 1024px) {
-            .grid-layout-3x2, .grid-layout-4x2, .grid-layout-3x3, .grid-layout-4x3, .grid-layout-3x4 {
+            .grid-layout-3x2, .grid-layout-4x2, .grid-layout-3x3, .grid-layout-4x3, .grid-layout-3x4, .grid-layout-4x4, .grid-layout-4x5 {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
         @media (max-width: 640px) {
-            .grid-layout-2x2, .grid-layout-3x2, .grid-layout-4x2, .grid-layout-3x3, .grid-layout-4x3, .grid-layout-3x4 {
+            .grid-layout-2x2, .grid-layout-3x2, .grid-layout-4x2, .grid-layout-3x3, .grid-layout-4x3, .grid-layout-3x4, .grid-layout-4x4, .grid-layout-4x5 {
                 grid-template-columns: 1fr;
             }
         }
@@ -183,7 +195,7 @@
 <div class="matrix-main-wrap w-full flex flex-col min-h-screen -mt-4 -mx-2">
     <!-- Top Toolbar -->
     <!-- Top Toolbar (Unified Single-Line Compact Layout) -->
-    <div class="matrix-toolbar px-2.5 py-1.5 flex items-center justify-between gap-1.5 text-xs overflow-x-auto whitespace-nowrap">
+    <div class="matrix-toolbar px-2.5 py-1.5 flex items-center justify-between gap-1.5 text-xs whitespace-nowrap relative z-50">
         <!-- 1. Spot, ATM, Recenter, Expiry & Levels -->
         <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center bg-gray-800/90 px-2 py-0.5 rounded border border-gray-700 text-[11px]">
@@ -239,7 +251,9 @@
                     <option value="3x2" {{ $layout === '3x2' ? 'selected' : '' }}>3×2 (6 Tiles)</option>
                     <option value="4x2" {{ $layout === '4x2' ? 'selected' : '' }}>4×2 (8 Tiles)</option>
                     <option value="3x3" {{ $layout === '3x3' ? 'selected' : '' }}>3×3 (9 Tiles)</option>
-                    <option value="4x3" {{ $layout === '4x3' ? 'selected' : '' }}>4×3 (12 Tiles)</option>
+                    <option value="4x3" {{ $layout === '4x3' ? 'selected' : '' }}>4×3 (12 Tiles: Ind/Fut + Opt)</option>
+                    <option value="4x4" {{ $layout === '4x4' ? 'selected' : '' }}>4×4 (16 Tiles: Ind/Fut + Opt)</option>
+                    <option value="4x5" {{ $layout === '4x5' ? 'selected' : '' }}>4×5 (20 Tiles: Ind/Fut + Opt)</option>
                     <option value="3x4" {{ $layout === '3x4' ? 'selected' : '' }}>3×4 (12 Tiles)</option>
                 </select>
             </div>
@@ -285,7 +299,7 @@
                     <span id="activeIndCount" class="bg-blue-600 text-white rounded-full px-1.5 py-0 text-[9px] font-bold">5</span>
                     <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
-                <div id="indicatorMenu" class="hidden absolute right-0 mt-1 w-60 rounded-md shadow-2xl bg-[#1a1e29] border border-gray-700 p-2.5 z-50 text-[11px] space-y-1.5">
+                <div id="indicatorMenu" class="hidden absolute right-0 mt-1 w-64 rounded-md shadow-2xl bg-[#1a1e29] border border-gray-600 p-2.5 text-[11px] space-y-1.5" style="z-index: 99999;">
                     <div class="text-[10px] uppercase font-bold text-gray-400 pb-1 border-b border-gray-700/60 flex justify-between items-center">
                         <span>Index & Fut Indicators</span>
                         <span class="text-[9px] text-gray-500">(Not for Options)</span>
@@ -397,6 +411,23 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // ── Persistent Browser-Level Settings (localStorage) ─────────────────
+    var STORAGE_KEY = 'nifty_matrix_settings_v1';
+
+    function loadSavedSettings() {
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return {};
+            var parsed = JSON.parse(raw);
+            return (typeof parsed === 'object' && parsed !== null) ? parsed : {};
+        } catch (e) {
+            console.warn('[Matrix] Failed to read saved settings:', e);
+            return {};
+        }
+    }
+
+    var savedSettings = loadSavedSettings();
+
     // ── Application State ──────────────────────────────────────────────────
     var state = {
         symbol: '{{ $symbol }}',
@@ -404,17 +435,17 @@ document.addEventListener('DOMContentLoaded', function () {
         atm: {{ $atm }},
         step: {{ $step }},
         currentExpiry: '{{ $currentExpiry }}',
-        selectedExpiry: '{{ $selectedExpiry }}',
+        selectedExpiry: savedSettings.selectedExpiry || '{{ $selectedExpiry }}',
         cwMid: {{ $cwMid }},
         nwMid: {{ $nwMid }},
         pdc: {{ $pdc }},
-        layout: '{{ $layout }}',
-        timeframe: '{{ $timeframe }}',
-        daysBack: '{{ $daysBack }}',
-        chartHeight: '{{ $chartHeight }}',
-        showLabels: false, // Default false to prevent indicator labels overriding candles!
+        layout: savedSettings.layout || '{{ $layout }}',
+        timeframe: savedSettings.timeframe || '{{ $timeframe }}',
+        daysBack: savedSettings.daysBack || '{{ $daysBack }}',
+        chartHeight: savedSettings.chartHeight || '{{ $chartHeight }}',
+        showLabels: savedSettings.showLabels !== undefined ? savedSettings.showLabels : false,
         tiles: @json($tiles),
-        indicators: {
+        indicators: Object.assign({
             ema9: true,
             ema21: true,
             ema246: false,
@@ -423,11 +454,29 @@ document.addEventListener('DOMContentLoaded', function () {
             vwma20: true,
             vwma246: false,
             vwap: true,
-        },
+        }, savedSettings.indicators || {}),
         allInstrumentKeys: [],
         instrumentKeyMap: {}, // key -> array of { tileId, type, strike }
         liveCandles: {}       // key -> { time, open, high, low, close }
     };
+
+    function saveSettings() {
+        try {
+            var toSave = {
+                layout: state.layout,
+                timeframe: state.timeframe,
+                daysBack: state.daysBack,
+                chartHeight: state.chartHeight,
+                selectedExpiry: state.selectedExpiry,
+                showLabels: state.showLabels,
+                indicators: state.indicators,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+        } catch (e) {
+            console.warn('[Matrix] Failed to save settings:', e);
+        }
+    }
 
     var charts = {};       // tileId -> LightweightChart instance
     var seriesMap = {};    // tileId -> { ceSeries, peSeries, ema9, ema21, ema246, sma20, sma246, vwma20, vwma246, vwap, lines: [] }
@@ -516,8 +565,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 borderColor: COLORS.grid,
                 timeVisible: true,
                 secondsVisible: false,
-                barSpacing: 6,
+                barSpacing: 9,
                 minBarSpacing: 3,
+                rightOffset: 0,
                 tickMarkFormatter: function (time, tickMarkType) {
                     var ts = typeof time === 'number' ? time : (time.timestamp || Number(time));
                     if (!ts || isNaN(ts)) return null;
@@ -674,7 +724,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nw_mid: parseFloat(document.getElementById('nwMidInput').value || state.nwMid),
             pdc: state.pdc,
             tiles: state.tiles.map(function (t) {
-                return { id: t.id, type: t.type, strike: t.strike };
+                return { id: t.id, type: t.type, strike: t.strike, timeframe: t.timeframe || state.timeframe };
             })
         };
 
@@ -771,6 +821,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     var color = latest.close >= latest.open ? '#34d399' : '#f87171';
                     ltpEl.innerHTML = `<span style="color:${color}">₹${latest.close.toFixed(2)}</span>`;
                 }
+
+                // Seed live candle cache from latest historical candle
+                var candleKey = tileId + '_' + tile.type;
+                state.liveCandles[candleKey] = {
+                    time: latest.time,
+                    open: latest.open,
+                    high: latest.high,
+                    low: latest.low,
+                    close: latest.close
+                };
             }
 
             // Indicators: Render EMA, SMA, VWMA, VWAP exclusively for Index & Fut
@@ -797,15 +857,15 @@ document.addEventListener('DOMContentLoaded', function () {
             applyIndicator(s.vwap, inds.vwap, state.indicators.vwap, 'VWAP');
 
             // Logic Lines for Index & Future:
-            // 4 Lines: 2 Resistance (Red) + 2 Support (Green)
+            // 4 Lines: 2 Resistance (Red) + 2 Support (Green) - Thicker & Prominent
             var lines = data.logic_lines || {};
 
-            function addLogicLine(priceVal, color, lineStyle, title) {
+            function addLogicLine(priceVal, color, lineStyle, lineWidth, title) {
                 if (!priceVal) return;
                 var pl = s.ceSeries.createPriceLine({
                     price: priceVal,
                     color: color,
-                    lineWidth: 1.5,
+                    lineWidth: lineWidth || 2.5,
                     lineStyle: lineStyle,
                     axisLabelVisible: state.showLabels,
                     title: state.showLabels ? title : '',
@@ -813,10 +873,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 s.priceLines.push(pl);
             }
 
-            addLogicLine(lines.r1, COLORS.r1, LightweightCharts.LineStyle.Solid, `R1 (+CW Mid): ${lines.r1}`);
-            addLogicLine(lines.s1, COLORS.s1, LightweightCharts.LineStyle.Solid, `S1 (-CW Mid): ${lines.s1}`);
-            addLogicLine(lines.r2, COLORS.r2, LightweightCharts.LineStyle.Dashed, `R2 (+NW Mid): ${lines.r2}`);
-            addLogicLine(lines.s2, COLORS.s2, LightweightCharts.LineStyle.Dashed, `S2 (-NW Mid): ${lines.s2}`);
+            // Resistance lines (Red): R1 = +CW Mid, R2 = +NW Mid
+            addLogicLine(lines.r1, COLORS.r1, LightweightCharts.LineStyle.Solid, 2.5, `R1 (+CW Mid): ${lines.r1}`);
+            addLogicLine(lines.s1, COLORS.s1, LightweightCharts.LineStyle.Solid, 2.5, `S1 (-CW Mid): ${lines.s1}`);
+            addLogicLine(lines.r2, COLORS.r2, LightweightCharts.LineStyle.Dashed, 2, `R2 (+NW Mid): ${lines.r2}`);
+            addLogicLine(lines.s2, COLORS.s2, LightweightCharts.LineStyle.Dashed, 2, `S2 (-NW Mid): ${lines.s2}`);
 
         } else {
             // OPTION STRIKE: Dual CE & PE on the same chart
@@ -854,10 +915,24 @@ document.addEventListener('DOMContentLoaded', function () {
             if (showCe && data.ce_candles && data.ce_candles.length > 0) {
                 s.ceSeries.setData(data.ce_candles);
                 ceLatest = data.ce_candles[data.ce_candles.length - 1];
+                state.liveCandles[tileId + '_CE'] = {
+                    time: ceLatest.time,
+                    open: ceLatest.open,
+                    high: ceLatest.high,
+                    low: ceLatest.low,
+                    close: ceLatest.close
+                };
             }
             if (showPe && data.pe_candles && data.pe_candles.length > 0) {
                 s.peSeries.setData(data.pe_candles);
                 peLatest = data.pe_candles[data.pe_candles.length - 1];
+                state.liveCandles[tileId + '_PE'] = {
+                    time: peLatest.time,
+                    open: peLatest.open,
+                    high: peLatest.high,
+                    low: peLatest.low,
+                    close: peLatest.close
+                };
             }
 
             // Header LTP badge
@@ -934,8 +1009,47 @@ document.addEventListener('DOMContentLoaded', function () {
             s.ceSeries.setMarkers(closeMarkers);
         }
 
-        // Fit time-scale
-        chart.timeScale().fitContent();
+        // Position time-scale viewport: Center current candle on screen with healthy zoom (like the reference screenshot)
+        if (Array.isArray(allCandles) && allCandles.length > 0) {
+            var todayStr = allCandles[allCandles.length - 1].date;
+            var todayCandles = allCandles.filter(function (c) { return c.date === todayStr; });
+            var prevCandles = allCandles.filter(function (c) { return c.date !== todayStr; });
+
+            // Start view from 5-8 candles prior to today's open
+            var startCandle = null;
+            if (prevCandles.length > 6) {
+                startCandle = prevCandles[prevCandles.length - 6];
+            } else if (prevCandles.length > 0) {
+                startCandle = prevCandles[0];
+            } else if (todayCandles.length > 0) {
+                startCandle = todayCandles[0];
+            }
+
+            var lastCandle = allCandles[allCandles.length - 1];
+            var tileTf = tile.timeframe || state.timeframe;
+            var intervalSec = getTimeframeSeconds(tileTf);
+
+            if (startCandle && lastCandle) {
+                // Number of candles from startCandle to current candle
+                var candlesOnLeft = Math.max(8, Math.round((lastCandle.time - startCandle.time) / intervalSec));
+                
+                // Add symmetric forward blank space on the right (approx 85-100% of left span) so current candle sits right in the center
+                var forwardPaddingSec = Math.max(candlesOnLeft * intervalSec, intervalSec * 22);
+                
+                try {
+                    chart.timeScale().setVisibleRange({
+                        from: startCandle.time,
+                        to: lastCandle.time + forwardPaddingSec,
+                    });
+                } catch (e) {
+                    chart.timeScale().fitContent();
+                }
+            } else {
+                chart.timeScale().fitContent();
+            }
+        } else {
+            chart.timeScale().fitContent();
+        }
     }
 
     // ── Recenter Grid Around ATM ───────────────────────────────────────────
@@ -970,12 +1084,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 state.tiles[i].strike = atm + (offset * step);
                 state.tiles[i].is_center = (offset === 0);
             }
-        } else if (state.layout === '4x3' || state.layout === '3x4') {
-            var offsets = [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
-            for (var i = 0; i < 10; i++) {
-                state.tiles[i + 2].strike = atm + (offsets[i] * step);
-                state.tiles[i + 2].is_center = (offsets[i] === 0);
-            }
+        } else if (state.layout === '4x3' || state.layout === '3x4' || state.layout === '4x4' || state.layout === '4x5') {
+            // Keep tiles 0..3 intact (Index 5m, Index 15m, Fut 5m, Fut 15m)
+            var optTiles = state.tiles.filter(function (t) { return t.id >= 4; });
+            var half = Math.floor(optTiles.length / 2);
+            optTiles.forEach(function (tile, idx) {
+                var offset = idx - half;
+                tile.strike = atm + (offset * step);
+                tile.is_center = (offset === 0);
+            });
         }
 
         // Update inputs and titles
@@ -999,6 +1116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Adjust Chart Heights Dropdown ──────────────────────────────────────
     function setChartHeight(newHeight) {
         state.chartHeight = newHeight;
+        saveSettings();
         var hPx = parseInt(newHeight);
 
         document.querySelectorAll('.matrix-chart-container').forEach(function (el) {
@@ -1099,11 +1217,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ── Show / Hide Axis Indicator Labels Toggle ───────────────────────────
-    document.getElementById('toggleLabelsBtn').addEventListener('click', function () {
-        state.showLabels = !state.showLabels;
+    function updateLabelsButtonUI() {
         var btn = document.getElementById('toggleLabelsBtn');
         var text = document.getElementById('labelStatusText');
-
+        if (!btn || !text) return;
         if (state.showLabels) {
             text.innerText = 'Labels: ON';
             btn.classList.remove('bg-gray-800', 'text-gray-300');
@@ -1113,6 +1230,12 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-500');
             btn.classList.add('bg-gray-800', 'text-gray-300');
         }
+    }
+
+    document.getElementById('toggleLabelsBtn').addEventListener('click', function () {
+        state.showLabels = !state.showLabels;
+        saveSettings();
+        updateLabelsButtonUI();
 
         // Reapply all tile data to update label visibility
         Object.keys(rawDataMap).forEach(function (tileId) {
@@ -1129,6 +1252,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (gridLayoutSel) {
         gridLayoutSel.addEventListener('change', function (e) {
             var targetLayout = e.target.value;
+            state.layout = targetLayout;
+            saveSettings();
             var url = new URL(window.location.href);
             url.searchParams.set('layout', targetLayout);
             url.searchParams.set('expiry', state.selectedExpiry);
@@ -1144,6 +1269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (tfSel) {
         tfSel.addEventListener('change', function (e) {
             state.timeframe = e.target.value;
+            saveSettings();
             loadData();
         });
     }
@@ -1153,6 +1279,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (daysSel) {
         daysSel.addEventListener('change', function (e) {
             state.daysBack = e.target.value;
+            saveSettings();
             loadData();
         });
     }
@@ -1162,6 +1289,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (expSel) {
         expSel.addEventListener('change', function (e) {
             state.selectedExpiry = e.target.value;
+            saveSettings();
             loadData();
         });
     }
@@ -1197,6 +1325,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chk.checked = !!state.indicators[k];
             chk.addEventListener('change', function () {
                 state.indicators[k] = chk.checked;
+                saveSettings();
                 updateActiveIndCount();
                 Object.keys(rawDataMap).forEach(function (tileId) {
                     applyTileData(tileId, rawDataMap[tileId]);
@@ -1205,6 +1334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     updateActiveIndCount();
+    updateLabelsButtonUI();
 
     // Per-tile Strike / Type changes
     document.querySelectorAll('.tile-type-select').forEach(function (sel) {
@@ -1344,16 +1474,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 for (var key in obj.feeds) {
                     var feed = obj.feeds[key];
                     var ltp = null;
+                    var ltt = null;
                     if (feed.fullFeed && feed.fullFeed.marketFF && feed.fullFeed.marketFF.ltpc) {
                         ltp = feed.fullFeed.marketFF.ltpc.ltp;
+                        ltt = feed.fullFeed.marketFF.ltpc.ltt;
                     } else if (feed.fullFeed && feed.fullFeed.indexFF && feed.fullFeed.indexFF.ltpc) {
                         ltp = feed.fullFeed.indexFF.ltpc.ltp;
+                        ltt = feed.fullFeed.indexFF.ltpc.ltt;
                     } else if (feed.ltpc) {
                         ltp = feed.ltpc.ltp;
+                        ltt = feed.ltpc.ltt;
                     }
 
                     if (ltp !== null && ltp > 0) {
-                        handleLiveTick(key, ltp, feed);
+                        handleLiveTick(key, ltp, ltt, feed);
                     }
                 }
             }
@@ -1362,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function handleLiveTick(instrumentKey, ltp, feed) {
+    function handleLiveTick(instrumentKey, ltp, ltt, feed) {
         // 1. Update Global Header Spot & ATM if Spot Index Key
         if (instrumentKey === 'NSE_INDEX|Nifty 50') {
             state.spot = ltp;
@@ -1378,10 +1512,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var targets = state.instrumentKeyMap[instrumentKey];
         if (!targets || targets.length === 0) return;
 
-        var intervalSec = getTimeframeSeconds(state.timeframe);
-        // Current time rounded to interval bucket (UTC unix epoch seconds)
-        var nowSec = Math.floor(Date.now() / 1000);
-        var bucketTs = Math.floor(nowSec / intervalSec) * intervalSec;
+        // Convert tick timestamp (milliseconds) to IST clock as UTC seconds to match database candles:
+        var tickMs = (ltt && Number(ltt) > 0) ? Number(ltt) : Date.now();
+        var istDate = new Date(tickMs + (5.5 * 3600 * 1000));
+        var year = istDate.getUTCFullYear();
+        var month = istDate.getUTCMonth();
+        var day = istDate.getUTCDate();
+        var hour = istDate.getUTCHours();
+        var minute = istDate.getUTCMinutes();
 
         targets.forEach(function (t) {
             var tileId = t.tileId;
@@ -1389,6 +1527,12 @@ document.addEventListener('DOMContentLoaded', function () {
             var s = seriesMap[tileId];
             var tile = state.tiles.find(function (item) { return item.id === parseInt(tileId); });
             if (!s || !tile) return;
+
+            // Use tile timeframe if specified (e.g. 5m or 15m), else fallback to global timeframe
+            var tileTf = tile.timeframe || state.timeframe;
+            var intervalSec = getTimeframeSeconds(tileTf);
+            var alignedMin = Math.floor(minute / (intervalSec / 60)) * (intervalSec / 60);
+            var bucketTs = Math.floor(Date.UTC(year, month, day, hour, alignedMin, 0) / 1000);
 
             var targetSeries = null;
             if (kind === 'INDEX' || kind === 'FUT' || kind === 'CE') {
@@ -1472,6 +1616,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── Boot ───────────────────────────────────────────────────────────────
+    // Restore dropdown element selections from saved settings
+    if (savedSettings.timeframe && tfSel) tfSel.value = savedSettings.timeframe;
+    if (savedSettings.daysBack && daysSel) daysSel.value = savedSettings.daysBack;
+    if (savedSettings.chartHeight) {
+        var hSel = document.getElementById('chartHeightSelect');
+        if (hSel) hSel.value = savedSettings.chartHeight;
+        setChartHeight(savedSettings.chartHeight);
+    }
+    if (savedSettings.selectedExpiry && expSel) expSel.value = savedSettings.selectedExpiry;
+
+    // Check if user landed on default layout without URL param, but has a saved layout
+    var currentUrl = new URL(window.location.href);
+    if (!currentUrl.searchParams.has('layout') && savedSettings.layout && savedSettings.layout !== '{{ $layout }}') {
+        currentUrl.searchParams.set('layout', savedSettings.layout);
+        if (savedSettings.timeframe) currentUrl.searchParams.set('timeframe', savedSettings.timeframe);
+        if (savedSettings.daysBack) currentUrl.searchParams.set('days_back', savedSettings.daysBack);
+        if (savedSettings.chartHeight) currentUrl.searchParams.set('chart_height', savedSettings.chartHeight);
+        if (savedSettings.selectedExpiry) currentUrl.searchParams.set('expiry', savedSettings.selectedExpiry);
+        window.location.replace(currentUrl.toString());
+        return;
+    }
+
     initAllCharts();
     loadData();
     initProtobuf().then(connectWebsocket);
