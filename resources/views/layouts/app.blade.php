@@ -28,7 +28,7 @@ $routeName = request()->route()?->getName() ?? '';
     id="page-updated-time">
     {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
 </div>
-@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage']))
+@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis']))
 {{--    @if(!request()->has('nr'))--}}
 <script>
     ( function () {

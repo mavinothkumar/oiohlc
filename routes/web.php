@@ -138,6 +138,9 @@ Route::get('/strangle-analyzer', [App\Http\Controllers\StrangleAnalyzerControlle
 /**
  * Greeks Analysis Starts
  */
+Route::get('/options-breadth-monitor', [\App\Http\Controllers\OptionsBreadthMonitorController::class, 'index'])->name('options.breadth.monitor');
+Route::get('/api/options-breadth-monitor/data', [\App\Http\Controllers\OptionsBreadthMonitorController::class, 'getData'])->name('api.options.breadth.monitor.data');
+Route::get('/vega-analysis', [App\Http\Controllers\VegaAnalysisController::class, 'index'])->name('vega.analysis');
 Route::get('/greek-analysis', [App\Http\Controllers\GreekAnalysisController::class, 'index'])->name('greek.analysis');
 Route::get('/multi-strike-analysis', [App\Http\Controllers\MultiStrikeAnalysisController::class, 'index'])->name('multi.strike.analysis');
 Route::get('/combined-premium-analysis', [App\Http\Controllers\CombinedPremiumAnalysisController::class, 'index'])->name('combined.premium.analysis');

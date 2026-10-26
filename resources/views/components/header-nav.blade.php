@@ -18,7 +18,14 @@
                     <span>Nifty 50 Weightage</span>
                 </a>
 
-                <!-- 2. Trending OI -->
+                <!-- 2. Options Breadth Monitor -->
+                <a href="{{ route('options.breadth.monitor') }}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition text-sm shadow-sm {{ request()->routeIs('options.breadth.monitor') ? 'ring-2 ring-indigo-300 ring-offset-1 bg-indigo-800' : '' }}">
+                    <span>⚡</span>
+                    <span>Options Breadth</span>
+                </a>
+
+                <!-- 3. Trending OI -->
                 <a href="{{ route('trending-oi.index') }}"
                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded font-semibold text-white bg-rose-600 hover:bg-rose-700 transition text-sm shadow-sm {{ request()->routeIs('trending-oi.index') ? 'ring-2 ring-rose-300 ring-offset-1 bg-rose-700' : '' }}">
                     <span>📈</span>
@@ -55,6 +62,8 @@
                         <a href="{{ route('live.strike.chart') }}" class="block px-4 py-2 text-emerald-700 hover:bg-emerald-50 font-semibold border-b border-gray-100">⚡ Live Strike Chart</a>
                         <a href="{{ route('option-chain-view') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">📋 Option Chain View</a>
                         <a href="{{ route('combined.premium.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Combined Premium</a>
+                        <a href="{{ route('options.breadth.monitor') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ Options Greek &amp; Breadth Monitor</a>
+                        <a href="{{ route('vega.analysis') }}" class="block px-4 py-2 font-bold text-indigo-700 hover:bg-indigo-50 border-b border-gray-100">🎯 Vega Clue Monitor (Buy/Sell)</a>
                         <a href="{{ route('greek.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Greek Analysis</a>
                         <a href="{{ route('multi.strike.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Multi Strike Greeks</a>
                         <a href="{{ route('option-chain.analysis') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Option Chain Deep Analysis</a>
