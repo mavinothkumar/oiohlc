@@ -72,7 +72,9 @@ class NiftyWeightageMonitorController extends Controller
      */
     public function index(Request $request): View
     {
-        // Fetch available dates that have 5m index quotes
+        $todayStr = Carbon::now('Asia/Kolkata')->toDateString();
+
+        // 1. Fetch available dates with 5m quotes
         $availableDates = DB::table('ohlc_5m_quotes')
             ->where(function($q) {
                 $q->where('instrument_key', 'like', '%Nifty 50%')
@@ -82,25 +84,25 @@ class NiftyWeightageMonitorController extends Controller
             ->where('instrument_type', 'INDEX')
             ->selectRaw('DATE(ts_at) as date, count(*) as candle_count')
             ->groupBy('date')
-            ->having('candle_count', '>=', 10)
+            ->having('candle_count', '>=', 5)
             ->orderByDesc('date')
             ->pluck('date')
             ->toArray();
 
-        // If working days table has more recent dates, merge them
+        // 2. Fetch recent working days
         $workingDates = DB::table('nse_working_days')
-            ->where('working_date', '<=', today()->toDateString())
+            ->where('working_date', '<=', $todayStr)
             ->orderByDesc('working_date')
             ->limit(15)
             ->pluck('working_date')
             ->toArray();
 
-        $allDates = array_values(array_unique(array_merge($availableDates, $workingDates)));
-        rsort($allDates);
+        // 3. Make sure CURRENT DATE is strictly first and default
+        $allDates = array_values(array_unique(array_merge([$todayStr], $workingDates, $availableDates)));
+        usort($allDates, fn($a, $b) => strcmp($b, $a));
 
-        // Selected date (defaults to first available date or today)
-        $defaultDate = !empty($availableDates) ? $availableDates[0] : (today()->isWeekend() ? '2025-12-15' : today()->toDateString());
-        $selectedDate = $request->input('date', $defaultDate);
+        // Selected date defaults to CURRENT DATE (today)
+        $selectedDate = $request->input('date', $todayStr);
 
         // Unique sectors
         $sectors = collect($this->constituents)->pluck('sector')->unique()->sort()->values()->all();
@@ -108,17 +110,27 @@ class NiftyWeightageMonitorController extends Controller
         return view('nifty-weightage.index', [
             'availableDates' => $allDates,
             'selectedDate'   => $selectedDate,
+            'todayDate'      => $todayStr,
             'constituents'   => $this->constituents,
             'sectors'        => $sectors,
         ]);
     }
 
     /**
-     * API Data Endpoint: Returns synchronized 5-minute candles for NIFTY 50 and all 50 constituent stocks
+     * API Data Endpoint: Returns synchronized 5-minute candles for NIFTY 50 and all 50 constituent stocks.
+     * Updates live in real-time during market hours!
      */
     public function getData(Request $request): JsonResponse
     {
-        $date = $request->input('date', today()->toDateString());
+        $nowKolkata = Carbon::now('Asia/Kolkata');
+        $todayStr = $nowKolkata->toDateString();
+        $date = $request->input('date', $todayStr);
+        $isToday = ($date === $todayStr);
+
+        // Check if market is active (between 09:15 and 15:30 IST on a weekday)
+        $curTimeStr = $nowKolkata->format('H:i');
+        $isWeekday = !in_array($nowKolkata->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
+        $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
 
         // 1. Fetch real NIFTY 5m candles from database if present
         $dbCandles = DB::table('ohlc_5m_quotes')
@@ -133,15 +145,17 @@ class NiftyWeightageMonitorController extends Controller
             ->get();
 
         $niftyCandles = [];
+        $seenTimes = [];
 
-        if ($dbCandles->count() >= 5) {
+        if ($dbCandles->count() >= 3) {
             foreach ($dbCandles as $c) {
-                $ts = Carbon::parse($c->ts_at);
+                $ts = Carbon::parse($c->ts_at, 'Asia/Kolkata');
                 $timeStr = $ts->format('H:i');
-                // Trading hours check (09:15 to 15:30)
-                if ($timeStr < '09:15' || $timeStr > '15:25') {
+                if ($timeStr < '09:15' || $timeStr > '15:25' || isset($seenTimes[$timeStr])) {
                     continue;
                 }
+                $seenTimes[$timeStr] = true;
+
                 $open  = round((float)$c->open, 2);
                 $high  = round((float)$c->high, 2);
                 $low   = round((float)$c->low, 2);
@@ -151,7 +165,7 @@ class NiftyWeightageMonitorController extends Controller
                 $niftyCandles[] = [
                     'ts_at'     => $c->ts_at,
                     'time_str'  => $timeStr,
-                    'timestamp' => Carbon::parse($c->ts_at, 'UTC')->timestamp, // For Lightweight Charts
+                    'timestamp' => Carbon::parse($c->ts_at, 'UTC')->timestamp,
                     'open'      => $open,
                     'high'      => $high,
                     'low'       => $low,
@@ -164,10 +178,9 @@ class NiftyWeightageMonitorController extends Controller
             }
         }
 
-        // If no DB candles found for this date (e.g. historical date without quotes or future/today before open),
-        // generate a highly realistic 75-candle intraday session modeling institutional order flow
+        // If today or selected date has no DB rows yet, generate a realistic market session
         if (empty($niftyCandles)) {
-            $niftyCandles = $this->generateRealisticNiftyCandles($date);
+            $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr);
         }
 
         // 2. Synthesize all 50 constituent stocks' 5-minute candles perfectly coordinated with Nifty
@@ -175,9 +188,9 @@ class NiftyWeightageMonitorController extends Controller
 
         // 3. Compute Candle-level Breadth Aggregations
         $breadthByTime = $stockData['breadth_by_time'];
-        $matrix = $stockData['matrix'];
-        $timestamps = $stockData['timestamps'];
-        $summary = $stockData['summary'];
+        $matrix        = $stockData['matrix'];
+        $timestamps    = $stockData['timestamps'];
+        $summary       = $stockData['summary'];
 
         // Format Nifty candles for Lightweight Charts
         $lwChartCandles = array_map(function($c) {
@@ -190,9 +203,16 @@ class NiftyWeightageMonitorController extends Controller
             ];
         }, $niftyCandles);
 
+        $latestCandle = !empty($niftyCandles) ? end($niftyCandles) : null;
+
         return response()->json([
             'success'          => true,
             'date'             => $date,
+            'is_today'         => $isToday,
+            'is_live'          => $isMarketHours,
+            'server_time'      => $nowKolkata->format('H:i:s'),
+            'latest_time'      => $latestCandle ? $latestCandle['time_str'] : '09:15',
+            'latest_price'     => $latestCandle ? $latestCandle['close'] : 0,
             'nifty_candles'    => $niftyCandles,
             'lw_chart_candles' => $lwChartCandles,
             'timestamps'       => $timestamps,
@@ -223,7 +243,6 @@ class NiftyWeightageMonitorController extends Controller
             $matrix[$stock['symbol']] = [];
         }
 
-        $cumulativeDayPoints = 0.0;
         $firstNiftyOpen = !empty($niftyCandles) ? $niftyCandles[0]['open'] : 25800.0;
         $lastNiftyClose = !empty($niftyCandles) ? end($niftyCandles)['close'] : 25800.0;
 
@@ -235,7 +254,6 @@ class NiftyWeightageMonitorController extends Controller
             $niftyClose = $nCandle['close'];
             $niftyMovePts = $nCandle['move_pts'];
             $niftyMovePct = $nCandle['move_pct'];
-            $isNiftyGreen = $nCandle['color'] === 'green';
 
             $candleGreenCount = 0;
             $candleRedCount = 0;
@@ -258,7 +276,6 @@ class NiftyWeightageMonitorController extends Controller
                 $beta = $stock['beta'];
 
                 // Stock move = Beta * NiftyMovePct + noise
-                // Higher weight stocks have tighter correlation (noise is smaller)
                 $noiseStd = (1.0 - ($weight / 25.0)) * 0.12;
                 $noise = ( (mt_rand(0, 1000) / 1000) - 0.5 ) * $noiseStd * 2;
 
@@ -271,16 +288,13 @@ class NiftyWeightageMonitorController extends Controller
                 }
 
                 $simMovePct = ($niftyMovePct * $beta) + $noise + $sectorBias;
-                
-                // Keep percentage move bounded realistically for a 5-min candle (-1.5% to +1.5%)
                 $simMovePct = max(-1.8, min(1.8, $simMovePct));
 
-                // Contribution in points: (Weight / 100) * MovePct * NiftyOpen / 100
                 $rawPoint = ($weight / 100.0) * ($simMovePct / 100.0) * $niftyOpen;
                 $rawPoints[$sym] = [
-                    'move_pct' => $simMovePct,
+                    'move_pct'  => $simMovePct,
                     'raw_point' => $rawPoint,
-                    'stock' => $stock
+                    'stock'     => $stock
                 ];
                 $totalSimPoints += $rawPoint;
             }
@@ -289,7 +303,6 @@ class NiftyWeightageMonitorController extends Controller
             $correctionRatio = 1.0;
             if (abs($totalSimPoints) > 0.001) {
                 $correctionRatio = $niftyMovePts / $totalSimPoints;
-                // Clamp correction ratio so idiosyncratic moves aren't obliterated
                 $correctionRatio = max(0.4, min(2.5, $correctionRatio));
             }
 
@@ -304,7 +317,6 @@ class NiftyWeightageMonitorController extends Controller
                 $stockMovePct = $rawPoints[$sym]['move_pct'] * $correctionRatio;
                 $stockPts = round(($weight / 100.0) * ($stockMovePct / 100.0) * $niftyOpen, 2);
 
-                // Small threshold for flat/doji
                 $color = 'flat';
                 if ($stockPts > 0.01) {
                     $color = 'green';
@@ -327,10 +339,7 @@ class NiftyWeightageMonitorController extends Controller
                 $highPrice = round(max($openPrice, $closePrice) + (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
                 $lowPrice  = round(min($openPrice, $closePrice) - (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
 
-                // Update current price for next candle
                 $currentPrices[$sym] = $closePrice;
-
-                // Day change %
                 $dayChangePct = round((($closePrice - $stock['base_price']) / $stock['base_price']) * 100, 2);
 
                 $candleDetail = [
@@ -403,7 +412,6 @@ class NiftyWeightageMonitorController extends Controller
                 if ($cStock['color'] === 'green') $sectorAgg[$sec]['green_count']++;
                 elseif ($cStock['color'] === 'red') $sectorAgg[$sec]['red_count']++;
             }
-            // Round sector values and sort
             foreach ($sectorAgg as $k => $v) {
                 $sectorAgg[$k]['pts'] = round($v['pts'], 2);
                 $sectorAgg[$k]['weight'] = round($v['weight'], 1);
@@ -471,7 +479,6 @@ class NiftyWeightageMonitorController extends Controller
         $draggerName = $topDragger['symbol'] ?? 'Heavyweight';
 
         // 1. Heavyweight Divergence (Bear Trap / False Rally)
-        // High stock count is green, but total green weight is low because giants are red
         if ($greenCountPct >= 55 && $greenWeightPct < 48) {
             return [
                 'type'    => 'DIVERGENCE_BEARISH',
@@ -483,7 +490,6 @@ class NiftyWeightageMonitorController extends Controller
         }
 
         // 2. Heavyweight Support (Index Held by Giants / False Breakdown)
-        // High stock count is red, but heavyweights are green keeping index buoyed
         if ($redCountPct >= 55 && $greenWeightPct > 52) {
             return [
                 'type'    => 'DIVERGENCE_BULLISH',
@@ -527,17 +533,24 @@ class NiftyWeightageMonitorController extends Controller
     }
 
     /**
-     * Generates a realistic 75-candle 5m intraday session for NIFTY 50
+     * Generates a realistic session for NIFTY 50.
+     * When isMarketHours is true, generates candles only up to the current 5-min slot and streams live!
      */
-    protected function generateRealisticNiftyCandles(string $date): array
+    protected function generateRealisticNiftyCandles(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30'): array
     {
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
 
-        $startPrice = 25850.0 + ((mt_rand(0, 400) - 200));
+        // Fetch latest known spot from option_chains if available
+        $latestSpotRow = DB::table('option_chains')
+            ->where('trading_symbol', 'NIFTY')
+            ->orderByDesc('captured_at')
+            ->first();
+
+        $startPrice = (float)($latestSpotRow->underlying_spot_price ?? 25850.0);
         $curPrice = $startPrice;
 
-        $times = [
+        $allTimes = [
             '09:15','09:20','09:25','09:30','09:35','09:40','09:45','09:50','09:55',
             '10:00','10:05','10:10','10:15','10:20','10:25','10:30','10:35','10:40','10:45','10:50','10:55',
             '11:00','11:05','11:10','11:15','11:20','11:25','11:30','11:35','11:40','11:45','11:50','11:55',
@@ -547,18 +560,25 @@ class NiftyWeightageMonitorController extends Controller
             '15:00','15:05','15:10','15:15','15:20','15:25'
         ];
 
-        // Intraday trend profile
-        $trendBias = ((mt_rand(0, 100) / 100) - 0.48); // Slight bias
+        // If today during market hours, only take candles up to current 5m slot
+        $activeTimes = $allTimes;
+        if ($isToday && $isMarketHours) {
+            $activeTimes = array_filter($allTimes, fn($t) => $t <= $curTimeStr);
+            if (empty($activeTimes)) {
+                $activeTimes = ['09:15'];
+            }
+        }
+
+        $trendBias = ((mt_rand(0, 100) / 100) - 0.48);
 
         $candles = [];
-        foreach ($times as $idx => $timeStr) {
+        foreach ($activeTimes as $idx => $timeStr) {
             $dt = Carbon::parse("{$date} {$timeStr}:00", 'Asia/Kolkata');
 
-            // Volatility higher at open (9:15-10:00) and close (14:30-15:30)
             $volFactor = 1.0;
             if ($idx < 9) $volFactor = 1.8;
             elseif ($idx > 60) $volFactor = 1.5;
-            elseif ($idx >= 25 && $idx <= 45) $volFactor = 0.6; // Lunch hour lull
+            elseif ($idx >= 25 && $idx <= 45) $volFactor = 0.6;
 
             $step = ($trendBias * 12.0) + (((mt_rand(0, 1000) / 1000) - 0.5) * 28.0 * $volFactor);
 

@@ -107,13 +107,14 @@
 
         <!-- Controls: Date Picker, Playback, Filters & Settings -->
         <div class="flex flex-wrap items-center gap-2">
-            <!-- Date Selector -->
+            <!-- Date Selector (Default: Current Date) -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs">
                 <span class="text-gray-400 mr-2">📅 Session:</span>
                 <select id="date-select" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
                     @foreach($availableDates as $dt)
-                        <option value="{{ $dt }}" {{ $selectedDate === $dt ? 'selected' : '' }} class="bg-[#131722] text-white">
-                            {{ \Carbon\Carbon::parse($dt)->format('d M Y (D)') }}
+                        @php $isCurrentDay = ($dt === $todayDate); @endphp
+                        <option value="{{ $dt }}" {{ $selectedDate === $dt ? 'selected' : '' }} class="bg-[#131722] text-white font-mono">
+                            {{ $isCurrentDay ? '● Current Date: ' : '' }}{{ \Carbon\Carbon::parse($dt)->format('d M Y (D)') }}{{ $isCurrentDay ? ' (Today)' : '' }}
                         </option>
                     @endforeach
                 </select>
@@ -141,13 +142,18 @@
 
             <!-- Live Auto Refresh -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs">
-                <span class="text-gray-400 mr-1.5">🔄 Live:</span>
+                <span class="text-gray-400 mr-1.5 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
+                    Auto:
+                </span>
                 <select id="auto-refresh-select" class="bg-transparent text-white focus:outline-none cursor-pointer">
-                    <option value="0" class="bg-[#131722]">Off</option>
-                    <option value="10" class="bg-[#131722]">10s</option>
+                    <option value="5" class="bg-[#131722]">5s</option>
+                    <option value="15" class="bg-[#131722]">15s</option>
                     <option value="30" selected class="bg-[#131722]">30s</option>
                     <option value="60" class="bg-[#131722]">1m</option>
+                    <option value="0" class="bg-[#131722]">Off</option>
                 </select>
+                <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">30s</span>
             </div>
 
             <!-- Reload Button -->
@@ -182,10 +188,14 @@
                     </span>
                 </div>
                 <!-- Chart Info / Legend -->
-                <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-2 sm:gap-3 text-xs">
                     <span class="text-gray-400">Selected: <strong id="chart-selected-time" class="text-sky-400 font-mono">09:15</strong></span>
-                    <span class="text-gray-400">Open: <span id="chart-open" class="text-gray-200 font-mono font-semibold">-</span></span>
-                    <span class="text-gray-400">Close: <span id="chart-close" class="text-gray-200 font-mono font-semibold">-</span></span>
+                    <button id="btn-snap-live" title="Snap to latest candle" class="hidden px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] items-center gap-1 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
+                        Snap to Live
+                    </button>
+                    <span class="text-gray-400 hidden sm:inline">Open: <span id="chart-open" class="text-gray-200 font-mono font-semibold">-</span></span>
+                    <span class="text-gray-400 hidden sm:inline">Close: <span id="chart-close" class="text-gray-200 font-mono font-semibold">-</span></span>
                     <span class="text-gray-400">Move: <span id="chart-move" class="font-mono font-bold">-</span></span>
                 </div>
             </div>
@@ -530,6 +540,16 @@
         document.getElementById('contrib-tab-leaders').addEventListener('click', () => switchContribTab('leaders'));
         document.getElementById('contrib-tab-draggers').addEventListener('click', () => switchContribTab('draggers'));
 
+        // Snap to Live Button
+        const btnSnapLive = document.getElementById('btn-snap-live');
+        if (btnSnapLive) {
+            btnSnapLive.addEventListener('click', () => {
+                if (currentData && currentData.timestamps.length > 0) {
+                    selectCandleByIndex(currentData.timestamps.length - 1);
+                }
+            });
+        }
+
         // Zen mode toggle
         btnZen.addEventListener('click', () => {
             document.body.classList.toggle('zen-mode');
@@ -566,19 +586,34 @@
             }
         });
 
-        // Auto Refresh Timer
+        // Auto Refresh Timer with Live Countdown & 5-Min Candle Sync
         let autoRefreshTimer = null;
+        let countdownSeconds = 30;
+        const countdownBadge = document.getElementById('countdown-badge');
+
         autoRefreshSelect.addEventListener('change', setupAutoRefresh);
         setupAutoRefresh();
 
         function setupAutoRefresh() {
             if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-            const secs = parseInt(autoRefreshSelect.value);
-            if (secs > 0) {
-                autoRefreshTimer = setInterval(() => {
-                    loadData(true); // Silent reload
-                }, secs * 1000);
+            const intervalSecs = parseInt(autoRefreshSelect.value);
+
+            if (intervalSecs <= 0) {
+                if (countdownBadge) countdownBadge.textContent = 'Off';
+                return;
             }
+
+            countdownSeconds = intervalSecs;
+            if (countdownBadge) countdownBadge.textContent = `${countdownSeconds}s`;
+
+            autoRefreshTimer = setInterval(() => {
+                countdownSeconds--;
+                if (countdownSeconds <= 0) {
+                    countdownSeconds = intervalSecs;
+                    loadData(true); // Silent background auto-refresh
+                }
+                if (countdownBadge) countdownBadge.textContent = `${countdownSeconds}s`;
+            }, 1000);
         }
 
         // Initialize TradingView Lightweight Chart
@@ -669,6 +704,24 @@
                         alert('Could not load data for date: ' + date);
                         return;
                     }
+
+                    // Update Live/Historical status badge
+                    const badge = document.getElementById('session-badge');
+                    if (data.is_live) {
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span> LIVE MARKET (${data.server_time})`;
+                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 flex items-center gap-1.5';
+                    } else if (data.is_today) {
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> TODAY SESSION`;
+                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-600/30 flex items-center gap-1.5';
+                    } else {
+                        badge.innerHTML = `HISTORICAL (${data.date})`;
+                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-gray-800 text-gray-300 border border-gray-700 flex items-center gap-1.5';
+                    }
+
+                    const isFirstLoad = !currentData;
+                    const prevCount = currentData ? currentData.timestamps.length : 0;
+                    const wasAtLatest = isFirstLoad || (selectedCandleIndex >= prevCount - 1);
+
                     currentData = data;
 
                     // Populate chart data
@@ -676,10 +729,12 @@
                     chart.timeScale().fitContent();
 
                     // Update slider range
-                    candleSlider.max = data.timestamps.length - 1;
+                    candleSlider.max = Math.max(0, data.timestamps.length - 1);
 
-                    // Preserve or clamp selected index
-                    if (selectedCandleIndex >= data.timestamps.length) {
+                    // If user was tracking the latest candle, advance with the live stream
+                    if (wasAtLatest) {
+                        selectedCandleIndex = data.timestamps.length - 1;
+                    } else if (selectedCandleIndex >= data.timestamps.length) {
                         selectedCandleIndex = data.timestamps.length - 1;
                     }
 
@@ -705,6 +760,18 @@
             const nCandle = currentData.nifty_candles[index];
             if (nCandle) {
                 updateChartHeaderReadout(nCandle);
+            }
+
+            // Toggle snap-to-live button if looking at earlier candles
+            const btnSnapLive = document.getElementById('btn-snap-live');
+            if (btnSnapLive) {
+                if (index < currentData.timestamps.length - 1) {
+                    btnSnapLive.classList.remove('hidden');
+                    btnSnapLive.classList.add('inline-flex');
+                } else {
+                    btnSnapLive.classList.remove('inline-flex');
+                    btnSnapLive.classList.add('hidden');
+                }
             }
 
             // Update Right Side Breadth Stats
