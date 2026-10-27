@@ -652,7 +652,10 @@ class NiftyWeightageMonitorController extends Controller
     public function logAlert(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'action'              => 'required|string|in:BUY,SELL',
+            'signal'              => 'nullable|string|in:BUY,SELL,UP,DOWN',
+            'action'              => 'nullable|string',
+            'instrument'          => 'nullable|string|in:CE,PE',
+            'strike'              => 'nullable|integer',
             'symbol'              => 'nullable|string',
             'price'               => 'required|numeric',
             'date'                => 'nullable|string',
@@ -675,8 +678,6 @@ class NiftyWeightageMonitorController extends Controller
             'webhook_token'       => 'nullable|string',
         ]);
 
-        $action = strtoupper($validated['action']);
-        $symbol = $validated['symbol'] ?? 'NIFTY';
         $price = round((float)$validated['price'], 2);
         $timeStr = $validated['time'];
         $dateStr = $validated['date'] ?? Carbon::now('Asia/Kolkata')->toDateString();
@@ -686,33 +687,66 @@ class NiftyWeightageMonitorController extends Controller
         $mode = strtoupper($validated['mode'] ?? 'SIMULATION');
         $product = strtoupper($validated['product'] ?? 'MARGIN');
         $category = $validated['category'] ?? 'LOCAL_SERVER';
+        $symbol = $validated['symbol'] ?? 'NIFTY';
 
-        // Calculate default SL and TP if not explicitly passed
-        // For BUY: SL is below entry, TP is above entry
-        // For SELL: SL is above entry, TP is below entry
+        // 1. Determine Market Signal (Underlying Breadth direction)
+        $rawSignal = strtoupper($validated['signal'] ?? $validated['action'] ?? 'BUY');
+        $isBull = ($rawSignal === 'BUY' || $rawSignal === 'UP');
+        $marketSignal = $isBull ? 'BUY' : 'SELL';
+
+        // 2. Select Instrument: Bullish Surge = SELL PE; Bearish Dump = SELL CE
+        $instrument = strtoupper($validated['instrument'] ?? ($isBull ? 'PE' : 'CE'));
+
+        // 3. Select 1-Strike In-The-Money (ITM) Strike in 100s based on Spot Price
+        // For PE: ITM Strike > Spot -> ((int)floor($price / 100.0) + 1) * 100
+        // For CE: ITM Strike < Spot -> ((int)ceil($price / 100.0) - 1) * 100
+        if (!empty($validated['strike']) && is_numeric($validated['strike'])) {
+            $strike = (int)$validated['strike'];
+        } else {
+            if ($instrument === 'PE') {
+                $strike = ((int)floor($price / 100.0) + 1) * 100;
+            } else {
+                $strike = ((int)ceil($price / 100.0) - 1) * 100;
+            }
+        }
+
+        // We ALWAYS SELL strikes as requested by option writing strategy!
+        $orderAction = 'SELL';
+        $strikeName = "{$symbol} {$strike} {$instrument}";
+
+        // 4. Calculate default SL and TP on NIFTY Spot if not explicitly passed
+        // For Bullish (Sell PE): SL is below entry, TP is above entry
+        // For Bearish (Sell CE): SL is above entry, TP is below entry
         if (isset($validated['sl']) && is_numeric($validated['sl'])) {
             $sl = round((float)$validated['sl'], 2);
         } else {
-            $sl = $action === 'BUY' ? round($price - $slOffset, 2) : round($price + $slOffset, 2);
+            $sl = $isBull ? round($price - $slOffset, 2) : round($price + $slOffset, 2);
         }
 
         if (isset($validated['tp']) && is_numeric($validated['tp'])) {
             $tp = round((float)$validated['tp'], 2);
         } else {
-            $tp = $action === 'BUY' ? round($price + $tpOffset, 2) : round($price - $tpOffset, 2);
+            $tp = $isBull ? round($price + $tpOffset, 2) : round($price - $tpOffset, 2);
         }
 
-        // Exact 0click.in Payload Contract
+        // Exact 0click.in Payload Contract for 1-Strike ITM Option Selling
         $payload = [
-            'category' => $category,
-            'action'   => $action,
-            'symbol'   => $symbol,
-            'price'    => $price,
-            'sl'       => $sl,
-            'tp'       => $tp,
-            'lots'     => $lots,
-            'mode'     => $mode,
-            'product'  => $product,
+            'category'       => $category,
+            'signal'         => $marketSignal,    // Underlying breadth direction: BUY (Bull) or SELL (Bear)
+            'action'         => 'SELL',           // Always SELL for option writing
+            'trade_type'     => 'SELL',
+            'symbol'         => $symbol,
+            'instrument'     => $instrument,      // 'PE' (for Bullish) or 'CE' (for Bearish)
+            'option_type'    => $instrument,
+            'strike'         => $strike,          // 1-strike ITM 100s strike (e.g. 25900 or 25800)
+            'strike_name'    => $strikeName,
+            'trading_symbol' => $strikeName,
+            'price'          => $price,           // Nifty spot index price
+            'sl'             => $sl,              // Nifty index SL
+            'tp'             => $tp,              // Nifty index TP
+            'lots'           => $lots,
+            'mode'           => $mode,
+            'product'        => $product,
         ];
 
         try {
@@ -721,10 +755,13 @@ class NiftyWeightageMonitorController extends Controller
             $triggeredAt = Carbon::now('Asia/Kolkata');
         }
 
-        // Deduplication guard: check if an alert for this date + candle_time + action already exists!
+        // Deduplication guard: check if an alert for this date + candle_time + signal already exists!
         $existingLog = ZeroClickAlertLog::where('trade_date', $dateStr)
             ->where('candle_time', $timeStr)
-            ->where('action', $action)
+            ->where(function($q) use ($marketSignal, $instrument) {
+                $q->where('signal', $marketSignal)
+                  ->orWhere('instrument', $instrument);
+            })
             ->first();
 
         if ($existingLog) {
@@ -736,7 +773,7 @@ class NiftyWeightageMonitorController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'is_duplicate' => true,
-                'message'      => "Alert for {$timeStr} ({$action}) already logged.",
+                'message'      => "Alert for {$timeStr} (SELL {$strike} {$instrument}) already logged.",
                 'log'          => $existingLog->fresh(),
                 'payload'      => $existingLog->payload,
             ]);
@@ -747,8 +784,11 @@ class NiftyWeightageMonitorController extends Controller
             'triggered_at'       => $triggeredAt,
             'trade_date'         => $dateStr,
             'candle_time'        => $timeStr,
-            'action'             => $action,
+            'signal'             => $marketSignal,
+            'action'             => 'SELL',
             'symbol'             => $symbol,
+            'instrument'         => $instrument,
+            'strike'             => $strike,
             'spot_price'         => $price,
             'sl_price'           => $sl,
             'tp_price'           => $tp,
