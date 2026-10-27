@@ -489,10 +489,14 @@
         <!-- Trigger Calculation Metric -->
         <div class="p-3 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1 text-xs">
             <span class="font-bold text-gray-300 block mb-1">Trigger Metric Criteria:</span>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
                     <input type="radio" name="trigger-by" value="either" checked class="text-indigo-500 accent-indigo-500">
                     <span>Either (Count or Wt)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
+                    <input type="radio" name="trigger-by" value="both" class="text-indigo-500 accent-indigo-500">
+                    <span>Both (Count &amp; Wt)</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
                     <input type="radio" name="trigger-by" value="count" class="text-indigo-500 accent-indigo-500">
@@ -643,7 +647,7 @@
         enabled: true,
         upThreshold: 80,
         downThreshold: 80,
-        triggerBy: 'either', // 'either', 'count', 'weight'
+        triggerBy: 'either', // 'either', 'both', 'count', 'weight'
         sound: 'siren',
         volume: 0.8,
         showChartMarkers: true
@@ -1025,6 +1029,9 @@
         } else if (alarmSettings.triggerBy === 'count') {
             greenScore = upCountPct;
             redScore   = downCountPct;
+        } else if (alarmSettings.triggerBy === 'both') {
+            greenScore = Math.min(breadth.up_weight, upCountPct);
+            redScore   = Math.min(breadth.down_weight, downCountPct);
         } else {
             greenScore = Math.max(breadth.up_weight, upCountPct);
             redScore   = Math.max(breadth.down_weight, downCountPct);
@@ -1089,6 +1096,9 @@
                 } else if (alarmSettings.triggerBy === 'count') {
                     greenScore = upCountPct;
                     redScore   = downCountPct;
+                } else if (alarmSettings.triggerBy === 'both') {
+                    greenScore = Math.min(breadth.up_weight, upCountPct);
+                    redScore   = Math.min(breadth.down_weight, downCountPct);
                 } else {
                     greenScore = Math.max(breadth.up_weight, upCountPct);
                     redScore   = Math.max(breadth.down_weight, downCountPct);

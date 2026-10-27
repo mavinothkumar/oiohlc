@@ -567,10 +567,14 @@
         <!-- Trigger Calculation Metric -->
         <div class="p-3 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1 text-xs">
             <span class="font-bold text-gray-300 block mb-1">Trigger Metric Criteria:</span>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
                     <input type="radio" name="trigger-by" value="either" checked class="text-blue-500 accent-blue-500">
                     <span>Either (Count or Wt)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
+                    <input type="radio" name="trigger-by" value="both" class="text-blue-500 accent-blue-500">
+                    <span>Both (Count &amp; Wt)</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer text-[11px] text-gray-300 p-1.5 rounded hover:bg-gray-800/80">
                     <input type="radio" name="trigger-by" value="count" class="text-blue-500 accent-blue-500">
@@ -999,7 +1003,7 @@
             enabled: true,
             upThreshold: 80,
             downThreshold: 80,
-            triggerBy: 'either', // 'either', 'count', 'weight'
+            triggerBy: 'either', // 'either', 'both', 'count', 'weight'
             sound: 'siren',
             volume: 0.8,
             showChartMarkers: true
@@ -2099,6 +2103,9 @@
                     if (alarmSettings.triggerBy === 'weight') {
                         greenScore = Math.round(breadth.green_weight);
                         redScore   = Math.round(breadth.red_weight);
+                    } else if (alarmSettings.triggerBy === 'both') {
+                        greenScore = Math.min(breadth.green_count_pct, Math.round(breadth.green_weight));
+                        redScore   = Math.min(breadth.red_count_pct, Math.round(breadth.red_weight));
                     } else if (alarmSettings.triggerBy === 'either') {
                         greenScore = Math.max(breadth.green_count_pct, Math.round(breadth.green_weight));
                         redScore   = Math.max(breadth.red_count_pct, Math.round(breadth.red_weight));
@@ -2925,6 +2932,9 @@
             if (alarmSettings.triggerBy === 'weight') {
                 greenScore = Math.round(breadth.green_weight);
                 redScore   = Math.round(breadth.red_weight);
+            } else if (alarmSettings.triggerBy === 'both') {
+                greenScore = Math.min(breadth.green_count_pct, Math.round(breadth.green_weight));
+                redScore   = Math.min(breadth.red_count_pct, Math.round(breadth.red_weight));
             } else if (alarmSettings.triggerBy === 'either') {
                 greenScore = Math.max(breadth.green_count_pct, Math.round(breadth.green_weight));
                 redScore   = Math.max(breadth.red_count_pct, Math.round(breadth.red_weight));
