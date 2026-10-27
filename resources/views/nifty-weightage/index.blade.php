@@ -754,11 +754,11 @@
             </p>
         </div>
 
-        <!-- 0Click Trade Execution Contract Strip -->
+        <!-- 0Click Trade Execution Contract Strip (Option Selling 1-ITM 100s) -->
         <div class="p-3 rounded-2xl bg-black/45 border border-white/20 text-left text-xs space-y-2 backdrop-blur-sm shadow-inner">
             <div class="flex items-center justify-between">
                 <span class="font-bold text-white/95 flex items-center gap-1.5 text-[11px]">
-                    <span>⚡ 0Click Trade Contract:</span>
+                    <span>⚡ 0Click Option Contract (Option Selling):</span>
                     <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50">💾 LOGGED INTERNALLY</span>
                 </span>
                 <button type="button" id="btn-toggle-payload-preview" class="text-[10px] text-sky-300 hover:text-white underline cursor-pointer font-semibold">
@@ -766,8 +766,9 @@
                 </button>
             </div>
             <div class="font-mono text-[11px] text-white flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span id="alarm-trade-action-badge" class="font-black px-1.5 py-0.2 rounded bg-emerald-500 text-black text-[10px]">BUY</span>
-                <span>NIFTY Spot: <strong id="alarm-trade-price" class="text-white">25,850.50</strong></span>
+                <span id="alarm-trade-action-badge" class="font-black px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] shadow-sm">SELL</span>
+                <span id="alarm-trade-strike-badge" class="font-black px-2 py-0.5 rounded bg-amber-400 text-black text-[11px] shadow-sm">25900 PE (1-ITM)</span>
+                <span>Spot: <strong id="alarm-trade-price" class="text-white">25,850.50</strong></span>
                 <span class="text-white/60">·</span>
                 <span>SL: <span id="alarm-trade-sl" class="text-rose-200 font-bold">25,750</span></span>
                 <span class="text-white/60">·</span>
@@ -838,11 +839,11 @@
         <!-- Filter Bar & Token Config Status -->
         <div class="px-4 py-2.5 border-b border-gray-800 bg-[#151923] flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2">
-                <span class="text-gray-400 text-[11px]">Filter Action:</span>
+                <span class="text-gray-400 text-[11px]">Filter Signal:</span>
                 <select id="log-filter-action" class="bg-[#1a1e29] border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none cursor-pointer">
-                    <option value="ALL">All Actions</option>
-                    <option value="BUY">BUY (Bullish) Only</option>
-                    <option value="SELL">SELL (Bearish) Only</option>
+                    <option value="ALL">All Signals</option>
+                    <option value="BUY">Bullish Signals (Sell ITM PE)</option>
+                    <option value="SELL">Bearish Signals (Sell ITM CE)</option>
                 </select>
 
                 <span class="text-gray-400 text-[11px] ml-2">Status:</span>
@@ -907,7 +908,8 @@
                 <thead>
                     <tr class="border-b border-gray-800 text-gray-400 text-[11px] font-semibold">
                         <th class="pb-2">Time / Date</th>
-                        <th class="pb-2">Signal</th>
+                        <th class="pb-2">Breadth Signal</th>
+                        <th class="pb-2">Option to SELL (1-ITM 100s)</th>
                         <th class="pb-2 text-right">Spot Price</th>
                         <th class="pb-2 text-right">SL (Index)</th>
                         <th class="pb-2 text-right">TP (Index)</th>
@@ -1136,6 +1138,7 @@
         const alarmTradePayloadBox = document.getElementById('alarm-trade-payload-box');
         const alarmTradePayloadCode = document.getElementById('alarm-trade-payload-code');
         const alarmTradeActionBadge = document.getElementById('alarm-trade-action-badge');
+        const alarmTradeStrikeBadge = document.getElementById('alarm-trade-strike-badge');
         const alarmTradePrice = document.getElementById('alarm-trade-price');
         const alarmTradeSl = document.getElementById('alarm-trade-sl');
         const alarmTradeTp = document.getElementById('alarm-trade-tp');
@@ -1433,35 +1436,72 @@
             });
         }
 
+        // 1-Strike In-The-Money (ITM) 100s Option Selling Contract Helper
+        // We ALWAYS SELL strikes (Option Writing Strategy):
+        // Bullish (UP / BUY alert): SELL nearest ITM PE in 100s (Strike > Spot) -> Math.floor(spot/100 + 1) * 100
+        // Bearish (DOWN / SELL alert): SELL nearest ITM CE in 100s (Strike < Spot) -> Math.ceil(spot/100 - 1) * 100
+        function calculateOptionSellContract(direction, spotPrice) {
+            const isBull = (direction === 'UP' || direction === 'BUY');
+            const signal = isBull ? 'BUY' : 'SELL';
+            const instrument = isBull ? 'PE' : 'CE';
+            const strike = isBull
+                ? (Math.floor(spotPrice / 100.0) + 1) * 100
+                : (Math.ceil(spotPrice / 100.0) - 1) * 100;
+            const strikeName = `NIFTY ${strike} ${instrument}`;
+            const sl = isBull
+                ? +(spotPrice - zeroClickSettings.slOffset).toFixed(2)
+                : +(spotPrice + zeroClickSettings.slOffset).toFixed(2);
+            const tp = isBull
+                ? +(spotPrice + zeroClickSettings.tpOffset).toFixed(2)
+                : +(spotPrice - zeroClickSettings.tpOffset).toFixed(2);
+
+            return {
+                isBull,
+                signal,
+                action: 'SELL',
+                instrument,
+                strike,
+                strikeName,
+                sl,
+                tp,
+                payload: {
+                    category: 'LOCAL_SERVER',
+                    signal: signal,
+                    action: 'SELL',
+                    trade_type: 'SELL',
+                    symbol: 'NIFTY',
+                    instrument: instrument,
+                    option_type: instrument,
+                    strike: strike,
+                    strike_name: strikeName,
+                    trading_symbol: strikeName,
+                    price: spotPrice,
+                    sl: sl,
+                    tp: tp,
+                    lots: zeroClickSettings.lots,
+                    mode: zeroClickSettings.mode,
+                    product: zeroClickSettings.product
+                }
+            };
+        }
+
         // Test Log Trigger from modal
         const handleManualTestLog = () => {
             const currentCandle = currentData?.candles?.[selectedCandleIndex] || currentData?.candles?.slice(-1)[0];
             const spot = currentCandle ? currentCandle.close : 25850.50;
+            const testDir = Math.random() > 0.5 ? 'UP' : 'DOWN';
             const testData = {
-                direction: Math.random() > 0.5 ? 'UP' : 'DOWN',
+                direction: testDir,
                 score: 86,
                 threshold: 80,
                 time: currentCandle ? currentCandle.time_str : '11:45',
                 count: 43,
                 weight: 88.4,
-                pts: 142.5,
-                topStock: 'RELIANCE'
+                pts: testDir === 'UP' ? 142.5 : -142.5,
+                topStock: testDir === 'UP' ? 'RELIANCE' : 'HDFCBANK'
             };
-            const action = testData.direction === 'UP' ? 'BUY' : 'SELL';
-            const sl = action === 'BUY' ? +(spot - zeroClickSettings.slOffset).toFixed(2) : +(spot + zeroClickSettings.slOffset).toFixed(2);
-            const tp = action === 'BUY' ? +(spot + zeroClickSettings.tpOffset).toFixed(2) : +(spot - zeroClickSettings.tpOffset).toFixed(2);
-            const payload = {
-                category: 'LOCAL_SERVER',
-                action: action,
-                symbol: 'NIFTY',
-                price: spot,
-                sl: sl,
-                tp: tp,
-                lots: zeroClickSettings.lots,
-                mode: zeroClickSettings.mode,
-                product: zeroClickSettings.product
-            };
-            logAlertInternally(testData, spot, payload, false, () => fetchAlertLogs(true));
+            const contract = calculateOptionSellContract(testDir, spot);
+            logAlertInternally(testData, spot, contract.payload, false, () => fetchAlertLogs(true), contract);
         };
         if (btnCreateTestLog) btnCreateTestLog.addEventListener('click', handleManualTestLog);
         if (btnEmptyTestLog) btnEmptyTestLog.addEventListener('click', handleManualTestLog);
@@ -1507,7 +1547,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     cachedLogsList = data.logs || [];
-                    loggedSignalsSet = new Set(cachedLogsList.map(l => `${l.trade_date}_${l.candle_time}_${l.action}`));
+                    loggedSignalsSet = new Set(cachedLogsList.map(l => `${l.trade_date}_${l.candle_time}_${l.signal || (l.action === 'BUY' ? 'BUY' : 'SELL')}`));
                     if (logCountBadge) logCountBadge.textContent = cachedLogsList.length;
                     if (modalLogCountBadge) modalLogCountBadge.textContent = `${cachedLogsList.length} Signal${cachedLogsList.length === 1 ? '' : 's'}`;
                     if (renderTable) renderLogsTable();
@@ -1523,7 +1563,12 @@
             const actionVal = logFilterAction ? logFilterAction.value : 'ALL';
             const statusVal = logFilterStatus ? logFilterStatus.value : 'ALL';
 
-            if (actionVal !== 'ALL') filtered = filtered.filter(l => l.action === actionVal);
+            if (actionVal !== 'ALL') {
+                filtered = filtered.filter(l => {
+                    const sig = l.signal || (l.action === 'BUY' ? 'BUY' : 'SELL');
+                    return sig === actionVal;
+                });
+            }
             if (statusVal !== 'ALL') filtered = filtered.filter(l => l.status === statusVal);
 
             if (filtered.length === 0) {
@@ -1535,10 +1580,23 @@
             if (logsEmptyState) logsEmptyState.classList.add('hidden');
 
             logsTableBody.innerHTML = filtered.map(log => {
-                const isBuy = log.action === 'BUY';
-                const actionBadge = isBuy
-                    ? `<span class="px-2 py-0.5 rounded font-black text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">🐂 BUY</span>`
-                    : `<span class="px-2 py-0.5 rounded font-black text-xs bg-rose-500/20 text-rose-300 border border-rose-500/50">🐻 SELL</span>`;
+                const isBull = (log.signal === 'BUY' || (!log.signal && log.action === 'BUY') || log.instrument === 'PE');
+                const signalBadge = isBull
+                    ? `<span class="px-2 py-0.5 rounded font-black text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">🐂 BULL</span>`
+                    : `<span class="px-2 py-0.5 rounded font-black text-xs bg-rose-500/20 text-rose-300 border border-rose-500/50">🐻 BEAR</span>`;
+
+                const instrument = log.instrument || (isBull ? 'PE' : 'CE');
+                const strikeVal = log.strike || (isBull
+                    ? (Math.floor(log.spot_price / 100) + 1) * 100
+                    : (Math.ceil(log.spot_price / 100) - 1) * 100);
+
+                const optionContractBadge = `
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-1.5 py-0.5 rounded font-black text-[10px] bg-rose-950/80 text-rose-200 border border-rose-600/60 font-mono">SELL</span>
+                        <span class="font-bold text-white text-xs">${strikeVal} ${instrument}</span>
+                        <span class="px-1 py-0.2 rounded text-[9px] font-mono ${isBull ? 'bg-emerald-950 text-emerald-300 border border-emerald-600/40' : 'bg-rose-950 text-rose-300 border border-rose-600/40'}">1-ITM</span>
+                    </div>
+                `;
 
                 let statusBadge = '';
                 if (log.status === 'SENT') {
@@ -1557,7 +1615,8 @@
                             <div class="font-bold text-white">${log.candle_time}</div>
                             <div class="text-[10px] text-gray-500">${log.trade_date}</div>
                         </td>
-                        <td class="py-2.5">${actionBadge}</td>
+                        <td class="py-2.5">${signalBadge}</td>
+                        <td class="py-2.5">${optionContractBadge}</td>
                         <td class="py-2.5 text-right font-bold text-white">${Number(log.spot_price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td class="py-2.5 text-right text-rose-300 font-semibold">${log.sl_price ? Number(log.sl_price).toLocaleString('en-IN') : '-'}</td>
                         <td class="py-2.5 text-right text-emerald-300 font-semibold">${log.tp_price ? Number(log.tp_price).toLocaleString('en-IN') : '-'}</td>
@@ -1566,7 +1625,7 @@
                             <span class="text-[10px] text-gray-500 block">(${log.mode})</span>
                         </td>
                         <td class="py-2.5">
-                            <div class="text-gray-300 text-[10px]">${log.breadth_pct}% ${isBuy ? 'Green' : 'Red'} (${log.breadth_weight_pct}% Wt)</div>
+                            <div class="text-gray-300 text-[10px]">${log.breadth_pct}% ${isBull ? 'Green' : 'Red'} (${log.breadth_weight_pct}% Wt)</div>
                             <div class="text-[10px] text-gray-500">${log.top_contributor ? 'Driver: ' + log.top_contributor : ''}</div>
                         </td>
                         <td class="py-2.5 text-center">${statusBadge}</td>
@@ -1601,10 +1660,12 @@
             });
         }
 
-        function logAlertInternally(alertData, spotPrice, payload, dispatchNow = false, callback = null) {
+        function logAlertInternally(alertData, spotPrice, payload, dispatchNow = false, callback = null, contractObj = null) {
             const dateStr = currentData?.date || alertData.date || new Date().toISOString().slice(0, 10);
-            const actionStr = alertData.direction === 'UP' ? 'BUY' : (alertData.action || 'SELL');
-            const logKey = `${dateStr}_${alertData.time}_${actionStr}`;
+            const isBull = (alertData.direction === 'UP' || alertData.action === 'BUY' || alertData.signal === 'BUY');
+            const marketSignal = isBull ? 'BUY' : 'SELL';
+            const contract = contractObj || calculateOptionSellContract(marketSignal, spotPrice);
+            const logKey = `${dateStr}_${alertData.time}_${marketSignal}`;
 
             if (loggedSignalsSet.has(logKey) && !dispatchNow) {
                 // Prevent duplicate internal log entry
@@ -1620,9 +1681,14 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
                 body: JSON.stringify({
-                    action: actionStr,
+                    signal: contract.signal,
+                    action: 'SELL',
+                    instrument: contract.instrument,
+                    strike: contract.strike,
                     symbol: 'NIFTY',
                     price: spotPrice,
+                    sl: contract.sl,
+                    tp: contract.tp,
                     date: dateStr,
                     time: alertData.time,
                     sl_offset: zeroClickSettings.slOffset,
@@ -2955,42 +3021,33 @@
                 detEl.textContent = `At ${alertData.time} · ${alertData.count} stocks Red (${alertData.weight.toFixed(1)}% Weight) · Net: ${alertData.pts.toFixed(1)} pts · Dragged by ${alertData.topStock}`;
             }
 
-            // Calculate Spot Price & 0Click Trade Execution Contract
+            // Calculate Spot Price & 0Click Trade Execution Contract (Option Selling 1-ITM 100s)
             const currentCandle = currentData?.candles?.[selectedCandleIndex] || currentData?.candles?.slice(-1)[0];
             const spotPrice = currentCandle ? currentCandle.close : 25850.50;
-            const action = alertData.direction === 'UP' ? 'BUY' : 'SELL';
-            const sl = action === 'BUY' ? +(spotPrice - zeroClickSettings.slOffset).toFixed(2) : +(spotPrice + zeroClickSettings.slOffset).toFixed(2);
-            const tp = action === 'BUY' ? +(spotPrice + zeroClickSettings.tpOffset).toFixed(2) : +(spotPrice - zeroClickSettings.tpOffset).toFixed(2);
+            const contract = calculateOptionSellContract(alertData.direction, spotPrice);
 
-            const payload = {
-                category: 'LOCAL_SERVER',
-                action: action,
-                symbol: 'NIFTY',
-                price: spotPrice,
-                sl: sl,
-                tp: tp,
-                lots: zeroClickSettings.lots,
-                mode: zeroClickSettings.mode,
-                product: zeroClickSettings.product
-            };
-            currentActivePayload = payload;
+            currentActivePayload = contract.payload;
 
             // Populate Active Card 0Click Trade Strip
             if (alarmTradeActionBadge) {
-                alarmTradeActionBadge.textContent = action;
-                alarmTradeActionBadge.className = action === 'BUY'
-                    ? 'font-black px-1.5 py-0.2 rounded bg-emerald-400 text-black text-[10px]'
-                    : 'font-black px-1.5 py-0.2 rounded bg-rose-400 text-black text-[10px]';
+                alarmTradeActionBadge.textContent = 'SELL';
+                alarmTradeActionBadge.className = 'font-black px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] shadow-sm';
+            }
+            if (alarmTradeStrikeBadge) {
+                alarmTradeStrikeBadge.textContent = `${contract.strike} ${contract.instrument} (1-ITM)`;
+                alarmTradeStrikeBadge.className = contract.isBull
+                    ? 'font-black px-2 py-0.5 rounded bg-emerald-400 text-black text-[11px] shadow-sm'
+                    : 'font-black px-2 py-0.5 rounded bg-amber-400 text-black text-[11px] shadow-sm';
             }
             if (alarmTradePrice) alarmTradePrice.textContent = spotPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            if (alarmTradeSl) alarmTradeSl.textContent = sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            if (alarmTradeTp) alarmTradeTp.textContent = tp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (alarmTradeSl) alarmTradeSl.textContent = contract.sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (alarmTradeTp) alarmTradeTp.textContent = contract.tp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             if (alarmTradeLotsBadge) alarmTradeLotsBadge.textContent = `${zeroClickSettings.lots} Lot${zeroClickSettings.lots > 1 ? 's' : ''} (${zeroClickSettings.mode})`;
-            if (alarmTradePayloadCode) alarmTradePayloadCode.textContent = JSON.stringify(payload, null, 2);
+            if (alarmTradePayloadCode) alarmTradePayloadCode.textContent = JSON.stringify(contract.payload, null, 2);
 
             // Automatic Internal Logging
             if (zeroClickSettings.autoLog) {
-                logAlertInternally(alertData, spotPrice, payload, zeroClickSettings.forwardToZeroClick);
+                logAlertInternally(alertData, spotPrice, contract.payload, zeroClickSettings.forwardToZeroClick, null, contract);
             }
 
             activeAlarmOverlay.classList.remove('hidden');
