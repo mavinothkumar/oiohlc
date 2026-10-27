@@ -156,6 +156,19 @@
                 <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">60s</span>
             </div>
 
+            <!-- Chart Height Selector -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs">
+                <span class="text-gray-400 mr-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    Height:
+                </span>
+                <select id="chart-height-select" class="bg-transparent text-sky-400 font-bold focus:outline-none cursor-pointer text-xs" title="Select Chart Height">
+                    <option value="450" selected class="bg-[#131722]">450px</option>
+                    <option value="550" class="bg-[#131722]">550px</option>
+                    <option value="650" class="bg-[#131722]">650px</option>
+                </select>
+            </div>
+
             <!-- Breadth Alarm Controls (Quick 1-Click Enable/Disable Toggle + Settings) -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded text-xs overflow-hidden">
                 <button id="btn-quick-toggle-alarm" title="Click to Quick Enable / Disable Alarm (For Testing)" class="flex items-center gap-1.5 px-2.5 py-1 text-amber-400 hover:bg-amber-950/50 font-semibold transition cursor-pointer">
@@ -196,35 +209,27 @@
         <!-- Left: Nifty 50 5m Candlestick Chart (8 cols) -->
         <div class="lg:col-span-8 bg-[#131722] border border-gray-800 rounded-lg p-3 shadow-md flex flex-col">
             <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-800/80">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5">
                     <span class="text-sm font-bold text-white flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                         NIFTY 50 (5m Candles)
                     </span>
-                    <span class="text-xs text-gray-400 hidden sm:inline">
+                    <span class="text-xs text-gray-400 hidden xl:inline">
                         Click any candle to inspect breadth at that exact 5-min interval
                     </span>
                 </div>
                 <!-- Chart Info / Legend -->
                 <div class="flex items-center gap-2 sm:gap-3 text-xs">
-                    <!-- Graph Height Customizer -->
-                    <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs">
-                        <span class="text-gray-400 mr-1 text-[11px]">Height:</span>
-                        <select id="chart-height-select" class="bg-transparent text-sky-400 font-bold focus:outline-none cursor-pointer text-xs" title="Select Chart Height">
-                            <option value="450" selected class="bg-[#131722]">450px</option>
-                            <option value="550" class="bg-[#131722]">550px</option>
-                            <option value="650" class="bg-[#131722]">650px</option>
-                        </select>
-                    </div>
-
                     <span class="text-gray-400">Selected: <strong id="chart-selected-time" class="text-sky-400 font-mono">09:15</strong></span>
                     <button id="btn-snap-live" title="Snap to latest candle" class="hidden px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] items-center gap-1 transition">
                         <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
                         Snap to Live
                     </button>
-                    <span class="text-gray-400 hidden sm:inline">Open: <span id="chart-open" class="text-gray-200 font-mono font-semibold">-</span></span>
-                    <span class="text-gray-400 hidden sm:inline">Close: <span id="chart-close" class="text-gray-200 font-mono font-semibold">-</span></span>
-                    <span class="text-gray-400">Move: <span id="chart-move" class="font-mono font-bold">-</span></span>
+                    <div class="hidden sm:flex items-center gap-2.5 pl-2 border-l border-gray-800">
+                        <span class="text-gray-400">O: <span id="chart-open" class="text-gray-200 font-mono font-semibold">-</span></span>
+                        <span class="text-gray-400">C: <span id="chart-close" class="text-gray-200 font-mono font-semibold">-</span></span>
+                        <span class="text-gray-400">Chg: <span id="chart-move" class="font-mono font-bold">-</span></span>
+                    </div>
                 </div>
             </div>
 
@@ -263,36 +268,36 @@
 
         <!-- Right: Ratio of Green and Red Candles & Weightage Seriousness (4 cols) -->
         <div class="lg:col-span-4 bg-[#131722] border border-gray-800 rounded-lg p-3 shadow-md flex flex-col justify-between">
-            <div>
+            <div class="space-y-2.5">
                 <!-- Selected Time Header & Point Change -->
-                <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-800">
+                <div class="flex items-center justify-between pb-2 border-b border-gray-800">
                     <div>
-                        <span class="text-xs uppercase tracking-wider text-gray-400 font-medium">Selected Candle Interval</span>
+                        <span class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Selected Candle Interval</span>
                         <div class="text-sm font-bold text-sky-400 font-mono flex items-center gap-1.5" id="stat-time-label">
                             09:15 - 5-min candle
                         </div>
                     </div>
                     <!-- Net Points Move in this candle -->
                     <div class="text-right">
-                        <span class="text-xs text-gray-400">Index Move</span>
-                        <div id="stat-net-pts" class="text-xl font-black font-mono text-emerald-400">
+                        <span class="text-[11px] text-gray-400">Index Move</span>
+                        <div id="stat-net-pts" class="text-lg font-black font-mono text-emerald-400">
                             +0.0 pts
                         </div>
                     </div>
                 </div>
 
                 <!-- Green vs Red Ratio Big Blocks (Sample Image Layout) -->
-                <div class="grid grid-cols-2 gap-2.5 my-2">
+                <div class="grid grid-cols-2 gap-2">
                     <!-- GREEN (UP) Box -->
-                    <div id="box-up" class="bg-gradient-to-br from-emerald-950/80 to-emerald-900/40 border border-emerald-500/40 rounded-lg p-3 flex flex-col items-center justify-center text-center shadow-inner relative overflow-hidden group hover:border-emerald-400 transition cursor-pointer" onclick="filterTableByColor('green')">
-                        <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
-                        <span class="text-3xl font-black text-emerald-400 font-mono tracking-tight" id="stat-green-pct">
+                    <div id="box-up" class="bg-gradient-to-br from-emerald-950/80 to-emerald-900/40 border border-emerald-500/40 rounded-lg p-2.5 flex flex-col items-center justify-center text-center shadow-inner relative overflow-hidden group hover:border-emerald-400 transition cursor-pointer" onclick="filterTableByColor('green')">
+                        <div class="absolute -right-4 -bottom-4 w-14 h-14 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+                        <span class="text-2xl font-black text-emerald-400 font-mono tracking-tight" id="stat-green-pct">
                             0%
                         </span>
-                        <span class="px-2 py-0.5 mt-1 bg-emerald-500/20 text-emerald-300 font-bold text-xs rounded uppercase tracking-wider">
+                        <span class="px-2 py-0.2 mt-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[10px] rounded uppercase tracking-wider">
                             UP
                         </span>
-                        <div class="mt-2 text-xs text-emerald-200/90 font-medium space-y-0.5">
+                        <div class="mt-1.5 text-xs text-emerald-200/90 font-medium space-y-0.5">
                             <div>Weight: <strong id="stat-green-weight" class="text-white">0.0%</strong></div>
                             <div><strong id="stat-green-count" class="text-white">0</strong> stocks</div>
                             <div class="text-[11px] text-emerald-300/80">Net: <span id="stat-green-pts">+0.0 pts</span></div>
@@ -300,15 +305,15 @@
                     </div>
 
                     <!-- RED (DOWN) Box -->
-                    <div id="box-down" class="bg-gradient-to-br from-rose-950/80 to-rose-900/40 border border-rose-500/40 rounded-lg p-3 flex flex-col items-center justify-center text-center shadow-inner relative overflow-hidden group hover:border-rose-400 transition cursor-pointer" onclick="filterTableByColor('red')">
-                        <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
-                        <span class="text-3xl font-black text-rose-400 font-mono tracking-tight" id="stat-red-pct">
+                    <div id="box-down" class="bg-gradient-to-br from-rose-950/80 to-rose-900/40 border border-rose-500/40 rounded-lg p-2.5 flex flex-col items-center justify-center text-center shadow-inner relative overflow-hidden group hover:border-rose-400 transition cursor-pointer" onclick="filterTableByColor('red')">
+                        <div class="absolute -right-4 -bottom-4 w-14 h-14 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
+                        <span class="text-2xl font-black text-rose-400 font-mono tracking-tight" id="stat-red-pct">
                             0%
                         </span>
-                        <span class="px-2 py-0.5 mt-1 bg-rose-500/20 text-rose-300 font-bold text-xs rounded uppercase tracking-wider">
+                        <span class="px-2 py-0.2 mt-0.5 bg-rose-500/20 text-rose-300 font-bold text-[10px] rounded uppercase tracking-wider">
                             DOWN
                         </span>
-                        <div class="mt-2 text-xs text-rose-200/90 font-medium space-y-0.5">
+                        <div class="mt-1.5 text-xs text-rose-200/90 font-medium space-y-0.5">
                             <div>Weight: <strong id="stat-red-weight" class="text-white">0.0%</strong></div>
                             <div><strong id="stat-red-count" class="text-white">0</strong> stocks</div>
                             <div class="text-[11px] text-rose-300/80">Net: <span id="stat-red-pts">-0.0 pts</span></div>
@@ -317,7 +322,7 @@
                 </div>
 
                 <!-- Weight Breadth vs Count Breadth Bar -->
-                <div class="mt-2 bg-[#1a1e29] border border-gray-800 rounded p-2 text-xs space-y-1.5">
+                <div class="bg-[#1a1e29] border border-gray-800 rounded p-2 text-xs space-y-1">
                     <div class="flex justify-between items-center text-[11px] text-gray-400">
                         <span>Weight Influence (100% Index)</span>
                         <span id="stat-weight-split" class="font-mono text-gray-300">50% G / 50% R</span>
@@ -330,7 +335,7 @@
                 </div>
 
                 <!-- Institutional Seriousness / Heavyweight Divergence Alert -->
-                <div id="stat-insight-card" class="mt-2.5 p-2.5 rounded border border-gray-700 bg-gray-800/40 text-xs">
+                <div id="stat-insight-card" class="p-2.5 rounded border border-gray-700 bg-gray-800/40 text-xs transition-colors">
                     <div class="flex items-center gap-1.5 font-bold" id="stat-insight-badge">
                         <span>⚖️ Analyzing Breadth Conviction...</span>
                     </div>
@@ -338,17 +343,48 @@
                         Select any 5m candle to evaluate if heavyweights confirm or oppose the broader stock count.
                     </p>
                 </div>
+
+                <!-- Candle Key Movers (Top Drivers & Draggers in this Candle) -->
+                <div class="bg-[#1a1e29]/70 border border-gray-800 rounded-lg p-2.5">
+                    <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-gray-800 text-xs">
+                        <span class="font-bold text-gray-300 flex items-center gap-1.5">
+                            <span>⚡</span>
+                            <span>Candle Key Movers</span>
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-mono" id="movers-candle-time">09:15</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Top Green Drivers -->
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                                <span>▲</span> Drivers (+pts)
+                            </span>
+                            <div id="candle-top-contributors" class="space-y-1 font-mono text-[11px]">
+                                <div class="text-gray-500 italic py-1 text-[10px]">Loading...</div>
+                            </div>
+                        </div>
+                        <!-- Top Red Draggers -->
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1">
+                                <span>▼</span> Draggers (-pts)
+                            </span>
+                            <div id="candle-top-draggers" class="space-y-1 font-mono text-[11px]">
+                                <div class="text-gray-500 italic py-1 text-[10px]">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Quick Filter Buttons -->
-            <div class="mt-3 pt-2 border-t border-gray-800 flex flex-wrap items-center justify-between gap-1 text-xs">
-                <span class="text-gray-400 text-[11px]">Filter View:</span>
+            <div class="mt-2.5 pt-2 border-t border-gray-800 flex flex-wrap items-center justify-between gap-1 text-xs">
+                <span class="text-gray-400 text-[11px] font-medium">Matrix Filter:</span>
                 <div class="flex flex-wrap gap-1">
-                    <button class="filter-pill px-2 py-0.5 rounded bg-blue-600 text-white font-medium" data-filter="all">All 50</button>
-                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-gray-700 text-gray-300 font-medium" data-filter="top50weight">Top 50% Wt</button>
-                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-gray-700 text-gray-300 font-medium" data-filter="top10">Top 10</button>
-                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-emerald-950 text-emerald-400 font-medium" data-filter="green">Green Only</button>
-                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-rose-950 text-rose-400 font-medium" data-filter="red">Red Only</button>
+                    <button class="filter-pill px-2 py-0.5 rounded bg-blue-600 text-white font-medium text-[11px]" data-filter="all">All 50</button>
+                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-gray-700 text-gray-300 font-medium text-[11px]" data-filter="top50weight">Top 50% Wt</button>
+                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-gray-700 text-gray-300 font-medium text-[11px]" data-filter="top10">Top 10</button>
+                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-emerald-950 text-emerald-400 font-medium text-[11px]" data-filter="green">Green Only</button>
+                    <button class="filter-pill px-2 py-0.5 rounded bg-[#1a1e29] hover:bg-rose-950 text-rose-400 font-medium text-[11px]" data-filter="red">Red Only</button>
                 </div>
             </div>
         </div>
@@ -2349,16 +2385,19 @@
 
             // Insight styling
             if (ins.type === 'DIVERGENCE_BEARISH') {
-                cardEl.className = 'mt-2.5 p-2.5 rounded border border-amber-500/50 bg-amber-950/30 text-amber-200 text-xs';
+                cardEl.className = 'p-2.5 rounded border border-amber-500/50 bg-amber-950/30 text-amber-200 text-xs transition-colors';
             } else if (ins.type === 'DIVERGENCE_BULLISH') {
-                cardEl.className = 'mt-2.5 p-2.5 rounded border border-cyan-500/50 bg-cyan-950/30 text-cyan-200 text-xs';
+                cardEl.className = 'p-2.5 rounded border border-cyan-500/50 bg-cyan-950/30 text-cyan-200 text-xs transition-colors';
             } else if (ins.type === 'STRONG_BULLISH') {
-                cardEl.className = 'mt-2.5 p-2.5 rounded border border-emerald-500/50 bg-emerald-950/30 text-emerald-200 text-xs';
+                cardEl.className = 'p-2.5 rounded border border-emerald-500/50 bg-emerald-950/30 text-emerald-200 text-xs transition-colors';
             } else if (ins.type === 'STRONG_BEARISH') {
-                cardEl.className = 'mt-2.5 p-2.5 rounded border border-rose-500/50 bg-rose-950/30 text-rose-200 text-xs';
+                cardEl.className = 'p-2.5 rounded border border-rose-500/50 bg-rose-950/30 text-rose-200 text-xs transition-colors';
             } else {
-                cardEl.className = 'mt-2.5 p-2.5 rounded border border-gray-700 bg-gray-800/40 text-gray-300 text-xs';
+                cardEl.className = 'p-2.5 rounded border border-gray-700 bg-gray-800/40 text-gray-300 text-xs transition-colors';
             }
+
+            // Update Candle Movers (Drivers & Draggers)
+            renderCandleMovers(b);
 
             // Update Sector Leadership list
             renderSectorSummary(b.sector_summary);
@@ -2678,6 +2717,46 @@
             });
 
             container.innerHTML = html;
+        }
+
+        // Render Candle Key Movers (Top Contributors & Draggers for selected 5m candle)
+        function renderCandleMovers(b) {
+            const timeEl = document.getElementById('movers-candle-time');
+            if (timeEl) timeEl.textContent = selectedTime;
+
+            const contribContainer = document.getElementById('candle-top-contributors');
+            const dragContainer = document.getElementById('candle-top-draggers');
+            if (!contribContainer || !dragContainer) return;
+
+            // Top 3 green contributors
+            const topContrib = (b.top_contributors || []).filter(s => s.pts > 0).slice(0, 3);
+            if (topContrib.length === 0) {
+                contribContainer.innerHTML = '<div class="text-gray-500 italic py-1 text-[10px]">No positive movers</div>';
+            } else {
+                contribContainer.innerHTML = topContrib.map(s => `
+                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40 hover:border-emerald-600/50 transition">
+                        <span class="font-semibold text-gray-200 truncate pr-1 text-[11px]" title="${s.name || s.symbol}">
+                            ${s.symbol} <span class="text-[9px] text-gray-400 font-normal">(${s.weight.toFixed(1)}%)</span>
+                        </span>
+                        <span class="text-emerald-400 font-bold whitespace-nowrap text-[11px]">+${s.pts.toFixed(1)}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Top 3 red draggers
+            const topDrag = (b.top_draggers || []).filter(s => s.pts < 0).slice(0, 3);
+            if (topDrag.length === 0) {
+                dragContainer.innerHTML = '<div class="text-gray-500 italic py-1 text-[10px]">No negative movers</div>';
+            } else {
+                dragContainer.innerHTML = topDrag.map(s => `
+                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-950/40 border border-rose-800/40 hover:border-rose-600/50 transition">
+                        <span class="font-semibold text-gray-200 truncate pr-1 text-[11px]" title="${s.name || s.symbol}">
+                            ${s.symbol} <span class="text-[9px] text-gray-400 font-normal">(${s.weight.toFixed(1)}%)</span>
+                        </span>
+                        <span class="text-rose-400 font-bold whitespace-nowrap text-[11px]">${s.pts.toFixed(1)}</span>
+                    </div>
+                `).join('');
+            }
         }
 
         // Render Sector Impact Summary
