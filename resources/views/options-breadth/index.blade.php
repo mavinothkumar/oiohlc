@@ -151,20 +151,22 @@
                 </select>
             </div>
 
-            <!-- Live Auto Refresh (5m or configurable) -->
+            <!-- Live Auto Refresh (Configurable) -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs">
                 <span class="text-gray-400 mr-1.5 flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
                     Auto:
                 </span>
                 <select id="auto-refresh-select" class="bg-transparent text-white focus:outline-none cursor-pointer font-bold">
-                    <option value="30" class="bg-[#131722]">30s</option>
+                    <option value="5" class="bg-[#131722]">5s</option>
+                    <option value="15" class="bg-[#131722]">15s</option>
+                    <option value="30" selected class="bg-[#131722]">30s (Default)</option>
                     <option value="60" class="bg-[#131722]">1m</option>
                     <option value="180" class="bg-[#131722]">3m</option>
-                    <option value="300" selected class="bg-[#131722]">5m (Default)</option>
+                    <option value="300" class="bg-[#131722]">5m</option>
                     <option value="0" class="bg-[#131722]">Off</option>
                 </select>
-                <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">5m</span>
+                <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">30s</span>
             </div>
 
             <!-- Breadth Alarm Controls (Configurable Threshold) -->
@@ -460,45 +462,43 @@
     let alarmThreshold = 75;
     let alarmSoundEnabled = true;
     let audioCtx = null;
-    let autoRefreshSecs = 300; // 5 minutes default
-    let countdown = autoRefreshSecs;
     let autoRefreshTimer = null;
+    let countdownSeconds = 30;
+    const autoRefreshSelect = document.getElementById('auto-refresh-select');
+    const countdownBadge = document.getElementById('countdown-badge');
 
-    function resetCountdown() {
-        countdown = autoRefreshSecs;
-        updateCountdownBadge();
-    }
-
-    function updateCountdownBadge() {
-        const badge = document.getElementById('countdown-badge');
-        if (!badge) return;
-        if (autoRefreshSecs === 0) {
-            badge.textContent = 'Off';
-        } else if (countdown >= 60) {
-            badge.textContent = `${Math.ceil(countdown / 60)}m`;
-        } else {
-            badge.textContent = `${countdown}s`;
+    // Load saved auto-refresh preference from localStorage
+    try {
+        const savedInterval = localStorage.getItem('options_breadth_auto_refresh');
+        if (savedInterval !== null && autoRefreshSelect) {
+            autoRefreshSelect.value = savedInterval;
         }
-    }
+    } catch(e) {}
 
-    function startAutoRefreshLoop() {
-        clearInterval(autoRefreshTimer);
-        if (autoRefreshSecs === 0) {
-            updateCountdownBadge();
+    function setupAutoRefresh() {
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        if (!autoRefreshSelect) return;
+
+        const intervalSecs = parseInt(autoRefreshSelect.value, 10);
+
+        if (intervalSecs <= 0) {
+            if (countdownBadge) countdownBadge.textContent = 'Off';
             return;
         }
+
+        countdownSeconds = intervalSecs;
+        if (countdownBadge) countdownBadge.textContent = `${countdownSeconds}s`;
 
         autoRefreshTimer = setInterval(() => {
             // Do not disrupt active replay playback
             if (isPlaying) return;
 
-            countdown--;
-            updateCountdownBadge();
-
-            if (countdown <= 0) {
-                resetCountdown();
+            countdownSeconds--;
+            if (countdownSeconds <= 0) {
+                countdownSeconds = intervalSecs;
                 loadData(true); // Background silent refresh
             }
+            if (countdownBadge) countdownBadge.textContent = `${countdownSeconds}s`;
         }, 1000);
     }
 
@@ -575,6 +575,7 @@
 
     // Fetch Data from Controller API (Supports background auto-refresh)
     async function loadData(isAuto = false) {
+        isAuto = (isAuto === true);
         const date = document.getElementById('date-select').value;
         const range = document.getElementById('range-select').value;
         const loading = document.getElementById('chart-loading');
@@ -593,10 +594,34 @@
                 return;
             }
 
+            // Update Session Status Badge & Server Time
+            const badge = document.getElementById('session-badge');
+            if (badge) {
+                if (appData.is_live) {
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span> LIVE MARKET (${appData.server_time})`;
+                    badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 flex items-center gap-1.5';
+                } else if (appData.is_today) {
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> TODAY SESSION (${appData.server_time})`;
+                    badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-sky-950/60 text-sky-400 border border-sky-600/30 flex items-center gap-1.5';
+                } else {
+                    badge.innerHTML = `HISTORICAL (${appData.date})`;
+                    badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-gray-800 text-gray-300 border border-gray-700 flex items-center gap-1.5';
+                }
+            }
+
+            const pageClock = document.getElementById('page-updated-time');
+            if (pageClock && appData.server_time) {
+                pageClock.textContent = `${appData.date}, ${appData.server_time}`;
+            }
+
             // Populate Chart
             if (!chart) initChart();
             candleSeries.setData(appData.lw_chart_candles);
-            if (!isAuto) chart.timeScale().fitContent();
+            if (!isAuto) {
+                chart.timeScale().fitContent();
+            } else if (wasAtLatest) {
+                chart.timeScale().scrollToRealtime();
+            }
 
             // Populate Matrix & Timeline Headers
             buildTimelineHeader(appData.timestamps);
@@ -615,8 +640,6 @@
             } else {
                 applyCandleIndex(Math.min(currentIdx, appData.timestamps.length - 1));
             }
-
-            resetCountdown();
 
         } catch (err) {
             console.error(err);
@@ -846,25 +869,25 @@
         document.getElementById('play-text').textContent = 'Play';
     }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', () => {
-        loadData();
+    // App Initialization & Event listeners
+    function initApp() {
+        loadData(false);
 
         // Auto-refresh timer listener & loop start
-        const refreshSel = document.getElementById('auto-refresh-select');
-        if (refreshSel) {
-            refreshSel.addEventListener('change', e => {
-                autoRefreshSecs = parseInt(e.target.value, 10);
-                resetCountdown();
-                startAutoRefreshLoop();
+        if (autoRefreshSelect) {
+            autoRefreshSelect.addEventListener('change', () => {
+                try {
+                    localStorage.setItem('options_breadth_auto_refresh', autoRefreshSelect.value);
+                } catch(e) {}
+                setupAutoRefresh();
             });
         }
-        startAutoRefreshLoop();
+        setupAutoRefresh();
 
-        // Date & Range Changes
-        document.getElementById('date-select').addEventListener('change', loadData);
-        document.getElementById('range-select').addEventListener('change', loadData);
-        document.getElementById('btn-reload').addEventListener('click', loadData);
+        // Date & Range Changes (Explicitly call with isAuto = false)
+        document.getElementById('date-select').addEventListener('change', () => loadData(false));
+        document.getElementById('range-select').addEventListener('change', () => loadData(false));
+        document.getElementById('btn-reload').addEventListener('click', () => loadData(false));
 
         // Slider
         document.getElementById('candle-slider').addEventListener('input', e => {
@@ -944,7 +967,13 @@
                 else startPlayback();
             }
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
 })();
 </script>
 @endsection
