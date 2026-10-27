@@ -1063,9 +1063,36 @@
             console.warn('Could not read alarm settings:', e);
         }
 
-        // Lightweight Charts instance
+        // Lightweight Charts instance & Height Customization (450px default, 550px, 650px)
         let chart = null;
         let candleSeries = null;
+        const chartHeightSelect = document.getElementById('chart-height-select');
+        let currentChartHeight = parseInt(localStorage.getItem('nifty_chart_height')) || 450;
+
+        function applyChartHeight(h) {
+            currentChartHeight = parseInt(h) || 450;
+            const container = document.getElementById('nifty-chart-container');
+            if (container) {
+                container.style.height = `${currentChartHeight}px`;
+            }
+            if (chart) {
+                chart.applyOptions({
+                    width: container.clientWidth,
+                    height: currentChartHeight,
+                });
+                chart.timeScale().fitContent();
+            }
+            try {
+                localStorage.setItem('nifty_chart_height', currentChartHeight);
+            } catch (e) {}
+        }
+
+        if (chartHeightSelect) {
+            chartHeightSelect.value = currentChartHeight;
+            chartHeightSelect.addEventListener('change', (e) => {
+                applyChartHeight(e.target.value);
+            });
+        }
 
         // Elements
         const dateSelect = document.getElementById('date-select');
@@ -1890,35 +1917,6 @@
                 togglePlayback();
             }
         });
-
-        // Chart Height Customization (450px default, 550px, 650px)
-        const chartHeightSelect = document.getElementById('chart-height-select');
-        let currentChartHeight = parseInt(localStorage.getItem('nifty_chart_height')) || 450;
-
-        function applyChartHeight(h) {
-            currentChartHeight = parseInt(h) || 450;
-            const container = document.getElementById('nifty-chart-container');
-            if (container) {
-                container.style.height = `${currentChartHeight}px`;
-            }
-            if (chart) {
-                chart.applyOptions({
-                    width: container.clientWidth,
-                    height: currentChartHeight,
-                });
-                chart.timeScale().fitContent();
-            }
-            try {
-                localStorage.setItem('nifty_chart_height', currentChartHeight);
-            } catch (e) {}
-        }
-
-        if (chartHeightSelect) {
-            chartHeightSelect.value = currentChartHeight;
-            chartHeightSelect.addEventListener('change', (e) => {
-                applyChartHeight(e.target.value);
-            });
-        }
 
         // Window resize handler
         window.addEventListener('resize', () => {
