@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ZeroClickAlertLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class NiftyWeightageMonitorController extends Controller
@@ -131,6 +133,7 @@ class NiftyWeightageMonitorController extends Controller
         $curTimeStr = $nowKolkata->format('H:i');
         $isWeekday = !in_array($nowKolkata->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
+        $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
         // 1. Fetch real NIFTY 5m candles from database if present
         $dbCandles = DB::table('ohlc_5m_quotes')
@@ -147,13 +150,19 @@ class NiftyWeightageMonitorController extends Controller
         $niftyCandles = [];
         $seenTimes = [];
 
-        if ($dbCandles->count() >= 3) {
+        if ($dbCandles->count() >= 1) {
             foreach ($dbCandles as $c) {
                 $ts = Carbon::parse($c->ts_at, 'Asia/Kolkata');
                 $timeStr = $ts->format('H:i');
                 if ($timeStr < '09:15' || $timeStr > '15:25' || isset($seenTimes[$timeStr])) {
                     continue;
                 }
+
+                // If today on weekday, never take candles that have not occurred yet
+                if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) {
+                    continue;
+                }
+
                 $seenTimes[$timeStr] = true;
 
                 $open  = round((float)$c->open, 2);
@@ -180,7 +189,7 @@ class NiftyWeightageMonitorController extends Controller
 
         // If today or selected date has no DB rows yet, generate a realistic market session
         if (empty($niftyCandles)) {
-            $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr);
+            $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
         }
 
         // 2. Synthesize all 50 constituent stocks' 5-minute candles perfectly coordinated with Nifty
@@ -210,6 +219,8 @@ class NiftyWeightageMonitorController extends Controller
             'date'             => $date,
             'is_today'         => $isToday,
             'is_live'          => $isMarketHours,
+            'is_pre_market'    => $isPreMarket,
+            'market_status'    => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
             'server_time'      => $nowKolkata->format('H:i:s'),
             'latest_time'      => $latestCandle ? $latestCandle['time_str'] : '09:15',
             'latest_price'     => $latestCandle ? $latestCandle['close'] : 0,
@@ -270,27 +281,34 @@ class NiftyWeightageMonitorController extends Controller
             $rawPoints = [];
             $totalSimPoints = 0.0;
 
+            $isZeroCandle = ($nCandle['volume'] === 0 && abs($niftyMovePts) < 0.001);
+
             foreach ($this->constituents as $stock) {
                 $sym = $stock['symbol'];
                 $weight = $stock['weight'];
                 $beta = $stock['beta'];
 
-                // Stock move = Beta * NiftyMovePct + noise
-                $noiseStd = (1.0 - ($weight / 25.0)) * 0.12;
-                $noise = ( (mt_rand(0, 1000) / 1000) - 0.5 ) * $noiseStd * 2;
+                if ($isZeroCandle) {
+                    $simMovePct = 0.0;
+                    $rawPoint = 0.0;
+                } else {
+                    // Stock move = Beta * NiftyMovePct + noise
+                    $noiseStd = (1.0 - ($weight / 25.0)) * 0.12;
+                    $noise = ( (mt_rand(0, 1000) / 1000) - 0.5 ) * $noiseStd * 2;
 
-                // Sector bias simulation
-                $sectorBias = 0.0;
-                if ($stock['sector'] === 'Financial Services') {
-                    $sectorBias = sin($candleIndex * 0.25) * 0.05;
-                } elseif ($stock['sector'] === 'Information Technology') {
-                    $sectorBias = cos($candleIndex * 0.20) * 0.05;
+                    // Sector bias simulation
+                    $sectorBias = 0.0;
+                    if ($stock['sector'] === 'Financial Services') {
+                        $sectorBias = sin($candleIndex * 0.25) * 0.05;
+                    } elseif ($stock['sector'] === 'Information Technology') {
+                        $sectorBias = cos($candleIndex * 0.20) * 0.05;
+                    }
+
+                    $simMovePct = ($niftyMovePct * $beta) + $noise + $sectorBias;
+                    $simMovePct = max(-1.8, min(1.8, $simMovePct));
+                    $rawPoint = ($weight / 100.0) * ($simMovePct / 100.0) * $niftyOpen;
                 }
 
-                $simMovePct = ($niftyMovePct * $beta) + $noise + $sectorBias;
-                $simMovePct = max(-1.8, min(1.8, $simMovePct));
-
-                $rawPoint = ($weight / 100.0) * ($simMovePct / 100.0) * $niftyOpen;
                 $rawPoints[$sym] = [
                     'move_pct'  => $simMovePct,
                     'raw_point' => $rawPoint,
@@ -534,9 +552,9 @@ class NiftyWeightageMonitorController extends Controller
 
     /**
      * Generates a realistic session for NIFTY 50.
-     * When isMarketHours is true, generates candles only up to the current 5-min slot and streams live!
+     * When isToday is true on a trading day, generates candles only up to the current 5-min slot and streams live!
      */
-    protected function generateRealisticNiftyCandles(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30'): array
+    protected function generateRealisticNiftyCandles(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30', bool $isWeekday = true, bool $isPreMarket = false): array
     {
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
@@ -560,12 +578,22 @@ class NiftyWeightageMonitorController extends Controller
             '15:00','15:05','15:10','15:15','15:20','15:25'
         ];
 
-        // If today during market hours, only take candles up to current 5m slot
+        // If today on a weekday, strictly take candles that have actually occurred!
         $activeTimes = $allTimes;
-        if ($isToday && $isMarketHours) {
-            $activeTimes = array_filter($allTimes, fn($t) => $t <= $curTimeStr);
-            if (empty($activeTimes)) {
+        if ($isToday && $isWeekday) {
+            if ($curTimeStr < '09:15') {
+                // Pre-market (09:00 - 09:15) or before market:
+                // Strictly show ONLY the opening slot '09:15' as forming/pre-open! Never afternoon bars!
                 $activeTimes = ['09:15'];
+            } elseif ($curTimeStr <= '15:30') {
+                // Live market hours: take candles strictly up to current 5-min slot
+                $activeTimes = array_values(array_filter($allTimes, fn($t) => $t <= $curTimeStr));
+                if (empty($activeTimes)) {
+                    $activeTimes = ['09:15'];
+                }
+            } else {
+                // After 15:30: session is complete
+                $activeTimes = $allTimes;
             }
         }
 
@@ -580,12 +608,22 @@ class NiftyWeightageMonitorController extends Controller
             elseif ($idx > 60) $volFactor = 1.5;
             elseif ($idx >= 25 && $idx <= 45) $volFactor = 0.6;
 
-            $step = ($trendBias * 12.0) + (((mt_rand(0, 1000) / 1000) - 0.5) * 28.0 * $volFactor);
+            // If it's today and before 09:15, candle is in pre-open indicative state
+            if ($isToday && $curTimeStr < '09:15') {
+                $open = round($curPrice, 2);
+                $close = $open;
+                $high = $open;
+                $low = $open;
+                $vol = 0;
+            } else {
+                $step = ($trendBias * 12.0) + (((mt_rand(0, 1000) / 1000) - 0.5) * 28.0 * $volFactor);
 
-            $open = round($curPrice, 2);
-            $close = round($open + $step, 2);
-            $high = round(max($open, $close) + (mt_rand(2, 12) * $volFactor), 2);
-            $low = round(min($open, $close) - (mt_rand(2, 12) * $volFactor), 2);
+                $open = round($curPrice, 2);
+                $close = round($open + $step, 2);
+                $high = round(max($open, $close) + (mt_rand(2, 12) * $volFactor), 2);
+                $low = round(min($open, $close) - (mt_rand(2, 12) * $volFactor), 2);
+                $vol = mt_rand(40000, 250000);
+            }
 
             $curPrice = $close;
 
@@ -597,7 +635,7 @@ class NiftyWeightageMonitorController extends Controller
                 'high'      => $high,
                 'low'       => $low,
                 'close'     => $close,
-                'volume'    => mt_rand(40000, 250000),
+                'volume'    => $vol,
                 'move_pts'  => round($close - $open, 2),
                 'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
                 'color'     => $close >= $open ? 'green' : 'red',
@@ -605,5 +643,276 @@ class NiftyWeightageMonitorController extends Controller
         }
 
         return $candles;
+    }
+
+    /**
+     * Store internal alert log when breadth extreme triggers.
+     * Optionally dispatches payload to 0click.in if dispatch_now is true.
+     */
+    public function logAlert(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'action'              => 'required|string|in:BUY,SELL',
+            'symbol'              => 'nullable|string',
+            'price'               => 'required|numeric',
+            'date'                => 'nullable|string',
+            'time'                => 'required|string',
+            'sl'                  => 'nullable|numeric',
+            'tp'                  => 'nullable|numeric',
+            'sl_offset'           => 'nullable|integer',
+            'tp_offset'           => 'nullable|integer',
+            'lots'                => 'nullable|integer|min:1|max:100',
+            'mode'                => 'nullable|string|in:SIMULATION,LIVE',
+            'product'             => 'nullable|string|in:MARGIN,INTRADAY',
+            'category'            => 'nullable|string',
+            'breadth_pct'         => 'nullable|numeric',
+            'breadth_weight_pct'  => 'nullable|numeric',
+            'breadth_count'       => 'nullable|integer',
+            'net_points'          => 'nullable|numeric',
+            'top_contributor'     => 'nullable|string',
+            'dispatch_now'        => 'nullable|boolean',
+            'webhook_url'         => 'nullable|string',
+            'webhook_token'       => 'nullable|string',
+        ]);
+
+        $action = strtoupper($validated['action']);
+        $symbol = $validated['symbol'] ?? 'NIFTY';
+        $price = round((float)$validated['price'], 2);
+        $timeStr = $validated['time'];
+        $dateStr = $validated['date'] ?? Carbon::now('Asia/Kolkata')->toDateString();
+        $slOffset = isset($validated['sl_offset']) ? (int)$validated['sl_offset'] : 100;
+        $tpOffset = isset($validated['tp_offset']) ? (int)$validated['tp_offset'] : 200;
+        $lots = isset($validated['lots']) ? (int)$validated['lots'] : 1;
+        $mode = strtoupper($validated['mode'] ?? 'SIMULATION');
+        $product = strtoupper($validated['product'] ?? 'MARGIN');
+        $category = $validated['category'] ?? 'LOCAL_SERVER';
+
+        // Calculate default SL and TP if not explicitly passed
+        // For BUY: SL is below entry, TP is above entry
+        // For SELL: SL is above entry, TP is below entry
+        if (isset($validated['sl']) && is_numeric($validated['sl'])) {
+            $sl = round((float)$validated['sl'], 2);
+        } else {
+            $sl = $action === 'BUY' ? round($price - $slOffset, 2) : round($price + $slOffset, 2);
+        }
+
+        if (isset($validated['tp']) && is_numeric($validated['tp'])) {
+            $tp = round((float)$validated['tp'], 2);
+        } else {
+            $tp = $action === 'BUY' ? round($price + $tpOffset, 2) : round($price - $tpOffset, 2);
+        }
+
+        // Exact 0click.in Payload Contract
+        $payload = [
+            'category' => $category,
+            'action'   => $action,
+            'symbol'   => $symbol,
+            'price'    => $price,
+            'sl'       => $sl,
+            'tp'       => $tp,
+            'lots'     => $lots,
+            'mode'     => $mode,
+            'product'  => $product,
+        ];
+
+        try {
+            $triggeredAt = Carbon::parse("{$dateStr} {$timeStr}:00", 'Asia/Kolkata');
+        } catch (\Throwable $e) {
+            $triggeredAt = Carbon::now('Asia/Kolkata');
+        }
+
+        // Deduplication guard: check if an alert for this date + candle_time + action already exists!
+        $existingLog = ZeroClickAlertLog::where('trade_date', $dateStr)
+            ->where('candle_time', $timeStr)
+            ->where('action', $action)
+            ->first();
+
+        if ($existingLog) {
+            // If dispatch_now requested and not sent yet
+            if (!empty($validated['dispatch_now']) && $existingLog->status !== 'SENT') {
+                $this->executeWebhookDispatch($existingLog, $validated['webhook_url'] ?? $existingLog->endpoint_url, $validated['webhook_token'] ?? null);
+            }
+
+            return response()->json([
+                'status'       => 'success',
+                'is_duplicate' => true,
+                'message'      => "Alert for {$timeStr} ({$action}) already logged.",
+                'log'          => $existingLog->fresh(),
+                'payload'      => $existingLog->payload,
+            ]);
+        }
+
+        // Create internal log
+        $log = ZeroClickAlertLog::create([
+            'triggered_at'       => $triggeredAt,
+            'trade_date'         => $dateStr,
+            'candle_time'        => $timeStr,
+            'action'             => $action,
+            'symbol'             => $symbol,
+            'spot_price'         => $price,
+            'sl_price'           => $sl,
+            'tp_price'           => $tp,
+            'sl_offset_pts'      => $slOffset,
+            'tp_offset_pts'      => $tpOffset,
+            'lots'               => $lots,
+            'mode'               => $mode,
+            'product'            => $product,
+            'category'           => $category,
+            'breadth_pct'        => $validated['breadth_pct'] ?? null,
+            'breadth_weight_pct' => $validated['breadth_weight_pct'] ?? null,
+            'breadth_count'      => $validated['breadth_count'] ?? null,
+            'net_points'         => $validated['net_points'] ?? null,
+            'top_contributor'    => $validated['top_contributor'] ?? null,
+            'payload'            => $payload,
+            'status'             => 'LOGGED',
+            'endpoint_url'       => $validated['webhook_url'] ?? 'https://0click.in/api/webhook/tradingview',
+        ]);
+
+        // If dispatch_now requested (e.g. forward enabled or manual test)
+        if (!empty($validated['dispatch_now']) && !empty($validated['webhook_url'])) {
+            $this->executeWebhookDispatch($log, $validated['webhook_url'], $validated['webhook_token'] ?? null);
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Alert signal logged internally successfully.',
+            'log'     => $log->fresh(),
+            'payload' => $payload,
+        ]);
+    }
+
+    /**
+     * Retrieve alert logs with optional date filter
+     */
+    public function getAlertLogs(Request $request): JsonResponse
+    {
+        $query = ZeroClickAlertLog::orderByDesc('triggered_at');
+
+        if ($request->filled('date')) {
+            $query->where('trade_date', $request->query('date'));
+        }
+
+        $limit = min((int)$request->query('limit', 50), 200);
+        $logs = $query->limit($limit)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'count'  => $logs->count(),
+            'logs'   => $logs,
+        ]);
+    }
+
+    /**
+     * Dispatch an existing logged alert to 0click.in
+     */
+    public function dispatchAlertLog(Request $request, int $id): JsonResponse
+    {
+        $log = ZeroClickAlertLog::findOrFail($id);
+
+        $webhookUrl = $request->input('webhook_url') ?: ($log->endpoint_url ?: 'https://0click.in/api/webhook/tradingview');
+        $token = $request->input('webhook_token');
+
+        $result = $this->executeWebhookDispatch($log, $webhookUrl, $token);
+
+        return response()->json([
+            'status'     => $result['success'] ? 'success' : 'error',
+            'message'    => $result['message'],
+            'status_code'=> $result['status_code'],
+            'response'   => $result['response'],
+            'latency_ms' => $result['latency_ms'],
+            'log'        => $log->fresh(),
+        ]);
+    }
+
+    /**
+     * Clear alert logs (or filter by date or specific ID)
+     */
+    public function clearAlertLogs(Request $request): JsonResponse
+    {
+        if ($request->filled('id')) {
+            ZeroClickAlertLog::where('id', $request->input('id'))->delete();
+            return response()->json(['status' => 'success', 'message' => 'Log record deleted.']);
+        }
+
+        if ($request->filled('date')) {
+            ZeroClickAlertLog::where('trade_date', $request->input('date'))->delete();
+            return response()->json(['status' => 'success', 'message' => "Logs for {$request->input('date')} cleared."]);
+        }
+
+        ZeroClickAlertLog::truncate();
+        return response()->json(['status' => 'success', 'message' => 'All internal alert logs cleared.']);
+    }
+
+    /**
+     * Helper to perform HTTP POST to 0click.in webhook
+     */
+    protected function executeWebhookDispatch(ZeroClickAlertLog $log, string $url, ?string $token): array
+    {
+        $startTime = microtime(true);
+        $token = $token ?: env('ZEROCLICK_WEBHOOK_TOKEN');
+
+        try {
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
+            ];
+
+            // Send security token in all standard formats expected by 0click.in
+            if (!empty($token)) {
+                $headers['X-Webhook-Token'] = $token;
+                $headers['X-API-KEY']       = $token;
+                $headers['Authorization']   = 'Bearer ' . $token;
+            }
+
+            // Also support token in body payload
+            $payload = $log->payload;
+            if (!empty($token) && !isset($payload['secret'])) {
+                $payload['secret'] = $token;
+            }
+
+            $response = Http::timeout(10)
+                ->withHeaders($headers)
+                ->post($url, $payload);
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+
+            $statusCode = $response->status();
+            $body = $response->json() ?: ['raw' => $response->body()];
+            $isSuccess = $response->successful();
+
+            $log->update([
+                'endpoint_url'    => $url,
+                'api_status_code' => $statusCode,
+                'api_response'    => $body,
+                'latency_ms'      => $latencyMs,
+                'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                'status'          => $isSuccess ? 'SENT' : 'FAILED',
+            ]);
+
+            return [
+                'success'     => $isSuccess,
+                'status_code' => $statusCode,
+                'message'     => $isSuccess ? 'Successfully dispatched to 0click.in' : "API returned status {$statusCode}",
+                'response'    => $body,
+                'latency_ms'  => $latencyMs,
+            ];
+        } catch (\Throwable $e) {
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            $log->update([
+                'endpoint_url'    => $url,
+                'api_status_code' => 500,
+                'api_response'    => ['error' => $e->getMessage()],
+                'latency_ms'      => $latencyMs,
+                'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                'status'          => 'FAILED',
+            ]);
+
+            return [
+                'success'     => false,
+                'status_code' => 500,
+                'message'     => 'Connection failed: ' . $e->getMessage(),
+                'response'    => ['error' => $e->getMessage()],
+                'latency_ms'  => $latencyMs,
+            ];
+        }
     }
 }

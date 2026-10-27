@@ -328,6 +328,10 @@ Route::get('/api/nifty-matrix-chart/ws-url', [\App\Http\Controllers\NiftyMatrixC
 // NIFTY 50 Weightage & Candle Breadth Monitor (5-min Candle Matrix & Breadth Ratio)
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
+Route::post('/api/nifty-weightage-monitor/alert-log', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'logAlert'])->name('api.nifty.weightage.monitor.alert-log');
+Route::get('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getAlertLogs'])->name('api.nifty.weightage.monitor.alert-logs');
+Route::post('/api/nifty-weightage-monitor/alert-logs/{id}/dispatch', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'dispatchAlertLog'])->name('api.nifty.weightage.monitor.alert-logs.dispatch');
+Route::delete('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'clearAlertLogs'])->name('api.nifty.weightage.monitor.alert-logs.clear');
 
 
 

@@ -167,6 +167,13 @@
                 </button>
             </div>
 
+            <!-- 0Click Signal Logs Button -->
+            <button id="btn-open-logs" title="View 0Click.in Signal Execution & Internal Audit Logs" class="flex items-center gap-1.5 px-2.5 py-1 bg-[#1a1e29] hover:bg-gray-800 border border-gray-700 text-sky-400 hover:text-sky-300 rounded text-xs font-semibold transition cursor-pointer">
+                <span>📋</span>
+                <span>0Click Logs</span>
+                <span id="log-count-badge" class="ml-0.5 px-1.5 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[10px] rounded-full">0</span>
+            </button>
+
             <!-- Reload Button -->
             <button id="btn-reload" title="Refresh Data" class="p-1.5 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,6 +583,21 @@
             </div>
         </div>
 
+        <!-- Chart Breadth Breach Markers Toggle -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-[#1a1e29] border border-gray-800">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white block">Candle Breadth Breach Markers</span>
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-600/40">ON CHART</span>
+                </div>
+                <span class="text-[11px] text-gray-400 block mt-0.5">Mark 🟢 UP % below candle & 🔴 DOWN % above candle when ≥ threshold</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="alarm-show-markers-toggle" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
+
         <!-- 10 Selectable Sounds & Live Test Preview -->
         <div class="p-3 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-2 text-xs">
             <div class="flex items-center justify-between">
@@ -615,6 +637,73 @@
                 <div class="flex items-center gap-2 w-48">
                     <input type="range" id="alarm-volume-slider" min="10" max="100" value="80" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                     <span id="alarm-vol-label" class="font-mono text-white text-[10px] w-6 text-right">80%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 0Click.in Trade Webhook & Internal Logging Integration -->
+        <div class="p-3 rounded-lg bg-[#1a1e29] border border-sky-900/50 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-sky-400 flex items-center gap-1.5">
+                    <span>⚡ 0Click.in Trade Webhook &amp; Logs</span>
+                    <span class="text-[10px] bg-sky-950 text-sky-300 border border-sky-700/60 px-1.5 py-0.2 rounded font-mono">Contract v1.0</span>
+                </span>
+                <label class="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-gray-200">
+                    <input type="checkbox" id="zc-auto-log-toggle" checked class="accent-sky-500 w-3.5 h-3.5">
+                    <span>Auto-Log Internally</span>
+                </label>
+            </div>
+
+            <!-- Forward Webhook Toggle (Default OFF initially as requested) -->
+            <div class="flex items-center justify-between p-2 rounded bg-[#131722] border border-gray-800">
+                <div>
+                    <div class="text-[11px] font-bold text-gray-200 flex items-center gap-1.5">
+                        <span>Dispatch to 0click.in Webhook</span>
+                        <span id="zc-mode-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40">SIMULATION</span>
+                    </div>
+                    <div class="text-[10px] text-gray-400">Off = Save logs internally only; On = Auto-dispatch to 0click.in API</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="zc-forward-toggle" class="sr-only peer">
+                    <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
+                </label>
+            </div>
+
+            <!-- Webhook Connection Details -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-0.5">0Click Webhook URL</label>
+                    <input type="text" id="zc-webhook-url" value="https://0click.in/api/webhook/tradingview" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="text-[10px] text-amber-300 font-semibold block mb-0.5">🔑 Security Token ("X-Webhook-Token")</label>
+                    <div class="relative flex items-center">
+                        <input type="password" id="zc-webhook-token" placeholder="Paste your 0click token (tv_sec_...)" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 pr-8 text-xs text-amber-200 focus:outline-none font-mono focus:border-amber-400">
+                        <button type="button" id="btn-toggle-zc-token" title="Show / Hide Token" class="absolute right-2 text-gray-400 hover:text-white text-xs cursor-pointer">👁️</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade Order Sizing & SL / TP -->
+            <div class="grid grid-cols-4 gap-2 text-[11px]">
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-0.5">Execution Mode</label>
+                    <select id="zc-mode-select" class="w-full bg-[#131722] border border-gray-700 rounded px-1.5 py-1 text-xs text-white focus:outline-none">
+                        <option value="SIMULATION" selected>SIMULATION</option>
+                        <option value="LIVE">LIVE</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-0.5">Lots</label>
+                    <input type="number" id="zc-lots-input" min="1" max="50" value="1" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-white text-center font-mono focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-0.5">SL Offset (Pts)</label>
+                    <input type="number" id="zc-sl-pts-input" min="10" max="500" value="100" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-rose-300 text-center font-mono focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 block mb-0.5">TP Offset (Pts)</label>
+                    <input type="number" id="zc-tp-pts-input" min="20" max="1000" value="200" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-emerald-300 text-center font-mono focus:outline-none">
                 </div>
             </div>
         </div>
@@ -665,9 +754,39 @@
             </p>
         </div>
 
-        <!-- Clean Dark/Bordered Stop Alarm Button -->
-        <div class="pt-2 flex justify-center">
-            <button id="btn-stop-active-alarm" class="px-6 py-2.5 bg-gray-950/80 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 hover:border-white/60 shadow-xl transition inline-flex items-center gap-2 cursor-pointer">
+        <!-- 0Click Trade Execution Contract Strip -->
+        <div class="p-3 rounded-2xl bg-black/45 border border-white/20 text-left text-xs space-y-2 backdrop-blur-sm shadow-inner">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-white/95 flex items-center gap-1.5 text-[11px]">
+                    <span>⚡ 0Click Trade Contract:</span>
+                    <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50">💾 LOGGED INTERNALLY</span>
+                </span>
+                <button type="button" id="btn-toggle-payload-preview" class="text-[10px] text-sky-300 hover:text-white underline cursor-pointer font-semibold">
+                    View JSON Payload
+                </button>
+            </div>
+            <div class="font-mono text-[11px] text-white flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span id="alarm-trade-action-badge" class="font-black px-1.5 py-0.2 rounded bg-emerald-500 text-black text-[10px]">BUY</span>
+                <span>NIFTY Spot: <strong id="alarm-trade-price" class="text-white">25,850.50</strong></span>
+                <span class="text-white/60">·</span>
+                <span>SL: <span id="alarm-trade-sl" class="text-rose-200 font-bold">25,750</span></span>
+                <span class="text-white/60">·</span>
+                <span>TP: <span id="alarm-trade-tp" class="text-emerald-200 font-bold">26,050</span></span>
+                <span class="text-white/60">·</span>
+                <span id="alarm-trade-lots-badge" class="text-white/80">1 Lot (SIMULATION)</span>
+            </div>
+            <div id="alarm-trade-payload-box" class="hidden pt-1 border-t border-white/10 font-mono text-[10px] text-white/90 overflow-x-auto max-h-24 bg-black/70 p-2 rounded">
+                <pre id="alarm-trade-payload-code">{}</pre>
+            </div>
+        </div>
+
+        <!-- Actions: Stop Alarm + Manual 0Click Dispatch -->
+        <div class="pt-1 flex flex-wrap items-center justify-center gap-2">
+            <button id="btn-dispatch-active-alarm" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg border border-sky-400/60 transition inline-flex items-center gap-1.5 cursor-pointer">
+                <span>🚀</span>
+                <span>Send to 0click.in</span>
+            </button>
+            <button id="btn-stop-active-alarm" class="px-5 py-2.5 bg-gray-950/80 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 hover:border-white/60 shadow-xl transition inline-flex items-center gap-2 cursor-pointer">
                 <span class="text-base">🔕</span>
                 <span>Stop Alarm</span>
                 <span class="text-[10px] text-gray-300 font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/20">ESC</span>
@@ -677,6 +796,183 @@
         <p class="text-[11px] text-white/75 font-medium">
             Audio loops continuously until stopped or dismissed
         </p>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 0CLICK.IN SIGNAL EXECUTION & AUDIT LOGS    -->
+<!-- ========================================== -->
+<div id="zeroclick-logs-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-[#131722] border border-gray-700 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-800 bg-[#1a1e29]">
+            <div class="flex items-center gap-2.5">
+                <span class="text-2xl">📋</span>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-bold text-white">0Click.in Signal Execution &amp; Internal Audit Logs</h3>
+                        <span id="modal-log-count-badge" class="px-2 py-0.2 bg-sky-950 text-sky-400 border border-sky-700/60 rounded-full font-mono text-[11px]">0 Signals</span>
+                    </div>
+                    <p class="text-[11px] text-gray-400">Internal records of Nifty breadth extreme alerts formatted for 0click.in trade webhook</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btn-create-test-log" title="Log a simulated test signal right now" class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs rounded transition flex items-center gap-1 cursor-pointer">
+                    <span>🧪</span>
+                    <span>Test Log</span>
+                </button>
+                <button id="btn-refresh-logs" title="Refresh logs from database" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold text-xs rounded transition flex items-center gap-1 border border-gray-700 cursor-pointer">
+                    <span>🔄</span>
+                    <span>Refresh</span>
+                </button>
+                <button id="btn-clear-all-logs" title="Clear recorded logs" class="px-2.5 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-semibold text-xs rounded transition flex items-center gap-1 border border-rose-800/60 cursor-pointer">
+                    <span>🗑️</span>
+                    <span>Clear</span>
+                </button>
+                <button id="btn-close-logs-modal" class="p-1 text-gray-400 hover:text-white rounded hover:bg-gray-800 text-lg leading-none cursor-pointer">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar & Token Config Status -->
+        <div class="px-4 py-2.5 border-b border-gray-800 bg-[#151923] flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400 text-[11px]">Filter Action:</span>
+                <select id="log-filter-action" class="bg-[#1a1e29] border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none cursor-pointer">
+                    <option value="ALL">All Actions</option>
+                    <option value="BUY">BUY (Bullish) Only</option>
+                    <option value="SELL">SELL (Bearish) Only</option>
+                </select>
+
+                <span class="text-gray-400 text-[11px] ml-2">Status:</span>
+                <select id="log-filter-status" class="bg-[#1a1e29] border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none cursor-pointer">
+                    <option value="ALL">All Statuses</option>
+                    <option value="LOGGED">LOGGED (Internal)</option>
+                    <option value="SENT">SENT (Dispatched)</option>
+                    <option value="FAILED">FAILED</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-3 text-[11px]">
+                <div class="hidden sm:flex items-center gap-1 text-gray-400">
+                    <span>Endpoint:</span>
+                    <code class="text-sky-400 font-mono text-[10px]" id="label-current-endpoint">https://0click.in/api/webhook/tradingview</code>
+                </div>
+                <button type="button" id="btn-toggle-token-config" class="px-2.5 py-1 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-600/50 rounded flex items-center gap-1.5 cursor-pointer font-medium transition shadow-sm">
+                    <span>🔑</span>
+                    <span id="label-token-status">Token: Not Set</span>
+                    <span class="text-[9px] text-amber-400/80 underline font-normal">(Click to set)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Collapsible Security Token & Webhook Configuration Drawer -->
+        <div id="logs-token-config-drawer" class="hidden px-4 py-3 border-b border-gray-800 bg-[#10141e] space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-amber-300 flex items-center gap-1.5 text-xs">
+                    <span>🔑 0Click.in Security Token Authentication ("X-Webhook-Token")</span>
+                </span>
+                <button type="button" id="btn-close-token-drawer" class="text-gray-400 hover:text-white text-xs cursor-pointer">✕ Close Config</button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                <div class="sm:col-span-5">
+                    <label class="text-[10px] text-gray-400 block mb-0.5">0Click.in API Endpoint URL</label>
+                    <input type="text" id="drawer-webhook-url" value="https://0click.in/api/webhook/tradingview" class="w-full bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-sky-500">
+                </div>
+                <div class="sm:col-span-5">
+                    <label class="text-[10px] text-amber-300 font-semibold block mb-0.5">Security Token (Sent as "X-Webhook-Token")</label>
+                    <div class="relative flex items-center">
+                        <input type="password" id="drawer-webhook-token" placeholder="Paste your token here (e.g. tv_sec_...)" class="w-full bg-[#1a1e29] border border-amber-700/60 rounded px-2.5 py-1 pr-8 text-xs text-amber-200 font-mono focus:outline-none focus:border-amber-400">
+                        <button type="button" id="btn-toggle-drawer-token" title="Show / Hide Token" class="absolute right-2 text-gray-400 hover:text-white text-xs cursor-pointer">👁️</button>
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <button type="button" id="btn-save-drawer-token" class="w-full px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded transition shadow cursor-pointer">
+                        Save Token
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-[10px] text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+                <span>Passed automatically in HTTP request header as: <code class="text-amber-200 bg-black/50 px-1 py-0.2 rounded border border-gray-800 font-mono">X-Webhook-Token: tv_sec_...</code></span>
+                <span>• Also supports <code class="text-gray-300 font-mono">ZEROCLICK_WEBHOOK_TOKEN</code> in your <code class="text-gray-300">.env</code></span>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="flex-1 overflow-y-auto p-4" id="logs-table-container">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-800 text-gray-400 text-[11px] font-semibold">
+                        <th class="pb-2">Time / Date</th>
+                        <th class="pb-2">Signal</th>
+                        <th class="pb-2 text-right">Spot Price</th>
+                        <th class="pb-2 text-right">SL (Index)</th>
+                        <th class="pb-2 text-right">TP (Index)</th>
+                        <th class="pb-2 text-center">Qty / Mode</th>
+                        <th class="pb-2">Breadth Reason</th>
+                        <th class="pb-2 text-center">Status</th>
+                        <th class="pb-2 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body" class="divide-y divide-gray-800/60 font-mono text-[11px]">
+                    <!-- Dynamically populated rows -->
+                </tbody>
+            </table>
+
+            <!-- Empty State -->
+            <div id="logs-empty-state" class="hidden text-center py-12 space-y-3">
+                <div class="text-4xl">📭</div>
+                <div class="text-sm font-bold text-gray-300">No Signal Logs Recorded Yet</div>
+                <p class="text-xs text-gray-500 max-w-sm mx-auto">
+                    Whenever an 80%+ Breadth Extreme alert triggers, it will be automatically recorded here and formatted for 0click.in execution.
+                </p>
+                <button type="button" id="btn-empty-test-log" class="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded transition shadow cursor-pointer">
+                    Create Sample Test Log
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-3 border-t border-gray-800 bg-[#1a1e29] flex items-center justify-between text-xs text-gray-400">
+            <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Payload complies with 0click.in Trade Execution Webhook Contract (BUY = Sells ITM PE; SELL = Sells ITM CE)</span>
+            </div>
+            <span class="text-[11px]">Database table: <code class="text-gray-300 font-mono">zero_click_alert_logs</code></span>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- JSON PAYLOAD INSPECTOR MODAL               -->
+<!-- ========================================== -->
+<div id="payload-inspector-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#131722] border border-gray-700 rounded-2xl shadow-2xl w-full max-w-lg p-5 space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">⚡</span>
+                <h4 class="text-sm font-bold text-white">0Click.in JSON Webhook Contract</h4>
+            </div>
+            <button id="btn-close-payload-modal" class="text-gray-400 hover:text-white text-lg cursor-pointer">✕</button>
+        </div>
+        <p class="text-xs text-gray-400">
+            Exact JSON payload dispatched to <code class="text-sky-400">/api/webhook/tradingview</code>:
+        </p>
+        <div class="bg-black/70 border border-gray-800 rounded-xl p-3 font-mono text-xs text-emerald-400 overflow-x-auto max-h-60">
+            <pre id="payload-inspector-code"></pre>
+        </div>
+        <div class="flex items-center justify-between pt-1 text-xs">
+            <button id="btn-copy-payload-json" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 rounded font-bold transition flex items-center gap-1.5 cursor-pointer">
+                <span>📋</span>
+                <span id="btn-copy-label">Copy JSON</span>
+            </button>
+            <button id="btn-dismiss-payload-modal" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition cursor-pointer">
+                Close
+            </button>
+        </div>
     </div>
 </div>
 @endsection
@@ -703,13 +999,43 @@
             downThreshold: 80,
             triggerBy: 'either', // 'either', 'count', 'weight'
             sound: 'siren',
-            volume: 0.8
+            volume: 0.8,
+            showChartMarkers: true
         };
 
         let alarmSettings = { ...defaultAlarmSettings };
         let alarmAudioLoopInterval = null;
         let isAlarmRinging = false;
         let lastAlertedCandleKey = null;
+        let alertedCandlesSet = new Set();
+
+        // 0Click.in Trade Webhook & Internal Logging State
+        const defaultZeroClickSettings = {
+            autoLog: true,
+            forwardToZeroClick: false, // Initially false: internal logging first!
+            webhookUrl: 'https://0click.in/api/webhook/tradingview',
+            webhookToken: '',
+            mode: 'SIMULATION',
+            lots: 1,
+            slOffset: 100,
+            tpOffset: 200,
+            product: 'MARGIN'
+        };
+
+        let zeroClickSettings = { ...defaultZeroClickSettings };
+        try {
+            const savedZc = localStorage.getItem('nifty_zeroclick_settings');
+            if (savedZc) {
+                zeroClickSettings = { ...zeroClickSettings, ...JSON.parse(savedZc) };
+            }
+        } catch (e) {
+            console.warn('Could not read zero click settings:', e);
+        }
+
+        let currentActiveLogId = null;
+        let currentActivePayload = null;
+        let cachedLogsList = [];
+        let loggedSignalsSet = new Set();
 
         // Load saved alarm settings from localStorage
         try {
@@ -749,6 +1075,7 @@
         const btnTestBullModal = document.getElementById('btn-test-bull-modal');
         const btnTestBearModal = document.getElementById('btn-test-bear-modal');
         const alarmEnabledToggle = document.getElementById('alarm-enabled-toggle');
+        const alarmShowMarkersToggle = document.getElementById('alarm-show-markers-toggle');
         const alarmUpNum = document.getElementById('alarm-up-num');
         const alarmUpSlider = document.getElementById('alarm-up-slider');
         const alarmDownNum = document.getElementById('alarm-down-num');
@@ -759,8 +1086,66 @@
         const activeAlarmOverlay = document.getElementById('active-alarm-overlay');
         const btnStopActiveAlarm = document.getElementById('btn-stop-active-alarm');
 
-        // Sync Alarm UI with loaded settings
+        // 0Click UI Elements
+        const btnOpenLogs = document.getElementById('btn-open-logs');
+        const logCountBadge = document.getElementById('log-count-badge');
+        const modalLogCountBadge = document.getElementById('modal-log-count-badge');
+        const zeroclickLogsModal = document.getElementById('zeroclick-logs-modal');
+        const btnCloseLogsModal = document.getElementById('btn-close-logs-modal');
+        const btnRefreshLogs = document.getElementById('btn-refresh-logs');
+        const btnClearAllLogs = document.getElementById('btn-clear-all-logs');
+        const btnCreateTestLog = document.getElementById('btn-create-test-log');
+        const btnEmptyTestLog = document.getElementById('btn-empty-test-log');
+        const logsTableBody = document.getElementById('logs-table-body');
+        const logsEmptyState = document.getElementById('logs-empty-state');
+        const logFilterAction = document.getElementById('log-filter-action');
+        const logFilterStatus = document.getElementById('log-filter-status');
+        const labelCurrentEndpoint = document.getElementById('label-current-endpoint');
+        const btnToggleTokenConfig = document.getElementById('btn-toggle-token-config');
+        const logsTokenConfigDrawer = document.getElementById('logs-token-config-drawer');
+        const btnCloseTokenDrawer = document.getElementById('btn-close-token-drawer');
+        const drawerWebhookUrl = document.getElementById('drawer-webhook-url');
+        const drawerWebhookToken = document.getElementById('drawer-webhook-token');
+        const btnToggleDrawerToken = document.getElementById('btn-toggle-drawer-token');
+        const btnSaveDrawerToken = document.getElementById('btn-save-drawer-token');
+        const labelTokenStatus = document.getElementById('label-token-status');
+        const btnToggleZcToken = document.getElementById('btn-toggle-zc-token');
+
+        // Payload Inspector Modal
+        const payloadInspectorModal = document.getElementById('payload-inspector-modal');
+        const payloadInspectorCode = document.getElementById('payload-inspector-code');
+        const btnClosePayloadModal = document.getElementById('btn-close-payload-modal');
+        const btnDismissPayloadModal = document.getElementById('btn-dismiss-payload-modal');
+        const btnCopyPayloadJson = document.getElementById('btn-copy-payload-json');
+        const btnCopyLabel = document.getElementById('btn-copy-label');
+
+        // Settings 0Click controls
+        const zcAutoLogToggle = document.getElementById('zc-auto-log-toggle');
+        const zcForwardToggle = document.getElementById('zc-forward-toggle');
+        const zcModeBadge = document.getElementById('zc-mode-badge');
+        const zcWebhookUrl = document.getElementById('zc-webhook-url');
+        const zcWebhookToken = document.getElementById('zc-webhook-token');
+        const zcModeSelect = document.getElementById('zc-mode-select');
+        const zcLotsInput = document.getElementById('zc-lots-input');
+        const zcSlPtsInput = document.getElementById('zc-sl-pts-input');
+        const zcTpPtsInput = document.getElementById('zc-tp-pts-input');
+
+        // Active Alarm 0Click Strip elements
+        const alarmZeroclickStatusPill = document.getElementById('alarm-zeroclick-status-pill');
+        const btnTogglePayloadPreview = document.getElementById('btn-toggle-payload-preview');
+        const alarmTradePayloadBox = document.getElementById('alarm-trade-payload-box');
+        const alarmTradePayloadCode = document.getElementById('alarm-trade-payload-code');
+        const alarmTradeActionBadge = document.getElementById('alarm-trade-action-badge');
+        const alarmTradePrice = document.getElementById('alarm-trade-price');
+        const alarmTradeSl = document.getElementById('alarm-trade-sl');
+        const alarmTradeTp = document.getElementById('alarm-trade-tp');
+        const alarmTradeLotsBadge = document.getElementById('alarm-trade-lots-badge');
+        const btnDispatchActiveAlarm = document.getElementById('btn-dispatch-active-alarm');
+
+        // Sync UI with loaded settings
         syncAlarmSettingsUI();
+        syncZeroClickSettingsUI();
+        fetchAlertLogs(false);
 
         // Init App
         initChart();
@@ -875,6 +1260,9 @@
             alarmSettings.downThreshold = parseInt(alarmDownNum.value) || 80;
             alarmSettings.sound = alarmSoundSelect.value;
             alarmSettings.volume = parseInt(alarmVolumeSlider.value) / 100;
+            if (alarmShowMarkersToggle) {
+                alarmSettings.showChartMarkers = alarmShowMarkersToggle.checked;
+            }
 
             const selectedTrigger = document.querySelector('input[name="trigger-by"]:checked');
             if (selectedTrigger) {
@@ -885,9 +1273,447 @@
                 localStorage.setItem('nifty_breadth_alarm_settings', JSON.stringify(alarmSettings));
             } catch (e) {}
 
+            // Save 0Click settings
+            if (zcAutoLogToggle) zeroClickSettings.autoLog = zcAutoLogToggle.checked;
+            if (zcForwardToggle) zeroClickSettings.forwardToZeroClick = zcForwardToggle.checked;
+            if (zcWebhookUrl) zeroClickSettings.webhookUrl = zcWebhookUrl.value.trim() || 'https://0click.in/api/webhook/tradingview';
+            if (zcWebhookToken) zeroClickSettings.webhookToken = zcWebhookToken.value.trim();
+            if (zcModeSelect) zeroClickSettings.mode = zcModeSelect.value;
+            if (zcLotsInput) zeroClickSettings.lots = parseInt(zcLotsInput.value) || 1;
+            if (zcSlPtsInput) zeroClickSettings.slOffset = parseInt(zcSlPtsInput.value) || 100;
+            if (zcTpPtsInput) zeroClickSettings.tpOffset = parseInt(zcTpPtsInput.value) || 200;
+
+            try {
+                localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
+            } catch (e) {}
+
+            syncZeroClickSettingsUI();
             updateAlarmToolbarButton();
+            updateChartMarkers();
             alarmSettingsModal.classList.add('hidden');
         });
+
+        // Instant toggle for chart breach markers
+        if (alarmShowMarkersToggle) {
+            alarmShowMarkersToggle.addEventListener('change', () => {
+                alarmSettings.showChartMarkers = alarmShowMarkersToggle.checked;
+                updateChartMarkers();
+                try {
+                    localStorage.setItem('nifty_breadth_alarm_settings', JSON.stringify(alarmSettings));
+                } catch (e) {}
+            });
+        }
+
+        function syncZeroClickSettingsUI() {
+            if (zcAutoLogToggle) zcAutoLogToggle.checked = zeroClickSettings.autoLog;
+            if (zcForwardToggle) zcForwardToggle.checked = zeroClickSettings.forwardToZeroClick;
+            if (zcModeBadge) zcModeBadge.textContent = zeroClickSettings.mode;
+            if (zcWebhookUrl) zcWebhookUrl.value = zeroClickSettings.webhookUrl;
+            if (zcWebhookToken) zcWebhookToken.value = zeroClickSettings.webhookToken;
+            if (drawerWebhookUrl) drawerWebhookUrl.value = zeroClickSettings.webhookUrl;
+            if (drawerWebhookToken) drawerWebhookToken.value = zeroClickSettings.webhookToken;
+            if (zcModeSelect) zcModeSelect.value = zeroClickSettings.mode;
+            if (zcLotsInput) zcLotsInput.value = zeroClickSettings.lots;
+            if (zcSlPtsInput) zcSlPtsInput.value = zeroClickSettings.slOffset;
+            if (zcTpPtsInput) zcTpPtsInput.value = zeroClickSettings.tpOffset;
+            if (labelCurrentEndpoint) labelCurrentEndpoint.textContent = zeroClickSettings.webhookUrl;
+
+            if (labelTokenStatus) {
+                if (zeroClickSettings.webhookToken && zeroClickSettings.webhookToken.trim().length > 0) {
+                    const masked = zeroClickSettings.webhookToken.length > 8
+                        ? zeroClickSettings.webhookToken.substring(0, 6) + '••••'
+                        : '••••••••';
+                    labelTokenStatus.textContent = `Token: Set (${masked})`;
+                    if (btnToggleTokenConfig) {
+                        btnToggleTokenConfig.className = 'px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/50 rounded flex items-center gap-1.5 cursor-pointer font-medium transition shadow-sm';
+                    }
+                } else {
+                    labelTokenStatus.textContent = 'Token: Not Set';
+                    if (btnToggleTokenConfig) {
+                        btnToggleTokenConfig.className = 'px-2.5 py-1 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-600/50 rounded flex items-center gap-1.5 cursor-pointer font-medium transition shadow-sm';
+                    }
+                }
+            }
+        }
+
+        // Drawer toggle & token actions in Logs Modal
+        if (btnToggleTokenConfig && logsTokenConfigDrawer) {
+            btnToggleTokenConfig.addEventListener('click', () => {
+                logsTokenConfigDrawer.classList.toggle('hidden');
+                if (!logsTokenConfigDrawer.classList.contains('hidden') && drawerWebhookToken) {
+                    drawerWebhookToken.focus();
+                }
+            });
+        }
+
+        if (btnCloseTokenDrawer && logsTokenConfigDrawer) {
+            btnCloseTokenDrawer.addEventListener('click', () => {
+                logsTokenConfigDrawer.classList.add('hidden');
+            });
+        }
+
+        if (btnToggleDrawerToken && drawerWebhookToken) {
+            btnToggleDrawerToken.addEventListener('click', () => {
+                const isPassword = drawerWebhookToken.type === 'password';
+                drawerWebhookToken.type = isPassword ? 'text' : 'password';
+                btnToggleDrawerToken.textContent = isPassword ? '🙈' : '👁️';
+            });
+        }
+
+        if (btnToggleZcToken && zcWebhookToken) {
+            btnToggleZcToken.addEventListener('click', () => {
+                const isPassword = zcWebhookToken.type === 'password';
+                zcWebhookToken.type = isPassword ? 'text' : 'password';
+                btnToggleZcToken.textContent = isPassword ? '🙈' : '👁️';
+            });
+        }
+
+        if (btnSaveDrawerToken) {
+            btnSaveDrawerToken.addEventListener('click', () => {
+                if (drawerWebhookUrl) zeroClickSettings.webhookUrl = drawerWebhookUrl.value.trim() || 'https://0click.in/api/webhook/tradingview';
+                if (drawerWebhookToken) zeroClickSettings.webhookToken = drawerWebhookToken.value.trim();
+
+                try {
+                    localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
+                } catch (e) {}
+
+                syncZeroClickSettingsUI();
+                btnSaveDrawerToken.textContent = 'Saved! ✓';
+                setTimeout(() => {
+                    btnSaveDrawerToken.textContent = 'Save Token';
+                }, 1800);
+            });
+        }
+
+        if (zcModeSelect) {
+            zcModeSelect.addEventListener('change', (e) => {
+                if (zcModeBadge) zcModeBadge.textContent = e.target.value;
+            });
+        }
+
+        // Open Logs Modal
+        if (btnOpenLogs) {
+            btnOpenLogs.addEventListener('click', () => {
+                fetchAlertLogs(true);
+                zeroclickLogsModal.classList.remove('hidden');
+            });
+        }
+
+        if (btnCloseLogsModal) {
+            btnCloseLogsModal.addEventListener('click', () => {
+                zeroclickLogsModal.classList.add('hidden');
+            });
+        }
+
+        if (zeroclickLogsModal) {
+            zeroclickLogsModal.addEventListener('click', (e) => {
+                if (e.target === zeroclickLogsModal) zeroclickLogsModal.classList.add('hidden');
+            });
+        }
+
+        if (btnRefreshLogs) {
+            btnRefreshLogs.addEventListener('click', () => fetchAlertLogs(true));
+        }
+
+        if (btnClearAllLogs) {
+            btnClearAllLogs.addEventListener('click', () => {
+                if (!confirm('Are you sure you want to clear all internal alert logs?')) return;
+                fetch('/api/nifty-weightage-monitor/alert-logs', {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                })
+                .then(r => r.json())
+                .then(() => {
+                    loggedSignalsSet.clear();
+                    fetchAlertLogs(true);
+                });
+            });
+        }
+
+        // Test Log Trigger from modal
+        const handleManualTestLog = () => {
+            const currentCandle = currentData?.candles?.[selectedCandleIndex] || currentData?.candles?.slice(-1)[0];
+            const spot = currentCandle ? currentCandle.close : 25850.50;
+            const testData = {
+                direction: Math.random() > 0.5 ? 'UP' : 'DOWN',
+                score: 86,
+                threshold: 80,
+                time: currentCandle ? currentCandle.time_str : '11:45',
+                count: 43,
+                weight: 88.4,
+                pts: 142.5,
+                topStock: 'RELIANCE'
+            };
+            const action = testData.direction === 'UP' ? 'BUY' : 'SELL';
+            const sl = action === 'BUY' ? +(spot - zeroClickSettings.slOffset).toFixed(2) : +(spot + zeroClickSettings.slOffset).toFixed(2);
+            const tp = action === 'BUY' ? +(spot + zeroClickSettings.tpOffset).toFixed(2) : +(spot - zeroClickSettings.tpOffset).toFixed(2);
+            const payload = {
+                category: 'LOCAL_SERVER',
+                action: action,
+                symbol: 'NIFTY',
+                price: spot,
+                sl: sl,
+                tp: tp,
+                lots: zeroClickSettings.lots,
+                mode: zeroClickSettings.mode,
+                product: zeroClickSettings.product
+            };
+            logAlertInternally(testData, spot, payload, false, () => fetchAlertLogs(true));
+        };
+        if (btnCreateTestLog) btnCreateTestLog.addEventListener('click', handleManualTestLog);
+        if (btnEmptyTestLog) btnEmptyTestLog.addEventListener('click', handleManualTestLog);
+
+        // Payload Inspector
+        if (btnTogglePayloadPreview) {
+            btnTogglePayloadPreview.addEventListener('click', () => {
+                if (alarmTradePayloadBox) alarmTradePayloadBox.classList.toggle('hidden');
+            });
+        }
+
+        if (btnClosePayloadModal) btnClosePayloadModal.addEventListener('click', () => payloadInspectorModal.classList.add('hidden'));
+        if (btnDismissPayloadModal) btnDismissPayloadModal.addEventListener('click', () => payloadInspectorModal.classList.add('hidden'));
+        if (payloadInspectorModal) {
+            payloadInspectorModal.addEventListener('click', (e) => {
+                if (e.target === payloadInspectorModal) payloadInspectorModal.classList.add('hidden');
+            });
+        }
+
+        if (btnCopyPayloadJson) {
+            btnCopyPayloadJson.addEventListener('click', () => {
+                const text = payloadInspectorCode.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    btnCopyLabel.textContent = 'Copied!';
+                    setTimeout(() => { btnCopyLabel.textContent = 'Copy JSON'; }, 1800);
+                });
+            });
+        }
+
+        function openPayloadModal(payloadObj) {
+            payloadInspectorCode.textContent = JSON.stringify(payloadObj, null, 2);
+            payloadInspectorModal.classList.remove('hidden');
+        }
+
+        if (logFilterAction) logFilterAction.addEventListener('change', renderLogsTable);
+        if (logFilterStatus) logFilterStatus.addEventListener('change', renderLogsTable);
+
+        function fetchAlertLogs(renderTable = true) {
+            fetch('/api/nifty-weightage-monitor/alert-logs?limit=100', {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    cachedLogsList = data.logs || [];
+                    loggedSignalsSet = new Set(cachedLogsList.map(l => `${l.trade_date}_${l.candle_time}_${l.action}`));
+                    if (logCountBadge) logCountBadge.textContent = cachedLogsList.length;
+                    if (modalLogCountBadge) modalLogCountBadge.textContent = `${cachedLogsList.length} Signal${cachedLogsList.length === 1 ? '' : 's'}`;
+                    if (renderTable) renderLogsTable();
+                }
+            })
+            .catch(err => console.warn('Could not fetch alert logs:', err));
+        }
+
+        function renderLogsTable() {
+            if (!logsTableBody) return;
+
+            let filtered = [...cachedLogsList];
+            const actionVal = logFilterAction ? logFilterAction.value : 'ALL';
+            const statusVal = logFilterStatus ? logFilterStatus.value : 'ALL';
+
+            if (actionVal !== 'ALL') filtered = filtered.filter(l => l.action === actionVal);
+            if (statusVal !== 'ALL') filtered = filtered.filter(l => l.status === statusVal);
+
+            if (filtered.length === 0) {
+                logsTableBody.innerHTML = '';
+                if (logsEmptyState) logsEmptyState.classList.remove('hidden');
+                return;
+            }
+
+            if (logsEmptyState) logsEmptyState.classList.add('hidden');
+
+            logsTableBody.innerHTML = filtered.map(log => {
+                const isBuy = log.action === 'BUY';
+                const actionBadge = isBuy
+                    ? `<span class="px-2 py-0.5 rounded font-black text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">🐂 BUY</span>`
+                    : `<span class="px-2 py-0.5 rounded font-black text-xs bg-rose-500/20 text-rose-300 border border-rose-500/50">🐻 SELL</span>`;
+
+                let statusBadge = '';
+                if (log.status === 'SENT') {
+                    statusBadge = `<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">SENT (${log.api_status_code || 200})</span>`;
+                } else if (log.status === 'FAILED') {
+                    statusBadge = `<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40">FAILED (${log.api_status_code || 'ERR'})</span>`;
+                } else {
+                    statusBadge = `<span class="px-1.5 py-0.2 rounded font-bold text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/40">LOGGED</span>`;
+                }
+
+                const payloadSafe = encodeURIComponent(JSON.stringify(log.payload || {}));
+
+                return `
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="py-2.5">
+                            <div class="font-bold text-white">${log.candle_time}</div>
+                            <div class="text-[10px] text-gray-500">${log.trade_date}</div>
+                        </td>
+                        <td class="py-2.5">${actionBadge}</td>
+                        <td class="py-2.5 text-right font-bold text-white">${Number(log.spot_price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="py-2.5 text-right text-rose-300 font-semibold">${log.sl_price ? Number(log.sl_price).toLocaleString('en-IN') : '-'}</td>
+                        <td class="py-2.5 text-right text-emerald-300 font-semibold">${log.tp_price ? Number(log.tp_price).toLocaleString('en-IN') : '-'}</td>
+                        <td class="py-2.5 text-center">
+                            <span class="text-white">${log.lots} Lot${log.lots > 1 ? 's' : ''}</span>
+                            <span class="text-[10px] text-gray-500 block">(${log.mode})</span>
+                        </td>
+                        <td class="py-2.5">
+                            <div class="text-gray-300 text-[10px]">${log.breadth_pct}% ${isBuy ? 'Green' : 'Red'} (${log.breadth_weight_pct}% Wt)</div>
+                            <div class="text-[10px] text-gray-500">${log.top_contributor ? 'Driver: ' + log.top_contributor : ''}</div>
+                        </td>
+                        <td class="py-2.5 text-center">${statusBadge}</td>
+                        <td class="py-2.5 text-right space-x-1">
+                            <button type="button" class="btn-inspect-payload px-2 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-[10px] font-sans border border-gray-700 cursor-pointer" data-payload="${payloadSafe}">
+                                👁️ Payload
+                            </button>
+                            <button type="button" class="btn-send-single-log px-2 py-0.5 bg-sky-700 hover:bg-sky-600 text-white rounded text-[10px] font-sans font-bold shadow cursor-pointer" data-id="${log.id}">
+                                🚀 Send
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            logsTableBody.querySelectorAll('.btn-inspect-payload').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const raw = decodeURIComponent(e.currentTarget.getAttribute('data-payload'));
+                    try {
+                        openPayloadModal(JSON.parse(raw));
+                    } catch (err) {
+                        openPayloadModal({ raw });
+                    }
+                });
+            });
+
+            logsTableBody.querySelectorAll('.btn-send-single-log').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    dispatchLogToZeroClick(id, e.currentTarget);
+                });
+            });
+        }
+
+        function logAlertInternally(alertData, spotPrice, payload, dispatchNow = false, callback = null) {
+            const dateStr = currentData?.date || alertData.date || new Date().toISOString().slice(0, 10);
+            const actionStr = alertData.direction === 'UP' ? 'BUY' : (alertData.action || 'SELL');
+            const logKey = `${dateStr}_${alertData.time}_${actionStr}`;
+
+            if (loggedSignalsSet.has(logKey) && !dispatchNow) {
+                // Prevent duplicate internal log entry
+                return;
+            }
+            loggedSignalsSet.add(logKey);
+
+            fetch('/api/nifty-weightage-monitor/alert-log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    action: actionStr,
+                    symbol: 'NIFTY',
+                    price: spotPrice,
+                    date: dateStr,
+                    time: alertData.time,
+                    sl_offset: zeroClickSettings.slOffset,
+                    tp_offset: zeroClickSettings.tpOffset,
+                    lots: zeroClickSettings.lots,
+                    mode: zeroClickSettings.mode,
+                    product: zeroClickSettings.product,
+                    category: 'LOCAL_SERVER',
+                    breadth_pct: alertData.score,
+                    breadth_weight_pct: alertData.weight,
+                    breadth_count: alertData.count,
+                    net_points: alertData.pts,
+                    top_contributor: alertData.topStock,
+                    dispatch_now: dispatchNow,
+                    webhook_url: zeroClickSettings.webhookUrl,
+                    webhook_token: zeroClickSettings.webhookToken,
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentActiveLogId = data.log.id;
+                    if (alarmZeroclickStatusPill) {
+                        alarmZeroclickStatusPill.textContent = data.log.status === 'SENT' ? '🚀 DISPATCHED (200 OK)' : `💾 LOGGED INTERNALLY (#${data.log.id})`;
+                        alarmZeroclickStatusPill.className = data.log.status === 'SENT'
+                            ? 'px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/25 text-emerald-200 border border-emerald-400/50'
+                            : 'px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50';
+                    }
+                    fetchAlertLogs(false);
+                    if (callback) callback(data);
+                }
+            })
+            .catch(err => console.warn('Could not log alert internally:', err));
+        }
+
+        function dispatchLogToZeroClick(logId, triggerBtn = null) {
+            if (triggerBtn) {
+                triggerBtn.disabled = true;
+                triggerBtn.textContent = 'Sending...';
+            }
+
+            fetch(`/api/nifty-weightage-monitor/alert-logs/${logId}/dispatch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    webhook_url: zeroClickSettings.webhookUrl,
+                    webhook_token: zeroClickSettings.webhookToken,
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (triggerBtn) {
+                    triggerBtn.disabled = false;
+                    triggerBtn.textContent = '🚀 Send';
+                }
+                alert(`0Click Response [${data.status_code || 200}]: ${data.message || 'Dispatched'}`);
+                fetchAlertLogs(true);
+            })
+            .catch(err => {
+                if (triggerBtn) {
+                    triggerBtn.disabled = false;
+                    triggerBtn.textContent = '🚀 Send';
+                }
+                alert('Connection error while sending to 0click.in: ' + err.message);
+                fetchAlertLogs(true);
+            });
+        }
+
+        if (btnDispatchActiveAlarm) {
+            btnDispatchActiveAlarm.addEventListener('click', () => {
+                if (currentActiveLogId) {
+                    dispatchLogToZeroClick(currentActiveLogId, btnDispatchActiveAlarm);
+                } else if (currentActivePayload) {
+                    const currentCandle = currentData?.candles?.[selectedCandleIndex] || currentData?.candles?.slice(-1)[0];
+                    const spot = currentCandle ? currentCandle.close : 25850.50;
+                    logAlertInternally(
+                        { direction: currentActivePayload.action === 'BUY' ? 'UP' : 'DOWN', score: 85, time: 'Now', count: 42, weight: 88, pts: 100, topStock: 'NIFTY' },
+                        spot,
+                        currentActivePayload,
+                        true,
+                        (res) => {
+                            alert(`0Click Response [${res.log?.api_status_code || 200}]: Dispatched`);
+                        }
+                    );
+                }
+            });
+        }
 
         // Stop Active Alarm Button & ESC key
         btnStopActiveAlarm.addEventListener('click', stopAlarm);
@@ -1100,7 +1926,10 @@
         function loadData(isSilent = false) {
             const date = dateSelect.value;
             const loadingEl = document.getElementById('chart-loading');
-            if (!isSilent) loadingEl.style.display = 'flex';
+            if (!isSilent) {
+                loadingEl.style.display = 'flex';
+                alertedCandlesSet.clear();
+            }
 
             fetch(`/api/nifty-weightage-monitor/data?date=${date}`)
                 .then(res => res.json())
@@ -1116,9 +1945,12 @@
                     if (data.is_live) {
                         badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span> LIVE MARKET (${data.server_time})`;
                         badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 flex items-center gap-1.5';
+                    } else if (data.is_pre_market) {
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span> PRE-MARKET (Opens 09:15)`;
+                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-amber-950 text-amber-300 border border-amber-600/40 flex items-center gap-1.5';
                     } else if (data.is_today) {
-                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> TODAY SESSION`;
-                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-600/30 flex items-center gap-1.5';
+                        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> TODAY SESSION (${data.server_time})`;
+                        badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-sky-950/60 text-sky-400 border border-sky-600/30 flex items-center gap-1.5';
                     } else {
                         badge.innerHTML = `HISTORICAL (${data.date})`;
                         badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-gray-800 text-gray-300 border border-gray-700 flex items-center gap-1.5';
@@ -1180,6 +2012,78 @@
             }
         }
 
+        // Update Chart Markers (Breadth Breach Values Above/Below Candles + Active Inspection Cursor)
+        function updateChartMarkers() {
+            if (!candleSeries || !currentData || !currentData.nifty_candles) return;
+
+            const markers = [];
+            const showBreaches = (alarmSettings.showChartMarkers !== false);
+
+            currentData.nifty_candles.forEach((candle, idx) => {
+                const breadth = currentData.breadth_by_time ? currentData.breadth_by_time[candle.time_str] : null;
+                const isSelected = (idx === selectedCandleIndex);
+
+                let greenScore = 0;
+                let redScore = 0;
+
+                if (breadth) {
+                    greenScore = breadth.green_count_pct;
+                    redScore   = breadth.red_count_pct;
+
+                    if (alarmSettings.triggerBy === 'weight') {
+                        greenScore = Math.round(breadth.green_weight);
+                        redScore   = Math.round(breadth.red_weight);
+                    } else if (alarmSettings.triggerBy === 'either') {
+                        greenScore = Math.max(breadth.green_count_pct, Math.round(breadth.green_weight));
+                        redScore   = Math.max(breadth.red_count_pct, Math.round(breadth.red_weight));
+                    }
+                }
+
+                const isBullBreach = showBreaches && (greenScore >= alarmSettings.upThreshold);
+                const isBearBreach = showBreaches && (redScore >= alarmSettings.downThreshold);
+
+                if (isBullBreach) {
+                    // Mark Green Bullish Breach below the candle pointing UP
+                    markers.push({
+                        time: candle.timestamp,
+                        position: 'belowBar',
+                        color: '#10b981',
+                        shape: 'arrowUp',
+                        text: isSelected
+                            ? `🟢 ${greenScore}% (${breadth.green_count} UP · ${candle.time_str})`
+                            : `${greenScore}%`,
+                        size: isSelected ? 2 : 1
+                    });
+                } else if (isBearBreach) {
+                    // Mark Red Bearish Breach above the candle pointing DOWN
+                    markers.push({
+                        time: candle.timestamp,
+                        position: 'aboveBar',
+                        color: '#ef4444',
+                        shape: 'arrowDown',
+                        text: isSelected
+                            ? `🔴 ${redScore}% (${breadth.red_count} DN · ${candle.time_str})`
+                            : `${redScore}%`,
+                        size: isSelected ? 2 : 1
+                    });
+                } else if (isSelected) {
+                    // Currently selected candle without breach: standard blue inspection arrow
+                    markers.push({
+                        time: candle.timestamp,
+                        position: 'aboveBar',
+                        color: '#38bdf8',
+                        shape: 'arrowDown',
+                        text: `${candle.time_str} (${candle.move_pts >= 0 ? '+' : ''}${candle.move_pts})`,
+                        size: 1
+                    });
+                }
+            });
+
+            // Lightweight Charts strictly requires markers sorted ascending by time
+            markers.sort((a, b) => a.time - b.time);
+            candleSeries.setMarkers(markers);
+        }
+
         // Select a candle by index (0 to 74)
         function selectCandleByIndex(index) {
             if (!currentData || !currentData.timestamps[index]) return;
@@ -1193,20 +2097,7 @@
             const nCandle = currentData.nifty_candles[index];
             if (nCandle) {
                 updateChartHeaderReadout(nCandle);
-
-                // Anchor a prominent arrow marker & label directly on this candle on the chart!
-                // Remains pinned to this exact candle even when zooming in/out or panning!
-                if (candleSeries) {
-                    candleSeries.setMarkers([
-                        {
-                            time: nCandle.timestamp,
-                            position: 'aboveBar',
-                            color: '#38bdf8',
-                            shape: 'arrowDown',
-                            text: `${nCandle.time_str} (${nCandle.move_pts >= 0 ? '+' : ''}${nCandle.move_pts})`,
-                        }
-                    ]);
-                }
+                updateChartMarkers();
             }
 
             // Toggle snap-to-live button if looking at earlier candles
@@ -1720,6 +2611,9 @@
 
         function syncAlarmSettingsUI() {
             alarmEnabledToggle.checked = alarmSettings.enabled;
+            if (alarmShowMarkersToggle) {
+                alarmShowMarkersToggle.checked = (alarmSettings.showChartMarkers !== false);
+            }
             alarmUpNum.value = alarmSettings.upThreshold;
             alarmUpSlider.value = alarmSettings.upThreshold;
             alarmDownNum.value = alarmSettings.downThreshold;
@@ -1957,7 +2851,7 @@
             if (!alarmSettings.enabled || !breadth) return;
 
             const candleKey = `${currentData.date}_${breadth.time}`;
-            if (lastAlertedCandleKey === candleKey) return; // Don't re-trigger on same candle while inspecting
+            if (alertedCandlesSet.has(candleKey)) return; // Don't re-trigger on same candle once alerted
 
             let greenScore = breadth.green_count_pct;
             let redScore   = breadth.red_count_pct;
@@ -1971,6 +2865,7 @@
             }
 
             if (greenScore >= alarmSettings.upThreshold) {
+                alertedCandlesSet.add(candleKey);
                 lastAlertedCandleKey = candleKey;
                 triggerAlarm({
                     direction: 'UP',
@@ -1983,6 +2878,7 @@
                     topStock: breadth.top_contributors[0]?.symbol || 'NIFTY'
                 });
             } else if (redScore >= alarmSettings.downThreshold) {
+                alertedCandlesSet.add(candleKey);
                 lastAlertedCandleKey = candleKey;
                 triggerAlarm({
                     direction: 'DOWN',
@@ -2057,6 +2953,44 @@
                 dirEl.className = 'text-base sm:text-lg font-black uppercase tracking-wider text-rose-100 drop-shadow-sm';
                 detEl.className = 'text-xs sm:text-sm text-white/90 font-medium max-w-sm mx-auto leading-relaxed pt-1';
                 detEl.textContent = `At ${alertData.time} · ${alertData.count} stocks Red (${alertData.weight.toFixed(1)}% Weight) · Net: ${alertData.pts.toFixed(1)} pts · Dragged by ${alertData.topStock}`;
+            }
+
+            // Calculate Spot Price & 0Click Trade Execution Contract
+            const currentCandle = currentData?.candles?.[selectedCandleIndex] || currentData?.candles?.slice(-1)[0];
+            const spotPrice = currentCandle ? currentCandle.close : 25850.50;
+            const action = alertData.direction === 'UP' ? 'BUY' : 'SELL';
+            const sl = action === 'BUY' ? +(spotPrice - zeroClickSettings.slOffset).toFixed(2) : +(spotPrice + zeroClickSettings.slOffset).toFixed(2);
+            const tp = action === 'BUY' ? +(spotPrice + zeroClickSettings.tpOffset).toFixed(2) : +(spotPrice - zeroClickSettings.tpOffset).toFixed(2);
+
+            const payload = {
+                category: 'LOCAL_SERVER',
+                action: action,
+                symbol: 'NIFTY',
+                price: spotPrice,
+                sl: sl,
+                tp: tp,
+                lots: zeroClickSettings.lots,
+                mode: zeroClickSettings.mode,
+                product: zeroClickSettings.product
+            };
+            currentActivePayload = payload;
+
+            // Populate Active Card 0Click Trade Strip
+            if (alarmTradeActionBadge) {
+                alarmTradeActionBadge.textContent = action;
+                alarmTradeActionBadge.className = action === 'BUY'
+                    ? 'font-black px-1.5 py-0.2 rounded bg-emerald-400 text-black text-[10px]'
+                    : 'font-black px-1.5 py-0.2 rounded bg-rose-400 text-black text-[10px]';
+            }
+            if (alarmTradePrice) alarmTradePrice.textContent = spotPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (alarmTradeSl) alarmTradeSl.textContent = sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (alarmTradeTp) alarmTradeTp.textContent = tp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (alarmTradeLotsBadge) alarmTradeLotsBadge.textContent = `${zeroClickSettings.lots} Lot${zeroClickSettings.lots > 1 ? 's' : ''} (${zeroClickSettings.mode})`;
+            if (alarmTradePayloadCode) alarmTradePayloadCode.textContent = JSON.stringify(payload, null, 2);
+
+            // Automatic Internal Logging
+            if (zeroClickSettings.autoLog) {
+                logAlertInternally(alertData, spotPrice, payload, zeroClickSettings.forwardToZeroClick);
             }
 
             activeAlarmOverlay.classList.remove('hidden');
