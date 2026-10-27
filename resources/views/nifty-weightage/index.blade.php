@@ -133,9 +133,9 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
                 <select id="playback-speed" class="bg-transparent text-gray-300 focus:outline-none border-l border-gray-700 pl-1 cursor-pointer" title="Playback Speed">
-                    <option value="1500" class="bg-[#131722]">1x</option>
+                    <option value="1500" selected class="bg-[#131722]">1x</option>
                     <option value="800" class="bg-[#131722]">2x</option>
-                    <option value="400" selected class="bg-[#131722]">4x</option>
+                    <option value="400" class="bg-[#131722]">4x</option>
                     <option value="150" class="bg-[#131722]">8x</option>
                 </select>
             </div>
@@ -149,11 +149,11 @@
                 <select id="auto-refresh-select" class="bg-transparent text-white focus:outline-none cursor-pointer">
                     <option value="5" class="bg-[#131722]">5s</option>
                     <option value="15" class="bg-[#131722]">15s</option>
-                    <option value="30" selected class="bg-[#131722]">30s</option>
-                    <option value="60" class="bg-[#131722]">1m</option>
+                    <option value="30" class="bg-[#131722]">30s</option>
+                    <option value="60" selected class="bg-[#131722]">1m</option>
                     <option value="0" class="bg-[#131722]">Off</option>
                 </select>
-                <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">30s</span>
+                <span id="countdown-badge" class="ml-1.5 px-1.5 py-0.2 bg-gray-800 text-gray-300 font-mono text-[10px] rounded">60s</span>
             </div>
 
             <!-- Breadth Alarm Controls (Quick 1-Click Enable/Disable Toggle + Settings) -->
@@ -207,6 +207,16 @@
                 </div>
                 <!-- Chart Info / Legend -->
                 <div class="flex items-center gap-2 sm:gap-3 text-xs">
+                    <!-- Graph Height Customizer -->
+                    <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs">
+                        <span class="text-gray-400 mr-1 text-[11px]">Height:</span>
+                        <select id="chart-height-select" class="bg-transparent text-sky-400 font-bold focus:outline-none cursor-pointer text-xs" title="Select Chart Height">
+                            <option value="450" selected class="bg-[#131722]">450px</option>
+                            <option value="550" class="bg-[#131722]">550px</option>
+                            <option value="650" class="bg-[#131722]">650px</option>
+                        </select>
+                    </div>
+
                     <span class="text-gray-400">Selected: <strong id="chart-selected-time" class="text-sky-400 font-mono">09:15</strong></span>
                     <button id="btn-snap-live" title="Snap to latest candle" class="hidden px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] items-center gap-1 transition">
                         <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
@@ -219,7 +229,7 @@
             </div>
 
             <!-- Candlestick Chart Canvas -->
-            <div id="nifty-chart-container" class="w-full h-[280px] sm:h-[310px] relative rounded overflow-hidden">
+            <div id="nifty-chart-container" class="w-full relative rounded overflow-hidden" style="height: 450px;">
                 <div id="chart-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-sm text-gray-400 z-10">
                     <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1857,8 +1867,10 @@
             document.body.classList.toggle('zen-mode');
             setTimeout(() => {
                 if (chart) {
+                    const container = document.getElementById('nifty-chart-container');
                     chart.applyOptions({
-                        width: document.getElementById('nifty-chart-container').clientWidth,
+                        width: container.clientWidth,
+                        height: currentChartHeight,
                     });
                 }
             }, 250);
@@ -1879,21 +1891,64 @@
             }
         });
 
+        // Chart Height Customization (450px default, 550px, 650px)
+        const chartHeightSelect = document.getElementById('chart-height-select');
+        let currentChartHeight = parseInt(localStorage.getItem('nifty_chart_height')) || 450;
+
+        function applyChartHeight(h) {
+            currentChartHeight = parseInt(h) || 450;
+            const container = document.getElementById('nifty-chart-container');
+            if (container) {
+                container.style.height = `${currentChartHeight}px`;
+            }
+            if (chart) {
+                chart.applyOptions({
+                    width: container.clientWidth,
+                    height: currentChartHeight,
+                });
+                chart.timeScale().fitContent();
+            }
+            try {
+                localStorage.setItem('nifty_chart_height', currentChartHeight);
+            } catch (e) {}
+        }
+
+        if (chartHeightSelect) {
+            chartHeightSelect.value = currentChartHeight;
+            chartHeightSelect.addEventListener('change', (e) => {
+                applyChartHeight(e.target.value);
+            });
+        }
+
         // Window resize handler
         window.addEventListener('resize', () => {
             if (chart) {
+                const container = document.getElementById('nifty-chart-container');
                 chart.applyOptions({
-                    width: document.getElementById('nifty-chart-container').clientWidth,
+                    width: container.clientWidth,
+                    height: currentChartHeight,
                 });
             }
         });
 
         // Auto Refresh Timer with Live Countdown & 5-Min Candle Sync
         let autoRefreshTimer = null;
-        let countdownSeconds = 30;
+        let countdownSeconds = 60;
         const countdownBadge = document.getElementById('countdown-badge');
 
-        autoRefreshSelect.addEventListener('change', setupAutoRefresh);
+        try {
+            const savedRefresh = localStorage.getItem('nifty_auto_refresh');
+            if (savedRefresh !== null && autoRefreshSelect) {
+                autoRefreshSelect.value = savedRefresh;
+            }
+        } catch(e) {}
+
+        autoRefreshSelect.addEventListener('change', () => {
+            try {
+                localStorage.setItem('nifty_auto_refresh', autoRefreshSelect.value);
+            } catch(e) {}
+            setupAutoRefresh();
+        });
         setupAutoRefresh();
 
         function setupAutoRefresh() {
@@ -1921,9 +1976,10 @@
         // Initialize TradingView Lightweight Chart
         function initChart() {
             const container = document.getElementById('nifty-chart-container');
+            container.style.height = `${currentChartHeight}px`;
             chart = LightweightCharts.createChart(container, {
                 width: container.clientWidth,
-                height: container.clientHeight,
+                height: currentChartHeight,
                 layout: {
                     background: { color: '#131722' },
                     textColor: '#9ca3af',
