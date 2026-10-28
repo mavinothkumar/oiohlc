@@ -357,7 +357,9 @@ class NiftyWeightageMonitorController extends Controller
     }
 
     /**
-     * Generate 5-minute candle matrix for all 50 constituents coordinated with NIFTY index movements
+     * Generate 5-minute candle matrix for all 50 constituents.
+     * Uses 100% REAL individual stock tick data bottom-up from ohlc_quotes when available,
+     * with graceful top-down beta model fallback for older historical dates without stock quotes.
      */
     protected function generateConstituentsMatrix(array $niftyCandles, string $date): array
     {
@@ -365,15 +367,49 @@ class NiftyWeightageMonitorController extends Controller
         $breadthByTime = [];
         $matrix = [];
 
-        // Seed with date string hash for consistent historical playback
+        // Seed with date string hash for fallback simulation
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
 
-        // Initial current price for each stock
+        // Check if real equity 1-min data exists in ohlc_quotes for this date
+        $realEqQuotes = DB::table('ohlc_quotes')
+            ->where('instrument_type', 'EQ')
+            ->whereDate('ts_at', $date)
+            ->orderBy('ts_at')
+            ->get()
+            ->groupBy('trading_symbol');
+
+        $hasRealEquity = ($realEqQuotes->count() >= 30);
+
+        // Pre-aggregate 1-min candles into 5-minute buckets for each stock
+        $stock5mBuckets = [];
+        if ($hasRealEquity) {
+            foreach ($realEqQuotes as $sym => $quotes) {
+                foreach ($quotes as $q) {
+                    $ts = Carbon::parse($q->ts_at, 'Asia/Kolkata');
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $stock5mBuckets[$sym][$bucketTimeStr][] = $q;
+                }
+            }
+        }
+
+        // Initial current price and day open price for each stock
         $currentPrices = [];
+        $stockOpenOfDay = [];
         foreach ($this->constituents as $stock) {
-            $currentPrices[$stock['symbol']] = $stock['base_price'];
-            $matrix[$stock['symbol']] = [];
+            $sym = $stock['symbol'];
+            $basePrice = $stock['base_price'];
+            if ($hasRealEquity && isset($stock5mBuckets[$sym])) {
+                $firstBucket = reset($stock5mBuckets[$sym]);
+                if (!empty($firstBucket)) {
+                    $basePrice = (float)$firstBucket[0]->open;
+                }
+            }
+            $stockOpenOfDay[$sym] = $basePrice;
+            $currentPrices[$sym]  = $basePrice;
+            $matrix[$sym]         = [];
         }
 
         $firstNiftyOpen = !empty($niftyCandles) ? $niftyCandles[0]['open'] : 25800.0;
@@ -397,116 +433,181 @@ class NiftyWeightageMonitorController extends Controller
             $candleFlatWeight = 0.0;
 
             $candleStockContributions = [];
-
-            // Random variation generator for idiosyncratic stock movements
-            // Heavyweights correlate more strongly with NIFTY, low weights have higher idiosyncratic noise
-            $rawPoints = [];
-            $totalSimPoints = 0.0;
-
-            $isZeroCandle = ($nCandle['volume'] === 0 && abs($niftyMovePts) < 0.001);
-
-            foreach ($this->constituents as $stock) {
-                $sym = $stock['symbol'];
-                $weight = $stock['weight'];
-                $beta = $stock['beta'];
-
-                if ($isZeroCandle) {
-                    $simMovePct = 0.0;
-                    $rawPoint = 0.0;
-                } else {
-                    // Stock move = Beta * NiftyMovePct + noise
-                    $noiseStd = (1.0 - ($weight / 25.0)) * 0.12;
-                    $noise = ( (mt_rand(0, 1000) / 1000) - 0.5 ) * $noiseStd * 2;
-
-                    // Sector bias simulation
-                    $sectorBias = 0.0;
-                    if ($stock['sector'] === 'Financial Services') {
-                        $sectorBias = sin($candleIndex * 0.25) * 0.05;
-                    } elseif ($stock['sector'] === 'Information Technology') {
-                        $sectorBias = cos($candleIndex * 0.20) * 0.05;
-                    }
-
-                    $simMovePct = ($niftyMovePct * $beta) + $noise + $sectorBias;
-                    $simMovePct = max(-1.8, min(1.8, $simMovePct));
-                    $rawPoint = ($weight / 100.0) * ($simMovePct / 100.0) * $niftyOpen;
-                }
-
-                $rawPoints[$sym] = [
-                    'move_pct'  => $simMovePct,
-                    'raw_point' => $rawPoint,
-                    'stock'     => $stock
-                ];
-                $totalSimPoints += $rawPoint;
-            }
-
-            // Normalization: Ensure sum of stock points matches NIFTY's actual candle points move
-            $correctionRatio = 1.0;
-            if (abs($totalSimPoints) > 0.001) {
-                $correctionRatio = $niftyMovePts / $totalSimPoints;
-                $correctionRatio = max(0.4, min(2.5, $correctionRatio));
-            }
-
             $netGreenPts = 0.0;
             $netRedPts = 0.0;
 
-            foreach ($this->constituents as $stock) {
-                $sym = $stock['symbol'];
-                $weight = $stock['weight'];
-                $curPrice = $currentPrices[$sym];
+            if ($hasRealEquity) {
+                // ── 100% REAL BOTTOM-UP CALCULATION FROM INDIVIDUAL STOCKS ──
+                foreach ($this->constituents as $stock) {
+                    $sym    = $stock['symbol'];
+                    $weight = $stock['weight'];
+                    $curPrice = $currentPrices[$sym];
 
-                $stockMovePct = $rawPoints[$sym]['move_pct'] * $correctionRatio;
-                $stockPts = round(($weight / 100.0) * ($stockMovePct / 100.0) * $niftyOpen, 2);
+                    if (isset($stock5mBuckets[$sym][$timeStr])) {
+                        $bQuotes = $stock5mBuckets[$sym][$timeStr];
+                        $openPrice  = round((float)$bQuotes[0]->open, 2);
+                        $closePrice = round((float)end($bQuotes)->close, 2);
+                        $highPrice  = round((float)collect($bQuotes)->max('high'), 2);
+                        $lowPrice   = round((float)collect($bQuotes)->min('low'), 2);
+                        $vol        = (int)collect($bQuotes)->sum('volume');
+                    } else {
+                        $openPrice  = $curPrice;
+                        $closePrice = $curPrice;
+                        $highPrice  = $curPrice;
+                        $lowPrice   = $curPrice;
+                        $vol        = 0;
+                    }
 
-                $color = 'flat';
-                if ($stockPts > 0.01) {
-                    $color = 'green';
-                    $candleGreenCount++;
-                    $candleGreenWeight += $weight;
-                    $netGreenPts += $stockPts;
-                } elseif ($stockPts < -0.01) {
-                    $color = 'red';
-                    $candleRedCount++;
-                    $candleRedWeight += $weight;
-                    $netRedPts += $stockPts;
-                } else {
-                    $candleFlatCount++;
-                    $candleFlatWeight += $weight;
+                    $stockMovePct = $openPrice > 0 ? round((($closePrice - $openPrice) / $openPrice) * 100, 2) : 0.0;
+                    $stockPts     = round(($weight / 100.0) * ($stockMovePct / 100.0) * $niftyOpen, 2);
+
+                    $color = 'flat';
+                    if ($stockPts > 0.005 || ($closePrice > $openPrice && abs($stockPts) >= 0.005)) {
+                        $color = 'green';
+                        $candleGreenCount++;
+                        $candleGreenWeight += $weight;
+                        $netGreenPts += $stockPts;
+                    } elseif ($stockPts < -0.005 || ($closePrice < $openPrice && abs($stockPts) >= 0.005)) {
+                        $color = 'red';
+                        $candleRedCount++;
+                        $candleRedWeight += $weight;
+                        $netRedPts += $stockPts;
+                    } else {
+                        $candleFlatCount++;
+                        $candleFlatWeight += $weight;
+                    }
+
+                    $currentPrices[$sym] = $closePrice;
+                    $dayOpen = $stockOpenOfDay[$sym];
+                    $dayChangePct = $dayOpen > 0 ? round((($closePrice - $dayOpen) / $dayOpen) * 100, 2) : 0.0;
+
+                    $candleDetail = [
+                        'time'           => $timeStr,
+                        'open'           => $openPrice,
+                        'high'           => $highPrice,
+                        'low'            => $lowPrice,
+                        'close'          => $closePrice,
+                        'move_pct'       => $stockMovePct,
+                        'pts'            => $stockPts,
+                        'color'          => $color,
+                        'weight'         => $weight,
+                        'day_change_pct' => $dayChangePct,
+                    ];
+
+                    $matrix[$sym][] = $candleDetail;
+
+                    $candleStockContributions[] = [
+                        'symbol'   => $sym,
+                        'name'     => $stock['name'],
+                        'weight'   => $weight,
+                        'sector'   => $stock['sector'],
+                        'pts'      => $stockPts,
+                        'move_pct' => $stockMovePct,
+                        'color'    => $color,
+                        'close'    => $closePrice,
+                    ];
+                }
+            } else {
+                // ── FALLBACK: MATHEMATICAL BETA SIMULATION FOR OLD SESSIONS ──
+                $rawPoints = [];
+                $totalSimPoints = 0.0;
+                $isZeroCandle = ($nCandle['volume'] === 0 && abs($niftyMovePts) < 0.001);
+
+                foreach ($this->constituents as $stock) {
+                    $sym = $stock['symbol'];
+                    $weight = $stock['weight'];
+                    $beta = $stock['beta'];
+
+                    if ($isZeroCandle) {
+                        $simMovePct = 0.0;
+                        $rawPoint = 0.0;
+                    } else {
+                        $noiseStd = (1.0 - ($weight / 25.0)) * 0.12;
+                        $noise = ( (mt_rand(0, 1000) / 1000) - 0.5 ) * $noiseStd * 2;
+                        $sectorBias = 0.0;
+                        if ($stock['sector'] === 'Financial Services') {
+                            $sectorBias = sin($candleIndex * 0.25) * 0.05;
+                        } elseif ($stock['sector'] === 'Information Technology') {
+                            $sectorBias = cos($candleIndex * 0.20) * 0.05;
+                        }
+
+                        $simMovePct = ($niftyMovePct * $beta) + $noise + $sectorBias;
+                        $simMovePct = max(-1.8, min(1.8, $simMovePct));
+                        $rawPoint = ($weight / 100.0) * ($simMovePct / 100.0) * $niftyOpen;
+                    }
+
+                    $rawPoints[$sym] = [
+                        'move_pct'  => $simMovePct,
+                        'raw_point' => $rawPoint,
+                        'stock'     => $stock
+                    ];
+                    $totalSimPoints += $rawPoint;
                 }
 
-                // Compute stock 5m OHLC
-                $openPrice = $curPrice;
-                $closePrice = round($openPrice * (1 + ($stockMovePct / 100.0)), 2);
-                $highPrice = round(max($openPrice, $closePrice) + (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
-                $lowPrice  = round(min($openPrice, $closePrice) - (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
+                $correctionRatio = 1.0;
+                if (abs($totalSimPoints) > 0.001) {
+                    $correctionRatio = $niftyMovePts / $totalSimPoints;
+                    $correctionRatio = max(0.4, min(2.5, $correctionRatio));
+                }
 
-                $currentPrices[$sym] = $closePrice;
-                $dayChangePct = round((($closePrice - $stock['base_price']) / $stock['base_price']) * 100, 2);
+                foreach ($this->constituents as $stock) {
+                    $sym = $stock['symbol'];
+                    $weight = $stock['weight'];
+                    $curPrice = $currentPrices[$sym];
 
-                $candleDetail = [
-                    'time'           => $timeStr,
-                    'open'           => $openPrice,
-                    'high'           => $highPrice,
-                    'low'            => $lowPrice,
-                    'close'          => $closePrice,
-                    'move_pct'       => round($stockMovePct, 2),
-                    'pts'            => $stockPts,
-                    'color'          => $color,
-                    'weight'         => $weight,
-                    'day_change_pct' => $dayChangePct,
-                ];
+                    $stockMovePct = $rawPoints[$sym]['move_pct'] * $correctionRatio;
+                    $stockPts = round(($weight / 100.0) * ($stockMovePct / 100.0) * $niftyOpen, 2);
 
-                $matrix[$sym][] = $candleDetail;
+                    $color = 'flat';
+                    if ($stockPts > 0.01) {
+                        $color = 'green';
+                        $candleGreenCount++;
+                        $candleGreenWeight += $weight;
+                        $netGreenPts += $stockPts;
+                    } elseif ($stockPts < -0.01) {
+                        $color = 'red';
+                        $candleRedCount++;
+                        $candleRedWeight += $weight;
+                        $netRedPts += $stockPts;
+                    } else {
+                        $candleFlatCount++;
+                        $candleFlatWeight += $weight;
+                    }
 
-                $candleStockContributions[] = [
-                    'symbol'   => $sym,
-                    'name'     => $stock['name'],
-                    'weight'   => $weight,
-                    'sector'   => $stock['sector'],
-                    'pts'      => $stockPts,
-                    'move_pct' => round($stockMovePct, 2),
-                    'color'    => $color,
-                    'close'    => $closePrice,
-                ];
+                    $openPrice = $curPrice;
+                    $closePrice = round($openPrice * (1 + ($stockMovePct / 100.0)), 2);
+                    $highPrice = round(max($openPrice, $closePrice) + (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
+                    $lowPrice  = round(min($openPrice, $closePrice) - (abs($closePrice - $openPrice) * (mt_rand(10, 40) / 100.0)), 2);
+
+                    $currentPrices[$sym] = $closePrice;
+                    $dayChangePct = round((($closePrice - $stock['base_price']) / $stock['base_price']) * 100, 2);
+
+                    $candleDetail = [
+                        'time'           => $timeStr,
+                        'open'           => $openPrice,
+                        'high'           => $highPrice,
+                        'low'            => $lowPrice,
+                        'close'          => $closePrice,
+                        'move_pct'       => round($stockMovePct, 2),
+                        'pts'            => $stockPts,
+                        'color'          => $color,
+                        'weight'         => $weight,
+                        'day_change_pct' => $dayChangePct,
+                    ];
+
+                    $matrix[$sym][] = $candleDetail;
+
+                    $candleStockContributions[] = [
+                        'symbol'   => $sym,
+                        'name'     => $stock['name'],
+                        'weight'   => $weight,
+                        'sector'   => $stock['sector'],
+                        'pts'      => $stockPts,
+                        'move_pct' => round($stockMovePct, 2),
+                        'color'    => $color,
+                        'close'    => $closePrice,
+                    ];
+                }
             }
 
             // Sort candle stock contributions: Top contributors and top draggers
