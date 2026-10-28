@@ -261,6 +261,60 @@ class OptionsBreadthMonitorController extends Controller
             }
         }
 
+        // Check ohlc_quotes for 1-minute INDEX candles and aggregate into 5-minute candles
+        if (empty($candles) && Schema::hasTable('ohlc_quotes')) {
+            $oneMinQuotes = DB::table('ohlc_quotes')
+                ->where(function($q) use ($symbol) {
+                    $q->where('instrument_key', 'like', "%{$symbol}%")
+                      ->orWhere('trading_symbol', $symbol)
+                      ->orWhere('trading_symbol', 'Nifty 50');
+                })
+                ->where('instrument_type', 'INDEX')
+                ->whereDate('ts_at', $date)
+                ->orderBy('ts_at')
+                ->get();
+
+            if ($oneMinQuotes->isNotEmpty()) {
+                $fiveMinGroups = [];
+                foreach ($oneMinQuotes as $row) {
+                    $ts = Carbon::parse($row->ts_at, 'Asia/Kolkata');
+                    $timeStr = $ts->format('H:i');
+                    if ($timeStr < '09:15' || $timeStr > '15:25') continue;
+
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $fiveMinGroups[$bucketTimeStr][] = $row;
+                }
+
+                foreach ($fiveMinGroups as $bucketTimeStr => $group) {
+                    if (isset($seen[$bucketTimeStr])) continue;
+                    $seen[$bucketTimeStr] = true;
+
+                    $firstRow = $group[0];
+                    $lastRow  = end($group);
+                    $open  = round((float)$firstRow->open, 2);
+                    $close = round((float)$lastRow->close, 2);
+                    $high  = round((float)collect($group)->max('high'), 2);
+                    $low   = round((float)collect($group)->min('low'), 2);
+
+                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
+
+                    $candles[] = [
+                        'time_str'  => $bucketTimeStr,
+                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                        'open'      => $open,
+                        'high'      => $high,
+                        'low'       => $low,
+                        'close'     => $close,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+            }
+        }
+
         // Fallback: Generate candles from option chain spot prices or Synthetic Future
         if (empty($candles)) {
             $spotRows = DB::table($table)

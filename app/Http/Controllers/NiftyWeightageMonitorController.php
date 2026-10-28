@@ -187,6 +187,128 @@ class NiftyWeightageMonitorController extends Controller
             }
         }
 
+        // 1b. If ohlc_5m_quotes has no rows, build 5m candles from 1-min ohlc_quotes!
+        if (empty($niftyCandles)) {
+            $oneMinQuotes = DB::table('ohlc_quotes')
+                ->where(function($q) {
+                    $q->where('instrument_key', 'like', '%Nifty 50%')
+                      ->orWhere('trading_symbol', 'Nifty 50')
+                      ->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('instrument_type', 'INDEX')
+                ->whereDate('ts_at', $date)
+                ->orderBy('ts_at')
+                ->get();
+
+            if ($oneMinQuotes->isNotEmpty()) {
+                $fiveMinGroups = [];
+                foreach ($oneMinQuotes as $row) {
+                    $ts = Carbon::parse($row->ts_at, 'Asia/Kolkata');
+                    $timeStr = $ts->format('H:i');
+                    if ($timeStr < '09:15' || $timeStr > '15:25') continue;
+                    if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) continue;
+
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $fiveMinGroups[$bucketTimeStr][] = $row;
+                }
+
+                foreach ($fiveMinGroups as $bucketTimeStr => $group) {
+                    if (isset($seenTimes[$bucketTimeStr])) continue;
+                    $seenTimes[$bucketTimeStr] = true;
+
+                    $firstRow = $group[0];
+                    $lastRow  = end($group);
+                    $open  = round((float)$firstRow->open, 2);
+                    $close = round((float)$lastRow->close, 2);
+                    $high  = round((float)collect($group)->max('high'), 2);
+                    $low   = round((float)collect($group)->min('low'), 2);
+                    $vol   = (int)collect($group)->sum('volume');
+
+                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
+
+                    $niftyCandles[] = [
+                        'ts_at'     => $cTs->toDateTimeString(),
+                        'time_str'  => $bucketTimeStr,
+                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                        'open'      => $open,
+                        'high'      => $high,
+                        'low'       => $low,
+                        'close'     => $close,
+                        'volume'    => $vol,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+            }
+        }
+
+        // 1c. If still empty, fall back to option_chains live spot prices
+        if (empty($niftyCandles)) {
+            $spotRows = DB::table('option_chains')
+                ->where('trading_symbol', 'NIFTY')
+                ->where('captured_at', '>=', "{$date} 09:15:00")
+                ->where('captured_at', '<=', "{$date} 15:30:00")
+                ->whereNotNull('underlying_spot_price')
+                ->where('underlying_spot_price', '>', 0)
+                ->orderBy('captured_at')
+                ->select('captured_at', 'underlying_spot_price')
+                ->get()
+                ->groupBy(fn($r) => Carbon::parse($r->captured_at)->format('H:i'));
+
+            if ($spotRows->isNotEmpty()) {
+                $fiveMinGroups = [];
+                foreach ($spotRows as $minuteStr => $group) {
+                    $ts = Carbon::parse("{$date} {$minuteStr}:00", 'Asia/Kolkata');
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $fiveMinGroups[$bucketTimeStr][] = $group;
+                }
+
+                $prevClose = null;
+                foreach ($fiveMinGroups as $bucketTimeStr => $minuteGroups) {
+                    if (isset($seenTimes[$bucketTimeStr])) continue;
+                    $seenTimes[$bucketTimeStr] = true;
+
+                    $allSpots = [];
+                    foreach ($minuteGroups as $grp) {
+                        foreach ($grp as $row) {
+                            $allSpots[] = (float)$row->underlying_spot_price;
+                        }
+                    }
+
+                    if (empty($allSpots)) continue;
+
+                    $first = $allSpots[0];
+                    $last  = end($allSpots);
+                    $open  = $prevClose ?: $first;
+                    $close = $last;
+                    $high  = max(max($allSpots), $open, $close);
+                    $low   = min(min($allSpots), $open, $close);
+                    $prevClose = $close;
+
+                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
+
+                    $niftyCandles[] = [
+                        'ts_at'     => $cTs->toDateTimeString(),
+                        'time_str'  => $bucketTimeStr,
+                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                        'open'      => round($open, 2),
+                        'high'      => round($high, 2),
+                        'low'       => round($low, 2),
+                        'close'     => round($close, 2),
+                        'volume'    => 0,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+            }
+        }
+
         // If today or selected date has no DB rows yet, generate a realistic market session
         if (empty($niftyCandles)) {
             $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);

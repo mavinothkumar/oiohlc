@@ -120,6 +120,16 @@ class  CollectOneMinOhlcCommand extends Command {
             ] )
             ->toArray();
 
+        // Always include the Index instrument itself (e.g. NSE_INDEX|Nifty 50)
+        if ( ! empty( $inst['key'] ) ) {
+            $metaMap[ $inst['key'] ] = [
+                'instrument_type' => 'INDEX',
+                'strike'          => 0,
+            ];
+            // Also sync intraday index candles for today to ensure complete history
+            $this->syncIntradayIndexCandles( $inst['key'], $token );
+        }
+
         info( 'before ohlc api ' . now()->toTimeString() );
 
         $quotes = $this->fetchOneMinOhlc( array_keys( $metaMap ), $token );
@@ -166,12 +176,12 @@ class  CollectOneMinOhlcCommand extends Command {
             // ── Resolve the correct expiry_date per instrument_key ─────────────
             $resolvedExpiryDate = in_array( $meta['instrument_type'], [ 'CE', 'PE' ], true )
                 ? ( $optExpiryDateMap[ $instrumentKey ] ?? null )   // per-key lookup
-                : $futExpiryDate;
+                : ( $meta['instrument_type'] === 'FUT' ? $futExpiryDate : null );
 
             $rows[] = [
                 'instrument_key'  => $instrumentKey,
                 'instrument_type' => $meta['instrument_type'],
-                'trading_symbol'  => $inst['symbol'],
+                'trading_symbol'  => $meta['instrument_type'] === 'INDEX' ? ($inst['symbol'] === 'NIFTY' ? 'Nifty 50' : $inst['symbol']) : $inst['symbol'],
                 'expiry_date'     => $resolvedExpiryDate,       // ← correct per-instrument expiry
                 'strike_price'    => $meta['strike'],
                 'open'            => $open,
@@ -248,5 +258,56 @@ class  CollectOneMinOhlcCommand extends Command {
         }
 
         return $result;
+    }
+
+    /**
+     * Backfill/sync 1-minute intraday index candles for today from Upstox to ensure continuous history
+     */
+    private function syncIntradayIndexCandles( string $instrumentKey, string $token ): void {
+        try {
+            $encodedKey = rawurlencode( $instrumentKey );
+            $resp = Http::withHeaders( [
+                'Accept'        => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+            ] )->timeout( 10 )->get( "https://api.upstox.com/v2/historical-candle/intraday/{$encodedKey}/1minute" );
+
+            if ( $resp->ok() ) {
+                $candles = $resp->json( 'data.candles' ) ?? [];
+                if ( ! empty( $candles ) ) {
+                    $now = now();
+                    $indexRows = [];
+                    foreach ( $candles as $c ) {
+                        $tsAt = Carbon::parse( $c[0] )->setTimezone( config( 'app.timezone', 'Asia/Kolkata' ) )->second( 0 );
+                        $indexRows[] = [
+                            'instrument_key'  => $instrumentKey,
+                            'instrument_type' => 'INDEX',
+                            'trading_symbol'  => 'Nifty 50',
+                            'expiry_date'     => null,
+                            'strike_price'    => 0,
+                            'open'            => (float) $c[1],
+                            'high'            => (float) $c[2],
+                            'low'             => (float) $c[3],
+                            'close'           => (float) $c[4],
+                            'volume'          => (int) ( $c[5] ?? 0 ),
+                            'ts'              => $tsAt->timestamp,
+                            'ts_at'           => $tsAt->toDateTimeString(),
+                            'last_price'      => (float) $c[4],
+                            'created_at'      => $now,
+                            'updated_at'      => $now,
+                        ];
+                    }
+
+                    if ( ! empty( $indexRows ) ) {
+                        DB::table( 'ohlc_quotes' )->upsert(
+                            $indexRows,
+                            [ 'instrument_key', 'ts' ],
+                            [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
+                        );
+                    }
+                }
+            }
+        } catch ( \Throwable $e ) {
+            Log::warning( "Failed to sync intraday index candles for {$instrumentKey}: " . $e->getMessage() );
+        }
     }
 }
