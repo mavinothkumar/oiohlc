@@ -11,6 +11,13 @@
             <div class="hidden md:flex md:items-center space-x-3">
                 <!-- PRIMARY FEATURED BUTTONS ONLY (Requested by User) -->
                 
+                <!-- 0. Unified Cockpit (3-in-1 Monitor) -->
+                <a href="{{ route('nifty.unified.monitor') }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded font-bold text-white bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 transition text-sm shadow-sm {{ request()->routeIs('nifty.unified.monitor') ? 'ring-2 ring-cyan-300 ring-offset-1 from-cyan-700 to-indigo-700' : '' }}" title="NIFTY 50 3-in-1 Unified Command Center: Weightage, Options Breadth & Trending OI">
+                    <span>🎯</span>
+                    <span>NIFTY Unified Cockpit</span>
+                </a>
+
                 <!-- 1. Nifty 50 Weightage Monitor -->
                 <a href="{{ route('nifty.weightage.monitor') }}"
                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition text-sm shadow-sm {{ request()->routeIs('nifty.weightage.monitor') ? 'ring-2 ring-emerald-300 ring-offset-1 bg-emerald-700' : '' }}">

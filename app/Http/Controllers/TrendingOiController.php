@@ -92,7 +92,8 @@ class TrendingOiController extends Controller
         $tsQuery = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->whereDate('captured_at', $date);
+            ->where('captured_at', '>=', "{$date} 00:00:00")
+            ->where('captured_at', '<=', "{$date} 23:59:59");
 
         if ($skipOpen) {
             $tsQuery->whereTime('captured_at', '>', '09:15:59');
@@ -134,7 +135,8 @@ class TrendingOiController extends Controller
         $allStrikes = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->whereDate('captured_at', $date)
+            ->where('captured_at', '>=', "{$date} 00:00:00")
+            ->where('captured_at', '<=', "{$date} 23:59:59")
             ->select('strike_price')
             ->distinct()
             ->orderBy('strike_price')
@@ -190,7 +192,8 @@ class TrendingOiController extends Controller
         $dataRows = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->whereDate('captured_at', $date)
+            ->where('captured_at', '>=', "{$date} 00:00:00")
+            ->where('captured_at', '<=', "{$date} 23:59:59")
             ->whereIn('captured_at', $sampledTimestamps)
             ->whereIn('strike_price', $selectedStrikes)
             ->get([
@@ -879,7 +882,8 @@ class TrendingOiController extends Controller
 
         $expiries = DB::table($table)
             ->where('underlying_key', $underlying)
-            ->whereDate('captured_at', $date)
+            ->where('captured_at', '>=', "{$date} 00:00:00")
+            ->where('captured_at', '<=', "{$date} 23:59:59")
             ->select('expiry')
             ->distinct()
             ->orderBy('expiry')
@@ -911,7 +915,8 @@ class TrendingOiController extends Controller
         $strikes = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->whereDate('captured_at', $date)
+            ->where('captured_at', '>=', "{$date} 00:00:00")
+            ->where('captured_at', '<=', "{$date} 23:59:59")
             ->select('strike_price')
             ->distinct()
             ->orderBy('strike_price')

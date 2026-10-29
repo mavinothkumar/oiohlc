@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -101,7 +102,12 @@ class OptionsBreadthMonitorController extends Controller
         $startTs = "{$date} 09:00:00";
         $endTs   = "{$date} 15:35:00";
 
-        // 2. Fetch Strikes and determine ATM strike
+        $cacheTtl = $isMarketHours ? 30 : 86400;
+        $reqStrike = $request->input('strike', 'auto');
+        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}";
+
+        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata) {
+            // 2. Fetch Strikes and determine ATM strike
         $strikes = DB::table($table)
             ->where('trading_symbol', $symbol)
             ->where('expiry', $selectedExpiry)
@@ -191,26 +197,29 @@ class OptionsBreadthMonitorController extends Controller
 
         $latestCandle = !empty($niftyCandles) ? end($niftyCandles) : null;
 
-        return response()->json([
-            'success'          => true,
-            'date'             => $date,
-            'expiry'           => $selectedExpiry,
-            'center_strike'    => $centerStrike,
-            'atm_strike'       => $atmStrike,
-            'range'            => $range,
-            'strikes'          => $targetStrikes->values(),
-            'is_today'         => $isToday,
-            'is_live'          => $isMarketHours,
-            'server_time'      => $nowKolkata->format('H:i:s'),
-            'latest_time'      => $latestCandle ? $latestCandle['time_str'] : '09:15',
-            'latest_price'     => $latestCandle ? $latestCandle['close'] : 0,
-            'nifty_candles'    => $niftyCandles,
-            'lw_chart_candles' => $lwChartCandles,
-            'timestamps'       => $optionsData['timestamps'],
-            'breadth_by_time'  => $optionsData['breadth_by_time'],
-            'matrix'           => $optionsData['matrix'],
-            'summary'          => $optionsData['summary'],
-        ]);
+            return [
+                'success'          => true,
+                'date'             => $date,
+                'expiry'           => $selectedExpiry,
+                'center_strike'    => $centerStrike,
+                'atm_strike'       => $atmStrike,
+                'range'            => $range,
+                'strikes'          => $targetStrikes->values(),
+                'is_today'         => $isToday,
+                'is_live'          => $isMarketHours,
+                'server_time'      => $nowKolkata->format('H:i:s'),
+                'latest_time'      => $latestCandle ? $latestCandle['time_str'] : '09:15',
+                'latest_price'     => $latestCandle ? $latestCandle['close'] : 0,
+                'nifty_candles'    => $niftyCandles,
+                'lw_chart_candles' => $lwChartCandles,
+                'timestamps'       => $optionsData['timestamps'],
+                'breadth_by_time'  => $optionsData['breadth_by_time'],
+                'matrix'           => $optionsData['matrix'],
+                'summary'          => $optionsData['summary'],
+            ];
+        });
+
+        return response()->json($data);
     }
 
     /**
@@ -270,7 +279,8 @@ class OptionsBreadthMonitorController extends Controller
                       ->orWhere('trading_symbol', 'Nifty 50');
                 })
                 ->where('instrument_type', 'INDEX')
-                ->whereDate('ts_at', $date)
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
                 ->orderBy('ts_at')
                 ->get();
 
@@ -381,27 +391,16 @@ class OptionsBreadthMonitorController extends Controller
         array $niftyCandles,
         string $metric
     ): array {
-        // Query CE & PE options records
-        $ceRows = DB::table($table)
+        // Query CE & PE options records combined in a single indexed query
+        $optRows = DB::table($table)
             ->where('trading_symbol', $symbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $targetStrikes)
-            ->where('option_type', 'CE')
+            ->whereIn('option_type', ['CE', 'PE'])
             ->where('captured_at', '>=', $startTs)
             ->where('captured_at', '<=', $endTs)
             ->orderBy('captured_at')
-            ->select('captured_at', 'strike_price', 'ltp', 'vega', 'delta', 'gamma', 'theta', 'iv', 'oi', 'volume', 'underlying_spot_price')
-            ->get();
-
-        $peRows = DB::table($table)
-            ->where('trading_symbol', $symbol)
-            ->where('expiry', $expiry)
-            ->whereIn('strike_price', $targetStrikes)
-            ->where('option_type', 'PE')
-            ->where('captured_at', '>=', $startTs)
-            ->where('captured_at', '<=', $endTs)
-            ->orderBy('captured_at')
-            ->select('captured_at', 'strike_price', 'ltp', 'vega', 'delta', 'gamma', 'theta', 'iv', 'oi', 'volume', 'underlying_spot_price')
+            ->select('option_type', 'captured_at', 'strike_price', 'ltp', 'vega', 'delta', 'gamma', 'theta', 'iv', 'oi', 'volume', 'underlying_spot_price')
             ->get();
 
         // Index by strike and formatted timestamp
@@ -409,14 +408,13 @@ class OptionsBreadthMonitorController extends Controller
         $peGrid = [];
         $timestampsSet = [];
 
-        foreach ($ceRows as $r) {
+        foreach ($optRows as $r) {
             $t = Carbon::parse($r->captured_at)->format('H:i');
-            $ceGrid[$r->strike_price][$t] = $r;
-            $timestampsSet[$t] = true;
-        }
-        foreach ($peRows as $r) {
-            $t = Carbon::parse($r->captured_at)->format('H:i');
-            $peGrid[$r->strike_price][$t] = $r;
+            if ($r->option_type === 'CE') {
+                $ceGrid[$r->strike_price][$t] = $r;
+            } else {
+                $peGrid[$r->strike_price][$t] = $r;
+            }
             $timestampsSet[$t] = true;
         }
 

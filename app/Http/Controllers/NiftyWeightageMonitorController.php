@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
@@ -143,40 +144,46 @@ class NiftyWeightageMonitorController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
-        // Dynamic constituent configuration for this specific date
-        $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
-        $constituents = $periodInfo['constituents'];
+        $cacheTtl = $isMarketHours ? 30 : 86400;
+        $cacheKey = "nifty_weightage_data_{$date}";
 
-        // 1. Fetch real NIFTY 5m candles from database if present
-        $dbCandles = DB::table('ohlc_5m_quotes')
-            ->where(function($q) {
-                $q->where('instrument_key', 'like', '%Nifty 50%')
-                  ->orWhere('trading_symbol', 'Nifty 50')
-                  ->orWhere('trading_symbol', 'NIFTY');
-            })
-            ->where('instrument_type', 'INDEX')
-            ->whereDate('ts_at', $date)
-            ->orderBy('ts_at')
-            ->get();
+        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday) {
+            // Dynamic constituent configuration for this specific date
+            $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
+            $constituents = $periodInfo['constituents'];
 
-        // If past date has no 5m candles in DB, attempt on-demand sync from Upstox
-        if ($dbCandles->isEmpty() && !$isToday) {
-            try {
-                Artisan::call('ohlc:sync-nifty50', ['--date' => $date]);
-                $dbCandles = DB::table('ohlc_5m_quotes')
-                    ->where(function($q) {
-                        $q->where('instrument_key', 'like', '%Nifty 50%')
-                          ->orWhere('trading_symbol', 'Nifty 50')
-                          ->orWhere('trading_symbol', 'NIFTY');
-                    })
-                    ->where('instrument_type', 'INDEX')
-                    ->whereDate('ts_at', $date)
-                    ->orderBy('ts_at')
-                    ->get();
-            } catch (\Throwable $e) {
-                // Ignore and proceed to fallback
+            // 1. Fetch real NIFTY 5m candles from database if present
+            $dbCandles = DB::table('ohlc_5m_quotes')
+                ->where(function($q) {
+                    $q->where('instrument_key', 'like', '%Nifty 50%')
+                      ->orWhere('trading_symbol', 'Nifty 50')
+                      ->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('instrument_type', 'INDEX')
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
+                ->orderBy('ts_at')
+                ->get();
+
+            // If past date has no 5m candles in DB, attempt on-demand sync from Upstox
+            if ($dbCandles->isEmpty() && !$isToday) {
+                try {
+                    Artisan::call('ohlc:sync-nifty50', ['--date' => $date]);
+                    $dbCandles = DB::table('ohlc_5m_quotes')
+                        ->where(function($q) {
+                            $q->where('instrument_key', 'like', '%Nifty 50%')
+                              ->orWhere('trading_symbol', 'Nifty 50')
+                              ->orWhere('trading_symbol', 'NIFTY');
+                        })
+                        ->where('instrument_type', 'INDEX')
+                        ->where('ts_at', '>=', "{$date} 00:00:00")
+                        ->where('ts_at', '<=', "{$date} 23:59:59")
+                        ->orderBy('ts_at')
+                        ->get();
+                } catch (\Throwable $e) {
+                    // Ignore and proceed to fallback
+                }
             }
-        }
 
         $niftyCandles = [];
         $seenTimes = [];
@@ -227,7 +234,8 @@ class NiftyWeightageMonitorController extends Controller
                       ->orWhere('trading_symbol', 'NIFTY');
                 })
                 ->where('instrument_type', 'INDEX')
-                ->whereDate('ts_at', $date)
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
                 ->orderBy('ts_at')
                 ->get();
 
@@ -367,26 +375,29 @@ class NiftyWeightageMonitorController extends Controller
 
         $latestCandle = !empty($niftyCandles) ? end($niftyCandles) : null;
 
-        return response()->json([
-            'success'            => true,
-            'date'               => $date,
-            'is_today'           => $isToday,
-            'is_live'            => $isMarketHours,
-            'is_pre_market'      => $isPreMarket,
-            'market_status'      => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
-            'server_time'        => $nowKolkata->format('H:i:s'),
-            'latest_time'        => $latestCandle ? $latestCandle['time_str'] : '09:15',
-            'latest_price'       => $latestCandle ? $latestCandle['close'] : 0,
-            'nifty_candles'      => $niftyCandles,
-            'lw_chart_candles'   => $lwChartCandles,
-            'timestamps'         => $timestamps,
-            'rebalancing_period' => $periodInfo['period_name'],
-            'rebalancing_notes'  => $periodInfo['notes'],
-            'constituents'       => $constituents,
-            'matrix'             => $matrix,
-            'breadth_by_time'    => $breadthByTime,
-            'summary'            => $summary,
-        ]);
+            return [
+                'success'            => true,
+                'date'               => $date,
+                'is_today'           => $isToday,
+                'is_live'            => $isMarketHours,
+                'is_pre_market'      => $isPreMarket,
+                'market_status'      => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
+                'server_time'        => $nowKolkata->format('H:i:s'),
+                'latest_time'        => $latestCandle ? $latestCandle['time_str'] : '09:15',
+                'latest_price'       => $latestCandle ? $latestCandle['close'] : 0,
+                'nifty_candles'      => $niftyCandles,
+                'lw_chart_candles'   => $lwChartCandles,
+                'timestamps'         => $timestamps,
+                'rebalancing_period' => $periodInfo['period_name'],
+                'rebalancing_notes'  => $periodInfo['notes'],
+                'constituents'       => $constituents,
+                'matrix'             => $matrix,
+                'breadth_by_time'    => $breadthByTime,
+                'summary'            => $summary,
+            ];
+        });
+
+        return response()->json($data);
     }
 
     /**
@@ -407,7 +418,8 @@ class NiftyWeightageMonitorController extends Controller
         // 1. Check if real 5-min quotes already exist in ohlc_5m_quotes for this date
         $db5mQuotes = DB::table('ohlc_5m_quotes')
             ->where('instrument_type', 'EQ')
-            ->whereDate('ts_at', $date)
+            ->where('ts_at', '>=', "{$date} 00:00:00")
+            ->where('ts_at', '<=', "{$date} 23:59:59")
             ->orderBy('ts_at')
             ->get()
             ->groupBy('trading_symbol');
@@ -431,7 +443,8 @@ class NiftyWeightageMonitorController extends Controller
             // Check 1-min quotes in ohlc_quotes as fallback for today
             $realEqQuotes = DB::table('ohlc_quotes')
                 ->where('instrument_type', 'EQ')
-                ->whereDate('ts_at', $date)
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
                 ->orderBy('ts_at')
                 ->get()
                 ->groupBy('trading_symbol');
