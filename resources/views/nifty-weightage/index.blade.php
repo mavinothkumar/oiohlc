@@ -5,10 +5,69 @@
 @push('styles')
     <!-- TradingView Lightweight Charts -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Flatpickr (Calendar Date Picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
             background-color: #0b0e14 !important;
             color: #d1d5db;
+        }
+
+        /* Flatpickr Dark Theme Customization */
+        .flatpickr-calendar {
+            background: #131722 !important;
+            border: 1px solid #374151 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8) !important;
+            font-family: inherit !important;
+        }
+        .flatpickr-calendar .flatpickr-months {
+            background: #1a1e29 !important;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .flatpickr-calendar .flatpickr-month {
+            color: #f3f4f6 !important;
+            fill: #f3f4f6 !important;
+        }
+        .flatpickr-calendar .flatpickr-current-month .numInputWrapper span {
+            border: none !important;
+        }
+        .flatpickr-calendar .flatpickr-weekdays {
+            background: #1a1e29 !important;
+        }
+        span.flatpickr-weekday {
+            color: #9ca3af !important;
+            font-weight: 600 !important;
+        }
+        .flatpickr-day {
+            color: #e5e7eb !important;
+            border-radius: 6px !important;
+        }
+        .flatpickr-day:hover {
+            background: #2563eb !important;
+            color: #ffffff !important;
+        }
+        .flatpickr-day.selected {
+            background: #2563eb !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
+        }
+        .flatpickr-day.today {
+            border-color: #60a5fa !important;
+        }
+        .flatpickr-day.disabled, .flatpickr-day.disabled:hover {
+            color: #4b5563 !important;
+            background: transparent !important;
+        }
+        .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month {
+            color: #9ca3af !important;
+            fill: #9ca3af !important;
+        }
+        .flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg {
+            fill: #ffffff !important;
         }
         /* Custom dark scrollbars */
         ::-webkit-scrollbar {
@@ -80,44 +139,47 @@
 @section('content')
 <div class="w-full px-2 sm:px-4 py-2 space-y-3" id="weightage-app">
 
-    <!-- Top Action / Navigation Bar -->
-    <div class="bg-[#131722] border border-gray-800 rounded-lg p-3 shadow-lg flex flex-wrap items-center justify-between gap-3">
-        <!-- Title & Session Badge -->
-        <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2">
-                <span class="p-1.5 bg-blue-900/40 border border-blue-500/30 rounded text-blue-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                </span>
-                <div>
-                    <h1 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
-                        NIFTY 50 Weightage &amp; Breadth Monitor
-                        <span id="session-badge" class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
-                            ACTIVE
-                        </span>
-                    </h1>
-                    <p class="text-xs text-gray-400">
-                        Every 5-minute candle breadth, stock points contribution &amp; heavyweight divergence analysis
-                    </p>
-                </div>
-            </div>
+    <!-- Top Action / Navigation Bar (Single Line: Indicator + Calendar + Controls) -->
+    <div class="bg-[#131722] border border-gray-800 rounded-lg px-3 py-2 shadow-lg flex flex-wrap items-center justify-between gap-2.5">
+        <!-- Left: Compact Status Badge & Monitor Label -->
+        <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-blue-900/40 border border-blue-500/30 rounded text-blue-400 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </span>
+            <span class="font-bold text-white text-xs tracking-wide hidden lg:inline">NIFTY 50 Weightage</span>
+            <span id="session-badge" class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600/40 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
+                ACTIVE
+            </span>
         </div>
 
-        <!-- Controls: Date Picker, Playback, Filters & Settings -->
+        <!-- Controls: Calendar Date Picker, Playback, Filters & Settings -->
         <div class="flex flex-wrap items-center gap-2">
-            <!-- Date Selector (Default: Current Date) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2.5 py-1 text-xs">
-                <span class="text-gray-400 mr-2">📅 Session:</span>
-                <select id="date-select" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
-                    @foreach($availableDates as $dt)
-                        @php $isCurrentDay = ($dt === $todayDate); @endphp
-                        <option value="{{ $dt }}" {{ $selectedDate === $dt ? 'selected' : '' }} class="bg-[#131722] text-white font-mono">
-                            {{ $isCurrentDay ? '● Current Date: ' : '' }}{{ \Carbon\Carbon::parse($dt)->format('d M Y (D)') }}{{ $isCurrentDay ? ' (Today)' : '' }}
-                        </option>
-                    @endforeach
-                </select>
+            <!-- Calendar Date Picker (Instant Year/Month Jump + Prev/Next Steppers) -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-1 text-xs gap-1.5 shadow-inner">
+                <button id="btn-prev-day" type="button" title="Previous Trading Day (←)" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="flex items-center gap-1.5 cursor-pointer" id="calendar-trigger-container" title="Click to pick any trading day from 2024 to present">
+                    <span class="text-blue-400 text-xs">📅</span>
+                    <input type="text" id="date-select" readonly
+                           class="bg-transparent text-white font-mono font-medium focus:outline-none cursor-pointer w-32 text-xs selection:bg-transparent"
+                           value="{{ $selectedDate }}">
+                </div>
+                <button id="btn-next-day" type="button" title="Next Trading Day (→)" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+                <button id="btn-today" type="button" title="Jump to Today's Session" class="px-1.5 py-0.5 bg-blue-900/40 hover:bg-blue-800 text-blue-300 hover:text-white rounded text-[10px] font-semibold border border-blue-700/50 transition">
+                    Today
+                </button>
+            </div>
+
+            <!-- Rebalancing Period Badge -->
+            <div id="rebalancing-badge" class="hidden md:flex items-center bg-[#1a1e29] border border-blue-900/50 rounded px-2 py-1 text-xs text-blue-300" title="{{ $rebalancingNotes ?? '' }}">
+                <span class="text-gray-400 mr-1.5">⚖️</span>
+                <span id="rebalancing-period-name" class="font-medium text-blue-200">{{ $rebalancingPeriod ?? 'Current' }}</span>
             </div>
 
             <!-- Quick Timeline Scrub / Playback -->
@@ -1867,7 +1929,66 @@
         });
 
         // Event Listeners
-        dateSelect.addEventListener('change', () => loadData());
+        // Initialize Flatpickr Calendar for Session Date Selection (Year/Month jump & Calendar Picker)
+        let fpInstance = null;
+        if (typeof flatpickr !== 'undefined') {
+            fpInstance = flatpickr('#date-select', {
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd M Y (D)',
+                altInputClass: 'bg-transparent text-white font-mono font-medium focus:outline-none cursor-pointer w-32 text-xs selection:bg-transparent',
+                defaultDate: '{{ $selectedDate }}',
+                maxDate: '{{ $todayDate }}',
+                minDate: '2024-01-01',
+                disableMobile: true,
+                theme: 'dark',
+                onChange: function(selectedDates, dateStr) {
+                    if (dateStr) {
+                        loadData();
+                    }
+                }
+            });
+
+            // Quick Prev Day Stepper (←)
+            const btnPrevDay = document.getElementById('btn-prev-day');
+            if (btnPrevDay) {
+                btnPrevDay.addEventListener('click', () => {
+                    const curDate = fpInstance.selectedDates[0] ? new Date(fpInstance.selectedDates[0]) : new Date('{{ $selectedDate }}');
+                    curDate.setDate(curDate.getDate() - 1);
+                    // Skip weekends (Sunday=0 -> Friday, Saturday=6 -> Friday)
+                    if (curDate.getDay() === 0) curDate.setDate(curDate.getDate() - 2);
+                    if (curDate.getDay() === 6) curDate.setDate(curDate.getDate() - 1);
+                    fpInstance.setDate(curDate, true);
+                });
+            }
+
+            // Quick Next Day Stepper (→)
+            const btnNextDay = document.getElementById('btn-next-day');
+            if (btnNextDay) {
+                btnNextDay.addEventListener('click', () => {
+                    const curDate = fpInstance.selectedDates[0] ? new Date(fpInstance.selectedDates[0]) : new Date('{{ $selectedDate }}');
+                    curDate.setDate(curDate.getDate() + 1);
+                    // Skip weekends (Saturday=6 -> Monday, Sunday=0 -> Monday)
+                    if (curDate.getDay() === 6) curDate.setDate(curDate.getDate() + 2);
+                    if (curDate.getDay() === 0) curDate.setDate(curDate.getDate() + 1);
+                    const todayLimit = new Date('{{ $todayDate }}');
+                    if (curDate <= todayLimit) {
+                        fpInstance.setDate(curDate, true);
+                    }
+                });
+            }
+
+            // Jump to Today
+            const btnToday = document.getElementById('btn-today');
+            if (btnToday) {
+                btnToday.addEventListener('click', () => {
+                    fpInstance.setDate('{{ $todayDate }}', true);
+                });
+            }
+        } else {
+            dateSelect.addEventListener('change', () => loadData());
+        }
+
         btnReload.addEventListener('click', () => loadData());
         
         candleSlider.addEventListener('input', (e) => {
@@ -2114,6 +2235,14 @@
                     } else {
                         badge.innerHTML = `HISTORICAL (${data.date})`;
                         badge.className = 'px-2 py-0.5 text-xs font-medium rounded-full bg-gray-800 text-gray-300 border border-gray-700 flex items-center gap-1.5';
+                    }
+
+                    // Update Rebalancing Period info if present
+                    if (data.rebalancing_period) {
+                        const rPeriod = document.getElementById('rebalancing-period-name');
+                        if (rPeriod) rPeriod.textContent = data.rebalancing_period;
+                        const rBadge = document.getElementById('rebalancing-badge');
+                        if (rBadge && data.rebalancing_notes) rBadge.title = data.rebalancing_notes;
                     }
 
                     const isFirstLoad = !currentData;

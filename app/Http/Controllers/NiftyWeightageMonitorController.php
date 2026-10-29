@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\ZeroClickAlertLog;
+use App\Services\NiftyConstituentManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
@@ -106,15 +108,21 @@ class NiftyWeightageMonitorController extends Controller
         // Selected date defaults to CURRENT DATE (today)
         $selectedDate = $request->input('date', $todayStr);
 
+        // Dynamic constituents for the selected date
+        $periodInfo = NiftyConstituentManager::getConstituentsForDate($selectedDate);
+        $constituents = $periodInfo['constituents'];
+
         // Unique sectors
-        $sectors = collect($this->constituents)->pluck('sector')->unique()->sort()->values()->all();
+        $sectors = collect($constituents)->pluck('sector')->unique()->sort()->values()->all();
 
         return view('nifty-weightage.index', [
-            'availableDates' => $allDates,
-            'selectedDate'   => $selectedDate,
-            'todayDate'      => $todayStr,
-            'constituents'   => $this->constituents,
-            'sectors'        => $sectors,
+            'availableDates'     => $allDates,
+            'selectedDate'       => $selectedDate,
+            'todayDate'          => $todayStr,
+            'constituents'       => $constituents,
+            'sectors'            => $sectors,
+            'rebalancingPeriod'  => $periodInfo['period_name'],
+            'rebalancingNotes'   => $periodInfo['notes'],
         ]);
     }
 
@@ -135,6 +143,10 @@ class NiftyWeightageMonitorController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
+        // Dynamic constituent configuration for this specific date
+        $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
+        $constituents = $periodInfo['constituents'];
+
         // 1. Fetch real NIFTY 5m candles from database if present
         $dbCandles = DB::table('ohlc_5m_quotes')
             ->where(function($q) {
@@ -146,6 +158,25 @@ class NiftyWeightageMonitorController extends Controller
             ->whereDate('ts_at', $date)
             ->orderBy('ts_at')
             ->get();
+
+        // If past date has no 5m candles in DB, attempt on-demand sync from Upstox
+        if ($dbCandles->isEmpty() && !$isToday) {
+            try {
+                Artisan::call('ohlc:sync-nifty50', ['--date' => $date]);
+                $dbCandles = DB::table('ohlc_5m_quotes')
+                    ->where(function($q) {
+                        $q->where('instrument_key', 'like', '%Nifty 50%')
+                          ->orWhere('trading_symbol', 'Nifty 50')
+                          ->orWhere('trading_symbol', 'NIFTY');
+                    })
+                    ->where('instrument_type', 'INDEX')
+                    ->whereDate('ts_at', $date)
+                    ->orderBy('ts_at')
+                    ->get();
+            } catch (\Throwable $e) {
+                // Ignore and proceed to fallback
+            }
+        }
 
         $niftyCandles = [];
         $seenTimes = [];
@@ -315,7 +346,7 @@ class NiftyWeightageMonitorController extends Controller
         }
 
         // 2. Synthesize all 50 constituent stocks' 5-minute candles perfectly coordinated with Nifty
-        $stockData = $this->generateConstituentsMatrix($niftyCandles, $date);
+        $stockData = $this->generateConstituentsMatrix($niftyCandles, $date, $constituents);
 
         // 3. Compute Candle-level Breadth Aggregations
         $breadthByTime = $stockData['breadth_by_time'];
@@ -337,31 +368,33 @@ class NiftyWeightageMonitorController extends Controller
         $latestCandle = !empty($niftyCandles) ? end($niftyCandles) : null;
 
         return response()->json([
-            'success'          => true,
-            'date'             => $date,
-            'is_today'         => $isToday,
-            'is_live'          => $isMarketHours,
-            'is_pre_market'    => $isPreMarket,
-            'market_status'    => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
-            'server_time'      => $nowKolkata->format('H:i:s'),
-            'latest_time'      => $latestCandle ? $latestCandle['time_str'] : '09:15',
-            'latest_price'     => $latestCandle ? $latestCandle['close'] : 0,
-            'nifty_candles'    => $niftyCandles,
-            'lw_chart_candles' => $lwChartCandles,
-            'timestamps'       => $timestamps,
-            'constituents'     => $this->constituents,
-            'matrix'           => $matrix,
-            'breadth_by_time'  => $breadthByTime,
-            'summary'          => $summary,
+            'success'            => true,
+            'date'               => $date,
+            'is_today'           => $isToday,
+            'is_live'            => $isMarketHours,
+            'is_pre_market'      => $isPreMarket,
+            'market_status'      => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
+            'server_time'        => $nowKolkata->format('H:i:s'),
+            'latest_time'        => $latestCandle ? $latestCandle['time_str'] : '09:15',
+            'latest_price'       => $latestCandle ? $latestCandle['close'] : 0,
+            'nifty_candles'      => $niftyCandles,
+            'lw_chart_candles'   => $lwChartCandles,
+            'timestamps'         => $timestamps,
+            'rebalancing_period' => $periodInfo['period_name'],
+            'rebalancing_notes'  => $periodInfo['notes'],
+            'constituents'       => $constituents,
+            'matrix'             => $matrix,
+            'breadth_by_time'    => $breadthByTime,
+            'summary'            => $summary,
         ]);
     }
 
     /**
      * Generate 5-minute candle matrix for all 50 constituents.
-     * Uses 100% REAL individual stock tick data bottom-up from ohlc_quotes when available,
+     * Uses 100% REAL individual stock tick data bottom-up from ohlc_5m_quotes or ohlc_quotes when available,
      * with graceful top-down beta model fallback for older historical dates without stock quotes.
      */
-    protected function generateConstituentsMatrix(array $niftyCandles, string $date): array
+    protected function generateConstituentsMatrix(array $niftyCandles, string $date, array $constituents): array
     {
         $timestamps = [];
         $breadthByTime = [];
@@ -371,40 +404,73 @@ class NiftyWeightageMonitorController extends Controller
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
 
-        // Check if real equity 1-min data exists in ohlc_quotes for this date
-        $realEqQuotes = DB::table('ohlc_quotes')
+        // 1. Check if real 5-min quotes already exist in ohlc_5m_quotes for this date
+        $db5mQuotes = DB::table('ohlc_5m_quotes')
             ->where('instrument_type', 'EQ')
             ->whereDate('ts_at', $date)
             ->orderBy('ts_at')
             ->get()
             ->groupBy('trading_symbol');
 
-        $hasRealEquity = ($realEqQuotes->count() >= 30);
-
-        // Pre-aggregate 1-min candles into 5-minute buckets for each stock
         $stock5mBuckets = [];
-        if ($hasRealEquity) {
-            foreach ($realEqQuotes as $sym => $quotes) {
+
+        if ($db5mQuotes->count() >= 30) {
+            foreach ($db5mQuotes as $sym => $quotes) {
                 foreach ($quotes as $q) {
-                    $ts = Carbon::parse($q->ts_at, 'Asia/Kolkata');
-                    $minute = (int)$ts->format('i');
-                    $bucketMinute = $minute - ($minute % 5);
-                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
-                    $stock5mBuckets[$sym][$bucketTimeStr][] = $q;
+                    $timeStr = Carbon::parse($q->ts_at, 'Asia/Kolkata')->format('H:i');
+                    $stock5mBuckets[$sym][$timeStr] = [
+                        'open'   => (float)$q->open,
+                        'high'   => (float)$q->high,
+                        'low'    => (float)$q->low,
+                        'close'  => (float)$q->close,
+                        'volume' => (int)$q->volume,
+                    ];
+                }
+            }
+        } else {
+            // Check 1-min quotes in ohlc_quotes as fallback for today
+            $realEqQuotes = DB::table('ohlc_quotes')
+                ->where('instrument_type', 'EQ')
+                ->whereDate('ts_at', $date)
+                ->orderBy('ts_at')
+                ->get()
+                ->groupBy('trading_symbol');
+
+            if ($realEqQuotes->count() >= 30) {
+                foreach ($realEqQuotes as $sym => $quotes) {
+                    $groups = [];
+                    foreach ($quotes as $q) {
+                        $ts = Carbon::parse($q->ts_at, 'Asia/Kolkata');
+                        $minute = (int)$ts->format('i');
+                        $bucketMinute = $minute - ($minute % 5);
+                        $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                        $groups[$bucketTimeStr][] = $q;
+                    }
+                    foreach ($groups as $bTime => $g) {
+                        $stock5mBuckets[$sym][$bTime] = [
+                            'open'   => (float)$g[0]->open,
+                            'high'   => (float)collect($g)->max('high'),
+                            'low'    => (float)collect($g)->min('low'),
+                            'close'  => (float)end($g)->close,
+                            'volume' => (int)collect($g)->sum('volume'),
+                        ];
+                    }
                 }
             }
         }
 
+        $hasRealEquity = !empty($stock5mBuckets);
+
         // Initial current price and day open price for each stock
         $currentPrices = [];
         $stockOpenOfDay = [];
-        foreach ($this->constituents as $stock) {
+        foreach ($constituents as $stock) {
             $sym = $stock['symbol'];
             $basePrice = $stock['base_price'];
             if ($hasRealEquity && isset($stock5mBuckets[$sym])) {
                 $firstBucket = reset($stock5mBuckets[$sym]);
                 if (!empty($firstBucket)) {
-                    $basePrice = (float)$firstBucket[0]->open;
+                    $basePrice = (float)$firstBucket['open'];
                 }
             }
             $stockOpenOfDay[$sym] = $basePrice;
@@ -438,18 +504,18 @@ class NiftyWeightageMonitorController extends Controller
 
             if ($hasRealEquity) {
                 // ── 100% REAL BOTTOM-UP CALCULATION FROM INDIVIDUAL STOCKS ──
-                foreach ($this->constituents as $stock) {
+                foreach ($constituents as $stock) {
                     $sym    = $stock['symbol'];
                     $weight = $stock['weight'];
                     $curPrice = $currentPrices[$sym];
 
                     if (isset($stock5mBuckets[$sym][$timeStr])) {
                         $bQuotes = $stock5mBuckets[$sym][$timeStr];
-                        $openPrice  = round((float)$bQuotes[0]->open, 2);
-                        $closePrice = round((float)end($bQuotes)->close, 2);
-                        $highPrice  = round((float)collect($bQuotes)->max('high'), 2);
-                        $lowPrice   = round((float)collect($bQuotes)->min('low'), 2);
-                        $vol        = (int)collect($bQuotes)->sum('volume');
+                        $openPrice  = round((float)$bQuotes['open'], 2);
+                        $closePrice = round((float)$bQuotes['close'], 2);
+                        $highPrice  = round((float)$bQuotes['high'], 2);
+                        $lowPrice   = round((float)$bQuotes['low'], 2);
+                        $vol        = (int)$bQuotes['volume'];
                     } else {
                         $openPrice  = $curPrice;
                         $closePrice = $curPrice;
@@ -513,7 +579,7 @@ class NiftyWeightageMonitorController extends Controller
                 $totalSimPoints = 0.0;
                 $isZeroCandle = ($nCandle['volume'] === 0 && abs($niftyMovePts) < 0.001);
 
-                foreach ($this->constituents as $stock) {
+                foreach ($constituents as $stock) {
                     $sym = $stock['symbol'];
                     $weight = $stock['weight'];
                     $beta = $stock['beta'];
@@ -550,7 +616,7 @@ class NiftyWeightageMonitorController extends Controller
                     $correctionRatio = max(0.4, min(2.5, $correctionRatio));
                 }
 
-                foreach ($this->constituents as $stock) {
+                foreach ($constituents as $stock) {
                     $sym = $stock['symbol'];
                     $weight = $stock['weight'];
                     $curPrice = $currentPrices[$sym];
