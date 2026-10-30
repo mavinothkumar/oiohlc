@@ -734,7 +734,12 @@
             tr.className = 'trade-row transition duration-100';
             tr.innerHTML = `
                 <td class="py-2 px-3 text-gray-500">${i + 1}</td>
-                <td class="py-2 px-3 font-semibold text-gray-200">${t.date}</td>
+                <td class="py-2 px-3 font-semibold text-gray-200">
+                    <a href="/nifty-unified-monitor?date=${t.date}" target="_blank" title="Inspect ${t.date} on Unified Monitor" class="text-cyan-400 hover:text-cyan-300 hover:underline inline-flex items-center gap-1 group">
+                        ${t.date}
+                        <svg class="w-3 h-3 text-cyan-500 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                </td>
                 <td class="py-2 px-3">
                     <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${dirColor}">
                         ${t.direction === 'BULL' ? '🐂 BULL' : '🐻 BEAR'}
