@@ -59,6 +59,8 @@ class UnifiedBreadthBacktestController extends Controller
             'tp2'                => (float)$request->input('tp2', 150.0),
             'basket_mode'        => $request->input('basket_mode', 'dynamic'),
             'max_trades_per_day' => (int)$request->input('max_trades_per_day', 2),
+            'start_time'         => $request->input('start_time', '09:30'),
+            'end_time'           => $request->input('end_time', '14:30'),
         ];
 
         $startTime = microtime(true);

@@ -22,6 +22,8 @@ class RunUnifiedBreadthBacktest extends Command
                             {--tp2=150 : Target 2 points}
                             {--basket-mode=dynamic : Options basket mode (dynamic or fixed)}
                             {--max-trades=2 : Max trades allowed per day}
+                            {--start-time=09:30 : Earliest entry trigger time (skip opening volatility)}
+                            {--end-time=14:30 : Latest entry trigger time (no entries late afternoon)}
                             {--limit= : Limit number of trading days to test}
                             {--save-json= : Save detailed trade log and stats to a JSON file}';
 
@@ -45,6 +47,8 @@ class RunUnifiedBreadthBacktest extends Command
         $tp2 = (float)$this->option('tp2');
         $basketMode = $this->option('basket-mode');
         $maxTrades = (int)$this->option('max-trades');
+        $startTime = $this->option('start-time') ?: '09:30';
+        $endTime = $this->option('end-time') ?: '14:30';
         $limit = $this->option('limit') ? (int)$this->option('limit') : null;
 
         $this->newLine();
@@ -56,6 +60,7 @@ class RunUnifiedBreadthBacktest extends Command
         $this->line(" Options Flow Target  : <fg=yellow>±{$optionThreshold}% Flow Parity (Dynamic Floating ATM Basket)</>");
         $this->line(" Stop Loss Rule       : <fg=magenta>Alarm Candle Low/High ± {$slBuffer} pts</>");
         $this->line(" Target Profit Rules  : <fg=green>TP1 = {$tp1} pts | TP2 = {$tp2} pts (Runner)</>");
+        $this->line(" Entry Time Window    : <fg=cyan>{$startTime} → {$endTime}</> (skips initial morning chop & late EOD)");
         $this->line(" Max Trades / Day     : <fg=white>{$maxTrades}</>");
         $this->line(" Execution Horizon    : <fg=bright-blue>" . ($fromDate ?: 'Start of Data') . " → " . ($toDate ?: 'Latest Available') . "</>");
         $this->info("-------------------------------------------------------------------------------");
@@ -91,6 +96,8 @@ class RunUnifiedBreadthBacktest extends Command
             'tp2' => $tp2,
             'basket_mode' => $basketMode,
             'max_trades_per_day' => $maxTrades,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
         ];
 
         // Override dates in engine if limited

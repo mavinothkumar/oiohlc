@@ -61,29 +61,29 @@
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="w-full px-3 sm:px-6 py-4">
 
     {{-- Top Header --}}
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div>
             <div class="flex items-center gap-3">
                 <span class="text-3xl">📊</span>
                 <div>
-                    <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
                         NIFTY 50 Unified Breadth Backtest Cockpit
-                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-wider">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-wider">
                             Multi-Year Engine
                         </span>
                     </h1>
                     <p class="text-xs text-gray-400 mt-0.5">
-                        Backtest 80% Stock Breadth surges & Options Flow Parity Confluence with Alarm Candle SL and Dual Target Profit.
+                        Backtest 80% Stock Breadth surges & Options Flow Parity Confluence with Alarm Candle Low/High SL and Dual Target Profit.
                     </p>
                 </div>
             </div>
         </div>
         <div class="flex items-center gap-2.5">
             <a href="{{ route('nifty.unified.monitor') }}" target="_blank"
-               class="px-3.5 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 text-xs font-semibold flex items-center gap-1.5 transition">
+               class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 text-xs font-semibold flex items-center gap-1.5 transition">
                 <span>🎯 Live Unified Cockpit</span>
                 <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
             </a>
@@ -91,12 +91,12 @@
     </div>
 
     {{-- Configuration & Filter Bar --}}
-    <div class="cockpit-panel p-5 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+    <div class="cockpit-panel p-4 mb-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3.5">
             {{-- Strategy Mode --}}
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Strategy Mode</label>
-                <select id="cfgMode" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-2 text-sm text-gray-100 font-semibold focus:outline-none focus:border-blue-500">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Strategy Mode</label>
+                <select id="cfgMode" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-1.5 text-xs text-gray-100 font-semibold focus:outline-none focus:border-blue-500">
                     <option value="stocks" selected>📈 Stock Breadth Only (2+ Years: Jan 2024 → Present)</option>
                     <option value="confluence">🔥 Dual Confluence (Options Parity + Stocks: May 2026 → Present)</option>
                     <option value="both">⚡ Combined (Confluence when available, else Stocks)</option>
@@ -105,8 +105,8 @@
 
             {{-- Date Presets --}}
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Date Range Preset</label>
-                <select id="cfgPreset" onchange="applyDatePreset(this.value)" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-2 text-sm text-gray-100 font-semibold focus:outline-none focus:border-blue-500">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Date Range Preset</label>
+                <select id="cfgPreset" onchange="applyDatePreset(this.value)" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-1.5 text-xs text-gray-100 font-semibold focus:outline-none focus:border-blue-500">
                     <option value="last30">Last 30 Days</option>
                     <option value="last90">Last 90 Days (~3 Months)</option>
                     <option value="ytd2026">2026 Year-to-Date</option>
@@ -118,62 +118,88 @@
 
             {{-- From Date --}}
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Start Date</label>
-                <input type="text" id="cfgFromDate" value="{{ $minDate }}" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-2 text-sm text-gray-100 font-mono focus:outline-none focus:border-blue-500">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">Start Date</label>
+                <input type="text" id="cfgFromDate" value="{{ $minDate }}" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-1.5 text-xs text-gray-100 font-mono focus:outline-none focus:border-blue-500">
             </div>
 
             {{-- To Date --}}
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">End Date</label>
-                <input type="text" id="cfgToDate" value="{{ $maxDate }}" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-2 text-sm text-gray-100 font-mono focus:outline-none focus:border-blue-500">
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">End Date</label>
+                <input type="text" id="cfgToDate" value="{{ $maxDate }}" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded-lg px-3 py-1.5 text-xs text-gray-100 font-mono focus:outline-none focus:border-blue-500">
             </div>
         </div>
 
         {{-- Parameter Tweaks Row --}}
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-3 border-t border-gray-800/80 items-center">
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 pt-3 border-t border-gray-800/80 items-end">
+            {{-- Start Time (Skip before) --}}
             <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">SL Buffer</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Start Time (Skip &lt;)</label>
+                <select id="cfgStartTime" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-cyan-300 font-mono">
+                    <option value="09:20">09:20 AM</option>
+                    <option value="09:30" selected>09:30 AM (Rec)</option>
+                    <option value="09:45">09:45 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                </select>
+            </div>
+
+            {{-- End Time (Skip after) --}}
+            <div>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">End Time (Skip &gt;)</label>
+                <select id="cfgEndTime" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-cyan-300 font-mono">
+                    <option value="14:00">02:00 PM</option>
+                    <option value="14:30" selected>02:30 PM (Rec)</option>
+                    <option value="15:00">03:00 PM</option>
+                </select>
+            </div>
+
+            {{-- SL Buffer --}}
+            <div>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1" title="Buffer pts added to High (Bear) or subtracted from Low (Bull)">SL Buffer</label>
                 <div class="flex items-center gap-1">
-                    <input type="number" id="cfgSlBuffer" value="15" min="0" max="50" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1 text-xs text-white font-mono text-center">
-                    <span class="text-xs text-gray-500">pts</span>
+                    <input type="number" id="cfgSlBuffer" value="15" min="0" max="50" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-white font-mono text-center">
+                    <span class="text-xs text-gray-500">p</span>
                 </div>
             </div>
 
+            {{-- Target 1 --}}
             <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Target 1 (TP1)</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Target 1 (TP1)</label>
                 <div class="flex items-center gap-1">
-                    <input type="number" id="cfgTp1" value="100" min="20" max="300" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1 text-xs text-white font-mono text-center">
-                    <span class="text-xs text-gray-500">pts</span>
+                    <input type="number" id="cfgTp1" value="100" min="20" max="300" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-white font-mono text-center">
+                    <span class="text-xs text-gray-500">p</span>
                 </div>
             </div>
 
+            {{-- Target 2 --}}
             <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Target 2 (TP2)</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Target 2 (TP2)</label>
                 <div class="flex items-center gap-1">
-                    <input type="number" id="cfgTp2" value="150" min="50" max="500" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1 text-xs text-white font-mono text-center">
-                    <span class="text-xs text-gray-500">pts</span>
+                    <input type="number" id="cfgTp2" value="150" min="50" max="500" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-white font-mono text-center">
+                    <span class="text-xs text-gray-500">p</span>
                 </div>
             </div>
 
+            {{-- Stock Threshold --}}
             <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Stock Threshold</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Surge %</label>
                 <div class="flex items-center gap-1">
-                    <input type="number" id="cfgStockThresh" value="80" min="50" max="95" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1 text-xs text-white font-mono text-center">
+                    <input type="number" id="cfgStockThresh" value="80" min="50" max="95" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-white font-mono text-center">
                     <span class="text-xs text-gray-500">%</span>
                 </div>
             </div>
 
+            {{-- Max Trades / Day --}}
             <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Max Trades/Day</label>
-                <input type="number" id="cfgMaxTrades" value="2" min="1" max="5" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1 text-xs text-white font-mono text-center">
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Max Trades</label>
+                <input type="number" id="cfgMaxTrades" value="2" min="1" max="5" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-white font-mono text-center">
             </div>
 
             {{-- Execute Button --}}
-            <div class="col-span-2 sm:col-span-1 md:col-span-1 pt-3 sm:pt-0">
+            <div>
                 <button id="btnRunBacktest" onclick="executeBacktest()"
-                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center justify-center gap-2 text-xs transition duration-150">
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg shadow-lg flex items-center justify-center gap-1.5 text-xs transition duration-150">
                     <span id="btnIcon">🚀</span>
-                    <span id="btnLabel">Launch Backtest</span>
+                    <span id="btnLabel">Launch</span>
                 </button>
             </div>
         </div>
@@ -414,8 +440,10 @@
         const tp2 = parseFloat(document.getElementById('cfgTp2').value) || 150;
         const stockThresh = parseFloat(document.getElementById('cfgStockThresh').value) || 80;
         const maxTrades = parseInt(document.getElementById('cfgMaxTrades').value) || 2;
+        const startTime = document.getElementById('cfgStartTime').value || '09:30';
+        const endTime = document.getElementById('cfgEndTime').value || '14:30';
 
-        statusMsg.innerText = `Simulating ${mode.toUpperCase()} strategy from ${fromDate} to ${toDate}...`;
+        statusMsg.innerText = `Simulating ${mode.toUpperCase()} strategy from ${fromDate} to ${toDate} (${startTime} to ${endTime})...`;
 
         try {
             const resp = await fetch('{{ route("api.nifty.unified.backtest.run") }}', {
@@ -433,7 +461,9 @@
                     tp2: tp2,
                     stock_threshold: stockThresh,
                     option_threshold: 75,
-                    max_trades_per_day: maxTrades
+                    max_trades_per_day: maxTrades,
+                    start_time: startTime,
+                    end_time: endTime
                 })
             });
 
