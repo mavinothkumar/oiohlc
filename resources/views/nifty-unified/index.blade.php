@@ -1103,7 +1103,11 @@
 
             <!-- Modal Footer Actions -->
             <div class="flex items-center justify-between pt-2 border-t border-gray-800 text-xs">
-                <span class="text-[11px] text-gray-400">Settings saved locally in browser</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-gray-400">Settings saved locally in browser</span>
+                    <button type="button" id="btn-preview-bull-alarm" class="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold rounded border border-emerald-600/50 text-[10px] cursor-pointer">Preview Bull Call</button>
+                    <button type="button" id="btn-preview-bear-alarm" class="px-2.5 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold rounded border border-rose-600/50 text-[10px] cursor-pointer">Preview Bear Call</button>
+                </div>
                 <button type="button" id="btn-save-alarm-settings" class="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition cursor-pointer">
                     Save &amp; Apply
                 </button>
@@ -1112,82 +1116,149 @@
     </div>
 
     <!-- ════════════ ACTIVE TRIGGERED ALARM POPUP (CONTINUOUS AUDIO LOOP) ════════════ -->
-    <div id="active-alarm-overlay" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div id="active-alarm-card" class="rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-amber-500">
-            <!-- Top Pill Badge -->
-            <div class="flex justify-center">
-                <div id="alarm-banner-badge" class="px-4 py-1 rounded-full font-black text-xs uppercase tracking-widest text-white shadow-md bg-black/40 border border-white/20 flex items-center gap-2">
-                    <span id="alarm-badge-left-icon">🐂</span>
-                    <span id="alarm-badge-title">BULLISH BREADTH EXTREME</span>
+    <div id="active-alarm-overlay" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4">
+        <div id="active-alarm-card" class="rounded-2xl p-5 sm:p-6 max-w-xl w-full text-center space-y-3.5 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-emerald-500 shadow-emerald-950/70">
+            <!-- Top Direction & Time Bar -->
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <div id="alarm-banner-badge" class="px-3.5 py-1 rounded-full font-black text-xs uppercase tracking-wider text-emerald-200 shadow-md bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2">
+                    <span id="alarm-badge-left-icon">🟢</span>
+                    <span id="alarm-badge-title">STRONG BULL CALL (LONG BIAS)</span>
                     <span id="alarm-badge-right-icon">🐂</span>
                 </div>
-            </div>
-
-            <!-- Distinct Sentiment Icon (Bull 🐂 or Bear 🐻) -->
-            <div class="flex justify-center">
-                <div id="alarm-sentiment-icon" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 select-none bg-emerald-500/20 border-emerald-400 text-emerald-300">
-                    🐂
+                <div class="flex items-center gap-2">
+                    <span id="alarm-candle-time-pill" class="text-[11px] font-mono text-gray-300 bg-white/5 px-2.5 py-0.5 rounded-md border border-white/10 font-bold">⏰ 10:50 Candle</span>
+                    <button type="button" id="btn-close-alarm-x" class="text-gray-400 hover:text-white text-xl font-bold px-1.5 py-0 rounded transition cursor-pointer leading-none" title="Close (ESC)">&times;</button>
                 </div>
             </div>
 
-            <!-- Metrics & Breadth Breakdown (Both Count & Weight explicitly highlighted) -->
-            <div class="space-y-1">
-                <div class="text-5xl sm:text-6xl font-black font-mono tracking-tight text-white drop-shadow-md" id="alarm-active-pct">
-                    84%
+            <!-- Hero Section: Sentiment Avatar + Metric + Spot Price -->
+            <div class="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-black/40 border border-white/10 text-left">
+                <div class="flex items-center gap-3.5">
+                    <div id="alarm-sentiment-icon" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl shadow-lg border-2 select-none bg-emerald-500/20 border-emerald-400 text-emerald-300 shrink-0">
+                        🐂
+                    </div>
+                    <div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white drop-shadow-md" id="alarm-active-pct">84%</span>
+                            <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-400" id="alarm-active-direction">BULLISH SURGE DETECTED</span>
+                        </div>
+                        <div class="text-[11px] sm:text-xs text-gray-300 font-medium leading-tight pt-0.5" id="alarm-active-details">
+                            42 stocks Green (92.8% weight &bull; 84% count) &bull; Threshold 80% breached!
+                        </div>
+                    </div>
                 </div>
-                <div class="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow-sm" id="alarm-active-direction">
-                    BULLISH SURGE DETECTED
-                </div>
-                <p class="text-xs sm:text-sm text-white/90 font-medium max-w-sm mx-auto leading-relaxed pt-1" id="alarm-active-details">
-                    At 09:55 - 42 stocks Green (87.2% weight) &bull; Threshold 80% breached!
-                </p>
-                <div id="alarm-active-confluence-note" class="hidden text-[11px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded-full inline-block">
-                    🌟 Confluence: Options Breadth agrees in the same direction!
+                <div class="text-right shrink-0 font-mono">
+                    <div class="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Nifty Spot</div>
+                    <div class="text-base sm:text-lg font-black text-white" id="alarm-trade-price">22,962.45</div>
+                    <div class="text-[10px] font-bold text-emerald-400" id="alarm-spot-pts">+42.15 pts</div>
                 </div>
             </div>
 
-            <!-- 0Click Option Contract Strip (Option Selling 1-ITM 100s) -->
-            <div class="p-3 rounded-2xl bg-black/50 border border-white/20 text-left text-xs space-y-2 backdrop-blur-sm shadow-inner">
-                <div class="flex items-center justify-between">
-                    <span class="font-bold text-white/95 flex items-center gap-1.5 text-[11px]">
-                        <span>⚡ 0Click Option Contract (Option Selling):</span>
-                        <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50">💾 LOGGED INTERNALLY</span>
+            <!-- Market Alignment: Confluence vs Divergence Alert Banner -->
+            <div id="alarm-alignment-card" class="p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-amber-950/40 border-amber-500/50 text-amber-200">
+                <span id="alarm-alignment-icon" class="text-xl">⚠️</span>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span id="alarm-alignment-badge" class="px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-amber-500/30 text-amber-200 border border-amber-500/50">DIVERGENCE WARNING</span>
+                        <span id="alarm-alignment-headline" class="text-[11px] font-bold text-white">Options Breadth opposes Stock Surge</span>
+                    </div>
+                    <p id="alarm-alignment-desc" class="text-[11px] text-gray-300 leading-tight pt-0.5">
+                        Stocks are 92.8% Bullish, but Options show 80% Put Buying. Watch for volatility or quick scalps.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Hidden original confluence note element for compatibility -->
+            <div id="alarm-active-confluence-note" class="hidden"></div>
+
+            <!-- Trade Recommendations: Dual Option Buying vs Option Selling Display -->
+            <div class="space-y-2 text-left">
+                <div class="flex items-center justify-between text-[11px] font-bold text-gray-300 px-0.5">
+                    <span class="flex items-center gap-1.5">
+                        <span>🎯 Trade Recommendations</span>
+                        <span class="text-[10px] font-normal text-gray-400">(Choose your execution mode)</span>
                     </span>
-                    <button type="button" id="btn-toggle-payload-preview" class="text-[10px] text-sky-300 hover:text-white underline cursor-pointer font-semibold">
-                        View JSON Payload
+                    <button type="button" id="btn-toggle-payload-preview" class="text-[10px] text-sky-400 hover:text-white underline cursor-pointer font-semibold">
+                        View 0Click JSON
                     </button>
                 </div>
-                <div class="font-mono text-[11px] text-white flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span id="alarm-trade-action-badge" class="font-black px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] shadow-sm">SELL</span>
-                    <span id="alarm-trade-strike-badge" class="font-black px-2 py-0.5 rounded bg-amber-400 text-black text-[11px] shadow-sm">25900 PE (1-ITM)</span>
-                    <span>Spot: <strong id="alarm-trade-price" class="text-white">25,850.50</strong></span>
-                    <span class="text-white/60">&bull;</span>
-                    <span>SL: <span id="alarm-trade-sl" class="text-rose-200 font-bold">25,750</span></span>
-                    <span class="text-white/60">&bull;</span>
-                    <span>TP: <span id="alarm-trade-tp" class="text-emerald-200 font-bold">26,050</span></span>
-                    <span class="text-white/60">&bull;</span>
-                    <span id="alarm-trade-lots-badge" class="text-white/80">1 Lot (SIMULATION)</span>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <!-- Option Buyers Box (CE for Bull / PE for Bear) -->
+                    <div class="p-3 rounded-xl bg-black/40 border border-emerald-500/30 hover:border-emerald-500/60 transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
+                                <span>📈</span>
+                                <span>Option Buyers</span>
+                            </span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">MOMENTUM</span>
+                        </div>
+                        <div class="my-1.5 flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded font-black text-xs bg-emerald-600 text-white shadow-sm font-mono" id="alarm-buyer-action-badge">BUY</span>
+                            <span class="font-black text-sm text-white font-mono" id="alarm-buyer-strike-badge">22950 CE</span>
+                            <span class="text-[10px] text-gray-400 font-mono" id="alarm-buyer-itm-label">(1-ITM)</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 flex items-center justify-between border-t border-white/5 pt-1">
+                            <span id="alarm-buyer-strategy-note">Call Scalp / Directional</span>
+                            <span class="text-emerald-400 font-bold">Fast Move</span>
+                        </div>
+                    </div>
+
+                    <!-- Option Sellers Box (PE for Bull / CE for Bear - 0Click Default) -->
+                    <div class="p-3 rounded-xl bg-black/40 border border-sky-500/30 hover:border-sky-500/60 transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1">
+                                <span>📉</span>
+                                <span>Option Sellers</span>
+                            </span>
+                            <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/20 text-sky-200 border border-sky-400/40">0CLICK DEFAULT</span>
+                        </div>
+                        <div class="my-1.5 flex items-center gap-2">
+                            <span id="alarm-trade-action-badge" class="px-1.5 py-0.5 rounded font-black text-xs bg-amber-500 text-black shadow-sm font-mono">SELL</span>
+                            <span id="alarm-trade-strike-badge" class="font-black text-sm text-white font-mono">23000 PE</span>
+                            <span class="text-[10px] text-gray-400 font-mono" id="alarm-seller-itm-label">(1-ITM)</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 flex items-center justify-between border-t border-white/5 pt-1">
+                            <span id="alarm-seller-strategy-note">Theta Premium Decay</span>
+                            <span class="text-sky-300 font-bold">High Probability</span>
+                        </div>
+                    </div>
                 </div>
-                <div id="alarm-trade-payload-box" class="hidden pt-1 border-t border-white/10 font-mono text-[10px] text-white/90 overflow-x-auto max-h-24 bg-black/70 p-2 rounded">
+
+                <!-- Levels Strip (SL / TP / Lots) -->
+                <div class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] flex flex-wrap items-center justify-between gap-2 text-white">
+                    <div class="flex items-center gap-3">
+                        <span>🛑 SL: <strong id="alarm-trade-sl" class="text-rose-300 font-bold">22,862.45</strong></span>
+                        <span class="text-white/30">&bull;</span>
+                        <span>🎯 TP: <strong id="alarm-trade-tp" class="text-emerald-300 font-bold">23,162.45</strong></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-white/30">&bull;</span>
+                        <span id="alarm-trade-lots-badge" class="text-gray-300 font-bold text-[10px] bg-white/10 px-2 py-0.5 rounded">1 Lot (SIMULATION)</span>
+                    </div>
+                </div>
+
+                <!-- 0Click Payload Inspector Box -->
+                <div id="alarm-trade-payload-box" class="hidden pt-1 border-t border-white/10 font-mono text-[10px] text-white/90 overflow-x-auto max-h-24 bg-black/80 p-2.5 rounded-lg border border-white/10">
                     <pre id="alarm-trade-payload-code">{}</pre>
                 </div>
             </div>
 
-            <!-- Actions: Manual 0Click Dispatch & Stop Audio Alarm -->
-            <div class="pt-1 flex flex-wrap items-center justify-center gap-2">
-                <button type="button" id="btn-dispatch-active-alarm" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg border border-sky-400/60 transition inline-flex items-center gap-1.5 cursor-pointer">
+            <!-- Action Buttons: Send to 0Click & Stop Alarm -->
+            <div class="pt-1.5 flex flex-wrap items-center justify-center gap-3">
+                <button type="button" id="btn-dispatch-active-alarm" class="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg border border-sky-400/50 transition inline-flex items-center gap-2 cursor-pointer active:scale-95">
                     <span>🚀</span>
                     <span>Send to 0click.in</span>
                 </button>
-                <button type="button" id="btn-stop-active-alarm" class="px-5 py-2.5 bg-gray-950/80 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 hover:border-white/60 shadow-xl transition inline-flex items-center gap-2 cursor-pointer">
+                <button type="button" id="btn-stop-active-alarm" class="px-6 py-2.5 bg-gray-900/90 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl border border-white/30 hover:border-white/60 shadow-xl transition inline-flex items-center gap-2 cursor-pointer active:scale-95">
                     <span class="text-base">🔕</span>
                     <span>Stop Alarm</span>
-                    <span class="text-[10px] text-gray-300 font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/20">ESC</span>
+                    <span class="text-[10px] text-gray-300 font-mono bg-white/15 px-1.5 py-0.5 rounded border border-white/20">ESC</span>
                 </button>
             </div>
 
-            <p class="text-[11px] text-white/75 font-medium">
-                Audio loops continuously until stopped or dismissed
+            <p class="text-[10px] text-gray-400 font-medium">
+                Audio alert loops continuously until dismissed or ESC is pressed
             </p>
         </div>
     </div>
@@ -1881,7 +1952,11 @@
                 oStat: isBull ? `${Math.round(oBreadth?.up_weight || 0)}% Bull Flow` : `${Math.round(oBreadth?.down_weight || 0)}% Bear Flow`,
                 sound: alarmSettings.confluenceSound || 'siren',
                 volume: alarmSettings.volume,
-                isConfluence: true
+                isConfluence: true,
+                confluenceState: 'CONFLUENCE',
+                confluenceText: isBull
+                    ? `Stocks (${Math.round(wBreadth?.green_weight || 0)}% Green) and Options (${Math.round(oBreadth?.up_weight || 0)}% Call Flow) in 100% Alignment.`
+                    : `Stocks (${Math.round(wBreadth?.red_weight || 0)}% Red) and Options (${Math.round(oBreadth?.down_weight || 0)}% Put Flow) in 100% Alignment.`
             });
             return;
         }
@@ -1889,6 +1964,25 @@
         // 2. Individual Nifty 50 Stocks Breadth Alert
         if (alarmSettings.stocksAlertEnabled && (wBull || wBear)) {
             const isBull = wBull;
+            let confState = 'NEUTRAL';
+            let confText = '';
+            if (oBreadth) {
+                if (isBull && oBear) {
+                    confState = 'DIVERGENCE';
+                    confText = `Stocks Bullish (${(wBreadth?.green_weight || 0).toFixed(0)}%), but Options show ${Math.round(oBreadth.down_weight)}% Bear Flow.`;
+                } else if (!isBull && oBull) {
+                    confState = 'DIVERGENCE';
+                    confText = `Stocks Bearish (${(wBreadth?.red_weight || 0).toFixed(0)}%), but Options show ${Math.round(oBreadth.up_weight)}% Bull Flow.`;
+                } else if ((isBull && oBreadth.up_weight >= 60) || (!isBull && oBreadth.down_weight >= 60)) {
+                    confState = 'CONFLUENCE';
+                    confText = isBull
+                        ? `Options confirms move with ${Math.round(oBreadth.up_weight)}% Bull Flow.`
+                        : `Options confirms move with ${Math.round(oBreadth.down_weight)}% Bear Flow.`;
+                } else {
+                    confState = 'NEUTRAL';
+                    confText = `Options breadth is neutral (${Math.round(oBreadth.up_weight)}% Bull vs ${Math.round(oBreadth.down_weight)}% Bear).`;
+                }
+            }
             alertedCandlesSet.add(timeStr);
             triggerAlarmModal({
                 type: 'STOCKS',
@@ -1904,7 +1998,9 @@
                 oStat: oBreadth ? `${Math.round(oBreadth.up_weight)}% Bull / ${Math.round(oBreadth.down_weight)}% Bear` : '---',
                 sound: alarmSettings.stocksSound || 'bull_horn',
                 volume: alarmSettings.volume,
-                isConfluence: false
+                isConfluence: (confState === 'CONFLUENCE'),
+                confluenceState: confState,
+                confluenceText: confText
             });
             return;
         }
@@ -1912,6 +2008,25 @@
         // 3. Individual Nifty Options Breadth Alert
         if (alarmSettings.optionsAlertEnabled && (oBull || oBear)) {
             const isBull = oBull;
+            let confState = 'NEUTRAL';
+            let confText = '';
+            if (wBreadth) {
+                if (isBull && wBreadth.red_weight >= 60) {
+                    confState = 'DIVERGENCE';
+                    confText = `Options Bull Flow (${optionsScore}%), but Stocks show ${(wBreadth.red_weight).toFixed(0)}% Red Weight.`;
+                } else if (!isBull && wBreadth.green_weight >= 60) {
+                    confState = 'DIVERGENCE';
+                    confText = `Options Bear Flow (${optionsScore}%), but Stocks show ${(wBreadth.green_weight).toFixed(0)}% Green Weight.`;
+                } else if ((isBull && wBreadth.green_weight >= 65) || (!isBull && wBreadth.red_weight >= 65)) {
+                    confState = 'CONFLUENCE';
+                    confText = isBull
+                        ? `Stocks confirms move with ${(wBreadth.green_weight).toFixed(0)}% Green Weight.`
+                        : `Stocks confirms move with ${(wBreadth.red_weight).toFixed(0)}% Red Weight.`;
+                } else {
+                    confState = 'NEUTRAL';
+                    confText = `Stocks breadth is balanced (${(wBreadth.green_weight).toFixed(0)}% G / ${(wBreadth.red_weight).toFixed(0)}% R).`;
+                }
+            }
             alertedCandlesSet.add(timeStr);
             triggerAlarmModal({
                 type: 'OPTIONS',
@@ -1927,7 +2042,9 @@
                 oStat: isBull ? `${optionsScore}% Bullish Call Flow` : `${optionsScore}% Bearish Put Flow`,
                 sound: alarmSettings.optionsSound || 'pulse',
                 volume: alarmSettings.volume,
-                isConfluence: false
+                isConfluence: (confState === 'CONFLUENCE'),
+                confluenceState: confState,
+                confluenceText: confText
             });
             return;
         }
@@ -1946,73 +2063,164 @@
 
         // Spot Price from active candle
         const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
-        const spotPrice = currentCandle ? currentCandle.close : 25850.50;
+        const spotPrice = currentCandle ? currentCandle.close : 22962.45;
+        const isBull = (data.direction === 'BULL' || data.direction === 'UP');
 
-        // Calculate Option Sell Contract (1-ITM 100s)
+        // Strikes calculation:
+        // Nifty strike interval is 50 pts
+        const atmStrike = Math.round(spotPrice / 50.0) * 50;
+        const buyerInstrument = isBull ? 'CE' : 'PE';
+        // 1-ITM: for Bull CE strike <= spot (atmStrike - 50); for Bear PE strike >= spot (atmStrike + 50)
+        const buyerStrike = isBull ? (atmStrike - 50) : (atmStrike + 50);
+
+        // Option Sell Contract (1-ITM 100s, 0Click compatible)
         const contract = calculateOptionSellContract(data.direction, spotPrice);
         currentActivePayload = contract.payload;
 
-        // Populate Card UI
-        const isBull = (data.direction === 'BULL' || data.direction === 'UP');
-        const badge = document.getElementById('alarm-banner-badge');
-        const icon = document.getElementById('alarm-sentiment-icon');
+        // Banner Badge & Styling
+        const bannerBadge = document.getElementById('alarm-banner-badge');
+        const badgeLeftIcon = document.getElementById('alarm-badge-left-icon');
+        const badgeTitle = document.getElementById('alarm-badge-title');
+        const badgeRightIcon = document.getElementById('alarm-badge-right-icon');
         const card = document.getElementById('active-alarm-card');
+        const icon = document.getElementById('alarm-sentiment-icon');
 
-        if (badge) {
-            badge.innerHTML = `
-                <span>${isBull ? '🐂' : '🐻'}</span>
-                <span>${data.isConfluence ? '🌟 HIGH PROBABILITY CONFLUENCE' : (isBull ? 'BULLISH BREADTH EXTREME' : 'BEARISH BREADTH EXTREME')}</span>
-                <span>${isBull ? '🐂' : '🐻'}</span>
-            `;
+        if (bannerBadge) {
+            bannerBadge.className = isBull
+                ? 'px-3.5 py-1 rounded-full font-black text-xs uppercase tracking-wider text-emerald-200 shadow-md bg-emerald-950/80 border border-emerald-500/60 flex items-center gap-2'
+                : 'px-3.5 py-1 rounded-full font-black text-xs uppercase tracking-wider text-rose-200 shadow-md bg-rose-950/80 border border-rose-500/60 flex items-center gap-2';
         }
+        if (badgeLeftIcon) badgeLeftIcon.textContent = isBull ? '🟢' : '🔴';
+        if (badgeTitle) badgeTitle.textContent = isBull ? 'STRONG BULL CALL (LONG BIAS)' : 'STRONG BEAR CALL (SHORT BIAS)';
+        if (badgeRightIcon) badgeRightIcon.textContent = isBull ? '🐂' : '🐻';
 
         if (icon) {
             icon.textContent = isBull ? '🐂' : '🐻';
             icon.className = isBull
-                ? 'w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 select-none bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                : 'w-20 h-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl shadow-xl border-2 select-none bg-rose-500/20 border-rose-400 text-rose-300';
+                ? 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl shadow-lg border-2 select-none bg-emerald-500/20 border-emerald-400 text-emerald-300 shrink-0'
+                : 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl shadow-lg border-2 select-none bg-rose-500/20 border-rose-400 text-rose-300 shrink-0';
         }
 
         if (card) {
             card.className = isBull
-                ? 'rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-emerald-500 shadow-emerald-950/80'
-                : 'rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-rose-500 shadow-rose-950/80';
+                ? 'rounded-2xl p-5 sm:p-6 max-w-xl w-full text-center space-y-3.5 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-emerald-500 shadow-emerald-950/70'
+                : 'rounded-2xl p-5 sm:p-6 max-w-xl w-full text-center space-y-3.5 shadow-2xl relative transition-all duration-300 bg-[#131722] border-2 border-rose-500 shadow-rose-950/70';
         }
 
-        document.getElementById('alarm-active-pct').textContent = `${data.score}%`;
-        document.getElementById('alarm-active-direction').textContent = data.title;
-        document.getElementById('alarm-active-details').innerHTML = `
-            At ${data.time} &bull; <strong>${data.count || 40} stocks ${isBull ? 'Green' : 'Red'}</strong> (${(data.weight || 80).toFixed(1)}% weight &bull; ${data.countPct || 80}% count) &bull; Threshold ${data.threshold}% breached!
-        `;
+        // Time pill
+        const timePill = document.getElementById('alarm-candle-time-pill');
+        if (timePill) timePill.textContent = `⏰ ${data.time} Candle`;
 
-        const confluenceNote = document.getElementById('alarm-active-confluence-note');
-        if (confluenceNote) {
-            if (data.isConfluence) {
-                confluenceNote.classList.remove('hidden');
-                confluenceNote.textContent = `🌟 Confluence: Options Breadth agrees (${data.oStat})`;
+        // Active Pct & Direction
+        const pctEl = document.getElementById('alarm-active-pct');
+        if (pctEl) {
+            pctEl.textContent = `${data.score}%`;
+            pctEl.className = `text-3xl sm:text-4xl font-black font-mono tracking-tight drop-shadow-md ${isBull ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        const dirEl = document.getElementById('alarm-active-direction');
+        if (dirEl) {
+            dirEl.textContent = data.title;
+            dirEl.className = `text-xs sm:text-sm font-black uppercase tracking-wider ${isBull ? 'text-emerald-300' : 'text-rose-300'}`;
+        }
+
+        // Details text
+        const detailsEl = document.getElementById('alarm-active-details');
+        if (detailsEl) {
+            if (data.type === 'STOCKS' || data.type === 'CONFLUENCE') {
+                detailsEl.innerHTML = `<strong>${data.count || 40} stocks ${isBull ? 'Green' : 'Red'}</strong> (${(data.weight || 80).toFixed(1)}% weight &bull; ${data.countPct || 80}% count) &bull; Threshold ${data.threshold}% breached!`;
             } else {
-                confluenceNote.classList.add('hidden');
+                detailsEl.innerHTML = `Options Flow surged to <strong>${data.score}% ${isBull ? 'Bullish' : 'Bearish'}</strong> &bull; Threshold ${data.threshold}% breached!`;
             }
         }
 
-        // Populate 0Click Option Contract Strip
-        const actionBadge = document.getElementById('alarm-trade-action-badge');
-        if (actionBadge) {
-            actionBadge.textContent = 'SELL';
-            actionBadge.className = 'font-black px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] shadow-sm';
-        }
-
-        const strikeBadge = document.getElementById('alarm-trade-strike-badge');
-        if (strikeBadge) {
-            strikeBadge.textContent = `${contract.strike} ${contract.instrument} (1-ITM)`;
-            strikeBadge.className = isBull
-                ? 'font-black px-2 py-0.5 rounded bg-emerald-400 text-black text-[11px] shadow-sm'
-                : 'font-black px-2 py-0.5 rounded bg-amber-400 text-black text-[11px] shadow-sm';
-        }
-
+        // Spot Price & Net Points
         const priceEl = document.getElementById('alarm-trade-price');
         if (priceEl) priceEl.textContent = spotPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+        const ptsEl = document.getElementById('alarm-spot-pts');
+        if (ptsEl) {
+            const pts = data.pts || 0;
+            ptsEl.textContent = `${pts >= 0 ? '+' : ''}${pts.toFixed(2)} pts`;
+            ptsEl.className = `text-[10px] font-bold ${pts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+
+        // Market Alignment Card (Confluence vs Divergence)
+        const alignCard = document.getElementById('alarm-alignment-card');
+        const alignIcon = document.getElementById('alarm-alignment-icon');
+        const alignBadge = document.getElementById('alarm-alignment-badge');
+        const alignHead = document.getElementById('alarm-alignment-headline');
+        const alignDesc = document.getElementById('alarm-alignment-desc');
+
+        if (alignCard && alignBadge && alignHead && alignDesc) {
+            if (data.confluenceState === 'CONFLUENCE' || data.isConfluence) {
+                alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-emerald-950/40 border-emerald-500/50 text-emerald-200';
+                alignIcon.textContent = '🔥';
+                alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-emerald-500/30 text-emerald-200 border border-emerald-500/50';
+                alignBadge.textContent = 'HIGH CONFLUENCE';
+                alignHead.textContent = 'Stocks & Options Breadth in Strong Agreement!';
+                alignDesc.textContent = data.confluenceText || `Both Weightage (${data.score}%) and Options (${data.oStat || 'Aligned'}) confirm the move. High probability setup.`;
+            } else if (data.confluenceState === 'DIVERGENCE') {
+                alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-amber-950/40 border-amber-500/50 text-amber-200';
+                alignIcon.textContent = '⚠️';
+                alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-amber-500/30 text-amber-200 border border-amber-500/50';
+                alignBadge.textContent = 'DIVERGENCE WARNING';
+                alignHead.textContent = 'Options Breadth Opposes Stock Breadth!';
+                alignDesc.textContent = `${data.confluenceText || 'Options and stocks flows are in opposing directions.'} Watch for traps or quick scalps only.`;
+            } else {
+                alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-sky-950/30 border-sky-500/40 text-sky-200';
+                alignIcon.textContent = '📊';
+                alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-sky-500/30 text-sky-200 border border-sky-500/50';
+                alignBadge.textContent = 'SINGLE TRIGGER';
+                alignHead.textContent = data.type === 'STOCKS' ? 'Stock Breadth Surge (Options Neutral)' : 'Options Flow Surge (Stocks Neutral)';
+                alignDesc.textContent = `${data.confluenceText || data.oStat || 'Relying primarily on single-market breadth momentum.'}`;
+            }
+        }
+
+        // Trade Box: Option Buyer
+        const buyerActionBadge = document.getElementById('alarm-buyer-action-badge');
+        const buyerStrikeBadge = document.getElementById('alarm-buyer-strike-badge');
+        const buyerItmLabel = document.getElementById('alarm-buyer-itm-label');
+        const buyerStrategyNote = document.getElementById('alarm-buyer-strategy-note');
+
+        if (buyerActionBadge) {
+            buyerActionBadge.textContent = 'BUY';
+            buyerActionBadge.className = isBull
+                ? 'px-1.5 py-0.5 rounded font-black text-xs bg-emerald-600 text-white shadow-sm font-mono'
+                : 'px-1.5 py-0.5 rounded font-black text-xs bg-rose-600 text-white shadow-sm font-mono';
+        }
+        if (buyerStrikeBadge) {
+            buyerStrikeBadge.textContent = `${buyerStrike} ${buyerInstrument}`;
+        }
+        if (buyerItmLabel) {
+            buyerItmLabel.textContent = '(1-ITM)';
+        }
+        if (buyerStrategyNote) {
+            buyerStrategyNote.textContent = isBull ? 'Call Scalp / Directional' : 'Put Scalp / Directional';
+        }
+
+        // Trade Box: Option Seller (0Click Default)
+        const sellerActionBadge = document.getElementById('alarm-trade-action-badge');
+        const sellerStrikeBadge = document.getElementById('alarm-trade-strike-badge');
+        const sellerItmLabel = document.getElementById('alarm-seller-itm-label');
+        const sellerStrategyNote = document.getElementById('alarm-seller-strategy-note');
+
+        if (sellerActionBadge) {
+            sellerActionBadge.textContent = 'SELL';
+            sellerActionBadge.className = isBull
+                ? 'px-1.5 py-0.5 rounded font-black text-xs bg-emerald-600 text-white shadow-sm font-mono'
+                : 'px-1.5 py-0.5 rounded font-black text-xs bg-amber-500 text-black shadow-sm font-mono';
+        }
+        if (sellerStrikeBadge) {
+            sellerStrikeBadge.textContent = `${contract.strike} ${contract.instrument}`;
+        }
+        if (sellerItmLabel) {
+            sellerItmLabel.textContent = '(1-ITM)';
+        }
+        if (sellerStrategyNote) {
+            sellerStrategyNote.textContent = isBull ? 'Theta Put Decay' : 'Theta Call Decay';
+        }
+
+        // Levels
         const slEl = document.getElementById('alarm-trade-sl');
         if (slEl) slEl.textContent = contract.sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
@@ -2037,6 +2245,10 @@
         if (alarmLoopInterval) clearInterval(alarmLoopInterval);
         isAlarmRinging = false;
         document.getElementById('active-alarm-overlay')?.classList.add('hidden');
+    }
+
+    function dismissAlarm() {
+        stopAlarm();
     }
 
     // ── 3. Apply Dynamic Chart Height (User Requested) ─────────────────────────────
@@ -3529,6 +3741,52 @@
 
         // Stop Active Alarm (Audio Loop & Modal Dismiss)
         document.getElementById('btn-stop-active-alarm')?.addEventListener('click', stopAlarm);
+        document.getElementById('btn-close-alarm-x')?.addEventListener('click', stopAlarm);
+
+        // Preview Bull / Bear Alarms for Testing
+        document.getElementById('btn-preview-bull-alarm')?.addEventListener('click', () => {
+            const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
+            triggerAlarmModal({
+                type: 'STOCKS',
+                direction: 'BULL',
+                title: '📊 BULLISH STOCK BREADTH SURGE',
+                score: 84,
+                threshold: 80,
+                time: currentCandle ? (currentCandle.time_str || currentCandle.time) : '10:50',
+                count: 42,
+                countPct: 84,
+                weight: 92.8,
+                pts: 42.15,
+                oStat: '20% Bull / 80% Bear',
+                sound: 'bull_horn',
+                volume: alarmSettings.volume || 1.0,
+                isConfluence: false,
+                confluenceState: 'DIVERGENCE',
+                confluenceText: 'Stocks Bullish (93%), but Options show 80% Bear Flow (Divergent).'
+            });
+        });
+
+        document.getElementById('btn-preview-bear-alarm')?.addEventListener('click', () => {
+            const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
+            triggerAlarmModal({
+                type: 'CONFLUENCE',
+                direction: 'BEAR',
+                title: '🔥 BEARISH CONFLUENCE DETECTED',
+                score: 82,
+                threshold: 75,
+                time: currentCandle ? (currentCandle.time_str || currentCandle.time) : '10:50',
+                count: 40,
+                countPct: 80,
+                weight: 88.5,
+                pts: -38.50,
+                oStat: '82% Bear Flow',
+                sound: 'bear_growl',
+                volume: alarmSettings.volume || 1.0,
+                isConfluence: true,
+                confluenceState: 'CONFLUENCE',
+                confluenceText: 'Stocks (89% Red) and Options (82% Put Flow) in 100% Agreement.'
+            });
+        });
 
         // Manual Dispatch Button in Active Alarm Modal
         document.getElementById('btn-dispatch-active-alarm')?.addEventListener('click', () => {
