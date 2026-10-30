@@ -100,7 +100,25 @@ class UnifiedBreadthBacktestController extends Controller
                 $query->where('mode', $config['mode']);
             }
 
-            $trades = $query->orderBy('date')->orderBy('entry_time')->get()->map(fn($t) => (array)$t)->toArray();
+            $trades = $query->orderBy('date')->orderBy('entry_time')->get()->map(function ($t) {
+                $row = (array)$t;
+                $row['entry_price']  = (float)$row['entry_price'];
+                $row['candle_high']  = (float)($row['candle_high'] ?? $row['entry_price']);
+                $row['candle_low']   = (float)($row['candle_low'] ?? $row['entry_price']);
+                $row['sl_price']     = (float)$row['sl_price'];
+                $row['risk_pts']     = (float)$row['risk_pts'];
+                $row['tp1_price']    = (float)$row['tp1_price'];
+                $row['tp2_price']    = (float)$row['tp2_price'];
+                $row['exit_price']   = isset($row['exit_price']) && $row['exit_price'] !== null ? (float)$row['exit_price'] : null;
+                $row['net_pts']      = (float)($row['net_pts'] ?? 0);
+                $row['pnl_pts_tp1']  = isset($row['pnl_pts_tp1']) ? (float)$row['pnl_pts_tp1'] : null;
+                $row['pnl_pts_tp2']  = isset($row['pnl_pts_tp2']) ? (float)$row['pnl_pts_tp2'] : null;
+                $row['rr_realized']  = isset($row['rr_realized']) ? (float)$row['rr_realized'] : null;
+                $row['mfe_pts']      = (float)($row['mfe_pts'] ?? 0);
+                $row['mae_pts']      = (float)($row['mae_pts'] ?? 0);
+                $row['candles_held'] = (int)($row['candles_held'] ?? 0);
+                return $row;
+            })->toArray();
 
             $daysCount = count(array_unique(array_column($trades, 'date')));
             $stats = $this->engine->calculateStatistics($trades, $daysCount);

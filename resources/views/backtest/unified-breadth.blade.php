@@ -709,6 +709,11 @@
         });
     }
 
+    function fmtNum(val, dec = 2) {
+        if (val === null || val === undefined || isNaN(val) || val === '') return '--';
+        return Number(val).toFixed(dec);
+    }
+
     function renderTradesTable(trades) {
         const tbody = document.getElementById('tradeTableBody');
         tbody.innerHTML = '';
@@ -720,13 +725,14 @@
 
         // Update counts
         document.getElementById('cntAll').innerText = trades.length;
-        document.getElementById('cntWin').innerText = trades.filter(t => t.net_pts > 0).length;
-        document.getElementById('cntLoss').innerText = trades.filter(t => t.net_pts <= 0).length;
+        document.getElementById('cntWin').innerText = trades.filter(t => (parseFloat(t.net_pts) || 0) > 0).length;
+        document.getElementById('cntLoss').innerText = trades.filter(t => (parseFloat(t.net_pts) || 0) <= 0).length;
         document.getElementById('cntBull').innerText = trades.filter(t => t.direction === 'BULL').length;
         document.getElementById('cntBear').innerText = trades.filter(t => t.direction === 'BEAR').length;
 
         trades.forEach((t, i) => {
-            const isWin = t.net_pts > 0;
+            const netPts = parseFloat(t.net_pts) || 0;
+            const isWin = netPts > 0;
             const dirColor = t.direction === 'BULL' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
             const outcomeBadge = getOutcomeBadge(t.outcome);
 
@@ -747,17 +753,17 @@
                 </td>
                 <td class="py-2 px-3 text-gray-400 text-[11px]">${t.signal_type || 'SURGE'}</td>
                 <td class="py-2 px-3 text-gray-200">${t.entry_time}</td>
-                <td class="py-2 px-3 text-white font-bold">${t.entry_price.toFixed(2)}</td>
-                <td class="py-2 px-3 text-rose-400">${t.sl_price.toFixed(2)} <span class="text-gray-500">(${t.risk_pts}p)</span></td>
+                <td class="py-2 px-3 text-white font-bold">${fmtNum(t.entry_price)}</td>
+                <td class="py-2 px-3 text-rose-400">${fmtNum(t.sl_price)} <span class="text-gray-500">(${fmtNum(t.risk_pts, 1)}p)</span></td>
                 <td class="py-2 px-3 text-gray-300">${t.exit_time || '--'}</td>
-                <td class="py-2 px-3 text-gray-200">${t.exit_price ? t.exit_price.toFixed(2) : '--'}</td>
+                <td class="py-2 px-3 text-gray-200">${t.exit_price ? fmtNum(t.exit_price) : '--'}</td>
                 <td class="py-2 px-3">${outcomeBadge}</td>
-                <td class="py-2 px-3 text-gray-400">${(t.candles_held || 0) * 5}m</td>
+                <td class="py-2 px-3 text-gray-400">${(parseInt(t.candles_held, 10) || 0) * 5}m</td>
                 <td class="py-2 px-3 text-right font-bold ${isWin ? 'text-emerald-400' : 'text-rose-400'}">
-                    ${t.net_pts >= 0 ? '+' : ''}${t.net_pts.toFixed(2)}
+                    ${netPts >= 0 ? '+' : ''}${fmtNum(netPts)}
                 </td>
                 <td class="py-2 px-3 text-right text-gray-400 font-mono">
-                    ${t.rr_realized !== undefined ? t.rr_realized.toFixed(2) : '--'}
+                    ${t.rr_realized !== undefined && t.rr_realized !== null ? fmtNum(t.rr_realized) : '--'}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -791,8 +797,8 @@
         });
 
         let filtered = globalTrades;
-        if (filterType === 'win') filtered = globalTrades.filter(t => t.net_pts > 0);
-        else if (filterType === 'loss') filtered = globalTrades.filter(t => t.net_pts <= 0);
+        if (filterType === 'win') filtered = globalTrades.filter(t => (parseFloat(t.net_pts) || 0) > 0);
+        else if (filterType === 'loss') filtered = globalTrades.filter(t => (parseFloat(t.net_pts) || 0) <= 0);
         else if (filterType === 'bull') filtered = globalTrades.filter(t => t.direction === 'BULL');
         else if (filterType === 'bear') filtered = globalTrades.filter(t => t.direction === 'BEAR');
 
