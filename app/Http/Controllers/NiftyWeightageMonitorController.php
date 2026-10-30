@@ -149,11 +149,11 @@ class NiftyWeightageMonitorController extends Controller
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $cacheKey = "nifty_weightage_data_{$date}";
 
-        if ($request->has('_t') || $request->boolean('refresh')) {
-            Cache::forget($cacheKey);
+        if ($request->boolean('refresh')) {
+            Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday) {
             // Dynamic constituent configuration for this specific date
             $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];

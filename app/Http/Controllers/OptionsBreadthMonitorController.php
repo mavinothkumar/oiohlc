@@ -109,11 +109,11 @@ class OptionsBreadthMonitorController extends Controller
         $basketMode = $request->input('basket_mode', 'dynamic'); // 'dynamic' (auto-floating ATM) or 'fixed'
         $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}";
 
-        if ($request->has('_t') || $request->boolean('refresh')) {
-            Cache::forget($cacheKey);
+        if ($request->boolean('refresh')) {
+            Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
             // 2. Fetch Strikes and determine ATM strike
         $strikes = DB::table($table)
             ->where('trading_symbol', $symbol)
