@@ -1775,6 +1775,8 @@
             tp: levels.tp1,
             tp1: levels.tp1,
             tp2: levels.tp2,
+            tpPts: levels.tpPts,
+            tp2Pts: levels.tp2Pts,
             riskPts: levels.riskPts,
             rr: levels.rr,
             payload: {
@@ -2407,7 +2409,8 @@
         }
         const tp1PtsEl = document.getElementById('alarm-trade-tp1-pts');
         if (tp1PtsEl) {
-            tp1PtsEl.textContent = `(${contract.tpPts} pts)`;
+            const tp1PtsVal = contract.tpPts || zeroClickSettings.tpOffset || 100;
+            tp1PtsEl.textContent = `(${tp1PtsVal} pts)`;
             tp1PtsEl.className = `text-[9px] font-sans ${isBull ? 'text-emerald-400' : 'text-rose-400'}`;
         }
 
@@ -2422,7 +2425,8 @@
         }
         const tp2PtsEl = document.getElementById('alarm-trade-tp2-pts');
         if (tp2PtsEl) {
-            tp2PtsEl.textContent = `(${contract.tp2Pts} pts)`;
+            const tp2PtsVal = contract.tp2Pts || zeroClickSettings.tp2Offset || 150;
+            tp2PtsEl.textContent = `(${tp2PtsVal} pts)`;
             tp2PtsEl.className = `text-[9px] font-sans ${isBull ? 'text-teal-300' : 'text-red-400'}`;
         }
 
