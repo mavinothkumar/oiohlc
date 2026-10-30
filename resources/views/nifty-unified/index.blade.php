@@ -1210,13 +1210,13 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <!-- Option Buyers Box (CE for Bull / PE for Bear) -->
-                    <div class="p-3 rounded-xl bg-black/40 border border-emerald-500/30 hover:border-emerald-500/60 transition flex flex-col justify-between">
+                    <div id="alarm-buyer-card" class="p-3 rounded-xl bg-black/40 border border-emerald-500/30 hover:border-emerald-500/60 transition flex flex-col justify-between">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
+                            <span id="alarm-buyer-title" class="text-[10px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1">
                                 <span>📈</span>
                                 <span>Option Buyers</span>
                             </span>
-                            <span class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">MOMENTUM</span>
+                            <span id="alarm-buyer-momentum-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">MOMENTUM</span>
                         </div>
                         <div class="my-1.5 flex items-center gap-2">
                             <span class="px-1.5 py-0.5 rounded font-black text-xs bg-emerald-600 text-white shadow-sm font-mono" id="alarm-buyer-action-badge">BUY</span>
@@ -1225,18 +1225,18 @@
                         </div>
                         <div class="text-[10px] text-gray-400 flex items-center justify-between border-t border-white/5 pt-1">
                             <span id="alarm-buyer-strategy-note">Call Scalp / Directional</span>
-                            <span class="text-emerald-400 font-bold">Fast Move</span>
+                            <span id="alarm-buyer-fastmove-label" class="text-emerald-400 font-bold">Fast Move</span>
                         </div>
                     </div>
 
                     <!-- Option Sellers Box (PE for Bull / CE for Bear - 0Click Default) -->
-                    <div class="p-3 rounded-xl bg-black/40 border border-sky-500/30 hover:border-sky-500/60 transition flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1">
+                    <div id="alarm-seller-card" class="p-3 rounded-xl bg-black/40 border border-sky-500/30 hover:border-sky-500/60 transition flex flex-col justify-between">
+                        <div class="flex items-center justify-between gap-1">
+                            <span id="alarm-seller-title" class="text-[10px] font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1 whitespace-nowrap shrink-0">
                                 <span>📉</span>
-                                <span>Option Sellers</span>
+                                <span class="whitespace-nowrap">Option Sellers</span>
                             </span>
-                            <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/20 text-sky-200 border border-sky-400/40">0CLICK DEFAULT</span>
+                            <span id="alarm-zeroclick-status-pill" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/20 text-sky-200 border border-sky-400/40 whitespace-nowrap">0CLICK DEFAULT</span>
                         </div>
                         <div class="my-1.5 flex items-center gap-2">
                             <span id="alarm-trade-action-badge" class="px-1.5 py-0.5 rounded font-black text-xs bg-amber-500 text-black shadow-sm font-mono">SELL</span>
@@ -1251,7 +1251,7 @@
                 </div>
 
                 <!-- Levels Strip (SL / TP1 / TP2 / Risk-Reward / Lots) -->
-                <div class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-white">
+                <div id="alarm-levels-strip" class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-white">
                     <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                         <span class="flex items-center gap-1">
                             <span class="text-rose-400 font-bold">🛑 SL:</span>
@@ -1260,13 +1260,13 @@
                         </span>
                         <span class="text-white/30">&bull;</span>
                         <span class="flex items-center gap-1">
-                            <span class="text-emerald-400 font-bold">🎯 TP1:</span>
+                            <span id="alarm-trade-tp1-label" class="text-emerald-400 font-bold">🎯 TP1:</span>
                             <strong id="alarm-trade-tp" class="text-emerald-300 font-bold">23,062.45</strong>
                             <span id="alarm-trade-tp1-pts" class="text-[9px] text-emerald-400 font-sans">(100 pts)</span>
                         </span>
                         <span class="text-white/30">&bull;</span>
                         <span class="flex items-center gap-1">
-                            <span class="text-teal-300 font-bold">🚀 TP2:</span>
+                            <span id="alarm-trade-tp2-label" class="text-teal-300 font-bold">🚀 TP2:</span>
                             <strong id="alarm-trade-tp2" class="text-teal-200 font-bold">23,112.45</strong>
                             <span id="alarm-trade-tp2-pts" class="text-[9px] text-teal-300 font-sans">(150 pts)</span>
                         </span>
@@ -1441,7 +1441,14 @@
     let zeroClickSettings = { ...defaultZeroClickSettings };
     try {
         const savedZc = localStorage.getItem('nifty_zeroclick_settings');
-        if (savedZc) zeroClickSettings = { ...zeroClickSettings, ...JSON.parse(savedZc) };
+        if (savedZc) {
+            zeroClickSettings = { ...zeroClickSettings, ...JSON.parse(savedZc) };
+            // Sanitize / migrate legacy saved settings where TP1 was 200 and TP2 was 150
+            if (zeroClickSettings.tpOffset === 200 && (!zeroClickSettings.tp2Offset || zeroClickSettings.tp2Offset === 150)) {
+                zeroClickSettings.tpOffset = 100;
+                zeroClickSettings.tp2Offset = 150;
+            }
+        }
     } catch(e) {}
 
     // Breadth Extreme & Confluence Alarm Settings (Detailed Split Configuration)
@@ -1683,8 +1690,14 @@
         const isBull = (direction === 'UP' || direction === 'BULL' || direction === 'BUY');
         const slMode = zeroClickSettings.slMode || 'candle_hl';
         const slBuffer = parseInt(zeroClickSettings.slBuffer !== undefined ? zeroClickSettings.slBuffer : 15, 10);
-        const tpPts = parseInt(zeroClickSettings.tpOffset || 100, 10);
-        const tp2Pts = parseInt(zeroClickSettings.tp2Offset || 150, 10);
+        let tpPts = parseInt(zeroClickSettings.tpOffset || 100, 10);
+        let tp2Pts = parseInt(zeroClickSettings.tp2Offset || 150, 10);
+        // Safety guard: TP1 is always the primary / closer target, TP2 is the runner / extended target
+        if (tpPts > tp2Pts) {
+            const temp = tpPts;
+            tpPts = tp2Pts;
+            tp2Pts = temp;
+        }
 
         let sl = 0;
         let slNote = '';
@@ -1842,10 +1855,13 @@
                 currentActiveLogId = data.log.id;
                 const pill = document.getElementById('alarm-zeroclick-status-pill');
                 if (pill) {
-                    pill.textContent = data.log.status === 'SENT' ? '🚀 DISPATCHED (200 OK)' : `💾 LOGGED INTERNALLY (#${data.log.id})`;
+                    const isAlertBull = (alertData.direction === 'UP' || alertData.direction === 'BULL' || alertData.direction === 'BUY');
+                    pill.textContent = data.log.status === 'SENT' ? '🚀 Dispatched' : `💾 Log(#${data.log.id})`;
                     pill.className = data.log.status === 'SENT'
-                        ? 'px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/25 text-emerald-200 border border-emerald-400/50'
-                        : 'px-1.5 py-0.2 rounded text-[10px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50';
+                        ? (isAlertBull
+                            ? 'px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/25 text-emerald-200 border border-emerald-400/50 whitespace-nowrap'
+                            : 'px-1.5 py-0.2 rounded text-[9px] font-mono bg-rose-500/25 text-rose-200 border border-rose-400/50 whitespace-nowrap')
+                        : 'px-1.5 py-0.2 rounded text-[9px] font-mono bg-sky-500/25 text-sky-200 border border-sky-400/50 whitespace-nowrap';
                 }
                 fetchAlertLogs(false);
                 if (callback) callback(data);
@@ -2256,7 +2272,7 @@
         if (ptsEl) {
             const pts = data.pts || 0;
             ptsEl.textContent = `${pts >= 0 ? '+' : ''}${pts.toFixed(2)} pts`;
-            ptsEl.className = `text-[10px] font-bold ${pts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            ptsEl.className = `text-[10px] font-bold ${isBull ? 'text-emerald-400' : 'text-rose-400'}`;
         }
 
         // Market Alignment Card (Confluence vs Divergence)
@@ -2268,11 +2284,16 @@
 
         if (alignCard && alignBadge && alignHead && alignDesc) {
             if (data.confluenceState === 'CONFLUENCE' || data.isConfluence) {
-                alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-emerald-950/40 border-emerald-500/50 text-emerald-200';
+                alignCard.className = isBull
+                    ? 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-emerald-950/40 border-emerald-500/50 text-emerald-200'
+                    : 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-rose-950/40 border-rose-500/50 text-rose-200';
                 alignIcon.textContent = '🔥';
-                alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-emerald-500/30 text-emerald-200 border border-emerald-500/50';
+                alignBadge.className = isBull
+                    ? 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-emerald-500/30 text-emerald-200 border border-emerald-500/50'
+                    : 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-rose-500/30 text-rose-200 border border-rose-500/50';
                 alignBadge.textContent = 'HIGH CONFLUENCE';
                 alignHead.textContent = 'Stocks & Options Breadth in Strong Agreement!';
+                alignHead.className = `text-[11px] font-bold ${isBull ? 'text-emerald-100' : 'text-rose-100'}`;
                 alignDesc.textContent = data.confluenceText || `Both Weightage (${data.score}%) and Options (${data.oStat || 'Aligned'}) confirm the move. High probability setup.`;
             } else if (data.confluenceState === 'DIVERGENCE') {
                 alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-amber-950/40 border-amber-500/50 text-amber-200';
@@ -2280,23 +2301,49 @@
                 alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-amber-500/30 text-amber-200 border border-amber-500/50';
                 alignBadge.textContent = 'DIVERGENCE WARNING';
                 alignHead.textContent = 'Options Breadth Opposes Stock Breadth!';
+                alignHead.className = 'text-[11px] font-bold text-amber-100';
                 alignDesc.textContent = `${data.confluenceText || 'Options and stocks flows are in opposing directions.'} Watch for traps or quick scalps only.`;
             } else {
-                alignCard.className = 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-sky-950/30 border-sky-500/40 text-sky-200';
+                alignCard.className = isBull
+                    ? 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-sky-950/30 border-sky-500/40 text-sky-200'
+                    : 'p-2.5 rounded-xl border text-left text-xs transition flex items-center gap-2.5 bg-rose-950/30 border-rose-500/40 text-rose-200';
                 alignIcon.textContent = '📊';
-                alignBadge.className = 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-sky-500/30 text-sky-200 border border-sky-500/50';
+                alignBadge.className = isBull
+                    ? 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-sky-500/30 text-sky-200 border border-sky-500/50'
+                    : 'px-1.5 py-0.2 rounded text-[10px] font-black tracking-wide uppercase bg-rose-500/30 text-rose-200 border border-rose-500/50';
                 alignBadge.textContent = 'SINGLE TRIGGER';
                 alignHead.textContent = data.type === 'STOCKS' ? 'Stock Breadth Surge (Options Neutral)' : 'Options Flow Surge (Stocks Neutral)';
+                alignHead.className = `text-[11px] font-bold ${isBull ? 'text-sky-100' : 'text-rose-100'}`;
                 alignDesc.textContent = `${data.confluenceText || data.oStat || 'Relying primarily on single-market breadth momentum.'}`;
             }
         }
 
         // Trade Box: Option Buyer
+        const buyerCard = document.getElementById('alarm-buyer-card');
+        const buyerTitle = document.getElementById('alarm-buyer-title');
+        const buyerMomentumBadge = document.getElementById('alarm-buyer-momentum-badge');
+        const buyerFastMoveLabel = document.getElementById('alarm-buyer-fastmove-label');
         const buyerActionBadge = document.getElementById('alarm-buyer-action-badge');
         const buyerStrikeBadge = document.getElementById('alarm-buyer-strike-badge');
         const buyerItmLabel = document.getElementById('alarm-buyer-itm-label');
         const buyerStrategyNote = document.getElementById('alarm-buyer-strategy-note');
 
+        if (buyerCard) {
+            buyerCard.className = isBull
+                ? 'p-3 rounded-xl bg-black/40 border border-emerald-500/30 hover:border-emerald-500/60 transition flex flex-col justify-between'
+                : 'p-3 rounded-xl bg-black/40 border border-rose-500/30 hover:border-rose-500/60 transition flex flex-col justify-between';
+        }
+        if (buyerTitle) {
+            buyerTitle.className = `text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${isBull ? 'text-emerald-300' : 'text-rose-300'}`;
+        }
+        if (buyerMomentumBadge) {
+            buyerMomentumBadge.className = isBull
+                ? 'px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'px-1.5 py-0.2 rounded text-[9px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        }
+        if (buyerFastMoveLabel) {
+            buyerFastMoveLabel.className = `font-bold ${isBull ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
         if (buyerActionBadge) {
             buyerActionBadge.textContent = 'BUY';
             buyerActionBadge.className = isBull
@@ -2336,23 +2383,48 @@
         }
 
         // Levels (Dynamic SL with Candle Low/High Note, TP1, TP2, R:R Ratio)
+        const levelsStrip = document.getElementById('alarm-levels-strip');
+        if (levelsStrip) {
+            levelsStrip.className = isBull
+                ? 'p-2.5 rounded-xl bg-black/50 border border-emerald-500/30 font-mono text-[11px] flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-white'
+                : 'p-2.5 rounded-xl bg-black/50 border border-rose-500/30 font-mono text-[11px] flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-white';
+        }
+
         const slEl = document.getElementById('alarm-trade-sl');
         if (slEl) slEl.textContent = contract.sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         const slNoteEl = document.getElementById('alarm-trade-sl-note');
         if (slNoteEl) slNoteEl.textContent = `(${contract.slNote})`;
 
+        const tp1Label = document.getElementById('alarm-trade-tp1-label');
+        if (tp1Label) {
+            tp1Label.className = isBull ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+        }
         const tpEl = document.getElementById('alarm-trade-tp');
-        if (tpEl) tpEl.textContent = contract.tp1.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-        const tp2El = document.getElementById('alarm-trade-tp2');
-        if (tp2El) tp2El.textContent = contract.tp2.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
+        if (tpEl) {
+            tpEl.textContent = contract.tp1.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            tpEl.className = isBull ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+        }
         const tp1PtsEl = document.getElementById('alarm-trade-tp1-pts');
-        if (tp1PtsEl) tp1PtsEl.textContent = `(${zeroClickSettings.tpOffset || 100} pts)`;
+        if (tp1PtsEl) {
+            tp1PtsEl.textContent = `(${contract.tpPts} pts)`;
+            tp1PtsEl.className = `text-[9px] font-sans ${isBull ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
 
+        const tp2Label = document.getElementById('alarm-trade-tp2-label');
+        if (tp2Label) {
+            tp2Label.className = isBull ? 'text-teal-300 font-bold' : 'text-red-400 font-bold';
+        }
+        const tp2El = document.getElementById('alarm-trade-tp2');
+        if (tp2El) {
+            tp2El.textContent = contract.tp2.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            tp2El.className = isBull ? 'text-teal-200 font-bold' : 'text-red-300 font-bold';
+        }
         const tp2PtsEl = document.getElementById('alarm-trade-tp2-pts');
-        if (tp2PtsEl) tp2PtsEl.textContent = `(${zeroClickSettings.tp2Offset || 150} pts)`;
+        if (tp2PtsEl) {
+            tp2PtsEl.textContent = `(${contract.tp2Pts} pts)`;
+            tp2PtsEl.className = `text-[9px] font-sans ${isBull ? 'text-teal-300' : 'text-red-400'}`;
+        }
 
         const rrBadge = document.getElementById('alarm-trade-rr-badge');
         if (rrBadge) rrBadge.textContent = `1:${contract.rr} R:R`;
@@ -4061,8 +4133,15 @@
             } else {
                 zeroClickSettings.slOffset = !isNaN(slInputVal) ? slInputVal : 100;
             }
-            zeroClickSettings.tpOffset = parseInt(document.getElementById('zc-tp-pts-input')?.value, 10) || 100;
-            zeroClickSettings.tp2Offset = parseInt(document.getElementById('zc-tp2-pts-input')?.value, 10) || 150;
+            let tp1Input = parseInt(document.getElementById('zc-tp-pts-input')?.value, 10) || 100;
+            let tp2Input = parseInt(document.getElementById('zc-tp2-pts-input')?.value, 10) || 150;
+            if (tp1Input > tp2Input) {
+                const tmp = tp1Input;
+                tp1Input = tp2Input;
+                tp2Input = tmp;
+            }
+            zeroClickSettings.tpOffset = tp1Input;
+            zeroClickSettings.tp2Offset = tp2Input;
 
             saveAlarmSettings();
             syncAlarmToolbarUI();
