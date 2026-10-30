@@ -102,9 +102,15 @@ class OptionsBreadthMonitorController extends Controller
         $startTs = "{$date} 09:00:00";
         $endTs   = "{$date} 15:35:00";
 
-        $cacheTtl = $isMarketHours ? 30 : 86400;
+        // Cache TTL: For today, keep cache short (15s during market, 30s outside market)
+        // so live/incoming 5-min candles are never blocked. For past dates, cache for 1 day.
+        $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $reqStrike = $request->input('strike', 'auto');
         $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}";
+
+        if ($request->has('_t') || $request->boolean('refresh')) {
+            Cache::forget($cacheKey);
+        }
 
         $data = Cache::remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata) {
             // 2. Fetch Strikes and determine ATM strike

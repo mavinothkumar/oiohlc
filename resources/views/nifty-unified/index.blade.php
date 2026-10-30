@@ -376,14 +376,46 @@
                             </div>
                         </div>
 
-                        <!-- Filter Chips -->
-                        <div class="pt-1.5 border-t border-gray-800/80 flex items-center justify-between text-[9px]">
-                            <span class="text-gray-400">Filter:</span>
-                            <div class="flex items-center gap-1 font-semibold">
-                                <button type="button" class="w-filter-btn px-1.5 py-0.2 bg-blue-600 text-white rounded cursor-pointer" data-filter="all">All 50</button>
-                                <button type="button" class="w-filter-btn px-1.5 py-0.2 bg-gray-800 text-gray-300 hover:text-white rounded cursor-pointer" data-filter="top50">Top 50%</button>
-                                <button type="button" class="w-filter-btn px-1.5 py-0.2 bg-gray-800 text-emerald-400 hover:bg-emerald-950 rounded cursor-pointer" data-filter="green">Green</button>
-                                <button type="button" class="w-filter-btn px-1.5 py-0.2 bg-gray-800 text-rose-400 hover:bg-rose-950 rounded cursor-pointer" data-filter="red">Red</button>
+                        <!-- NIFTY 50 Stocks Trigger Strength Analysis & Overall Breadth -->
+                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1 text-[9.5px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300 font-bold flex items-center gap-1">
+                                    <span class="text-[11px]">🎯</span>
+                                    <span>Stocks Trigger Strength</span>
+                                    <span class="text-[8px] text-gray-400 font-normal font-mono" id="stk-trigger-val-badge">(≥80%)</span>
+                                </span>
+                                <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                    Nothing happened
+                                </span>
+                            </div>
+
+                            <!-- Trigger Counts Grid: Positive vs Negative -->
+                            <div class="grid grid-cols-2 gap-1 text-[8.5px] font-mono">
+                                <div class="bg-[#181d2a] p-1 rounded border border-emerald-950/70 text-left">
+                                    <div class="flex items-center justify-between text-gray-400">
+                                        <span class="text-emerald-400 font-bold">▲ POSITIVE TRIGGERS</span>
+                                        <strong id="stk-pos-triggers-count" class="text-emerald-400 text-[10px]">0</strong>
+                                    </div>
+                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="stk-pos-details">
+                                        Pk: <span class="text-emerald-300 font-bold" id="stk-pos-peak">0%</span> <span class="text-gray-500" id="stk-pos-peak-time"></span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-[#181d2a] p-1 rounded border border-rose-950/70 text-left">
+                                    <div class="flex items-center justify-between text-gray-400">
+                                        <span class="text-rose-400 font-bold">▼ NEGATIVE TRIGGERS</span>
+                                        <strong id="stk-neg-triggers-count" class="text-rose-400 text-[10px]">0</strong>
+                                    </div>
+                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="stk-neg-details">
+                                        Pk: <span class="text-rose-300 font-bold" id="stk-neg-peak">0%</span> <span class="text-gray-500" id="stk-neg-peak-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status & Overall Stock Breadth So Far -->
+                            <div class="bg-[#181d2a] px-1.5 py-0.5 rounded border border-gray-800/80 flex items-center justify-between text-[8px] font-mono">
+                                <span id="stk-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
+                                <span class="text-gray-400">Stocks Avg: <strong id="stk-session-bull" class="text-emerald-400">50%</strong>/<strong id="stk-session-bear" class="text-rose-400">50%</strong></span>
                             </div>
                         </div>
                     </div>
@@ -511,9 +543,57 @@
                             </div>
                         </div>
 
-                        <div class="pt-1 border-t border-gray-800/80 flex items-center justify-between text-[9px] text-gray-400">
-                            <span id="o-strikes-count">Top 11 ATM Strikes</span>
-                            <span class="text-indigo-400 font-semibold cursor-help" title="Options Parity is calculated using weighted volume and delta shift">Formula: IV + OI Tug</span>
+                        <!-- NIFTY Options Trigger Strength Analysis & Overall Breadth -->
+                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1 text-[9.5px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300 font-bold flex items-center gap-1">
+                                    <span class="text-[11px]">🎯</span>
+                                    <span>Options Trigger Strength</span>
+                                    <span class="text-[8px] text-gray-400 font-normal font-mono" id="opt-trigger-val-badge">(≥70%)</span>
+                                </span>
+                                <span id="opt-trigger-verdict-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                    Nothing happened
+                                </span>
+                            </div>
+
+                            <!-- Trigger Counts Grid: Positive vs Negative -->
+                            <div class="grid grid-cols-2 gap-1 text-[8.5px] font-mono">
+                                <div class="bg-[#181d2a] p-1 rounded border border-emerald-950/70 text-left">
+                                    <div class="flex items-center justify-between text-gray-400">
+                                        <span class="text-emerald-400 font-bold">▲ POSITIVE TRIGGERS</span>
+                                        <strong id="opt-pos-triggers-count" class="text-emerald-400 text-[10px]">0</strong>
+                                    </div>
+                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="opt-pos-details">
+                                        Pk: <span class="text-emerald-300 font-bold" id="opt-pos-peak">0%</span> <span class="text-gray-500" id="opt-pos-peak-time"></span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-[#181d2a] p-1 rounded border border-rose-950/70 text-left">
+                                    <div class="flex items-center justify-between text-gray-400">
+                                        <span class="text-rose-400 font-bold">▼ NEGATIVE TRIGGERS</span>
+                                        <strong id="opt-neg-triggers-count" class="text-rose-400 text-[10px]">0</strong>
+                                    </div>
+                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="opt-neg-details">
+                                        Pk: <span class="text-rose-300 font-bold" id="opt-neg-peak">0%</span> <span class="text-gray-500" id="opt-neg-peak-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status & Overall Options Breadth So Far -->
+                            <div class="bg-[#181d2a] px-1.5 py-0.5 rounded border border-gray-800/80 flex items-center justify-between text-[8px] font-mono">
+                                <span id="opt-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
+                                <span class="text-gray-400">Options Avg: <strong id="opt-session-bull" class="text-emerald-400">50%</strong>/<strong id="opt-session-bear" class="text-rose-400">50%</strong></span>
+                            </div>
+
+                            <!-- Combined Confluence Trigger Summary Strip -->
+                            <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-[#151922] border border-gray-800/90 text-[8.5px] font-mono">
+                                <span class="text-amber-400 font-bold flex items-center gap-1">
+                                    <span>🔥 Combined:</span>
+                                </span>
+                                <span id="comb-trigger-badge" class="font-bold text-gray-400">
+                                    Nothing happened
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -990,13 +1070,6 @@
             <!-- Modal Footer Actions -->
             <div class="flex items-center justify-between pt-2 border-t border-gray-800 text-xs">
                 <span class="text-[11px] text-gray-400">Settings saved locally in browser</span>
-                <button type="button" id="btn-save-alarm-settings" class="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition cursor-pointer">
-                    Save &amp; Apply
-                </button>
-            </div>
-        </div>
-    </div>
-                <span class="text-[11px] text-gray-400">Preferences saved locally in browser</span>
                 <button type="button" id="btn-save-alarm-settings" class="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition cursor-pointer">
                     Save &amp; Apply
                 </button>
@@ -2076,7 +2149,7 @@
         let toiMode = (selectedDate === todayStr) ? 'live' : 'history';
 
         // 1. Fetch Options Breadth independently & render immediately upon arrival
-        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}`)
+        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
@@ -2115,7 +2188,7 @@
         })();
 
         // 3. Fetch Nifty Weightage independently & render immediately upon arrival
-        const pWeightage = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}`)
+        const pWeightage = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
@@ -2142,6 +2215,7 @@
             applyChartHeight(currentChartHeight);
             if (timestampsList && timestampsList.length > 0) {
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
+                updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
             }
         } finally {
             const spinner = document.getElementById('reload-spinner');
@@ -2615,12 +2689,19 @@
 
     // ── 10. Synchronized Master Timeline ──────────────────────────────────────────
     function buildMasterTimeline() {
+        const timeSet = new Set();
         if (weightageData?.candles && weightageData.candles.length > 0) {
-            timestampsList = weightageData.candles.map(c => c.time_str);
-        } else if (breadthData?.timestamps && breadthData.timestamps.length > 0) {
-            timestampsList = breadthData.timestamps;
-        } else if (trendingOiData?.chart?.labels) {
-            timestampsList = trendingOiData.chart.labels;
+            weightageData.candles.forEach(c => { if (c.time_str) timeSet.add(c.time_str); });
+        }
+        if (breadthData?.timestamps && breadthData.timestamps.length > 0) {
+            breadthData.timestamps.forEach(t => timeSet.add(t));
+        }
+        if (trendingOiData?.chart?.labels && trendingOiData.chart.labels.length > 0) {
+            trendingOiData.chart.labels.forEach(t => timeSet.add(t));
+        }
+
+        if (timeSet.size > 0) {
+            timestampsList = Array.from(timeSet).sort();
         }
 
         if (timestampsList.length === 0) return;
@@ -2654,12 +2735,15 @@
 
         // Check alarms on selected candle
         checkAlarmConditions(timeStr);
+
+        // Update overall Bull/Bear picture and Trigger Strength
+        updateOverallAndTriggerStats(index);
     }
 
     function syncWeightageUI(index, timeStr) {
         if (!weightageData) return;
 
-        const candle = weightageData.candles ? weightageData.candles[index] : null;
+        const candle = (weightageData.candles || []).find(c => c.time_str === timeStr) || weightageData.candles?.[index] || null;
         if (candle) {
             document.getElementById('w-chart-time').textContent = candle.time_str;
             document.getElementById('w-chart-open').textContent = candle.open.toFixed(2);
@@ -2730,7 +2814,7 @@
     function syncOptionsBreadthUI(index, timeStr) {
         if (!breadthData) return;
 
-        const candle = breadthData.nifty_candles ? breadthData.nifty_candles[index] : null;
+        const candle = (breadthData.nifty_candles || []).find(c => c.time_str === timeStr) || breadthData.nifty_candles?.[index] || null;
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
             document.getElementById('o-chart-open').textContent = candle.open.toFixed(2);
@@ -2777,6 +2861,265 @@
         if (activeBuildupTf === '5m') {
             const badge = document.getElementById('bld-window-badge');
             if (badge) badge.textContent = `${timeStr} (5M)`;
+        }
+    }
+
+    // ── 10b. Trigger Strength Analysis (Stocks, Options & Combined) ─────────────
+    function updateOverallAndTriggerStats(upToIndex = -1) {
+        if (!timestampsList || timestampsList.length === 0) return;
+
+        const maxIdx = (upToIndex >= 0 && upToIndex < timestampsList.length)
+            ? upToIndex
+            : (timestampsList.length - 1);
+        const activeTimes = timestampsList.slice(0, maxIdx + 1);
+        const currentTimeStr = timestampsList[maxIdx] || '';
+
+        // Active thresholds & criteria
+        const stocksUpTh = alarmSettings.stocksUpThreshold || 80;
+        const stocksDownTh = alarmSettings.stocksDownThreshold || 80;
+        const stocksTrig = alarmSettings.stocksTriggerBy || 'both';
+        const optsUpTh = alarmSettings.optionsUpThreshold || 70;
+        const optsDownTh = alarmSettings.optionsDownThreshold || 70;
+
+        // Update threshold badges
+        const stkValsBadge = document.getElementById('stk-trigger-val-badge');
+        if (stkValsBadge) {
+            const trigModeShort = stocksTrig === 'both' ? 'Both' : (stocksTrig === 'either' ? 'Either' : (stocksTrig === 'count' ? 'Count' : 'Wt'));
+            stkValsBadge.textContent = `(≥${stocksUpTh}% • ${trigModeShort})`;
+        }
+        const optValsBadge = document.getElementById('opt-trigger-val-badge');
+        if (optValsBadge) optValsBadge.textContent = `(≥${optsUpTh}%)`;
+
+        // ════════════════ 1. NIFTY 50 STOCKS TRIGGER ANALYSIS ════════════════
+        let stkPosHits = 0, stkNegHits = 0;
+        let stkPosMax = 0, stkPosMaxTime = '';
+        let stkNegMax = 0, stkNegMaxTime = '';
+        let sumGreenWt = 0, sumRedWt = 0, wCount = 0;
+
+        activeTimes.forEach(t => {
+            const wb = weightageData?.breadth_by_time?.[t];
+            if (wb) {
+                const gw = parseFloat(wb.green_weight) || 0;
+                const rw = parseFloat(wb.red_weight) || 0;
+                const gcp = parseFloat(wb.green_count_pct) || 0;
+                const rcp = parseFloat(wb.red_count_pct) || 0;
+
+                sumGreenWt += gw;
+                sumRedWt += rw;
+                wCount++;
+
+                let isGreenBreach = false;
+                let isRedBreach = false;
+
+                if (stocksTrig === 'both') {
+                    isGreenBreach = (gcp >= stocksUpTh && gw >= stocksUpTh);
+                    isRedBreach   = (rcp >= stocksDownTh && rw >= stocksDownTh);
+                } else if (stocksTrig === 'either') {
+                    isGreenBreach = (gcp >= stocksUpTh || gw >= stocksUpTh);
+                    isRedBreach   = (rcp >= stocksDownTh || rw >= stocksDownTh);
+                } else if (stocksTrig === 'count') {
+                    isGreenBreach = (gcp >= stocksUpTh);
+                    isRedBreach   = (rcp >= stocksDownTh);
+                } else if (stocksTrig === 'weight') {
+                    isGreenBreach = (gw >= stocksUpTh);
+                    isRedBreach   = (rw >= stocksDownTh);
+                }
+
+                if (isGreenBreach) {
+                    stkPosHits++;
+                    const peakVal = Math.max(gcp, gw);
+                    if (peakVal > stkPosMax) { stkPosMax = peakVal; stkPosMaxTime = t; }
+                }
+                if (isRedBreach) {
+                    stkNegHits++;
+                    const peakVal = Math.max(rcp, rw);
+                    if (peakVal > stkNegMax) { stkNegMax = peakVal; stkNegMaxTime = t; }
+                }
+            }
+        });
+
+        const avgGreenWt = wCount > 0 ? (sumGreenWt / wCount) : 50;
+        const avgRedWt = wCount > 0 ? (sumRedWt / wCount) : 50;
+
+        // Populate Stocks UI
+        const stkPosCntEl = document.getElementById('stk-pos-triggers-count');
+        if (stkPosCntEl) stkPosCntEl.textContent = stkPosHits;
+        const stkNegCntEl = document.getElementById('stk-neg-triggers-count');
+        if (stkNegCntEl) stkNegCntEl.textContent = stkNegHits;
+
+        const stkPosPkEl = document.getElementById('stk-pos-peak');
+        if (stkPosPkEl) stkPosPkEl.textContent = stkPosMax > 0 ? `${stkPosMax.toFixed(0)}%` : '0%';
+        const stkPosPkTimeEl = document.getElementById('stk-pos-peak-time');
+        if (stkPosPkTimeEl) stkPosPkTimeEl.textContent = stkPosMaxTime ? `@${stkPosMaxTime}` : '';
+
+        const stkNegPkEl = document.getElementById('stk-neg-peak');
+        if (stkNegPkEl) stkNegPkEl.textContent = stkNegMax > 0 ? `${stkNegMax.toFixed(0)}%` : '0%';
+        const stkNegPkTimeEl = document.getElementById('stk-neg-peak-time');
+        if (stkNegPkTimeEl) stkNegPkTimeEl.textContent = stkNegMaxTime ? `@${stkNegMaxTime}` : '';
+
+        const stkSessionBull = document.getElementById('stk-session-bull');
+        if (stkSessionBull) stkSessionBull.textContent = `${Math.round(avgGreenWt)}%`;
+        const stkSessionBear = document.getElementById('stk-session-bear');
+        if (stkSessionBear) stkSessionBear.textContent = `${Math.round(avgRedWt)}%`;
+
+        const stkVerdictBadge = document.getElementById('stk-trigger-verdict-badge');
+        const stkLeadText = document.getElementById('stk-trigger-lead-text');
+
+        if (stkPosHits === 0 && stkNegHits === 0) {
+            if (stkVerdictBadge) {
+                stkVerdictBadge.textContent = 'Nothing happened';
+                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
+            }
+            if (stkLeadText) {
+                stkLeadText.textContent = 'Nothing happened (No triggers reached)';
+                stkLeadText.className = 'text-gray-400 font-medium truncate';
+            }
+        } else if (stkPosHits > stkNegHits) {
+            const margin = stkPosHits - stkNegHits;
+            if (stkVerdictBadge) {
+                stkVerdictBadge.textContent = `🐂 BULLS STRONGER (+${margin})`;
+                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
+            }
+            if (stkLeadText) {
+                stkLeadText.textContent = `Bulls lead by +${margin} trigger (${stkPosHits} Pos vs ${stkNegHits} Neg)`;
+                stkLeadText.className = 'text-emerald-300 font-bold truncate';
+            }
+        } else if (stkNegHits > stkPosHits) {
+            const margin = stkNegHits - stkPosHits;
+            if (stkVerdictBadge) {
+                stkVerdictBadge.textContent = `🐻 BEARS STRONGER (+${margin})`;
+                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
+            }
+            if (stkLeadText) {
+                stkLeadText.textContent = `Bears lead by +${margin} trigger (${stkNegHits} Neg vs ${stkPosHits} Pos)`;
+                stkLeadText.className = 'text-rose-300 font-bold truncate';
+            }
+        } else {
+            if (stkVerdictBadge) {
+                stkVerdictBadge.textContent = `⚖️ TIED (${stkPosHits} Each)`;
+                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
+            }
+            if (stkLeadText) {
+                stkLeadText.textContent = `Tied: ${stkPosHits} positive vs ${stkNegHits} negative`;
+                stkLeadText.className = 'text-amber-300 font-bold truncate';
+            }
+        }
+
+        // ════════════════ 2. NIFTY OPTIONS TRIGGER ANALYSIS ════════════════
+        let optPosHits = 0, optNegHits = 0;
+        let optPosMax = 0, optPosMaxTime = '';
+        let optNegMax = 0, optNegMaxTime = '';
+        let sumOBull = 0, sumOBear = 0, oCount = 0;
+
+        activeTimes.forEach(t => {
+            const ob = breadthData?.breadth_by_time?.[t];
+            if (ob) {
+                const uw = parseFloat(ob.up_weight) || 0;
+                const dw = parseFloat(ob.down_weight) || 0;
+
+                sumOBull += uw;
+                sumOBear += dw;
+                oCount++;
+
+                if (uw >= optsUpTh) {
+                    optPosHits++;
+                    if (uw > optPosMax) { optPosMax = uw; optPosMaxTime = t; }
+                }
+                if (dw >= optsDownTh) {
+                    optNegHits++;
+                    if (dw > optNegMax) { optNegMax = dw; optNegMaxTime = t; }
+                }
+            }
+        });
+
+        const avgOBull = oCount > 0 ? (sumOBull / oCount) : 50;
+        const avgOBear = oCount > 0 ? (sumOBear / oCount) : 50;
+
+        // Populate Options UI
+        const optPosCntEl = document.getElementById('opt-pos-triggers-count');
+        if (optPosCntEl) optPosCntEl.textContent = optPosHits;
+        const optNegCntEl = document.getElementById('opt-neg-triggers-count');
+        if (optNegCntEl) optNegCntEl.textContent = optNegHits;
+
+        const optPosPkEl = document.getElementById('opt-pos-peak');
+        if (optPosPkEl) optPosPkEl.textContent = optPosMax > 0 ? `${optPosMax.toFixed(0)}%` : '0%';
+        const optPosPkTimeEl = document.getElementById('opt-pos-peak-time');
+        if (optPosPkTimeEl) optPosPkTimeEl.textContent = optPosMaxTime ? `@${optPosMaxTime}` : '';
+
+        const optNegPkEl = document.getElementById('opt-neg-peak');
+        if (optNegPkEl) optNegPkEl.textContent = optNegMax > 0 ? `${optNegMax.toFixed(0)}%` : '0%';
+        const optNegPkTimeEl = document.getElementById('opt-neg-peak-time');
+        if (optNegPkTimeEl) optNegPkTimeEl.textContent = optNegMaxTime ? `@${optNegMaxTime}` : '';
+
+        const optSessionBull = document.getElementById('opt-session-bull');
+        if (optSessionBull) optSessionBull.textContent = `${Math.round(avgOBull)}%`;
+        const optSessionBear = document.getElementById('opt-session-bear');
+        if (optSessionBear) optSessionBear.textContent = `${Math.round(avgOBear)}%`;
+
+        const optVerdictBadge = document.getElementById('opt-trigger-verdict-badge');
+        const optLeadText = document.getElementById('opt-trigger-lead-text');
+
+        if (optPosHits === 0 && optNegHits === 0) {
+            if (optVerdictBadge) {
+                optVerdictBadge.textContent = 'Nothing happened';
+                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
+            }
+            if (optLeadText) {
+                optLeadText.textContent = 'Nothing happened (No triggers reached)';
+                optLeadText.className = 'text-gray-400 font-medium truncate';
+            }
+        } else if (optPosHits > optNegHits) {
+            const margin = optPosHits - optNegHits;
+            if (optVerdictBadge) {
+                optVerdictBadge.textContent = `🐂 BULLS STRONGER (+${margin})`;
+                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
+            }
+            if (optLeadText) {
+                optLeadText.textContent = `Bulls lead by +${margin} trigger (${optPosHits} Pos vs ${optNegHits} Neg)`;
+                optLeadText.className = 'text-emerald-300 font-bold truncate';
+            }
+        } else if (optNegHits > optPosHits) {
+            const margin = optNegHits - optPosHits;
+            if (optVerdictBadge) {
+                optVerdictBadge.textContent = `🐻 BEARS STRONGER (+${margin})`;
+                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
+            }
+            if (optLeadText) {
+                optLeadText.textContent = `Bears lead by +${margin} trigger (${optNegHits} Neg vs ${optPosHits} Pos)`;
+                optLeadText.className = 'text-rose-300 font-bold truncate';
+            }
+        } else {
+            if (optVerdictBadge) {
+                optVerdictBadge.textContent = `⚖️ TIED (${optPosHits} Each)`;
+                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
+            }
+            if (optLeadText) {
+                optLeadText.textContent = `Tied: ${optPosHits} positive vs ${optNegHits} negative`;
+                optLeadText.className = 'text-amber-300 font-bold truncate';
+            }
+        }
+
+        // ════════════════ 3. COMBINED CONFLUENCE ANALYSIS ════════════════
+        const combPosHits = stkPosHits + optPosHits;
+        const combNegHits = stkNegHits + optNegHits;
+        const combBadge = document.getElementById('comb-trigger-badge');
+
+        if (combBadge) {
+            if (combPosHits === 0 && combNegHits === 0) {
+                combBadge.textContent = 'Nothing happened';
+                combBadge.className = 'font-bold text-gray-400';
+            } else if (combPosHits > combNegHits) {
+                const margin = combPosHits - combNegHits;
+                combBadge.textContent = `🐂 BULLS STRONGER (+${margin}) • ${combPosHits} Pos vs ${combNegHits} Neg`;
+                combBadge.className = 'font-bold text-emerald-400';
+            } else if (combNegHits > combPosHits) {
+                const margin = combNegHits - combPosHits;
+                combBadge.textContent = `🐻 BEARS STRONGER (+${margin}) • ${combNegHits} Neg vs ${combPosHits} Pos`;
+                combBadge.className = 'font-bold text-rose-400';
+            } else {
+                combBadge.textContent = `⚖️ TIED (${combPosHits} Pos & ${combNegHits} Neg)`;
+                combBadge.className = 'font-bold text-amber-300';
+            }
         }
     }
 
@@ -2951,17 +3294,7 @@
             });
         });
 
-        // Column 1 Filter buttons
-        document.querySelectorAll('.w-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.w-filter-btn').forEach(b => {
-                    b.classList.remove('bg-blue-600', 'text-white');
-                    b.classList.add('bg-gray-800');
-                });
-                btn.classList.remove('bg-gray-800');
-                btn.classList.add('bg-blue-600', 'text-white');
-            });
-        });
+
 
         // ── Alarm Modal & 0Click Settings Handlers ─────────────────────────────────
         const alarmModal = document.getElementById('alarm-settings-modal');
@@ -3276,6 +3609,7 @@
     function saveAlarmSettings() {
         localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings));
         localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
+        updateOverallAndTriggerStats(activeCandleIndex);
     }
 
     function syncAlarmToolbarUI() {

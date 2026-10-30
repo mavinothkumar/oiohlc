@@ -144,8 +144,14 @@ class NiftyWeightageMonitorController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
-        $cacheTtl = $isMarketHours ? 30 : 86400;
+        // Cache TTL: For today, keep cache short (15s during market, 30s outside market)
+        // so live/incoming 5-min candles are never blocked. For past dates, cache for 1 day.
+        $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $cacheKey = "nifty_weightage_data_{$date}";
+
+        if ($request->has('_t') || $request->boolean('refresh')) {
+            Cache::forget($cacheKey);
+        }
 
         $data = Cache::remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday) {
             // Dynamic constituent configuration for this specific date

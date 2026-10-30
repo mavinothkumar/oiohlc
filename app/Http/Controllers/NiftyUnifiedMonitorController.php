@@ -56,16 +56,19 @@ class NiftyUnifiedMonitorController extends Controller
         }
 
         // Default date selection:
-        // If user explicitly provided ?date=..., use it.
-        // Otherwise, during live market hours (09:15-15:35 weekdays) or if today has quotes, default to today.
-        // During off-market/weekend/night hours when today has no quotes yet, default to the latest trading day with data.
-        $curTimeStr = $nowKolkata->format('H:i');
-        $isWeekday = !in_array($nowKolkata->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
-        $isMarketHours = ($isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:35');
+        // Priority:
+        // 1. Explicit query parameter (?date=YYYY-MM-DD)
+        // 2. Current working date from nse_working_days (current = 1)
+        // 3. Most recent working date (<= today) from nse_working_days
+        // 4. Fallback to today
+        $currentWorkingDate = null;
+        if (Schema::hasTable('nse_working_days')) {
+            $currentWorkingDate = DB::table('nse_working_days')
+                ->where('current', 1)
+                ->value('working_date');
+        }
 
-        $defaultDate = ($isMarketHours || $latestQuoteDate === $todayStr)
-            ? $todayStr
-            : ($latestQuoteDate ?: $availableDates[0]);
+        $defaultDate = $currentWorkingDate ?: ($availableDates[0] ?? $todayStr);
 
         $selectedDate = $request->input('date', $defaultDate);
 
