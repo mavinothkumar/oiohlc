@@ -228,6 +228,12 @@
                 <span id="log-count-badge" class="ml-0.5 px-1 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[9.5px] rounded-full">0</span>
             </button>
 
+            <!-- Unified Backtest Cockpit Button -->
+            <a href="{{ route('nifty.unified.backtest') }}" target="_blank" title="Launch Unified Breadth 2+ Year Backtest Cockpit (Charts, Equity Curve, Drawdown)" class="flex items-center gap-1 px-1.5 py-0.5 bg-[#1a1e29] hover:bg-blue-900/60 border border-gray-700 hover:border-blue-500/50 text-blue-400 hover:text-blue-300 rounded text-xs font-semibold transition cursor-pointer shrink-0">
+                <span>📊</span>
+                <span class="hidden xl:inline text-[11px]">Backtest</span>
+            </a>
+
             <!-- Auto-Refresh Selector -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Smart Candle Sync & Auto-Refresh">
                 <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">

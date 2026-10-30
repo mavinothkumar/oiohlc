@@ -329,6 +329,8 @@ Route::get('/api/nifty-matrix-chart/ws-url', [\App\Http\Controllers\NiftyMatrixC
 Route::get('/nifty-unified-monitor', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index'])->name('nifty.unified.monitor');
 Route::get('/nifty-cockpit', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
 Route::get('/nifty-market-command', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
+Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
+Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
 Route::post('/api/nifty-weightage-monitor/alert-log', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'logAlert'])->name('api.nifty.weightage.monitor.alert-log');
