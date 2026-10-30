@@ -37,10 +37,18 @@ class UnifiedBreadthBacktestController extends Controller
             $maxDate = Carbon::now('Asia/Kolkata')->toDateString();
         }
 
+        $dbTradesCount = 0;
+        try {
+            $dbTradesCount = DB::table('unified_backtest_trades')->count();
+        } catch (\Throwable $e) {
+            $dbTradesCount = 0;
+        }
+
         return view('backtest.unified-breadth', [
-            'minDate'    => '2024-01-01',
-            'maxDate'    => $maxDate,
-            'optMinDate' => '2026-05-14',
+            'minDate'       => '2024-01-01',
+            'maxDate'       => $maxDate,
+            'optMinDate'    => '2026-05-14',
+            'dbTradesCount' => $dbTradesCount,
         ]);
     }
 
@@ -64,6 +72,53 @@ class UnifiedBreadthBacktestController extends Controller
             'end_time'           => $request->input('end_time', '15:30'),
         ];
 
+        // 1. Instant Database Filter Mode if pre-computed trades exist
+        $dbCount = 0;
+        try {
+            $dbCount = DB::table('unified_backtest_trades')->count();
+        } catch (\Throwable $e) {
+            $dbCount = 0;
+        }
+
+        if ($dbCount > 0 && !$request->boolean('force_recompute')) {
+            $startTime = microtime(true);
+            $query = DB::table('unified_backtest_trades');
+
+            if (!empty($config['from_date'])) {
+                $query->where('date', '>=', $config['from_date']);
+            }
+            if (!empty($config['to_date'])) {
+                $query->where('date', '<=', $config['to_date']);
+            }
+            if (!empty($config['start_time'])) {
+                $query->where('entry_time', '>=', $config['start_time']);
+            }
+            if (!empty($config['end_time'])) {
+                $query->where('entry_time', '<=', $config['end_time']);
+            }
+            if (!empty($config['mode']) && $config['mode'] !== 'both') {
+                $query->where('mode', $config['mode']);
+            }
+
+            $trades = $query->orderBy('date')->orderBy('entry_time')->get()->map(fn($t) => (array)$t)->toArray();
+
+            $daysCount = count(array_unique(array_column($trades, 'date')));
+            $stats = $this->engine->calculateStatistics($trades, $daysCount);
+            $chartData = $this->generateChartSeries($trades);
+            $execTime = round(microtime(true) - $startTime, 3);
+
+            return response()->json([
+                'success'        => true,
+                'source'         => 'database',
+                'execution_time' => $execTime,
+                'config'         => $config,
+                'stats'          => $stats,
+                'charts'         => $chartData,
+                'trades'         => $trades,
+            ]);
+        }
+
+        // 2. Fallback: Dynamic simulation calculation
         $startTime = microtime(true);
         $results = $this->engine->run($config);
         $executionTime = round(microtime(true) - $startTime, 2);
@@ -73,6 +128,7 @@ class UnifiedBreadthBacktestController extends Controller
 
         return response()->json([
             'success'        => true,
+            'source'         => 'simulation',
             'execution_time' => $executionTime,
             'config'         => $results['config'],
             'stats'          => $results['stats'],

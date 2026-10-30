@@ -22,21 +22,6 @@ class UnifiedBreadthBacktestEngine
 
     /**
      * Run unified backtest across specified dates.
-     *
-     * @param array $config
-     *   - mode: 'stocks' | 'confluence' | 'both'
-     *   - from_date: YYYY-MM-DD
-     *   - to_date: YYYY-MM-DD
-     *   - stock_threshold: int (default 80)
-     *   - option_threshold: int (default 75)
-     *   - sl_buffer: float (default 15.0)
-     *   - tp1: float (default 100.0)
-     *   - tp2: float (default 150.0)
-     *   - basket_mode: 'dynamic' | 'fixed' (default 'dynamic')
-     *   - max_trades_per_day: int (default 2)
-     *   - allow_reentry: bool (default false - wait for trade completion)
-     * @param callable|null $progressCallback fn(string $date, int $currentIndex, int $totalDays, array $dayTrades)
-     * @return array
      */
     public function run(array $config = [], ?callable $progressCallback = null): array
     {
@@ -53,7 +38,7 @@ class UnifiedBreadthBacktestEngine
         $fromDate = $config['from_date'] ?? null;
         $toDate = $config['to_date'] ?? null;
 
-        // Resolve trading dates
+        // Resolve trading dates using fast nse_working_days index (<1ms)
         $dates = $this->resolveDates($mode, $fromDate, $toDate);
 
         $results = [
@@ -79,6 +64,10 @@ class UnifiedBreadthBacktestEngine
         $allTrades = [];
         $totalDays = count($dates);
 
+        if (!empty($config['save_db']) && !empty($config['truncate'])) {
+            DB::table('unified_backtest_trades')->truncate();
+        }
+
         foreach ($dates as $idx => $date) {
             $dayTrades = $this->simulateDay(
                 $date,
@@ -94,8 +83,15 @@ class UnifiedBreadthBacktestEngine
                 $endTime
             );
 
+            $dayFormatted = [];
             foreach ($dayTrades as $tr) {
+                $tr['mode'] = $mode;
                 $allTrades[] = $tr;
+                $dayFormatted[] = $tr;
+            }
+
+            if (!empty($config['save_db']) && !empty($dayFormatted)) {
+                $this->saveTradesToDatabase($dayFormatted, false);
             }
 
             if ($progressCallback) {
@@ -114,38 +110,94 @@ class UnifiedBreadthBacktestEngine
      */
     public function resolveDates(string $mode, ?string $fromDate, ?string $toDate): array
     {
-        $query = DB::table('ohlc_5m_quotes')
-            ->where(function($q) {
-                $q->where('instrument_key', 'like', '%Nifty 50%')
-                  ->orWhere('trading_symbol', 'Nifty 50')
-                  ->orWhere('trading_symbol', 'NIFTY');
-            })
-            ->where('instrument_type', 'INDEX')
-            ->selectRaw('DATE(ts_at) as dt')
-            ->distinct()
-            ->orderBy('dt', 'asc');
+        $query = DB::table('nse_working_days')
+            ->orderBy('working_date', 'asc');
 
         if ($fromDate) {
-            $query->whereDate('ts_at', '>=', $fromDate);
-        }
-        if ($toDate) {
-            $query->whereDate('ts_at', '<=', $toDate);
+            $query->where('working_date', '>=', $fromDate);
+        } else {
+            $query->where('working_date', '>=', '2024-01-01');
         }
 
-        // If mode requires options, restrict to dates available in option_chains_history
+        if ($toDate) {
+            $query->where('working_date', '<=', $toDate);
+        } else {
+            $query->where('working_date', '<=', Carbon::now('Asia/Kolkata')->toDateString());
+        }
+
+        // If mode requires options, restrict to dates available in option_chains_history (May 14, 2026 onward)
         if ($mode === 'confluence') {
-            $optDates = DB::table('option_chains_history')
-                ->where('trading_symbol', 'NIFTY')
-                ->selectRaw('DISTINCT DATE(captured_at) as dt')
-                ->pluck('dt')
-                ->toArray();
-            
-            if (!empty($optDates)) {
-                $query->whereIn(DB::raw('DATE(ts_at)'), $optDates);
+            $query->where('working_date', '>=', '2026-05-14');
+        }
+
+        return $query->pluck('working_date')->toArray();
+    }
+
+    /**
+     * Save executed trades to database table unified_backtest_trades.
+     */
+    public function saveTradesToDatabase(array $trades, bool $truncate = false): int
+    {
+        if (!Schema::hasTable('unified_backtest_trades')) {
+            return 0;
+        }
+
+        if ($truncate) {
+            DB::table('unified_backtest_trades')->truncate();
+        } else {
+            $dates = array_unique(array_column($trades, 'date'));
+            $modes = array_unique(array_column($trades, 'mode'));
+            if (!empty($dates) && !empty($modes)) {
+                DB::table('unified_backtest_trades')
+                    ->whereIn('date', $dates)
+                    ->whereIn('mode', $modes)
+                    ->delete();
             }
         }
 
-        return $query->pluck('dt')->toArray();
+        $now = now();
+        $chunks = array_chunk($trades, 100);
+        $inserted = 0;
+
+        foreach ($chunks as $chunk) {
+            $records = [];
+            foreach ($chunk as $t) {
+                $records[] = [
+                    'date' => $t['date'],
+                    'mode' => $t['mode'] ?? 'stocks',
+                    'direction' => $t['direction'],
+                    'signal_type' => $t['signal_type'] ?? 'STOCK_SURGE',
+                    'entry_time' => $t['entry_time'],
+                    'entry_price' => $t['entry_price'],
+                    'candle_high' => $t['candle_high'] ?? $t['entry_price'],
+                    'candle_low' => $t['candle_low'] ?? $t['entry_price'],
+                    'sl_price' => $t['sl_price'],
+                    'risk_pts' => $t['risk_pts'],
+                    'tp1_price' => $t['tp1_price'],
+                    'tp2_price' => $t['tp2_price'],
+                    'exit_time' => $t['exit_time'] ?? null,
+                    'exit_price' => $t['exit_price'] ?? null,
+                    'outcome' => $t['outcome'] ?? 'PENDING',
+                    'net_pts' => $t['net_pts'] ?? 0,
+                    'pnl_pts_tp1' => $t['pnl_pts_tp1'] ?? 0,
+                    'pnl_pts_tp2' => $t['pnl_pts_tp2'] ?? 0,
+                    'rr_realized' => $t['rr_realized'] ?? 0,
+                    'mfe_pts' => $t['mfe_pts'] ?? 0,
+                    'mae_pts' => $t['mae_pts'] ?? 0,
+                    'candles_held' => $t['candles_held'] ?? 0,
+                    'stock_adv_pct' => $t['stock_adv_pct'] ?? 0,
+                    'stock_dec_pct' => $t['stock_dec_pct'] ?? 0,
+                    'opt_bull_pct' => $t['opt_bull_pct'] ?? 0,
+                    'opt_bear_pct' => $t['opt_bear_pct'] ?? 0,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            DB::table('unified_backtest_trades')->insert($records);
+            $inserted += count($records);
+        }
+
+        return $inserted;
     }
 
     /**
@@ -235,7 +287,7 @@ class UnifiedBreadthBacktestEngine
                 continue;
             }
 
-            // Skip new entries outside user-specified trading window (e.g. before 09:30 or after 14:30)
+            // Skip new entries outside user-specified trading window
             if ($timeStr < $startTime || $timeStr > $endTime) {
                 continue;
             }
@@ -319,6 +371,7 @@ class UnifiedBreadthBacktestEngine
 
             $activeTrade = [
                 'date' => $date,
+                'mode' => $mode,
                 'direction' => $direction,
                 'signal_type' => $signalType,
                 'entry_time' => $timeStr,
@@ -450,8 +503,8 @@ class UnifiedBreadthBacktestEngine
             $tp1Hit = true;
         }
 
-        // 4. EOD Exit (if past 15:20 or last candle)
-        if ($timeStr >= '15:20' || $isLastCandle) {
+        // 4. EOD Exit (if at 15:25 or later, or last candle)
+        if ($timeStr >= '15:25' || $isLastCandle) {
             $rawPts = ($direction === 'BULL') ? ($close - $entry) : ($entry - $close);
             $outcome = $tp1Hit ? 'TP1_HIT' : (($rawPts > 0) ? 'EOD_PROFIT' : 'EOD_LOSS');
             $netPts = $tp1Hit ? $trade['tp1_target_pts'] : round($rawPts, 2);
@@ -484,6 +537,27 @@ class UnifiedBreadthBacktestEngine
                 'win_rate_pct' => 0.0,
                 'net_pnl_pts' => 0.0,
                 'profit_factor' => 0.0,
+                'gross_wins_pts' => 0.0,
+                'gross_losses_pts' => 0.0,
+                'avg_trade_pts' => 0.0,
+                'avg_win_pts' => 0.0,
+                'avg_loss_pts' => 0.0,
+                'max_drawdown_pts' => 0.0,
+                'avg_rr_ratio' => 0.0,
+                'avg_duration_minutes' => 0,
+                'max_win_streak' => 0,
+                'max_loss_streak' => 0,
+                'outcomes' => [
+                    'tp2_hits' => 0,
+                    'tp1_hits' => 0,
+                    'sl_hits' => 0,
+                    'eod_profits' => 0,
+                    'eod_losses' => 0,
+                ],
+                'direction_breakdown' => [
+                    'bull' => ['trades' => 0, 'wins' => 0, 'win_rate_pct' => 0.0],
+                    'bear' => ['trades' => 0, 'wins' => 0, 'win_rate_pct' => 0.0],
+                ],
             ];
         }
 

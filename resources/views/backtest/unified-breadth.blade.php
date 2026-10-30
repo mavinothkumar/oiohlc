@@ -74,6 +74,11 @@
                         <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-wider">
                             Multi-Year Engine
                         </span>
+                        @if($dbTradesCount > 0)
+                            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase tracking-wider" title="Pre-computed database active: instant sub-second filters!">
+                                ⚡ {{ number_format($dbTradesCount) }} Trades Pre-Computed
+                            </span>
+                        @endif
                     </h1>
                     <p class="text-xs text-gray-400 mt-0.5">
                         Backtest 80% Stock Breadth surges & Options Flow Parity Confluence with Alarm Candle Low/High SL and Dual Target Profit.
@@ -488,6 +493,16 @@
                     end_time: endTime
                 })
             });
+
+            if (!resp.ok) {
+                if (resp.status === 504) {
+                    alert('Server Gateway Timeout (HTTP 504): The simulation took longer than 60s. Please run "php artisan backtest:unified-breadth --save-db" to pre-populate all trades into database for instant sub-second filtering.');
+                    return;
+                }
+                const errText = await resp.text();
+                alert(`Server returned HTTP ${resp.status}: ${errText.substring(0, 150)}`);
+                return;
+            }
 
             const data = await resp.json();
             if (!data.success) {

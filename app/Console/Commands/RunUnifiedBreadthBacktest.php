@@ -25,6 +25,8 @@ class RunUnifiedBreadthBacktest extends Command
                             {--start-time=09:15 : Earliest entry trigger time (09:15 to 15:30)}
                             {--end-time=15:30 : Latest entry trigger time (09:15 to 15:30)}
                             {--limit= : Limit number of trading days to test}
+                            {--save-db : Save simulated trades to unified_backtest_trades table for instant web filtering}
+                            {--truncate : Truncate unified_backtest_trades table before inserting}
                             {--save-json= : Save detailed trade log and stats to a JSON file}';
 
     /**
@@ -98,6 +100,8 @@ class RunUnifiedBreadthBacktest extends Command
             'max_trades_per_day' => $maxTrades,
             'start_time' => $startTime,
             'end_time' => $endTime,
+            'save_db' => (bool)$this->option('save-db'),
+            'truncate' => (bool)$this->option('truncate'),
         ];
 
         // Override dates in engine if limited
@@ -200,6 +204,13 @@ class RunUnifiedBreadthBacktest extends Command
                 ['Date', 'Side', 'Entry Time', 'Entry Spot', 'SL Price (Risk)', 'Exit Time', 'Exit Spot', 'Outcome', 'Net Pts'],
                 $rows
             );
+        }
+
+        // Save to Database table if requested
+        if ($this->option('save-db')) {
+            $truncate = (bool)$this->option('truncate');
+            $savedCount = $engine->saveTradesToDatabase($trades, $truncate);
+            $this->info("💾 Successfully saved {$savedCount} trades to `unified_backtest_trades` table for instant web filtering!");
         }
 
         // Save JSON report if requested
