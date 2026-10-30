@@ -637,36 +637,38 @@
         </div>
 
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
-        <!-- COLUMN 2 (25% WIDTH): THREE ROWS (TRENDING OI, OI BUILDUP, SENTIMENT)        -->
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
-        <div class="xl:col-span-3 flex flex-col space-y-2.5 w-full cockpit-data-panel">
+        <!-- COLUMN 2 (25% WIDTH): TWO ROWS (TRENDING OI & SENTIMENT, OI BUILDUP)          -->
+        <!-- ──────────────────────────────────────────────────────────────────────────── -->
+        <div class="xl:col-span-3 flex flex-col space-y-2 w-full cockpit-data-panel">
 
-            <!-- ── ROW 1: TRENDING OI CHART ───────────────────────────────────────── -->
+            <!-- ── ROW 1: TRENDING OI & SENTIMENT CHART (ALIGNED WITH ROW 1 WEIGHTAGE) ── -->
             <div class="cockpit-card p-2 flex flex-col border-rose-900/40 shadow-md">
                 <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
                     <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-                        📈 Trending OI
+                        📈 Trending OI &amp; Sentiment
                     </h3>
-                    <div class="flex items-center gap-1.5 text-[9px]">
+                    <div class="flex items-center gap-2 text-[9px]">
                         <span class="flex items-center gap-0.5 text-emerald-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Call</span>
                         <span class="flex items-center gap-0.5 text-rose-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Put</span>
+                        <span class="flex items-center gap-0.5 text-amber-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sentiment</span>
                         <span class="flex items-center gap-0.5 text-cyan-400 font-semibold"><span class="w-1.5 h-0.5 border-t border-dashed border-cyan-400"></span> Spot</span>
                     </div>
                 </div>
 
-                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
+                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 380px;">
                     <div id="toi-chart-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
-                        Loading Trending OI...
+                        Loading Trending OI &amp; Sentiment...
                     </div>
                     <canvas id="chart-trending-oi"></canvas>
                 </div>
             </div>
 
-            <!-- ── ROW 2: OI BUILDUP (HORIZONTAL BAR CHART) ───────────────────────── -->
+            <!-- ── ROW 2: OI BUILDUP (HORIZONTAL BAR CHART - ALIGNED WITH ROW 2 OPTIONS) ── -->
             <div class="cockpit-card p-2 flex flex-col border-amber-900/40 shadow-md">
                 <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
                     <div class="flex items-center gap-1.5">
@@ -693,7 +695,7 @@
                     </div>
                 </div>
 
-                <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 240px;">
+                <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 320px;">
                     <canvas id="chart-oi-buildup"></canvas>
                 </div>
 
@@ -707,23 +709,6 @@
                         <span>Dominant Flow:</span>
                         <span id="bld-dominant" class="font-bold text-sky-300 text-[9px] truncate max-w-[190px] text-right">---</span>
                     </div>
-                </div>
-            </div>
-
-            <!-- ── ROW 3: SENTIMENT CHART ─────────────────────────────────────────── -->
-            <div class="cockpit-card p-2 flex flex-col border-cyan-900/40 shadow-md">
-                <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                    <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-                        📊 Trending OI Sentiment
-                    </h3>
-                    <div class="flex items-center gap-1.5 text-[9px]">
-                        <span class="flex items-center gap-0.5 text-amber-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sentiment</span>
-                        <span class="flex items-center gap-0.5 text-cyan-400 font-semibold"><span class="w-1.5 h-0.5 border-t border-dashed border-cyan-400"></span> Spot</span>
-                    </div>
-                </div>
-
-                <div class="relative w-full overflow-hidden" id="toi-sentiment-wrapper" style="height: 250px;">
-                    <canvas id="chart-trending-sentiment"></canvas>
                 </div>
             </div>
 
@@ -1504,7 +1489,6 @@
     let oChart = null;
     let oCandleSeries = null;
     let toiChartInstance = null;
-    let toiSentimentChartInstance = null;
     let buildupChartInstance = null;
 
     function fmt(val) {
@@ -2420,19 +2404,18 @@
             oChart.applyOptions({ height: h, width: oContainer.clientWidth });
         }
 
-        // Column 2 (Right 25%): 3 Rows evenly distributed
-        const toiH = Math.max(180, Math.round((h * 2 - 20) / 3));
+        // Column 2 (Right 25%): 2 Blocks evenly aligned with the 2 left charts
         const toiWrapper = document.getElementById('toi-chart-wrapper');
         const bldWrapper = document.getElementById('bld-chart-wrapper');
-        const sentWrapper = document.getElementById('toi-sentiment-wrapper');
+
+        const toiH = Math.max(220, h - 35);
+        const bldH = Math.max(200, h - 98);
 
         if (toiWrapper) toiWrapper.style.height = `${toiH}px`;
-        if (bldWrapper) bldWrapper.style.height = `${toiH}px`;
-        if (sentWrapper) sentWrapper.style.height = `${toiH}px`;
+        if (bldWrapper) bldWrapper.style.height = `${bldH}px`;
 
         if (toiChartInstance) toiChartInstance.resize();
         if (buildupChartInstance) buildupChartInstance.resize();
-        if (toiSentimentChartInstance) toiSentimentChartInstance.resize();
     }
 
     // ── 3.1 Apply Dynamic Cockpit Font Scale (User Requested) ──────────────────────
@@ -2546,7 +2529,6 @@
             if (oChart && oContainer) oChart.applyOptions({ width: oContainer.clientWidth });
             if (toiChartInstance) toiChartInstance.resize();
             if (buildupChartInstance) buildupChartInstance.resize();
-            if (toiSentimentChartInstance) toiSentimentChartInstance.resize();
         });
     }
 
@@ -2819,7 +2801,7 @@
         const sentiment = chartData.sentiment || [];
         const spot = chartData.spot || [];
 
-        // ROW 1: Trending OI (Call vs Put vs Spot)
+        // ROW 1: Combined Trending OI & Sentiment (Call vs Put vs Sentiment vs Spot)
         const toiCtx = document.getElementById('chart-trending-oi');
         if (toiCtx) {
             if (toiChartInstance) toiChartInstance.destroy();
@@ -2829,7 +2811,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Change in Call OI',
+                            label: 'Call OI Change',
                             data: callOi,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.05)',
@@ -2839,7 +2821,7 @@
                             yAxisID: 'y',
                         },
                         {
-                            label: 'Change in Put OI',
+                            label: 'Put OI Change',
                             data: putOi,
                             borderColor: '#ef4444',
                             backgroundColor: 'rgba(239, 68, 68, 0.05)',
@@ -2849,82 +2831,11 @@
                             yAxisID: 'y',
                         },
                         {
-                            label: 'Spot Price',
-                            data: spot,
-                            borderColor: '#06b6d4',
-                            borderDash: [3, 3],
-                            borderWidth: 1.5,
-                            pointRadius: 0,
-                            tension: 0.1,
-                            yAxisID: 'y1',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#111827',
-                            borderColor: '#374151',
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function(ctx) {
-                                    if (ctx.dataset.yAxisID === 'y1') return `Spot: ${Number(ctx.parsed.y).toFixed(2)}`;
-                                    return `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 8, family: 'monospace' }, color: '#9ca3af', maxTicksLimit: 6 }
-                        },
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            grid: { color: 'rgba(55, 65, 81, 0.3)' },
-                            ticks: {
-                                font: { size: 8, family: 'monospace' },
-                                color: '#9ca3af',
-                                callback: val => (val / 100000).toFixed(0) + 'L'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            grid: { drawOnChartArea: false },
-                            ticks: {
-                                font: { size: 8, family: 'monospace' },
-                                color: '#06b6d4',
-                                callback: val => Number(val).toFixed(0)
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ROW 3: Sentiment Chart (Diff OI vs Spot)
-        const sentimentCtx = document.getElementById('chart-trending-sentiment');
-        if (sentimentCtx) {
-            if (toiSentimentChartInstance) toiSentimentChartInstance.destroy();
-            toiSentimentChartInstance = new Chart(sentimentCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
                             label: 'Sentiment (Diff in OI)',
                             data: sentiment,
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                            borderWidth: 2,
+                            borderWidth: 2.5,
                             pointRadius: 1.5,
                             tension: 0.2,
                             yAxisID: 'y',
@@ -2953,8 +2864,9 @@
                             borderWidth: 1,
                             callbacks: {
                                 label: function(ctx) {
-                                    if (ctx.dataset.yAxisID === 'y1') return `Spot: ${Number(ctx.parsed.y).toFixed(2)}`;
-                                    return `Sentiment: ${fmt(ctx.parsed.y)}`;
+                                    if (ctx.dataset.yAxisID === 'y1') return `Spot Price: ${Number(ctx.parsed.y).toFixed(2)}`;
+                                    if (ctx.dataset.label.includes('Sentiment')) return `Sentiment (Diff): ${fmt(ctx.parsed.y)}`;
+                                    return `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`;
                                 }
                             }
                         }
@@ -2962,7 +2874,7 @@
                     scales: {
                         x: {
                             grid: { display: false },
-                            ticks: { font: { size: 8, family: 'monospace' }, color: '#9ca3af', maxTicksLimit: 6 }
+                            ticks: { font: { size: 8, family: 'monospace' }, color: '#9ca3af', maxTicksLimit: 7 }
                         },
                         y: {
                             type: 'linear',
