@@ -290,9 +290,13 @@ class NiftyWeightageMonitorController extends Controller
             }
         }
 
-        // 1c. If still empty, fall back to option_chains live spot prices
+        // 1c. If still empty, fall back to option_chains live spot prices or archived option_chains_history
         if (empty($niftyCandles)) {
-            $spotRows = DB::table('option_chains')
+            $optTable = (DB::table('option_chains')->where('trading_symbol', 'NIFTY')->where('captured_at', '>=', "{$date} 09:15:00")->exists())
+                ? 'option_chains'
+                : 'option_chains_history';
+
+            $spotRows = DB::table($optTable)
                 ->where('trading_symbol', 'NIFTY')
                 ->where('captured_at', '>=', "{$date} 09:15:00")
                 ->where('captured_at', '<=', "{$date} 15:30:00")
@@ -867,13 +871,35 @@ class NiftyWeightageMonitorController extends Controller
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
 
-        // Fetch latest known spot from option_chains if available
+        // Fetch latest known spot from option_chains or option_chains_history if available
         $latestSpotRow = DB::table('option_chains')
             ->where('trading_symbol', 'NIFTY')
+            ->whereNotNull('underlying_spot_price')
+            ->where('underlying_spot_price', '>', 0)
             ->orderByDesc('captured_at')
             ->first();
 
-        $startPrice = (float)($latestSpotRow->underlying_spot_price ?? 25850.0);
+        if (!$latestSpotRow) {
+            $latestSpotRow = DB::table('option_chains_history')
+                ->where('trading_symbol', 'NIFTY')
+                ->whereNotNull('underlying_spot_price')
+                ->where('underlying_spot_price', '>', 0)
+                ->orderByDesc('captured_at')
+                ->first();
+        }
+
+        $fallbackSpot = 23000.0;
+        try {
+            $lastQuote = DB::table('ohlc_5m_quotes')
+                ->where('instrument_key', 'NSE_INDEX|Nifty 50')
+                ->orderByDesc('ts_at')
+                ->value('close');
+            if ($lastQuote && $lastQuote > 0) {
+                $fallbackSpot = (float)$lastQuote;
+            }
+        } catch (\Throwable $e) {}
+
+        $startPrice = (float)($latestSpotRow->underlying_spot_price ?? $fallbackSpot);
         $curPrice = $startPrice;
 
         $allTimes = [
