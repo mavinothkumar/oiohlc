@@ -235,21 +235,26 @@
             </button>
 
             <!-- Auto-Refresh Selector -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1">
-                <span class="text-gray-400 text-[10px] flex items-center gap-1">
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1.5" title="Smart Candle Sync & Auto-Refresh">
+                <span class="text-gray-400 text-[10px] flex items-center gap-1 font-bold">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
-                    Auto:
+                    Sync:
                 </span>
-                <select id="auto-refresh-select" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-[11px]">
-                    <option value="5" class="bg-[#131722]">5s</option>
-                    <option value="15" class="bg-[#131722]">15s</option>
-                    <option value="30" class="bg-[#131722]">30s</option>
-                    <option value="60" class="bg-[#131722]">1m</option>
-                    <option value="180" class="bg-[#131722]">3m</option>
-                    <option value="300" selected class="bg-[#131722]">5m (Default)</option>
-                    <option value="0" class="bg-[#131722]">Off</option>
+                <select id="auto-refresh-select" class="bg-transparent text-emerald-300 font-bold focus:outline-none cursor-pointer text-[11px]" title="Auto-Refresh Sync Mode">
+                    <option value="candle_5m" selected class="bg-[#131722] text-emerald-400 font-bold">5m Candle Sync (+8s)</option>
+                    <option value="stock_1m" class="bg-[#131722] text-sky-400">1m Stock Sync (+5s)</option>
+                    <option value="15" class="bg-[#131722] text-white">15s Fast Poll</option>
+                    <option value="30" class="bg-[#131722] text-white">30s Poll</option>
+                    <option value="60" class="bg-[#131722] text-white">1m Fixed Poll</option>
+                    <option value="300" class="bg-[#131722] text-white">5m Fixed Poll</option>
+                    <option value="0" class="bg-[#131722] text-gray-400">Off (Manual Only)</option>
                 </select>
-                <span id="countdown-badge" class="px-1.5 py-0.2 bg-gray-800 text-sky-300 font-mono text-[10px] rounded font-bold">05:00</span>
+                <div class="flex items-center gap-0.5 border-l border-gray-700/80 pl-1">
+                    <span id="countdown-badge" class="px-1.5 py-0.2 bg-gray-800 text-sky-300 font-mono text-[10px] rounded font-bold cursor-pointer transition hover:bg-gray-700 select-none" title="Next 5m Candle Sync (Click to Hide)">04:52</span>
+                    <button type="button" id="btn-toggle-timer-vis" class="text-gray-400 hover:text-white text-[11px] px-0.5 rounded cursor-pointer transition leading-none" title="Toggle Candle Timer Display">
+                        👁️
+                    </button>
+                </div>
             </div>
 
             <!-- Manual Reload -->
@@ -376,6 +381,7 @@
                             <p class="text-[10px] text-gray-400 leading-snug mt-0.5" id="w-insight-desc">
                                 High conviction rally: stocks UP backed by weight.
                             </p>
+                            <div id="w-divergence-banner" class="hidden"></div>
                         </div>
 
                         <!-- Candle Key Movers -->
@@ -545,6 +551,7 @@
                             <p class="text-[10px] text-gray-400 leading-snug" id="o-verdict-desc">
                                 Options flow is balanced between Call buying and Put shorting.
                             </p>
+                            <div id="o-divergence-banner" class="hidden"></div>
                         </div>
 
                         <!-- Greek Snapshot Footer -->
@@ -607,6 +614,15 @@
                             <div class="bg-[#181d2a] px-2 py-1 rounded border border-gray-800/80 flex items-center justify-between text-[9px] font-mono">
                                 <span id="opt-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
                                 <span class="text-gray-400">Options Avg: <strong id="opt-session-bull" class="text-emerald-400">50%</strong>/<strong id="opt-session-bear" class="text-rose-400">50%</strong></span>
+                            </div>
+
+                            <!-- Smart Money Trap / Divergence Tracker Strip -->
+                            <div id="opt-trap-tracker-strip" class="hidden flex items-center justify-between px-2 py-0.5 rounded bg-amber-950/40 border border-amber-600/40 text-[9px] font-mono text-amber-300">
+                                <span class="flex items-center gap-1 font-bold">
+                                    <span>⚠️ Smart Money Traps:</span>
+                                    <span id="opt-trap-summary-badge" class="font-normal text-amber-200">0 Traps</span>
+                                </span>
+                                <span id="opt-trap-times-badge" class="text-[8.5px] text-amber-400/80 font-mono"></span>
                             </div>
 
                             <!-- Combined Confluence Trigger Summary Strip -->
@@ -1288,6 +1304,8 @@
     let autoRefreshTimerId = null;
     let autoRefreshCountdown = 300;
     let activeRefreshSeconds = 300;
+    let autoRefreshMode = localStorage.getItem('nifty_unified_refresh_mode') || 'candle_5m';
+    let isTimerVisible = localStorage.getItem('nifty_unified_timer_visible') !== 'false';
     let currentChartHeight = parseInt(localStorage.getItem('nifty_unified_chart_height') || '420', 10);
     let currentCockpitFontScale = parseInt(localStorage.getItem('nifty_unified_font_scale') || '115', 10);
 
@@ -2316,21 +2334,28 @@
                         isRedBreach   = (b.red_weight >= downTh);
                     }
 
+                    const isCandleGreen = Number(c.close) >= Number(c.open);
+                    const isCandleRed   = Number(c.close) < Number(c.open);
+
                     if (isGreenBreach) {
+                        const isTrap = isCandleRed; // Red candle but stock breadth is heavily Green (Bear Trap/Absorption)
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
-                            color: '#10b981',
+                            color: isTrap ? '#06b6d4' : '#10b981',
                             shape: 'arrowUp',
-                            text: `${b.green_count_pct}%`,
+                            text: isTrap ? `⚡TRAP ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`,
+                            size: isTrap ? 2 : 1,
                         });
                     } else if (isRedBreach) {
+                        const isTrap = isCandleGreen; // Green candle but stock breadth is heavily Red (Bull Trap/Fade)
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
-                            color: '#ef4444',
+                            color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: `${b.red_count_pct}%`,
+                            text: isTrap ? `⚠️TRAP ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`,
+                            size: isTrap ? 2 : 1,
                         });
                     }
                 });
@@ -2378,21 +2403,28 @@
                     const b = breadthData.breadth_by_time?.[c.time_str];
                     if (!b) return;
 
+                    const isCandleGreen = Number(c.close) >= Number(c.open);
+                    const isCandleRed   = Number(c.close) < Number(c.open);
+
                     if (b.up_weight >= upTh) {
+                        const isTrap = isCandleRed; // Red candle but smart money loaded 70%+ Calls/Bull flow (Bear Trap/Absorption)
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
-                            color: '#10b981',
+                            color: isTrap ? '#06b6d4' : '#10b981',
                             shape: 'arrowUp',
-                            text: `${Math.round(b.up_weight)}%`,
+                            text: isTrap ? `⚡TRAP ${Math.round(b.up_weight)}%` : `🐂 ${Math.round(b.up_weight)}%`,
+                            size: isTrap ? 2 : 1,
                         });
                     } else if (b.down_weight >= downTh) {
+                        const isTrap = isCandleGreen; // Green candle but smart money loaded 70%+ Puts/Bear flow (Bull Trap/Fade)
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
-                            color: '#ef4444',
+                            color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: `${Math.round(b.down_weight)}%`,
+                            text: isTrap ? `⚠️TRAP ${Math.round(b.down_weight)}%` : `🐻 ${Math.round(b.down_weight)}%`,
+                            size: isTrap ? 2 : 1,
                         });
                     }
                 });
@@ -2826,6 +2858,61 @@
                 document.getElementById('w-insight-desc').textContent = b.insight.message || '';
             }
 
+            // Stock Breadth Divergence Warning Banner
+            const divEl = document.getElementById('w-divergence-banner');
+            if (divEl) {
+                if (!candle) {
+                    divEl.classList.add('hidden');
+                } else {
+                    const isGreen = Number(candle.close) >= Number(candle.open);
+                    const isRed   = Number(candle.close) < Number(candle.open);
+                    const trig = alarmSettings.stocksTriggerBy || 'both';
+                    const upTh = alarmSettings.stocksUpThreshold || 80;
+                    const downTh = alarmSettings.stocksDownThreshold || 80;
+
+                    let isGreenBreach = false, isRedBreach = false;
+                    if (trig === 'both') {
+                        isGreenBreach = (b.green_count_pct >= upTh && b.green_weight >= upTh);
+                        isRedBreach   = (b.red_count_pct >= downTh && b.red_weight >= downTh);
+                    } else if (trig === 'either') {
+                        isGreenBreach = (b.green_count_pct >= upTh || b.green_weight >= upTh);
+                        isRedBreach   = (b.red_count_pct >= downTh || b.red_weight >= downTh);
+                    } else if (trig === 'count') {
+                        isGreenBreach = (b.green_count_pct >= upTh);
+                        isRedBreach   = (b.red_count_pct >= downTh);
+                    } else if (trig === 'weight') {
+                        isGreenBreach = (b.green_weight >= upTh);
+                        isRedBreach   = (b.red_weight >= downTh);
+                    }
+
+                    if (isGreen && isRedBreach) {
+                        divEl.classList.remove('hidden');
+                        divEl.className = 'p-1.5 rounded bg-amber-950/70 border border-amber-500/60 text-[10px] text-amber-200 mt-1.5';
+                        divEl.innerHTML = `
+                            <div class="flex items-center gap-1 font-bold text-amber-300">
+                                <span>⚠️ STOCK BREADTH DIVERGENCE (BULL TRAP)</span>
+                            </div>
+                            <div class="text-[9.5px] text-amber-200/90 leading-tight mt-0.5">
+                                Candle rose (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.red_count_pct}% of stocks (${b.red_weight.toFixed(0)}% wt)</strong> are dragging down! Narrow rally / fakeout warning.
+                            </div>
+                        `;
+                    } else if (isRed && isGreenBreach) {
+                        divEl.classList.remove('hidden');
+                        divEl.className = 'p-1.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-[10px] text-cyan-200 mt-1.5';
+                        divEl.innerHTML = `
+                            <div class="flex items-center gap-1 font-bold text-cyan-300">
+                                <span>⚡ STOCK BREADTH DIVERGENCE (BEAR TRAP)</span>
+                            </div>
+                            <div class="text-[9.5px] text-cyan-200/90 leading-tight mt-0.5">
+                                Candle dropped (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.green_count_pct}% of stocks (${b.green_weight.toFixed(0)}% wt)</strong> are advancing! Institutional absorption.
+                            </div>
+                        `;
+                    } else {
+                        divEl.classList.add('hidden');
+                    }
+                }
+            }
+
             document.getElementById('w-movers-time').textContent = timeStr;
             const driversEl = document.getElementById('w-top-drivers');
             const draggersEl = document.getElementById('w-top-draggers');
@@ -2891,6 +2978,47 @@
             document.getElementById('o-bar-red').style.width = `${b.down_weight}%`;
 
             document.getElementById('o-verdict-desc').textContent = b.verdict || '';
+
+            // Options Breadth Divergence / Smart Money Trap Banner
+            const divEl = document.getElementById('o-divergence-banner');
+            if (divEl) {
+                if (!candle) {
+                    divEl.classList.add('hidden');
+                } else {
+                    const isGreen = Number(candle.close) >= Number(candle.open);
+                    const isRed   = Number(candle.close) < Number(candle.open);
+                    const downTh  = alarmSettings.optionsDownThreshold || 70;
+                    const upTh    = alarmSettings.optionsUpThreshold || 70;
+
+                    if (isGreen && b.down_weight >= downTh) {
+                        divEl.classList.remove('hidden');
+                        divEl.className = 'p-1.5 rounded bg-amber-950/70 border border-amber-500/60 text-[10px] text-amber-200 mt-1.5';
+                        divEl.innerHTML = `
+                            <div class="flex items-center justify-between font-bold text-amber-300">
+                                <span class="flex items-center gap-1"><span>⚠️</span> BULL TRAP / FADE WARNING</span>
+                                <span class="text-[9px] px-1 bg-amber-900/80 rounded border border-amber-500/40 font-mono">${b.down_weight}% Bear Flow</span>
+                            </div>
+                            <div class="text-[9.5px] text-amber-200/90 leading-tight mt-0.5">
+                                Spot candle closed GREEN (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.down_count} of 11 strikes</strong> are aggressively writing Calls & buying Puts! High probability fakeout / resistance.
+                            </div>
+                        `;
+                    } else if (isRed && b.up_weight >= upTh) {
+                        divEl.classList.remove('hidden');
+                        divEl.className = 'p-1.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-[10px] text-cyan-200 mt-1.5';
+                        divEl.innerHTML = `
+                            <div class="flex items-center justify-between font-bold text-cyan-300">
+                                <span class="flex items-center gap-1"><span>⚡</span> BEAR TRAP / ABSORPTION WARNING</span>
+                                <span class="text-[9px] px-1 bg-cyan-900/80 rounded border border-cyan-500/40 font-mono">${b.up_weight}% Bull Flow</span>
+                            </div>
+                            <div class="text-[9.5px] text-cyan-200/90 leading-tight mt-0.5">
+                                Spot candle closed RED (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.up_count} of 11 strikes</strong> are aggressively buying Calls & writing Puts! Short-covering bounce expected.
+                            </div>
+                        `;
+                    } else {
+                        divEl.classList.add('hidden');
+                    }
+                }
+            }
 
             if (b.greeks) {
                 document.getElementById('o-greek-delta').textContent = b.greeks.net_delta;
@@ -3055,9 +3183,12 @@
         let optPosMax = 0, optPosMaxTime = '';
         let optNegMax = 0, optNegMaxTime = '';
         let sumOBull = 0, sumOBear = 0, oCount = 0;
+        let optBullTraps = 0, optBearTraps = 0;
+        const trapTimes = [];
 
         activeTimes.forEach(t => {
             const ob = breadthData?.breadth_by_time?.[t];
+            const oCandle = (breadthData?.nifty_candles || []).find(c => c.time_str === t);
             if (ob) {
                 const uw = parseFloat(ob.up_weight) || 0;
                 const dw = parseFloat(ob.down_weight) || 0;
@@ -3074,8 +3205,34 @@
                     optNegHits++;
                     if (dw > optNegMax) { optNegMax = dw; optNegMaxTime = t; }
                 }
+
+                if (oCandle) {
+                    const isGreen = Number(oCandle.close) >= Number(oCandle.open);
+                    const isRed   = Number(oCandle.close) < Number(oCandle.open);
+                    if (isGreen && dw >= optsDownTh) {
+                        optBullTraps++;
+                        trapTimes.push(`${t} (${Math.round(dw)}%)`);
+                    } else if (isRed && uw >= optsUpTh) {
+                        optBearTraps++;
+                        trapTimes.push(`${t} (${Math.round(uw)}%)`);
+                    }
+                }
             }
         });
+
+        const trapStrip = document.getElementById('opt-trap-tracker-strip');
+        const trapBadge = document.getElementById('opt-trap-summary-badge');
+        const trapTimesEl = document.getElementById('opt-trap-times-badge');
+        if (trapStrip && trapBadge) {
+            const totalTraps = optBullTraps + optBearTraps;
+            if (totalTraps > 0) {
+                trapStrip.classList.remove('hidden');
+                trapBadge.textContent = `${totalTraps} Trap${totalTraps > 1 ? 's' : ''} (${optBullTraps} Bull, ${optBearTraps} Bear)`;
+                if (trapTimesEl) trapTimesEl.textContent = trapTimes.join(', ');
+            } else {
+                trapStrip.classList.add('hidden');
+            }
+        }
 
         const avgOBull = oCount > 0 ? (sumOBull / oCount) : 50;
         const avgOBear = oCount > 0 ? (sumOBear / oCount) : 50;
@@ -3317,12 +3474,20 @@
             }
         });
 
-        // Auto Refresh
-        document.getElementById('auto-refresh-select')?.addEventListener('change', (e) => {
-            activeRefreshSeconds = parseInt(e.target.value, 10);
-            autoRefreshCountdown = activeRefreshSeconds;
-            setupAutoRefresh();
-        });
+        // Auto Refresh Selector & Smart Sync
+        const autoRefreshSelect = document.getElementById('auto-refresh-select');
+        if (autoRefreshSelect) {
+            autoRefreshSelect.value = autoRefreshMode;
+            autoRefreshSelect.addEventListener('change', (e) => {
+                autoRefreshMode = e.target.value;
+                localStorage.setItem('nifty_unified_refresh_mode', autoRefreshMode);
+                setupAutoRefresh();
+            });
+        }
+
+        // Toggle Timer Visibility Button & Badge Click
+        document.getElementById('btn-toggle-timer-vis')?.addEventListener('click', toggleTimerVisibility);
+        document.getElementById('countdown-badge')?.addEventListener('click', toggleTimerVisibility);
 
         document.getElementById('btn-reload')?.addEventListener('click', () => loadAllData(false));
 
@@ -3684,40 +3849,107 @@
         }
     }
 
-    // ── 12. Auto-Refresh Engine ───────────────────────────────────────────────────
+    // ── 12. Smart Candle Sync & Auto-Refresh Engine ──────────────────────────────
     function setupAutoRefresh() {
         if (autoRefreshTimerId) clearInterval(autoRefreshTimerId);
-        autoRefreshCountdown = activeRefreshSeconds;
-        updateCountdownUI();
 
-        if (activeRefreshSeconds <= 0) return;
-
-        autoRefreshTimerId = setInterval(() => {
-            autoRefreshCountdown--;
-            updateCountdownUI();
-
-            if (autoRefreshCountdown <= 0) {
-                autoRefreshCountdown = activeRefreshSeconds;
-                loadAllData(true);
-            }
-        }, 1000);
-    }
-
-    function updateCountdownUI() {
-        const badge = document.getElementById('countdown-badge');
-        if (!badge) return;
-        if (activeRefreshSeconds <= 0) {
-            badge.textContent = 'OFF';
+        const mode = autoRefreshMode;
+        if (mode === '0') {
+            updateCountdownUI('OFF', 'Auto-Refresh is OFF (Manual refresh only)');
             return;
         }
-        const m = Math.floor(autoRefreshCountdown / 60);
-        const s = autoRefreshCountdown % 60;
-        badge.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+        const isFixed = !isNaN(parseInt(mode, 10)) && mode !== 'candle_5m' && mode !== 'stock_1m';
+        let fixedRemaining = isFixed ? (parseInt(mode, 10) || 60) : 0;
+
+        const tick = () => {
+            const now = new Date();
+            const currentSeconds = now.getSeconds();
+            const currentMinutes = now.getMinutes();
+
+            let remaining = 0;
+            let tooltip = '';
+
+            if (mode === 'candle_5m') {
+                const bufferSec = 8; // 8s backend buffer for NSE fetch & DB write
+                const minuteIn5m = currentMinutes % 5;
+                const secondsInto5m = minuteIn5m * 60 + currentSeconds;
+                remaining = bufferSec - secondsInto5m;
+                if (remaining <= 0) remaining += 300;
+
+                const targetDate = new Date(now.getTime() + remaining * 1000);
+                const targetTimeStr = targetDate.toTimeString().split(' ')[0];
+                tooltip = `Next 5m Candle Sync: ${targetTimeStr} (5m close + 8s buffer)`;
+
+                // When exactly at boundary (target second)
+                if (remaining === 300) {
+                    loadAllData(true);
+                }
+            } else if (mode === 'stock_1m') {
+                const bufferSec = 5; // 5s backend buffer
+                remaining = bufferSec - currentSeconds;
+                if (remaining <= 0) remaining += 60;
+
+                const targetDate = new Date(now.getTime() + remaining * 1000);
+                const targetTimeStr = targetDate.toTimeString().split(' ')[0];
+                tooltip = `Next 1m Stock Sync: ${targetTimeStr} (1m close + 5s buffer)`;
+
+                if (remaining === 60) {
+                    loadAllData(true);
+                }
+            } else {
+                // Fixed seconds mode
+                fixedRemaining--;
+                if (fixedRemaining <= 0) {
+                    fixedRemaining = parseInt(mode, 10) || 60;
+                    loadAllData(true);
+                }
+                remaining = fixedRemaining;
+                tooltip = `Fixed ${mode}s Polling Interval`;
+            }
+
+            const m = Math.floor(remaining / 60);
+            const s = remaining % 60;
+            updateCountdownUI(`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`, tooltip);
+        };
+
+        tick();
+        autoRefreshTimerId = setInterval(tick, 1000);
+    }
+
+    function updateCountdownUI(text, title = '') {
+        const badge = document.getElementById('countdown-badge');
+        if (!badge) return;
+        badge.textContent = text;
+        if (title) badge.title = `${title} • Click to Hide/Show Timer`;
+    }
+
+    function toggleTimerVisibility() {
+        isTimerVisible = !isTimerVisible;
+        localStorage.setItem('nifty_unified_timer_visible', isTimerVisible ? 'true' : 'false');
+        applyTimerVisibility();
+    }
+
+    function applyTimerVisibility() {
+        const badge = document.getElementById('countdown-badge');
+        const btn = document.getElementById('btn-toggle-timer-vis');
+        if (badge) {
+            if (isTimerVisible) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        if (btn) {
+            btn.innerHTML = isTimerVisible ? '👁️' : '🕶️';
+            btn.title = isTimerVisible ? 'Hide Countdown Timer' : 'Show Countdown Timer';
+        }
     }
 
     // ── App Bootstrapper ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         applyCockpitFontScale(currentCockpitFontScale);
+        applyTimerVisibility();
         initLightweightCharts();
         setupControls();
         syncAlarmToolbarUI();
