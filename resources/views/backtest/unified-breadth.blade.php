@@ -410,9 +410,8 @@
         flatpickr('#cfgFromDate', { dateFormat: 'Y-m-d', theme: 'dark' });
         flatpickr('#cfgToDate', { dateFormat: 'Y-m-d', theme: 'dark' });
 
-        // Auto run a quick preview on load for last 30 days
+        // Set default date preset (Last 30 Days) without auto-executing heavy simulation
         applyDatePreset('last30');
-        executeBacktest();
     });
 
     function applyDatePreset(preset) {

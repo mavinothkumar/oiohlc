@@ -23,23 +23,24 @@ class UnifiedBreadthBacktestController extends Controller
      */
     public function index(Request $request): View
     {
-        // Resolve date boundaries
-        $minDate = DB::table('ohlc_5m_quotes')
-            ->where('instrument_key', 'NSE_INDEX|Nifty 50')
-            ->min(DB::raw('DATE(ts_at)')) ?: '2024-01-01';
+        // Instant resolution (<1ms)
+        $maxDate = null;
+        try {
+            $maxDate = DB::table('nse_working_days')
+                ->where('current', 1)
+                ->value('working_date');
+        } catch (\Throwable $e) {
+            $maxDate = null;
+        }
 
-        $maxDate = DB::table('ohlc_5m_quotes')
-            ->where('instrument_key', 'NSE_INDEX|Nifty 50')
-            ->max(DB::raw('DATE(ts_at)')) ?: Carbon::now('Asia/Kolkata')->toDateString();
-
-        $optMinDate = DB::table('option_chains_history')
-            ->where('trading_symbol', 'NIFTY')
-            ->min(DB::raw('DATE(captured_at)')) ?: '2026-05-14';
+        if (!$maxDate) {
+            $maxDate = Carbon::now('Asia/Kolkata')->toDateString();
+        }
 
         return view('backtest.unified-breadth', [
-            'minDate'    => $minDate,
+            'minDate'    => '2024-01-01',
             'maxDate'    => $maxDate,
-            'optMinDate' => $optMinDate,
+            'optMinDate' => '2026-05-14',
         ]);
     }
 
