@@ -506,6 +506,21 @@
                             </div>
                         </div>
 
+                        <!-- Active Basket Inspector Badge (Dynamic Floating ATM & Strike Range) -->
+                        <div id="o-stat-basket-badge" class="flex items-center justify-between px-2 py-1 rounded bg-[#131722] border border-cyan-500/30 text-[9.5px] font-mono shadow-sm">
+                            <span class="flex items-center gap-1 text-cyan-300">
+                                <span>🎯</span>
+                                <span class="text-gray-400 font-sans">ATM:</span>
+                                <strong id="o-stat-atm-val" class="text-amber-300 font-bold">22,950</strong>
+                            </span>
+                            <span class="text-gray-600">&bull;</span>
+                            <span class="text-gray-300 truncate" title="Active 11-strike basket evaluated for this 5-min candle">
+                                <span class="text-gray-400 font-sans">Basket:</span>
+                                <strong id="o-stat-basket-range" class="text-white">22,700 – 23,200</strong>
+                            </span>
+                            <span id="o-stat-basket-mode-tag" class="px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-cyan-950 text-cyan-300 border border-cyan-600/40">Dynamic</span>
+                        </div>
+
                         <!-- BUY vs SELL Big Blocks -->
                         <div class="grid grid-cols-2 gap-1.5">
                             <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
@@ -949,6 +964,23 @@
                         <input type="checkbox" id="options-show-markers-toggle" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                     </label>
+                </div>
+
+                <!-- Options Strike Basket Mode Setting -->
+                <div class="p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white flex items-center gap-1">
+                            <span>🎯 Strike Basket Mode:</span>
+                        </span>
+                        <span id="cfg-basket-mode-pill" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40">Dynamic Floating</span>
+                    </div>
+                    <select id="cfg-options-basket-mode" class="w-full bg-[#131722] border border-gray-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer font-medium">
+                        <option value="dynamic" selected>1. 🚀 Dynamic Floating ATM (Auto-tracks Spot ±5 strikes - Recommended for rallies)</option>
+                        <option value="fixed">2. ⚓ Fixed Morning ATM (Locks to 9:15 AM opening strike all day)</option>
+                    </select>
+                    <p class="text-[10px] text-gray-400">
+                        Dynamic mode shifts the 11 strikes as NIFTY moves, ensuring ITM/OTM strikes don't skew the breadth score during big trends.
+                    </p>
                 </div>
 
                 <!-- Options Dedicated Alarm Sound -->
@@ -1470,6 +1502,7 @@
         optionsDownThreshold: 70,
         optionsShowMarkers: true,
         optionsSound: 'pulse',
+        optionsBasketMode: 'dynamic', // 'dynamic' (auto-floating ATM ±5 strikes) or 'fixed' (9:15 AM anchor)
 
         // 3. High-Probability Confluence Alert (Combined)
         confluenceEnabled: true,
@@ -2622,7 +2655,8 @@
         let toiMode = (selectedDate === todayStr) ? 'live' : 'history';
 
         // 1. Fetch Options Breadth independently & render immediately upon arrival
-        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&_t=${Date.now()}`)
+        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
@@ -3304,6 +3338,35 @@
             const sign = b.net_points >= 0 ? '+' : '';
             impEl.textContent = `${sign}${Number(b.net_points).toFixed(2)} pts`;
             impEl.className = b.net_points >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
+
+            // Basket badge update (ATM & Strike Range for selected candle)
+            const atmValEl = document.getElementById('o-stat-atm-val');
+            if (atmValEl) {
+                const atm = b.atm_strike || (breadthData.atm_strike || (candle ? Math.round(Number(candle.close) / 50) * 50 : 23000));
+                atmValEl.textContent = '₹' + Number(atm).toLocaleString('en-IN');
+            }
+
+            const basketRangeEl = document.getElementById('o-stat-basket-range');
+            if (basketRangeEl) {
+                if (b.basket_min && b.basket_max) {
+                    basketRangeEl.textContent = `₹${Number(b.basket_min).toLocaleString('en-IN')} – ₹${Number(b.basket_max).toLocaleString('en-IN')}`;
+                } else if (breadthData.strikes && breadthData.strikes.length > 0) {
+                    const minS = Math.min(...breadthData.strikes);
+                    const maxS = Math.max(...breadthData.strikes);
+                    basketRangeEl.textContent = `₹${minS.toLocaleString('en-IN')} – ₹${maxS.toLocaleString('en-IN')}`;
+                } else {
+                    basketRangeEl.textContent = '--';
+                }
+            }
+
+            const basketModeTag = document.getElementById('o-stat-basket-mode-tag');
+            if (basketModeTag) {
+                const isDyn = (b.basket_mode === 'dynamic' || alarmSettings.optionsBasketMode === 'dynamic');
+                basketModeTag.textContent = isDyn ? 'Dynamic' : 'Fixed';
+                basketModeTag.className = isDyn
+                    ? 'px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-cyan-950 text-cyan-300 border border-cyan-600/40'
+                    : 'px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-gray-800 text-gray-300 border border-gray-600';
+            }
 
             document.getElementById('o-stat-green-ratio').textContent = `${b.up_weight}%`;
             document.getElementById('o-stat-green-wt').textContent = `${b.up_weight}% Wt`;
@@ -4118,6 +4181,9 @@
             alarmSettings.optionsDownThreshold = parseInt(document.getElementById('options-down-input').value, 10) || 70;
             alarmSettings.optionsShowMarkers = document.getElementById('options-show-markers-toggle').checked;
             alarmSettings.optionsSound = document.getElementById('options-sound-select').value;
+            const prevBasketMode = alarmSettings.optionsBasketMode || 'dynamic';
+            alarmSettings.optionsBasketMode = document.getElementById('cfg-options-basket-mode')?.value || 'dynamic';
+            const basketModeChanged = (prevBasketMode !== alarmSettings.optionsBasketMode);
 
             // 3. Confluence settings
             alarmSettings.confluenceEnabled = document.getElementById('cfg-confluence-enabled').checked;
@@ -4151,9 +4217,13 @@
             syncAlarmToolbarUI();
             alarmModal?.classList.add('hidden');
 
-            // Immediately re-render markers on both charts with newly saved criteria!
-            renderWeightageColumn();
-            renderOptionsBreadthColumn();
+            if (basketModeChanged) {
+                loadAllData();
+            } else {
+                // Immediately re-render markers on both charts with newly saved criteria!
+                renderWeightageColumn();
+                renderOptionsBreadthColumn();
+            }
         });
     }
 
@@ -4210,6 +4280,17 @@
 
         const oSnd = document.getElementById('options-sound-select');
         if (oSnd) oSnd.value = alarmSettings.optionsSound || 'pulse';
+
+        const oBasketSelect = document.getElementById('cfg-options-basket-mode');
+        if (oBasketSelect) oBasketSelect.value = alarmSettings.optionsBasketMode || 'dynamic';
+        const oBasketPill = document.getElementById('cfg-basket-mode-pill');
+        if (oBasketPill) {
+            const isDyn = (alarmSettings.optionsBasketMode !== 'fixed');
+            oBasketPill.textContent = isDyn ? 'Dynamic Floating' : 'Fixed Morning';
+            oBasketPill.className = isDyn
+                ? 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40'
+                : 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-gray-800 text-gray-300 border border-gray-600';
+        }
 
         // 3. Confluence settings
         const confToggle = document.getElementById('cfg-confluence-enabled');

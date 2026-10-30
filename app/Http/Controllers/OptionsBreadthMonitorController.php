@@ -106,13 +106,14 @@ class OptionsBreadthMonitorController extends Controller
         // so live/incoming 5-min candles are never blocked. For past dates, cache for 1 day.
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $reqStrike = $request->input('strike', 'auto');
-        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}";
+        $basketMode = $request->input('basket_mode', 'dynamic'); // 'dynamic' (auto-floating ATM) or 'fixed'
+        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}";
 
         if ($request->has('_t') || $request->boolean('refresh')) {
             Cache::forget($cacheKey);
         }
 
-        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata) {
+        $data = Cache::remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
             // 2. Fetch Strikes and determine ATM strike
         $strikes = DB::table($table)
             ->where('trading_symbol', $symbol)
@@ -174,6 +175,15 @@ class OptionsBreadthMonitorController extends Controller
             $targetStrikes = collect(array_slice($strikesArr, $fromIdx, ($toIdx - $fromIdx + 1)));
         }
 
+        // Expanded query basket for dynamic floating ATM tracking
+        if ($basketMode === 'dynamic') {
+            $fromQueryIdx = max(0, $centerIdx - ($range + 10));
+            $toQueryIdx   = min(count($strikesArr) - 1, $centerIdx + ($range + 10));
+            $queryStrikes = collect(array_slice($strikesArr, $fromQueryIdx, ($toQueryIdx - $fromQueryIdx + 1)));
+        } else {
+            $queryStrikes = $targetStrikes;
+        }
+
         // 3. Fetch Index 5m Candlestick Data
         $niftyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $centerStrike);
 
@@ -185,10 +195,14 @@ class OptionsBreadthMonitorController extends Controller
             $date,
             $startTs,
             $endTs,
-            $targetStrikes,
+            $queryStrikes,
             $centerStrike,
             $niftyCandles,
-            $metric
+            $metric,
+            $basketMode,
+            $strikesArr,
+            $range,
+            $spotPrice ?: 23000
         );
 
         $lwChartCandles = array_map(function($c) {
@@ -209,6 +223,7 @@ class OptionsBreadthMonitorController extends Controller
                 'expiry'           => $selectedExpiry,
                 'center_strike'    => $centerStrike,
                 'atm_strike'       => $atmStrike,
+                'basket_mode'      => $basketMode,
                 'range'            => $range,
                 'strikes'          => $targetStrikes->values(),
                 'is_today'         => $isToday,
@@ -395,7 +410,11 @@ class OptionsBreadthMonitorController extends Controller
         $targetStrikes,
         int $centerStrike,
         array $niftyCandles,
-        string $metric
+        string $metric,
+        string $basketMode = 'dynamic',
+        array $allStrikesArr = [],
+        int $range = 5,
+        $initialSpot = 23000
     ): array {
         // Query CE & PE options records combined in a single indexed query
         $optRows = DB::table($table)
@@ -429,22 +448,37 @@ class OptionsBreadthMonitorController extends Controller
         $timestamps = !empty($candleTimes) ? $candleTimes : array_keys($timestampsSet);
         sort($timestamps);
 
+        $niftyCandlesByTime = [];
+        foreach ($niftyCandles as $nc) {
+            if (!empty($nc['time_str'])) {
+                $niftyCandlesByTime[$nc['time_str']] = $nc;
+            }
+        }
+
         // Open values for baseline delta calculations
         $openTimes = !empty($timestamps) ? $timestamps[0] : '09:15';
-        $openVegaCe = [];
-        $openVegaPe = [];
-        $openLtpCe  = [];
-        $openLtpPe  = [];
-        $strikeWeights = [];
+        $prevCandleLtpCe  = [];
+        $prevCandleLtpPe  = [];
+        $prevCandleVegaCe = [];
+        $prevCandleVegaPe = [];
+        $prevOiCe         = [];
+        $prevOiPe         = [];
+        $prevVolCe        = [];
+        $prevVolPe        = [];
+        $strikeWeights    = [];
 
         $totalBasketOi = 0;
         foreach ($targetStrikes as $stk) {
             $c = $ceGrid[$stk][$openTimes] ?? null;
             $p = $peGrid[$stk][$openTimes] ?? null;
-            $openVegaCe[$stk] = $c ? (float)$c->vega : 0;
-            $openVegaPe[$stk] = $p ? (float)$p->vega : 0;
-            $openLtpCe[$stk]  = $c ? (float)$c->ltp : 0;
-            $openLtpPe[$stk]  = $p ? (float)$p->ltp : 0;
+            $prevCandleLtpCe[$stk]  = $c ? (float)$c->ltp : 0;
+            $prevCandleLtpPe[$stk]  = $p ? (float)$p->ltp : 0;
+            $prevCandleVegaCe[$stk] = $c ? (float)$c->vega : 0;
+            $prevCandleVegaPe[$stk] = $p ? (float)$p->vega : 0;
+            $prevOiCe[$stk]         = $c ? (int)$c->oi : 0;
+            $prevOiPe[$stk]         = $p ? (int)$p->oi : 0;
+            $prevVolCe[$stk]        = $c ? (int)$c->volume : 0;
+            $prevVolPe[$stk]        = $p ? (int)$p->volume : 0;
             $stkOi = ($c ? (int)$c->oi : 0) + ($p ? (int)$p->oi : 0);
             $strikeWeights[$stk] = max($stkOi, 1000);
             $totalBasketOi += $strikeWeights[$stk];
@@ -478,10 +512,6 @@ class OptionsBreadthMonitorController extends Controller
             ];
         }
 
-        // Loop over each 5-minute candle
-        $prevCandleLtpCe = $openLtpCe;
-        $prevCandleLtpPe = $openLtpPe;
-
         foreach ($timestamps as $cIdx => $timeStr) {
             $candleBullWeight = 0.0;
             $candleBearWeight = 0.0;
@@ -501,15 +531,53 @@ class OptionsBreadthMonitorController extends Controller
             $totalBasketBullSum = 0.0;
             $totalActiveWeight = 0.0;
 
-            foreach ($targetStrikes as $stk) {
+            // 1. Resolve candle spot & active ATM strike
+            $candleObj = $niftyCandlesByTime[$timeStr] ?? null;
+            $candleSpot = $candleObj ? (float)$candleObj['close'] : 0;
+            if (!$candleSpot) {
+                foreach ($targetStrikes as $stk) {
+                    $cRec = $ceGrid[$stk][$timeStr] ?? null;
+                    if ($cRec && $cRec->underlying_spot_price > 0) {
+                        $candleSpot = (float)$cRec->underlying_spot_price;
+                        break;
+                    }
+                }
+            }
+            if (!$candleSpot) $candleSpot = (float)$initialSpot;
+
+            $candleAtm = (int)(round($candleSpot / 50.0) * 50);
+
+            if ($basketMode === 'dynamic' && !empty($allStrikesArr)) {
+                $cIdxAtm = array_search((float)$candleAtm, array_map('floatval', $allStrikesArr));
+                if ($cIdxAtm === false) {
+                    $minD = 999999;
+                    $cIdxAtm = 0;
+                    foreach ($allStrikesArr as $i => $s) {
+                        if (abs((float)$s - $candleAtm) < $minD) {
+                            $minD = abs((float)$s - $candleAtm);
+                            $cIdxAtm = $i;
+                        }
+                    }
+                }
+                $fromIdx = max(0, $cIdxAtm - $range);
+                $toIdx   = min(count($allStrikesArr) - 1, $cIdxAtm + $range);
+                $activeBasket = array_slice($allStrikesArr, $fromIdx, ($toIdx - $fromIdx + 1));
+            } else {
+                $activeBasket = $targetStrikes->values()->all();
+            }
+
+            $basketCount = max(1, count($activeBasket));
+            $wtPerStrike = 100.0 / $basketCount;
+
+            foreach ($activeBasket as $stk) {
                 $c = $ceGrid[$stk][$timeStr] ?? null;
                 $p = $peGrid[$stk][$timeStr] ?? null;
-                $wt = $strikeWeights[$stk] ?? (100.0 / count($targetStrikes));
+                $wt = $wtPerStrike;
 
                 $cPrice = $c ? (float)$c->ltp : ($prevCandleLtpCe[$stk] ?? 0);
                 $pPrice = $p ? (float)$p->ltp : ($prevCandleLtpPe[$stk] ?? 0);
-                $cVega  = $c ? (float)$c->vega : 0;
-                $pVega  = $p ? (float)$p->vega : 0;
+                $cVega  = $c ? (float)$c->vega : ($prevCandleVegaCe[$stk] ?? 0);
+                $pVega  = $p ? (float)$p->vega : ($prevCandleVegaPe[$stk] ?? 0);
                 $cDelta = $c ? (float)$c->delta : 0.5;
                 $pDelta = $p ? (float)$p->delta : -0.5;
                 $cOi    = $c ? (int)$c->oi : ($prevOiCe[$stk] ?? 0);
@@ -530,27 +598,29 @@ class OptionsBreadthMonitorController extends Controller
                 $dOiPe    = $pOi - ($prevOiPe[$stk] ?? $pOi);
                 $dVolCe   = max(0, $cVol - ($prevVolCe[$stk] ?? $cVol));
                 $dVolPe   = max(0, $pVol - ($prevVolPe[$stk] ?? $pVol));
-                $dCeVega  = round($cVega - ($openVegaCe[$stk] ?? $cVega), 3);
-                $dPeVega  = round($pVega - ($openVegaPe[$stk] ?? $pVega), 3);
+
+                // Incremental 5m Vega change (Normalized)
+                $dCeVega  = round($cVega - ($prevCandleVegaCe[$stk] ?? $cVega), 3);
+                $dPeVega  = round($pVega - ($prevCandleVegaPe[$stk] ?? $pVega), 3);
 
                 // --- 1. FACTOR: OI Buildup Flow (-1.0 to +1.0) ---
                 $oiCeScore = 0.0;
                 if ($dOiCe > 0) {
                     $oiCeScore = ($dCePrice >= 0) ? 0.9 : -0.9; // Long build vs Call writing
                 } elseif ($dOiCe < 0) {
-                    $oiCeScore = ($dCePrice >= 0) ? 0.4 : -0.4; // Short covering vs Long unwinding
+                    $oiCeScore = ($dCePrice >= 0) ? 0.7 : -0.7; // Short covering vs Long unwinding
                 }
 
                 $oiPeScore = 0.0;
                 if ($dOiPe > 0) {
                     $oiPeScore = ($dPePrice >= 0) ? -0.9 : 0.9; // Put buying vs Put writing support
                 } elseif ($dOiPe < 0) {
-                    $oiPeScore = ($dPePrice >= 0) ? -0.4 : 0.4;
+                    $oiPeScore = ($dPePrice >= 0) ? -0.7 : 0.7; // Put short covering vs Put unwinding
                 }
                 $factorOi = ($oiCeScore + $oiPeScore) / 2.0;
 
                 // --- 2. FACTOR: Vega & Volatility Skew (-1.0 to +1.0) ---
-                // If CE Vega expands relative to PE Vega -> Bullish skew
+                // Incremental 5m IV/Vega expansion relative to counter-leg
                 $factorVega = tanh(($dCeVega - $dPeVega) * 1.5);
 
                 // --- 3. FACTOR: Volume Dominance (-1.0 to +1.0) ---
@@ -586,7 +656,7 @@ class OptionsBreadthMonitorController extends Controller
 
                 $strikeContributions[] = [
                     'strike'     => $stk,
-                    'name'       => "₹" . number_format($stk) . ($stk == $centerStrike ? ' (ATM)' : ''),
+                    'name'       => "₹" . number_format($stk) . ($stk == $candleAtm ? ' (ATM)' : ''),
                     'weight'     => $wt,
                     'bull_pct'   => round($strikeBullPct, 1),
                     'bear_pct'   => round(100 - $strikeBullPct, 1),
@@ -603,25 +673,29 @@ class OptionsBreadthMonitorController extends Controller
                     'signal'     => ($strikeBullPct >= 60) ? 'BUY FLOW' : (($strikeBullPct <= 40) ? 'SELL FLOW' : 'NEUTRAL'),
                 ];
 
-                $matrix[$stk]['cells'][$timeStr] = [
-                    'time'     => $timeStr,
-                    'color'    => $color,
-                    'bull_pct' => round($strikeBullPct),
-                    'ce_ltp'   => $cPrice,
-                    'pe_ltp'   => $pPrice,
-                    'd_ce'     => $dCePrice,
-                    'd_pe'     => $dPePrice,
-                    'd_ce_v'   => $dCeVega,
-                    'd_pe_v'   => $dPeVega,
-                    'pts'      => $strikePts,
-                ];
+                if (isset($matrix[$stk])) {
+                    $matrix[$stk]['cells'][$timeStr] = [
+                        'time'     => $timeStr,
+                        'color'    => $color,
+                        'bull_pct' => round($strikeBullPct),
+                        'ce_ltp'   => $cPrice,
+                        'pe_ltp'   => $pPrice,
+                        'd_ce'     => $dCePrice,
+                        'd_pe'     => $dPePrice,
+                        'd_ce_v'   => $dCeVega,
+                        'd_pe_v'   => $dPeVega,
+                        'pts'      => $strikePts,
+                    ];
+                }
 
-                $prevCandleLtpCe[$stk] = $cPrice;
-                $prevCandleLtpPe[$stk] = $pPrice;
-                $prevOiCe[$stk]        = $cOi;
-                $prevOiPe[$stk]        = $pOi;
-                $prevVolCe[$stk]       = $cVol;
-                $prevVolPe[$stk]       = $pVol;
+                $prevCandleLtpCe[$stk]  = $cPrice;
+                $prevCandleLtpPe[$stk]  = $pPrice;
+                $prevCandleVegaCe[$stk] = $cVega;
+                $prevCandleVegaPe[$stk] = $pVega;
+                $prevOiCe[$stk]         = $cOi;
+                $prevOiPe[$stk]         = $pOi;
+                $prevVolCe[$stk]        = $cVol;
+                $prevVolPe[$stk]        = $pVol;
             }
 
             // Continuous Basket Aggregate Tug-of-War Breadth
@@ -676,11 +750,17 @@ class OptionsBreadthMonitorController extends Controller
                 'down_weight'    => $downPct,
                 'flat_weight'    => $flatPct,
                 'net_points'     => $netPts,
+                'atm_strike'     => $candleAtm,
+                'basket_min'     => (float)min($activeBasket),
+                'basket_max'     => (float)max($activeBasket),
+                'basket_count'   => count($activeBasket),
+                'basket_strikes' => array_values(array_map('floatval', $activeBasket)),
+                'basket_mode'    => $basketMode,
                 'verdict'        => $verdict,
                 'contributions'  => $strikeContributions,
                 'greeks'         => [
-                    'avg_ce_vega' => round($basketCeVegaSum / max(1, count($targetStrikes)), 3),
-                    'avg_pe_vega' => round($basketPeVegaSum / max(1, count($targetStrikes)), 3),
+                    'avg_ce_vega' => round($basketCeVegaSum / max(1, count($activeBasket)), 3),
+                    'avg_pe_vega' => round($basketPeVegaSum / max(1, count($activeBasket)), 3),
                     'net_delta'   => round($basketDeltaSum / 1000, 1) . 'k',
                     'pcr'         => $pcr,
                 ],
