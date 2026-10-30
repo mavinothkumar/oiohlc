@@ -65,7 +65,7 @@ Schedule::command( 'trading:generate-daily-strategies' ) // php artisan trading:
 
 Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
         ->everyMinute()
-        ->between('9:15', '15:30')
+        ->between('9:15', '15:35')
         ->timezone('Asia/Kolkata')
         ->withoutOverlapping()
         ->runInBackground()
