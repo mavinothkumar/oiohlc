@@ -72,9 +72,38 @@ class NiftyUnifiedMonitorController extends Controller
 
         $selectedDate = $request->input('date', $defaultDate);
 
-        // 2. Fetch available Expiries for NIFTY from nse_expiries (indexed, <1ms)
+        // 2. Fetch available Expiries for NIFTY
         $expiries = [];
-        if (Schema::hasTable('nse_expiries')) {
+
+        // For past dates, load actual historical expiries
+        if ($selectedDate < $todayStr) {
+            if (Schema::hasTable('option_chains_history')) {
+                $pastExpiries = DB::table('option_chains_history')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('captured_at', '>=', "{$selectedDate} 09:00:00")
+                    ->where('captured_at', '<=', "{$selectedDate} 15:35:00")
+                    ->distinct()
+                    ->orderBy('expiry')
+                    ->pluck('expiry')
+                    ->toArray();
+                if (!empty($pastExpiries)) {
+                    $expiries = $pastExpiries;
+                }
+            }
+
+            if (empty($expiries) && Schema::hasTable('expired_expiries')) {
+                $expiries = DB::table('expired_expiries')
+                    ->where('underlying_symbol', 'NIFTY')
+                    ->where('instrument_type', 'OPT')
+                    ->where('expiry_date', '>=', $selectedDate)
+                    ->orderBy('expiry_date')
+                    ->limit(6)
+                    ->pluck('expiry_date')
+                    ->toArray();
+            }
+        }
+
+        if (empty($expiries) && Schema::hasTable('nse_expiries')) {
             $expiries = DB::table('nse_expiries')
                 ->where('trading_symbol', 'NIFTY')
                 ->where('instrument_type', 'OPT')

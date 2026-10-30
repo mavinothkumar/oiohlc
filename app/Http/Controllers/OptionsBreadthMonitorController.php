@@ -79,14 +79,38 @@ class OptionsBreadthMonitorController extends Controller
 
         // 1. Resolve Expiry
         $selectedExpiry = $request->input('expiry');
-        if (!$selectedExpiry && Schema::hasTable('nse_expiries')) {
-            $selectedExpiry = DB::table('nse_expiries')
-                ->where('trading_symbol', $symbol)
-                ->where('instrument_type', 'OPT')
-                ->where('is_current', 1)
-                ->value('expiry_date');
+        if (!$selectedExpiry) {
+            if ($isToday && Schema::hasTable('nse_expiries')) {
+                $selectedExpiry = DB::table('nse_expiries')
+                    ->where('trading_symbol', $symbol)
+                    ->where('instrument_type', 'OPT')
+                    ->where('is_current', 1)
+                    ->value('expiry_date');
+            }
 
-            if (!$selectedExpiry) {
+            // For past dates or fallback: resolve from option_chains_history directly for this date
+            if (!$selectedExpiry && Schema::hasTable('option_chains_history')) {
+                $selectedExpiry = DB::table('option_chains_history')
+                    ->where('trading_symbol', $symbol)
+                    ->where('captured_at', '>=', "{$date} 09:00:00")
+                    ->where('captured_at', '<=', "{$date} 15:35:00")
+                    ->where('expiry', '>=', $date)
+                    ->orderBy('expiry')
+                    ->value('expiry');
+            }
+
+            // Fallback: check expired_expiries
+            if (!$selectedExpiry && Schema::hasTable('expired_expiries')) {
+                $selectedExpiry = DB::table('expired_expiries')
+                    ->where('underlying_symbol', $symbol)
+                    ->where('instrument_type', 'OPT')
+                    ->where('expiry_date', '>=', $date)
+                    ->orderBy('expiry_date')
+                    ->value('expiry_date');
+            }
+
+            // Fallback: check nse_expiries upcoming
+            if (!$selectedExpiry && Schema::hasTable('nse_expiries')) {
                 $selectedExpiry = DB::table('nse_expiries')
                     ->where('trading_symbol', $symbol)
                     ->where('instrument_type', 'OPT')
