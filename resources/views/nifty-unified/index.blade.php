@@ -1076,26 +1076,66 @@
                         </div>
                     </div>
 
-                    <!-- Trade Order Sizing & SL / TP -->
-                    <div class="grid grid-cols-4 gap-2 text-[11px]">
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-0.5">Execution Mode</label>
-                            <select id="zc-mode-select" class="w-full bg-[#131722] border border-gray-700 rounded px-1.5 py-1 text-xs text-white focus:outline-none">
-                                <option value="SIMULATION" selected>SIMULATION</option>
-                                <option value="LIVE">LIVE</option>
-                            </select>
+                    <!-- Trade Order Sizing & SL / TP Restructure -->
+                    <div class="space-y-2 pt-2 border-t border-gray-800">
+                        <div class="flex items-center justify-between text-[11px] font-bold text-gray-200">
+                            <span class="flex items-center gap-1.5">
+                                <span>🎯 Stop Loss (SL) &amp; Profit Target (TP) Restructure</span>
+                            </span>
+                            <span class="text-[10px] text-emerald-400 font-mono">Candle Extreme ± Buffer</span>
                         </div>
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-0.5">Lots</label>
-                            <input type="number" id="zc-lots-input" min="1" max="50" value="1" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-white text-center font-mono focus:outline-none">
+
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                            <!-- Execution Mode -->
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-0.5">Execution Mode</label>
+                                <select id="zc-mode-select" class="w-full bg-[#131722] border border-gray-700 rounded px-1.5 py-1 text-xs text-white focus:outline-none">
+                                    <option value="SIMULATION" selected>SIMULATION</option>
+                                    <option value="LIVE">LIVE</option>
+                                </select>
+                            </div>
+
+                            <!-- Lots -->
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-0.5">Lots</label>
+                                <input type="number" id="zc-lots-input" min="1" max="50" value="1" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-white text-center font-mono focus:outline-none">
+                            </div>
+
+                            <!-- SL Calculation Method -->
+                            <div>
+                                <label class="text-[10px] text-gray-400 block mb-0.5">SL Calculation</label>
+                                <select id="zc-sl-mode-select" class="w-full bg-[#131722] border border-gray-700 rounded px-1 py-1 text-[11px] text-rose-300 focus:outline-none font-semibold">
+                                    <option value="candle_hl" selected>Candle High/Low</option>
+                                    <option value="fixed_offset">Fixed Points</option>
+                                </select>
+                            </div>
+
+                            <!-- SL Buffer (Pts) -->
+                            <div>
+                                <label id="zc-sl-label" class="text-[10px] text-rose-300 block mb-0.5 font-semibold">SL Buffer (Pts)</label>
+                                <input type="number" id="zc-sl-pts-input" min="0" max="300" value="15" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-rose-300 text-center font-mono focus:outline-none" title="Buffer added to Candle High (Bear) or subtracted from Candle Low (Bull)">
+                            </div>
+
+                            <!-- Target 1 (TP1) -->
+                            <div class="col-span-2 sm:col-span-1">
+                                <label class="text-[10px] text-emerald-300 block mb-0.5 font-semibold">Target TP1 (Pts)</label>
+                                <input type="number" id="zc-tp-pts-input" min="10" max="1000" value="100" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-emerald-300 text-center font-mono focus:outline-none" title="Primary Target in points (default: 100 pts)">
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-0.5">SL Offset (Pts)</label>
-                            <input type="number" id="zc-sl-pts-input" min="10" max="500" value="100" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-rose-300 text-center font-mono focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-gray-400 block mb-0.5">TP Offset (Pts)</label>
-                            <input type="number" id="zc-tp-pts-input" min="20" max="1000" value="200" class="w-full bg-[#131722] border border-gray-700 rounded px-2 py-1 text-xs text-emerald-300 text-center font-mono focus:outline-none">
+
+                        <!-- Secondary Target TP2 & Rule Notes -->
+                        <div class="flex items-center justify-between p-2 rounded bg-[#131722] border border-gray-800 text-[11px]">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs">🚀</span>
+                                <div>
+                                    <span class="font-bold text-gray-200">Secondary Runner Target (TP2):</span>
+                                    <span class="text-[10px] text-gray-400 block">Optional extended target for trend runners (default: 150 pts)</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 font-mono">
+                                <input type="number" id="zc-tp2-pts-input" min="20" max="1000" value="150" class="w-20 bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs text-emerald-200 text-center focus:outline-none" title="Secondary Target in points (default: 150 pts)">
+                                <span class="text-[10px] text-gray-400">pts</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1225,16 +1265,30 @@
                     </div>
                 </div>
 
-                <!-- Levels Strip (SL / TP / Lots) -->
-                <div class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] flex flex-wrap items-center justify-between gap-2 text-white">
-                    <div class="flex items-center gap-3">
-                        <span>🛑 SL: <strong id="alarm-trade-sl" class="text-rose-300 font-bold">22,862.45</strong></span>
+                <!-- Levels Strip (SL / TP1 / TP2 / Risk-Reward / Lots) -->
+                <div class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] flex flex-wrap items-center justify-between gap-y-1.5 gap-x-2 text-white">
+                    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span class="flex items-center gap-1">
+                            <span class="text-rose-400 font-bold">🛑 SL:</span>
+                            <strong id="alarm-trade-sl" class="text-rose-300 font-bold">22,862.45</strong>
+                            <span id="alarm-trade-sl-note" class="text-[9px] text-gray-400 font-sans bg-white/5 px-1 py-0.2 rounded border border-white/10">(Low -15)</span>
+                        </span>
                         <span class="text-white/30">&bull;</span>
-                        <span>🎯 TP: <strong id="alarm-trade-tp" class="text-emerald-300 font-bold">23,162.45</strong></span>
+                        <span class="flex items-center gap-1">
+                            <span class="text-emerald-400 font-bold">🎯 TP1:</span>
+                            <strong id="alarm-trade-tp" class="text-emerald-300 font-bold">23,062.45</strong>
+                            <span id="alarm-trade-tp1-pts" class="text-[9px] text-emerald-400 font-sans">(100 pts)</span>
+                        </span>
+                        <span class="text-white/30">&bull;</span>
+                        <span class="flex items-center gap-1">
+                            <span class="text-teal-300 font-bold">🚀 TP2:</span>
+                            <strong id="alarm-trade-tp2" class="text-teal-200 font-bold">23,112.45</strong>
+                            <span id="alarm-trade-tp2-pts" class="text-[9px] text-teal-300 font-sans">(150 pts)</span>
+                        </span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-white/30">&bull;</span>
-                        <span id="alarm-trade-lots-badge" class="text-gray-300 font-bold text-[10px] bg-white/10 px-2 py-0.5 rounded">1 Lot (SIMULATION)</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="alarm-trade-rr-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40" title="Risk-to-Reward Ratio">1:2.5 R:R</span>
+                        <span id="alarm-trade-lots-badge" class="text-gray-300 font-bold text-[10px] bg-white/10 px-2 py-0.5 rounded border border-white/10">1 Lot (SIMULATION)</span>
                     </div>
                 </div>
 
@@ -1392,8 +1446,11 @@
         webhookToken: '',
         mode: 'SIMULATION',
         lots: 1,
-        slOffset: 100,
-        tpOffset: 200,
+        slMode: 'candle_hl', // 'candle_hl' (Candle High/Low ± Buffer) or 'fixed_offset'
+        slBuffer: 15,        // points buffer from candle low/high (default: 15, e.g. 10 or 20)
+        slOffset: 100,       // fallback fixed points
+        tpOffset: 100,       // Target 1 (TP1): default 100 pts
+        tp2Offset: 150,      // Target 2 (TP2): default 150 pts
         product: 'MIS'
     };
     let zeroClickSettings = { ...defaultZeroClickSettings };
@@ -1637,9 +1694,67 @@
     }
 
     // ── 2. 0Click.in Trade Webhook Calculation & Dispatch Integration ─────────────
+    // Dynamic Stop Loss (Candle High/Low ± Buffer) & Multi-Target Logic (TP1: 100 pts, TP2: 150 pts)
+    function calculateTradeLevels(direction, spotPrice, candle = null) {
+        const isBull = (direction === 'UP' || direction === 'BULL' || direction === 'BUY');
+        const slMode = zeroClickSettings.slMode || 'candle_hl';
+        const slBuffer = parseInt(zeroClickSettings.slBuffer !== undefined ? zeroClickSettings.slBuffer : 15, 10);
+        const tpPts = parseInt(zeroClickSettings.tpOffset || 100, 10);
+        const tp2Pts = parseInt(zeroClickSettings.tp2Offset || 150, 10);
+
+        let sl = 0;
+        let slNote = '';
+        let riskPts = 0;
+
+        if (slMode === 'candle_hl' && candle && (candle.low !== undefined || candle.high !== undefined)) {
+            const candleLow = Number(candle.low !== undefined ? candle.low : (spotPrice - 30));
+            const candleHigh = Number(candle.high !== undefined ? candle.high : (spotPrice + 30));
+
+            if (isBull) {
+                // Bull move: Invalidation is below the alarm candle Low minus buffer
+                sl = +(candleLow - slBuffer).toFixed(2);
+                riskPts = +(spotPrice - sl).toFixed(2);
+                slNote = `Low -${slBuffer}`;
+            } else {
+                // Bear move: Invalidation is above the alarm candle High plus buffer
+                sl = +(candleHigh + slBuffer).toFixed(2);
+                riskPts = +(sl - spotPrice).toFixed(2);
+                slNote = `High +${slBuffer}`;
+            }
+        } else {
+            // Fixed offset mode
+            const fixedOffset = parseInt(zeroClickSettings.slOffset || 100, 10);
+            sl = isBull ? +(spotPrice - fixedOffset).toFixed(2) : +(spotPrice + fixedOffset).toFixed(2);
+            riskPts = fixedOffset;
+            slNote = `Fixed ${fixedOffset}`;
+        }
+
+        if (riskPts <= 0) riskPts = 20;
+
+        // Targets: TP1 (Primary) and TP2 (Extended)
+        const tp1 = isBull ? +(spotPrice + tpPts).toFixed(2) : +(spotPrice - tpPts).toFixed(2);
+        const tp2 = isBull ? +(spotPrice + tp2Pts).toFixed(2) : +(spotPrice - tp2Pts).toFixed(2);
+
+        // Risk-to-Reward Ratio based on TP1 and Risk
+        const rr = +(tpPts / riskPts).toFixed(1);
+
+        return {
+            isBull,
+            spotPrice,
+            sl,
+            slNote,
+            riskPts,
+            tp1,
+            tp2,
+            tpPts,
+            tp2Pts,
+            rr
+        };
+    }
+
     // Bullish (UP/BUY alert): SELL nearest ITM PE in 100s (Strike > Spot) -> Math.floor(spot/100 + 1) * 100
     // Bearish (DOWN/SELL alert): SELL nearest ITM CE in 100s (Strike < Spot) -> Math.ceil(spot/100 - 1) * 100
-    function calculateOptionSellContract(direction, spotPrice) {
+    function calculateOptionSellContract(direction, spotPrice, candle = null) {
         const isBull = (direction === 'UP' || direction === 'BULL' || direction === 'BUY');
         const signal = isBull ? 'BUY' : 'SELL';
         const instrument = isBull ? 'PE' : 'CE';
@@ -1647,12 +1762,9 @@
             ? (Math.floor(spotPrice / 100.0) + 1) * 100
             : (Math.ceil(spotPrice / 100.0) - 1) * 100;
         const strikeName = `NIFTY ${strike} ${instrument}`;
-        const sl = isBull
-            ? +(spotPrice - zeroClickSettings.slOffset).toFixed(2)
-            : +(spotPrice + zeroClickSettings.slOffset).toFixed(2);
-        const tp = isBull
-            ? +(spotPrice + zeroClickSettings.tpOffset).toFixed(2)
-            : +(spotPrice - zeroClickSettings.tpOffset).toFixed(2);
+
+        // Calculate dynamic SL and TP (Candle High/Low ± Buffer and Fixed 100/150 Targets)
+        const levels = calculateTradeLevels(direction, spotPrice, candle);
 
         return {
             isBull,
@@ -1661,8 +1773,13 @@
             instrument,
             strike,
             strikeName,
-            sl,
-            tp,
+            sl: levels.sl,
+            slNote: levels.slNote,
+            tp: levels.tp1,
+            tp1: levels.tp1,
+            tp2: levels.tp2,
+            riskPts: levels.riskPts,
+            rr: levels.rr,
             payload: {
                 category: 'LOCAL_SERVER',
                 signal: signal,
@@ -1675,8 +1792,13 @@
                 strike_name: strikeName,
                 trading_symbol: strikeName,
                 price: spotPrice,
-                sl: sl,
-                tp: tp,
+                sl: levels.sl,
+                tp: levels.tp1,
+                tp2: levels.tp2,
+                sl_mode: zeroClickSettings.slMode || 'candle_hl',
+                sl_buffer: zeroClickSettings.slBuffer || 15,
+                risk_pts: levels.riskPts,
+                rr_ratio: `1:${levels.rr}`,
                 lots: zeroClickSettings.lots,
                 mode: zeroClickSettings.mode,
                 product: zeroClickSettings.product
@@ -1934,6 +2056,10 @@
         const oBear = oBreadth ? (oBreadth.down_weight >= oDownTh) : false;
         const optionsScore = oBull ? Math.round(oBreadth.up_weight) : (oBear ? Math.round(oBreadth.down_weight) : 0);
 
+        // Find the matching candle for precise Low/High invalidation levels
+        const triggerCandle = weightageData?.candles?.find(c => (c.time_str === timeStr || c.time === timeStr))
+            || weightageData?.candles?.[activeCandleIndex];
+
         // 1. COMBINED HIGH-PROBABILITY CONFLUENCE (Both Weightage and Options Agree in Same Direction!)
         if (alarmSettings.confluenceEnabled && ((wBull && oBull) || (wBear && oBear))) {
             const isBull = (wBull && oBull);
@@ -1956,7 +2082,8 @@
                 confluenceState: 'CONFLUENCE',
                 confluenceText: isBull
                     ? `Stocks (${Math.round(wBreadth?.green_weight || 0)}% Green) and Options (${Math.round(oBreadth?.up_weight || 0)}% Call Flow) in 100% Alignment.`
-                    : `Stocks (${Math.round(wBreadth?.red_weight || 0)}% Red) and Options (${Math.round(oBreadth?.down_weight || 0)}% Put Flow) in 100% Alignment.`
+                    : `Stocks (${Math.round(wBreadth?.red_weight || 0)}% Red) and Options (${Math.round(oBreadth?.down_weight || 0)}% Put Flow) in 100% Alignment.`,
+                candle: triggerCandle
             });
             return;
         }
@@ -2000,7 +2127,8 @@
                 volume: alarmSettings.volume,
                 isConfluence: (confState === 'CONFLUENCE'),
                 confluenceState: confState,
-                confluenceText: confText
+                confluenceText: confText,
+                candle: triggerCandle
             });
             return;
         }
@@ -2044,7 +2172,8 @@
                 volume: alarmSettings.volume,
                 isConfluence: (confState === 'CONFLUENCE'),
                 confluenceState: confState,
-                confluenceText: confText
+                confluenceText: confText,
+                candle: triggerCandle
             });
             return;
         }
@@ -2061,9 +2190,11 @@
             playSoundByName(data.sound, data.volume);
         }, 1600);
 
-        // Spot Price from active candle
-        const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
-        const spotPrice = currentCandle ? currentCandle.close : 22962.45;
+        // Spot Price from active candle or trigger candle
+        const currentCandle = data.candle
+            || weightageData?.candles?.[activeCandleIndex]
+            || weightageData?.candles?.slice(-1)[0];
+        const spotPrice = currentCandle ? Number(currentCandle.close) : 22928.10;
         const isBull = (data.direction === 'BULL' || data.direction === 'UP');
 
         // Strikes calculation:
@@ -2073,8 +2204,8 @@
         // 1-ITM: for Bull CE strike <= spot (atmStrike - 50); for Bear PE strike >= spot (atmStrike + 50)
         const buyerStrike = isBull ? (atmStrike - 50) : (atmStrike + 50);
 
-        // Option Sell Contract (1-ITM 100s, 0Click compatible)
-        const contract = calculateOptionSellContract(data.direction, spotPrice);
+        // Option Sell Contract (1-ITM 100s, 0Click compatible with Candle Low/High SL and TP1/TP2 targets)
+        const contract = calculateOptionSellContract(data.direction, spotPrice, currentCandle);
         currentActivePayload = contract.payload;
 
         // Banner Badge & Styling
@@ -2220,12 +2351,27 @@
             sellerStrategyNote.textContent = isBull ? 'Theta Put Decay' : 'Theta Call Decay';
         }
 
-        // Levels
+        // Levels (Dynamic SL with Candle Low/High Note, TP1, TP2, R:R Ratio)
         const slEl = document.getElementById('alarm-trade-sl');
         if (slEl) slEl.textContent = contract.sl.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+        const slNoteEl = document.getElementById('alarm-trade-sl-note');
+        if (slNoteEl) slNoteEl.textContent = `(${contract.slNote})`;
+
         const tpEl = document.getElementById('alarm-trade-tp');
-        if (tpEl) tpEl.textContent = contract.tp.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (tpEl) tpEl.textContent = contract.tp1.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        const tp2El = document.getElementById('alarm-trade-tp2');
+        if (tp2El) tp2El.textContent = contract.tp2.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        const tp1PtsEl = document.getElementById('alarm-trade-tp1-pts');
+        if (tp1PtsEl) tp1PtsEl.textContent = `(${zeroClickSettings.tpOffset || 100} pts)`;
+
+        const tp2PtsEl = document.getElementById('alarm-trade-tp2-pts');
+        if (tp2PtsEl) tp2PtsEl.textContent = `(${zeroClickSettings.tp2Offset || 150} pts)`;
+
+        const rrBadge = document.getElementById('alarm-trade-rr-badge');
+        if (rrBadge) rrBadge.textContent = `1:${contract.rr} R:R`;
 
         const lotsBadge = document.getElementById('alarm-trade-lots-badge');
         if (lotsBadge) lotsBadge.textContent = `${zeroClickSettings.lots} Lot${zeroClickSettings.lots > 1 ? 's' : ''} (${zeroClickSettings.mode})`;
@@ -3746,13 +3892,21 @@
         // Preview Bull / Bear Alarms for Testing
         document.getElementById('btn-preview-bull-alarm')?.addEventListener('click', () => {
             const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
+            const spot = currentCandle ? Number(currentCandle.close) : 22962.45;
+            const sampleCandle = {
+                open: currentCandle?.open || (spot - 10),
+                high: currentCandle?.high || (spot + 15),
+                low: currentCandle?.low || (spot - 25),
+                close: spot,
+                time_str: currentCandle?.time_str || '10:50'
+            };
             triggerAlarmModal({
                 type: 'STOCKS',
                 direction: 'BULL',
                 title: '📊 BULLISH STOCK BREADTH SURGE',
                 score: 84,
                 threshold: 80,
-                time: currentCandle ? (currentCandle.time_str || currentCandle.time) : '10:50',
+                time: sampleCandle.time_str,
                 count: 42,
                 countPct: 84,
                 weight: 92.8,
@@ -3762,30 +3916,54 @@
                 volume: alarmSettings.volume || 1.0,
                 isConfluence: false,
                 confluenceState: 'DIVERGENCE',
-                confluenceText: 'Stocks Bullish (93%), but Options show 80% Bear Flow (Divergent).'
+                confluenceText: 'Stocks Bullish (93%), but Options show 80% Bear Flow (Divergent).',
+                candle: sampleCandle
             });
         });
 
         document.getElementById('btn-preview-bear-alarm')?.addEventListener('click', () => {
             const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
+            const spot = currentCandle ? Number(currentCandle.close) : 22928.10;
+            const sampleCandle = {
+                open: currentCandle?.open || (spot + 12),
+                high: currentCandle?.high || (spot + 22),
+                low: currentCandle?.low || (spot - 18),
+                close: spot,
+                time_str: currentCandle?.time_str || '10:45'
+            };
             triggerAlarmModal({
                 type: 'CONFLUENCE',
                 direction: 'BEAR',
                 title: '🔥 BEARISH CONFLUENCE DETECTED',
-                score: 82,
+                score: 88,
                 threshold: 75,
-                time: currentCandle ? (currentCandle.time_str || currentCandle.time) : '10:50',
-                count: 40,
-                countPct: 80,
-                weight: 88.5,
-                pts: -38.50,
-                oStat: '82% Bear Flow',
+                time: sampleCandle.time_str,
+                count: 44,
+                countPct: 88,
+                weight: 90.1,
+                pts: -27.55,
+                oStat: '88% Bear Flow',
                 sound: 'bear_growl',
                 volume: alarmSettings.volume || 1.0,
                 isConfluence: true,
                 confluenceState: 'CONFLUENCE',
-                confluenceText: 'Stocks (89% Red) and Options (82% Put Flow) in 100% Agreement.'
+                confluenceText: 'Stocks (90% Red) and Options (88% Put Flow) in 100% Agreement.',
+                candle: sampleCandle
             });
+        });
+
+        // Dynamic label switch when SL mode changes
+        document.getElementById('zc-sl-mode-select')?.addEventListener('change', (e) => {
+            const mode = e.target.value;
+            const label = document.getElementById('zc-sl-label');
+            const input = document.getElementById('zc-sl-pts-input');
+            if (mode === 'candle_hl') {
+                if (label) label.textContent = 'SL Buffer (Pts)';
+                if (input && (parseInt(input.value, 10) > 50 || !input.value)) input.value = 15;
+            } else {
+                if (label) label.textContent = 'Fixed SL (Pts)';
+                if (input && parseInt(input.value, 10) < 50) input.value = 100;
+            }
         });
 
         // Manual Dispatch Button in Active Alarm Modal
@@ -3796,16 +3974,17 @@
             } else {
                 // If not logged yet, log & dispatch immediately
                 const currentCandle = weightageData?.candles?.[activeCandleIndex] || weightageData?.candles?.slice(-1)[0];
-                const spot = currentCandle ? currentCandle.close : 25850.50;
+                const spot = currentCandle ? currentCandle.close : 22928.10;
                 const dir = document.getElementById('alarm-trade-strike-badge')?.textContent.includes('PE') ? 'UP' : 'DOWN';
-                const contract = calculateOptionSellContract(dir, spot);
+                const contract = calculateOptionSellContract(dir, spot, currentCandle);
                 logAlertInternally({
                     direction: dir,
                     time: currentCandle ? currentCandle.time_str : '12:00',
                     score: 80,
                     weight: 80,
                     count: 40,
-                    pts: 0
+                    pts: 0,
+                    candle: currentCandle
                 }, spot, contract.payload, true, () => {
                     alert('Dispatched to 0click.in successfully!');
                 }, contract);
@@ -3963,8 +4142,15 @@
             zeroClickSettings.webhookToken = document.getElementById('zc-webhook-token').value.trim();
             zeroClickSettings.mode = document.getElementById('zc-mode-select').value;
             zeroClickSettings.lots = parseInt(document.getElementById('zc-lots-input').value, 10) || 1;
-            zeroClickSettings.slOffset = parseInt(document.getElementById('zc-sl-pts-input').value, 10) || 100;
-            zeroClickSettings.tpOffset = parseInt(document.getElementById('zc-tp-pts-input').value, 10) || 200;
+            zeroClickSettings.slMode = document.getElementById('zc-sl-mode-select')?.value || 'candle_hl';
+            const slInputVal = parseInt(document.getElementById('zc-sl-pts-input')?.value, 10);
+            if (zeroClickSettings.slMode === 'candle_hl') {
+                zeroClickSettings.slBuffer = !isNaN(slInputVal) ? slInputVal : 15;
+            } else {
+                zeroClickSettings.slOffset = !isNaN(slInputVal) ? slInputVal : 100;
+            }
+            zeroClickSettings.tpOffset = parseInt(document.getElementById('zc-tp-pts-input')?.value, 10) || 100;
+            zeroClickSettings.tp2Offset = parseInt(document.getElementById('zc-tp2-pts-input')?.value, 10) || 150;
 
             saveAlarmSettings();
             syncAlarmToolbarUI();
@@ -4070,11 +4256,26 @@
         const zcLots = document.getElementById('zc-lots-input');
         if (zcLots) zcLots.value = zeroClickSettings.lots;
 
+        const zcSlMode = document.getElementById('zc-sl-mode-select');
+        if (zcSlMode) zcSlMode.value = zeroClickSettings.slMode || 'candle_hl';
+
+        const zcSlLabel = document.getElementById('zc-sl-label');
+        if (zcSlLabel) {
+            zcSlLabel.textContent = (zeroClickSettings.slMode === 'fixed_offset') ? 'Fixed SL (Pts)' : 'SL Buffer (Pts)';
+        }
+
         const zcSl = document.getElementById('zc-sl-pts-input');
-        if (zcSl) zcSl.value = zeroClickSettings.slOffset;
+        if (zcSl) {
+            zcSl.value = (zeroClickSettings.slMode === 'fixed_offset')
+                ? (zeroClickSettings.slOffset || 100)
+                : (zeroClickSettings.slBuffer !== undefined ? zeroClickSettings.slBuffer : 15);
+        }
 
         const zcTp = document.getElementById('zc-tp-pts-input');
-        if (zcTp) zcTp.value = zeroClickSettings.tpOffset;
+        if (zcTp) zcTp.value = zeroClickSettings.tpOffset !== undefined ? zeroClickSettings.tpOffset : 100;
+
+        const zcTp2 = document.getElementById('zc-tp2-pts-input');
+        if (zcTp2) zcTp2.value = zeroClickSettings.tp2Offset !== undefined ? zeroClickSettings.tp2Offset : 150;
     }
 
     function saveAlarmSettings() {
