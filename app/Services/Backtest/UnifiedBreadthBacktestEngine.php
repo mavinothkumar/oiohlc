@@ -48,8 +48,8 @@ class UnifiedBreadthBacktestEngine
         $tp2 = (float)($config['tp2'] ?? 150.0);
         $basketMode = $config['basket_mode'] ?? 'dynamic';
         $maxTradesPerDay = (int)($config['max_trades_per_day'] ?? 2);
-        $startTime = $config['start_time'] ?? '09:30';
-        $endTime = $config['end_time'] ?? '14:30';
+        $startTime = $config['start_time'] ?? '09:15';
+        $endTime = $config['end_time'] ?? '15:30';
         $fromDate = $config['from_date'] ?? null;
         $toDate = $config['to_date'] ?? null;
 
@@ -161,8 +161,8 @@ class UnifiedBreadthBacktestEngine
         float $tp2,
         string $basketMode,
         int $maxTradesPerDay,
-        string $startTime = '09:30',
-        string $endTime = '14:30'
+        string $startTime = '09:15',
+        string $endTime = '15:30'
     ): array {
         // 1. Fetch 5m Stock Breadth data
         $stockReq = new Request(['date' => $date]);
@@ -203,8 +203,8 @@ class UnifiedBreadthBacktestEngine
         sort($timeKeys);
 
         foreach ($timeKeys as $cIdx => $timeStr) {
-            // Ignore candles before 09:20 (09:15 is the opening setup) and after 15:25
-            if ($timeStr < '09:20' || $timeStr > '15:25') {
+            // Market hours: 09:15 to 15:30
+            if ($timeStr < '09:15' || $timeStr > '15:30') {
                 continue;
             }
 

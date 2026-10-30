@@ -22,8 +22,8 @@ class RunUnifiedBreadthBacktest extends Command
                             {--tp2=150 : Target 2 points}
                             {--basket-mode=dynamic : Options basket mode (dynamic or fixed)}
                             {--max-trades=2 : Max trades allowed per day}
-                            {--start-time=09:30 : Earliest entry trigger time (skip opening volatility)}
-                            {--end-time=14:30 : Latest entry trigger time (no entries late afternoon)}
+                            {--start-time=09:15 : Earliest entry trigger time (09:15 to 15:30)}
+                            {--end-time=15:30 : Latest entry trigger time (09:15 to 15:30)}
                             {--limit= : Limit number of trading days to test}
                             {--save-json= : Save detailed trade log and stats to a JSON file}';
 
@@ -47,8 +47,8 @@ class RunUnifiedBreadthBacktest extends Command
         $tp2 = (float)$this->option('tp2');
         $basketMode = $this->option('basket-mode');
         $maxTrades = (int)$this->option('max-trades');
-        $startTime = $this->option('start-time') ?: '09:30';
-        $endTime = $this->option('end-time') ?: '14:30';
+        $startTime = $this->option('start-time') ?: '09:15';
+        $endTime = $this->option('end-time') ?: '15:30';
         $limit = $this->option('limit') ? (int)$this->option('limit') : null;
 
         $this->newLine();

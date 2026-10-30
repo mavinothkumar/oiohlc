@@ -131,24 +131,47 @@
 
         {{-- Parameter Tweaks Row --}}
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 pt-3 border-t border-gray-800/80 items-end">
-            {{-- Start Time (Skip before) --}}
+            {{-- Start Time --}}
             <div>
-                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Start Time (Skip &lt;)</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">Start Time</label>
                 <select id="cfgStartTime" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-cyan-300 font-mono">
-                    <option value="09:20">09:20 AM</option>
-                    <option value="09:30" selected>09:30 AM (Rec)</option>
-                    <option value="09:45">09:45 AM</option>
-                    <option value="10:00">10:00 AM</option>
+                    @for ($h = 9; $h <= 15; $h++)
+                        @for ($m = 0; $m < 60; $m += 5)
+                            @php
+                                if ($h == 9 && $m < 15) continue;
+                                if ($h == 15 && $m > 30) continue;
+                                $val = sprintf('%02d:%02d', $h, $m);
+                                $ampm = $h >= 12 ? 'PM' : 'AM';
+                                $displayH = $h > 12 ? $h - 12 : ($h == 0 ? 12 : $h);
+                                $label = sprintf('%02d:%02d %s', $displayH, $m, $ampm);
+                            @endphp
+                            <option value="{{ $val }}" {{ $val === '09:15' ? 'selected' : '' }}>
+                                {{ $label }}{{ $val === '09:15' ? ' (Open)' : '' }}
+                            </option>
+                        @endfor
+                    @endfor
                 </select>
             </div>
 
-            {{-- End Time (Skip after) --}}
+            {{-- End Time --}}
             <div>
-                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">End Time (Skip &gt;)</label>
+                <label class="block text-[10.5px] font-semibold text-gray-400 mb-1">End Time</label>
                 <select id="cfgEndTime" class="w-full bg-[#0a0e17] border border-gray-700/80 rounded px-2 py-1.5 text-xs text-cyan-300 font-mono">
-                    <option value="14:00">02:00 PM</option>
-                    <option value="14:30" selected>02:30 PM (Rec)</option>
-                    <option value="15:00">03:00 PM</option>
+                    @for ($h = 9; $h <= 15; $h++)
+                        @for ($m = 0; $m < 60; $m += 5)
+                            @php
+                                if ($h == 9 && $m < 15) continue;
+                                if ($h == 15 && $m > 30) continue;
+                                $val = sprintf('%02d:%02d', $h, $m);
+                                $ampm = $h >= 12 ? 'PM' : 'AM';
+                                $displayH = $h > 12 ? $h - 12 : ($h == 0 ? 12 : $h);
+                                $label = sprintf('%02d:%02d %s', $displayH, $m, $ampm);
+                            @endphp
+                            <option value="{{ $val }}" {{ $val === '15:30' ? 'selected' : '' }}>
+                                {{ $label }}{{ $val === '15:30' ? ' (Close)' : '' }}
+                            </option>
+                        @endfor
+                    @endfor
                 </select>
             </div>
 
@@ -440,8 +463,8 @@
         const tp2 = parseFloat(document.getElementById('cfgTp2').value) || 150;
         const stockThresh = parseFloat(document.getElementById('cfgStockThresh').value) || 80;
         const maxTrades = parseInt(document.getElementById('cfgMaxTrades').value) || 2;
-        const startTime = document.getElementById('cfgStartTime').value || '09:30';
-        const endTime = document.getElementById('cfgEndTime').value || '14:30';
+        const startTime = document.getElementById('cfgStartTime').value || '09:15';
+        const endTime = document.getElementById('cfgEndTime').value || '15:30';
 
         statusMsg.innerText = `Simulating ${mode.toUpperCase()} strategy from ${fromDate} to ${toDate} (${startTime} to ${endTime})...`;
 
