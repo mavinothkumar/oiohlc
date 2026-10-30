@@ -80,6 +80,14 @@ Schedule::command('ohlc:sync-nifty50-stocks') // Sync full 1m intraday candles f
         ->appendOutputTo(storage_path('logs/nifty50-stocks-sync.log'));
 
 
+Schedule::command('ohlc:aggregate-daily-5m')
+        ->weekdays()
+        ->dailyAt('15:36')
+        ->timezone('Asia/Kolkata')
+        ->withoutOverlapping()
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/ohlc-aggregate-daily-5m.log'));
+
 Schedule::command('option-chains:archive')
         ->dailyAt('15:40')
         ->timezone('Asia/Kolkata')
