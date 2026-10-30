@@ -92,162 +92,145 @@
 @section('content')
 <div class="w-full flex flex-col p-2 space-y-2 select-none min-h-screen" id="nifty-unified-root">
 
-    <!-- ════════════ TOP UNIFIED COMMAND BAR ════════════ -->
-    <div class="cockpit-card px-3 py-1.5 shadow-lg flex flex-wrap items-center justify-between gap-2 shrink-0 border-gray-800 text-xs">
+    <!-- ════════════ TOP UNIFIED COMMAND BAR (COMPACT SINGLE ROW) ════════════ -->
+    <div class="cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-1.5 shrink-0 border-gray-800 text-xs flex-nowrap overflow-x-auto scrollbar-none min-h-[38px]">
         
-        <!-- Left: Branding & Spot Price -->
-        <div class="flex items-center gap-2.5">
-            <span class="p-1 bg-gradient-to-br from-cyan-600 to-blue-700 rounded text-white flex items-center justify-center shadow-xs">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
+        <!-- Left: Brand Icon & Spot Price -->
+        <div class="flex items-center gap-1.5 shrink-0">
+            <span class="px-1.5 py-0.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded text-white font-extrabold text-[11px] flex items-center gap-1 shadow-xs tracking-wide">
+                ⚡ <span>NIFTY 50</span>
             </span>
-            <div class="flex items-center gap-1.5">
-                <span class="font-extrabold text-white text-xs tracking-wide">NIFTY 50 UNIFIED COCKPIT</span>
-                <span class="hidden sm:inline-block px-1.5 py-0.2 text-[9px] font-bold rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
-                    75/25 CONFLUENCE
-                </span>
-            </div>
 
             <!-- Spot price pill -->
-            <div class="flex items-center gap-1 bg-[#1a1e29] border border-gray-700/80 px-2 py-0.5 rounded text-[11px] font-mono">
-                <span class="text-gray-400">SPOT:</span>
+            <div class="flex items-center gap-1 bg-[#1a1e29] border border-gray-700/80 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                <span class="text-gray-400 text-[10px]">SPOT:</span>
                 <span id="spot-price-display" class="font-bold text-cyan-400">---</span>
                 <span id="spot-change-display" class="font-semibold text-gray-400 text-[10px]"></span>
             </div>
         </div>
 
         <!-- Center: Master Unified Timeline Scrubber & Replay Controller -->
-        <div class="flex items-center gap-2 bg-[#1a1e29] border border-gray-700/90 rounded-lg px-2.5 py-1 shadow-inner">
-            <div class="flex items-center gap-1">
-                <span class="text-gray-400 text-[10px] font-semibold hidden md:inline">TIMELINE:</span>
-                <span id="master-time-badge" class="px-2 py-0.5 bg-sky-950 border border-sky-500/50 text-sky-300 font-mono font-bold text-xs rounded">
-                    09:15
-                </span>
-            </div>
+        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-2 py-0.5 shadow-inner shrink-0">
+            <span id="master-time-badge" class="px-1.5 py-0.2 bg-sky-950 border border-sky-500/50 text-sky-300 font-mono font-bold text-[11px] rounded">
+                09:15
+            </span>
 
             <!-- Stepper buttons -->
-            <div class="flex items-center gap-0.5 border-l border-gray-700 pl-1.5">
-                <button id="btn-step-start" title="First candle (09:15)" class="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+            <div class="flex items-center gap-0.5 border-l border-gray-700 pl-1">
+                <button id="btn-step-start" title="First candle (09:15)" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
                 </button>
-                <button id="btn-step-prev" title="Previous 5m candle (← Key)" class="p-1 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <button id="btn-step-prev" title="Previous 5m candle (← Key)" class="p-0.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <button id="btn-play-pause" title="Play / Pause Timeline Replay" class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer">
+                <button id="btn-play-pause" title="Play / Pause Replay" class="px-1.5 py-0.2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded text-[10px] flex items-center gap-0.5 transition shadow-xs cursor-pointer">
                     <span id="play-icon">▶</span>
-                    <span id="play-text">Play</span>
+                    <span id="play-text" class="hidden md:inline">Play</span>
                 </button>
-                <button id="btn-step-next" title="Next 5m candle (→ Key)" class="p-1 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <button id="btn-step-next" title="Next 5m candle (→ Key)" class="p-0.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
-                <button id="btn-snap-live" title="Snap to Latest Live Candle" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] flex items-center gap-1 transition cursor-pointer">
+                <button id="btn-snap-live" title="Snap to Latest Live Candle" class="px-1.5 py-0.2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition cursor-pointer">
                     <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
                     <span>LIVE</span>
                 </button>
             </div>
 
             <!-- Master Scrubber Slider -->
-            <div class="w-28 sm:w-40 md:w-52 flex items-center px-1">
-                <input id="master-slider" type="range" min="0" max="74" value="0" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
+            <div class="w-16 sm:w-20 md:w-24 lg:w-28 xl:w-32 flex items-center px-0.5">
+                <input id="master-slider" type="range" min="0" max="74" value="0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
             </div>
         </div>
 
-        <!-- Right: Date, Expiry, Chart Height, Alarm, Auto-Refresh & Controls -->
-        <div class="flex items-center gap-2">
+        <!-- Right: Date, Expiry, Chart Height, Alarm, Auto-Refresh & Controls (Strict 1-Row) -->
+        <div class="flex items-center gap-1.5 shrink-0 flex-nowrap">
             <!-- Calendar Date Picker -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1">
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0">
                 <button id="btn-prev-day" type="button" title="Previous Trading Day" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </button>
                 <input type="text" id="date-select" readonly
-                       class="bg-transparent text-white font-mono font-medium focus:outline-none cursor-pointer w-24 text-[11px] selection:bg-transparent"
+                       class="bg-transparent text-white font-mono font-medium focus:outline-none cursor-pointer w-20 text-[11px] selection:bg-transparent text-center"
                        value="{{ $selectedDate }}">
                 <button id="btn-next-day" type="button" title="Next Trading Day" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
             </div>
 
             <!-- Expiry Selector -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1">
-                <span class="text-gray-400 text-[10.5px]">EXP:</span>
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0">
+                <span class="text-gray-400 text-[10px]">EXP:</span>
                 <select id="expiry-select" class="bg-transparent text-amber-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]">
                     @foreach($expiries as $exp)
                         <option value="{{ $exp }}" {{ $exp === $selectedExpiry ? 'selected' : '' }} class="bg-[#131722] text-white">
-                            {{ \Carbon\Carbon::parse($exp)->format('d-M-Y') }}
+                            {{ \Carbon\Carbon::parse($exp)->format('d-M') }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
             <!-- Dynamic Chart Height Selector -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1">
-                <span class="text-gray-400 text-[10px] flex items-center gap-1">
-                    <svg class="w-3 h-3 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-                    </svg>
-                    H:
-                </span>
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0">
+                <span class="text-gray-400 text-[10px] font-bold">H:</span>
                 <select id="chart-height-select" class="bg-transparent text-sky-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Change Height of Both Candlestick Charts">
                     <option value="300" class="bg-[#131722] text-white">300px</option>
                     <option value="350" class="bg-[#131722] text-white">350px</option>
                     <option value="380" class="bg-[#131722] text-white">380px</option>
-                    <option value="420" selected class="bg-[#131722] text-white">420px (Default)</option>
+                    <option value="420" selected class="bg-[#131722] text-white">420px</option>
                     <option value="480" class="bg-[#131722] text-white">480px</option>
                     <option value="550" class="bg-[#131722] text-white">550px</option>
                 </select>
             </div>
 
-            <!-- Dynamic Font Size / Cockpit Scale Selector (User Requested) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1" title="Adjust Font Size / Scale for Your Monitor">
+            <!-- Dynamic Font Size / Cockpit Scale Selector -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Adjust Font Size / Scale for Your Monitor">
                 <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">
-                    <span class="text-amber-400 text-[11px]">A</span><span class="text-amber-300 text-[13px] font-black">A</span>
-                    <span class="text-gray-400 ml-0.5">Font:</span>
+                    <span class="text-amber-400 text-[10px]">A</span><span class="text-amber-300 text-[12px] font-black">A:</span>
                 </span>
                 <select id="cockpit-font-scale-select" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Scale Font & Data Panels to fit your Monitor">
-                    <option value="100" class="bg-[#131722] text-white">100% (Standard)</option>
-                    <option value="105" class="bg-[#131722] text-white">105% (+0.5pt)</option>
-                    <option value="110" class="bg-[#131722] text-white">110% (+1pt)</option>
-                    <option value="115" selected class="bg-[#131722] text-white">115% (+1.5pt Default)</option>
-                    <option value="120" class="bg-[#131722] text-white">120% (+2pt)</option>
-                    <option value="125" class="bg-[#131722] text-white">125% (+2.5pt)</option>
-                    <option value="130" class="bg-[#131722] text-white">130% (+3pt)</option>
-                    <option value="140" class="bg-[#131722] text-white">140% (+4pt Large)</option>
+                    <option value="100" class="bg-[#131722] text-white">100%</option>
+                    <option value="105" class="bg-[#131722] text-white">105%</option>
+                    <option value="110" class="bg-[#131722] text-white">110%</option>
+                    <option value="115" selected class="bg-[#131722] text-white">115%</option>
+                    <option value="120" class="bg-[#131722] text-white">120%</option>
+                    <option value="125" class="bg-[#131722] text-white">125%</option>
+                    <option value="130" class="bg-[#131722] text-white">130%</option>
+                    <option value="140" class="bg-[#131722] text-white">140%</option>
                 </select>
             </div>
 
-            <!-- Confluence & Alarm Controls (User Requested) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded text-xs overflow-hidden">
-                <button id="btn-quick-alarm" title="Click to Toggle Alarm On/Off" class="flex items-center gap-1 px-2 py-0.5 text-amber-400 hover:bg-amber-950/50 font-bold transition cursor-pointer">
+            <!-- Confluence & Alarm Controls -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded text-xs overflow-hidden shrink-0">
+                <button id="btn-quick-alarm" title="Click to Toggle Alarm On/Off" class="flex items-center gap-1 px-1.5 py-0.5 text-amber-400 hover:bg-amber-950/50 font-bold transition cursor-pointer">
                     <span id="alarm-bell-icon">🔔</span>
-                    <span id="alarm-toolbar-label">Alarm ON (80%)</span>
+                    <span id="alarm-toolbar-label" class="text-[11px]">80%</span>
                 </button>
-                <button id="btn-open-alarm-settings" title="Configure NIFTY Breadth Extreme & 0Click.in Webhook" class="px-1.5 py-0.5 border-l border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition cursor-pointer font-bold">
+                <button id="btn-open-alarm-settings" title="Configure NIFTY Breadth Extreme & 0Click.in Webhook" class="px-1 py-0.5 border-l border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition cursor-pointer font-bold">
                     ⚙️
                 </button>
             </div>
 
             <!-- 0Click Signal Logs Button -->
-            <button id="btn-open-logs" title="View 0Click.in Signal Execution & Internal Audit Logs" class="flex items-center gap-1.5 px-2 py-0.5 bg-[#1a1e29] hover:bg-gray-800 border border-gray-700 text-sky-400 hover:text-sky-300 rounded text-xs font-semibold transition cursor-pointer">
+            <button id="btn-open-logs" title="View 0Click.in Signal Execution & Internal Audit Logs" class="flex items-center gap-1 px-1.5 py-0.5 bg-[#1a1e29] hover:bg-gray-800 border border-gray-700 text-sky-400 hover:text-sky-300 rounded text-xs font-semibold transition cursor-pointer shrink-0">
                 <span>📋</span>
-                <span class="hidden sm:inline">0Click Logs</span>
-                <span id="log-count-badge" class="ml-0.5 px-1.5 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[10px] rounded-full">0</span>
+                <span class="hidden xl:inline text-[11px]">Logs</span>
+                <span id="log-count-badge" class="ml-0.5 px-1 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[9.5px] rounded-full">0</span>
             </button>
 
             <!-- Auto-Refresh Selector -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1.5" title="Smart Candle Sync & Auto-Refresh">
-                <span class="text-gray-400 text-[10px] flex items-center gap-1 font-bold">
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Smart Candle Sync & Auto-Refresh">
+                <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
-                    Sync:
+                    <span class="hidden sm:inline">Sync:</span>
                 </span>
                 <select id="auto-refresh-select" class="bg-transparent text-emerald-300 font-bold focus:outline-none cursor-pointer text-[11px]" title="Auto-Refresh Sync Mode">
-                    <option value="candle_5m" selected class="bg-[#131722] text-emerald-400 font-bold">5m Candle Sync (+8s)</option>
-                    <option value="stock_1m" class="bg-[#131722] text-sky-400">1m Stock Sync (+5s)</option>
-                    <option value="15" class="bg-[#131722] text-white">15s Fast Poll</option>
-                    <option value="30" class="bg-[#131722] text-white">30s Poll</option>
-                    <option value="60" class="bg-[#131722] text-white">1m Fixed Poll</option>
-                    <option value="300" class="bg-[#131722] text-white">5m Fixed Poll</option>
-                    <option value="0" class="bg-[#131722] text-gray-400">Off (Manual Only)</option>
+                    <option value="candle_5m" selected class="bg-[#131722] text-emerald-400 font-bold">5m (+8s)</option>
+                    <option value="stock_1m" class="bg-[#131722] text-sky-400">1m (+5s)</option>
+                    <option value="15" class="bg-[#131722] text-white">15s</option>
+                    <option value="30" class="bg-[#131722] text-white">30s</option>
+                    <option value="60" class="bg-[#131722] text-white">1m</option>
+                    <option value="300" class="bg-[#131722] text-white">5m</option>
+                    <option value="0" class="bg-[#131722] text-gray-400">Off</option>
                 </select>
                 <div class="flex items-center gap-0.5 border-l border-gray-700/80 pl-1">
                     <span id="countdown-badge" class="px-1.5 py-0.2 bg-gray-800 text-sky-300 font-mono text-[10px] rounded font-bold cursor-pointer transition hover:bg-gray-700 select-none" title="Next 5m Candle Sync (Click to Hide)">04:52</span>
@@ -258,11 +241,19 @@
             </div>
 
             <!-- Manual Reload -->
-            <button id="btn-reload" title="Refresh All Data Now" class="p-1.5 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                <svg id="reload-spinner" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="btn-reload" title="Refresh All Data Now" class="p-1 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer shrink-0">
+                <svg id="reload-spinner" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
             </button>
+
+            <!-- Zen Mode -->
+            <button id="btn-zen" title="Toggle Fullscreen Zen Mode" class="p-1 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer shrink-0">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                </svg>
+            </button>
+        </div>
 
             <!-- Zen Mode -->
             <button id="btn-zen" title="Toggle Fullscreen Zen Mode" class="p-1.5 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
@@ -3834,18 +3825,21 @@
     function syncAlarmToolbarUI() {
         const label = document.getElementById('alarm-toolbar-label');
         const icon = document.getElementById('alarm-bell-icon');
+        const btn = document.getElementById('btn-quick-alarm');
         if (!label) return;
 
         if (alarmSettings.masterEnabled) {
-            const trig = alarmSettings.stocksTriggerBy || 'both';
-            const modeText = trig === 'both' ? 'Both (Ct&Wt)' : (trig === 'count' ? 'Count' : (trig === 'weight' ? 'Weight' : 'Either'));
-            label.textContent = `Alarms ON (Stocks: ${alarmSettings.stocksUpThreshold || 80}% &bull; Options: ${alarmSettings.optionsUpThreshold || 70}%)`;
-            label.className = 'text-amber-400 font-bold';
+            const sTh = alarmSettings.stocksUpThreshold || 80;
+            const oTh = alarmSettings.optionsUpThreshold || 70;
+            label.innerHTML = `<span class="hidden xl:inline">Alarm </span><span>${sTh}%/${oTh}%</span>`;
+            label.className = 'text-amber-400 font-bold text-[10.5px]';
             if (icon) icon.textContent = '🔔';
+            if (btn) btn.title = `Alarms Active (Stocks: ${sTh}%, Options: ${oTh}%) • Click to Mute`;
         } else {
-            label.textContent = 'Alarms MUTED';
-            label.className = 'text-gray-500 font-semibold';
+            label.textContent = 'Muted';
+            label.className = 'text-gray-500 font-semibold text-[10.5px]';
             if (icon) icon.textContent = '🔕';
+            if (btn) btn.title = 'Alarms Muted • Click to Enable';
         }
     }
 
