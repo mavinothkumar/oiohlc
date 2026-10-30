@@ -17,6 +17,17 @@
             color: #d1d5db;
         }
 
+        /* Tighten layout spacing between top navigation header and cockpit */
+        header {
+            padding: 0.5rem 1rem !important;
+        }
+        main {
+            padding: 0.25rem !important;
+        }
+        main > div.mt-4 {
+            margin-top: 0.25rem !important;
+        }
+
         /* Top header minimal override in Zen mode */
         body.zen-mode header,
         body.zen-mode #page-updated-time {
@@ -90,7 +101,7 @@
 @endpush
 
 @section('content')
-<div class="w-full flex flex-col p-2 space-y-2 select-none min-h-screen" id="nifty-unified-root">
+<div class="w-full flex flex-col p-1.5 space-y-1.5 select-none" id="nifty-unified-root">
 
     <!-- ════════════ TOP UNIFIED COMMAND BAR (COMPACT SINGLE ROW) ════════════ -->
     <div class="cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-1.5 shrink-0 border-gray-800 text-xs flex-nowrap overflow-x-auto scrollbar-none min-h-[38px]">
@@ -250,14 +261,6 @@
             <!-- Zen Mode -->
             <button id="btn-zen" title="Toggle Fullscreen Zen Mode" class="p-1 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer shrink-0">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
-                </svg>
-            </button>
-        </div>
-
-            <!-- Zen Mode -->
-            <button id="btn-zen" title="Toggle Fullscreen Zen Mode" class="p-1.5 bg-[#1a1e29] hover:bg-gray-700 border border-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                 </svg>
             </button>
