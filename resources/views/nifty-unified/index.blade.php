@@ -80,6 +80,12 @@
             border: 1px solid #1f2937;
             border-radius: 0.5rem;
         }
+
+        /* Scalable Cockpit Data Panels (User Customizable Font/Scale) */
+        .cockpit-data-panel {
+            zoom: var(--cockpit-scale, 1.15);
+            transition: zoom 0.15s ease-in-out;
+        }
     </style>
 @endpush
 
@@ -192,6 +198,24 @@
                 </select>
             </div>
 
+            <!-- Dynamic Font Size / Cockpit Scale Selector (User Requested) -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-2 py-0.5 text-xs gap-1" title="Adjust Font Size / Scale for Your Monitor">
+                <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">
+                    <span class="text-amber-400 text-[11px]">A</span><span class="text-amber-300 text-[13px] font-black">A</span>
+                    <span class="text-gray-400 ml-0.5">Font:</span>
+                </span>
+                <select id="cockpit-font-scale-select" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Scale Font & Data Panels to fit your Monitor">
+                    <option value="100" class="bg-[#131722] text-white">100% (Standard)</option>
+                    <option value="105" class="bg-[#131722] text-white">105% (+0.5pt)</option>
+                    <option value="110" class="bg-[#131722] text-white">110% (+1pt)</option>
+                    <option value="115" selected class="bg-[#131722] text-white">115% (+1.5pt Default)</option>
+                    <option value="120" class="bg-[#131722] text-white">120% (+2pt)</option>
+                    <option value="125" class="bg-[#131722] text-white">125% (+2.5pt)</option>
+                    <option value="130" class="bg-[#131722] text-white">130% (+3pt)</option>
+                    <option value="140" class="bg-[#131722] text-white">140% (+4pt Large)</option>
+                </select>
+            </div>
+
             <!-- Confluence & Alarm Controls (User Requested) -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded text-xs overflow-hidden">
                 <button id="btn-quick-alarm" title="Click to Toggle Alarm On/Off" class="flex items-center gap-1 px-2 py-0.5 text-amber-400 hover:bg-amber-950/50 font-bold transition cursor-pointer">
@@ -294,18 +318,18 @@
                     </div>
 
                     <!-- Right: 25% Weightage Data Panel -->
-                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0">
+                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel">
                         <!-- Interval Header & Move -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800">
                             <div>
-                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-[11px] font-bold text-sky-400 font-mono" id="w-stat-time">
+                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <div class="text-xs font-bold text-sky-400 font-mono" id="w-stat-time">
                                     09:15 - 5-min candle
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-[9px] text-gray-400">Index Move</span>
-                                <div id="w-stat-pts" class="text-xs font-black font-mono text-emerald-400">
+                                <span class="text-[9.5px] text-gray-400">Index Move</span>
+                                <div id="w-stat-pts" class="text-sm font-black font-mono text-emerald-400">
                                     +0.0 pts (+0.0%)
                                 </div>
                             </div>
@@ -314,18 +338,18 @@
                         <!-- UP vs DOWN Big Blocks -->
                         <div class="grid grid-cols-2 gap-1.5">
                             <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <span class="text-lg font-black text-emerald-400 font-mono" id="w-stat-green-pct">0%</span>
-                                <span class="ml-1 px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
-                                <div class="text-[9px] text-emerald-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
+                                <span class="text-xl font-black text-emerald-400 font-mono" id="w-stat-green-pct">0%</span>
+                                <span class="ml-1 px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[9px] rounded uppercase">UP</span>
+                                <div class="text-[10px] text-emerald-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
                                     <div>Weight: <strong id="w-stat-green-wt" class="text-white">0.0%</strong></div>
                                     <div><strong id="w-stat-green-cnt" class="text-white">0</strong> stocks &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0.0</span></div>
                                 </div>
                             </div>
 
                             <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <span class="text-lg font-black text-rose-400 font-mono" id="w-stat-red-pct">0%</span>
-                                <span class="ml-1 px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DOWN</span>
-                                <div class="text-[9px] text-rose-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
+                                <span class="text-xl font-black text-rose-400 font-mono" id="w-stat-red-pct">0%</span>
+                                <span class="ml-1 px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[9px] rounded uppercase">DOWN</span>
+                                <div class="text-[10px] text-rose-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
                                     <div>Weight: <strong id="w-stat-red-wt" class="text-white">0.0%</strong></div>
                                     <div><strong id="w-stat-red-cnt" class="text-white">0</strong> stocks &bull; <span id="w-stat-red-pts" class="text-rose-300">-0.0</span></div>
                                 </div>
@@ -333,7 +357,7 @@
                         </div>
 
                         <!-- Weight Influence Progress Bar -->
-                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[9.5px] space-y-0.5">
+                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[10px] space-y-0.5">
                             <div class="flex justify-between items-center text-gray-400">
                                 <span>Weight Influence (100% Index)</span>
                                 <span id="w-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
@@ -345,75 +369,75 @@
                         </div>
 
                         <!-- Institutional Conviction Verdict -->
-                        <div id="w-insight-card" class="p-1.5 rounded bg-gray-800/40 border border-gray-700 text-[10px]">
+                        <div id="w-insight-card" class="p-1.5 rounded bg-gray-800/40 border border-gray-700 text-[10.5px]">
                             <div class="font-bold text-white flex items-center gap-1" id="w-insight-badge">
                                 <span>🚀 Broad Institutional Buying</span>
                             </div>
-                            <p class="text-[9.5px] text-gray-400 leading-snug mt-0.5" id="w-insight-desc">
+                            <p class="text-[10px] text-gray-400 leading-snug mt-0.5" id="w-insight-desc">
                                 High conviction rally: stocks UP backed by weight.
                             </p>
                         </div>
 
                         <!-- Candle Key Movers -->
                         <div class="space-y-1">
-                            <div class="flex items-center justify-between text-[9.5px] text-gray-400 font-semibold px-0.5">
+                            <div class="flex items-center justify-between text-[10px] text-gray-400 font-semibold px-0.5">
                                 <span>⚡ Key Movers</span>
-                                <span id="w-movers-time" class="font-mono text-sky-400 text-[9px]">09:15</span>
+                                <span id="w-movers-time" class="font-mono text-sky-400 text-[9.5px]">09:15</span>
                             </div>
                             <div class="grid grid-cols-2 gap-1.5">
                                 <div class="space-y-0.5">
-                                    <div class="text-[8.5px] font-bold text-emerald-400 uppercase tracking-wider">▲ DRIVERS (+PTS)</div>
-                                    <div id="w-top-drivers" class="space-y-0.5 text-[9px]">
-                                        <div class="text-gray-500 italic text-[8.5px]">Loading...</div>
+                                    <div class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">▲ DRIVERS (+PTS)</div>
+                                    <div id="w-top-drivers" class="space-y-0.5 text-[9.5px]">
+                                        <div class="text-gray-500 italic text-[9px]">Loading...</div>
                                     </div>
                                 </div>
                                 <div class="space-y-0.5">
-                                    <div class="text-[8.5px] font-bold text-rose-400 uppercase tracking-wider">▼ DRAGGERS (-PTS)</div>
-                                    <div id="w-top-draggers" class="space-y-0.5 text-[9px]">
-                                        <div class="text-gray-500 italic text-[8.5px]">Loading...</div>
+                                    <div class="text-[9px] font-bold text-rose-400 uppercase tracking-wider">▼ DRAGGERS (-PTS)</div>
+                                    <div id="w-top-draggers" class="space-y-0.5 text-[9.5px]">
+                                        <div class="text-gray-500 italic text-[9px]">Loading...</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- NIFTY 50 Stocks Trigger Strength Analysis & Overall Breadth -->
-                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1 text-[9.5px]">
+                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1.5 text-[10px]">
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-300 font-bold flex items-center gap-1">
-                                    <span class="text-[11px]">🎯</span>
+                                    <span class="text-xs">🎯</span>
                                     <span>Stocks Trigger Strength</span>
-                                    <span class="text-[8px] text-gray-400 font-normal font-mono" id="stk-trigger-val-badge">(≥80%)</span>
+                                    <span class="text-[9px] text-gray-400 font-normal font-mono" id="stk-trigger-val-badge">(≥80%)</span>
                                 </span>
-                                <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Nothing happened
                                 </span>
                             </div>
 
                             <!-- Trigger Counts Grid: Positive vs Negative -->
-                            <div class="grid grid-cols-2 gap-1 text-[8.5px] font-mono">
-                                <div class="bg-[#181d2a] p-1 rounded border border-emerald-950/70 text-left">
+                            <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
+                                <div class="bg-[#181d2a] p-1.5 rounded border border-emerald-950/70 text-left">
                                     <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-emerald-400 font-bold">▲ POSITIVE TRIGGERS</span>
-                                        <strong id="stk-pos-triggers-count" class="text-emerald-400 text-[10px]">0</strong>
+                                        <span class="text-emerald-400 font-bold text-[9.5px] uppercase tracking-wider">▲ POSITIVE</span>
+                                        <strong id="stk-pos-triggers-count" class="text-emerald-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
                                     </div>
-                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="stk-pos-details">
+                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="stk-pos-details">
                                         Pk: <span class="text-emerald-300 font-bold" id="stk-pos-peak">0%</span> <span class="text-gray-500" id="stk-pos-peak-time"></span>
                                     </div>
                                 </div>
 
-                                <div class="bg-[#181d2a] p-1 rounded border border-rose-950/70 text-left">
+                                <div class="bg-[#181d2a] p-1.5 rounded border border-rose-950/70 text-left">
                                     <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-rose-400 font-bold">▼ NEGATIVE TRIGGERS</span>
-                                        <strong id="stk-neg-triggers-count" class="text-rose-400 text-[10px]">0</strong>
+                                        <span class="text-rose-400 font-bold text-[9.5px] uppercase tracking-wider">▼ NEGATIVE</span>
+                                        <strong id="stk-neg-triggers-count" class="text-rose-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
                                     </div>
-                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="stk-neg-details">
+                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="stk-neg-details">
                                         Pk: <span class="text-rose-300 font-bold" id="stk-neg-peak">0%</span> <span class="text-gray-500" id="stk-neg-peak-time"></span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Status & Overall Stock Breadth So Far -->
-                            <div class="bg-[#181d2a] px-1.5 py-0.5 rounded border border-gray-800/80 flex items-center justify-between text-[8px] font-mono">
+                            <div class="bg-[#181d2a] px-2 py-1 rounded border border-gray-800/80 flex items-center justify-between text-[9px] font-mono">
                                 <span id="stk-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
                                 <span class="text-gray-400">Stocks Avg: <strong id="stk-session-bull" class="text-emerald-400">50%</strong>/<strong id="stk-session-bear" class="text-rose-400">50%</strong></span>
                             </div>
@@ -465,18 +489,18 @@
                     </div>
 
                     <!-- Right: 25% Options Breadth Data Panel -->
-                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0">
+                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel">
                         <!-- Interval Header & Impulse -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800">
                             <div>
-                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-[11px] font-bold text-sky-400 font-mono" id="o-stat-time">
+                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <div class="text-xs font-bold text-sky-400 font-mono" id="o-stat-time">
                                     09:15 - 5-min candle
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-[9px] text-gray-400">Net Impulse</span>
-                                <div id="o-stat-impulse" class="text-xs font-black font-mono text-emerald-400">
+                                <span class="text-[9.5px] text-gray-400">Net Impulse</span>
+                                <div id="o-stat-impulse" class="text-sm font-black font-mono text-emerald-400">
                                     +0.00 pts
                                 </div>
                             </div>
@@ -485,24 +509,24 @@
                         <!-- BUY vs SELL Big Blocks -->
                         <div class="grid grid-cols-2 gap-1.5">
                             <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <div class="text-[8.5px] font-bold text-emerald-400 uppercase tracking-wider mb-0.5">BUY (BULL FLOW)</div>
-                                <span class="text-lg font-black text-emerald-300 font-mono" id="o-stat-green-ratio">50%</span>
-                                <div class="text-[9px] text-gray-300 mt-0.5">
+                                <div class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider mb-0.5">BUY (BULL FLOW)</div>
+                                <span class="text-xl font-black text-emerald-300 font-mono" id="o-stat-green-ratio">50%</span>
+                                <div class="text-[10px] text-gray-300 mt-0.5">
                                     <span id="o-stat-green-wt">50% Wt</span> &bull; <span id="o-stat-green-cnt">0</span> strikes
                                 </div>
                             </div>
 
                             <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <div class="text-[8.5px] font-bold text-rose-400 uppercase tracking-wider mb-0.5">SELL (BEAR FLOW)</div>
-                                <span class="text-lg font-black text-rose-300 font-mono" id="o-stat-red-ratio">50%</span>
-                                <div class="text-[9px] text-gray-300 mt-0.5">
+                                <div class="text-[9px] font-bold text-rose-400 uppercase tracking-wider mb-0.5">SELL (BEAR FLOW)</div>
+                                <span class="text-xl font-black text-rose-300 font-mono" id="o-stat-red-ratio">50%</span>
+                                <div class="text-[10px] text-gray-300 mt-0.5">
                                     <span id="o-stat-red-wt">50% Wt</span> &bull; <span id="o-stat-red-cnt">0</span> strikes
                                 </div>
                             </div>
                         </div>
 
                         <!-- Tug-of-War Balance Bar -->
-                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[9.5px] space-y-0.5">
+                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[10px] space-y-0.5">
                             <div class="flex justify-between items-center text-gray-400">
                                 <span>Options Tug-of-War</span>
                                 <span id="o-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
@@ -514,83 +538,83 @@
                         </div>
 
                         <!-- Equilibrium Verdict -->
-                        <div class="p-1.5 rounded bg-[#181d2a] border border-gray-800 text-[10px]">
+                        <div class="p-1.5 rounded bg-[#181d2a] border border-gray-800 text-[10.5px]">
                             <div class="font-bold text-white flex items-center gap-1 mb-0.5" id="o-verdict-title">
                                 <span>⚖️ Balanced Options Equilibrium</span>
                             </div>
-                            <p class="text-[9.5px] text-gray-400 leading-snug" id="o-verdict-desc">
+                            <p class="text-[10px] text-gray-400 leading-snug" id="o-verdict-desc">
                                 Options flow is balanced between Call buying and Put shorting.
                             </p>
                         </div>
 
                         <!-- Greek Snapshot Footer -->
-                        <div class="pt-1.5 border-t border-gray-800 grid grid-cols-4 gap-1 text-center font-mono text-[9px]">
+                        <div class="pt-1.5 border-t border-gray-800 grid grid-cols-4 gap-1 text-center font-mono text-[9.5px]">
                             <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8px] text-gray-400">Delta</div>
-                                <div class="text-[10.5px] font-bold text-sky-400" id="o-greek-delta">0.0k</div>
+                                <div class="text-[8.5px] text-gray-400">Delta</div>
+                                <div class="text-xs font-bold text-sky-400" id="o-greek-delta">0.0k</div>
                             </div>
                             <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8px] text-gray-400">CE Vega</div>
-                                <div class="text-[10.5px] font-bold text-emerald-400" id="o-greek-ce-vega">0.00</div>
+                                <div class="text-[8.5px] text-gray-400">CE Vega</div>
+                                <div class="text-xs font-bold text-emerald-400" id="o-greek-ce-vega">0.00</div>
                             </div>
                             <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8px] text-gray-400">PE Vega</div>
-                                <div class="text-[10.5px] font-bold text-rose-400" id="o-greek-pe-vega">0.00</div>
+                                <div class="text-[8.5px] text-gray-400">PE Vega</div>
+                                <div class="text-xs font-bold text-rose-400" id="o-greek-pe-vega">0.00</div>
                             </div>
                             <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8px] text-gray-400">PCR</div>
-                                <div class="text-[10.5px] font-bold text-amber-400" id="o-greek-pcr">1.00</div>
+                                <div class="text-[8.5px] text-gray-400">PCR</div>
+                                <div class="text-xs font-bold text-amber-400" id="o-greek-pcr">1.00</div>
                             </div>
                         </div>
 
                         <!-- NIFTY Options Trigger Strength Analysis & Overall Breadth -->
-                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1 text-[9.5px]">
+                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1.5 text-[10px]">
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-300 font-bold flex items-center gap-1">
-                                    <span class="text-[11px]">🎯</span>
+                                    <span class="text-xs">🎯</span>
                                     <span>Options Trigger Strength</span>
-                                    <span class="text-[8px] text-gray-400 font-normal font-mono" id="opt-trigger-val-badge">(≥70%)</span>
+                                    <span class="text-[9px] text-gray-400 font-normal font-mono" id="opt-trigger-val-badge">(≥70%)</span>
                                 </span>
-                                <span id="opt-trigger-verdict-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                <span id="opt-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Nothing happened
                                 </span>
                             </div>
 
                             <!-- Trigger Counts Grid: Positive vs Negative -->
-                            <div class="grid grid-cols-2 gap-1 text-[8.5px] font-mono">
-                                <div class="bg-[#181d2a] p-1 rounded border border-emerald-950/70 text-left">
+                            <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
+                                <div class="bg-[#181d2a] p-1.5 rounded border border-emerald-950/70 text-left">
                                     <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-emerald-400 font-bold">▲ POSITIVE TRIGGERS</span>
-                                        <strong id="opt-pos-triggers-count" class="text-emerald-400 text-[10px]">0</strong>
+                                        <span class="text-emerald-400 font-bold text-[9.5px] uppercase tracking-wider">▲ POSITIVE</span>
+                                        <strong id="opt-pos-triggers-count" class="text-emerald-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
                                     </div>
-                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="opt-pos-details">
+                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="opt-pos-details">
                                         Pk: <span class="text-emerald-300 font-bold" id="opt-pos-peak">0%</span> <span class="text-gray-500" id="opt-pos-peak-time"></span>
                                     </div>
                                 </div>
 
-                                <div class="bg-[#181d2a] p-1 rounded border border-rose-950/70 text-left">
+                                <div class="bg-[#181d2a] p-1.5 rounded border border-rose-950/70 text-left">
                                     <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-rose-400 font-bold">▼ NEGATIVE TRIGGERS</span>
-                                        <strong id="opt-neg-triggers-count" class="text-rose-400 text-[10px]">0</strong>
+                                        <span class="text-rose-400 font-bold text-[9.5px] uppercase tracking-wider">▼ NEGATIVE</span>
+                                        <strong id="opt-neg-triggers-count" class="text-rose-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
                                     </div>
-                                    <div class="text-gray-400 text-[8px] truncate mt-0.5" id="opt-neg-details">
+                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="opt-neg-details">
                                         Pk: <span class="text-rose-300 font-bold" id="opt-neg-peak">0%</span> <span class="text-gray-500" id="opt-neg-peak-time"></span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Status & Overall Options Breadth So Far -->
-                            <div class="bg-[#181d2a] px-1.5 py-0.5 rounded border border-gray-800/80 flex items-center justify-between text-[8px] font-mono">
+                            <div class="bg-[#181d2a] px-2 py-1 rounded border border-gray-800/80 flex items-center justify-between text-[9px] font-mono">
                                 <span id="opt-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
                                 <span class="text-gray-400">Options Avg: <strong id="opt-session-bull" class="text-emerald-400">50%</strong>/<strong id="opt-session-bear" class="text-rose-400">50%</strong></span>
                             </div>
 
                             <!-- Combined Confluence Trigger Summary Strip -->
-                            <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-[#151922] border border-gray-800/90 text-[8.5px] font-mono">
+                            <div class="flex items-center justify-between px-2 py-1 rounded bg-[#151922] border border-gray-800/90 text-[9.5px] font-mono">
                                 <span class="text-amber-400 font-bold flex items-center gap-1">
                                     <span>🔥 Combined:</span>
                                 </span>
-                                <span id="comb-trigger-badge" class="font-bold text-gray-400">
+                                <span id="comb-trigger-badge" class="font-bold text-gray-400 text-[10px]">
                                     Nothing happened
                                 </span>
                             </div>
@@ -605,7 +629,7 @@
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
         <!-- COLUMN 2 (25% WIDTH): THREE ROWS (TRENDING OI, OI BUILDUP, SENTIMENT)        -->
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
-        <div class="xl:col-span-3 flex flex-col space-y-2.5 w-full">
+        <div class="xl:col-span-3 flex flex-col space-y-2.5 w-full cockpit-data-panel">
 
             <!-- ── ROW 1: TRENDING OI CHART ───────────────────────────────────────── -->
             <div class="cockpit-card p-2 flex flex-col border-rose-900/40 shadow-md">
@@ -1265,6 +1289,7 @@
     let autoRefreshCountdown = 300;
     let activeRefreshSeconds = 300;
     let currentChartHeight = parseInt(localStorage.getItem('nifty_unified_chart_height') || '420', 10);
+    let currentCockpitFontScale = parseInt(localStorage.getItem('nifty_unified_font_scale') || '115', 10);
 
     // Audio & Alarm System
     let audioCtx = null;
@@ -2040,6 +2065,26 @@
         if (toiSentimentChartInstance) toiSentimentChartInstance.resize();
     }
 
+    // ── 3.1 Apply Dynamic Cockpit Font Scale (User Requested) ──────────────────────
+    function applyCockpitFontScale(scale) {
+        currentCockpitFontScale = scale;
+        localStorage.setItem('nifty_unified_font_scale', scale);
+
+        const select = document.getElementById('cockpit-font-scale-select');
+        if (select && select.value !== String(scale)) {
+            select.value = String(scale);
+        }
+
+        const scaleFactor = (scale / 100).toFixed(2);
+        document.documentElement.style.setProperty('--cockpit-scale', scaleFactor);
+
+        // Apply zoom to all cockpit data panels
+        const panels = document.querySelectorAll('.cockpit-data-panel');
+        panels.forEach(p => {
+            p.style.zoom = scaleFactor;
+        });
+    }
+
     // ── 4. Initialize LightweightCharts ───────────────────────────────────────────
     function initLightweightCharts() {
         const chartOptions = {
@@ -2787,10 +2832,10 @@
 
             const topDrivers = (b.top_contributors || []).filter(s => s.pts > 0).slice(0, 3);
             if (driversEl) {
-                driversEl.innerHTML = topDrivers.length === 0 ? '<div class="text-gray-500 italic text-[8.5px]">None</div>' : topDrivers.map(s => `
-                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40 text-[9px]">
+                driversEl.innerHTML = topDrivers.length === 0 ? '<div class="text-gray-500 italic text-[9px]">None</div>' : topDrivers.map(s => `
+                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40 text-[9.5px]">
                         <span class="font-semibold text-gray-200 truncate pr-1" title="${s.symbol}">
-                            ${s.symbol} <span class="text-[8px] text-gray-400">(${s.weight.toFixed(1)}%)</span>
+                            ${s.symbol} <span class="text-[8.5px] text-gray-400">(${s.weight.toFixed(1)}%)</span>
                         </span>
                         <span class="text-emerald-400 font-bold whitespace-nowrap">+${s.pts.toFixed(1)}</span>
                     </div>
@@ -2799,10 +2844,10 @@
 
             const topDraggers = (b.top_draggers || []).filter(s => s.pts < 0).slice(0, 3);
             if (draggersEl) {
-                draggersEl.innerHTML = topDraggers.length === 0 ? '<div class="text-gray-500 italic text-[8.5px]">None</div>' : topDraggers.map(s => `
-                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-950/40 border border-rose-800/40 text-[9px]">
+                draggersEl.innerHTML = topDraggers.length === 0 ? '<div class="text-gray-500 italic text-[9px]">None</div>' : topDraggers.map(s => `
+                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-950/40 border border-rose-800/40 text-[9.5px]">
                         <span class="font-semibold text-gray-200 truncate pr-1" title="${s.symbol}">
-                            ${s.symbol} <span class="text-[8px] text-gray-400">(${s.weight.toFixed(1)}%)</span>
+                            ${s.symbol} <span class="text-[8.5px] text-gray-400">(${s.weight.toFixed(1)}%)</span>
                         </span>
                         <span class="text-rose-400 font-bold whitespace-nowrap">${s.pts.toFixed(1)}</span>
                     </div>
@@ -2968,40 +3013,40 @@
         if (stkPosHits === 0 && stkNegHits === 0) {
             if (stkVerdictBadge) {
                 stkVerdictBadge.textContent = 'Nothing happened';
-                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
+                stkVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
             }
             if (stkLeadText) {
                 stkLeadText.textContent = 'Nothing happened (No triggers reached)';
-                stkLeadText.className = 'text-gray-400 font-medium truncate';
+                stkLeadText.className = 'text-gray-400 font-medium truncate text-[9px]';
             }
         } else if (stkPosHits > stkNegHits) {
             const margin = stkPosHits - stkNegHits;
             if (stkVerdictBadge) {
                 stkVerdictBadge.textContent = `🐂 BULLS STRONGER (+${margin})`;
-                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
+                stkVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
             }
             if (stkLeadText) {
                 stkLeadText.textContent = `Bulls lead by +${margin} trigger (${stkPosHits} Pos vs ${stkNegHits} Neg)`;
-                stkLeadText.className = 'text-emerald-300 font-bold truncate';
+                stkLeadText.className = 'text-emerald-300 font-bold truncate text-[9px]';
             }
         } else if (stkNegHits > stkPosHits) {
             const margin = stkNegHits - stkPosHits;
             if (stkVerdictBadge) {
                 stkVerdictBadge.textContent = `🐻 BEARS STRONGER (+${margin})`;
-                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
+                stkVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
             }
             if (stkLeadText) {
                 stkLeadText.textContent = `Bears lead by +${margin} trigger (${stkNegHits} Neg vs ${stkPosHits} Pos)`;
-                stkLeadText.className = 'text-rose-300 font-bold truncate';
+                stkLeadText.className = 'text-rose-300 font-bold truncate text-[9px]';
             }
         } else {
             if (stkVerdictBadge) {
                 stkVerdictBadge.textContent = `⚖️ TIED (${stkPosHits} Each)`;
-                stkVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
+                stkVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
             }
             if (stkLeadText) {
                 stkLeadText.textContent = `Tied: ${stkPosHits} positive vs ${stkNegHits} negative`;
-                stkLeadText.className = 'text-amber-300 font-bold truncate';
+                stkLeadText.className = 'text-amber-300 font-bold truncate text-[9px]';
             }
         }
 
@@ -3062,40 +3107,40 @@
         if (optPosHits === 0 && optNegHits === 0) {
             if (optVerdictBadge) {
                 optVerdictBadge.textContent = 'Nothing happened';
-                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
+                optVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
             }
             if (optLeadText) {
                 optLeadText.textContent = 'Nothing happened (No triggers reached)';
-                optLeadText.className = 'text-gray-400 font-medium truncate';
+                optLeadText.className = 'text-gray-400 font-medium truncate text-[9px]';
             }
         } else if (optPosHits > optNegHits) {
             const margin = optPosHits - optNegHits;
             if (optVerdictBadge) {
                 optVerdictBadge.textContent = `🐂 BULLS STRONGER (+${margin})`;
-                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
+                optVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/50 shadow-xs';
             }
             if (optLeadText) {
                 optLeadText.textContent = `Bulls lead by +${margin} trigger (${optPosHits} Pos vs ${optNegHits} Neg)`;
-                optLeadText.className = 'text-emerald-300 font-bold truncate';
+                optLeadText.className = 'text-emerald-300 font-bold truncate text-[9px]';
             }
         } else if (optNegHits > optPosHits) {
             const margin = optNegHits - optPosHits;
             if (optVerdictBadge) {
                 optVerdictBadge.textContent = `🐻 BEARS STRONGER (+${margin})`;
-                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
+                optVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/50 shadow-xs';
             }
             if (optLeadText) {
                 optLeadText.textContent = `Bears lead by +${margin} trigger (${optNegHits} Neg vs ${optPosHits} Pos)`;
-                optLeadText.className = 'text-rose-300 font-bold truncate';
+                optLeadText.className = 'text-rose-300 font-bold truncate text-[9px]';
             }
         } else {
             if (optVerdictBadge) {
                 optVerdictBadge.textContent = `⚖️ TIED (${optPosHits} Each)`;
-                optVerdictBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
+                optVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/50 shadow-xs';
             }
             if (optLeadText) {
                 optLeadText.textContent = `Tied: ${optPosHits} positive vs ${optNegHits} negative`;
-                optLeadText.className = 'text-amber-300 font-bold truncate';
+                optLeadText.className = 'text-amber-300 font-bold truncate text-[9px]';
             }
         }
 
@@ -3107,18 +3152,18 @@
         if (combBadge) {
             if (combPosHits === 0 && combNegHits === 0) {
                 combBadge.textContent = 'Nothing happened';
-                combBadge.className = 'font-bold text-gray-400';
+                combBadge.className = 'font-bold text-gray-400 text-[10px]';
             } else if (combPosHits > combNegHits) {
                 const margin = combPosHits - combNegHits;
                 combBadge.textContent = `🐂 BULLS STRONGER (+${margin}) • ${combPosHits} Pos vs ${combNegHits} Neg`;
-                combBadge.className = 'font-bold text-emerald-400';
+                combBadge.className = 'font-bold text-emerald-400 text-[10px]';
             } else if (combNegHits > combPosHits) {
                 const margin = combNegHits - combPosHits;
                 combBadge.textContent = `🐻 BEARS STRONGER (+${margin}) • ${combNegHits} Neg vs ${combPosHits} Pos`;
-                combBadge.className = 'font-bold text-rose-400';
+                combBadge.className = 'font-bold text-rose-400 text-[10px]';
             } else {
                 combBadge.textContent = `⚖️ TIED (${combPosHits} Pos & ${combNegHits} Neg)`;
-                combBadge.className = 'font-bold text-amber-300';
+                combBadge.className = 'font-bold text-amber-300 text-[10px]';
             }
         }
     }
@@ -3131,6 +3176,15 @@
             heightSelect.value = String(currentChartHeight);
             heightSelect.addEventListener('change', (e) => {
                 applyChartHeight(parseInt(e.target.value, 10));
+            });
+        }
+
+        // Font Size / Cockpit Scale Dropdown (User Requested)
+        const fontScaleSelect = document.getElementById('cockpit-font-scale-select');
+        if (fontScaleSelect) {
+            fontScaleSelect.value = String(currentCockpitFontScale);
+            fontScaleSelect.addEventListener('change', (e) => {
+                applyCockpitFontScale(parseInt(e.target.value, 10));
             });
         }
 
@@ -3663,6 +3717,7 @@
 
     // ── App Bootstrapper ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
+        applyCockpitFontScale(currentCockpitFontScale);
         initLightweightCharts();
         setupControls();
         syncAlarmToolbarUI();
