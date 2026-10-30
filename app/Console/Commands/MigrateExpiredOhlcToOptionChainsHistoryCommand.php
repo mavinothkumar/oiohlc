@@ -49,17 +49,23 @@ class MigrateExpiredOhlcToOptionChainsHistoryCommand extends Command
             $from = $fromDate ?: '2024-09-27';
             $to = $toDate ?: '2026-05-13'; // Up to where option_chains_history starts
 
-            $this->info("Scanning trading dates from expired_ohlc between {$from} and {$to}...");
+            $this->info("Resolving trading dates between {$from} and {$to}...");
 
-            $dates = DB::table('expired_ohlc')
-                ->where('underlying_symbol', 'NIFTY')
-                ->where('interval', '5minute')
-                ->where('timestamp', '>=', "{$from} 00:00:00")
-                ->where('timestamp', '<=', "{$to} 23:59:59")
-                ->selectRaw('DISTINCT DATE(timestamp) as trade_date')
-                ->orderBy('trade_date', 'asc')
-                ->pluck('trade_date')
-                ->toArray();
+            if (Schema::hasTable('nse_working_days')) {
+                $dates = DB::table('nse_working_days')
+                    ->where('working_date', '>=', $from)
+                    ->where('working_date', '<=', $to)
+                    ->orderBy('working_date', 'asc')
+                    ->pluck('working_date')
+                    ->toArray();
+            } else {
+                $dates = DB::table('expired_expiries')
+                    ->where('expiry_date', '>=', $from)
+                    ->where('expiry_date', '<=', $to)
+                    ->orderBy('expiry_date', 'asc')
+                    ->pluck('expiry_date')
+                    ->toArray();
+            }
         }
 
         if (empty($dates)) {

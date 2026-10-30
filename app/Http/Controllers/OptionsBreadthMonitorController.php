@@ -198,6 +198,37 @@ class OptionsBreadthMonitorController extends Controller
             }
         }
 
+        // Auto-migration on demand: If this historical date has no option contracts in option_chains_history,
+        // automatically migrate this single date from expired_ohlc on-the-fly!
+        if ($strikes->isEmpty() && !$isToday && Schema::hasTable('expired_ohlc')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
+
+                $table = 'option_chains_history';
+                $realExpiry = DB::table($table)
+                    ->where('trading_symbol', $symbol)
+                    ->where('captured_at', '>=', $startTs)
+                    ->where('captured_at', '<=', $endTs)
+                    ->where('expiry', '>=', $date)
+                    ->orderBy('expiry')
+                    ->value('expiry');
+
+                if ($realExpiry) {
+                    $selectedExpiry = $realExpiry;
+                    $strikes = DB::table($table)
+                        ->where('trading_symbol', $symbol)
+                        ->where('expiry', $selectedExpiry)
+                        ->where('captured_at', '>=', $startTs)
+                        ->where('captured_at', '<=', $endTs)
+                        ->distinct()
+                        ->orderBy('strike_price')
+                        ->pluck('strike_price');
+                }
+            } catch (\Throwable $e) {
+                // Ignore and proceed to defensive return
+            }
+        }
+
         // Defensive check: If date still has no option contracts in database
         if ($strikes->isEmpty()) {
             $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, 24000);
