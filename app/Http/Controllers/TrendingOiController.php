@@ -109,6 +109,37 @@ class TrendingOiController extends Controller
             ->pluck('captured_at')
             ->toArray();
 
+        // Auto-recover if a mismatched expiry was provided
+        if (empty($timestamps)) {
+            $realExpiry = DB::table($table)
+                ->where(function($q) use ($underlying) {
+                    $q->where('underlying_key', $underlying)->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('captured_at', '>=', "{$date} 09:00:00")
+                ->where('captured_at', '<=', "{$date} 15:35:00")
+                ->where('expiry', '>=', $date)
+                ->orderBy('expiry')
+                ->value('expiry');
+
+            if ($realExpiry) {
+                $expiry = $realExpiry;
+                $tsQuery = DB::table($table)
+                    ->where(function($q) use ($underlying) {
+                        $q->where('underlying_key', $underlying)->orWhere('trading_symbol', 'NIFTY');
+                    })
+                    ->where('expiry', $expiry)
+                    ->where('captured_at', '>=', "{$date} 09:00:00")
+                    ->where('captured_at', '<=', "{$date} 15:35:00");
+                if ($skipOpen) {
+                    $tsQuery->whereTime('captured_at', '>', '09:15:59');
+                }
+                if (!empty($endTime)) {
+                    $tsQuery->whereTime('captured_at', '<=', $endTime . ':59');
+                }
+                $timestamps = $tsQuery->select('captured_at')->distinct()->orderBy('captured_at', 'asc')->pluck('captured_at')->toArray();
+            }
+        }
+
         if (empty($timestamps)) {
             return response()->json([
                 'rows'              => [],
@@ -877,27 +908,61 @@ class TrendingOiController extends Controller
         $mode       = $request->input('mode', 'live');
         $date       = $request->input('date', today()->toDateString());
         $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
+        $isToday    = ($date === today()->toDateString());
 
-        $table = $this->resolveTable($mode);
+        $expiries = collect([]);
 
-        $expiries = DB::table($table)
-            ->where('underlying_key', $underlying)
-            ->where('captured_at', '>=', "{$date} 00:00:00")
-            ->where('captured_at', '<=', "{$date} 23:59:59")
-            ->select('expiry')
-            ->distinct()
-            ->orderBy('expiry')
-            ->pluck('expiry');
+        // For today or future dates: check nse_expiries first (<1ms)
+        if ($isToday && \Illuminate\Support\Facades\Schema::hasTable('nse_expiries')) {
+            $expiries = DB::table('nse_expiries')
+                ->where('trading_symbol', 'NIFTY')
+                ->where('instrument_type', 'OPT')
+                ->where('expiry_date', '>=', $date)
+                ->orderBy('expiry_date')
+                ->limit(6)
+                ->pluck('expiry_date');
+        }
+
+        // For historical dates: check expired_expiries first (ultra-fast, indexed, <1ms)
+        if ($expiries->isEmpty() && !$isToday && \Illuminate\Support\Facades\Schema::hasTable('expired_expiries')) {
+            $expiries = DB::table('expired_expiries')
+                ->where('underlying_symbol', 'NIFTY')
+                ->where('instrument_type', 'OPT')
+                ->where('expiry_date', '>=', $date)
+                ->orderBy('expiry_date')
+                ->limit(6)
+                ->pluck('expiry_date');
+        }
+
+        // Check option_chains_history using indexed trading_symbol + captured_at range
+        if ($expiries->isEmpty()) {
+            $table = $this->resolveTable($mode);
+            $expiries = DB::table($table)
+                ->where(function($q) use ($underlying) {
+                    $q->where('underlying_key', $underlying)
+                      ->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('captured_at', '>=', "{$date} 09:00:00")
+                ->where('captured_at', '<=', "{$date} 15:35:00")
+                ->where('expiry', '>=', $date)
+                ->select('expiry')
+                ->distinct()
+                ->orderBy('expiry')
+                ->limit(6)
+                ->pluck('expiry');
+        }
 
         if ($expiries->isEmpty()) {
             $expiries = DB::table('nse_expiries')
                 ->where('trading_symbol', 'NIFTY')
                 ->where('instrument_type', 'OPT')
+                ->where('expiry_date', '>=', $date)
                 ->orderBy('expiry_date')
+                ->limit(6)
                 ->pluck('expiry_date');
         }
 
-        return response()->json(['expiries' => $expiries]);
+        return response()->json(['expiries' => $expiries->values()->all()]);
     }
 
     /**

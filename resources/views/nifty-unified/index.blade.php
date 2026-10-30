@@ -305,12 +305,12 @@
 
                         <!-- Candlestick Canvas -->
                         <div id="w-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
-                            <div id="w-chart-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                </svg>
-                                Loading Weightage Chart...
+                            <div id="w-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
+                                <div class="relative w-8 h-8">
+                                    <div class="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center text-[10px] text-blue-400 font-bold font-mono">50</div>
+                                </div>
+                                <span id="w-loading-msg" class="text-xs text-blue-300 font-mono font-medium tracking-wide">Loading NIFTY 50 Weightage...</span>
                             </div>
                         </div>
 
@@ -477,12 +477,12 @@
 
                         <!-- Candlestick Canvas -->
                         <div id="o-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
-                            <div id="o-chart-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                </svg>
-                                Loading Options Parity Chart...
+                            <div id="o-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
+                                <div class="relative w-8 h-8">
+                                    <div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center text-[10px] text-indigo-400 font-bold font-mono">OPT</div>
+                                </div>
+                                <span id="o-loading-msg" class="text-xs text-indigo-300 font-mono font-medium tracking-wide">Loading Options Parity &amp; Breadth...</span>
                             </div>
                         </div>
 
@@ -678,12 +678,9 @@
                 </div>
 
                 <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 380px;">
-                    <div id="toi-chart-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
-                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                        Loading Trending OI &amp; Sentiment...
+                    <div id="toi-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
+                        <div class="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
+                        <span id="toi-loading-msg" class="text-[11px] text-amber-300 font-mono font-medium tracking-wide">Loading Trending OI &amp; Sentiment...</span>
                     </div>
                     <canvas id="chart-trending-oi"></canvas>
                 </div>
@@ -2648,13 +2645,33 @@
     }
 
     // ── 5. Unified Data Fetcher ───────────────────────────────────────────────────
+    function showChartLoaders(dateStr = selectedDate) {
+        const wLoader = document.getElementById('w-chart-loading');
+        const oLoader = document.getElementById('o-chart-loading');
+        const toiLoader = document.getElementById('toi-chart-loading');
+
+        if (wLoader) {
+            wLoader.classList.remove('hidden');
+            const msg = document.getElementById('w-loading-msg');
+            if (msg) msg.textContent = `Loading NIFTY 50 Stocks for ${dateStr}...`;
+        }
+        if (oLoader) {
+            oLoader.classList.remove('hidden');
+            const msg = document.getElementById('o-loading-msg');
+            if (msg) msg.textContent = `Loading Options Flow for ${dateStr}...`;
+        }
+        if (toiLoader) {
+            toiLoader.classList.remove('hidden');
+            const msg = document.getElementById('toi-loading-msg');
+            if (msg) msg.textContent = `Loading Trending OI for ${dateStr}...`;
+        }
+        const spinner = document.getElementById('reload-spinner');
+        if (spinner) spinner.classList.add('animate-spin');
+    }
+
     async function loadAllData(isSilent = false) {
         if (!isSilent) {
-            document.getElementById('w-chart-loading')?.classList.remove('hidden');
-            document.getElementById('o-chart-loading')?.classList.remove('hidden');
-            document.getElementById('toi-chart-loading')?.classList.remove('hidden');
-            const spinner = document.getElementById('reload-spinner');
-            if (spinner) spinner.classList.add('animate-spin');
+            showChartLoaders(selectedDate);
         }
 
         const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
@@ -2665,8 +2682,13 @@
         const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
-                if (data && !data.error) {
+                if (data && data.success !== false && !data.error) {
                     breadthData = data;
+                    if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
+                        selectedExpiry = breadthData.expiry;
+                        const expSelect = document.getElementById('expiry-select');
+                        if (expSelect) expSelect.value = selectedExpiry;
+                    }
                     if (breadthData.nifty_candles) {
                         breadthData.nifty_candles.forEach(c => {
                             if (!c.time && c.timestamp) c.time = c.timestamp;
@@ -2674,11 +2696,21 @@
                     }
                     renderOptionsBreadthColumn();
                     buildMasterTimeline();
+                    document.getElementById('o-chart-loading')?.classList.add('hidden');
+                } else {
+                    const errText = data?.error || 'Options data unavailable for this date';
+                    const msg = document.getElementById('o-loading-msg');
+                    if (msg) {
+                        msg.innerHTML = `<span class="text-rose-400 font-semibold">${errText}</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
+                    }
                 }
             })
-            .catch(e => console.error('Error fetching Options Breadth:', e))
-            .finally(() => {
-                document.getElementById('o-chart-loading')?.classList.add('hidden');
+            .catch(e => {
+                console.error('Error fetching Options Breadth:', e);
+                const msg = document.getElementById('o-loading-msg');
+                if (msg) {
+                    msg.innerHTML = `<span class="text-rose-400 font-semibold">Failed to load Options data</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
+                }
             });
 
         // 2. Fetch Trending OI independently & render immediately upon arrival
@@ -3770,20 +3802,34 @@
         }
 
         async function updateExpiriesForDate(dStr) {
+            // Immediately show prominent chart loaders with target date
+            showChartLoaders(dStr);
+
+            const expSelect = document.getElementById('expiry-select');
+            if (expSelect) {
+                expSelect.innerHTML = `<option value="${selectedExpiry}" class="bg-[#131722] text-amber-300">Loading Expiries...</option>`;
+            }
+
             try {
                 const expRes = await fetch(`/api/trending-oi/expiries?date=${dStr}&mode=history&underlying=NSE_INDEX|Nifty 50`).then(r => r.json());
                 if (expRes.expiries && expRes.expiries.length > 0) {
-                    const expSelect = document.getElementById('expiry-select');
+                    // Pick nearest expiry >= dStr
+                    let matchedExp = expRes.expiries.find(x => x >= dStr) || expRes.expiries[0];
+                    selectedExpiry = matchedExp;
+
                     if (expSelect) {
-                        expSelect.innerHTML = expRes.expiries.map(exp => `<option value="${exp}" class="bg-[#131722] text-white">${exp}</option>`).join('');
-                        selectedExpiry = expRes.expiries[0];
+                        expSelect.innerHTML = expRes.expiries.map(exp => `
+                            <option value="${exp}" ${exp === selectedExpiry ? 'selected' : ''} class="bg-[#131722] text-white">
+                                ${exp}
+                            </option>
+                        `).join('');
                         expSelect.value = selectedExpiry;
                     }
                 }
             } catch (e) {
                 console.warn('Could not auto-fetch expiries for date:', e);
             }
-            loadAllData();
+            loadAllData(false);
         }
 
         document.getElementById('btn-prev-day')?.addEventListener('click', () => {
@@ -3792,7 +3838,13 @@
             if (curDate.getDay() === 0) curDate.setDate(curDate.getDate() - 2);
             if (curDate.getDay() === 6) curDate.setDate(curDate.getDate() - 1);
             selectedDate = curDate.toISOString().split('T')[0];
-            if (dateInput) dateInput.value = selectedDate;
+            if (dateInput) {
+                if (dateInput._flatpickr) {
+                    dateInput._flatpickr.setDate(selectedDate, false);
+                } else {
+                    dateInput.value = selectedDate;
+                }
+            }
             updateExpiriesForDate(selectedDate);
         });
 
@@ -3802,7 +3854,13 @@
             if (curDate.getDay() === 6) curDate.setDate(curDate.getDate() + 2);
             if (curDate.getDay() === 0) curDate.setDate(curDate.getDate() + 1);
             selectedDate = curDate.toISOString().split('T')[0];
-            if (dateInput) dateInput.value = selectedDate;
+            if (dateInput) {
+                if (dateInput._flatpickr) {
+                    dateInput._flatpickr.setDate(selectedDate, false);
+                } else {
+                    dateInput.value = selectedDate;
+                }
+            }
             updateExpiriesForDate(selectedDate);
         });
 

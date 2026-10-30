@@ -165,6 +165,66 @@ class OptionsBreadthMonitorController extends Controller
             }
         }
 
+        // If strikes are still empty, the selectedExpiry might be mismatched (e.g. November expiry requested on a June date).
+        // Auto-recover by resolving the true active expiry for this date.
+        if ($strikes->isEmpty()) {
+            foreach ([$table, 'option_chains_history', 'option_chains'] as $candidateTable) {
+                if (!Schema::hasTable($candidateTable)) continue;
+                $realExpiry = DB::table($candidateTable)
+                    ->where('trading_symbol', $symbol)
+                    ->where('captured_at', '>=', $startTs)
+                    ->where('captured_at', '<=', $endTs)
+                    ->where('expiry', '>=', $date)
+                    ->orderBy('expiry')
+                    ->value('expiry');
+
+                if ($realExpiry) {
+                    $recoveredStrikes = DB::table($candidateTable)
+                        ->where('trading_symbol', $symbol)
+                        ->where('expiry', $realExpiry)
+                        ->where('captured_at', '>=', $startTs)
+                        ->where('captured_at', '<=', $endTs)
+                        ->distinct()
+                        ->orderBy('strike_price')
+                        ->pluck('strike_price');
+
+                    if ($recoveredStrikes->isNotEmpty()) {
+                        $table = $candidateTable;
+                        $selectedExpiry = $realExpiry;
+                        $strikes = $recoveredStrikes;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Defensive check: If date still has no option contracts in database
+        if ($strikes->isEmpty()) {
+            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, 24000);
+            return [
+                'success'          => false,
+                'error'            => "No option strikes found for {$symbol} on {$date}. Please run migration for this date or select an available date.",
+                'date'             => $date,
+                'expiry'           => $selectedExpiry,
+                'center_strike'    => 24000,
+                'atm_strike'       => 24000,
+                'basket_mode'      => $basketMode,
+                'range'            => $range,
+                'strikes'          => [],
+                'is_today'         => $isToday,
+                'is_live'          => $isMarketHours,
+                'server_time'      => $nowKolkata->format('H:i:s'),
+                'latest_time'      => !empty($emptyCandles) ? end($emptyCandles)['time_str'] : '09:15',
+                'latest_price'     => !empty($emptyCandles) ? end($emptyCandles)['close'] : 0,
+                'nifty_candles'    => $emptyCandles,
+                'lw_chart_candles' => array_map(fn($c) => ['time' => $c['timestamp'], 'open' => $c['open'], 'high' => $c['high'], 'low' => $c['low'], 'close' => $c['close']], $emptyCandles),
+                'timestamps'       => [],
+                'breadth_by_time'  => [],
+                'matrix'           => [],
+                'summary'          => ['strike_count' => 0, 'candles_count' => 0, 'smart_money_traps' => []],
+            ];
+        }
+
         // Detect ATM strike
         $spotPrice = DB::table($table)
             ->where('trading_symbol', $symbol)
@@ -775,10 +835,10 @@ class OptionsBreadthMonitorController extends Controller
                 'flat_weight'    => $flatPct,
                 'net_points'     => $netPts,
                 'atm_strike'     => $candleAtm,
-                'basket_min'     => (float)min($activeBasket),
-                'basket_max'     => (float)max($activeBasket),
+                'basket_min'     => !empty($activeBasket) ? (float)min($activeBasket) : (float)$candleAtm,
+                'basket_max'     => !empty($activeBasket) ? (float)max($activeBasket) : (float)$candleAtm,
                 'basket_count'   => count($activeBasket),
-                'basket_strikes' => array_values(array_map('floatval', $activeBasket)),
+                'basket_strikes' => !empty($activeBasket) ? array_values(array_map('floatval', $activeBasket)) : [$candleAtm],
                 'basket_mode'    => $basketMode,
                 'verdict'        => $verdict,
                 'contributions'  => $strikeContributions,
