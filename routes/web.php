@@ -31,6 +31,12 @@ Route::get( '/api/live-strike-chart/ws-url', [ \App\Http\Controllers\LiveStrikeC
 Route::get( '/delta-neutral', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'index' ] )->name( 'delta.neutral' );
 Route::get( '/api/delta-neutral/data', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'getData' ] )->name( 'api.delta.neutral.data' );
 Route::get( '/api/delta-neutral/ws-url', [ \App\Http\Controllers\DeltaNeutralStrategyController::class, 'getWsUrl' ] )->name( 'api.delta.neutral.ws-url' );
+
+// 30-Depth Order Flow & High-Probability Strategy Confluence Radar
+Route::get( '/order-flow-depth', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'index' ] )->name( 'order-flow-depth.index' );
+Route::get( '/api/order-flow/ws-url', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getWsUrl' ] )->name( 'api.order-flow.ws-url' );
+Route::get( '/api/order-flow/strategy-signals', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getStrategySignals' ] )->name( 'api.order-flow.strategy-signals' );
+Route::get( '/api/order-flow/contracts', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getContracts' ] )->name( 'api.order-flow.contracts' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity

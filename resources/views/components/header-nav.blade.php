@@ -46,6 +46,13 @@
                     <span>Strategy Live Trade</span>
                 </a>
 
+                <!-- 4. 30-Depth Order Flow Confluence Radar -->
+                <a href="{{ route('order-flow-depth.index') }}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded font-bold text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 transition text-sm shadow-sm {{ request()->routeIs('order-flow-depth.*') ? 'ring-2 ring-amber-300 ring-offset-1' : '' }}">
+                    <span class="animate-pulse">🌊</span>
+                    <span>30-Depth Radar</span>
+                </a>
+
                 <!-- SUBMENU 1: Analytics & Matrices (Moved from top-level buttons) -->
                 <div class="relative group">
                     <button class="inline-flex items-center px-3 py-2 rounded hover:bg-gray-100 focus:outline-none text-gray-700 text-sm font-medium">
@@ -89,6 +96,7 @@
                         <div class="p-2 bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                             Trading Strategies
                         </div>
+                        <a href="{{ route('order-flow-depth.index') }}" class="block px-4 py-2 font-bold text-rose-700 bg-rose-50/80 hover:bg-rose-100 border-b border-rose-100">🌊 30-Depth Order Flow Radar</a>
                         <a href="{{ route('quant-strategy.index') }}" class="block px-4 py-2 font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 border-b border-indigo-100">⚡ High-Probability Quant (80%+)</a>
                         <a href="{{ route('backtest.strategies.index') }}" class="block px-4 py-2 font-semibold text-gray-800 hover:bg-blue-50 border-b border-gray-100">Backtest Strategies</a>
                         <a href="{{ route('backtests.basket-builder') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Backtest Basket Builder</a>
