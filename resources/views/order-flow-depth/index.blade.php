@@ -2656,15 +2656,6 @@
             }
         }
 
-            if (tradeInst) tradeInst.textContent = targetName;
-            if (tradeEntry) tradeEntry.textContent = `₹${d.ltp.toFixed(2)}`;
-            if (tradeSl) tradeSl.textContent = `Wait for Breakout`;
-            if (tradeTarget) tradeTarget.textContent = `Range Bound`;
-            if (tradeRationale) {
-                tradeRationale.textContent = `Order book in equilibrium (OBI: ${d.obi30}%). Stand aside until clear confluence appears.`;
-            }
-        }
-
         // ── CALCULATE INSTANT OPTION STRIKE SETUP (Options Trader Mode) ──
         const elOptBadge  = document.getElementById('opt-rec-badge');
         const elOptStrike = document.getElementById('opt-rec-strike');
