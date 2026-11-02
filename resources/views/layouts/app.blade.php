@@ -8,8 +8,13 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
-<header class="bg-white shadow p-4 flex items-center">
-    <x-header-nav/>
+@php
+    $format = $format ?? 'd M Y, h:i:s'; // e.g. “02 Jun 2025, 10:15 AM”
+    $routeName = request()->route()?->getName() ?? '';
+@endphp
+
+<header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
+    <x-header-nav :format="$format"/>
 </header>
 
 <main class="p-2 w-full">
@@ -18,16 +23,6 @@
         @yield('content')
     </div>
 </main>
-
-@php
-    $format = $format ?? 'd M Y, h:i:s'; // e.g. “02 Jun 2025, 10:15 AM”
-$routeName = request()->route()?->getName() ?? '';
-@endphp
-
-<div class="fixed top-0 right-0 m-4 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur"
-    id="page-updated-time">
-    {{ \Carbon\Carbon::now('Asia/Kolkata')->format($format) }}
-</div>
 @if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis', 'nifty.unified', 'order-flow', 'order.flow']))
 {{--    @if(!request()->has('nr'))--}}
 <script>
