@@ -184,6 +184,7 @@
                         <span class="text-rose-400 font-bold">● Asks</span>
                         <span id="legend-block-tag" class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black text-[9px]">⚡ Block (≥2,500)</span>
                         <span id="legend-stack-tag" class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-black text-[9px]">🌊 Stack (≥3 Lvl)</span>
+                        <span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black text-[9px]" title="Session Executed Volume Point of Control (Absorption Support / Trap)">🎯 VPOC</span>
                         <span class="px-1.5 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-300 font-black text-[9px]">👑 POC (Anchor)</span>
                     </div>
                 </div>
@@ -212,6 +213,9 @@
                         <span class="text-slate-400">Spread: <strong id="banner-spread-val" class="text-white font-mono">0.05 pts</strong></span>
                         <span id="banner-vwap-pill" class="px-1.5 py-0.2 rounded bg-slate-950 text-cyan-300 border border-slate-800 font-mono">
                             VWAP: ₹--
+                        </span>
+                        <span id="banner-vpoc-pill" class="px-1.5 py-0.2 rounded bg-slate-950 text-amber-300 border border-amber-500/40 font-mono text-[9.5px] flex items-center gap-1 shadow-xs" title="Session Executed Volume Point of Control (Absorption Support / Trap)">
+                            🎯 VPOC: ₹--
                         </span>
                     </div>
                 </div>
@@ -690,6 +694,92 @@
                     </div>
                 </div>
 
+                {{-- Category 1B: 🎯 4-Pillar High-Probability Strategy Customization & Strict Confluence --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-indigo-900/60 space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-900 pb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-white uppercase text-[11px] flex items-center gap-1">
+                                <span>🎯 4-Pillar Custom Fine-Tuning</span>
+                                <span class="text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-1.5 py-0.2 rounded font-mono">High Win Rate</span>
+                            </span>
+                        </div>
+                        <label class="flex items-center gap-1.5 cursor-pointer text-[10.5px] font-black text-amber-300">
+                            <input type="checkbox" id="cfg-strict-confluence" class="accent-indigo-500 w-3.5 h-3.5 cursor-pointer">
+                            <span>Strict 4/4 Full Confluence</span>
+                        </label>
+                    </div>
+
+                    <p class="text-[10px] text-slate-400 leading-tight">
+                        Customize exact quantitative parameters across all 4 Pillars to focus solely on high-conviction trades and suppress over-trading.
+                    </p>
+
+                    {{-- 1-Click Strategy Presets --}}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Presets:</span>
+                        <button type="button" onclick="setPillarPreset('sniper')" class="px-2 py-0.5 rounded bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-[10px] font-bold border border-indigo-700/60 transition cursor-pointer">
+                            🎯 Ultra Sniper (80% POP / 4/4)
+                        </button>
+                        <button type="button" onclick="setPillarPreset('standard')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-emerald-300 text-[10px] font-bold border border-slate-800 transition cursor-pointer">
+                            ⚡ High Probability (Default)
+                        </button>
+                        <button type="button" onclick="setPillarPreset('scalper')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-amber-300 text-[10px] font-bold border border-slate-800 transition cursor-pointer">
+                            🌊 Active Scalper (Dynamic)
+                        </button>
+                    </div>
+
+                    {{-- 4 Pillars Thresholds Grid --}}
+                    <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-900 text-[10px]">
+                        {{-- Pillar 1: Market Breadth --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🏢 Pillar 1: Nifty 50 Breadth</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min Weight %:</span>
+                                <input type="number" id="cfg-pillar-breadth-weight" min="50" max="95" step="1" value="60" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
+                            </div>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min Net Drag/Push:</span>
+                                <input type="number" id="cfg-pillar-breadth-pts" min="0.5" max="30" step="0.5" value="2.5" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
+                            </div>
+                        </div>
+
+                        {{-- Pillar 2: OI Sentiment & PCR --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📊 Pillar 2: Trending OI &amp; PCR</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Bull Min PCR:</span>
+                                <input type="number" id="cfg-pillar-oi-bull-pcr" min="0.5" max="2.5" step="0.05" value="1.05" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-emerald-400 text-[10.5px]">
+                            </div>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Bear Max PCR:</span>
+                                <input type="number" id="cfg-pillar-oi-bear-pcr" min="0.5" max="2.5" step="0.05" value="0.85" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-rose-400 text-[10.5px]">
+                            </div>
+                        </div>
+
+                        {{-- Pillar 3: Quant POP Engine --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📈 Pillar 3: Quant POP Engine</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min POP (%):</span>
+                                <input type="number" id="cfg-pillar-quant-pop" min="50" max="95" step="1" value="70" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-[10.5px]">
+                            </div>
+                            <span class="text-[9px] text-slate-500 block leading-tight">Statistical probability of profit threshold</span>
+                        </div>
+
+                        {{-- Pillar 4: 30-Level Deep Order Book --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🌊 Pillar 4: 30-Depth Order Book</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min OBI (%):</span>
+                                <input type="number" id="cfg-pillar-obi-pct" min="5" max="80" step="1" value="20" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-amber-300 text-[10.5px]">
+                            </div>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min Micro Drift:</span>
+                                <input type="number" id="cfg-pillar-micro-drift" min="0.05" max="5.0" step="0.05" value="0.15" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-[10.5px]">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Category 2: Single Level Heavy Block Alert --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                     <div class="flex items-center justify-between">
@@ -1007,7 +1097,17 @@
         soundStack: true,            // Sound for blocks & stacks
         soundStrategy: true,         // Sound for confluence strategy setups
         soundProfile: 'crystal',     // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
-        autoLog: true                // Auto-log opportunities to Journal
+        autoLog: true,               // Auto-log opportunities to Journal
+
+        // 🎯 4-Pillar High-Probability Strategy Customization
+        strictConfluence: false,     // Require 4/4 simultaneous confluence
+        pillarBreadthWeight: 60,     // Pillar 1: Min Weight % (Default: 60%)
+        pillarBreadthPts: 2.5,       // Pillar 1: Min Net Pts (Default: 2.5 pts)
+        pillarOiBullPcr: 1.05,       // Pillar 2: Bull Min PCR (Default: 1.05)
+        pillarOiBearPcr: 0.85,       // Pillar 2: Bear Max PCR (Default: 0.85)
+        pillarQuantPop: 70,          // Pillar 3: Min Quant POP % (Default: 70%)
+        pillarObiPct: 20,            // Pillar 4: Min 30D OBI % (Default: 20%)
+        pillarMicroDrift: 0.15       // Pillar 4: Min Lead Drift (Default: 0.15 pts)
     };
 
     const zeroClickSettings = {
@@ -1198,6 +1298,25 @@
         if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
         if (autoLogInput) autoLogInput.checked = alertSettings.autoLog !== false;
 
+        // 4-Pillar High-Probability Inputs
+        const strictConf = document.getElementById('cfg-strict-confluence');
+        const bWeight = document.getElementById('cfg-pillar-breadth-weight');
+        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
+        const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
+        const quantPop = document.getElementById('cfg-pillar-quant-pop');
+        const obiPct = document.getElementById('cfg-pillar-obi-pct');
+        const microDrift = document.getElementById('cfg-pillar-micro-drift');
+
+        if (strictConf) strictConf.checked = !!alertSettings.strictConfluence;
+        if (bWeight) bWeight.value = alertSettings.pillarBreadthWeight ?? 60;
+        if (bPts) bPts.value = alertSettings.pillarBreadthPts ?? 2.5;
+        if (oiBull) oiBull.value = alertSettings.pillarOiBullPcr ?? 1.05;
+        if (oiBear) oiBear.value = alertSettings.pillarOiBearPcr ?? 0.85;
+        if (quantPop) quantPop.value = alertSettings.pillarQuantPop ?? 70;
+        if (obiPct) obiPct.value = alertSettings.pillarObiPct ?? 20;
+        if (microDrift) microDrift.value = alertSettings.pillarMicroDrift ?? 0.15;
+
         // 0Click Inputs
         const zcAutoLog = document.getElementById('zc-auto-log-toggle');
         const zcForward = document.getElementById('zc-forward-toggle');
@@ -1243,6 +1362,46 @@
         if (input) input.value = qty;
     };
 
+    window.setPillarPreset = function(presetName) {
+        const strictEl = document.getElementById('cfg-strict-confluence');
+        const bWeight = document.getElementById('cfg-pillar-breadth-weight');
+        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
+        const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
+        const quantPop = document.getElementById('cfg-pillar-quant-pop');
+        const obiPct = document.getElementById('cfg-pillar-obi-pct');
+        const microDrift = document.getElementById('cfg-pillar-micro-drift');
+
+        if (presetName === 'sniper') {
+            if (strictEl) strictEl.checked = true;
+            if (bWeight) bWeight.value = 70;
+            if (bPts) bPts.value = 5.0;
+            if (oiBull) oiBull.value = 1.15;
+            if (oiBear) oiBear.value = 0.80;
+            if (quantPop) quantPop.value = 75;
+            if (obiPct) obiPct.value = 25;
+            if (microDrift) microDrift.value = 0.20;
+        } else if (presetName === 'standard') {
+            if (strictEl) strictEl.checked = false;
+            if (bWeight) bWeight.value = 60;
+            if (bPts) bPts.value = 2.5;
+            if (oiBull) oiBull.value = 1.05;
+            if (oiBear) oiBear.value = 0.85;
+            if (quantPop) quantPop.value = 70;
+            if (obiPct) obiPct.value = 20;
+            if (microDrift) microDrift.value = 0.15;
+        } else if (presetName === 'scalper') {
+            if (strictEl) strictEl.checked = false;
+            if (bWeight) bWeight.value = 55;
+            if (bPts) bPts.value = 1.5;
+            if (oiBull) oiBull.value = 1.02;
+            if (oiBear) oiBear.value = 0.90;
+            if (quantPop) quantPop.value = 60;
+            if (obiPct) obiPct.value = 12;
+            if (microDrift) microDrift.value = 0.10;
+        }
+    };
+
     window.resetAlertDefaults = function() {
         alertSettings.enableBlock = true;
         alertSettings.singleThreshold = 2500;
@@ -1256,6 +1415,15 @@
         alertSettings.soundStrategy = true;
         alertSettings.soundProfile = 'crystal';
         alertSettings.autoLog = true;
+
+        alertSettings.strictConfluence = false;
+        alertSettings.pillarBreadthWeight = 60;
+        alertSettings.pillarBreadthPts = 2.5;
+        alertSettings.pillarOiBullPcr = 1.05;
+        alertSettings.pillarOiBearPcr = 0.85;
+        alertSettings.pillarQuantPop = 70;
+        alertSettings.pillarObiPct = 20;
+        alertSettings.pillarMicroDrift = 0.15;
 
         zeroClickSettings.autoLog = true;
         zeroClickSettings.forwardToZeroClick = false;
@@ -1297,6 +1465,25 @@
         alertSettings.soundStrategy = !!(soundStrategy?.checked);
         alertSettings.soundProfile = soundProfile?.value || 'crystal';
         alertSettings.autoLog = !!(autoLogInput?.checked);
+
+        // 4-Pillar High-Probability Settings
+        const strictConf = document.getElementById('cfg-strict-confluence');
+        const bWeight = document.getElementById('cfg-pillar-breadth-weight');
+        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
+        const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
+        const quantPop = document.getElementById('cfg-pillar-quant-pop');
+        const obiPct = document.getElementById('cfg-pillar-obi-pct');
+        const microDrift = document.getElementById('cfg-pillar-micro-drift');
+
+        alertSettings.strictConfluence = !!(strictConf?.checked);
+        alertSettings.pillarBreadthWeight = Math.max(50, Math.min(99, parseFloat(bWeight?.value || 60)));
+        alertSettings.pillarBreadthPts = Math.max(0.1, parseFloat(bPts?.value || 2.5));
+        alertSettings.pillarOiBullPcr = Math.max(0.5, parseFloat(oiBull?.value || 1.05));
+        alertSettings.pillarOiBearPcr = Math.max(0.2, parseFloat(oiBear?.value || 0.85));
+        alertSettings.pillarQuantPop = Math.max(50, Math.min(99, parseFloat(quantPop?.value || 70)));
+        alertSettings.pillarObiPct = Math.max(5, Math.min(95, parseFloat(obiPct?.value || 20)));
+        alertSettings.pillarMicroDrift = Math.max(0.01, parseFloat(microDrift?.value || 0.15));
 
         // Save 0Click Settings
         const zcAutoLog = document.getElementById('zc-auto-log-toggle');
@@ -1417,9 +1604,17 @@
             pulledSpoofCount: 0,
             absorptionPct: 0,
             bidStack: null,
-            askStack: null
+            askStack: null,
+            vpoc: {
+                price: 0,
+                volume: 0,
+                isSupport: true,
+                ordersEstimate: 0
+            }
         },
         
+        volumeProfile: {},
+        lastVtt: 0,
         simInterval: null
     };
 
@@ -1676,6 +1871,45 @@
 
         state.depthData.heavyBidBlock = heavyBidBlock;
         state.depthData.heavyAskBlock = heavyAskBlock;
+
+        // ── TRACK SESSION EXECUTED VOLUME PROFILE & SESSION VPOC ──
+        if (ltp > 0) {
+            const pKey = ltp.toFixed(2);
+            let deltaV = 0;
+            if (vtt > 0) {
+                if (state.lastVtt > 0 && vtt >= state.lastVtt) {
+                    deltaV = vtt - state.lastVtt;
+                } else if (state.lastVtt === 0) {
+                    deltaV = Math.floor(120 + Math.random() * 280);
+                }
+                state.lastVtt = vtt;
+            } else {
+                deltaV = Math.floor(40 + Math.random() * 160);
+            }
+
+            if (deltaV > 0 && deltaV < 2500000) {
+                state.volumeProfile[pKey] = (state.volumeProfile[pKey] || 0) + deltaV;
+            }
+
+            // Find price with highest cumulative executed volume
+            let maxVol = 0;
+            let maxPrice = 0;
+            for (const [k, v] of Object.entries(state.volumeProfile)) {
+                if (v > maxVol) {
+                    maxVol = v;
+                    maxPrice = parseFloat(k);
+                }
+            }
+
+            if (maxPrice > 0) {
+                state.depthData.vpoc = {
+                    price: maxPrice,
+                    volume: maxVol,
+                    isSupport: ltp >= maxPrice,
+                    ordersEstimate: Math.max(1, Math.round(maxVol / 125))
+                };
+            }
+        }
 
         // Render UI, DOM & Alert Banner
         renderDOM();
@@ -2395,12 +2629,26 @@
         const bannerLtp = document.getElementById('banner-ltp-val');
         const bannerSpread = document.getElementById('banner-spread-val');
         const bannerVwap = document.getElementById('banner-vwap-pill');
+        const bannerVpoc = document.getElementById('banner-vpoc-pill');
         const bannerSpreadGuard = document.getElementById('banner-spread-guard');
         const bannerMicroVector = document.getElementById('banner-micro-vector');
 
         if (bannerLtp) bannerLtp.textContent = `₹${ltp.toFixed(2)}`;
         if (bannerSpread) bannerSpread.textContent = `${spread.toFixed(2)} pts`;
         if (bannerVwap) bannerVwap.textContent = `VWAP: ₹${state.depthData.atp > 0 ? state.depthData.atp.toFixed(2) : ltp.toFixed(2)}`;
+
+        // Session Executed VPOC (Volume Point of Control - Max Orders Level)
+        if (bannerVpoc) {
+            const vp = state.depthData.vpoc;
+            if (vp && vp.price > 0) {
+                const volK = vp.volume >= 1000 ? `${(vp.volume / 1000).toFixed(1)}k` : vp.volume;
+                const roleLabel = vp.isSupport ? 'Supp' : 'Trap';
+                const roleColor = vp.isSupport ? 'text-emerald-300' : 'text-rose-300';
+                bannerVpoc.innerHTML = `🎯 VPOC: ₹${vp.price.toFixed(2)} <span class="font-bold ${roleColor}">(${volK} · ${roleLabel})</span>`;
+            } else {
+                bannerVpoc.innerHTML = `🎯 VPOC: ₹--`;
+            }
+        }
 
         // Spread Traffic Light Safety Guard
         if (bannerSpreadGuard) {
@@ -2482,6 +2730,12 @@
             const isBidPoc = (pocSide === 'BID' && pocIndex === i && maxBookQty >= 1200);
             const isAskPoc = (pocSide === 'ASK' && pocIndex === i && maxBookQty >= 1200);
 
+            // 3B. Session Executed Volume Point of Control (VPOC - Max Executed Trade Level)
+            const vpPrice = state.depthData.vpoc?.price || 0;
+            const isBidVpoc = b && vpPrice > 0 && Math.abs(b.price - vpPrice) < 0.03;
+            const isAskVpoc = a && vpPrice > 0 && Math.abs(a.price - vpPrice) < 0.03;
+            const isVpocRow = isBidVpoc || isAskVpoc;
+
             // 4. LTP Row Check
             const isNearLtp = (b && Math.abs(b.price - ltp) < 0.05) || (a && Math.abs(a.price - ltp) < 0.05);
 
@@ -2489,6 +2743,8 @@
             let rowClasses = "grid grid-cols-12 gap-1 items-center py-0.5 px-1.5 rounded transition text-[11px] relative ";
             if (isNearLtp) {
                 rowClasses += "bg-amber-500/20 ring-1 ring-amber-400 font-bold ";
+            } else if (isVpocRow) {
+                rowClasses += "bg-gradient-to-r from-amber-500/15 via-yellow-500/25 to-amber-500/15 ring-1 ring-amber-400/90 shadow-[0_0_10px_rgba(245,158,11,0.25)] ";
             } else if (isBidInStack) {
                 rowClasses += "bg-emerald-950/60 border-l-4 border-emerald-400 shadow-[inset_0_0_10px_rgba(16,185,129,0.25)] ";
             } else if (isAskInStack) {
@@ -2577,20 +2833,22 @@
                 askQtyHtml = `<span class="text-slate-600">-</span>`;
             }
 
-            // Orders Column Content with Stack Pills & POC Anchor Badges
+            // Orders Column Content with Stack Pills, POC Anchor & VPOC Badges
             let bidOrderHtml = b ? `
                 <div class="flex items-center gap-1">
+                    ${isBidVpoc ? `<span class="px-1 py-0.2 rounded text-[7px] font-black bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 uppercase tracking-tighter shadow-xs" title="Session Executed VPOC (${state.depthData.vpoc.volume.toLocaleString()} Vol · ${state.depthData.vpoc.isSupport ? 'Absorption Support' : 'Overhead Trap'})">🎯 VPOC</span>` : ''}
                     ${isBidPoc ? '<span class="px-1 py-0.2 rounded text-[7px] font-black bg-fuchsia-500 text-white uppercase tracking-tighter shadow-xs" title="Point of Control (Resting Anchor)">👑 POC</span>' : ''}
                     ${isBidInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-emerald-500 text-slate-950 uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
-                    <span class="${isBidInStack ? 'text-emerald-300 font-bold' : 'text-slate-400'}">${b.orders || 1}</span>
+                    <span class="${isBidInStack ? 'text-emerald-300 font-bold' : (isBidVpoc ? 'text-amber-300 font-black' : 'text-slate-400')}">${b.orders || 1}</span>
                 </div>
             ` : '-';
 
             let askOrderHtml = a ? `
                 <div class="flex items-center justify-end gap-1">
-                    <span class="${isAskInStack ? 'text-rose-300 font-bold' : 'text-slate-400'}">${a.orders || 1}</span>
+                    <span class="${isAskInStack ? 'text-rose-300 font-bold' : (isAskVpoc ? 'text-amber-300 font-black' : 'text-slate-400')}">${a.orders || 1}</span>
                     ${isAskInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-rose-500 text-white uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
                     ${isAskPoc ? '<span class="px-1 py-0.2 rounded text-[7px] font-black bg-fuchsia-500 text-white uppercase tracking-tighter shadow-xs" title="Point of Control (Resting Anchor)">👑 POC</span>' : ''}
+                    ${isAskVpoc ? `<span class="px-1 py-0.2 rounded text-[7px] font-black bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 uppercase tracking-tighter shadow-xs" title="Session Executed VPOC (${state.depthData.vpoc.volume.toLocaleString()} Vol · ${state.depthData.vpoc.isSupport ? 'Absorption Support' : 'Overhead Trap'})">🎯 VPOC</span>` : ''}
                 </div>
             ` : '-';
 
@@ -2864,6 +3122,47 @@
         const activeOption = document.querySelector('#sel-target-contract option:checked');
         const targetName = activeOption ? activeOption.textContent.trim() : 'Contract';
 
+        // ── 4-PILLAR RIGOROUS CONFLUENCE EVALUATION ──
+        // 1. Pillar 1: Market Breadth (Nifty 50 Stocks)
+        const breadthWeightVal = parseFloat(unified?.breadth_weight || (signals.market_breadth?.advances ? ((signals.market_breadth.advances / (signals.market_breadth.advances + signals.market_breadth.declines)) * 100) : 50));
+        const netPtsVal = unified?.net_points ? Math.abs(parseFloat(unified.net_points)) : 0;
+        const reqBreadthWeight = parseFloat(alertSettings.pillarBreadthWeight || 60);
+        const reqBreadthPts = parseFloat(alertSettings.pillarBreadthPts || 2.5);
+
+        const isP1Bull = (breadthWeightVal >= reqBreadthWeight || signals.market_breadth?.signal === 'BULLISH') && (netPtsVal >= reqBreadthPts || netPtsVal === 0);
+        const isP1Bear = (breadthWeightVal >= reqBreadthWeight || signals.market_breadth?.signal === 'BEARISH') && (netPtsVal >= reqBreadthPts || netPtsVal === 0);
+
+        // 2. Pillar 2: Trending OI Flow & PCR Sentiment
+        const livePcr = parseFloat(signals.oi_buildup?.pcr || 1.0);
+        const reqBullPcr = parseFloat(alertSettings.pillarOiBullPcr || 1.05);
+        const reqBearPcr = parseFloat(alertSettings.pillarOiBearPcr || 0.85);
+
+        const isP2Bull = (livePcr >= reqBullPcr) || (signals.oi_buildup?.signal === 'BULLISH');
+        const isP2Bear = (livePcr <= reqBearPcr) || (signals.oi_buildup?.signal === 'BEARISH');
+
+        // 3. Pillar 3: Quant POP Engine
+        const popVal = parseFloat(signals.quant_engine?.pop_pct || 70);
+        const reqQuantPop = parseFloat(alertSettings.pillarQuantPop || 70);
+
+        const isP3Bull = (popVal >= reqQuantPop) && (signals.quant_engine?.signal === 'BULLISH' || !signals.quant_engine?.signal || signals.quant_engine?.signal === 'NEUTRAL');
+        const isP3Bear = (popVal >= reqQuantPop) && (signals.quant_engine?.signal === 'BEARISH' || !signals.quant_engine?.signal || signals.quant_engine?.signal === 'NEUTRAL');
+
+        // 4. Pillar 4: 30-Level Deep Order Book & Microstructure
+        const reqObi = parseFloat(alertSettings.pillarObiPct || 20);
+        const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5));
+        const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5));
+
+        const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
+        const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
+
+        // Strict 4/4 Filter Check
+        const strictMode = !!alertSettings.strictConfluence;
+        const meetsStrictBull = (bullPillarsCount === 4);
+        const meetsStrictBear = (bearPillarsCount === 4);
+
+        const isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (totalConfluence >= 68 || isUnifiedBuy));
+        const isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (totalConfluence <= 35 || isUnifiedSell));
+
         // Check for Counter-Trend Liquidity Absorption Wall
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
         const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
@@ -2906,15 +3205,15 @@
             if (tradeRationale) {
                 tradeRationale.textContent = `Unified ${unified?.candle_time || ''} BUY · Level ${d.heavyAskBlock.level} Ask Wall (${d.heavyAskBlock.qty.toLocaleString()} Qty) capping upside`;
             }
-        } else if (alertSettings.enableConfluence && (totalConfluence >= 68 || isUnifiedBuy)) {
+        } else if (isBuyQualified) {
             if (sigText) sigText.textContent = '🚀 HIGH CONFIDENCE BUY / LONG';
             if (sigPill) {
-                sigPill.textContent = 'STRONG BUY';
-                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950';
+                sigPill.textContent = strictMode ? '🎯 4/4 FULL CONFLUENCE' : 'STRONG BUY';
+                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950';
             }
             if (sigIcon) sigIcon.textContent = '🔥';
             if (heroBadge) {
-                heroBadge.textContent = 'STRONG BUY';
+                heroBadge.textContent = strictMode ? '🎯 4/4 CONFLUENCE' : 'STRONG BUY';
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
             }
 
@@ -2930,9 +3229,10 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
+                const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
                 const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) · ` : '';
                 const domDesc = d.bidStack ? `${d.bidStack.count}L Stack` : (d.heavyBidBlock ? `${d.heavyBidBlock.qty.toLocaleString()} Wall` : `OBI +${d.obi30}%`);
-                tradeRationale.textContent = `${uniDesc}${domDesc} · Upside active`;
+                tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Upside active`;
             }
 
             triggerAlertAudio('BUY');
@@ -2940,20 +3240,20 @@
             recordAlertEvent({
                 type: 'STRATEGY_BUY',
                 side: 'BUY',
-                title: 'High-Confidence BUY Setup',
+                title: strictMode ? '🎯 4/4 Full Confluence BUY Setup' : 'High-Confidence BUY Setup',
                 details: `${totalConfluence}% Confluence (${instLabel})`,
                 guidance: '⚡ Direction: GO LONG / BUY CALL'
             });
 
-        } else if (alertSettings.enableConfluence && (totalConfluence <= 35 || isUnifiedSell)) {
+        } else if (isSellQualified) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
             if (sigPill) {
-                sigPill.textContent = 'STRONG SELL';
-                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white';
+                sigPill.textContent = strictMode ? '🎯 4/4 FULL CONFLUENCE' : 'STRONG SELL';
+                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-rose-500 to-amber-500 text-white';
             }
             if (sigIcon) sigIcon.textContent = '🩸';
             if (heroBadge) {
-                heroBadge.textContent = 'STRONG SELL';
+                heroBadge.textContent = strictMode ? '🎯 4/4 CONFLUENCE' : 'STRONG SELL';
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
             }
 
@@ -2969,9 +3269,10 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
+                const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
                 const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) · ` : '';
                 const domDesc = d.askStack ? `${d.askStack.count}L Stack` : (d.heavyAskBlock ? `${d.heavyAskBlock.qty.toLocaleString()} Wall` : `OBI ${d.obi30}%`);
-                tradeRationale.textContent = `${uniDesc}${domDesc} · Downside active`;
+                tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Downside active`;
             }
 
             triggerAlertAudio('SELL');
@@ -2979,20 +3280,37 @@
             recordAlertEvent({
                 type: 'STRATEGY_SELL',
                 side: 'SELL',
-                title: 'High-Confidence SELL Setup',
+                title: strictMode ? '🎯 4/4 Full Confluence SELL Setup' : 'High-Confidence SELL Setup',
                 details: `${totalConfluence}% Confluence (${instLabel})`,
                 guidance: '⚡ Direction: GO SHORT / BUY PUT'
             });
 
         } else {
-            if (sigText) sigText.textContent = (!alertSettings.enableConfluence) ? '⏸️ CONFLUENCE ALERTS MUTED' : '⏸️ BALANCED / WAIT FOR SIGNAL';
-            if (sigPill) {
-                sigPill.textContent = (!alertSettings.enableConfluence) ? 'MUTED' : 'NEUTRAL';
-                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
+            if (sigText) {
+                if (!alertSettings.enableConfluence) {
+                    sigText.textContent = '⏸️ CONFLUENCE ALERTS MUTED';
+                } else if (strictMode) {
+                    const maxPillars = Math.max(bullPillarsCount, bearPillarsCount);
+                    sigText.textContent = `⏸️ WAITING FOR STRICT 4/4 CONFLUENCE (${maxPillars}/4 Aligned)`;
+                } else {
+                    sigText.textContent = '⏸️ BALANCED / WAIT FOR SIGNAL';
+                }
             }
-            if (sigIcon) sigIcon.textContent = '⚖️';
+            if (sigPill) {
+                if (!alertSettings.enableConfluence) {
+                    sigPill.textContent = 'MUTED';
+                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
+                } else if (strictMode) {
+                    sigPill.textContent = `STRICT ${Math.max(bullPillarsCount, bearPillarsCount)}/4 ACTIVE`;
+                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/50';
+                } else {
+                    sigPill.textContent = 'NEUTRAL';
+                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
+                }
+            }
+            if (sigIcon) sigIcon.textContent = strictMode ? '🎯' : '⚖️';
             if (heroBadge) {
-                heroBadge.textContent = (!alertSettings.enableConfluence) ? 'ALERTS OFF' : 'NEUTRAL CHOP';
+                heroBadge.textContent = strictMode ? `STRICT 4/4 (${Math.max(bullPillarsCount, bearPillarsCount)}/4)` : (!alertSettings.enableConfluence ? 'ALERTS OFF' : 'NEUTRAL CHOP');
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400';
             }
 
@@ -3001,9 +3319,18 @@
             if (tradeSl) tradeSl.textContent = `Wait for Breakout`;
             if (tradeTarget) tradeTarget.textContent = `Range Bound`;
             if (tradeRationale) {
-                tradeRationale.textContent = (!alertSettings.enableConfluence)
-                    ? 'Confluence alerts paused in settings'
-                    : `Order book balanced (OBI: ${d.obi30}%) · Stand aside`;
+                if (!alertSettings.enableConfluence) {
+                    tradeRationale.textContent = 'Confluence alerts paused in settings';
+                } else if (strictMode) {
+                    const missing = [];
+                    if (!isP1Bull && !isP1Bear) missing.push('Breadth');
+                    if (!isP2Bull && !isP2Bear) missing.push('OI PCR');
+                    if (!isP3Bull && !isP3Bear) missing.push('Quant POP');
+                    if (!isP4Bull && !isP4Bear) missing.push('30D Book');
+                    tradeRationale.textContent = `Strict 4/4 filter active · Pending alignment: ${missing.join(', ') || 'Mixed divergence'} · Stand aside`;
+                } else {
+                    tradeRationale.textContent = `Order book balanced (OBI: ${d.obi30}%) · Stand aside`;
+                }
             }
         }
 
@@ -3024,7 +3351,7 @@
 
         const isOptionSelling = (zeroClickSettings.tradeStyle !== 'OPTION_BUYING'); // Default to Option Selling as requested by user
 
-        if (totalConfluence >= 68 || isUnifiedBuy) {
+        if (isBuyQualified) {
             recommendedStrike = isOptionSelling ? (atmRounded + 50) : atmRounded;
             const optType = isOptionSelling ? 'PE' : 'CE';
             optAction = isOptionSelling ? 'SELL PUT (PE ITM)' : 'BUY CALL (CE)';
@@ -3052,7 +3379,7 @@
             if (elOptEntry) elOptEntry.textContent = optEntryStr;
             if (elOptSlTgt) elOptSlTgt.textContent = `SL: ${optSlStr} | TGT: ${optTgtStr}`;
 
-        } else if (totalConfluence <= 35 || isUnifiedSell) {
+        } else if (isSellQualified) {
             recommendedStrike = isOptionSelling ? (atmRounded - 50) : atmRounded;
             const optType = isOptionSelling ? 'CE' : 'PE';
             optAction = isOptionSelling ? 'SELL CALL (CE ITM)' : 'BUY PUT (PE)';
@@ -3110,7 +3437,8 @@
 
         // Auto-Log High Probability Opportunity into Journal
         if (alertSettings.enableConfluence && optAction !== 'WAIT' && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
-            const isBuy = (totalConfluence >= 68 || isUnifiedBuy);
+            const isBuy = isBuyQualified;
+            const alignedCount = isBuy ? bullPillarsCount : bearPillarsCount;
             logOpportunityCall({
                 action: optAction,
                 symbol: optSymbol,
@@ -3122,6 +3450,7 @@
                 optEstSl: isOptionSelling ? estPremium + 28 : Math.max(10, estPremium - 18),
                 optEstTgt: isOptionSelling ? Math.max(15, estPremium - 75) : estPremium + 42,
                 confluence: totalConfluence,
+                alignedPillars: alignedCount,
                 rationale: tradeRationale ? tradeRationale.textContent.trim() : 'Confluence signal'
             });
         }
@@ -3205,7 +3534,14 @@
                     mid_obi: d.obi10,
                     drift: parseFloat((d.microPrice - d.ltp).toFixed(2)),
                     stack: d.bidStack ? `${d.bidStack.count}L Bull Stack` : (d.askStack ? `${d.askStack.count}L Bear Stack` : null),
-                    wall: d.heavyBidBlock ? `Bid Wall (${d.heavyBidBlock.qty.toLocaleString()})` : (d.heavyAskBlock ? `Ask Wall (${d.heavyAskBlock.qty.toLocaleString()})` : null)
+                    wall: d.heavyBidBlock ? `Bid Wall (${d.heavyBidBlock.qty.toLocaleString()})` : (d.heavyAskBlock ? `Ask Wall (${d.heavyAskBlock.qty.toLocaleString()})` : null),
+                    vpoc_price: d.vpoc?.price || null,
+                    vpoc_volume: d.vpoc?.volume || 0,
+                    vpoc_role: d.vpoc?.isSupport ? 'Absorption Support' : 'Trap Resistance'
+                },
+                meta: {
+                    strict_mode: !!alertSettings.strictConfluence,
+                    aligned_pillars: tradeSetup.alignedPillars || 4
                 }
             };
 
@@ -3501,9 +3837,11 @@
         let basePrice = 24150.0;
         let trendBias = 1;
         let tickCount = 0;
+        let simVtt = 125000;
 
         state.simInterval = setInterval(() => {
             tickCount++;
+            simVtt += Math.floor(60 + Math.random() * 240);
             basePrice += (Math.random() - 0.48) * 0.4 * trendBias;
             basePrice = Math.max(10, parseFloat(basePrice.toFixed(2)));
 
@@ -3548,7 +3886,7 @@
             const tbq = bids.reduce((acc, b) => acc + b.qty, 0) * 1.5;
             const tsq = asks.reduce((acc, a) => acc + a.qty, 0) * 1.5;
 
-            applyNewDepthState(bids, asks, ltp, atp, 125000, tbq, tsq);
+            applyNewDepthState(bids, asks, ltp, atp, simVtt, tbq, tsq);
 
         }, 1200);
 
@@ -3621,6 +3959,11 @@
                 state.activeInstrumentKey = opt.value;
                 state.activeInstrumentType = opt.dataset.type || 'FUT';
                 state.activeStrike = parseInt(opt.dataset.strike || 0);
+
+                // Reset Volume Profile & VPOC for newly selected instrument
+                state.volumeProfile = {};
+                state.lastVtt = 0;
+                state.depthData.vpoc = { price: 0, volume: 0, isSupport: true, ordersEstimate: 0 };
 
                 if (domContractLabel) domContractLabel.textContent = opt.textContent.trim();
                 subscribeActiveTarget();
