@@ -179,11 +179,11 @@
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2 text-[10px]">
+                    <div class="flex items-center gap-1.5 text-[10px] flex-wrap justify-end">
                         <span class="text-emerald-400 font-bold">● Bids</span>
                         <span class="text-rose-400 font-bold">● Asks</span>
-                        <span class="text-amber-300 font-bold">⚡ Block</span>
-                        <span class="text-cyan-400 font-bold">🌊 Stack</span>
+                        <span id="legend-block-tag" class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black text-[9px]">⚡ Block (≥2,500)</span>
+                        <span id="legend-stack-tag" class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-black text-[9px]">🌊 Stack (≥3 Lvl)</span>
                     </div>
                 </div>
 
@@ -600,16 +600,46 @@
                     </div>
                 </div>
 
-                {{-- Rule 3: Audio Alert --}}
-                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-                    <div>
-                        <span class="font-bold text-white text-[11px] block">Play Audio Alert on Stack Trigger</span>
-                        <span class="text-[10px] text-slate-400">Bullish chime for Bid stack, bearish alarm for Ask stack</span>
+                {{-- Rule 3: Audio Alert & 5 Selectable Sound Profiles --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white text-[11px] block">Audio Alert on Liquidity Triggers</span>
+                            <span class="text-[10px] text-slate-400">Play directional acoustic chime when blocks or stacks trigger</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-sound-stack" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="cfg-sound-stack" class="sr-only peer" checked>
-                        <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
-                    </label>
+
+                    {{-- 5 Sound Profile Selector & Live Test Buttons --}}
+                    <div class="pt-2 border-t border-slate-800/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Sound Profile (5 Available):</label>
+                            <span class="text-[9px] text-amber-400 font-bold">Synthesized Zero-Lag Web Audio</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <select id="cfg-sound-profile" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold cursor-pointer focus:outline-none focus:border-amber-400">
+                                <option value="crystal">🔔 1. Crystal Chime (Harmonic Bell)</option>
+                                <option value="radar">📡 2. Radar Sonar Pulse (Submarine Ping)</option>
+                                <option value="laser">⚡ 3. Cyber Laser Sweep (Sci-Fi Warp)</option>
+                                <option value="marimba">🎶 4. Warm Marimba (3-Tone Arpeggio)</option>
+                                <option value="tactical">🎯 5. Tactical Double-Pip (Dual Click)</option>
+                            </select>
+                            
+                            {{-- Test Buttons: Bull & Bear --}}
+                            <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish (Buy / Bid Stack) tone" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1 transition shadow-md shadow-emerald-600/20 active:scale-95 shrink-0">
+                                <span>▶️ Bull</span>
+                            </button>
+                            <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish (Sell / Ask Stack) tone" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-1 transition shadow-md shadow-rose-600/20 active:scale-95 shrink-0">
+                                <span>▶️ Bear</span>
+                            </button>
+                        </div>
+                        <p class="text-[9px] text-slate-500 leading-tight">
+                            Sounds automatically modulate higher in pitch for Bullish Bid Stacks and lower in pitch for Bearish Ask Stacks.
+                        </p>
+                    </div>
                 </div>
 
             </div>
@@ -647,8 +677,16 @@
         enableStack: true,         // Consecutive stack detection
         stackMinConsecutive: 3,    // N continuous levels
         stackMinQty: 1500,         // Min qty on each level
-        soundEnabled: true
+        soundEnabled: true,
+        soundProfile: 'crystal'    // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
     };
+
+    function updateLegendLabels() {
+        const blockTag = document.getElementById('legend-block-tag');
+        const stackTag = document.getElementById('legend-stack-tag');
+        if (blockTag) blockTag.textContent = `⚡ Block (≥${alertSettings.singleThreshold.toLocaleString()})`;
+        if (stackTag) stackTag.textContent = `🌊 Stack (≥${alertSettings.stackMinConsecutive} Lvl · ≥${alertSettings.stackMinQty.toLocaleString()})`;
+    }
 
     function loadAlertSettings() {
         try {
@@ -663,12 +701,16 @@
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundProfile = document.getElementById('cfg-sound-profile');
 
         if (singleInput) singleInput.value = alertSettings.singleThreshold;
         if (enableStack) enableStack.checked = alertSettings.enableStack;
         if (stackCount) stackCount.value = alertSettings.stackMinConsecutive;
         if (stackQty) stackQty.value = alertSettings.stackMinQty;
         if (soundStack) soundStack.checked = alertSettings.soundEnabled;
+        if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
+
+        updateLegendLabels();
     }
 
     window.toggleSettingsModal = function(show) {
@@ -693,18 +735,23 @@
         alertSettings.stackMinConsecutive = 3;
         alertSettings.stackMinQty = 1500;
         alertSettings.soundEnabled = true;
+        alertSettings.soundProfile = 'crystal';
 
         const singleInput = document.getElementById('cfg-single-qty');
         const enableStack = document.getElementById('cfg-enable-stack');
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundProfile = document.getElementById('cfg-sound-profile');
 
         if (singleInput) singleInput.value = 2500;
         if (enableStack) enableStack.checked = true;
         if (stackCount) stackCount.value = 3;
         if (stackQty) stackQty.value = 1500;
         if (soundStack) soundStack.checked = true;
+        if (soundProfile) soundProfile.value = 'crystal';
+
+        updateLegendLabels();
     };
 
     window.saveAlertSettings = function() {
@@ -713,22 +760,31 @@
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundProfile = document.getElementById('cfg-sound-profile');
 
         alertSettings.singleThreshold = Math.max(100, parseInt(singleInput?.value || 2500));
         alertSettings.enableStack = !!(enableStack?.checked);
         alertSettings.stackMinConsecutive = Math.max(2, parseInt(stackCount?.value || 3));
         alertSettings.stackMinQty = Math.max(100, parseInt(stackQty?.value || 1500));
         alertSettings.soundEnabled = !!(soundStack?.checked);
+        alertSettings.soundProfile = soundProfile?.value || 'crystal';
 
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
         } catch(e) {}
 
+        updateLegendLabels();
         toggleSettingsModal(false);
 
         // Re-render DOM with new rules immediately
         renderDOM();
         evaluateConfluenceRadar();
+    };
+
+    window.testCurrentSound = function(testSide = 'BUY') {
+        const sel = document.getElementById('cfg-sound-profile');
+        const profile = sel ? sel.value : (alertSettings.soundProfile || 'crystal');
+        playSynthesizedAlert(profile, testSide);
     };
 
     window.dismissAlertBanner = function() {
@@ -1170,37 +1226,143 @@
         }
     }
 
-    function triggerStackAlertAudio(side) {
-        if (!alertSettings.soundEnabled) return;
-        const now = Date.now();
-        if (now - state.lastStackAlertTime < 18000) return;
-        state.lastStackAlertTime = now;
-
+    // ── 12. SOUND SYNTHESIS ENGINE (5 WEB AUDIO PROFILES) ──
+    function playSynthesizedAlert(profile = 'crystal', side = 'BUY') {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'triangle';
-            if (side === 'BUY') {
-                osc.frequency.setValueAtTime(620, ctx.currentTime);
-                osc.frequency.setValueAtTime(920, ctx.currentTime + 0.12);
-            } else {
-                osc.frequency.setValueAtTime(540, ctx.currentTime);
-                osc.frequency.setValueAtTime(340, ctx.currentTime + 0.12);
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
             }
+            const now = ctx.currentTime;
+            const isBuy = (side === 'BUY');
 
-            gain.gain.setValueAtTime(0.25, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            switch (profile) {
+                case 'crystal': {
+                    // 🔔 1. Crystal Chime: High resonant dual sine bells with sparkling decay
+                    const rootFreq = isBuy ? 880 : 587.33; // A5 (Bull) vs D5 (Bear)
+                    const secondFreq = isBuy ? 1318.5 : 440; // E6 vs A4
 
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.35);
-        } catch(e) {}
+                    [rootFreq, secondFreq].forEach((f, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, now + idx * 0.08);
+
+                        gain.gain.setValueAtTime(0, now + idx * 0.08);
+                        gain.gain.linearRampToValueAtTime(0.24, now + idx * 0.08 + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.55);
+
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.56);
+                    });
+                    break;
+                }
+
+                case 'radar': {
+                    // 📡 2. Radar Sonar Pulse: Deep ping with frequency envelope and lingering echo
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    const startFreq = isBuy ? 1400 : 720;
+                    const endFreq = isBuy ? 1680 : 480;
+
+                    osc.frequency.setValueAtTime(startFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.15);
+
+                    gain.gain.setValueAtTime(0.32, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.56);
+                    break;
+                }
+
+                case 'laser': {
+                    // ⚡ 3. Cyber Laser Sweep: Sci-fi rapid frequency plunge or surge
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+
+                    if (isBuy) {
+                        osc.frequency.setValueAtTime(400, now);
+                        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.18);
+                    } else {
+                        osc.frequency.setValueAtTime(1400, now);
+                        osc.frequency.exponentialRampToValueAtTime(300, now + 0.18);
+                    }
+
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.26);
+                    break;
+                }
+
+                case 'marimba': {
+                    // 🎶 4. Warm Marimba: 3-note warm acoustic arpeggio
+                    const notes = isBuy ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25]; // C5-E5-G5 or G5-E5-C5
+                    notes.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                        gain.gain.setValueAtTime(0, now + idx * 0.08);
+                        gain.gain.linearRampToValueAtTime(0.25, now + idx * 0.08 + 0.015);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.36);
+                    });
+                    break;
+                }
+
+                case 'tactical': {
+                    // 🎯 5. Tactical Double-Pip: Crisp dual military pip clicks
+                    [0, 0.09].forEach((delay, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'square';
+                        const freq = isBuy ? (idx === 0 ? 987 : 1318) : (idx === 0 ? 659 : 493);
+                        osc.frequency.setValueAtTime(freq, now + delay);
+
+                        gain.gain.setValueAtTime(0.14, now + delay);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.06);
+
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + delay);
+                        osc.stop(now + delay + 0.065);
+                    });
+                    break;
+                }
+            }
+        } catch(e) {
+            console.warn('Audio playback error:', e);
+        }
     }
 
-    // ── 12. RENDER 30-DEPTH DOM VISUAL LADDER WITH CUSTOM HIGHLIGHTS ──
+    function triggerStackAlertAudio(side) {
+        if (!state.soundEnabled || !alertSettings.soundEnabled) return;
+        const now = Date.now();
+        if (now - state.lastStackAlertTime < 15000) return; // 15s throttle
+        state.lastStackAlertTime = now;
+
+        playSynthesizedAlert(alertSettings.soundProfile || 'crystal', side);
+    }
+
+    // ── 13. RENDER 30-DEPTH DOM VISUAL LADDER WITH CUSTOM HIGHLIGHTS ──
     function renderDOM() {
         const container = document.getElementById('dom-rows-container');
         if (!container) return;
@@ -1256,29 +1418,104 @@
             let rowClasses = "grid grid-cols-12 gap-1 items-center py-0.5 px-1.5 rounded transition text-[11px] relative ";
             if (isNearLtp) {
                 rowClasses += "bg-amber-500/20 ring-1 ring-amber-400 font-bold ";
-            } else if (isBidInStack || isAskInStack) {
-                rowClasses += (isBidInStack ? "bg-emerald-950/50 border-l-4 border-emerald-400 " : "bg-rose-950/50 border-r-4 border-rose-400 ");
+            } else if (isBidInStack) {
+                rowClasses += "bg-emerald-950/60 border-l-4 border-emerald-400 shadow-[inset_0_0_10px_rgba(16,185,129,0.25)] ";
+            } else if (isAskInStack) {
+                rowClasses += "bg-rose-950/60 border-r-4 border-rose-400 shadow-[inset_0_0_10px_rgba(244,63,94,0.25)] ";
             } else if (i % 2 === 0) {
                 rowClasses += "bg-slate-950/40 hover:bg-slate-800/60 ";
             } else {
                 rowClasses += "hover:bg-slate-800/60 ";
             }
 
+            // High-Impact Quantity Content & Badges
+            let bidQtyHtml = '';
+            if (b) {
+                if (isBidBlock && isBidInStack) {
+                    bidQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-gradient-to-r from-amber-500/30 to-emerald-500/30 border border-amber-400 text-amber-200 font-black font-mono text-[10.5px] shadow-[0_0_10px_rgba(251,191,36,0.6)] animate-pulse">
+                            <span>⚡🌊</span>
+                            <span>${b.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else if (isBidInStack) {
+                    bidQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-500/25 border border-emerald-400 text-emerald-200 font-black font-mono text-[10.5px] shadow-[0_0_8px_rgba(52,211,153,0.5)]">
+                            <span>🌊</span>
+                            <span>${b.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else if (isBidBlock) {
+                    bidQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-500/25 border border-amber-400 text-amber-300 font-black font-mono text-[10.5px] shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse">
+                            <span>⚡</span>
+                            <span>${b.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else {
+                    bidQtyHtml = `<span class="font-mono font-bold text-slate-100">${b.qty.toLocaleString()}</span>`;
+                }
+            } else {
+                bidQtyHtml = `<span class="text-slate-600">-</span>`;
+            }
+
+            let askQtyHtml = '';
+            if (a) {
+                if (isAskBlock && isAskInStack) {
+                    askQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-gradient-to-r from-rose-500/30 to-amber-500/30 border border-amber-400 text-amber-200 font-black font-mono text-[10.5px] shadow-[0_0_10px_rgba(251,191,36,0.6)] animate-pulse">
+                            <span>⚡🌊</span>
+                            <span>${a.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else if (isAskInStack) {
+                    askQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-rose-500/25 border border-rose-400 text-rose-200 font-black font-mono text-[10.5px] shadow-[0_0_8px_rgba(244,63,94,0.5)]">
+                            <span>🌊</span>
+                            <span>${a.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else if (isAskBlock) {
+                    askQtyHtml = `
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-amber-500/25 border border-amber-400 text-amber-300 font-black font-mono text-[10.5px] shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse">
+                            <span>⚡</span>
+                            <span>${a.qty.toLocaleString()}</span>
+                        </span>
+                    `;
+                } else {
+                    askQtyHtml = `<span class="font-mono font-bold text-slate-100">${a.qty.toLocaleString()}</span>`;
+                }
+            } else {
+                askQtyHtml = `<span class="text-slate-600">-</span>`;
+            }
+
+            // Orders Column Content with Stack Pills
+            let bidOrderHtml = b ? `
+                <div class="flex items-center gap-1">
+                    ${isBidInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-emerald-500 text-slate-950 uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
+                    <span class="${isBidInStack ? 'text-emerald-300 font-bold' : 'text-slate-400'}">${b.orders || 1}</span>
+                </div>
+            ` : '-';
+
+            let askOrderHtml = a ? `
+                <div class="flex items-center justify-end gap-1">
+                    <span class="${isAskInStack ? 'text-rose-300 font-bold' : 'text-slate-400'}">${a.orders || 1}</span>
+                    ${isAskInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-rose-500 text-white uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
+                </div>
+            ` : '-';
+
             html += `
             <div class="${rowClasses}">
                 
                 {{-- Bid Orders --}}
-                <div class="col-span-2 text-left text-slate-400 text-[10px]">
-                    ${b ? (b.orders || 1) : '-'}
-                    ${isBidInStack ? '<span class="text-[9px] text-emerald-300 font-black">🌊</span>' : ''}
+                <div class="col-span-2 text-left text-[10px]">
+                    ${bidOrderHtml}
                 </div>
 
-                {{-- Bid Qty with horizontal fill bar & block badge --}}
-                <div class="col-span-2 text-right relative pr-1.5 ${isBidBlock ? 'ring-1 ring-amber-400 bg-amber-500/20 rounded' : ''}">
+                {{-- Bid Qty with horizontal fill bar & block/stack highlight --}}
+                <div class="col-span-2 text-right relative pr-1.5 ${isBidBlock && !isBidInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
                     <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/20 rounded-l ${isBidBlock ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
-                    <span class="relative font-mono font-bold text-slate-100 ${isBidBlock ? 'text-amber-300 font-black' : (isBidInStack ? 'text-emerald-300 font-black' : '')}">
-                        ${b ? (isBidBlock ? '⚡ ' : '') + b.qty.toLocaleString() : '-'}
-                    </span>
+                    ${bidQtyHtml}
                 </div>
 
                 {{-- Bid Price --}}
@@ -1291,18 +1528,15 @@
                     ${a ? a.price.toFixed(2) : '-'}
                 </div>
 
-                {{-- Ask Qty with horizontal fill bar & block badge --}}
-                <div class="col-span-2 text-left relative pl-1.5 ${isAskBlock ? 'ring-1 ring-amber-400 bg-amber-500/20 rounded' : ''}">
+                {{-- Ask Qty with horizontal fill bar & block/stack highlight --}}
+                <div class="col-span-2 text-left relative pl-1.5 ${isAskBlock && !isAskInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
                     <div class="absolute left-0 top-0 bottom-0 bg-rose-500/20 rounded-r ${isAskBlock ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
-                    <span class="relative font-mono font-bold text-slate-100 ${isAskBlock ? 'text-amber-300 font-black' : (isAskInStack ? 'text-rose-300 font-black' : '')}">
-                        ${a ? (isAskBlock ? '⚡ ' : '') + a.qty.toLocaleString() : '-'}
-                    </span>
+                    ${askQtyHtml}
                 </div>
 
                 {{-- Ask Orders --}}
-                <div class="col-span-2 text-right text-slate-400 text-[10px]">
-                    ${isAskInStack ? '<span class="text-[9px] text-rose-300 font-black">🌊</span>' : ''}
-                    ${a ? (a.orders || 1) : '-'}
+                <div class="col-span-2 text-right text-[10px]">
+                    ${askOrderHtml}
                 </div>
 
             </div>
@@ -1562,28 +1796,12 @@
     }
 
     function triggerAlertAudio(type) {
-        if (!state.soundEnabled) return;
+        if (!state.soundEnabled || !alertSettings.soundEnabled) return;
         const now = Date.now();
         if (now - state.lastAlertTime < 30000) return;
         state.lastAlertTime = now;
 
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(type === 'BUY' ? 880 : 440, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(type === 'BUY' ? 1200 : 330, ctx.currentTime + 0.25);
-
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.25);
-        } catch (e) {}
+        playSynthesizedAlert(alertSettings.soundProfile || 'crystal', type);
     }
 
     // ── 15. HIGH-FIDELITY MICRO-SIMULATOR (WITH STACK & BLOCK INJECTIONS) ──
