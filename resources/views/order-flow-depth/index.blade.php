@@ -159,11 +159,6 @@
         </div>
     </div>
 
-    {{-- ════════════════════════ LIVE DIRECTIONAL LIQUIDITY ALERT BANNER ════════════════════════ --}}
-    <div id="liquidity-alert-banner" class="hidden transition-all duration-300">
-        {{-- Injected dynamically when Single Block or Consecutive Stack is active --}}
-    </div>
-
     {{-- ════════════════════════ 2. THREE-COLUMN COMMAND DASHBOARD (NO SCROLL) ════════════════════════ --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-start">
         
@@ -469,9 +464,32 @@
 
         </div>
 
-        {{-- ───────────────────── COLUMN 3: MICRO-PRICE, CONFLUENCE, OBI & LIQUIDITY WALLS ───────────────────── --}}
+        {{-- ───────────────────── COLUMN 3: NOTIFICATIONS, MICRO-PRICE, CONFLUENCE, OBI & LIQUIDITY WALLS ───────────────────── --}}
         <div class="lg:col-span-3 space-y-2.5">
             
+            {{-- 0. Microstructure & Directional Liquidity Alert Banner (Non-Jumping Fixed Placeholder) --}}
+            <div id="liquidity-alert-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="relative flex h-2 w-2">
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
+                                <span>🛡️ Microstructure Radar</span>
+                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">NORMAL</span>
+                            </span>
+                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
+                                No active block or stack alerts. Order flow stable.
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        MONITORING
+                    </span>
+                </div>
+            </div>
+
             {{-- 1. Depth-Weighted Micro-Price & Lead Drift --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
                 <div class="flex items-center justify-between">
@@ -1535,9 +1553,32 @@
     };
 
     window.dismissAlertBanner = function() {
-        const banner = document.getElementById('liquidity-alert-banner');
-        if (banner) banner.className = 'hidden';
         state.dismissedAlertKey = state.currentAlertKey;
+        const banner = document.getElementById('liquidity-alert-banner');
+        if (banner) {
+            banner.className = 'bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="relative flex h-2 w-2">
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
+                                <span>🛡️ Microstructure Radar</span>
+                                <span class="text-[8px] bg-slate-950 text-slate-400 border border-slate-800 px-1 py-0.2 rounded font-mono">MUTED</span>
+                            </span>
+                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
+                                Alert dismissed. Resuming background order flow monitoring.
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-[8px] text-slate-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        MUTED
+                    </span>
+                </div>
+            `;
+        }
     };
 
     window.copyOrderDetails = function() {
@@ -2099,10 +2140,35 @@
         return { bidStack, askStack };
     }
 
-    // ── 11. DIRECTIONAL ALERT BANNER ──
+    // ── 11. DIRECTIONAL ALERT BANNER (COLUMN 3 TOP DOCKED WIDGET) ──
     function renderAlertBanner(bidStack, askStack, heavyBidBlock = null, heavyAskBlock = null) {
         const banner = document.getElementById('liquidity-alert-banner');
         if (!banner) return;
+
+        function renderAlertPlaceholder(msg = 'No active block or stack alerts. Order flow stable.', status = 'NORMAL') {
+            banner.className = 'bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="relative flex h-2 w-2">
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
+                                <span>🛡️ Microstructure Radar</span>
+                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">${status}</span>
+                            </span>
+                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
+                                ${msg}
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        MONITORING
+                    </span>
+                </div>
+            `;
+        }
 
         let alertType = null;
         let alertKey = '';
@@ -2129,7 +2195,7 @@
         }
 
         if (!alertType) {
-            banner.className = 'hidden';
+            renderAlertPlaceholder();
             state.currentAlertKey = '';
             return;
         }
@@ -2138,38 +2204,35 @@
 
         // Respect manual dismissal of this specific alert until a new event occurs
         if (state.dismissedAlertKey === alertKey) {
-            banner.className = 'hidden';
+            renderAlertPlaceholder('Alert dismissed. Resuming background order book scan.', 'MUTED');
             return;
         }
 
         const soundProfileLabel = getSoundProfileLabel(alertSettings.soundProfile || 'crystal');
 
         if (alertType === 'STACK_BUY') {
-            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950 via-emerald-900/90 to-slate-900 border-2 border-emerald-500/80 shadow-lg shadow-emerald-500/10 text-white';
+            banner.className = 'bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 border-2 border-emerald-500/80 rounded-xl p-2.5 shadow-xl shadow-emerald-500/15 text-white space-y-1.5 transition-all duration-300';
             banner.innerHTML = `
-                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base animate-bounce">🚀</span>
-                        <div>
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                                    BULLISH LIQUIDITY STACK (${bidStack.count} CONTINUOUS LEVELS)
-                                </span>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
-                                    🔊 Sound: ${soundProfileLabel} (Bull Tone)
-                                </span>
-                            </div>
-                            <p class="font-black text-emerald-200 text-xs mt-0.5 font-mono">
-                                ${bidStack.count} Consecutive Bid Levels Stacked (Total ${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)})
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-emerald-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-emerald-500/50">
-                            ⚡ DIRECTION: GO LONG / BUY CALL
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">🚀</span>
+                        <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                            BULLISH STACK (${bidStack.count} LEVELS)
                         </span>
-                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
                     </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight">
+                        ${bidStack.count} Bid Levels · ${bidStack.totalQty.toLocaleString()} Qty
+                    </p>
+                    <span class="text-[9px] text-slate-400 font-mono">₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                        ⚡ DIRECTION: GO LONG
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bull)</span>
                 </div>
             `;
             triggerStackAlertAudio('BUY');
@@ -2199,31 +2262,28 @@
             }
 
         } else if (alertType === 'STACK_SELL') {
-            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950 via-rose-900/90 to-slate-900 border-2 border-rose-500/80 shadow-lg shadow-rose-500/10 text-white';
+            banner.className = 'bg-gradient-to-br from-rose-950 via-slate-900 to-slate-950 border-2 border-rose-500/80 rounded-xl p-2.5 shadow-xl shadow-rose-500/15 text-white space-y-1.5 transition-all duration-300';
             banner.innerHTML = `
-                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base animate-bounce">🩸</span>
-                        <div>
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
-                                    BEARISH LIQUIDITY STACK (${askStack.count} CONTINUOUS LEVELS)
-                                </span>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
-                                    🔊 Sound: ${soundProfileLabel} (Bear Tone)
-                                </span>
-                            </div>
-                            <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
-                                ${askStack.count} Consecutive Ask Levels Stacked (Total ${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)})
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-rose-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-rose-500/50">
-                            ⚡ DIRECTION: GO SHORT / BUY PUT
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">🩸</span>
+                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                            BEARISH STACK (${askStack.count} LEVELS)
                         </span>
-                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
                     </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
+                        ${askStack.count} Ask Levels · ${askStack.totalQty.toLocaleString()} Qty
+                    </p>
+                    <span class="text-[9px] text-slate-400 font-mono">₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
+                        ⚡ DIRECTION: GO SHORT
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bear)</span>
                 </div>
             `;
             triggerStackAlertAudio('SELL');
@@ -2253,31 +2313,28 @@
             }
 
         } else if (alertType === 'BLOCK_BUY') {
-            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-slate-900 border-2 border-amber-400/90 shadow-lg shadow-amber-400/20 text-white';
+            banner.className = 'bg-gradient-to-br from-amber-950/90 via-slate-900 to-slate-950 border-2 border-amber-400/90 rounded-xl p-2.5 shadow-xl shadow-amber-400/20 text-white space-y-1.5 transition-all duration-300';
             banner.innerHTML = `
-                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base animate-bounce">⚡</span>
-                        <div>
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                                    INSTITUTIONAL BID BLOCK (LEVEL ${heavyBidBlock.level})
-                                </span>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
-                                    🔊 Sound: ${soundProfileLabel} (Bull Tone)
-                                </span>
-                            </div>
-                            <p class="font-black text-amber-200 text-xs mt-0.5 font-mono">
-                                Heavy Resting Buy Wall: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-emerald-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-emerald-500/50">
-                            🛡️ STRONG SUPPORT / ACCUMULATION
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">⚡</span>
+                        <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                            BID BLOCK (LVL ${heavyBidBlock.level})
                         </span>
-                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
                     </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-amber-300 text-xs font-mono leading-tight">
+                        ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)}
+                    </p>
+                    <span class="text-[9px] text-slate-400 font-mono">Resting Buy Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                        🛡️ STRONG SUPPORT WALL
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
             triggerStackAlertAudio('BUY');
@@ -2307,31 +2364,28 @@
             }
 
         } else if (alertType === 'BLOCK_SELL') {
-            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-rose-950/90 to-slate-900 border-2 border-rose-400/90 shadow-lg shadow-rose-400/20 text-white';
+            banner.className = 'bg-gradient-to-br from-amber-950/90 via-slate-900 to-slate-950 border-2 border-rose-400/90 rounded-xl p-2.5 shadow-xl shadow-rose-400/20 text-white space-y-1.5 transition-all duration-300';
             banner.innerHTML = `
-                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base animate-bounce">⚡</span>
-                        <div>
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
-                                    INSTITUTIONAL ASK BLOCK (LEVEL ${heavyAskBlock.level})
-                                </span>
-                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
-                                    🔊 Sound: ${soundProfileLabel} (Bear Tone)
-                                </span>
-                            </div>
-                            <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
-                                Heavy Resting Sell Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-rose-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-rose-500/50">
-                            🚧 STRONG RESISTANCE / SUPPLY
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">⚡</span>
+                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                            ASK BLOCK (LVL ${heavyAskBlock.level})
                         </span>
-                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
                     </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
+                        ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)}
+                    </p>
+                    <span class="text-[9px] text-slate-400 font-mono">Resting Sell Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
+                        🚧 STRONG RESISTANCE WALL
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
             triggerStackAlertAudio('SELL');
@@ -2360,7 +2414,7 @@
                 });
             }
         } else {
-            banner.className = 'hidden';
+            renderAlertPlaceholder();
         }
     }
 
