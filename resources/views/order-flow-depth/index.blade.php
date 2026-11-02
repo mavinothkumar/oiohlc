@@ -516,6 +516,10 @@
                         <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
                             JSON
                         </button>
+                        <button onclick="switchMiniTab('mini-alerts')" id="btn-mini-alerts" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition flex items-center gap-1">
+                            <span>Alerts ⚡</span>
+                            <span id="badge-alert-count" class="px-1 rounded bg-amber-500/20 text-amber-300 text-[8.5px] font-mono">0</span>
+                        </button>
                         <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
                             Journal 📖
                         </button>
@@ -564,7 +568,22 @@
                     <pre id="raw-json-inspector" class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-[9px] text-emerald-400 font-mono overflow-x-auto max-h-32">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
                 </div>
 
-                {{-- Mini Tab Pane 4: Today's Opportunity Journal & Outcome Audit --}}
+                {{-- Mini Tab Pane 4: Live Session Alert Feed & Trigger Reason --}}
+                <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-1.5 text-[10px]">
+                    <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider">Live Alarm Trigger Feed:</span>
+                        <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[9px] font-bold">
+                            Clear Feed
+                        </button>
+                    </div>
+                    <div id="live-alerts-history-container" class="space-y-1 overflow-y-auto max-h-48 pr-0.5">
+                        <div class="text-center py-6 text-slate-500 text-[10px]">
+                            No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 5: Today's Opportunity Journal & Outcome Audit --}}
                 <div id="pane-mini-journal" class="mini-tab-pane hidden space-y-2 text-[10px]">
                     {{-- Performance Scorecard Summary --}}
                     <div class="grid grid-cols-4 gap-1 text-center bg-slate-950 p-1.5 rounded-lg border border-slate-800">
@@ -1461,6 +1480,8 @@
             return;
         }
 
+        const soundProfileLabel = getSoundProfileLabel(alertSettings.soundProfile || 'crystal');
+
         if (alertType === 'STACK_BUY') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950 via-emerald-900/90 to-slate-900 border-2 border-emerald-500/80 shadow-lg shadow-emerald-500/10 text-white';
             banner.innerHTML = `
@@ -1468,9 +1489,14 @@
                     <div class="flex items-center gap-2">
                         <span class="text-base animate-bounce">🚀</span>
                         <div>
-                            <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                                BULLISH LIQUIDITY STACK (${bidStack.count} CONTINUOUS LEVELS)
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                                    BULLISH LIQUIDITY STACK (${bidStack.count} CONTINUOUS LEVELS)
+                                </span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
+                                    🔊 Sound: ${soundProfileLabel} (Bull Tone)
+                                </span>
+                            </div>
                             <p class="font-black text-emerald-200 text-xs mt-0.5 font-mono">
                                 ${bidStack.count} Consecutive Bid Levels Stacked (Total ${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)})
                             </p>
@@ -1485,6 +1511,31 @@
                 </div>
             `;
             triggerStackAlertAudio('BUY');
+
+            recordAlertEvent({
+                type: 'STACK_BUY',
+                side: 'BUY',
+                title: `Bullish Stack (${bidStack.count} Levels)`,
+                details: `${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}`,
+                guidance: '⚡ Direction: GO LONG / BUY CALL'
+            });
+
+            if (alertSettings.autoLog) {
+                logOpportunityCall({
+                    signalType: 'BUY_STACK',
+                    action: 'BUY (LIQUIDITY STACK)',
+                    symbol: state.symbol,
+                    entryPrice: state.depthData.ltp,
+                    slPrice: (bidStack.lowP - 0.20).toFixed(2),
+                    targetPrice: (state.depthData.ltp + 45.0).toFixed(2),
+                    optEstEntry: 140,
+                    optEstSl: 118,
+                    optEstTgt: 185,
+                    confluence: 75,
+                    rationale: `🌊 Bullish Stack: ${bidStack.count} Consecutive Levels (${bidStack.totalQty.toLocaleString()} Qty)`
+                });
+            }
+
         } else if (alertType === 'STACK_SELL') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950 via-rose-900/90 to-slate-900 border-2 border-rose-500/80 shadow-lg shadow-rose-500/10 text-white';
             banner.innerHTML = `
@@ -1492,9 +1543,14 @@
                     <div class="flex items-center gap-2">
                         <span class="text-base animate-bounce">🩸</span>
                         <div>
-                            <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
-                                BEARISH LIQUIDITY STACK (${askStack.count} CONTINUOUS LEVELS)
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                                    BEARISH LIQUIDITY STACK (${askStack.count} CONTINUOUS LEVELS)
+                                </span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
+                                    🔊 Sound: ${soundProfileLabel} (Bear Tone)
+                                </span>
+                            </div>
                             <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
                                 ${askStack.count} Consecutive Ask Levels Stacked (Total ${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)})
                             </p>
@@ -1509,6 +1565,31 @@
                 </div>
             `;
             triggerStackAlertAudio('SELL');
+
+            recordAlertEvent({
+                type: 'STACK_SELL',
+                side: 'SELL',
+                title: `Bearish Stack (${askStack.count} Levels)`,
+                details: `${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}`,
+                guidance: '⚡ Direction: GO SHORT / BUY PUT'
+            });
+
+            if (alertSettings.autoLog) {
+                logOpportunityCall({
+                    signalType: 'SELL_STACK',
+                    action: 'SELL (LIQUIDITY STACK)',
+                    symbol: state.symbol,
+                    entryPrice: state.depthData.ltp,
+                    slPrice: (askStack.highP + 0.20).toFixed(2),
+                    targetPrice: (state.depthData.ltp - 45.0).toFixed(2),
+                    optEstEntry: 140,
+                    optEstSl: 118,
+                    optEstTgt: 185,
+                    confluence: 25,
+                    rationale: `🌊 Bearish Stack: ${askStack.count} Consecutive Levels (${askStack.totalQty.toLocaleString()} Qty)`
+                });
+            }
+
         } else if (alertType === 'BLOCK_BUY') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-slate-900 border-2 border-amber-400/90 shadow-lg shadow-amber-400/20 text-white';
             banner.innerHTML = `
@@ -1516,9 +1597,14 @@
                     <div class="flex items-center gap-2">
                         <span class="text-base animate-bounce">⚡</span>
                         <div>
-                            <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                                INSTITUTIONAL BID BLOCK DETECTED (LEVEL ${heavyBidBlock.level})
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                                    INSTITUTIONAL BID BLOCK (LEVEL ${heavyBidBlock.level})
+                                </span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
+                                    🔊 Sound: ${soundProfileLabel} (Bull Tone)
+                                </span>
+                            </div>
                             <p class="font-black text-amber-200 text-xs mt-0.5 font-mono">
                                 Heavy Resting Buy Wall: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
                             </p>
@@ -1533,6 +1619,31 @@
                 </div>
             `;
             triggerStackAlertAudio('BUY');
+
+            recordAlertEvent({
+                type: 'BLOCK_BUY',
+                side: 'BUY',
+                title: `Heavy Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty`,
+                details: `₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`,
+                guidance: '🛡️ Strong Support Wall / Accumulation'
+            });
+
+            if (alertSettings.autoLog) {
+                logOpportunityCall({
+                    signalType: 'BUY_BLOCK',
+                    action: 'BUY (SUPPORT WALL)',
+                    symbol: state.symbol,
+                    entryPrice: heavyBidBlock.price,
+                    slPrice: (heavyBidBlock.price - 0.20).toFixed(2),
+                    targetPrice: (state.depthData.ltp + 35.0).toFixed(2),
+                    optEstEntry: 135,
+                    optEstSl: 115,
+                    optEstTgt: 175,
+                    confluence: 70,
+                    rationale: `⚡ Institutional Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`
+                });
+            }
+
         } else if (alertType === 'BLOCK_SELL') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-rose-950/90 to-slate-900 border-2 border-rose-400/90 shadow-lg shadow-rose-400/20 text-white';
             banner.innerHTML = `
@@ -1540,9 +1651,14 @@
                     <div class="flex items-center gap-2">
                         <span class="text-base animate-bounce">⚡</span>
                         <div>
-                            <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
-                                INSTITUTIONAL ASK BLOCK DETECTED (LEVEL ${heavyAskBlock.level})
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                                    INSTITUTIONAL ASK BLOCK (LEVEL ${heavyAskBlock.level})
+                                </span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-950 font-bold border border-slate-800 text-amber-300 font-mono">
+                                    🔊 Sound: ${soundProfileLabel} (Bear Tone)
+                                </span>
+                            </div>
                             <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
                                 Heavy Resting Sell Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
                             </p>
@@ -1557,6 +1673,30 @@
                 </div>
             `;
             triggerStackAlertAudio('SELL');
+
+            recordAlertEvent({
+                type: 'BLOCK_SELL',
+                side: 'SELL',
+                title: `Heavy Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty`,
+                details: `₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`,
+                guidance: '🚧 Strong Resistance Wall / Supply'
+            });
+
+            if (alertSettings.autoLog) {
+                logOpportunityCall({
+                    signalType: 'SELL_BLOCK',
+                    action: 'SELL (RESISTANCE WALL)',
+                    symbol: state.symbol,
+                    entryPrice: heavyAskBlock.price,
+                    slPrice: (heavyAskBlock.price + 0.20).toFixed(2),
+                    targetPrice: (state.depthData.ltp - 35.0).toFixed(2),
+                    optEstEntry: 135,
+                    optEstSl: 115,
+                    optEstTgt: 175,
+                    confluence: 30,
+                    rationale: `⚡ Institutional Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`
+                });
+            }
         } else {
             banner.className = 'hidden';
         }
@@ -1710,6 +1850,92 @@
             console.warn('Audio playback error:', e);
         }
     }
+
+    function getSoundProfileLabel(profile) {
+        const labels = {
+            crystal: '🔔 Crystal Chime',
+            radar: '📡 Radar Sonar',
+            laser: '⚡ Cyber Laser',
+            marimba: '🎶 Warm Marimba',
+            tactical: '🎯 Tactical Pip'
+        };
+        return labels[profile] || '🔔 Chime';
+    }
+
+    function recordAlertEvent(event) {
+        state.recentAlertEvents = state.recentAlertEvents || [];
+        if (state.recentAlertEvents.length > 0) {
+            const last = state.recentAlertEvents[0];
+            if (last.type === event.type && (Date.now() - last.timestamp) < 6000) {
+                return;
+            }
+        }
+
+        const alertItem = {
+            id: Date.now(),
+            timestamp: Date.now(),
+            time: new Date().toLocaleTimeString('en-IN', { hour12: false }),
+            type: event.type,
+            side: event.side,
+            title: event.title,
+            details: event.details,
+            sound: getSoundProfileLabel(alertSettings.soundProfile || 'crystal'),
+            guidance: event.guidance || ''
+        };
+
+        state.recentAlertEvents.unshift(alertItem);
+        if (state.recentAlertEvents.length > 50) {
+            state.recentAlertEvents.pop();
+        }
+
+        renderAlertFeedUI();
+    }
+
+    function renderAlertFeedUI() {
+        const countBadge = document.getElementById('badge-alert-count');
+        const container = document.getElementById('live-alerts-history-container');
+        if (countBadge) countBadge.textContent = (state.recentAlertEvents || []).length;
+
+        if (!container) return;
+        if (!state.recentAlertEvents || state.recentAlertEvents.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.</div>`;
+            return;
+        }
+
+        let html = '';
+        state.recentAlertEvents.forEach(a => {
+            const isBuy = (a.side === 'BUY');
+            const isBlock = a.type.includes('BLOCK');
+            const isStack = a.type.includes('STACK');
+            const badgeBg = isBlock ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : (isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40');
+            const badgeIcon = isBlock ? '⚡ BLOCK' : (isStack ? '🌊 STACK' : (isBuy ? '🚀 BUY' : '🩸 SELL'));
+
+            html += `
+            <div class="p-1.5 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 font-mono">
+                        <span class="text-slate-400 text-[9px]">${a.time}</span>
+                        <span class="px-1 py-0.2 rounded font-black text-[8px] uppercase ${badgeBg}">
+                            ${badgeIcon}
+                        </span>
+                        <span class="font-bold text-white text-[10.5px] truncate max-w-[130px]">${a.title}</span>
+                    </div>
+                    <span class="text-[8.5px] text-amber-400 font-mono bg-slate-900 px-1 py-0.2 rounded border border-slate-800">${a.sound}</span>
+                </div>
+                <div class="flex items-center justify-between text-[9px] text-slate-300 pt-0.5 border-t border-slate-900">
+                    <span class="text-slate-400 font-mono">${a.details}</span>
+                    <span class="font-bold ${isBuy ? 'text-emerald-400' : 'text-rose-400'}">${a.guidance}</span>
+                </div>
+            </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    window.clearLiveAlertHistory = function() {
+        state.recentAlertEvents = [];
+        renderAlertFeedUI();
+    };
 
     function triggerStackAlertAudio(side) {
         if (!state.soundEnabled || !alertSettings.soundEnabled) return;
@@ -2280,6 +2506,14 @@
 
             triggerAlertAudio('BUY');
 
+            recordAlertEvent({
+                type: 'STRATEGY_BUY',
+                side: 'BUY',
+                title: 'High-Confidence BUY Setup',
+                details: `${totalConfluence}% Confluence (${instLabel})`,
+                guidance: '⚡ Direction: GO LONG / BUY CALL'
+            });
+
         } else if (totalConfluence <= 35 || isUnifiedSell) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
             if (sigPill) {
@@ -2310,6 +2544,14 @@
             }
 
             triggerAlertAudio('SELL');
+
+            recordAlertEvent({
+                type: 'STRATEGY_SELL',
+                side: 'SELL',
+                title: 'High-Confidence SELL Setup',
+                details: `${totalConfluence}% Confluence (${instLabel})`,
+                guidance: '⚡ Direction: GO SHORT / BUY PUT'
+            });
 
         } else {
             if (sigText) sigText.textContent = '⏸️ BALANCED / WAIT FOR SIGNAL';
@@ -2451,31 +2693,31 @@
     async function logOpportunityCall(tradeSetup) {
         if (!alertSettings.autoLog) return;
         const now = Date.now();
-        if (now - state.lastSignalLogTime < 45000) return; // 45s debounce between identical calls
+        if (now - state.lastSignalLogTime < 15000) return; // 15s debounce between calls
         state.lastSignalLogTime = now;
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
             const payload = {
                 mode: state.feedMode,
-                symbol: state.symbol,
-                signal_type: tradeSetup.action.includes('CALL') ? 'BUY_CE' : 'BUY_PE',
+                symbol: state.symbol || 'NIFTY',
+                signal_type: tradeSetup.signalType || (tradeSetup.action.includes('CALL') ? 'BUY_CE' : (tradeSetup.action.includes('BUY') ? 'BUY_BLOCK' : 'SELL_BLOCK')),
                 action: tradeSetup.action,
-                instrument: tradeSetup.symbol,
+                instrument: tradeSetup.symbol || state.activeInstrumentKey || 'NIFTY FUT',
                 spot_price: state.depthData.ltp,
                 future_price: state.depthData.ltp,
-                entry_price: state.depthData.ltp,
+                entry_price: parseFloat(tradeSetup.entryPrice || state.depthData.ltp),
                 stop_loss: parseFloat(tradeSetup.slPrice),
                 target_price: parseFloat(tradeSetup.targetPrice),
                 opt_strike: tradeSetup.strike || Math.round(state.depthData.ltp / 50) * 50,
-                opt_type: tradeSetup.action.includes('CALL') ? 'CE' : 'PE',
+                opt_type: (tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY')) ? 'CE' : 'PE',
                 opt_entry: tradeSetup.optEstEntry || 135,
                 opt_sl: tradeSetup.optEstSl || 115,
                 opt_target: tradeSetup.optEstTgt || 175,
-                confluence_score: tradeSetup.confluence,
+                confluence_score: tradeSetup.confluence || 50,
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
-                trigger_reason: tradeSetup.rationale || 'High confluence alignment'
+                trigger_reason: tradeSetup.rationale || 'Liquidity event'
             };
 
             const resp = await fetch(`{{ route('api.order-flow.log-signal') }}`, {
@@ -2505,7 +2747,7 @@
 
         for (let i = state.activeLoggedSignals.length - 1; i >= 0; i--) {
             const sig = state.activeLoggedSignals[i];
-            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL'));
+            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL') || sig.action.includes('BUY'));
             const pnlPts = isBuy ? (currentLtp - sig.entry_price) : (sig.entry_price - currentLtp);
 
             sig.max_favorable_pts = Math.max(sig.max_favorable_pts || 0, pnlPts);
@@ -2581,7 +2823,7 @@
 
                 let html = '';
                 res.logs.forEach(l => {
-                    const isBuy = l.action.includes('CALL');
+                    const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY'));
                     let statusBadge = '';
                     if (l.status === 'TARGET_HIT') {
                         statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-500 text-slate-950 uppercase">TARGET HIT (+${l.pnl_points} pts)</span>`;
@@ -2591,18 +2833,21 @@
                         statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
                     }
 
+                    const actionBadgeText = l.action.includes('WALL') ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') : (l.action.includes('STACK') ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') : (isBuy ? '▲ CALL' : '▼ PUT'));
+
                     html += `
                     <div class="p-1.5 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-1 font-mono">
                                 <span class="text-slate-400 text-[9px]">${l.signal_time}</span>
-                                <span class="px-1 py-0.2 rounded font-black text-[8.5px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
-                                    ${isBuy ? '▲ CALL' : '▼ PUT'}
+                                <span class="px-1 py-0.2 rounded font-black text-[8px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
+                                    ${actionBadgeText}
                                 </span>
                                 <span class="font-bold text-white text-[10.5px] truncate max-w-[120px]">${l.instrument}</span>
                             </div>
                             <div>${statusBadge}</div>
                         </div>
+                        <div class="text-[9px] text-amber-300/90 font-sans truncate">${l.trigger_reason || l.action}</div>
                         <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-0.5 border-t border-slate-900">
                             <span>Entry: ₹${l.entry_price}</span>
                             <span class="text-rose-400">SL: ₹${l.stop_loss}</span>
