@@ -184,22 +184,31 @@
                         <span class="text-rose-400 font-bold">● Asks</span>
                         <span id="legend-block-tag" class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black text-[9px]">⚡ Block (≥2,500)</span>
                         <span id="legend-stack-tag" class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-black text-[9px]">🌊 Stack (≥3 Lvl)</span>
+                        <span class="px-1.5 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-300 font-black text-[9px]">👑 POC (Anchor)</span>
                     </div>
                 </div>
 
-                {{-- Prominent Current Trading Price (LTP) Sticky Highlight Bar --}}
-                <div id="dom-ltp-highlight-banner" class="mb-1.5 py-1 px-2.5 rounded-lg bg-gradient-to-r from-amber-500/15 via-amber-500/25 to-amber-500/15 border border-amber-400/80 flex items-center justify-between text-xs font-black shadow-md shadow-amber-500/5">
+                {{-- Prominent Current Trading Price (LTP) Sticky Highlight Bar with Micro-Price Pull Vector & Spread Guard --}}
+                <div id="dom-ltp-highlight-banner" class="mb-1.5 py-1 px-2.5 rounded-lg bg-gradient-to-r from-amber-500/15 via-amber-500/25 to-amber-500/15 border border-amber-400/80 flex items-center justify-between flex-wrap gap-1 text-xs font-black shadow-md shadow-amber-500/5">
                     <div class="flex items-center gap-1.5">
                         <span class="relative flex h-2 w-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
                         </span>
-                        <span class="text-slate-300 text-[10px] uppercase tracking-wider font-extrabold">Current Trading Price (LTP):</span>
+                        <span class="text-slate-300 text-[10px] uppercase tracking-wider font-extrabold">LTP:</span>
                         <span id="banner-ltp-val" class="text-xs sm:text-sm font-black text-white bg-slate-950 px-2 py-0.2 rounded border border-amber-400/60 font-mono">
                             ₹--
                         </span>
+                        {{-- Directional Vector Pull Arrow --}}
+                        <div id="banner-micro-vector" class="ml-1 px-1.5 py-0.2 rounded bg-slate-950/80 border border-slate-700/60 text-[10px] font-mono">
+                            <span class="text-slate-400">➔ BALANCED</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 text-[10px]">
+                    <div class="flex items-center gap-1.5 text-[10px]">
+                        {{-- Spread Traffic Light Guard --}}
+                        <span id="banner-spread-guard" class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            🟢 TIGHT SPREAD
+                        </span>
                         <span class="text-slate-400">Spread: <strong id="banner-spread-val" class="text-white font-mono">0.05 pts</strong></span>
                         <span id="banner-vwap-pill" class="px-1.5 py-0.2 rounded bg-slate-950 text-cyan-300 border border-slate-800 font-mono">
                             VWAP: ₹--
@@ -292,6 +301,41 @@
                     <p id="trade-rationale" class="line-clamp-2 leading-relaxed">
                         Awaiting 30-depth order book alignment with quant and heavyweight breadth.
                     </p>
+                </div>
+
+                {{-- ⚡ DIRECT OPTION STRIKE EXECUTION CARD (Options Trader Mode) --}}
+                <div class="mt-2 p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs">⚡</span>
+                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider">Option Strike Recommendation:</span>
+                            <span id="opt-rec-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400">STAND ASIDE</span>
+                        </div>
+                        <button type="button" onclick="copyOrderDetails()" id="btn-copy-order" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
+                            <span>📋</span>
+                            <span>Copy Order</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Suggested Strike</span>
+                            <span id="opt-rec-strike" class="text-[11px] font-black text-amber-300 truncate mt-0.5 block font-mono">--</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Option Entry</span>
+                            <span id="opt-rec-entry" class="text-[11px] font-bold text-white font-mono mt-0.5 block">--</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">SL / Target</span>
+                            <span id="opt-rec-sltgt" class="text-[10px] font-bold text-slate-300 font-mono mt-0.5 block">--</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5 px-0.5">
+                        <span id="opt-rec-note">Calculated for NIFTY Derivatives (Lot Size: 25)</span>
+                        <span id="opt-copy-status" class="text-emerald-400 font-bold hidden animate-pulse">✓ Copied to clipboard!</span>
+                    </div>
                 </div>
             </div>
 
@@ -792,6 +836,26 @@
         if (banner) banner.className = 'hidden';
     };
 
+    window.copyOrderDetails = function() {
+        const trade = state.currentOptionTrade;
+        if (!trade || trade.action === 'WAIT') {
+            alert('No active directional signal. Stand aside during neutral chop to preserve capital.');
+            return;
+        }
+
+        const textToCopy = `ACTION: ${trade.action}\nINSTRUMENT: ${trade.symbol}\nENTRY ZONE: ${trade.entry}\nSTOP LOSS: ${trade.sl}\nTARGET: ${trade.target}\nLOT SIZE: ${trade.lotSize}\nCONFLUENCE: ${trade.confluence}%\nMICRO-DRIFT: ${trade.drift}`;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const copyStatus = document.getElementById('opt-copy-status');
+            if (copyStatus) {
+                copyStatus.classList.remove('hidden');
+                setTimeout(() => copyStatus.classList.add('hidden'), 2500);
+            }
+        }).catch(err => {
+            console.error('Failed to copy order:', err);
+        });
+    };
+
     // ── 2. GLOBAL APP STATE ──
     const state = {
         symbol: "NIFTY",
@@ -809,6 +873,8 @@
         soundEnabled: true,
         lastAlertTime: 0,
         lastStackAlertTime: 0,
+        currentOptionTrade: null,
+        wallPersistence: {},
         
         // 30 Depth Data Store
         depthData: {
@@ -827,6 +893,7 @@
             obi20: 0,
             obi30: 0,
             liquidityWalls: [],
+            pulledSpoofCount: 0,
             absorptionPct: 0,
             bidStack: null,
             askStack: null
@@ -1077,20 +1144,92 @@
         const walls = [];
         let avgBidQ = bids.length > 0 ? (bids.reduce((acc, b) => acc + b.qty, 0) / bids.length) : 500;
         let avgAskQ = asks.length > 0 ? (asks.reduce((acc, a) => acc + a.qty, 0) / asks.length) : 500;
+        const currentSeenKeys = new Set();
+        const now = Date.now();
 
         bids.forEach((b, idx) => {
             if (b.qty >= avgBidQ * 2.2 && b.qty > 500) {
-                walls.push({ side: 'BID', price: b.price, qty: b.qty, level: idx + 1, multiple: (b.qty / avgBidQ).toFixed(1) });
+                const key = `BID_${b.price.toFixed(2)}`;
+                currentSeenKeys.add(key);
+
+                if (!state.wallPersistence[key]) {
+                    state.wallPersistence[key] = {
+                        firstSeen: now,
+                        lastSeen: now,
+                        ticks: 1,
+                        initialQty: b.qty,
+                        maxQty: b.qty,
+                        status: 'DETECTING'
+                    };
+                } else {
+                    const wp = state.wallPersistence[key];
+                    wp.lastSeen = now;
+                    wp.ticks++;
+                    wp.maxQty = Math.max(wp.maxQty, b.qty);
+                    wp.status = wp.ticks >= 3 ? 'GENUINE' : 'DETECTING';
+                }
+
+                walls.push({
+                    side: 'BID',
+                    price: b.price,
+                    qty: b.qty,
+                    level: idx + 1,
+                    multiple: (b.qty / avgBidQ).toFixed(1),
+                    status: state.wallPersistence[key]?.status || 'GENUINE',
+                    ticks: state.wallPersistence[key]?.ticks || 1
+                });
             }
         });
 
         asks.forEach((a, idx) => {
             if (a.qty >= avgAskQ * 2.2 && a.qty > 500) {
-                walls.push({ side: 'ASK', price: a.price, qty: a.qty, level: idx + 1, multiple: (a.qty / avgAskQ).toFixed(1) });
+                const key = `ASK_${a.price.toFixed(2)}`;
+                currentSeenKeys.add(key);
+
+                if (!state.wallPersistence[key]) {
+                    state.wallPersistence[key] = {
+                        firstSeen: now,
+                        lastSeen: now,
+                        ticks: 1,
+                        initialQty: a.qty,
+                        maxQty: a.qty,
+                        status: 'DETECTING'
+                    };
+                } else {
+                    const wp = state.wallPersistence[key];
+                    wp.lastSeen = now;
+                    wp.ticks++;
+                    wp.maxQty = Math.max(wp.maxQty, a.qty);
+                    wp.status = wp.ticks >= 3 ? 'GENUINE' : 'DETECTING';
+                }
+
+                walls.push({
+                    side: 'ASK',
+                    price: a.price,
+                    qty: a.qty,
+                    level: idx + 1,
+                    multiple: (a.qty / avgAskQ).toFixed(1),
+                    status: state.wallPersistence[key]?.status || 'GENUINE',
+                    ticks: state.wallPersistence[key]?.ticks || 1
+                });
             }
         });
 
+        // Scan for pulled/spoofed walls (large orders deleted without price reaching them)
+        let pulledSpoofCount = 0;
+        for (const [key, wp] of Object.entries(state.wallPersistence)) {
+            if (!currentSeenKeys.has(key)) {
+                if (wp.maxQty >= 1500 && (now - wp.lastSeen < 15000) && wp.ticks < 8) {
+                    pulledSpoofCount++;
+                }
+                if (now - wp.lastSeen > 25000) {
+                    delete state.wallPersistence[key];
+                }
+            }
+        }
+
         state.depthData.liquidityWalls = walls;
+        state.depthData.pulledSpoofCount = pulledSpoofCount;
     }
 
     // ── 10. CONSECUTIVE / CONTINUOUS STACK DETECTION ──
@@ -1362,7 +1501,7 @@
         playSynthesizedAlert(alertSettings.soundProfile || 'crystal', side);
     }
 
-    // ── 13. RENDER 30-DEPTH DOM VISUAL LADDER WITH CUSTOM HIGHLIGHTS ──
+    // ── 13. RENDER 30-DEPTH DOM VISUAL LADDER WITH CUSTOM HIGHLIGHTS & HEATMAP ──
     function renderDOM() {
         const container = document.getElementById('dom-rows-container');
         if (!container) return;
@@ -1372,14 +1511,66 @@
         const ltp = state.depthData.ltp;
         const bidStack = state.depthData.bidStack;
         const askStack = state.depthData.askStack;
+        const spread = state.depthData.spread;
+        const microPrice = state.depthData.microPrice;
+        const drift = parseFloat((microPrice - ltp).toFixed(2));
 
-        // Sticky LTP banner
+        // 1. Sticky LTP banner, Spread Traffic Light & Directional Pull Vector
         const bannerLtp = document.getElementById('banner-ltp-val');
         const bannerSpread = document.getElementById('banner-spread-val');
         const bannerVwap = document.getElementById('banner-vwap-pill');
+        const bannerSpreadGuard = document.getElementById('banner-spread-guard');
+        const bannerMicroVector = document.getElementById('banner-micro-vector');
+
         if (bannerLtp) bannerLtp.textContent = `₹${ltp.toFixed(2)}`;
-        if (bannerSpread) bannerSpread.textContent = `${state.depthData.spread.toFixed(2)} pts`;
+        if (bannerSpread) bannerSpread.textContent = `${spread.toFixed(2)} pts`;
         if (bannerVwap) bannerVwap.textContent = `VWAP: ₹${state.depthData.atp > 0 ? state.depthData.atp.toFixed(2) : ltp.toFixed(2)}`;
+
+        // Spread Traffic Light Safety Guard
+        if (bannerSpreadGuard) {
+            if (spread <= 0.35) {
+                bannerSpreadGuard.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/50';
+                bannerSpreadGuard.textContent = '🟢 TIGHT (SAFE)';
+            } else if (spread <= 1.00) {
+                bannerSpreadGuard.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/50';
+                bannerSpreadGuard.textContent = '🟡 MODERATE (LIMIT ONLY)';
+            } else {
+                bannerSpreadGuard.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-rose-500/25 text-rose-300 border border-rose-500/60 animate-pulse';
+                bannerSpreadGuard.textContent = `🔴 WIDE SPREAD (${spread.toFixed(1)} pts)`;
+            }
+        }
+
+        // Micro-Price Directional Vector Pull Arrow
+        if (bannerMicroVector) {
+            if (drift > 0.10) {
+                bannerMicroVector.innerHTML = `<span class="inline-flex items-center gap-1 text-[10px] font-black text-emerald-300 animate-pulse"><span>▲ PULLING UP</span> <span class="font-mono">(+${drift.toFixed(2)} pts)</span></span>`;
+            } else if (drift < -0.10) {
+                bannerMicroVector.innerHTML = `<span class="inline-flex items-center gap-1 text-[10px] font-black text-rose-300 animate-pulse"><span>▼ PULLING DOWN</span> <span class="font-mono">(${drift.toFixed(2)} pts)</span></span>`;
+            } else {
+                bannerMicroVector.innerHTML = `<span class="text-[10px] font-bold text-slate-400">➔ BALANCED (±0.00)</span>`;
+            }
+        }
+
+        // 2. Identify Point of Control (POC Anchor - Heaviest resting volume level)
+        let pocSide = null;
+        let pocIndex = -1;
+        let maxBookQty = 0;
+
+        bids.forEach((b, idx) => {
+            if (b && b.qty > maxBookQty) {
+                maxBookQty = b.qty;
+                pocSide = 'BID';
+                pocIndex = idx;
+            }
+        });
+
+        asks.forEach((a, idx) => {
+            if (a && a.qty > maxBookQty) {
+                maxBookQty = a.qty;
+                pocSide = 'ASK';
+                pocIndex = idx;
+            }
+        });
 
         const maxQty = Math.max(
             ...bids.map(b => b.qty),
@@ -1411,7 +1602,11 @@
             const isBidInStack = bidStack && bidStack.levels.some(x => x.index === i);
             const isAskInStack = askStack && askStack.levels.some(x => x.index === i);
 
-            // 3. LTP Row Check
+            // 3. Point of Control (POC Anchor) Check
+            const isBidPoc = (pocSide === 'BID' && pocIndex === i && maxBookQty >= 1200);
+            const isAskPoc = (pocSide === 'ASK' && pocIndex === i && maxBookQty >= 1200);
+
+            // 4. LTP Row Check
             const isNearLtp = (b && Math.abs(b.price - ltp) < 0.05) || (a && Math.abs(a.price - ltp) < 0.05);
 
             // Dynamic Row Classes
@@ -1422,10 +1617,27 @@
                 rowClasses += "bg-emerald-950/60 border-l-4 border-emerald-400 shadow-[inset_0_0_10px_rgba(16,185,129,0.25)] ";
             } else if (isAskInStack) {
                 rowClasses += "bg-rose-950/60 border-r-4 border-rose-400 shadow-[inset_0_0_10px_rgba(244,63,94,0.25)] ";
+            } else if (isBidPoc || isAskPoc) {
+                rowClasses += "bg-fuchsia-950/30 ring-1 ring-fuchsia-500/50 ";
             } else if (i % 2 === 0) {
                 rowClasses += "bg-slate-950/40 hover:bg-slate-800/60 ";
             } else {
                 rowClasses += "hover:bg-slate-800/60 ";
+            }
+
+            // Heatmap Bar Styling
+            let bidFillClass = 'bg-emerald-500/20';
+            if (b && b.qty >= 3000) {
+                bidFillClass = 'bg-gradient-to-r from-emerald-500/60 via-emerald-400/40 to-emerald-300/30 shadow-[0_0_8px_rgba(16,185,129,0.35)]';
+            } else if (b && b.qty >= 1500) {
+                bidFillClass = 'bg-gradient-to-r from-emerald-500/35 to-emerald-400/25';
+            }
+
+            let askFillClass = 'bg-rose-500/20';
+            if (a && a.qty >= 3000) {
+                askFillClass = 'bg-gradient-to-r from-rose-500/60 via-rose-400/40 to-rose-300/30 shadow-[0_0_8px_rgba(244,63,94,0.35)]';
+            } else if (a && a.qty >= 1500) {
+                askFillClass = 'bg-gradient-to-r from-rose-500/35 to-rose-400/25';
             }
 
             // High-Impact Quantity Content & Badges
@@ -1489,9 +1701,10 @@
                 askQtyHtml = `<span class="text-slate-600">-</span>`;
             }
 
-            // Orders Column Content with Stack Pills
+            // Orders Column Content with Stack Pills & POC Anchor Badges
             let bidOrderHtml = b ? `
                 <div class="flex items-center gap-1">
+                    ${isBidPoc ? '<span class="px-1 py-0.2 rounded text-[7px] font-black bg-fuchsia-500 text-white uppercase tracking-tighter shadow-xs" title="Point of Control (Resting Anchor)">👑 POC</span>' : ''}
                     ${isBidInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-emerald-500 text-slate-950 uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
                     <span class="${isBidInStack ? 'text-emerald-300 font-bold' : 'text-slate-400'}">${b.orders || 1}</span>
                 </div>
@@ -1501,6 +1714,7 @@
                 <div class="flex items-center justify-end gap-1">
                     <span class="${isAskInStack ? 'text-rose-300 font-bold' : 'text-slate-400'}">${a.orders || 1}</span>
                     ${isAskInStack ? '<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-rose-500 text-white uppercase tracking-tighter shadow-xs">STACK</span>' : ''}
+                    ${isAskPoc ? '<span class="px-1 py-0.2 rounded text-[7px] font-black bg-fuchsia-500 text-white uppercase tracking-tighter shadow-xs" title="Point of Control (Resting Anchor)">👑 POC</span>' : ''}
                 </div>
             ` : '-';
 
@@ -1514,7 +1728,7 @@
 
                 {{-- Bid Qty with horizontal fill bar & block/stack highlight --}}
                 <div class="col-span-2 text-right relative pr-1.5 ${isBidBlock && !isBidInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
-                    <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/20 rounded-l ${isBidBlock ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
+                    <div class="absolute right-0 top-0 bottom-0 ${bidFillClass} rounded-l ${isBidBlock ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
                     ${bidQtyHtml}
                 </div>
 
@@ -1530,7 +1744,7 @@
 
                 {{-- Ask Qty with horizontal fill bar & block/stack highlight --}}
                 <div class="col-span-2 text-left relative pl-1.5 ${isAskBlock && !isAskInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
-                    <div class="absolute left-0 top-0 bottom-0 bg-rose-500/20 rounded-r ${isAskBlock ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
+                    <div class="absolute left-0 top-0 bottom-0 ${askFillClass} rounded-r ${isAskBlock ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
                     ${askQtyHtml}
                 </div>
 
@@ -1551,8 +1765,11 @@
                         <span>◄ CURRENT TRADING PRICE (LTP):</span>
                         <span class="text-white bg-slate-900 px-1.5 py-0.2 rounded font-mono text-xs border border-amber-400/40">₹${ltp.toFixed(2)}</span>
                     </div>
-                    <div class="text-[9px] text-slate-300 font-mono">
-                        Spread: <strong class="text-white">${state.depthData.spread.toFixed(2)} pts</strong>
+                    <div class="flex items-center gap-2 text-[9px] text-slate-300 font-mono">
+                        <span>Spread: <strong class="text-white">${spread.toFixed(2)} pts</strong></span>
+                        <span class="${drift > 0.1 ? 'text-emerald-400' : (drift < -0.1 ? 'text-rose-400' : 'text-slate-400')} font-bold">
+                            Pull: ${drift > 0 ? '+' : ''}${drift.toFixed(2)} pts ${drift > 0.1 ? '▲' : (drift < -0.1 ? '▼' : '⏸️')}
+                        </span>
                     </div>
                 </div>
                 `;
@@ -1640,17 +1857,41 @@
 
     function renderLiquidityWallsUI() {
         const list = document.getElementById('liquidity-walls-list');
+        const spoofScore = document.getElementById('wall-spoof-score');
+        const absVal = document.getElementById('val-absorption-pct');
+        const absBar = document.getElementById('bar-absorption');
         if (!list) return;
 
         const walls = state.depthData.liquidityWalls;
+        const spoofCount = state.depthData.pulledSpoofCount || 0;
+
+        if (spoofScore) {
+            if (spoofCount > 0) {
+                spoofScore.innerHTML = `<span class="text-amber-400 font-bold">⚠️ ${spoofCount} Spoofs Pulled</span>`;
+            } else if (walls.some(w => w.status === 'GENUINE')) {
+                spoofScore.innerHTML = `<span class="text-emerald-400 font-bold">🟢 Genuine Book (High Trust)</span>`;
+            } else {
+                spoofScore.innerHTML = `<span class="text-slate-400 font-bold">Scanning Depth...</span>`;
+            }
+        }
+
         if (walls.length === 0) {
             list.innerHTML = `<div class="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 text-center text-[10px]">No institutional walls detected.</div>`;
+            if (absVal) absVal.textContent = '0%';
+            if (absBar) absBar.style.width = '0%';
             return;
         }
 
         let html = '';
+        let totalWallQty = 0;
+        let persistentQty = 0;
+
         walls.slice(0, 3).forEach(w => {
             const isBid = w.side === 'BID';
+            const isGenuine = w.status === 'GENUINE';
+            totalWallQty += w.qty;
+            if (isGenuine) persistentQty += w.qty;
+
             html += `
             <div class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border ${isBid ? 'border-emerald-800/50' : 'border-rose-800/50'} text-[11px]">
                 <div class="flex items-center gap-1">
@@ -1658,6 +1899,9 @@
                         ${w.side} (L${w.level})
                     </span>
                     <span class="font-bold text-white font-mono">₹${w.price.toFixed(2)}</span>
+                    <span class="px-1 py-0.2 rounded text-[8px] font-bold ${isGenuine ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">
+                        ${isGenuine ? '✓ HELD' : 'NEW'}
+                    </span>
                 </div>
                 <div class="flex items-center gap-1 font-mono">
                     <span class="font-black ${isBid ? 'text-emerald-400' : 'text-rose-400'}">${w.qty.toLocaleString()}</span>
@@ -1668,6 +1912,11 @@
         });
 
         list.innerHTML = html;
+
+        // Calculate Wall Absorption %
+        const absPct = totalWallQty > 0 ? Math.min(100, Math.round((persistentQty / totalWallQty) * 100)) : 0;
+        if (absVal) absVal.textContent = `${absPct}% (${persistentQty.toLocaleString()} Qty)`;
+        if (absBar) absBar.style.width = `${absPct}%`;
     }
 
     // ── 14. MULTI-STRATEGY CONFLUENCE & TRADE SUGGESTION ENGINE ──
@@ -1793,6 +2042,95 @@
                 tradeRationale.textContent = `Order book in equilibrium (OBI: ${d.obi30}%). Stand aside until clear confluence appears.`;
             }
         }
+
+        // ── CALCULATE INSTANT OPTION STRIKE SETUP (Options Trader Mode) ──
+        const elOptBadge  = document.getElementById('opt-rec-badge');
+        const elOptStrike = document.getElementById('opt-rec-strike');
+        const elOptEntry  = document.getElementById('opt-rec-entry');
+        const elOptSlTgt  = document.getElementById('opt-rec-sltgt');
+
+        const atmRounded = Math.round(d.ltp / 50) * 50;
+        let optSymbol = `NIFTY ${atmRounded} CE`;
+        let optAction = 'WAIT';
+        let optEntryStr = '--';
+        let optSlStr = '--';
+        let optTgtStr = '--';
+
+        if (totalConfluence >= 75) {
+            optAction = 'BUY CALL (CE)';
+            const recommendedStrike = atmRounded;
+            if (state.contracts?.strikes?.[recommendedStrike]?.CE?.trading_symbol) {
+                optSymbol = state.contracts.strikes[recommendedStrike].CE.trading_symbol;
+            } else if (state.contracts?.atm_ce?.trading_symbol) {
+                optSymbol = state.contracts.atm_ce.trading_symbol;
+            } else {
+                optSymbol = `NIFTY ${recommendedStrike} CE`;
+            }
+
+            const estPremium = Math.max(75, Math.round(115 + (d.ltp - recommendedStrike) * 0.65));
+            optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
+            optSlStr = `₹${Math.max(10, estPremium - 18)}`;
+            optTgtStr = `₹${estPremium + 42}`;
+
+            if (elOptBadge) {
+                elOptBadge.textContent = 'BUY CALL (CE)';
+                elOptBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase';
+            }
+            if (elOptStrike) elOptStrike.textContent = optSymbol;
+            if (elOptEntry) elOptEntry.textContent = optEntryStr;
+            if (elOptSlTgt) elOptSlTgt.textContent = `SL: ${optSlStr} | TGT: ${optTgtStr}`;
+
+        } else if (totalConfluence <= 32) {
+            optAction = 'BUY PUT (PE)';
+            const recommendedStrike = atmRounded;
+            if (state.contracts?.strikes?.[recommendedStrike]?.PE?.trading_symbol) {
+                optSymbol = state.contracts.strikes[recommendedStrike].PE.trading_symbol;
+            } else if (state.contracts?.atm_pe?.trading_symbol) {
+                optSymbol = state.contracts.atm_pe.trading_symbol;
+            } else {
+                optSymbol = `NIFTY ${recommendedStrike} PE`;
+            }
+
+            const estPremium = Math.max(75, Math.round(115 + (recommendedStrike - d.ltp) * 0.65));
+            optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
+            optSlStr = `₹${Math.max(10, estPremium - 18)}`;
+            optTgtStr = `₹${estPremium + 42}`;
+
+            if (elOptBadge) {
+                elOptBadge.textContent = 'BUY PUT (PE)';
+                elOptBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white uppercase';
+            }
+            if (elOptStrike) elOptStrike.textContent = optSymbol;
+            if (elOptEntry) elOptEntry.textContent = optEntryStr;
+            if (elOptSlTgt) elOptSlTgt.textContent = `SL: ${optSlStr} | TGT: ${optTgtStr}`;
+
+        } else {
+            optAction = 'WAIT';
+            optSymbol = `NIFTY ${atmRounded} (WAIT)`;
+            optEntryStr = 'Stand Aside';
+            optSlStr = 'No Position';
+            optTgtStr = 'Range Bound';
+
+            if (elOptBadge) {
+                elOptBadge.textContent = 'STAND ASIDE';
+                elOptBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400';
+            }
+            if (elOptStrike) elOptStrike.textContent = optSymbol;
+            if (elOptEntry) elOptEntry.textContent = optEntryStr;
+            if (elOptSlTgt) elOptSlTgt.textContent = 'SL: -- | TGT: --';
+        }
+
+        // Cache setup for 1-click clipboard copy
+        state.currentOptionTrade = {
+            action: optAction,
+            symbol: optSymbol,
+            entry: optEntryStr,
+            sl: optSlStr,
+            target: optTgtStr,
+            lotSize: 25,
+            confluence: totalConfluence,
+            drift: `${parseFloat((d.microPrice - d.ltp).toFixed(2))} pts`
+        };
     }
 
     function triggerAlertAudio(type) {
