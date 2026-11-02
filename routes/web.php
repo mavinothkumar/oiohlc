@@ -40,6 +40,7 @@ Route::get( '/api/order-flow/contracts', [ \App\Http\Controllers\OrderFlowStrate
 Route::post( '/api/order-flow/log-signal', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'logSignal' ] )->name( 'api.order-flow.log-signal' );
 Route::post( '/api/order-flow/update-outcome', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'updateSignalOutcome' ] )->name( 'api.order-flow.update-outcome' );
 Route::get( '/api/order-flow/signal-logs', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getSignalLogs' ] )->name( 'api.order-flow.signal-logs' );
+Route::post( '/api/order-flow/test-webhook', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'testWebhook' ] )->name( 'api.order-flow.test-webhook' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity

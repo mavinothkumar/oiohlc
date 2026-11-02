@@ -814,6 +814,120 @@
                     </p>
                 </div>
 
+                {{-- Category 6: 0Click.in Trade Webhook & API Dispatch (Contract v1.0) --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-sky-900/40 space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-slate-900 pb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-white text-[11px]">⚡ 0Click.in Trade Webhook &amp; Logs</span>
+                            <span class="text-[9px] bg-sky-950 text-sky-300 border border-sky-700/60 px-1.5 py-0.2 rounded font-mono">Contract v1.0</span>
+                        </div>
+                        <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-300">
+                            <input type="checkbox" id="zc-auto-log-toggle" checked class="accent-sky-500 w-3 h-3 cursor-pointer">
+                            <span>Auto-Log Internally</span>
+                        </label>
+                    </div>
+
+                    {{-- Dispatch Toggle Row --}}
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/90 border border-slate-800">
+                        <div>
+                            <div class="text-[11px] font-bold text-white flex items-center gap-1.5">
+                                <span>Dispatch to 0click.in Webhook</span>
+                                <span id="zc-mode-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40">SIMULATION</span>
+                            </div>
+                            <div class="text-[9.5px] text-slate-400">Off = Save logs internally only; On = Auto-dispatch to 0click.in API</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="zc-forward-toggle" class="sr-only peer">
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500"></div>
+                        </label>
+                    </div>
+
+                    {{-- Webhook Connection Details --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        <div>
+                            <label class="text-slate-400 font-bold block mb-0.5">0Click Webhook URL</label>
+                            <input type="text" id="zc-webhook-url" value="https://0click.in/api/webhook/tradingview" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-sky-400">
+                        </div>
+                        <div>
+                            <label class="text-amber-300 font-bold block mb-0.5">🔑 Security Token ("X-Webhook-Token")</label>
+                            <div class="relative flex items-center">
+                                <input type="password" id="zc-webhook-token" placeholder="Paste your 0click token (tv_sec_...)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 pr-8 text-xs text-amber-200 font-mono focus:outline-none focus:border-amber-400">
+                                <button type="button" id="btn-toggle-zc-token" onclick="toggleZcTokenVisibility()" title="Show / Hide Token" class="absolute right-2 text-slate-400 hover:text-white text-xs cursor-pointer">👁️</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Order Sizing & SL / Target Parameters --}}
+                    <div class="space-y-2 pt-2 border-t border-slate-900">
+                        <div class="flex items-center justify-between text-[10.5px] font-bold text-white">
+                            <span class="flex items-center gap-1.5">
+                                <span>🎯 Stop Loss (SL) &amp; Profit Target (TP) Restructure</span>
+                            </span>
+                            <span class="text-[9.5px] text-emerald-400 font-mono">Candle Extreme ± Buffer</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px]">
+                            <div>
+                                <label class="text-slate-400 block mb-0.5">Execution Mode</label>
+                                <select id="zc-mode-select" onchange="updateZcModeBadge()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-sky-400">
+                                    <option value="SIMULATION" selected>SIMULATION</option>
+                                    <option value="LIVE">LIVE</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="text-slate-400 block mb-0.5">Lots</label>
+                                <input type="number" id="zc-lots-input" value="1" min="1" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="text-slate-400 block mb-0.5">SL Calculation</label>
+                                <select id="zc-sl-mode-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white focus:outline-none">
+                                    <option value="candle_hl" selected>Candle High/Low</option>
+                                    <option value="wall">Order Book Wall</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="text-rose-400 font-bold block mb-0.5">SL Buffer (Pts)</label>
+                                <input type="number" id="zc-sl-pts-input" value="15" min="0" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-rose-300 font-mono focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="text-emerald-400 font-bold block mb-0.5">Target TP1 (Pts)</label>
+                                <input type="number" id="zc-tp-pts-input" value="100" min="10" max="500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-300 font-mono focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- Secondary Runner Target --}}
+                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                            <div>
+                                <div class="text-[10.5px] font-bold text-slate-300 flex items-center gap-1">
+                                    <span>🚀 Secondary Runner Target (TP2):</span>
+                                </div>
+                                <div class="text-[9px] text-slate-500">Optional extended target for trend runners (default: 150 pts)</div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="zc-tp2-pts-input" value="150" min="20" max="600" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-cyan-300 font-mono focus:outline-none">
+                                <span class="text-[10px] text-slate-400 font-bold">pts</span>
+                            </div>
+                        </div>
+
+                        {{-- Test Dispatch Buttons & Live Status Box --}}
+                        <div class="pt-1.5 space-y-1.5">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="testZeroClickWebhook('BUY')" title="Send a simulated test Bullish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1">
+                                    <span>Preview Bull Call</span>
+                                </button>
+                                <button type="button" onclick="testZeroClickWebhook('SELL')" title="Send a simulated test Bearish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1">
+                                    <span>Preview Bear Call</span>
+                                </button>
+                            </div>
+                            <div id="zc-test-status-box" class="hidden p-2 rounded-lg bg-slate-900 border text-[9.5px] font-mono whitespace-pre-wrap"></div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             {{-- Actions --}}
@@ -843,7 +957,7 @@
 (function() {
     'use strict';
 
-    // ── 1. ALERT SETTINGS STATE & STORAGE ──
+    // ── 1. ALERT & WEBHOOK SETTINGS STATE & STORAGE ──
     const alertSettings = {
         enableBlock: true,           // Single level heavy block alert toggle
         singleThreshold: 2500,       // Single level Qty >= X
@@ -857,6 +971,93 @@
         soundStrategy: true,         // Sound for confluence strategy setups
         soundProfile: 'crystal',     // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
         autoLog: true                // Auto-log opportunities to Journal
+    };
+
+    const zeroClickSettings = {
+        autoLog: true,
+        forwardToZeroClick: false,
+        webhookUrl: 'https://0click.in/api/webhook/tradingview',
+        webhookToken: '',
+        mode: 'SIMULATION',
+        lots: 1,
+        tradeStyle: 'OPTION_SELLING',
+        slMode: 'candle_hl',
+        slBufferPts: 15,
+        targetTp1Pts: 100,
+        targetTp2Pts: 150
+    };
+
+    window.toggleZcTokenVisibility = function() {
+        const tokenInput = document.getElementById('zc-webhook-token');
+        if (tokenInput) {
+            tokenInput.type = tokenInput.type === 'password' ? 'text' : 'password';
+        }
+    };
+
+    window.updateZcModeBadge = function() {
+        const modeSelect = document.getElementById('zc-mode-select');
+        const badge = document.getElementById('zc-mode-badge');
+        if (modeSelect && badge) {
+            const val = modeSelect.value;
+            badge.textContent = val;
+            badge.className = val === 'LIVE'
+                ? 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                : 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40';
+        }
+    };
+
+    window.testZeroClickWebhook = async function(signal = 'BUY') {
+        const statusBox = document.getElementById('zc-test-status-box');
+        if (statusBox) {
+            statusBox.className = 'p-2 rounded-lg bg-slate-900 border border-slate-700 text-[9.5px] font-mono text-amber-300 block';
+            statusBox.textContent = `⏳ Sending ${signal} test dispatch to 0click.in...`;
+        }
+
+        const urlInput = document.getElementById('zc-webhook-url');
+        const tokenInput = document.getElementById('zc-webhook-token');
+        const modeSelect = document.getElementById('zc-mode-select');
+        const lotsInput = document.getElementById('zc-lots-input');
+        const slPtsInput = document.getElementById('zc-sl-pts-input');
+        const tpPtsInput = document.getElementById('zc-tp-pts-input');
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+
+        try {
+            const resp = await fetch(`{{ route('api.order-flow.test-webhook') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    signal: signal,
+                    webhook_url: urlInput?.value.trim() || 'https://0click.in/api/webhook/tradingview',
+                    webhook_token: tokenInput?.value.trim() || '',
+                    mode: modeSelect?.value || 'SIMULATION',
+                    lots: parseInt(lotsInput?.value || 1, 10),
+                    price: state.depthData?.ltp || 23300.0,
+                    sl: (state.depthData?.ltp || 23300.0) + (signal === 'BUY' ? -parseInt(slPtsInput?.value || 15) : parseInt(slPtsInput?.value || 15)),
+                    tp: (state.depthData?.ltp || 23300.0) + (signal === 'BUY' ? parseInt(tpPtsInput?.value || 100) : -parseInt(tpPtsInput?.value || 100))
+                })
+            });
+
+            const res = await resp.json();
+            if (statusBox) {
+                if (res.success) {
+                    statusBox.className = 'p-2 rounded-lg bg-emerald-950/80 border border-emerald-500/60 text-[9.5px] font-mono text-emerald-300 block';
+                    statusBox.textContent = `✅ 0Click.in Dispatch SUCCESS (${res.status_code} in ${res.latency_ms}ms)!\nResponse: ${JSON.stringify(res.response, null, 2)}`;
+                } else {
+                    statusBox.className = 'p-2 rounded-lg bg-rose-950/80 border border-rose-500/60 text-[9.5px] font-mono text-rose-300 block';
+                    statusBox.textContent = `❌ 0Click.in Dispatch FAILED (${res.status_code || 500} in ${res.latency_ms || 0}ms)\n${res.error || JSON.stringify(res.response, null, 2)}`;
+                }
+            }
+        } catch (e) {
+            if (statusBox) {
+                statusBox.className = 'p-2 rounded-lg bg-rose-950/80 border border-rose-500/60 text-[9.5px] font-mono text-rose-300 block';
+                statusBox.textContent = `❌ Connection Error: ${e.message}`;
+            }
+        }
     };
 
     function updateLegendLabels() {
@@ -888,6 +1089,14 @@
             }
         } catch(e) {}
 
+        // Load 0Click Webhook Settings (fallback to unified settings if already configured there)
+        try {
+            const savedZc = localStorage.getItem('order_flow_zeroclick_settings') || localStorage.getItem('nifty_zeroclick_settings');
+            if (savedZc) {
+                Object.assign(zeroClickSettings, JSON.parse(savedZc));
+            }
+        } catch(e) {}
+
         const enableBlock = document.getElementById('cfg-enable-block');
         const singleInput = document.getElementById('cfg-single-qty');
         const enableStack = document.getElementById('cfg-enable-stack');
@@ -914,6 +1123,30 @@
         if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
         if (autoLogInput) autoLogInput.checked = alertSettings.autoLog !== false;
 
+        // 0Click Inputs
+        const zcAutoLog = document.getElementById('zc-auto-log-toggle');
+        const zcForward = document.getElementById('zc-forward-toggle');
+        const zcUrl = document.getElementById('zc-webhook-url');
+        const zcToken = document.getElementById('zc-webhook-token');
+        const zcMode = document.getElementById('zc-mode-select');
+        const zcLots = document.getElementById('zc-lots-input');
+        const zcSlMode = document.getElementById('zc-sl-mode-select');
+        const zcSlPts = document.getElementById('zc-sl-pts-input');
+        const zcTpPts = document.getElementById('zc-tp-pts-input');
+        const zcTp2Pts = document.getElementById('zc-tp2-pts-input');
+
+        if (zcAutoLog) zcAutoLog.checked = zeroClickSettings.autoLog !== false;
+        if (zcForward) zcForward.checked = !!zeroClickSettings.forwardToZeroClick;
+        if (zcUrl) zcUrl.value = zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview';
+        if (zcToken) zcToken.value = zeroClickSettings.webhookToken || '';
+        if (zcMode) zcMode.value = zeroClickSettings.mode || 'SIMULATION';
+        if (zcLots) zcLots.value = zeroClickSettings.lots || 1;
+        if (zcSlMode) zcSlMode.value = zeroClickSettings.slMode || 'candle_hl';
+        if (zcSlPts) zcSlPts.value = zeroClickSettings.slBufferPts || 15;
+        if (zcTpPts) zcTpPts.value = zeroClickSettings.targetTp1Pts || 100;
+        if (zcTp2Pts) zcTp2Pts.value = zeroClickSettings.targetTp2Pts || 150;
+
+        updateZcModeBadge();
         updateLegendLabels();
     }
 
@@ -947,6 +1180,16 @@
         alertSettings.soundProfile = 'crystal';
         alertSettings.autoLog = true;
 
+        zeroClickSettings.autoLog = true;
+        zeroClickSettings.forwardToZeroClick = false;
+        zeroClickSettings.webhookUrl = 'https://0click.in/api/webhook/tradingview';
+        zeroClickSettings.mode = 'SIMULATION';
+        zeroClickSettings.lots = 1;
+        zeroClickSettings.slMode = 'candle_hl';
+        zeroClickSettings.slBufferPts = 15;
+        zeroClickSettings.targetTp1Pts = 100;
+        zeroClickSettings.targetTp2Pts = 150;
+
         loadAlertSettings();
     };
 
@@ -977,8 +1220,33 @@
         alertSettings.soundProfile = soundProfile?.value || 'crystal';
         alertSettings.autoLog = !!(autoLogInput?.checked);
 
+        // Save 0Click Settings
+        const zcAutoLog = document.getElementById('zc-auto-log-toggle');
+        const zcForward = document.getElementById('zc-forward-toggle');
+        const zcUrl = document.getElementById('zc-webhook-url');
+        const zcToken = document.getElementById('zc-webhook-token');
+        const zcMode = document.getElementById('zc-mode-select');
+        const zcLots = document.getElementById('zc-lots-input');
+        const zcSlMode = document.getElementById('zc-sl-mode-select');
+        const zcSlPts = document.getElementById('zc-sl-pts-input');
+        const zcTpPts = document.getElementById('zc-tp-pts-input');
+        const zcTp2Pts = document.getElementById('zc-tp2-pts-input');
+
+        zeroClickSettings.autoLog = !!zcAutoLog?.checked;
+        zeroClickSettings.forwardToZeroClick = !!zcForward?.checked;
+        zeroClickSettings.webhookUrl = zcUrl?.value.trim() || 'https://0click.in/api/webhook/tradingview';
+        zeroClickSettings.webhookToken = zcToken?.value.trim() || '';
+        zeroClickSettings.mode = zcMode?.value || 'SIMULATION';
+        zeroClickSettings.lots = parseInt(zcLots?.value || 1, 10);
+        zeroClickSettings.slMode = zcSlMode?.value || 'candle_hl';
+        zeroClickSettings.slBufferPts = parseInt(zcSlPts?.value || 15, 10);
+        zeroClickSettings.targetTp1Pts = parseInt(zcTpPts?.value || 100, 10);
+        zeroClickSettings.targetTp2Pts = parseInt(zcTp2Pts?.value || 150, 10);
+
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
+            localStorage.setItem('order_flow_zeroclick_settings', JSON.stringify(zeroClickSettings));
+            localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
         } catch(e) {}
 
         updateLegendLabels();
@@ -1600,7 +1868,7 @@
                 guidance: '⚡ Direction: GO LONG / BUY CALL'
             });
 
-            if (alertSettings.autoLog) {
+            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
                 logOpportunityCall({
                     signalType: 'BUY_STACK',
                     action: 'BUY (LIQUIDITY STACK)',
@@ -1654,7 +1922,7 @@
                 guidance: '⚡ Direction: GO SHORT / BUY PUT'
             });
 
-            if (alertSettings.autoLog) {
+            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
                 logOpportunityCall({
                     signalType: 'SELL_STACK',
                     action: 'SELL (LIQUIDITY STACK)',
@@ -1708,7 +1976,7 @@
                 guidance: '🛡️ Strong Support Wall / Accumulation'
             });
 
-            if (alertSettings.autoLog) {
+            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
                 logOpportunityCall({
                     signalType: 'BUY_BLOCK',
                     action: 'BUY (SUPPORT WALL)',
@@ -1762,7 +2030,7 @@
                 guidance: '🚧 Strong Resistance Wall / Supply'
             });
 
-            if (alertSettings.autoLog) {
+            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
                 logOpportunityCall({
                     signalType: 'SELL_BLOCK',
                     action: 'SELL (RESISTANCE WALL)',
@@ -2751,7 +3019,7 @@
         };
 
         // Auto-Log High Probability Opportunity into Journal
-        if (alertSettings.enableConfluence && optAction !== 'WAIT' && alertSettings.autoLog) {
+        if (alertSettings.enableConfluence && optAction !== 'WAIT' && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
             logOpportunityCall({
                 action: optAction,
                 symbol: optSymbol,
@@ -2778,33 +3046,66 @@
 
     // ── 15. JOURNAL LOGGING & OUTCOME VERIFICATION ENGINE ──
     async function logOpportunityCall(tradeSetup) {
-        if (!alertSettings.autoLog) return;
+        if (!alertSettings.autoLog && !zeroClickSettings.autoLog && !zeroClickSettings.forwardToZeroClick) return;
         const now = Date.now();
         if (now - state.lastSignalLogTime < 15000) return; // 15s debounce between calls
         state.lastSignalLogTime = now;
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            
+            const entryPrice = parseFloat(tradeSetup.entryPrice || state.depthData.ltp);
+            const isBuy = tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY') || (tradeSetup.signalType && tradeSetup.signalType.includes('BUY'));
+
+            let slPrice = parseFloat(tradeSetup.slPrice);
+            let targetPrice = parseFloat(tradeSetup.targetPrice);
+
+            // Dynamically restructure SL and Target if custom 0Click settings are active
+            if (zeroClickSettings.forwardToZeroClick) {
+                const buf = parseFloat(zeroClickSettings.slBufferPts) || 15;
+                const tp1 = parseFloat(zeroClickSettings.targetTp1Pts) || 100;
+
+                if (zeroClickSettings.slMode === 'fixed_pts') {
+                    slPrice = isBuy ? (entryPrice - buf) : (entryPrice + buf);
+                } else if (tradeSetup.slPrice) {
+                    slPrice = isBuy ? Math.min(entryPrice - 5, parseFloat(tradeSetup.slPrice) - buf) : Math.max(entryPrice + 5, parseFloat(tradeSetup.slPrice) + buf);
+                } else {
+                    slPrice = isBuy ? (entryPrice - buf) : (entryPrice + buf);
+                }
+
+                if (tp1 > 0) {
+                    targetPrice = isBuy ? (entryPrice + tp1) : (entryPrice - tp1);
+                }
+            }
+
             const payload = {
                 mode: state.feedMode,
                 symbol: state.symbol || 'NIFTY',
-                signal_type: tradeSetup.signalType || (tradeSetup.action.includes('CALL') ? 'BUY_CE' : (tradeSetup.action.includes('BUY') ? 'BUY_BLOCK' : 'SELL_BLOCK')),
+                signal_type: tradeSetup.signalType || (isBuy ? 'BUY_CE' : 'SELL_PE'),
                 action: tradeSetup.action,
                 instrument: tradeSetup.symbol || state.activeInstrumentKey || 'NIFTY FUT',
                 spot_price: state.depthData.ltp,
                 future_price: state.depthData.ltp,
-                entry_price: parseFloat(tradeSetup.entryPrice || state.depthData.ltp),
-                stop_loss: parseFloat(tradeSetup.slPrice),
-                target_price: parseFloat(tradeSetup.targetPrice),
+                entry_price: entryPrice,
+                stop_loss: parseFloat(slPrice.toFixed(2)),
+                target_price: parseFloat(targetPrice.toFixed(2)),
                 opt_strike: tradeSetup.strike || Math.round(state.depthData.ltp / 50) * 50,
-                opt_type: (tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY')) ? 'CE' : 'PE',
+                opt_type: isBuy ? 'CE' : 'PE',
                 opt_entry: tradeSetup.optEstEntry || 135,
                 opt_sl: tradeSetup.optEstSl || 115,
                 opt_target: tradeSetup.optEstTgt || 175,
                 confluence_score: tradeSetup.confluence || 50,
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
-                trigger_reason: tradeSetup.rationale || 'Liquidity event'
+                trigger_reason: tradeSetup.rationale || 'Liquidity event',
+
+                // 0Click.in Trade Webhook Integration fields
+                dispatch_webhook: !!zeroClickSettings.forwardToZeroClick,
+                webhook_url: zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview',
+                webhook_token: zeroClickSettings.webhookToken || '',
+                execution_mode: zeroClickSettings.mode || 'SIMULATION',
+                lots: parseInt(zeroClickSettings.lots || 1, 10),
+                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING'
             };
 
             const resp = await fetch(`{{ route('api.order-flow.log-signal') }}`, {
@@ -2821,6 +3122,10 @@
             if (res.success && res.data && res.data.id) {
                 state.activeLoggedSignals.push(res.data);
                 refreshSignalLogs();
+
+                if (res.webhook_result) {
+                    console.log('⚡ 0Click Webhook Dispatched:', res.webhook_result);
+                }
             }
         } catch (e) {
             console.error('Failed logging opportunity call:', e);
@@ -2920,6 +3225,14 @@
                         statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
                     }
 
+                    let webhookBadge = '';
+                    if (l.notes && l.notes.includes('0Click:')) {
+                        const isSent = l.notes.includes('0Click: SENT');
+                        webhookBadge = isSent
+                            ? `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${l.notes}">⚡ 0CLICK: SENT</span>`
+                            : `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${l.notes}">⚡ 0CLICK: ERR</span>`;
+                    }
+
                     const actionBadgeText = l.action.includes('WALL') ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') : (l.action.includes('STACK') ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') : (isBuy ? '▲ CALL' : '▼ PUT'));
 
                     html += `
@@ -2932,7 +3245,10 @@
                                 </span>
                                 <span class="font-bold text-white text-[10.5px] truncate max-w-[120px]">${l.instrument}</span>
                             </div>
-                            <div>${statusBadge}</div>
+                            <div class="flex items-center gap-1">
+                                ${webhookBadge}
+                                ${statusBadge}
+                            </div>
                         </div>
                         <div class="text-[9px] text-amber-300/90 font-sans truncate">${l.trigger_reason || l.action}</div>
                         <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-0.5 border-t border-slate-900">

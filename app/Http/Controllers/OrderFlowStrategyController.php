@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderFlowSignalLog;
+use App\Models\ZeroClickAlertLog;
 use App\Services\Quant\HighProbabilityEngine;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -256,10 +257,234 @@ class OrderFlowStrategyController extends Controller
             'status'           => 'ACTIVE',
         ]);
 
+        // Optional: Auto-dispatch to 0Click.in Trade Webhook if enabled by user
+        $webhookResult = null;
+        if ($request->boolean('dispatch_webhook') && $request->filled('webhook_url')) {
+            $webhookResult = $this->dispatchZeroClickWebhook($log, $request);
+            if ($webhookResult) {
+                $statusMsg = $webhookResult['success'] 
+                    ? '0Click: SENT (' . ($webhookResult['status_code'] ?? 200) . ')' 
+                    : '0Click: FAILED (' . ($webhookResult['status_code'] ?? 500) . ')';
+                $log->update(['notes' => $statusMsg]);
+            }
+        }
+
         return response()->json([
-            'success' => true,
-            'data'    => $log,
+            'success'        => true,
+            'data'           => $log->fresh(),
+            'webhook_result' => $webhookResult,
         ]);
+    }
+
+    /**
+     * Dispatch trade order execution payload to 0Click.in Webhook contract
+     */
+    protected function dispatchZeroClickWebhook(OrderFlowSignalLog $log, Request $request): array
+    {
+        $startTime = microtime(true);
+        $url = $request->input('webhook_url', 'https://0click.in/api/webhook/tradingview');
+        $token = $request->input('webhook_token') ?: env('ZEROCLICK_WEBHOOK_TOKEN');
+        $mode = strtoupper($request->input('execution_mode', 'SIMULATION'));
+        $lots = max(1, (int) $request->input('lots', 1));
+        $tradeStyle = $request->input('trade_style', 'OPTION_SELLING'); // 'OPTION_SELLING' or 'OPTION_BUYING'
+
+        $isBull = (str_contains($log->signal_type, 'BUY') || str_contains($log->action, 'CALL') || str_contains($log->action, 'BUY'));
+        $marketSignal = $isBull ? 'BUY' : 'SELL';
+
+        // 0Click Standard Contract v1.0:
+        // Option Selling: Bullish Market -> SELL ITM PE; Bearish Market -> SELL ITM CE
+        // Option Buying: Bullish Market -> BUY ATM CE; Bearish Market -> BUY ATM PE
+        if ($tradeStyle === 'OPTION_BUYING') {
+            $instrument = $isBull ? 'CE' : 'PE';
+            $orderAction = 'BUY';
+        } else {
+            $instrument = $isBull ? 'PE' : 'CE';
+            $orderAction = 'SELL';
+        }
+
+        $strike = $log->opt_strike ?: (int)round($log->spot_price / 100.0) * 100;
+        $strikeName = "{$log->symbol} {$strike} {$instrument}";
+
+        $payload = [
+            'category'       => 'ORDER_FLOW_DEPTH',
+            'signal'         => $marketSignal,
+            'action'         => $orderAction,
+            'trade_type'     => $orderAction,
+            'symbol'         => $log->symbol,
+            'instrument'     => $instrument,
+            'option_type'    => $instrument,
+            'strike'         => $strike,
+            'strike_name'    => $strikeName,
+            'trading_symbol' => $strikeName,
+            'price'          => $log->spot_price ?: $log->entry_price,
+            'sl'             => $log->stop_loss,
+            'tp'             => $log->target_price,
+            'lots'           => $lots,
+            'mode'           => $mode,
+            'product'        => 'MARGIN',
+        ];
+
+        if (!empty($token)) {
+            $payload['secret'] = $token;
+        }
+
+        try {
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
+            ];
+
+            if (!empty($token)) {
+                $headers['X-Webhook-Token'] = $token;
+                $headers['X-API-KEY']       = $token;
+                $headers['Authorization']   = 'Bearer ' . $token;
+            }
+
+            $response = Http::timeout(10)->withHeaders($headers)->post($url, $payload);
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            $statusCode = $response->status();
+            $body = $response->json() ?: ['raw' => $response->body()];
+            $isSuccess = $response->successful();
+
+            // Record in zero_click_alert_logs for cross-monitor audit compliance
+            if (Schema::hasTable('zero_click_alert_logs')) {
+                try {
+                    ZeroClickAlertLog::create([
+                        'triggered_at'       => Carbon::now('Asia/Kolkata'),
+                        'trade_date'         => $log->trade_date,
+                        'candle_time'        => Carbon::now('Asia/Kolkata')->format('H:i'),
+                        'signal'             => $marketSignal,
+                        'action'             => $orderAction,
+                        'symbol'             => $log->symbol,
+                        'instrument'         => $instrument,
+                        'strike'             => $strike,
+                        'spot_price'         => $log->spot_price,
+                        'sl_price'           => $log->stop_loss,
+                        'tp_price'           => $log->target_price,
+                        'sl_offset_pts'      => (int)abs($log->spot_price - $log->stop_loss),
+                        'tp_offset_pts'      => (int)abs($log->target_price - $log->spot_price),
+                        'lots'               => $lots,
+                        'mode'               => $mode,
+                        'product'            => 'MARGIN',
+                        'category'           => 'ORDER_FLOW_DEPTH',
+                        'breadth_pct'        => $log->confluence_score,
+                        'breadth_weight_pct' => $log->confluence_score,
+                        'breadth_count'      => 0,
+                        'net_points'         => $log->micro_drift,
+                        'top_contributor'    => $log->trigger_reason,
+                        'payload'            => $payload,
+                        'status'             => $isSuccess ? 'SENT' : 'FAILED',
+                        'endpoint_url'       => $url,
+                        'api_status_code'    => $statusCode,
+                        'api_response'       => $body,
+                        'latency_ms'         => $latencyMs,
+                        'dispatched_at'      => Carbon::now('Asia/Kolkata'),
+                    ]);
+                } catch (\Throwable $e) {}
+            }
+
+            return [
+                'success'     => $isSuccess,
+                'status_code' => $statusCode,
+                'latency_ms'  => $latencyMs,
+                'response'    => $body,
+                'payload'     => $payload,
+            ];
+        } catch (\Throwable $e) {
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            return [
+                'success'     => false,
+                'status_code' => 500,
+                'latency_ms'  => $latencyMs,
+                'error'       => $e->getMessage(),
+                'payload'     => $payload,
+            ];
+        }
+    }
+
+    /**
+     * Test / Preview 0Click Webhook Dispatch from Settings Modal
+     */
+    public function testWebhook(Request $request): JsonResponse
+    {
+        $url = $request->input('webhook_url', 'https://0click.in/api/webhook/tradingview');
+        $token = $request->input('webhook_token') ?: env('ZEROCLICK_WEBHOOK_TOKEN');
+        $signal = strtoupper($request->input('signal', 'BUY'));
+        $mode = strtoupper($request->input('mode', 'SIMULATION'));
+        $lots = max(1, (int) $request->input('lots', 1));
+        $tradeStyle = $request->input('trade_style', 'OPTION_SELLING');
+        $price = (float) $request->input('price', 23300.0);
+        $sl = (float) $request->input('sl', $signal === 'BUY' ? $price - 25 : $price + 25);
+        $tp = (float) $request->input('tp', $signal === 'BUY' ? $price + 60 : $price - 60);
+
+        $isBull = ($signal === 'BUY');
+        if ($tradeStyle === 'OPTION_BUYING') {
+            $instrument = $isBull ? 'CE' : 'PE';
+            $orderAction = 'BUY';
+        } else {
+            $instrument = $isBull ? 'PE' : 'CE';
+            $orderAction = 'SELL';
+        }
+
+        $strike = ((int)floor($price / 100.0) + ($isBull ? 1 : -1)) * 100;
+        $strikeName = "NIFTY {$strike} {$instrument}";
+
+        $payload = [
+            'category'       => 'ORDER_FLOW_TEST',
+            'signal'         => $signal,
+            'action'         => $orderAction,
+            'trade_type'     => $orderAction,
+            'symbol'         => 'NIFTY',
+            'instrument'     => $instrument,
+            'option_type'    => $instrument,
+            'strike'         => $strike,
+            'strike_name'    => $strikeName,
+            'trading_symbol' => $strikeName,
+            'price'          => $price,
+            'sl'             => $sl,
+            'tp'             => $tp,
+            'lots'           => $lots,
+            'mode'           => $mode,
+            'product'        => 'MARGIN',
+        ];
+
+        if (!empty($token)) {
+            $payload['secret'] = $token;
+        }
+
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept'       => 'application/json',
+        ];
+
+        if (!empty($token)) {
+            $headers['X-Webhook-Token'] = $token;
+            $headers['X-API-KEY']       = $token;
+            $headers['Authorization']   = 'Bearer ' . $token;
+        }
+
+        $startTime = microtime(true);
+        try {
+            $response = Http::timeout(10)->withHeaders($headers)->post($url, $payload);
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+
+            return response()->json([
+                'success'     => $response->successful(),
+                'status_code' => $response->status(),
+                'latency_ms'  => $latencyMs,
+                'response'    => $response->json() ?: ['raw' => $response->body()],
+                'payload'     => $payload,
+            ]);
+        } catch (\Throwable $e) {
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            return response()->json([
+                'success'     => false,
+                'status_code' => 500,
+                'latency_ms'  => $latencyMs,
+                'error'       => $e->getMessage(),
+                'payload'     => $payload,
+            ]);
+        }
     }
 
     /**
