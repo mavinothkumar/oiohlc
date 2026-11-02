@@ -467,7 +467,10 @@
                 {{-- Mini Tab Pane 2: Live Session Alert Feed & Trigger Reason (2X HEIGHT) --}}
                 <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-2 text-xs">
                     <div class="flex items-center justify-between text-xs pb-1.5 border-b border-slate-800 px-0.5">
-                        <span class="text-slate-300 font-bold uppercase tracking-wider text-xs">Live Alarm Trigger Feed:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-300 font-bold uppercase tracking-wider text-xs">Live Alarm Trigger Feed:</span>
+                            <span id="market-status-alert-pill" class="hidden text-[9.5px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏸️ Market Closed · Alarms Paused</span>
+                        </div>
                         <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[10.5px] font-bold cursor-pointer transition">
                             Clear Feed
                         </button>
@@ -1756,6 +1759,18 @@
         }
     }
 
+    function isMarketHours() {
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + istOffset);
+        const day = istDate.getDay();
+        const isWeekday = (day >= 1 && day <= 5);
+        const hr = istDate.getHours();
+        const min = istDate.getMinutes();
+        const timeVal = hr * 60 + min;
+        return isWeekday && (timeVal >= (9 * 60 + 15) && timeVal <= (15 * 60 + 30));
+    }
+
     // ── 5. UPSTOX WEBSOCKET CONNECTION ──
     async function connectWebSocket() {
         if (state.feedMode !== 'live') return;
@@ -1791,19 +1806,9 @@
             state.ws.onopen = () => {
                 console.log('🔌 Upstox WebSocket connected.');
                 if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-400';
-                if (statusText) statusText.textContent = 'Live Feed Active';
+                const open = isMarketHours();
+                if (statusText) statusText.textContent = open ? 'Live Feed Active' : 'Live Connected (Market Closed)';
                 subscribeActiveTarget();
-
-                const now = new Date();
-                const day = now.getDay();
-                const hr = now.getHours();
-                const min = now.getMinutes();
-                const isWeekday = (day >= 1 && day <= 5);
-                const isMarketHrs = isWeekday && ((hr > 9 || (hr === 9 && min >= 15)) && (hr < 15 || (hr === 15 && min <= 30)));
-
-                if (!isMarketHrs) {
-                    if (statusText) statusText.textContent = 'Live Connected (Market Closed)';
-                }
             };
 
             state.ws.onmessage = (event) => {
@@ -2265,9 +2270,12 @@
         if (!alertType) {
             renderAlertPlaceholder();
             state.currentAlertKey = '';
+            state.lastLoggedBannerAlertKey = '';
             return;
         }
 
+        const isNewBannerAlert = (state.lastLoggedBannerAlertKey !== alertKey);
+        state.lastLoggedBannerAlertKey = alertKey;
         state.currentAlertKey = alertKey;
 
         // Respect manual dismissal of this specific alert until a new event occurs
@@ -2303,30 +2311,33 @@
                     <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bull)</span>
                 </div>
             `;
-            triggerStackAlertAudio('BUY');
 
-            recordAlertEvent({
-                type: 'STACK_BUY',
-                side: 'BUY',
-                title: `Bullish Stack (${bidStack.count} Levels)`,
-                details: `${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}`,
-                guidance: '⚡ Direction: GO LONG / BUY CALL'
-            });
+            if (isNewBannerAlert && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerStackAlertAudio('BUY');
 
-            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
-                logOpportunityCall({
-                    signalType: 'BUY_STACK',
-                    action: 'BUY (LIQUIDITY STACK)',
-                    symbol: state.symbol,
-                    entryPrice: state.depthData.ltp,
-                    slPrice: (bidStack.lowP - 0.20).toFixed(2),
-                    targetPrice: (state.depthData.ltp + 45.0).toFixed(2),
-                    optEstEntry: 140,
-                    optEstSl: 118,
-                    optEstTgt: 185,
-                    confluence: 75,
-                    rationale: `🌊 Bullish Stack: ${bidStack.count} Consecutive Levels (${bidStack.totalQty.toLocaleString()} Qty)`
+                recordAlertEvent({
+                    type: 'STACK_BUY',
+                    side: 'BUY',
+                    title: `Bullish Stack (${bidStack.count} Levels)`,
+                    details: `${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}`,
+                    guidance: '⚡ Direction: GO LONG / BUY CALL'
                 });
+
+                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                    logOpportunityCall({
+                        signalType: 'BUY_STACK',
+                        action: 'BUY (LIQUIDITY STACK)',
+                        symbol: state.symbol,
+                        entryPrice: state.depthData.ltp,
+                        slPrice: (bidStack.lowP - 0.20).toFixed(2),
+                        targetPrice: (state.depthData.ltp + 45.0).toFixed(2),
+                        optEstEntry: 140,
+                        optEstSl: 118,
+                        optEstTgt: 185,
+                        confluence: 75,
+                        rationale: `🌊 Bullish Stack: ${bidStack.count} Consecutive Levels (${bidStack.totalQty.toLocaleString()} Qty)`
+                    });
+                }
             }
 
         } else if (alertType === 'STACK_SELL') {
@@ -2354,30 +2365,33 @@
                     <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bear)</span>
                 </div>
             `;
-            triggerStackAlertAudio('SELL');
 
-            recordAlertEvent({
-                type: 'STACK_SELL',
-                side: 'SELL',
-                title: `Bearish Stack (${askStack.count} Levels)`,
-                details: `${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}`,
-                guidance: '⚡ Direction: GO SHORT / BUY PUT'
-            });
+            if (isNewBannerAlert && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerStackAlertAudio('SELL');
 
-            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
-                logOpportunityCall({
-                    signalType: 'SELL_STACK',
-                    action: 'SELL (LIQUIDITY STACK)',
-                    symbol: state.symbol,
-                    entryPrice: state.depthData.ltp,
-                    slPrice: (askStack.highP + 0.20).toFixed(2),
-                    targetPrice: (state.depthData.ltp - 45.0).toFixed(2),
-                    optEstEntry: 140,
-                    optEstSl: 118,
-                    optEstTgt: 185,
-                    confluence: 25,
-                    rationale: `🌊 Bearish Stack: ${askStack.count} Consecutive Levels (${askStack.totalQty.toLocaleString()} Qty)`
+                recordAlertEvent({
+                    type: 'STACK_SELL',
+                    side: 'SELL',
+                    title: `Bearish Stack (${askStack.count} Levels)`,
+                    details: `${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}`,
+                    guidance: '⚡ Direction: GO SHORT / BUY PUT'
                 });
+
+                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                    logOpportunityCall({
+                        signalType: 'SELL_STACK',
+                        action: 'SELL (LIQUIDITY STACK)',
+                        symbol: state.symbol,
+                        entryPrice: state.depthData.ltp,
+                        slPrice: (askStack.highP + 0.20).toFixed(2),
+                        targetPrice: (state.depthData.ltp - 45.0).toFixed(2),
+                        optEstEntry: 140,
+                        optEstSl: 118,
+                        optEstTgt: 185,
+                        confluence: 25,
+                        rationale: `🌊 Bearish Stack: ${askStack.count} Consecutive Levels (${askStack.totalQty.toLocaleString()} Qty)`
+                    });
+                }
             }
 
         } else if (alertType === 'BLOCK_BUY') {
@@ -2405,30 +2419,33 @@
                     <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
-            triggerStackAlertAudio('BUY');
 
-            recordAlertEvent({
-                type: 'BLOCK_BUY',
-                side: 'BUY',
-                title: `Heavy Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty`,
-                details: `₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`,
-                guidance: '🛡️ Strong Support Wall / Accumulation'
-            });
+            if (isNewBannerAlert && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerStackAlertAudio('BUY');
 
-            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
-                logOpportunityCall({
-                    signalType: 'BUY_BLOCK',
-                    action: 'BUY (SUPPORT WALL)',
-                    symbol: state.symbol,
-                    entryPrice: heavyBidBlock.price,
-                    slPrice: (heavyBidBlock.price - 0.20).toFixed(2),
-                    targetPrice: (state.depthData.ltp + 35.0).toFixed(2),
-                    optEstEntry: 135,
-                    optEstSl: 115,
-                    optEstTgt: 175,
-                    confluence: 70,
-                    rationale: `⚡ Institutional Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`
+                recordAlertEvent({
+                    type: 'BLOCK_BUY',
+                    side: 'BUY',
+                    title: `Heavy Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty`,
+                    details: `₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`,
+                    guidance: '🛡️ Strong Support Wall / Accumulation'
                 });
+
+                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                    logOpportunityCall({
+                        signalType: 'BUY_BLOCK',
+                        action: 'BUY (SUPPORT WALL)',
+                        symbol: state.symbol,
+                        entryPrice: heavyBidBlock.price,
+                        slPrice: (heavyBidBlock.price - 0.20).toFixed(2),
+                        targetPrice: (state.depthData.ltp + 35.0).toFixed(2),
+                        optEstEntry: 135,
+                        optEstSl: 115,
+                        optEstTgt: 175,
+                        confluence: 70,
+                        rationale: `⚡ Institutional Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`
+                    });
+                }
             }
 
         } else if (alertType === 'BLOCK_SELL') {
@@ -2456,28 +2473,34 @@
                     <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
-            triggerStackAlertAudio('SELL');
 
-            recordAlertEvent({
-                type: 'BLOCK_SELL',
-                side: 'SELL',
-                title: `Heavy Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty`,
-                details: `₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`,
-                guidance: '🚧 Strong Resistance Wall / Supply'
-            });
+            if (isNewBannerAlert && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerStackAlertAudio('SELL');
 
-            if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
-                logOpportunityCall({
-                    signalType: 'SELL_BLOCK',
-                    action: 'SELL (RESISTANCE WALL)',
-                    symbol: state.symbol,
-                    entryPrice: heavyAskBlock.price,
-                    slPrice: (heavyAskBlock.price + 0.20).toFixed(2),
-                    targetPrice: (state.depthData.ltp - 35.0).toFixed(2),
-                    optEstEntry: 135,
-                    optEstSl: 115,
-                    optEstTgt: 175,
-                    confluence: 30,
+                recordAlertEvent({
+                    type: 'BLOCK_SELL',
+                    side: 'SELL',
+                    title: `Heavy Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty`,
+                    details: `₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`,
+                    guidance: '🚧 Strong Resistance Wall / Supply'
+                });
+
+                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                    logOpportunityCall({
+                        signalType: 'SELL_BLOCK',
+                        action: 'SELL (RESISTANCE WALL)',
+                        symbol: state.symbol,
+                        entryPrice: heavyAskBlock.price,
+                        slPrice: (heavyAskBlock.price + 0.20).toFixed(2),
+                        targetPrice: (state.depthData.ltp - 35.0).toFixed(2),
+                        optEstEntry: 135,
+                        optEstSl: 115,
+                        optEstTgt: 175,
+                        confluence: 30,
+                        rationale: `⚡ Institutional Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`
+                    });
+                }
+            }
                     rationale: `⚡ Institutional Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`
                 });
             }
@@ -2650,10 +2673,25 @@
     }
 
     function recordAlertEvent(event) {
+        // Guard: In Live Feed mode, pause recording alerts when the market is closed
+        if (state.feedMode === 'live' && !isMarketHours()) {
+            return;
+        }
+
         state.recentAlertEvents = state.recentAlertEvents || [];
+
+        // Deduplication: Avoid re-recording identical alert within 60s
+        const isDuplicate = state.recentAlertEvents.some(prev => 
+            prev.type === event.type && 
+            prev.title === event.title && 
+            prev.details === event.details && 
+            (Date.now() - prev.timestamp) < 60000
+        );
+        if (isDuplicate) return;
+
         if (state.recentAlertEvents.length > 0) {
             const last = state.recentAlertEvents[0];
-            if (last.type === event.type && (Date.now() - last.timestamp) < 6000) {
+            if (last.type === event.type && (Date.now() - last.timestamp) < 10000) {
                 return;
             }
         }
@@ -2681,11 +2719,24 @@
     function renderAlertFeedUI() {
         const countBadge = document.getElementById('badge-alert-count');
         const container = document.getElementById('live-alerts-history-container');
+        const marketClosedPill = document.getElementById('market-status-alert-pill');
+
+        if (marketClosedPill) {
+            if (state.feedMode === 'live' && !isMarketHours()) {
+                marketClosedPill.classList.remove('hidden');
+            } else {
+                marketClosedPill.classList.add('hidden');
+            }
+        }
+
         if (countBadge) countBadge.textContent = (state.recentAlertEvents || []).length;
 
         if (!container) return;
         if (!state.recentAlertEvents || state.recentAlertEvents.length === 0) {
-            container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.</div>`;
+            const emptyNotice = (state.feedMode === 'live' && !isMarketHours())
+                ? 'Market is closed (Session: 09:15 - 15:30 IST). Live alarms are paused until next trading session.'
+                : 'No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.';
+            container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">${emptyNotice}</div>`;
             return;
         }
 
@@ -3394,15 +3445,21 @@
                 tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Upside active`;
             }
 
-            triggerAlertAudio('BUY');
+            const currentBuySignalKey = `BUY_${unified?.candle_time || 'live'}_${unified?.strike || ''}_${instLabel}`;
+            const isNewBuySignal = (state.lastConfluenceSignalKey !== currentBuySignalKey);
+            state.lastConfluenceSignalKey = currentBuySignalKey;
 
-            recordAlertEvent({
-                type: 'STRATEGY_BUY',
-                side: 'BUY',
-                title: strictMode ? '🎯 4/4 Full Confluence BUY Setup' : 'High-Confidence BUY Setup',
-                details: `${totalConfluence}% Confluence (${instLabel})`,
-                guidance: '⚡ Direction: GO LONG / BUY CALL'
-            });
+            if (isNewBuySignal && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerAlertAudio('BUY');
+
+                recordAlertEvent({
+                    type: 'STRATEGY_BUY',
+                    side: 'BUY',
+                    title: strictMode ? '🎯 4/4 Full Confluence BUY Setup' : 'High-Confidence BUY Setup',
+                    details: `${totalConfluence}% Confluence (${instLabel})`,
+                    guidance: '⚡ Direction: GO LONG / BUY CALL'
+                });
+            }
 
         } else if (isSellQualified) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
@@ -3434,17 +3491,24 @@
                 tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Downside active`;
             }
 
-            triggerAlertAudio('SELL');
+            const currentSellSignalKey = `SELL_${unified?.candle_time || 'live'}_${unified?.strike || ''}_${instLabel}`;
+            const isNewSellSignal = (state.lastConfluenceSignalKey !== currentSellSignalKey);
+            state.lastConfluenceSignalKey = currentSellSignalKey;
 
-            recordAlertEvent({
-                type: 'STRATEGY_SELL',
-                side: 'SELL',
-                title: strictMode ? '🎯 4/4 Full Confluence SELL Setup' : 'High-Confidence SELL Setup',
-                details: `${totalConfluence}% Confluence (${instLabel})`,
-                guidance: '⚡ Direction: GO SHORT / BUY PUT'
-            });
+            if (isNewSellSignal && (state.feedMode !== 'live' || isMarketHours())) {
+                triggerAlertAudio('SELL');
+
+                recordAlertEvent({
+                    type: 'STRATEGY_SELL',
+                    side: 'SELL',
+                    title: strictMode ? '🎯 4/4 Full Confluence SELL Setup' : 'High-Confidence SELL Setup',
+                    details: `${totalConfluence}% Confluence (${instLabel})`,
+                    guidance: '⚡ Direction: GO SHORT / BUY PUT'
+                });
+            }
 
         } else {
+            state.lastConfluenceSignalKey = 'NEUTRAL';
             if (sigText) {
                 if (!alertSettings.enableConfluence) {
                     sigText.textContent = '⏸️ CONFLUENCE ALERTS MUTED';
@@ -3596,22 +3660,28 @@
 
         // Auto-Log High Probability Opportunity into Journal
         if (alertSettings.enableConfluence && optAction !== 'WAIT' && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
-            const isBuy = isBuyQualified;
-            const alignedCount = isBuy ? bullPillarsCount : bearPillarsCount;
-            logOpportunityCall({
-                action: optAction,
-                symbol: optSymbol,
-                strike: recommendedStrike,
-                optType: isOptionSelling ? (isBuy ? 'PE' : 'CE') : (isBuy ? 'CE' : 'PE'),
-                slPrice: isBuy ? (d.ltp - 18) : (d.ltp + 18),
-                targetPrice: isBuy ? (d.ltp + 42) : (d.ltp - 42),
-                optEstEntry: estPremium,
-                optEstSl: isOptionSelling ? estPremium + 28 : Math.max(10, estPremium - 18),
-                optEstTgt: isOptionSelling ? Math.max(15, estPremium - 75) : estPremium + 42,
-                confluence: totalConfluence,
-                alignedPillars: alignedCount,
-                rationale: tradeRationale ? tradeRationale.textContent.trim() : 'Confluence signal'
-            });
+            if (state.feedMode !== 'live' || isMarketHours()) {
+                const journalSignalKey = `${optAction}_${recommendedStrike}_${unified?.candle_time || 'live'}`;
+                if (state.lastLoggedJournalSignalKey !== journalSignalKey) {
+                    state.lastLoggedJournalSignalKey = journalSignalKey;
+                    const isBuy = isBuyQualified;
+                    const alignedCount = isBuy ? bullPillarsCount : bearPillarsCount;
+                    logOpportunityCall({
+                        action: optAction,
+                        symbol: optSymbol,
+                        strike: recommendedStrike,
+                        optType: isOptionSelling ? (isBuy ? 'PE' : 'CE') : (isBuy ? 'CE' : 'PE'),
+                        slPrice: isBuy ? (d.ltp - 18) : (d.ltp + 18),
+                        targetPrice: isBuy ? (d.ltp + 42) : (d.ltp - 42),
+                        optEstEntry: estPremium,
+                        optEstSl: isOptionSelling ? estPremium + 28 : Math.max(10, estPremium - 18),
+                        optEstTgt: isOptionSelling ? Math.max(15, estPremium - 75) : estPremium + 42,
+                        confluence: totalConfluence,
+                        alignedPillars: alignedCount,
+                        rationale: tradeRationale ? tradeRationale.textContent.trim() : 'Confluence signal'
+                    });
+                }
+            }
         }
     }
 
@@ -3627,6 +3697,7 @@
     // ── 15. JOURNAL LOGGING & OUTCOME VERIFICATION ENGINE ──
     async function logOpportunityCall(tradeSetup) {
         if (!alertSettings.autoLog && !zeroClickSettings.autoLog && !zeroClickSettings.forwardToZeroClick) return;
+        if (state.feedMode === 'live' && !isMarketHours()) return;
         const now = Date.now();
         if (now - state.lastSignalLogTime < 15000) return; // 15s debounce between calls
         state.lastSignalLogTime = now;
