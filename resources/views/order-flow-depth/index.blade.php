@@ -310,7 +310,7 @@
             
             {{-- 1. Real-Time High Probability Trade Suggestion Card (TOP PRIORITY) --}}
             <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center justify-between mb-1.5">
                     <div class="flex items-center gap-1.5">
                         <span id="signal-badge-icon" class="text-lg">🔥</span>
                         <div>
@@ -323,6 +323,19 @@
                     <span id="signal-confidence-pill" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700">
                         WAITING
                     </span>
+                </div>
+
+                {{-- Master Anchor Process Indicator (NIFTY 50 Stock Anchor & API Cap) --}}
+                <div id="master-anchor-banner" class="mb-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/90 text-[10px] flex items-center justify-between flex-wrap gap-1">
+                    <div class="flex items-center gap-1.5 font-mono">
+                        <span class="text-amber-400">⚓</span>
+                        <span class="text-slate-400 font-bold uppercase text-[9px]">Master Anchor:</span>
+                        <span id="anchor-candle-pill" class="font-bold text-amber-300">NIFTY 50 Stocks (Awaiting Trigger)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="anchor-status-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400">BIAS: NEUTRAL</span>
+                        <span id="api-trade-cap-pill" class="hidden px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">API: 0/3</span>
+                    </div>
                 </div>
 
                 {{-- Trade Parameters Grid --}}
@@ -428,7 +441,7 @@
                 <div id="pane-mini-journal" class="mini-tab-pane space-y-2.5 text-xs">
                     {{-- Performance Scorecard Summary --}}
                     <div class="grid grid-cols-4 gap-2 text-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">
-                        <div>
+                        <div onclick="setJournalFilter('ALL')" class="cursor-pointer hover:bg-slate-900/80 p-1 rounded-lg transition" title="Show All Setups">
                             <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Calls</span>
                             <span id="journal-total-count" class="font-black text-white text-sm sm:text-base">0</span>
                         </div>
@@ -436,11 +449,17 @@
                             <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Win Rate</span>
                             <span id="journal-win-rate" class="font-black text-emerald-400 text-sm sm:text-base">0%</span>
                         </div>
-                        <div>
+                        <div class="p-1 rounded-lg bg-slate-900/40 border border-slate-800/80">
                             <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Hit / Stop</span>
-                            <span class="font-black text-sm sm:text-base font-mono">
-                                <span id="journal-target-count" class="text-emerald-400">0</span>/<span id="journal-stopped-count" class="text-rose-400">0</span>
-                            </span>
+                            <div class="font-black text-sm sm:text-base font-mono flex items-center justify-center gap-1">
+                                <button type="button" id="card-filter-hit" onclick="setJournalFilter('TARGET_HIT')" class="text-emerald-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-emerald-500/20 cursor-pointer" title="Click to filter Target Hits">
+                                    <span id="journal-target-count">0</span>
+                                </button>
+                                <span class="text-slate-500">/</span>
+                                <button type="button" id="card-filter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="text-rose-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-rose-500/20 cursor-pointer" title="Click to filter Stopped Out">
+                                    <span id="journal-stopped-count">0</span>
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Net Pts</span>
@@ -448,8 +467,23 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800/80 pb-1.5 px-0.5">
-                        <span class="font-bold text-slate-200 text-xs">Today's Verified Setups:</span>
+                    {{-- Filter Pill Bar --}}
+                    <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800/80 pb-1.5 px-0.5 flex-wrap gap-1">
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <span class="font-bold text-slate-200 text-xs mr-1">Filter:</span>
+                            <button type="button" id="btn-jfilter-all" onclick="setJournalFilter('ALL')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition cursor-pointer">
+                                All (<span id="count-jfilter-all">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-hit" onclick="setJournalFilter('TARGET_HIT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-emerald-300 transition cursor-pointer">
+                                🎯 Hits (<span id="count-jfilter-hit">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-rose-300 transition cursor-pointer">
+                                🛑 Stops (<span id="count-jfilter-stop">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-active" onclick="setJournalFilter('ACTIVE')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-amber-300 transition cursor-pointer">
+                                ⏳ Active (<span id="count-jfilter-active">0</span>)
+                            </button>
+                        </div>
                         <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer text-xs transition">
                             <span>🔄</span>
                             <span>Refresh</span>
@@ -1121,6 +1155,23 @@
                             </div>
                         </div>
 
+                        {{-- Daily Trade Frequency Restriction & Guard --}}
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-amber-500/30">
+                            <div>
+                                <div class="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                                    <span>🛑 Max API Executed Trades Per Day:</span>
+                                    <span id="zc-daily-trades-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">0 / 3 Executed Today</span>
+                                </div>
+                                <div class="text-[9.5px] text-slate-400 leading-tight mt-0.5">
+                                    Confluence signals always scan and display on screen. Once this daily cap is reached, auto-dispatch to Broker/0Click is safely locked.
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                                <input type="number" id="zc-max-daily-trades" value="3" min="1" max="50" class="w-16 bg-slate-950 border border-amber-500/50 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono font-black focus:outline-none focus:border-amber-400 text-center">
+                                <span class="text-[10px] text-slate-400 font-bold">trades</span>
+                            </div>
+                        </div>
+
                         {{-- Test Dispatch Buttons & Live Status Box --}}
                         <div class="pt-1.5 space-y-1.5">
                             <div class="flex items-center gap-2">
@@ -1202,7 +1253,8 @@
         slMode: 'candle_hl',
         slBufferPts: 15,
         targetTp1Pts: 100,
-        targetTp2Pts: 150
+        targetTp2Pts: 150,
+        maxDailyTrades: 3
     };
 
     window.toggleZcTokenVisibility = function() {
@@ -1431,6 +1483,14 @@
         if (zcTpPts) zcTpPts.value = zeroClickSettings.targetTp1Pts || 100;
         if (zcTp2Pts) zcTp2Pts.value = zeroClickSettings.targetTp2Pts || 150;
 
+        const zcMaxTrades = document.getElementById('zc-max-daily-trades');
+        const zcDailyBadge = document.getElementById('zc-daily-trades-badge');
+        if (zcMaxTrades) zcMaxTrades.value = zeroClickSettings.maxDailyTrades || 3;
+        if (zcDailyBadge) {
+            const todayCount = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
+            zcDailyBadge.textContent = `${todayCount} / ${zeroClickSettings.maxDailyTrades || 3} Executed Today`;
+        }
+
         updateZcModeBadge();
         updateLegendLabels();
     }
@@ -1599,6 +1659,9 @@
         zeroClickSettings.targetTp1Pts = parseInt(zcTpPts?.value || 100, 10);
         zeroClickSettings.targetTp2Pts = parseInt(zcTp2Pts?.value || 150, 10);
 
+        const zcMaxTrades = document.getElementById('zc-max-daily-trades');
+        zeroClickSettings.maxDailyTrades = Math.max(1, Math.min(50, parseInt(zcMaxTrades?.value || 3, 10)));
+
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
             localStorage.setItem('order_flow_zeroclick_settings', JSON.stringify(zeroClickSettings));
@@ -1725,6 +1788,13 @@
             }
         },
         
+        // Master Strategic Anchor State (NIFTY 50 Breadth Anchor)
+        masterAnchor: null,
+
+        // Engine Inspector Journal State
+        journalFilter: 'ALL',
+        cachedJournalLogs: [],
+
         volumeProfile: {},
         lastVtt: 0,
         simInterval: null
@@ -3366,13 +3436,81 @@
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
         const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
 
+        // ── ⚓ MASTER STRATEGIC ANCHOR: NIFTY 50 STOCK BREADTH ENGINE ──
+        // When Nifty 50 stocks trigger a signal (e.g. 10:55 candle with >80% breadth),
+        // it locks our macro direction until an opposite Nifty 50 call triggers.
+        if (unified && unified.has_call) {
+            const uDir = unified.signal === 'BUY' ? 'BULLISH' : (unified.signal === 'SELL' ? 'BEARISH' : 'NEUTRAL');
+            if (uDir !== 'NEUTRAL') {
+                if (!state.masterAnchor || state.masterAnchor.direction !== uDir || state.masterAnchor.candleTime !== unified.candle_time) {
+                    state.masterAnchor = {
+                        direction: uDir,
+                        candleTime: unified.candle_time || '10:55',
+                        strike: unified.strike || 23450,
+                        weight: parseFloat(unified.breadth_weight || 80),
+                        count: parseInt(unified.breadth_count || 40),
+                        netPoints: parseFloat(unified.net_points || 0),
+                        timestamp: Date.now()
+                    };
+                }
+            }
+        }
+
+        const activeAnchor = state.masterAnchor;
+        const anchorPill = document.getElementById('anchor-candle-pill');
+        const anchorBadge = document.getElementById('anchor-status-pill');
+        const apiCapPill = document.getElementById('api-trade-cap-pill');
+
+        if (activeAnchor) {
+            const isBearAnchor = (activeAnchor.direction === 'BEARISH');
+            if (anchorPill) {
+                anchorPill.textContent = `${activeAnchor.candleTime} Candle · ${activeAnchor.weight}% ${isBearAnchor ? 'Red' : 'Green'} (${activeAnchor.count} Stocks)`;
+            }
+            if (anchorBadge) {
+                anchorBadge.textContent = isBearAnchor ? '▼ DOWNSIDE BIAS' : '▲ UPSIDE BIAS';
+                anchorBadge.className = isBearAnchor
+                    ? 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500 text-white uppercase shadow-xs'
+                    : 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-emerald-500 text-slate-950 uppercase shadow-xs';
+            }
+        }
+
+        // Daily trade execution limit check
+        const totalExecutedToday = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
+        const maxTradesAllowed = parseInt(zeroClickSettings.maxDailyTrades || 3, 10);
+        const isTradeCapReached = (totalExecutedToday >= maxTradesAllowed);
+
+        if (apiCapPill) {
+            apiCapPill.classList.remove('hidden');
+            if (isTradeCapReached) {
+                apiCapPill.textContent = `🔒 Daily API Cap: ${totalExecutedToday}/${maxTradesAllowed}`;
+                apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40';
+            } else {
+                apiCapPill.textContent = `API Cap: ${totalExecutedToday}/${maxTradesAllowed}`;
+                apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            }
+        }
+
         // Strict 4/4 Filter Check
         const strictMode = !!alertSettings.strictConfluence;
         const meetsStrictBull = (bullPillarsCount === 4);
         const meetsStrictBear = (bearPillarsCount === 4);
 
-        const isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (totalConfluence >= 68 || isUnifiedBuy));
-        const isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (totalConfluence <= 35 || isUnifiedSell));
+        // Nifty 50 Anchor Directional Lock:
+        // Downside anchor strictly allows only Downside confluence and blocks opposite Upside;
+        // Upside anchor strictly allows only Upside confluence and blocks opposite Downside!
+        let isBuyQualified = false;
+        let isSellQualified = false;
+
+        if (activeAnchor && activeAnchor.direction === 'BEARISH') {
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3 || totalConfluence <= 38 || isUnifiedSell));
+            isBuyQualified = false;
+        } else if (activeAnchor && activeAnchor.direction === 'BULLISH') {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3 || totalConfluence >= 65 || isUnifiedBuy));
+            isSellQualified = false;
+        } else {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (totalConfluence >= 68 || isUnifiedBuy));
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (totalConfluence <= 35 || isUnifiedSell));
+        }
 
         if (alertSettings.enableAbsorption && isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
             // Unified is Bearish, but resting buy wall is holding the line
@@ -3437,9 +3575,9 @@
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
                 const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
-                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) · ` : '';
+                const anchorDesc = activeAnchor ? `⚓ NIFTY 50 ${activeAnchor.candleTime} Upside (${activeAnchor.weight}% Green) · ` : (unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) · ` : '');
                 const domDesc = d.bidStack ? `${d.bidStack.count}L Stack` : (d.heavyBidBlock ? `${d.heavyBidBlock.qty.toLocaleString()} Wall` : `OBI +${d.obi30}%`);
-                tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Upside active`;
+                tradeRationale.textContent = `${confTag}${anchorDesc}${domDesc} · Upside active`;
             }
 
             const currentBuySignalKey = `BUY_${unified?.candle_time || 'live'}_${unified?.strike || ''}_${instLabel}`;
@@ -3483,9 +3621,9 @@
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
                 const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
-                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) · ` : '';
+                const anchorDesc = activeAnchor ? `⚓ NIFTY 50 ${activeAnchor.candleTime} Downside (${activeAnchor.weight}% Red) · ` : (unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) · ` : '');
                 const domDesc = d.askStack ? `${d.askStack.count}L Stack` : (d.heavyAskBlock ? `${d.heavyAskBlock.qty.toLocaleString()} Wall` : `OBI ${d.obi30}%`);
-                tradeRationale.textContent = `${confTag}${uniDesc}${domDesc} · Downside active`;
+                tradeRationale.textContent = `${confTag}${anchorDesc}${domDesc} · Downside active`;
             }
 
             const currentSellSignalKey = `SELL_${unified?.candle_time || 'live'}_${unified?.strike || ''}_${instLabel}`;
@@ -3772,6 +3910,11 @@
                 }
             };
 
+            // Enforce Daily Trade Cap for Broker / 0Click API Execution
+            const totalExecutedToday = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
+            const maxTradesAllowed = parseInt(zeroClickSettings.maxDailyTrades || 3, 10);
+            const isTradeCapReached = (totalExecutedToday >= maxTradesAllowed);
+
             const payload = {
                 mode: state.feedMode,
                 symbol: state.symbol || 'NIFTY',
@@ -3791,13 +3934,16 @@
                 confluence_score: tradeSetup.confluence || 50,
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
-                trigger_reason: tradeSetup.rationale || 'Liquidity event',
+                trigger_reason: isTradeCapReached 
+                    ? `${tradeSetup.rationale || 'Liquidity event'} · [Daily API Cap Reached: ${totalExecutedToday}/${maxTradesAllowed} - Signal Logged Only]`
+                    : (tradeSetup.rationale || 'Liquidity event'),
 
                 // Multi-engine snapshot
                 factors: factorsSnapshot,
 
-                // 0Click.in Trade Webhook Integration fields
-                dispatch_webhook: !!zeroClickSettings.forwardToZeroClick,
+                // 0Click.in Trade Webhook Integration fields (Restricted by user daily cap)
+                dispatch_webhook: !!zeroClickSettings.forwardToZeroClick && !isTradeCapReached,
+                max_daily_trades: maxTradesAllowed,
                 webhook_url: zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview',
                 webhook_token: zeroClickSettings.webhookToken || '',
                 execution_mode: zeroClickSettings.mode || 'SIMULATION',
@@ -3876,6 +4022,245 @@
         }
     }
 
+    window.setJournalFilter = function(filter) {
+        state.journalFilter = filter || 'ALL';
+        updateJournalFilterUI();
+        renderJournalLogsUI();
+    };
+
+    function updateJournalFilterUI() {
+        const f = state.journalFilter || 'ALL';
+        const btnAll = document.getElementById('btn-jfilter-all');
+        const btnHit = document.getElementById('btn-jfilter-hit');
+        const btnStop = document.getElementById('btn-jfilter-stop');
+        const btnActive = document.getElementById('btn-jfilter-active');
+        const cardHit = document.getElementById('card-filter-hit');
+        const cardStop = document.getElementById('card-filter-stop');
+
+        if (btnAll) btnAll.className = 'px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ' + (f === 'ALL' ? 'bg-indigo-600 text-white shadow-xs ring-1 ring-indigo-400/50' : 'bg-slate-900 text-slate-400 hover:text-white');
+        if (btnHit) btnHit.className = 'px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ' + (f === 'TARGET_HIT' ? 'bg-emerald-600 text-white font-black shadow-xs ring-1 ring-emerald-400/50' : 'bg-slate-900 text-slate-400 hover:text-emerald-300');
+        if (btnStop) btnStop.className = 'px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ' + (f === 'STOPPED_OUT' ? 'bg-rose-600 text-white font-black shadow-xs ring-1 ring-rose-400/50' : 'bg-slate-900 text-slate-400 hover:text-rose-300');
+        if (btnActive) btnActive.className = 'px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ' + (f === 'ACTIVE' ? 'bg-amber-600 text-white font-black shadow-xs ring-1 ring-amber-400/50' : 'bg-slate-900 text-slate-400 hover:text-amber-300');
+
+        if (cardHit) {
+            if (f === 'TARGET_HIT') {
+                cardHit.classList.add('bg-emerald-500/30', 'ring-1', 'ring-emerald-400');
+            } else {
+                cardHit.classList.remove('bg-emerald-500/30', 'ring-1', 'ring-emerald-400');
+            }
+        }
+        if (cardStop) {
+            if (f === 'STOPPED_OUT') {
+                cardStop.classList.add('bg-rose-500/30', 'ring-1', 'ring-rose-400');
+            } else {
+                cardStop.classList.remove('bg-rose-500/30', 'ring-1', 'ring-rose-400');
+            }
+        }
+    }
+
+    function renderJournalLogsUI() {
+        const container = document.getElementById('journal-logs-container');
+        if (!container) return;
+
+        const allLogs = state.cachedJournalLogs || [];
+        const allCount = allLogs.length;
+        const hitCount = allLogs.filter(l => l.status === 'TARGET_HIT').length;
+        const stopCount = allLogs.filter(l => l.status === 'STOPPED_OUT').length;
+        const activeCount = allLogs.filter(l => l.status === 'ACTIVE').length;
+
+        const cAll = document.getElementById('count-jfilter-all');
+        const cHit = document.getElementById('count-jfilter-hit');
+        const cStop = document.getElementById('count-jfilter-stop');
+        const cActive = document.getElementById('count-jfilter-active');
+        if (cAll) cAll.textContent = allCount;
+        if (cHit) cHit.textContent = hitCount;
+        if (cStop) cStop.textContent = stopCount;
+        if (cActive) cActive.textContent = activeCount;
+
+        const f = state.journalFilter || 'ALL';
+        let filtered = allLogs;
+        if (f === 'TARGET_HIT') filtered = allLogs.filter(l => l.status === 'TARGET_HIT');
+        else if (f === 'STOPPED_OUT') filtered = allLogs.filter(l => l.status === 'STOPPED_OUT');
+        else if (f === 'ACTIVE') filtered = allLogs.filter(l => l.status === 'ACTIVE');
+
+        if (filtered.length === 0) {
+            let emptyMsg = 'No trade signals logged yet today. Waiting for setup triggers...';
+            if (f === 'TARGET_HIT') emptyMsg = 'No Target Hits recorded yet today.';
+            else if (f === 'STOPPED_OUT') emptyMsg = 'No Stopped Out trades recorded yet today.';
+            else if (f === 'ACTIVE') emptyMsg = 'No Active setups running right now.';
+            container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">${emptyMsg}</div>`;
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(l => {
+            const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY')) || l.action.includes('SELL PUT');
+            
+            let statusBadge = '';
+            if (l.status === 'TARGET_HIT') {
+                statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500 text-slate-950 uppercase shadow-xs">TARGET HIT (+${l.pnl_points} pts)</span>`;
+            } else if (l.status === 'STOPPED_OUT') {
+                statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-rose-500 text-white uppercase shadow-xs">STOPPED (${l.pnl_points} pts)</span>`;
+            } else {
+                statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
+            }
+
+            // Parse Notes (supports JSON format and legacy strings)
+            let parsedNotes = {};
+            try {
+                parsedNotes = typeof l.notes === 'string' ? JSON.parse(l.notes) : (l.notes || {});
+            } catch(e) {
+                parsedNotes = { webhook: l.notes };
+            }
+
+            const webhookStatus = parsedNotes.webhook || (typeof l.notes === 'string' && l.notes.includes('0Click:') ? l.notes : null);
+            const tradeStyle = parsedNotes.trade_style || (l.action.includes('SELL') ? 'OPTION_SELLING' : 'OPTION_BUYING');
+            const factors = parsedNotes.factors || null;
+
+            let webhookBadge = '';
+            if (webhookStatus) {
+                const isSent = webhookStatus.includes('SENT');
+                webhookBadge = isSent
+                    ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${webhookStatus}">⚡ 0CLICK: SENT</span>`
+                    : `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${webhookStatus}">⚡ 0CLICK: ERR</span>`;
+            }
+
+            const actionBadgeText = l.action.includes('WALL') 
+                ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') 
+                : (l.action.includes('STACK') 
+                    ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') 
+                    : (isBuy ? '▲ CALL / LONG' : '▼ PUT / SHORT'));
+
+            const styleBadge = tradeStyle === 'OPTION_SELLING'
+                ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">👑 SELL (DECAY)</span>`
+                : `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">🚀 BUY (MOMENTUM)</span>`;
+
+            // Evaluate multi-engine alignment count and format 4-pillar scorecard
+            let factorGridHtml = '';
+            let alignmentBadge = '';
+            
+            const targetDir = isBuy ? 'BULLISH' : 'BEARISH';
+            const bSig = factors?.breadth?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
+            const oSig = factors?.oi_flow?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
+            const qSig = factors?.trending_oi?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
+            const dSig = factors?.dom_depth?.signal || (l.obi_pct > 10 ? 'BULLISH' : (l.obi_pct < -10 ? 'BEARISH' : 'NEUTRAL'));
+
+            const engines = [
+                { label: '🏢 Stocks', sig: bSig },
+                { label: '📊 Options', sig: oSig },
+                { label: '📈 Trending OI', sig: qSig },
+                { label: '🌊 30-Depth Book', sig: dSig }
+            ];
+
+            let alignedCount = 0;
+            engines.forEach(e => {
+                if (e.sig === targetDir) alignedCount++;
+            });
+
+            if (alignedCount === 4) {
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse">🎯 4/4 FULL CONFLUENCE</span>`;
+            } else if (alignedCount === 3) {
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">⚡ 3/4 ALIGNMENT</span>`;
+            } else {
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-mono text-slate-400 bg-slate-900 border border-slate-800">${alignedCount}/4 Align</span>`;
+            }
+
+            // Extract exact values for the 4 pillars
+            const bVal = (factors?.breadth?.advances !== undefined && factors?.breadth?.declines !== undefined)
+                ? `${factors.breadth.advances}A / ${factors.breadth.declines}D`
+                : (factors?.breadth?.score ? `${factors.breadth.score}% Score` : (isBuy ? '34A / 16D' : '16A / 34D'));
+
+            const oVal = factors?.oi_flow?.pcr 
+                ? `${Number(factors.oi_flow.pcr).toFixed(2)} PCR`
+                : (factors?.oi_flow?.score ? `${factors.oi_flow.score}% Flow` : (isBuy ? '1.24 PCR' : '0.78 PCR'));
+
+            const qVal = factors?.trending_oi?.pop_pct 
+                ? `${factors.trending_oi.pop_pct}% POP`
+                : (factors?.trending_oi?.score ? `${factors.trending_oi.score}% Quant` : (isBuy ? '68% POP' : '38% POP'));
+
+            const dVal = factors?.dom_depth?.obi !== undefined 
+                ? `${factors.dom_depth.obi > 0 ? '+' : ''}${factors.dom_depth.obi}% OBI`
+                : (l.obi_pct !== undefined && l.obi_pct !== null ? `${l.obi_pct > 0 ? '+' : ''}${l.obi_pct}% OBI` : (isBuy ? '+14.6% OBI' : '-16.2% OBI'));
+
+            const getPillarSigBadge = (sig) => {
+                if (sig === 'BULLISH') return '<span class="text-emerald-400 font-black text-[9.5px]">▲ BULL</span>';
+                if (sig === 'BEARISH') return '<span class="text-rose-400 font-black text-[9.5px]">▼ BEAR</span>';
+                return '<span class="text-slate-400 font-bold text-[9.5px]">— NEUT</span>';
+            };
+
+            factorGridHtml = `
+            <div class="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-slate-900/90 text-xs font-mono">
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                    <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🏢 NIFTY 50</span>
+                    <div class="font-mono font-black text-amber-200 text-[10px] truncate leading-tight">${bVal}</div>
+                    <div>${getPillarSigBadge(bSig)}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                    <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📊 Opt Flow</span>
+                    <div class="font-mono font-black text-cyan-300 text-[10px] truncate leading-tight">${oVal}</div>
+                    <div>${getPillarSigBadge(oSig)}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                    <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📈 Trend OI</span>
+                    <div class="font-mono font-black text-indigo-300 text-[10px] truncate leading-tight">${qVal}</div>
+                    <div>${getPillarSigBadge(qSig)}</div>
+                </div>
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                    <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🌊 30D Book</span>
+                    <div class="font-mono font-black text-amber-300 text-[10px] truncate leading-tight">${dVal}</div>
+                    <div>${getPillarSigBadge(dSig)}</div>
+                </div>
+            </div>
+            `;
+
+            // Recommended Option Strike badge
+            let optContractSnippet = '';
+            if (l.opt_strike) {
+                optContractSnippet = `
+                <div class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800/90 text-slate-300 flex-wrap gap-1">
+                    <span class="text-amber-300 font-black truncate">⚡ Option: NIFTY ${l.opt_strike} ${l.opt_type}</span>
+                    <span class="text-slate-300 text-[9.5px]">Entry: <strong class="text-white">₹${l.opt_entry || '--'}</strong> | SL: <strong class="text-rose-400">₹${l.opt_sl || '--'}</strong> | TGT: <strong class="text-emerald-400">₹${l.opt_target || '--'}</strong></span>
+                </div>
+                `;
+            }
+
+            html += `
+            <div class="p-2.5 rounded-xl bg-slate-950 border ${isBuy ? 'border-emerald-800/50 shadow-emerald-950/20' : 'border-rose-800/50 shadow-rose-950/20'} text-xs space-y-2 shadow-lg">
+                <div class="flex items-center justify-between gap-1 flex-wrap">
+                    <div class="flex items-center gap-1.5 font-mono flex-wrap">
+                        <span class="text-slate-400 text-[10.5px]">${l.signal_time}</span>
+                        <span class="px-2 py-0.5 rounded font-black text-[9.5px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                            ${actionBadgeText}
+                        </span>
+                        ${styleBadge}
+                        <span class="font-black text-white text-xs sm:text-[13px] truncate max-w-[150px]">${l.instrument}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${alignmentBadge}
+                        ${webhookBadge}
+                        ${statusBadge}
+                    </div>
+                </div>
+
+                ${optContractSnippet}
+
+                <div class="text-[10.5px] text-amber-300/95 font-sans leading-tight">${l.trigger_reason || l.action}</div>
+                
+                <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1 border-t border-slate-900 flex-wrap gap-1">
+                    <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
+                    <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
+                    <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
+                    <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
+                </div>
+
+                ${factorGridHtml}
+            </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
     window.refreshSignalLogs = async function() {
         try {
             const resp = await fetch(`{{ route('api.order-flow.signal-logs') }}?mode=${state.feedMode}`);
@@ -3900,183 +4285,11 @@
                     pnlEl.className = s.net_pnl_pts > 0 ? 'font-black text-emerald-400 text-sm sm:text-base font-mono' : (s.net_pnl_pts < 0 ? 'font-black text-rose-400 text-sm sm:text-base font-mono' : 'font-black text-slate-300 text-sm sm:text-base font-mono');
                 }
 
+                state.cachedJournalLogs = res.logs || [];
                 state.activeLoggedSignals = (res.logs || []).filter(l => l.status === 'ACTIVE');
 
-                const container = document.getElementById('journal-logs-container');
-                if (!container) return;
-
-                if (!res.logs || res.logs.length === 0) {
-                    container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">No trade signals logged yet today. Waiting for setup triggers...</div>`;
-                    return;
-                }
-
-                let html = '';
-                res.logs.forEach(l => {
-                    const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY')) || l.action.includes('SELL PUT');
-                    
-                    let statusBadge = '';
-                    if (l.status === 'TARGET_HIT') {
-                        statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500 text-slate-950 uppercase shadow-xs">TARGET HIT (+${l.pnl_points} pts)</span>`;
-                    } else if (l.status === 'STOPPED_OUT') {
-                        statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-rose-500 text-white uppercase shadow-xs">STOPPED (${l.pnl_points} pts)</span>`;
-                    } else {
-                        statusBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
-                    }
-
-                    // Parse Notes (supports JSON format and legacy strings)
-                    let parsedNotes = {};
-                    try {
-                        parsedNotes = typeof l.notes === 'string' ? JSON.parse(l.notes) : (l.notes || {});
-                    } catch(e) {
-                        parsedNotes = { webhook: l.notes };
-                    }
-
-                    const webhookStatus = parsedNotes.webhook || (typeof l.notes === 'string' && l.notes.includes('0Click:') ? l.notes : null);
-                    const tradeStyle = parsedNotes.trade_style || (l.action.includes('SELL') ? 'OPTION_SELLING' : 'OPTION_BUYING');
-                    const factors = parsedNotes.factors || null;
-
-                    let webhookBadge = '';
-                    if (webhookStatus) {
-                        const isSent = webhookStatus.includes('SENT');
-                        webhookBadge = isSent
-                            ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${webhookStatus}">⚡ 0CLICK: SENT</span>`
-                            : `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${webhookStatus}">⚡ 0CLICK: ERR</span>`;
-                    }
-
-                    const actionBadgeText = l.action.includes('WALL') 
-                        ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') 
-                        : (l.action.includes('STACK') 
-                            ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') 
-                            : (isBuy ? '▲ CALL / LONG' : '▼ PUT / SHORT'));
-
-                    const styleBadge = tradeStyle === 'OPTION_SELLING'
-                        ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">👑 SELL (DECAY)</span>`
-                        : `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">🚀 BUY (MOMENTUM)</span>`;
-
-                    // Evaluate multi-engine alignment count and format 4-pillar scorecard
-                    let factorGridHtml = '';
-                    let alignmentBadge = '';
-                    
-                    const targetDir = isBuy ? 'BULLISH' : 'BEARISH';
-                    const bSig = factors?.breadth?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
-                    const oSig = factors?.oi_flow?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
-                    const qSig = factors?.trending_oi?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
-                    const dSig = factors?.dom_depth?.signal || (l.obi_pct > 10 ? 'BULLISH' : (l.obi_pct < -10 ? 'BEARISH' : 'NEUTRAL'));
-
-                    const engines = [
-                        { label: '🏢 Stocks', sig: bSig },
-                        { label: '📊 Options', sig: oSig },
-                        { label: '📈 Trending OI', sig: qSig },
-                        { label: '🌊 30-Depth Book', sig: dSig }
-                    ];
-
-                    let alignedCount = 0;
-                    engines.forEach(e => {
-                        if (e.sig === targetDir) alignedCount++;
-                    });
-
-                    if (alignedCount === 4) {
-                        alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse">🎯 4/4 FULL CONFLUENCE</span>`;
-                    } else if (alignedCount === 3) {
-                        alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">⚡ 3/4 ALIGNMENT</span>`;
-                    } else {
-                        alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-mono text-slate-400 bg-slate-900 border border-slate-800">${alignedCount}/4 Align</span>`;
-                    }
-
-                    // Extract exact values for the 4 pillars
-                    const bVal = (factors?.breadth?.advances !== undefined && factors?.breadth?.declines !== undefined)
-                        ? `${factors.breadth.advances}A / ${factors.breadth.declines}D`
-                        : (factors?.breadth?.score ? `${factors.breadth.score}% Score` : (isBuy ? '34A / 16D' : '16A / 34D'));
-
-                    const oVal = factors?.oi_flow?.pcr 
-                        ? `${Number(factors.oi_flow.pcr).toFixed(2)} PCR`
-                        : (factors?.oi_flow?.score ? `${factors.oi_flow.score}% Flow` : (isBuy ? '1.24 PCR' : '0.78 PCR'));
-
-                    const qVal = factors?.trending_oi?.pop_pct 
-                        ? `${factors.trending_oi.pop_pct}% POP`
-                        : (factors?.trending_oi?.score ? `${factors.trending_oi.score}% Quant` : (isBuy ? '68% POP' : '38% POP'));
-
-                    const dVal = factors?.dom_depth?.obi !== undefined 
-                        ? `${factors.dom_depth.obi > 0 ? '+' : ''}${factors.dom_depth.obi}% OBI`
-                        : (l.obi_pct !== undefined && l.obi_pct !== null ? `${l.obi_pct > 0 ? '+' : ''}${l.obi_pct}% OBI` : (isBuy ? '+14.6% OBI' : '-16.2% OBI'));
-
-                    const getPillarSigBadge = (sig) => {
-                        if (sig === 'BULLISH') return '<span class="text-emerald-400 font-black text-[9.5px]">▲ BULL</span>';
-                        if (sig === 'BEARISH') return '<span class="text-rose-400 font-black text-[9.5px]">▼ BEAR</span>';
-                        return '<span class="text-slate-400 font-bold text-[9.5px]">— NEUT</span>';
-                    };
-
-                    factorGridHtml = `
-                    <div class="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-slate-900/90 text-xs font-mono">
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
-                            <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🏢 NIFTY 50</span>
-                            <div class="font-mono font-black text-amber-200 text-[10px] truncate leading-tight">${bVal}</div>
-                            <div>${getPillarSigBadge(bSig)}</div>
-                        </div>
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
-                            <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📊 Opt Flow</span>
-                            <div class="font-mono font-black text-cyan-300 text-[10px] truncate leading-tight">${oVal}</div>
-                            <div>${getPillarSigBadge(oSig)}</div>
-                        </div>
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
-                            <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📈 Trend OI</span>
-                            <div class="font-mono font-black text-indigo-300 text-[10px] truncate leading-tight">${qVal}</div>
-                            <div>${getPillarSigBadge(qSig)}</div>
-                        </div>
-                        <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
-                            <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🌊 30D Book</span>
-                            <div class="font-mono font-black text-amber-300 text-[10px] truncate leading-tight">${dVal}</div>
-                            <div>${getPillarSigBadge(dSig)}</div>
-                        </div>
-                    </div>
-                    `;
-
-                    // Recommended Option Strike badge
-                    let optContractSnippet = '';
-                    if (l.opt_strike) {
-                        optContractSnippet = `
-                        <div class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded-lg bg-slate-900/80 border border-slate-800/90 text-slate-300 flex-wrap gap-1">
-                            <span class="text-amber-300 font-black truncate">⚡ Option: NIFTY ${l.opt_strike} ${l.opt_type}</span>
-                            <span class="text-slate-300 text-[9.5px]">Entry: <strong class="text-white">₹${l.opt_entry || '--'}</strong> | SL: <strong class="text-rose-400">₹${l.opt_sl || '--'}</strong> | TGT: <strong class="text-emerald-400">₹${l.opt_target || '--'}</strong></span>
-                        </div>
-                        `;
-                    }
-
-                    html += `
-                    <div class="p-2.5 rounded-xl bg-slate-950 border ${isBuy ? 'border-emerald-800/50 shadow-emerald-950/20' : 'border-rose-800/50 shadow-rose-950/20'} text-xs space-y-2 shadow-lg">
-                        <div class="flex items-center justify-between gap-1 flex-wrap">
-                            <div class="flex items-center gap-1.5 font-mono flex-wrap">
-                                <span class="text-slate-400 text-[10.5px]">${l.signal_time}</span>
-                                <span class="px-2 py-0.5 rounded font-black text-[9.5px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
-                                    ${actionBadgeText}
-                                </span>
-                                ${styleBadge}
-                                <span class="font-black text-white text-xs sm:text-[13px] truncate max-w-[150px]">${l.instrument}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                ${alignmentBadge}
-                                ${webhookBadge}
-                                ${statusBadge}
-                            </div>
-                        </div>
-
-                        ${optContractSnippet}
-
-                        <div class="text-[10.5px] text-amber-300/95 font-sans leading-tight">${l.trigger_reason || l.action}</div>
-                        
-                        <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1 border-t border-slate-900 flex-wrap gap-1">
-                            <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
-                            <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
-                            <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
-                            <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
-                        </div>
-
-                        ${factorGridHtml}
-                    </div>
-                    `;
-                });
-
-                container.innerHTML = html;
+                updateJournalFilterUI();
+                renderJournalLogsUI();
             }
         } catch(e) {
             console.error('Failed refreshing signal logs:', e);
