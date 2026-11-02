@@ -521,9 +521,6 @@
                     <pre id="raw-json-inspector" class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[10.5px] text-emerald-400 font-mono overflow-x-auto max-h-80 custom-scrollbar">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
                 </div>
             </div>
-                    <pre id="raw-json-inspector" class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[9px] text-emerald-400 font-mono overflow-x-auto max-h-80 custom-scrollbar">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
-                </div>
-            </div>
 
         </div>
 
