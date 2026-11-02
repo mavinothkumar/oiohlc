@@ -2142,6 +2142,7 @@
     function evaluateConfluenceRadar() {
         const d = state.depthData;
         const signals = state.strategySignals?.factors || {};
+        const unified = signals.unified_macro;
 
         let quantScore = signals.quant_engine ? signals.quant_engine.score : 50;
         let oiScore = signals.oi_buildup ? signals.oi_buildup.score : 50;
@@ -2168,6 +2169,23 @@
             (depthScore * 0.30)
         );
 
+        // Update Confluence scorecard badges dynamically
+        const badgeQuant = document.querySelector('#engine-card-quant span:last-child');
+        const badgeOi = document.querySelector('#engine-card-oi span:last-child');
+        const badgeBreadth = document.querySelector('#engine-card-breadth span:last-child');
+        if (badgeQuant && signals.quant_engine) {
+            badgeQuant.textContent = signals.quant_engine.signal;
+            badgeQuant.className = signals.quant_engine.signal === 'BULLISH' ? 'font-bold text-emerald-400' : (signals.quant_engine.signal === 'BEARISH' ? 'font-bold text-rose-400' : 'font-bold text-slate-300');
+        }
+        if (badgeOi && signals.oi_buildup) {
+            badgeOi.textContent = signals.oi_buildup.signal;
+            badgeOi.className = signals.oi_buildup.signal === 'BULLISH' ? 'font-bold text-emerald-400' : (signals.oi_buildup.signal === 'BEARISH' ? 'font-bold text-rose-400' : 'font-bold text-slate-300');
+        }
+        if (badgeBreadth && signals.market_breadth) {
+            badgeBreadth.textContent = signals.market_breadth.signal;
+            badgeBreadth.className = signals.market_breadth.signal === 'BULLISH' ? 'font-bold text-emerald-400' : (signals.market_breadth.signal === 'BEARISH' ? 'font-bold text-rose-400' : 'font-bold text-slate-300');
+        }
+
         const meterText = document.getElementById('confluence-meter-text');
         const meterBar = document.getElementById('confluence-meter-bar');
         const heroConf = document.getElementById('val-hero-confluence');
@@ -2189,7 +2207,49 @@
         const activeOption = document.querySelector('#sel-target-contract option:checked');
         const targetName = activeOption ? activeOption.textContent.trim() : 'Contract';
 
-        if (totalConfluence >= 78) {
+        // Check for Counter-Trend Liquidity Absorption Wall
+        const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
+        const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
+
+        if (isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
+            // Unified is Bearish, but resting buy wall is holding the line
+            if (sigText) sigText.textContent = '🛡️ BID WALL ABSORPTION (WAIT FOR BREAK)';
+            if (sigPill) {
+                sigPill.textContent = 'ABSORPTION WALL';
+                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950';
+            }
+            if (sigIcon) sigIcon.textContent = '⚡';
+            if (heroBadge) {
+                heroBadge.textContent = 'SUPPORT WALL';
+                heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            }
+            if (tradeInst) tradeInst.textContent = `NIFTY ${unified.strike} CE (Sell) / PE (Buy)`;
+            if (tradeEntry) tradeEntry.textContent = `₹${(d.heavyBidBlock.price - 0.10).toFixed(2)} (Post-Break)`;
+            if (tradeSl) tradeSl.textContent = `₹${(d.heavyBidBlock.price + 5.0).toFixed(2)}`;
+            if (tradeTarget) tradeTarget.textContent = `₹${unified.tp_price ? unified.tp_price.toFixed(2) : (d.ltp - 40).toFixed(2)}`;
+            if (tradeRationale) {
+                tradeRationale.textContent = `Unified 5m Trend is BEARISH (${unified.candle_time} SELL ${unified.strike} CE), BUT Level ${d.heavyBidBlock.level} DOM has ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Wall at ₹${d.heavyBidBlock.price.toFixed(2)}. Do not short directly into this buy block — wait for wall consumption before entry!`;
+            }
+        } else if (isUnifiedBuy && d.heavyAskBlock && d.heavyAskBlock.level <= 3) {
+            // Unified is Bullish, but resting sell wall is capping the move
+            if (sigText) sigText.textContent = '🚧 ASK WALL RESISTANCE (WAIT FOR BREAK)';
+            if (sigPill) {
+                sigPill.textContent = 'RESISTANCE WALL';
+                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950';
+            }
+            if (sigIcon) sigIcon.textContent = '⚡';
+            if (heroBadge) {
+                heroBadge.textContent = 'RESISTANCE WALL';
+                heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            }
+            if (tradeInst) tradeInst.textContent = `NIFTY ${unified.strike} PE (Sell) / CE (Buy)`;
+            if (tradeEntry) tradeEntry.textContent = `₹${(d.heavyAskBlock.price + 0.10).toFixed(2)} (Post-Break)`;
+            if (tradeSl) tradeSl.textContent = `₹${(d.heavyAskBlock.price - 5.0).toFixed(2)}`;
+            if (tradeTarget) tradeTarget.textContent = `₹${unified.tp_price ? unified.tp_price.toFixed(2) : (d.ltp + 40).toFixed(2)}`;
+            if (tradeRationale) {
+                tradeRationale.textContent = `Unified 5m Trend is BULLISH (${unified.candle_time} BUY ${unified.strike} PE), BUT Level ${d.heavyAskBlock.level} DOM has ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Wall at ₹${d.heavyAskBlock.price.toFixed(2)}. Do not buy directly into this wall — wait for breakout before entry!`;
+            }
+        } else if (totalConfluence >= 68 || isUnifiedBuy) {
             if (sigText) sigText.textContent = '🚀 HIGH CONFIDENCE BUY / LONG';
             if (sigPill) {
                 sigPill.textContent = 'STRONG BUY';
@@ -2204,21 +2264,23 @@
             const bidWall = d.liquidityWalls.find(w => w.side === 'BID');
             const askWall = d.liquidityWalls.find(w => w.side === 'ASK');
 
-            const slPrice = bidWall ? (bidWall.price - 0.20).toFixed(2) : (d.ltp * 0.96).toFixed(2);
-            const targetPrice = askWall ? (askWall.price).toFixed(2) : (d.ltp * 1.08).toFixed(2);
+            const slPrice = unified?.sl_price ? unified.sl_price.toFixed(2) : (bidWall ? (bidWall.price - 0.20).toFixed(2) : (d.ltp * 0.96).toFixed(2));
+            const targetPrice = unified?.tp_price ? unified.tp_price.toFixed(2) : (askWall ? (askWall.price).toFixed(2) : (d.ltp * 1.08).toFixed(2));
 
-            if (tradeInst) tradeInst.textContent = targetName;
+            const instLabel = unified?.has_call ? `NIFTY ${unified.strike} PE (Sell ITM) / CE (Buy)` : targetName;
+            if (tradeInst) tradeInst.textContent = instLabel;
             if (tradeEntry) tradeEntry.textContent = `₹${(d.ltp - 0.15).toFixed(2)} - ₹${d.ltp.toFixed(2)}`;
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
                 const stackDesc = d.bidStack ? `with ${d.bidStack.count}-level Bid Stack` : (d.heavyBidBlock ? `with ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Block` : '');
-                tradeRationale.textContent = `30-Depth OBI (+${d.obi30}%) ${stackDesc} confirms buying force, backed by Quant & Breadth.`;
+                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) + ` : '';
+                tradeRationale.textContent = `${uniDesc}30-Depth OBI (+${d.obi30}%) ${stackDesc} confirms buying momentum, backed by Quant & Breadth.`;
             }
 
             triggerAlertAudio('BUY');
 
-        } else if (totalConfluence <= 32) {
+        } else if (totalConfluence <= 35 || isUnifiedSell) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
             if (sigPill) {
                 sigPill.textContent = 'STRONG SELL';
@@ -2233,16 +2295,18 @@
             const askWall = d.liquidityWalls.find(w => w.side === 'ASK');
             const bidWall = d.liquidityWalls.find(w => w.side === 'BID');
 
-            const slPrice = askWall ? (askWall.price + 0.20).toFixed(2) : (d.ltp * 1.04).toFixed(2);
-            const targetPrice = bidWall ? (bidWall.price).toFixed(2) : (d.ltp * 0.92).toFixed(2);
+            const slPrice = unified?.sl_price ? unified.sl_price.toFixed(2) : (askWall ? (askWall.price + 0.20).toFixed(2) : (d.ltp * 1.04).toFixed(2));
+            const targetPrice = unified?.tp_price ? unified.tp_price.toFixed(2) : (bidWall ? (bidWall.price).toFixed(2) : (d.ltp * 0.92).toFixed(2));
 
-            if (tradeInst) tradeInst.textContent = targetName;
+            const instLabel = unified?.has_call ? `NIFTY ${unified.strike} CE (Sell ITM) / PE (Buy)` : targetName;
+            if (tradeInst) tradeInst.textContent = instLabel;
             if (tradeEntry) tradeEntry.textContent = `₹${d.ltp.toFixed(2)} - ₹${(d.ltp + 0.15).toFixed(2)}`;
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
                 const stackDesc = d.askStack ? `and ${d.askStack.count}-level Ask Stack` : (d.heavyAskBlock ? `and ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Block` : '');
-                tradeRationale.textContent = `Ask Wall dominating with negative OBI (${d.obi30}%) ${stackDesc}. Downside bias confirmed.`;
+                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) + ` : '';
+                tradeRationale.textContent = `${uniDesc}Ask Wall dominating with negative OBI (${d.obi30}%) ${stackDesc}. Downside momentum confirmed.`;
             }
 
             triggerAlertAudio('SELL');
@@ -2703,6 +2767,10 @@
 
         await initProtobuf();
         connectWebSocket();
+
+        // Auto-sync Unified Monitor strategy signals every 15s
+        window.refreshStrategySignals();
+        setInterval(window.refreshStrategySignals, 15000);
     });
 
     window.refreshStrategySignals = async function() {
