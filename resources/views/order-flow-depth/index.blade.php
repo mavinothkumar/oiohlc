@@ -157,6 +157,12 @@
                 <button id="btn-sound-toggle" title="Toggle audio alert on high confluence signals" class="p-1 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition text-xs">
                     <span id="sound-icon">🔔</span>
                 </button>
+
+                {{-- Zen Mode Fullscreen Toggle Button (Seamless in-toolbar control, Esc supported) --}}
+                <button id="btn-zen-mode" onclick="toggleGlobalZenMode()" title="Toggle Zen Mode / Distraction-Free (Esc)" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition text-[11px] flex items-center gap-1 font-bold shadow-sm cursor-pointer zen-mode-toggle-btn">
+                    <span id="zen-btn-icon" class="zen-btn-icon">⛶</span>
+                    <span id="zen-btn-label" class="zen-btn-label hidden sm:inline">Zen</span>
+                </button>
             </div>
         </div>
 
@@ -3311,6 +3317,10 @@
         const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
         const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
 
+        // Check for Counter-Trend Liquidity Absorption Wall
+        const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
+        const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
+
         // Strict 4/4 Filter Check
         const strictMode = !!alertSettings.strictConfluence;
         const meetsStrictBull = (bullPillarsCount === 4);
@@ -3318,10 +3328,6 @@
 
         const isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (totalConfluence >= 68 || isUnifiedBuy));
         const isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (totalConfluence <= 35 || isUnifiedSell));
-
-        // Check for Counter-Trend Liquidity Absorption Wall
-        const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
-        const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
 
         if (alertSettings.enableAbsorption && isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
             // Unified is Bearish, but resting buy wall is holding the line

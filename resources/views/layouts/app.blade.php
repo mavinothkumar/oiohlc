@@ -24,13 +24,6 @@
         body.zen-mode main > .mt-4 {
             margin-top: 0 !important;
         }
-        /* Floating Zen Exit Trigger */
-        #zen-mode-exit-pill {
-            display: none;
-        }
-        body.zen-mode #zen-mode-exit-pill {
-            display: flex !important;
-        }
     </style>
 </head>
 <body class="antialiased bg-gray-100 min-h-screen w-full">
@@ -38,22 +31,6 @@
     $format = $format ?? 'd M Y, h:i:s'; // e.g. “02 Jun 2025, 10:15 AM”
     $routeName = request()->route()?->getName() ?? '';
 @endphp
-
-{{-- Global Floating Zen Exit Pill (Visible only when body.zen-mode is active) --}}
-<div id="zen-mode-exit-pill" class="fixed top-2.5 right-3 z-50">
-    <button type="button"
-            onclick="toggleGlobalZenMode(false)"
-            class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/95 hover:bg-rose-950/95 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500/80 shadow-2xl backdrop-blur-md text-[11px] font-semibold transition-all group cursor-pointer"
-            title="Exit Zen Mode (Esc)">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 group-hover:bg-rose-400 animate-pulse"></span>
-        <span>Exit Zen Mode</span>
-        <span class="text-[9px] font-mono bg-slate-800 px-1 py-0.2 rounded text-slate-400 group-hover:text-white border border-slate-700">ESC</span>
-        <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-    </button>
-</div>
 
 <header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
     <x-header-nav :format="$format"/>
@@ -126,6 +103,24 @@
         try {
             sessionStorage.setItem('zen_mode', isZen ? '1' : '0');
         } catch (e) {}
+
+        // Update in-page Zen button labels and states
+        const zenBtns = document.querySelectorAll('.zen-mode-toggle-btn, #btn-zen-mode');
+        zenBtns.forEach(btn => {
+            const icon = btn.querySelector('.zen-btn-icon, #zen-btn-icon');
+            const label = btn.querySelector('.zen-btn-label, #zen-btn-label');
+            if (icon) icon.textContent = isZen ? '✕' : '⛶';
+            if (label) label.textContent = isZen ? 'Exit Zen' : 'Zen';
+            if (isZen) {
+                btn.classList.add('bg-rose-950', 'border-rose-500/80', 'text-rose-300');
+                btn.classList.remove('bg-slate-950', 'border-slate-800', 'text-slate-300');
+                btn.title = 'Exit Zen Mode (Esc)';
+            } else {
+                btn.classList.remove('bg-rose-950', 'border-rose-500/80', 'text-rose-300');
+                btn.classList.add('bg-slate-950', 'border-slate-800', 'text-slate-300');
+                btn.title = 'Toggle Zen Mode / Distraction-Free (Esc)';
+            }
+        });
 
         // Notify charts and dynamic layouts to fit new viewport
         setTimeout(() => {
