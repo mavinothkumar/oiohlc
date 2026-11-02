@@ -484,8 +484,9 @@
 
                 <!-- Zen / Fullscreen Toggle -->
                 <button type="button"
-                        onclick="document.body.classList.toggle('zen-mode')"
-                        class="hidden lg:inline-flex items-center justify-center p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition focus:outline-none"
+                        id="global-zen-toggle-btn"
+                        onclick="toggleGlobalZenMode()"
+                        class="hidden lg:inline-flex items-center justify-center p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition focus:outline-none cursor-pointer"
                         title="Toggle Zen Mode / Full View (Esc)">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>

@@ -2,6 +2,14 @@
 
 @section('title', '30-Depth Order Flow & High-Probability Strategy Confluence Radar')
 
+@push('styles')
+<style>
+    body {
+        background-color: #0b0f19 !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="w-full px-2 sm:px-3 py-1 space-y-2 text-slate-100 font-sans" id="order-flow-app">
 
