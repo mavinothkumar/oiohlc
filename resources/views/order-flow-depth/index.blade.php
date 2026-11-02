@@ -628,35 +628,70 @@
 
     </div>
 
-    {{-- ════════════════════════ 3. MODAL: LIQUIDITY ALERT RULES SETTINGS ════════════════════════ --}}
+    {{-- ════════════════════════ 3. MODAL: LIQUIDITY & STRATEGY ALERT RULES ════════════════════════ --}}
     <div id="modal-alert-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 max-w-md w-full shadow-2xl space-y-3.5">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             
             {{-- Header --}}
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-slate-950/80">
                 <div class="flex items-center gap-2">
-                    <span class="text-lg">⚙️</span>
+                    <span class="text-xl">⚙️</span>
                     <div>
-                        <h3 class="text-sm sm:text-base font-black text-white">Liquidity &amp; Stack Alert Rules</h3>
-                        <p class="text-[10px] text-slate-400">Highlight large institutional orders and continuous directional stacks</p>
+                        <h3 class="text-sm sm:text-base font-black text-white">Alert Rules &amp; Triggers Control</h3>
+                        <p class="text-[10px] text-slate-400">Enable/disable individual alert engines and configure acoustic alarm thresholds</p>
                     </div>
                 </div>
-                <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-sm">
+                <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-sm">
                     ✕
                 </button>
             </div>
 
-            {{-- Body Settings Form --}}
-            <div class="space-y-3 text-xs">
+            {{-- Body Settings Form (Scrollable with customized scrollbar) --}}
+            <div class="space-y-3 p-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
                 
-                {{-- Rule 1: Single Level QTY Threshold --}}
+                {{-- Category 1: Confluence Alignment Scorecard & Strategy Alerts --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
+                            <span>🎯 Confluence Alignment Scorecard Alerts</span>
+                        </label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-enable-confluence" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500"></div>
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                        Evaluates multi-engine confluence (Breadth, Quant Engine, OI Buildup, and 30-Depth) and triggers high-probability trade setups (≥68% Bull / ≤35% Bear).
+                    </p>
+                    
+                    {{-- Sub-toggle: Absorption Wall Warnings --}}
+                    <div class="pt-2 border-t border-slate-900 flex items-center justify-between">
+                        <div>
+                            <span class="text-[10.5px] font-bold text-slate-300 block">🛡️ Absorption Wall Divergence Warnings</span>
+                            <span class="text-[9.5px] text-slate-500">Warns when resting walls in top 3 DOM levels absorb against macro trend</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-enable-absorption" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Category 2: Single Level Heavy Block Alert --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                     <div class="flex items-center justify-between">
                         <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
                             <span>⚡ Single Level Heavy Block</span>
                             <span class="text-[10px] text-amber-400 font-normal">(Qty ≥ X)</span>
                         </label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-enable-block" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
                     </div>
+                    <p class="text-[10px] text-slate-400">
+                        Detects and highlights resting institutional blocks at any individual price level in the 30-depth ladder.
+                    </p>
                     <div class="flex items-center gap-2">
                         <input type="number" id="cfg-single-qty" min="100" step="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold font-mono focus:outline-none focus:border-amber-400" value="2500" placeholder="e.g. 2500">
                         <span class="text-[11px] text-slate-400 font-bold">Qty</span>
@@ -671,7 +706,7 @@
                     </div>
                 </div>
 
-                {{-- Rule 2: Continuous / Consecutive Stack Alert (Directional Rush) --}}
+                {{-- Category 3: Continuous / Consecutive Stack Alert (Directional Rush) --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                     <div class="flex items-center justify-between">
                         <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
@@ -706,16 +741,28 @@
                     </div>
                 </div>
 
-                {{-- Rule 3: Audio Alert & 5 Selectable Sound Profiles --}}
+                {{-- Category 4: Audio Alarm Toggles & Selectable Sound Profiles --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
                     <div class="flex items-center justify-between">
                         <div>
-                            <span class="font-bold text-white text-[11px] block">Audio Alert on Liquidity Triggers</span>
-                            <span class="text-[10px] text-slate-400">Play directional acoustic chime when blocks or stacks trigger</span>
+                            <span class="font-bold text-white text-[11px] block">🔊 Master Sound Alarms</span>
+                            <span class="text-[10px] text-slate-400">Play directional acoustic chimes upon alerts</span>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="cfg-sound-stack" class="sr-only peer" checked>
+                            <input type="checkbox" id="cfg-sound-master" class="sr-only peer" checked>
                             <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                    </div>
+
+                    {{-- Individual Audio Toggles by Category --}}
+                    <div class="pt-2 border-t border-slate-900 grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 cursor-pointer">
+                            <input type="checkbox" id="cfg-sound-stack" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer" checked>
+                            <span class="text-[10px] font-bold text-slate-300">Blocks &amp; Stacks</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 cursor-pointer">
+                            <input type="checkbox" id="cfg-sound-strategy" class="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 cursor-pointer" checked>
+                            <span class="text-[10px] font-bold text-slate-300">Confluence Strategy</span>
                         </label>
                     </div>
 
@@ -736,21 +783,21 @@
                             
                             {{-- Test Buttons: Bull & Bear full width 2-column grid --}}
                             <div class="grid grid-cols-2 gap-2">
-                                <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish (Buy / Bid Stack & Block) tone" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 active:scale-95">
-                                    <span>▶️ Test Bull (Bid)</span>
+                                <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish tone" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 active:scale-95">
+                                    <span>▶️ Test Bull Tone</span>
                                 </button>
-                                <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish (Sell / Ask Stack & Block) tone" class="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-rose-600/20 active:scale-95">
-                                    <span>▶️ Test Bear (Ask)</span>
+                                <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish tone" class="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-rose-600/20 active:scale-95">
+                                    <span>▶️ Test Bear Tone</span>
                                 </button>
                             </div>
                         </div>
                         <p class="text-[9px] text-slate-500 leading-tight">
-                            Sounds automatically modulate higher in pitch for Bullish Bid Stacks/Blocks and lower in pitch for Bearish Ask Stacks/Blocks.
+                            Sounds automatically modulate higher in pitch for Bullish signals and lower in pitch for Bearish signals.
                         </p>
                     </div>
                 </div>
 
-                {{-- Rule 4: Auto-Log Opportunities to Journal --}}
+                {{-- Category 5: Auto-Log Opportunities to Journal --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <div>
@@ -763,14 +810,14 @@
                         </label>
                     </div>
                     <p class="text-[9px] text-slate-500 leading-tight">
-                        Whenever an entry setup triggers (≥75% Bull or ≤32% Bear, or Liquidity Stacks), saves entry, SL, target, and tracks live outcome (target hit vs stopped out) for performance auditing.
+                        Whenever an entry setup triggers (Confluence or Liquidity Stacks), saves entry, SL, target, and tracks live outcome for performance auditing.
                     </p>
                 </div>
 
             </div>
 
             {{-- Actions --}}
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+            <div class="flex items-center justify-between px-4 py-3 border-t border-slate-800 bg-slate-950/80">
                 <button type="button" onclick="resetAlertDefaults()" class="text-xs text-slate-400 hover:text-white font-semibold">
                     Reset Defaults
                 </button>
@@ -798,20 +845,39 @@
 
     // ── 1. ALERT SETTINGS STATE & STORAGE ──
     const alertSettings = {
-        singleThreshold: 2500,     // Single level Qty >= X
-        enableStack: true,         // Consecutive stack detection
-        stackMinConsecutive: 3,    // N continuous levels
-        stackMinQty: 1500,         // Min qty on each level
-        soundEnabled: true,
-        soundProfile: 'crystal',   // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
-        autoLog: true              // Auto-log opportunities to Journal
+        enableBlock: true,           // Single level heavy block alert toggle
+        singleThreshold: 2500,       // Single level Qty >= X
+        enableStack: true,           // Consecutive stack detection
+        stackMinConsecutive: 3,      // N continuous levels
+        stackMinQty: 1500,           // Min qty on each level
+        enableConfluence: true,      // Confluence Alignment Scorecard alerts
+        enableAbsorption: true,      // Absorption wall warnings
+        soundEnabled: true,          // Master sound toggle
+        soundStack: true,            // Sound for blocks & stacks
+        soundStrategy: true,         // Sound for confluence strategy setups
+        soundProfile: 'crystal',     // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
+        autoLog: true                // Auto-log opportunities to Journal
     };
 
     function updateLegendLabels() {
         const blockTag = document.getElementById('legend-block-tag');
         const stackTag = document.getElementById('legend-stack-tag');
-        if (blockTag) blockTag.textContent = `⚡ Block (≥${alertSettings.singleThreshold.toLocaleString()})`;
-        if (stackTag) stackTag.textContent = `🌊 Stack (≥${alertSettings.stackMinConsecutive} Lvl · ≥${alertSettings.stackMinQty.toLocaleString()})`;
+        if (blockTag) {
+            blockTag.textContent = alertSettings.enableBlock 
+                ? `⚡ Block (≥${alertSettings.singleThreshold.toLocaleString()})`
+                : `⚡ Block (OFF)`;
+            blockTag.className = alertSettings.enableBlock
+                ? 'px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30'
+                : 'px-1.5 py-0.2 rounded bg-slate-900 text-slate-500 font-bold border border-slate-800 line-through';
+        }
+        if (stackTag) {
+            stackTag.textContent = alertSettings.enableStack 
+                ? `🌊 Stack (≥${alertSettings.stackMinConsecutive} Lvl · ≥${alertSettings.stackMinQty.toLocaleString()})`
+                : `🌊 Stack (OFF)`;
+            stackTag.className = alertSettings.enableStack
+                ? 'px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                : 'px-1.5 py-0.2 rounded bg-slate-900 text-slate-500 font-bold border border-slate-800 line-through';
+        }
     }
 
     function loadAlertSettings() {
@@ -822,19 +888,29 @@
             }
         } catch(e) {}
 
+        const enableBlock = document.getElementById('cfg-enable-block');
         const singleInput = document.getElementById('cfg-single-qty');
         const enableStack = document.getElementById('cfg-enable-stack');
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
+        const enableConf = document.getElementById('cfg-enable-confluence');
+        const enableAbs = document.getElementById('cfg-enable-absorption');
+        const soundMaster = document.getElementById('cfg-sound-master');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundStrategy = document.getElementById('cfg-sound-strategy');
         const soundProfile = document.getElementById('cfg-sound-profile');
         const autoLogInput = document.getElementById('cfg-autolog-journal');
 
+        if (enableBlock) enableBlock.checked = alertSettings.enableBlock !== false;
         if (singleInput) singleInput.value = alertSettings.singleThreshold;
-        if (enableStack) enableStack.checked = alertSettings.enableStack;
+        if (enableStack) enableStack.checked = alertSettings.enableStack !== false;
         if (stackCount) stackCount.value = alertSettings.stackMinConsecutive;
         if (stackQty) stackQty.value = alertSettings.stackMinQty;
-        if (soundStack) soundStack.checked = alertSettings.soundEnabled;
+        if (enableConf) enableConf.checked = alertSettings.enableConfluence !== false;
+        if (enableAbs) enableAbs.checked = alertSettings.enableAbsorption !== false;
+        if (soundMaster) soundMaster.checked = alertSettings.soundEnabled !== false;
+        if (soundStack) soundStack.checked = alertSettings.soundStack !== false;
+        if (soundStrategy) soundStrategy.checked = alertSettings.soundStrategy !== false;
         if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
         if (autoLogInput) autoLogInput.checked = alertSettings.autoLog !== false;
 
@@ -858,47 +934,46 @@
     };
 
     window.resetAlertDefaults = function() {
+        alertSettings.enableBlock = true;
         alertSettings.singleThreshold = 2500;
         alertSettings.enableStack = true;
         alertSettings.stackMinConsecutive = 3;
         alertSettings.stackMinQty = 1500;
+        alertSettings.enableConfluence = true;
+        alertSettings.enableAbsorption = true;
         alertSettings.soundEnabled = true;
+        alertSettings.soundStack = true;
+        alertSettings.soundStrategy = true;
         alertSettings.soundProfile = 'crystal';
         alertSettings.autoLog = true;
 
-        const singleInput = document.getElementById('cfg-single-qty');
-        const enableStack = document.getElementById('cfg-enable-stack');
-        const stackCount = document.getElementById('cfg-stack-count');
-        const stackQty = document.getElementById('cfg-stack-qty');
-        const soundStack = document.getElementById('cfg-sound-stack');
-        const soundProfile = document.getElementById('cfg-sound-profile');
-        const autoLogInput = document.getElementById('cfg-autolog-journal');
-
-        if (singleInput) singleInput.value = 2500;
-        if (enableStack) enableStack.checked = true;
-        if (stackCount) stackCount.value = 3;
-        if (stackQty) stackQty.value = 1500;
-        if (soundStack) soundStack.checked = true;
-        if (soundProfile) soundProfile.value = 'crystal';
-        if (autoLogInput) autoLogInput.checked = true;
-
-        updateLegendLabels();
+        loadAlertSettings();
     };
 
     window.saveAlertSettings = function() {
+        const enableBlock = document.getElementById('cfg-enable-block');
         const singleInput = document.getElementById('cfg-single-qty');
         const enableStack = document.getElementById('cfg-enable-stack');
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
+        const enableConf = document.getElementById('cfg-enable-confluence');
+        const enableAbs = document.getElementById('cfg-enable-absorption');
+        const soundMaster = document.getElementById('cfg-sound-master');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundStrategy = document.getElementById('cfg-sound-strategy');
         const soundProfile = document.getElementById('cfg-sound-profile');
         const autoLogInput = document.getElementById('cfg-autolog-journal');
 
+        alertSettings.enableBlock = !!(enableBlock?.checked);
         alertSettings.singleThreshold = Math.max(100, parseInt(singleInput?.value || 2500));
         alertSettings.enableStack = !!(enableStack?.checked);
         alertSettings.stackMinConsecutive = Math.max(2, parseInt(stackCount?.value || 3));
         alertSettings.stackMinQty = Math.max(100, parseInt(stackQty?.value || 1500));
-        alertSettings.soundEnabled = !!(soundStack?.checked);
+        alertSettings.enableConfluence = !!(enableConf?.checked);
+        alertSettings.enableAbsorption = !!(enableAbs?.checked);
+        alertSettings.soundEnabled = !!(soundMaster?.checked);
+        alertSettings.soundStack = !!(soundStack?.checked);
+        alertSettings.soundStrategy = !!(soundStrategy?.checked);
         alertSettings.soundProfile = soundProfile?.value || 'crystal';
         alertSettings.autoLog = !!(autoLogInput?.checked);
 
@@ -1450,20 +1525,25 @@
         let alertType = null;
         let alertKey = '';
 
+        const allowedBidStack = alertSettings.enableStack ? bidStack : null;
+        const allowedAskStack = alertSettings.enableStack ? askStack : null;
+        const allowedBidBlock = alertSettings.enableBlock ? heavyBidBlock : null;
+        const allowedAskBlock = alertSettings.enableBlock ? heavyAskBlock : null;
+
         // Priority 1: Multi-level continuous stacks
-        if (bidStack && (!askStack || bidStack.totalQty >= askStack.totalQty)) {
+        if (allowedBidStack && (!allowedAskStack || allowedBidStack.totalQty >= allowedAskStack.totalQty)) {
             alertType = 'STACK_BUY';
-            alertKey = `STACK_BUY_${bidStack.lowP}_${bidStack.highP}_${bidStack.totalQty}`;
-        } else if (askStack) {
+            alertKey = `STACK_BUY_${allowedBidStack.lowP}_${allowedBidStack.highP}_${allowedBidStack.totalQty}`;
+        } else if (allowedAskStack) {
             alertType = 'STACK_SELL';
-            alertKey = `STACK_SELL_${askStack.lowP}_${askStack.highP}_${askStack.totalQty}`;
-        } else if (heavyBidBlock && (!heavyAskBlock || heavyBidBlock.qty >= heavyAskBlock.qty)) {
+            alertKey = `STACK_SELL_${allowedAskStack.lowP}_${allowedAskStack.highP}_${allowedAskStack.totalQty}`;
+        } else if (allowedBidBlock && (!allowedAskBlock || allowedBidBlock.qty >= allowedAskBlock.qty)) {
             // Priority 2: Single level heavy institutional block (Qty >= alertSettings.singleThreshold)
             alertType = 'BLOCK_BUY';
-            alertKey = `BLOCK_BUY_${heavyBidBlock.price}_${heavyBidBlock.qty}`;
-        } else if (heavyAskBlock) {
+            alertKey = `BLOCK_BUY_${allowedBidBlock.price}_${allowedBidBlock.qty}`;
+        } else if (allowedAskBlock) {
             alertType = 'BLOCK_SELL';
-            alertKey = `BLOCK_SELL_${heavyAskBlock.price}_${heavyAskBlock.qty}`;
+            alertKey = `BLOCK_SELL_${allowedAskBlock.price}_${allowedAskBlock.qty}`;
         }
 
         if (!alertType) {
@@ -1938,7 +2018,7 @@
     };
 
     function triggerStackAlertAudio(side) {
-        if (!state.soundEnabled || !alertSettings.soundEnabled) return;
+        if (!state.soundEnabled || !alertSettings.soundEnabled || !alertSettings.soundStack) return;
         const now = Date.now();
         if (now - state.lastStackAlertTime < 8000) return; // 8s throttle
         state.lastStackAlertTime = now;
@@ -2040,12 +2120,12 @@
             const askPct = a ? Math.min(100, (a.qty / maxQty) * 100) : 0;
 
             // 1. Single Level Block Check (User threshold)
-            const isBidBlock = b && (b.qty >= alertSettings.singleThreshold);
-            const isAskBlock = a && (a.qty >= alertSettings.singleThreshold);
+            const isBidBlock = alertSettings.enableBlock && b && (b.qty >= alertSettings.singleThreshold);
+            const isAskBlock = alertSettings.enableBlock && a && (a.qty >= alertSettings.singleThreshold);
 
             // 2. Consecutive Stack Check (User setting)
-            const isBidInStack = bidStack && bidStack.levels.some(x => x.index === i);
-            const isAskInStack = askStack && askStack.levels.some(x => x.index === i);
+            const isBidInStack = alertSettings.enableStack && bidStack && bidStack.levels.some(x => x.index === i);
+            const isAskInStack = alertSettings.enableStack && askStack && askStack.levels.some(x => x.index === i);
 
             // 3. Point of Control (POC Anchor) Check
             const isBidPoc = (pocSide === 'BID' && pocIndex === i && maxBookQty >= 1200);
@@ -2437,7 +2517,7 @@
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
         const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
 
-        if (isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
+        if (alertSettings.enableAbsorption && isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
             // Unified is Bearish, but resting buy wall is holding the line
             if (sigText) sigText.textContent = '🛡️ BID WALL ABSORPTION (WAIT FOR BREAK)';
             if (sigPill) {
@@ -2456,7 +2536,7 @@
             if (tradeRationale) {
                 tradeRationale.textContent = `Unified 5m Trend is BEARISH (${unified.candle_time} SELL ${unified.strike} CE), BUT Level ${d.heavyBidBlock.level} DOM has ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Wall at ₹${d.heavyBidBlock.price.toFixed(2)}. Do not short directly into this buy block — wait for wall consumption before entry!`;
             }
-        } else if (isUnifiedBuy && d.heavyAskBlock && d.heavyAskBlock.level <= 3) {
+        } else if (alertSettings.enableAbsorption && isUnifiedBuy && d.heavyAskBlock && d.heavyAskBlock.level <= 3) {
             // Unified is Bullish, but resting sell wall is capping the move
             if (sigText) sigText.textContent = '🚧 ASK WALL RESISTANCE (WAIT FOR BREAK)';
             if (sigPill) {
@@ -2475,7 +2555,7 @@
             if (tradeRationale) {
                 tradeRationale.textContent = `Unified 5m Trend is BULLISH (${unified.candle_time} BUY ${unified.strike} PE), BUT Level ${d.heavyAskBlock.level} DOM has ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Wall at ₹${d.heavyAskBlock.price.toFixed(2)}. Do not buy directly into this wall — wait for breakout before entry!`;
             }
-        } else if (totalConfluence >= 68 || isUnifiedBuy) {
+        } else if (alertSettings.enableConfluence && (totalConfluence >= 68 || isUnifiedBuy)) {
             if (sigText) sigText.textContent = '🚀 HIGH CONFIDENCE BUY / LONG';
             if (sigPill) {
                 sigPill.textContent = 'STRONG BUY';
@@ -2514,7 +2594,7 @@
                 guidance: '⚡ Direction: GO LONG / BUY CALL'
             });
 
-        } else if (totalConfluence <= 35 || isUnifiedSell) {
+        } else if (alertSettings.enableConfluence && (totalConfluence <= 35 || isUnifiedSell)) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
             if (sigPill) {
                 sigPill.textContent = 'STRONG SELL';
@@ -2554,16 +2634,27 @@
             });
 
         } else {
-            if (sigText) sigText.textContent = '⏸️ BALANCED / WAIT FOR SIGNAL';
+            if (sigText) sigText.textContent = (!alertSettings.enableConfluence) ? '⏸️ CONFLUENCE ALERTS MUTED' : '⏸️ BALANCED / WAIT FOR SIGNAL';
             if (sigPill) {
-                sigPill.textContent = 'NEUTRAL';
+                sigPill.textContent = (!alertSettings.enableConfluence) ? 'MUTED' : 'NEUTRAL';
                 sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
             }
             if (sigIcon) sigIcon.textContent = '⚖️';
             if (heroBadge) {
-                heroBadge.textContent = 'NEUTRAL CHOP';
+                heroBadge.textContent = (!alertSettings.enableConfluence) ? 'ALERTS OFF' : 'NEUTRAL CHOP';
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400';
             }
+
+            if (tradeInst) tradeInst.textContent = targetName;
+            if (tradeEntry) tradeEntry.textContent = `₹${d.ltp.toFixed(2)}`;
+            if (tradeSl) tradeSl.textContent = `Wait for Breakout`;
+            if (tradeTarget) tradeTarget.textContent = `Range Bound`;
+            if (tradeRationale) {
+                tradeRationale.textContent = (!alertSettings.enableConfluence)
+                    ? 'Confluence Alignment scorecard alerts are paused in Alert Rules settings.'
+                    : `Order book in equilibrium (OBI: ${d.obi30}%). Stand aside until clear confluence appears.`;
+            }
+        }
 
             if (tradeInst) tradeInst.textContent = targetName;
             if (tradeEntry) tradeEntry.textContent = `₹${d.ltp.toFixed(2)}`;
@@ -2664,7 +2755,7 @@
         };
 
         // Auto-Log High Probability Opportunity into Journal
-        if (optAction !== 'WAIT' && alertSettings.autoLog) {
+        if (alertSettings.enableConfluence && optAction !== 'WAIT' && alertSettings.autoLog) {
             logOpportunityCall({
                 action: optAction,
                 symbol: optSymbol,
@@ -2681,7 +2772,7 @@
     }
 
     function triggerAlertAudio(type) {
-        if (!state.soundEnabled || !alertSettings.soundEnabled) return;
+        if (!state.soundEnabled || !alertSettings.soundEnabled || !alertSettings.soundStrategy) return;
         const now = Date.now();
         if (now - state.lastAlertTime < 30000) return;
         state.lastAlertTime = now;
