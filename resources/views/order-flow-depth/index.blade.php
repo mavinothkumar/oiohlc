@@ -1156,19 +1156,27 @@
                         </div>
 
                         {{-- Daily Trade Frequency Restriction & Guard --}}
-                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border border-amber-500/30">
-                            <div>
-                                <div class="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
-                                    <span>🛑 Max API Executed Trades Per Day:</span>
-                                    <span id="zc-daily-trades-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">0 / 3 Executed Today</span>
+                        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-2">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="zc-enable-daily-cap" onchange="toggleDailyCapInput(this.checked)" class="sr-only peer">
+                                        <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                                    </label>
+                                    <div>
+                                        <div class="text-[11px] font-bold text-amber-300 flex items-center gap-1.5 flex-wrap">
+                                            <span>Max API Executed Trades Per Day:</span>
+                                            <span id="zc-daily-trades-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">0 / 3 Dispatched Today</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-[9.5px] text-slate-400 leading-tight mt-0.5">
-                                    Confluence signals always scan and display on screen. Once this daily cap is reached, auto-dispatch to Broker/0Click is safely locked.
+                                <div id="zc-daily-cap-input-wrap" class="flex items-center gap-1.5 shrink-0 ml-auto transition-opacity">
+                                    <input type="number" id="zc-max-daily-trades" value="3" min="0" max="100" placeholder="3" class="w-16 bg-slate-950 border border-amber-500/50 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono font-black focus:outline-none focus:border-amber-400 text-center">
+                                    <span class="text-[10px] text-slate-400 font-bold">trades</span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1.5 shrink-0 ml-2">
-                                <input type="number" id="zc-max-daily-trades" value="3" min="1" max="50" class="w-16 bg-slate-950 border border-amber-500/50 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono font-black focus:outline-none focus:border-amber-400 text-center">
-                                <span class="text-[10px] text-slate-400 font-bold">trades</span>
+                            <div class="text-[9.5px] text-slate-400 leading-tight">
+                                Turn OFF or enter <strong>0</strong> for <strong>Unlimited</strong> API trades. When enabled (default 3), auto-dispatch to Broker/0Click locks after reaching this daily count, while confluence signals continue scanning and showing live on screen.
                             </div>
                         </div>
 
@@ -1254,7 +1262,51 @@
         slBufferPts: 15,
         targetTp1Pts: 100,
         targetTp2Pts: 150,
+        enableDailyCap: true,
         maxDailyTrades: 3
+    };
+
+    function getApiDispatchedCount() {
+        return (state.cachedJournalLogs || []).filter(l => {
+            if (!l.notes) return false;
+            if (typeof l.notes === 'string') {
+                return l.notes.includes('0Click: SENT') || (l.notes.includes('webhook') && l.notes.includes('SENT'));
+            }
+            if (typeof l.notes === 'object' && l.notes.webhook) {
+                return String(l.notes.webhook).includes('SENT');
+            }
+            return false;
+        }).length;
+    }
+
+    window.toggleDailyCapInput = function(enabled) {
+        const wrap = document.getElementById('zc-daily-cap-input-wrap');
+        const badge = document.getElementById('zc-daily-trades-badge');
+        const input = document.getElementById('zc-max-daily-trades');
+        const count = getApiDispatchedCount();
+
+        if (wrap) {
+            wrap.style.opacity = enabled ? '1' : '0.4';
+            wrap.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+
+        if (enabled) {
+            if (input && (!input.value || parseInt(input.value, 10) <= 0)) {
+                input.value = 3;
+            }
+            const capVal = parseInt(input ? input.value : 3, 10);
+            if (badge) {
+                badge.textContent = `${count} / ${capVal} Dispatched Today`;
+                badge.className = (count >= capVal)
+                    ? 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            }
+        } else {
+            if (badge) {
+                badge.textContent = `${count} Dispatched · Unlimited (Cap Disabled)`;
+                badge.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            }
+        }
     };
 
     window.toggleZcTokenVisibility = function() {
@@ -1483,12 +1535,30 @@
         if (zcTpPts) zcTpPts.value = zeroClickSettings.targetTp1Pts || 100;
         if (zcTp2Pts) zcTp2Pts.value = zeroClickSettings.targetTp2Pts || 150;
 
+        const zcEnableCap = document.getElementById('zc-enable-daily-cap');
         const zcMaxTrades = document.getElementById('zc-max-daily-trades');
         const zcDailyBadge = document.getElementById('zc-daily-trades-badge');
-        if (zcMaxTrades) zcMaxTrades.value = zeroClickSettings.maxDailyTrades || 3;
+        const zcCapWrap = document.getElementById('zc-daily-cap-input-wrap');
+
+        const isCapEnabled = zeroClickSettings.enableDailyCap !== false;
+        if (zcEnableCap) zcEnableCap.checked = isCapEnabled;
+        if (zcMaxTrades) zcMaxTrades.value = (zeroClickSettings.maxDailyTrades !== undefined) ? zeroClickSettings.maxDailyTrades : 3;
+        if (zcCapWrap) {
+            zcCapWrap.style.opacity = isCapEnabled ? '1' : '0.4';
+            zcCapWrap.style.pointerEvents = isCapEnabled ? 'auto' : 'none';
+        }
         if (zcDailyBadge) {
-            const todayCount = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
-            zcDailyBadge.textContent = `${todayCount} / ${zeroClickSettings.maxDailyTrades || 3} Executed Today`;
+            const apiDispatched = getApiDispatchedCount();
+            if (!isCapEnabled || parseInt(zeroClickSettings.maxDailyTrades, 10) === 0) {
+                zcDailyBadge.textContent = `${apiDispatched} Dispatched · Unlimited (Cap Disabled)`;
+                zcDailyBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            } else {
+                const maxAllowed = parseInt(zeroClickSettings.maxDailyTrades || 3, 10);
+                zcDailyBadge.textContent = `${apiDispatched} / ${maxAllowed} Dispatched Today`;
+                zcDailyBadge.className = apiDispatched >= maxAllowed
+                    ? 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            }
         }
 
         updateZcModeBadge();
@@ -1584,6 +1654,8 @@
         zeroClickSettings.slBufferPts = 15;
         zeroClickSettings.targetTp1Pts = 100;
         zeroClickSettings.targetTp2Pts = 150;
+        zeroClickSettings.enableDailyCap = true;
+        zeroClickSettings.maxDailyTrades = 3;
 
         loadAlertSettings();
     };
@@ -1659,8 +1731,15 @@
         zeroClickSettings.targetTp1Pts = parseInt(zcTpPts?.value || 100, 10);
         zeroClickSettings.targetTp2Pts = parseInt(zcTp2Pts?.value || 150, 10);
 
+        const zcEnableCap = document.getElementById('zc-enable-daily-cap');
         const zcMaxTrades = document.getElementById('zc-max-daily-trades');
-        zeroClickSettings.maxDailyTrades = Math.max(1, Math.min(50, parseInt(zcMaxTrades?.value || 3, 10)));
+        zeroClickSettings.enableDailyCap = !!zcEnableCap?.checked;
+        const parsedTrades = parseInt(zcMaxTrades?.value, 10);
+        if (isNaN(parsedTrades) || parsedTrades < 0) {
+            zeroClickSettings.maxDailyTrades = zeroClickSettings.enableDailyCap ? 3 : 0;
+        } else {
+            zeroClickSettings.maxDailyTrades = parsedTrades;
+        }
 
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
@@ -3474,19 +3553,26 @@
             }
         }
 
-        // Daily trade execution limit check
-        const totalExecutedToday = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
-        const maxTradesAllowed = parseInt(zeroClickSettings.maxDailyTrades || 3, 10);
-        const isTradeCapReached = (totalExecutedToday >= maxTradesAllowed);
+        // Daily trade execution limit check (strictly tracking broker/0click dispatched orders)
+        const totalDispatched = getApiDispatchedCount();
+        const isCapActive = zeroClickSettings.enableDailyCap !== false && parseInt(zeroClickSettings.maxDailyTrades, 10) > 0;
+        const maxTradesAllowed = isCapActive ? parseInt(zeroClickSettings.maxDailyTrades, 10) : 0;
+        const isTradeCapReached = isCapActive && (totalDispatched >= maxTradesAllowed);
 
         if (apiCapPill) {
             apiCapPill.classList.remove('hidden');
-            if (isTradeCapReached) {
-                apiCapPill.textContent = `🔒 Daily API Cap: ${totalExecutedToday}/${maxTradesAllowed}`;
+            if (!isCapActive) {
+                apiCapPill.textContent = 'API: Unlimited';
+                apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                apiCapPill.title = 'Daily trade restriction disabled: unlimited API orders permitted';
+            } else if (isTradeCapReached) {
+                apiCapPill.textContent = `🔒 Daily API Cap: ${totalDispatched}/${maxTradesAllowed}`;
                 apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                apiCapPill.title = 'Daily API trade limit reached: auto-dispatch is locked to protect capital';
             } else {
-                apiCapPill.textContent = `API Cap: ${totalExecutedToday}/${maxTradesAllowed}`;
+                apiCapPill.textContent = `API Cap: ${totalDispatched}/${maxTradesAllowed}`;
                 apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30';
+                apiCapPill.title = `API trades executed today: ${totalDispatched} out of ${maxTradesAllowed}`;
             }
         }
 
@@ -3911,9 +3997,10 @@
             };
 
             // Enforce Daily Trade Cap for Broker / 0Click API Execution
-            const totalExecutedToday = (state.cachedJournalLogs || []).filter(l => l.status === 'TARGET_HIT' || l.status === 'STOPPED_OUT' || l.status === 'ACTIVE').length;
-            const maxTradesAllowed = parseInt(zeroClickSettings.maxDailyTrades || 3, 10);
-            const isTradeCapReached = (totalExecutedToday >= maxTradesAllowed);
+            const totalDispatched = getApiDispatchedCount();
+            const isCapActive = zeroClickSettings.enableDailyCap !== false && parseInt(zeroClickSettings.maxDailyTrades, 10) > 0;
+            const maxTradesAllowed = isCapActive ? parseInt(zeroClickSettings.maxDailyTrades, 10) : 0;
+            const isTradeCapReached = isCapActive && (totalDispatched >= maxTradesAllowed);
 
             const payload = {
                 mode: state.feedMode,
@@ -3935,7 +4022,7 @@
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
                 trigger_reason: isTradeCapReached 
-                    ? `${tradeSetup.rationale || 'Liquidity event'} · [Daily API Cap Reached: ${totalExecutedToday}/${maxTradesAllowed} - Signal Logged Only]`
+                    ? `${tradeSetup.rationale || 'Liquidity event'} · [Daily API Cap Reached: ${totalDispatched}/${maxTradesAllowed} - Signal Logged Only]`
                     : (tradeSetup.rationale || 'Liquidity event'),
 
                 // Multi-engine snapshot
