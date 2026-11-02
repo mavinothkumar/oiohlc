@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderFlowSignalLog;
 use App\Services\Quant\HighProbabilityEngine;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -203,6 +204,131 @@ class OrderFlowStrategyController extends Controller
         return response()->json([
             'success'   => true,
             'contracts' => $contracts,
+        ]);
+    }
+
+    /**
+     * Log a high-probability trade opportunity call (Entry).
+     */
+    public function logSignal(Request $request): JsonResponse
+    {
+        $today = Carbon::today()->toDateString();
+        $signalType = $request->input('signal_type', 'BUY_CE');
+        $instrument = $request->input('instrument', 'NIFTY');
+
+        // Deduplicate: If same signal & instrument was logged in the last 45 seconds, return existing
+        $recent = OrderFlowSignalLog::where('trade_date', $today)
+            ->where('signal_type', $signalType)
+            ->where('instrument', $instrument)
+            ->where('created_at', '>=', Carbon::now()->subSeconds(45))
+            ->first();
+
+        if ($recent) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Signal already logged recently',
+                'data'    => $recent,
+            ]);
+        }
+
+        $log = OrderFlowSignalLog::create([
+            'mode'             => $request->input('mode', 'live'),
+            'trade_date'       => $today,
+            'signal_time'      => Carbon::now()->format('H:i:s'),
+            'symbol'           => $request->input('symbol', 'NIFTY'),
+            'signal_type'      => $signalType,
+            'action'           => $request->input('action', 'BUY CALL'),
+            'instrument'       => $instrument,
+            'spot_price'       => (float) $request->input('spot_price', 0),
+            'future_price'     => (float) $request->input('future_price', 0),
+            'entry_price'      => (float) $request->input('entry_price', 0),
+            'stop_loss'        => (float) $request->input('stop_loss', 0),
+            'target_price'     => (float) $request->input('target_price', 0),
+            'opt_strike'       => $request->input('opt_strike') ? (int) $request->input('opt_strike') : null,
+            'opt_type'         => $request->input('opt_type'),
+            'opt_entry'        => $request->input('opt_entry') ? (float) $request->input('opt_entry') : null,
+            'opt_sl'           => $request->input('opt_sl') ? (float) $request->input('opt_sl') : null,
+            'opt_target'       => $request->input('opt_target') ? (float) $request->input('opt_target') : null,
+            'confluence_score' => (int) $request->input('confluence_score', 50),
+            'obi_pct'          => (float) $request->input('obi_pct', 0),
+            'micro_drift'      => (float) $request->input('micro_drift', 0),
+            'trigger_reason'   => $request->input('trigger_reason'),
+            'status'           => 'ACTIVE',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $log,
+        ]);
+    }
+
+    /**
+     * Update an active trade call's outcome (e.g. Target Hit, Stopped Out, Max MFE/MAE).
+     */
+    public function updateSignalOutcome(Request $request): JsonResponse
+    {
+        $id = $request->input('id');
+        $log = OrderFlowSignalLog::find($id);
+
+        if (!$log) {
+            return response()->json(['success' => false, 'error' => 'Log not found'], 404);
+        }
+
+        $status = $request->input('status', $log->status);
+        $pnl = (float) $request->input('pnl_points', $log->pnl_points);
+        $mfe = (float) $request->input('max_favorable_pts', $log->max_favorable_pts);
+        $mae = (float) $request->input('max_adverse_pts', $log->max_adverse_pts);
+
+        $log->update([
+            'status'            => $status,
+            'exit_time'         => $status !== 'ACTIVE' ? ($log->exit_time ?? Carbon::now()->format('H:i:s')) : null,
+            'exit_price'        => $request->filled('exit_price') ? (float) $request->input('exit_price') : $log->exit_price,
+            'pnl_points'        => $pnl,
+            'max_favorable_pts' => max($log->max_favorable_pts, $mfe),
+            'max_adverse_pts'   => min($log->max_adverse_pts, $mae),
+            'notes'             => $request->input('notes', $log->notes),
+        ]);
+
+        return response()->json(['success' => true, 'data' => $log]);
+    }
+
+    /**
+     * Fetch all logged signals for today and summary scorecard.
+     */
+    public function getSignalLogs(Request $request): JsonResponse
+    {
+        $date = $request->input('date', Carbon::today()->toDateString());
+        $mode = $request->input('mode');
+
+        $query = OrderFlowSignalLog::where('trade_date', $date)
+            ->orderByDesc('id');
+
+        if ($mode) {
+            $query->where('mode', $mode);
+        }
+
+        $logs = $query->limit(50)->get();
+
+        $total = $logs->count();
+        $targetHit = $logs->where('status', 'TARGET_HIT')->count();
+        $stoppedOut = $logs->where('status', 'STOPPED_OUT')->count();
+        $active = $logs->where('status', 'ACTIVE')->count();
+        $netPnl = (float) $logs->sum('pnl_points');
+        $decided = $targetHit + $stoppedOut;
+        $winRate = $decided > 0 ? round(($targetHit / $decided) * 100) : 0;
+
+        return response()->json([
+            'success' => true,
+            'date'    => $date,
+            'summary' => [
+                'total_signals' => $total,
+                'target_hit'    => $targetHit,
+                'stopped_out'   => $stoppedOut,
+                'active'        => $active,
+                'win_rate'      => $winRate,
+                'net_pnl_pts'   => round($netPnl, 2),
+            ],
+            'logs'    => $logs,
         ]);
     }
 

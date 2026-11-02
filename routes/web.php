@@ -37,6 +37,9 @@ Route::get( '/order-flow-depth', [ \App\Http\Controllers\OrderFlowStrategyContro
 Route::get( '/api/order-flow/ws-url', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getWsUrl' ] )->name( 'api.order-flow.ws-url' );
 Route::get( '/api/order-flow/strategy-signals', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getStrategySignals' ] )->name( 'api.order-flow.strategy-signals' );
 Route::get( '/api/order-flow/contracts', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getContracts' ] )->name( 'api.order-flow.contracts' );
+Route::post( '/api/order-flow/log-signal', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'logSignal' ] )->name( 'api.order-flow.log-signal' );
+Route::post( '/api/order-flow/update-outcome', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'updateSignalOutcome' ] )->name( 'api.order-flow.update-outcome' );
+Route::get( '/api/order-flow/signal-logs', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getSignalLogs' ] )->name( 'api.order-flow.signal-logs' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity

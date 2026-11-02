@@ -516,6 +516,9 @@
                         <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
                             JSON
                         </button>
+                        <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
+                            Journal 📖
+                        </button>
                     </div>
                 </div>
 
@@ -559,6 +562,46 @@
                         </button>
                     </div>
                     <pre id="raw-json-inspector" class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-[9px] text-emerald-400 font-mono overflow-x-auto max-h-32">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
+                </div>
+
+                {{-- Mini Tab Pane 4: Today's Opportunity Journal & Outcome Audit --}}
+                <div id="pane-mini-journal" class="mini-tab-pane hidden space-y-2 text-[10px]">
+                    {{-- Performance Scorecard Summary --}}
+                    <div class="grid grid-cols-4 gap-1 text-center bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                        <div>
+                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Calls</span>
+                            <span id="journal-total-count" class="font-black text-white text-xs">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Win Rate</span>
+                            <span id="journal-win-rate" class="font-black text-emerald-400 text-xs">0%</span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Hit / Stop</span>
+                            <span class="font-black text-xs font-mono">
+                                <span id="journal-target-count" class="text-emerald-400">0</span>/<span id="journal-stopped-count" class="text-rose-400">0</span>
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Net Pts</span>
+                            <span id="journal-net-pnl" class="font-black text-amber-300 text-xs font-mono">+0.0</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 border-b border-slate-800/80 pb-1">
+                        <span>Today's Verified Setups:</span>
+                        <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer">
+                            <span>🔄</span>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+
+                    {{-- Scrollable Signals List --}}
+                    <div id="journal-logs-container" class="space-y-1 max-h-48 overflow-y-auto pr-0.5 font-sans">
+                        <div class="text-center py-6 text-slate-500 text-[10px]">
+                            No trade signals logged yet today.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -686,6 +729,23 @@
                     </div>
                 </div>
 
+                {{-- Rule 4: Auto-Log Opportunities to Journal --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white text-[11px] block">📝 Auto-Log Opportunities to Journal</span>
+                            <span class="text-[10px] text-slate-400">Record every high-confluence entry alert to database</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-autolog-journal" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-[9px] text-slate-500 leading-tight">
+                        Whenever an entry setup triggers (≥75% Bull or ≤32% Bear, or Liquidity Stacks), saves entry, SL, target, and tracks live outcome (target hit vs stopped out) for performance auditing.
+                    </p>
+                </div>
+
             </div>
 
             {{-- Actions --}}
@@ -722,7 +782,8 @@
         stackMinConsecutive: 3,    // N continuous levels
         stackMinQty: 1500,         // Min qty on each level
         soundEnabled: true,
-        soundProfile: 'crystal'    // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
+        soundProfile: 'crystal',   // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
+        autoLog: true              // Auto-log opportunities to Journal
     };
 
     function updateLegendLabels() {
@@ -746,6 +807,7 @@
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
         const soundProfile = document.getElementById('cfg-sound-profile');
+        const autoLogInput = document.getElementById('cfg-autolog-journal');
 
         if (singleInput) singleInput.value = alertSettings.singleThreshold;
         if (enableStack) enableStack.checked = alertSettings.enableStack;
@@ -753,6 +815,7 @@
         if (stackQty) stackQty.value = alertSettings.stackMinQty;
         if (soundStack) soundStack.checked = alertSettings.soundEnabled;
         if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
+        if (autoLogInput) autoLogInput.checked = alertSettings.autoLog !== false;
 
         updateLegendLabels();
     }
@@ -780,6 +843,7 @@
         alertSettings.stackMinQty = 1500;
         alertSettings.soundEnabled = true;
         alertSettings.soundProfile = 'crystal';
+        alertSettings.autoLog = true;
 
         const singleInput = document.getElementById('cfg-single-qty');
         const enableStack = document.getElementById('cfg-enable-stack');
@@ -787,6 +851,7 @@
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
         const soundProfile = document.getElementById('cfg-sound-profile');
+        const autoLogInput = document.getElementById('cfg-autolog-journal');
 
         if (singleInput) singleInput.value = 2500;
         if (enableStack) enableStack.checked = true;
@@ -794,6 +859,7 @@
         if (stackQty) stackQty.value = 1500;
         if (soundStack) soundStack.checked = true;
         if (soundProfile) soundProfile.value = 'crystal';
+        if (autoLogInput) autoLogInput.checked = true;
 
         updateLegendLabels();
     };
@@ -805,6 +871,7 @@
         const stackQty = document.getElementById('cfg-stack-qty');
         const soundStack = document.getElementById('cfg-sound-stack');
         const soundProfile = document.getElementById('cfg-sound-profile');
+        const autoLogInput = document.getElementById('cfg-autolog-journal');
 
         alertSettings.singleThreshold = Math.max(100, parseInt(singleInput?.value || 2500));
         alertSettings.enableStack = !!(enableStack?.checked);
@@ -812,6 +879,7 @@
         alertSettings.stackMinQty = Math.max(100, parseInt(stackQty?.value || 1500));
         alertSettings.soundEnabled = !!(soundStack?.checked);
         alertSettings.soundProfile = soundProfile?.value || 'crystal';
+        alertSettings.autoLog = !!(autoLogInput?.checked);
 
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
@@ -873,6 +941,8 @@
         soundEnabled: true,
         lastAlertTime: 0,
         lastStackAlertTime: 0,
+        lastSignalLogTime: 0,
+        activeLoggedSignals: [],
         currentOptionTrade: null,
         wallPersistence: {},
         
@@ -1127,6 +1197,9 @@
         updateMicrostructureUI();
         evaluateConfluenceRadar();
         renderAlertBanner(stacks.bidStack, stacks.askStack);
+
+        // Check active trade signals against live price for Target / Stop Loss hits
+        checkActiveSignalsOutcome(ltp);
     }
 
     function calculateTierObi(bids, asks, tier) {
@@ -2131,6 +2204,22 @@
             confluence: totalConfluence,
             drift: `${parseFloat((d.microPrice - d.ltp).toFixed(2))} pts`
         };
+
+        // Auto-Log High Probability Opportunity into Journal
+        if (optAction !== 'WAIT' && alertSettings.autoLog) {
+            logOpportunityCall({
+                action: optAction,
+                symbol: optSymbol,
+                strike: recommendedStrike,
+                slPrice: (optAction.includes('CALL') ? d.ltp - 18 : d.ltp + 18),
+                targetPrice: (optAction.includes('CALL') ? d.ltp + 42 : d.ltp - 42),
+                optEstEntry: estPremium,
+                optEstSl: Math.max(10, estPremium - 18),
+                optEstTgt: estPremium + 42,
+                confluence: totalConfluence,
+                rationale: tradeRationale ? tradeRationale.textContent.trim() : 'Confluence signal'
+            });
+        }
     }
 
     function triggerAlertAudio(type) {
@@ -2141,6 +2230,179 @@
 
         playSynthesizedAlert(alertSettings.soundProfile || 'crystal', type);
     }
+
+    // ── 15. JOURNAL LOGGING & OUTCOME VERIFICATION ENGINE ──
+    async function logOpportunityCall(tradeSetup) {
+        if (!alertSettings.autoLog) return;
+        const now = Date.now();
+        if (now - state.lastSignalLogTime < 45000) return; // 45s debounce between identical calls
+        state.lastSignalLogTime = now;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const payload = {
+                mode: state.feedMode,
+                symbol: state.symbol,
+                signal_type: tradeSetup.action.includes('CALL') ? 'BUY_CE' : 'BUY_PE',
+                action: tradeSetup.action,
+                instrument: tradeSetup.symbol,
+                spot_price: state.depthData.ltp,
+                future_price: state.depthData.ltp,
+                entry_price: state.depthData.ltp,
+                stop_loss: parseFloat(tradeSetup.slPrice),
+                target_price: parseFloat(tradeSetup.targetPrice),
+                opt_strike: tradeSetup.strike || Math.round(state.depthData.ltp / 50) * 50,
+                opt_type: tradeSetup.action.includes('CALL') ? 'CE' : 'PE',
+                opt_entry: tradeSetup.optEstEntry || 135,
+                opt_sl: tradeSetup.optEstSl || 115,
+                opt_target: tradeSetup.optEstTgt || 175,
+                confluence_score: tradeSetup.confluence,
+                obi_pct: state.depthData.obi30,
+                micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
+                trigger_reason: tradeSetup.rationale || 'High confluence alignment'
+            };
+
+            const resp = await fetch(`{{ route('api.order-flow.log-signal') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const res = await resp.json();
+            if (res.success && res.data && res.data.id) {
+                state.activeLoggedSignals.push(res.data);
+                refreshSignalLogs();
+            }
+        } catch (e) {
+            console.error('Failed logging opportunity call:', e);
+        }
+    }
+
+    async function checkActiveSignalsOutcome(currentLtp) {
+        if (!state.activeLoggedSignals || state.activeLoggedSignals.length === 0) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+
+        for (let i = state.activeLoggedSignals.length - 1; i >= 0; i--) {
+            const sig = state.activeLoggedSignals[i];
+            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL'));
+            const pnlPts = isBuy ? (currentLtp - sig.entry_price) : (sig.entry_price - currentLtp);
+
+            sig.max_favorable_pts = Math.max(sig.max_favorable_pts || 0, pnlPts);
+            sig.max_adverse_pts = Math.min(sig.max_adverse_pts || 0, pnlPts);
+
+            let newStatus = null;
+            if (isBuy) {
+                if (currentLtp >= sig.target_price) newStatus = 'TARGET_HIT';
+                else if (currentLtp <= sig.stop_loss) newStatus = 'STOPPED_OUT';
+            } else {
+                if (currentLtp <= sig.target_price) newStatus = 'TARGET_HIT';
+                else if (currentLtp >= sig.stop_loss) newStatus = 'STOPPED_OUT';
+            }
+
+            if (newStatus) {
+                state.activeLoggedSignals.splice(i, 1);
+                try {
+                    await fetch(`{{ route('api.order-flow.update-outcome') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: sig.id,
+                            status: newStatus,
+                            exit_price: currentLtp,
+                            pnl_points: parseFloat(pnlPts.toFixed(2)),
+                            max_favorable_pts: parseFloat((sig.max_favorable_pts || 0).toFixed(2)),
+                            max_adverse_pts: parseFloat((sig.max_adverse_pts || 0).toFixed(2))
+                        })
+                    });
+                    refreshSignalLogs();
+                } catch(e) {}
+            }
+        }
+    }
+
+    window.refreshSignalLogs = async function() {
+        try {
+            const resp = await fetch(`{{ route('api.order-flow.signal-logs') }}?mode=${state.feedMode}`);
+            const res = await resp.json();
+            if (res.success && res.summary) {
+                const s = res.summary;
+                const totalEl = document.getElementById('journal-total-count');
+                const winRateEl = document.getElementById('journal-win-rate');
+                const tgtEl = document.getElementById('journal-target-count');
+                const stpEl = document.getElementById('journal-stopped-count');
+                const pnlEl = document.getElementById('journal-net-pnl');
+
+                if (totalEl) totalEl.textContent = s.total_signals;
+                if (winRateEl) {
+                    winRateEl.textContent = `${s.win_rate}%`;
+                    winRateEl.className = s.win_rate >= 60 ? 'font-black text-emerald-400 text-xs' : (s.win_rate <= 40 ? 'font-black text-rose-400 text-xs' : 'font-black text-amber-300 text-xs');
+                }
+                if (tgtEl) tgtEl.textContent = s.target_hit;
+                if (stpEl) stpEl.textContent = s.stopped_out;
+                if (pnlEl) {
+                    pnlEl.textContent = `${s.net_pnl_pts >= 0 ? '+' : ''}${s.net_pnl_pts} pts`;
+                    pnlEl.className = s.net_pnl_pts > 0 ? 'font-black text-emerald-400 text-xs font-mono' : (s.net_pnl_pts < 0 ? 'font-black text-rose-400 text-xs font-mono' : 'font-black text-slate-300 text-xs font-mono');
+                }
+
+                state.activeLoggedSignals = (res.logs || []).filter(l => l.status === 'ACTIVE');
+
+                const container = document.getElementById('journal-logs-container');
+                if (!container) return;
+
+                if (!res.logs || res.logs.length === 0) {
+                    container.innerHTML = `<div class="text-center py-6 text-slate-500 text-[10px]">No trade signals logged yet today. Waiting for setup triggers...</div>`;
+                    return;
+                }
+
+                let html = '';
+                res.logs.forEach(l => {
+                    const isBuy = l.action.includes('CALL');
+                    let statusBadge = '';
+                    if (l.status === 'TARGET_HIT') {
+                        statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-500 text-slate-950 uppercase">TARGET HIT (+${l.pnl_points} pts)</span>`;
+                    } else if (l.status === 'STOPPED_OUT') {
+                        statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-black bg-rose-500 text-white uppercase">STOPPED (${l.pnl_points} pts)</span>`;
+                    } else {
+                        statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
+                    }
+
+                    html += `
+                    <div class="p-1.5 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1 font-mono">
+                                <span class="text-slate-400 text-[9px]">${l.signal_time}</span>
+                                <span class="px-1 py-0.2 rounded font-black text-[8.5px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
+                                    ${isBuy ? '▲ CALL' : '▼ PUT'}
+                                </span>
+                                <span class="font-bold text-white text-[10.5px] truncate max-w-[120px]">${l.instrument}</span>
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+                        <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-0.5 border-t border-slate-900">
+                            <span>Entry: ₹${l.entry_price}</span>
+                            <span class="text-rose-400">SL: ₹${l.stop_loss}</span>
+                            <span class="text-emerald-400">TGT: ₹${l.target_price}</span>
+                            <span class="text-slate-300 font-bold">${l.confluence_score}% Conf</span>
+                        </div>
+                    </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+        } catch(e) {
+            console.error('Failed refreshing signal logs:', e);
+        }
+    };
 
     // ── 15. HIGH-FIDELITY MICRO-SIMULATOR (WITH STACK & BLOCK INJECTIONS) ──
     function startSimulator() {
@@ -2232,6 +2494,7 @@
             if (state.simInterval) clearInterval(state.simInterval);
             connectWebSocket();
         }
+        refreshSignalLogs();
     };
 
     function updateSpotUI(spot) {
@@ -2242,6 +2505,7 @@
     // ── 16. EVENT LISTENERS & SETUP ──
     document.addEventListener('DOMContentLoaded', async () => {
         loadAlertSettings();
+        refreshSignalLogs();
 
         const btnLive = document.getElementById('btn-mode-live');
         const btnSim = document.getElementById('btn-mode-sim');
