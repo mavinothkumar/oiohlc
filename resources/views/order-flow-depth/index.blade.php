@@ -1215,6 +1215,104 @@
         </div>
     </div>
 
+    {{-- ════════════════════════ 3B. MODAL: 0CLICK DISPATCH CONFIRMATION SAFETY GUARD ════════════════════════ --}}
+    <div id="modal-dispatch-confirm" onclick="if (event.target === this) closeDispatchConfirmModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full flex flex-col shadow-2xl overflow-hidden ring-1 ring-purple-500/30">
+            
+            {{-- Header --}}
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-gradient-to-r from-purple-950/60 to-slate-950">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">⚡</span>
+                    <div>
+                        <h3 class="text-sm font-black text-white">Confirm 0Click API Order Dispatch</h3>
+                        <p class="text-[10px] text-purple-300/80">Safety Check: Verify order parameters before transmitting</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDispatchConfirmModal()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-sm cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="p-4 space-y-3 text-xs">
+                
+                {{-- Order Summary Box --}}
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span id="confirm-modal-action-badge" class="px-2 py-0.5 rounded font-black text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            ▲ CALL / LONG
+                        </span>
+                        <span id="confirm-modal-style-badge" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            👑 OPTION SELLING
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-1">
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">Suggested Contract</div>
+                            <div id="confirm-modal-contract" class="text-sm sm:text-base font-black text-white font-mono">NIFTY 23450 PE</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold">Execution Size</div>
+                            <div id="confirm-modal-lots" class="text-sm font-black text-amber-300 font-mono">1 Lot (25 Qty)</div>
+                        </div>
+                    </div>
+
+                    {{-- Entry / SL / Target row --}}
+                    <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-900 text-center font-mono">
+                        <div class="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                            <span class="text-[9px] text-slate-400 block font-sans">Opt Entry</span>
+                            <strong id="confirm-modal-entry" class="text-white text-xs">₹154</strong>
+                        </div>
+                        <div class="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                            <span class="text-[9px] text-slate-400 block font-sans">Stop Loss</span>
+                            <strong id="confirm-modal-sl" class="text-rose-400 text-xs">₹182</strong>
+                        </div>
+                        <div class="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                            <span class="text-[9px] text-slate-400 block font-sans">Target</span>
+                            <strong id="confirm-modal-target" class="text-emerald-400 text-xs">₹79</strong>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mode & Destination Details --}}
+                <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1 text-[10.5px]">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Target Mode:</span>
+                        <span id="confirm-modal-mode" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9.5px] bg-purple-500/20 text-purple-300 border border-purple-500/40">SIMULATION</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Webhook URL:</span>
+                        <span id="confirm-modal-url" class="font-mono text-slate-300 truncate max-w-[200px]" title="0click.in">0click.in</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Trigger Setup:</span>
+                        <span id="confirm-modal-reason" class="text-amber-300/90 truncate max-w-[200px]">Liquidity Event</span>
+                    </div>
+                </div>
+
+                {{-- Safety notice --}}
+                <div class="text-[10px] text-slate-400 flex items-start gap-1.5 leading-tight p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
+                    <span class="text-amber-400 text-xs">⚠️</span>
+                    <span>Confirming will immediately transmit this order instruction to your 0Click broker webhook.</span>
+                </div>
+
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-800 bg-slate-950">
+                <button type="button" onclick="closeDispatchConfirmModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" id="btn-execute-confirmed-dispatch" onclick="executeConfirmedDispatch()" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-purple-500/25 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                    <span class="text-amber-300 font-black">⚡</span>
+                    <span>Yes, Dispatch Order</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
 {{-- ════════════════════════ 4. SCRIPTS: PROTOBUF, WEBSOCKET & CONFLUENCE ENGINE ════════════════════════ --}}
@@ -4354,10 +4452,10 @@
                     </div>
                     <div>
                         ${isSentTo0Click 
-                            ? `<button type="button" onclick="dispatchJournalItemManually(${l.id}, this)" class="px-2 py-0.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[9.5px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs" title="Already sent to 0Click API. Click to re-dispatch this trade to broker">
+                            ? `<button type="button" onclick="confirmAndDispatchJournalItem(${l.id}, this)" class="px-2 py-0.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[9.5px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs" title="Already sent to 0Click API. Click to re-dispatch this trade to broker">
                                  <span>⚡ Re-send API</span>
                                </button>`
-                            : `<button type="button" onclick="dispatchJournalItemManually(${l.id}, this)" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[9.5px] font-bold shadow-md hover:shadow-purple-500/30 transition flex items-center gap-1 cursor-pointer active:scale-95" title="Click to manually trigger and send this trade to Broker / 0Click API">
+                            : `<button type="button" onclick="confirmAndDispatchJournalItem(${l.id}, this)" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[9.5px] font-bold shadow-md hover:shadow-purple-500/30 transition flex items-center gap-1 cursor-pointer active:scale-95" title="Click to review and safely send this trade to Broker / 0Click API">
                                  <span class="text-amber-300 font-black">⚡</span>
                                  <span>Send to 0Click</span>
                                </button>`
@@ -4373,13 +4471,116 @@
         container.innerHTML = html;
     }
 
+    window.confirmAndDispatchJournalItem = function(logId, btnEl) {
+        if (!logId) return;
+        const log = (state.cachedJournalLogs || []).find(l => l.id == logId);
+        if (!log) {
+            dispatchJournalItemManually(logId, btnEl);
+            return;
+        }
+
+        const modal = document.getElementById('modal-dispatch-confirm');
+        if (!modal) {
+            if (confirm(`Confirm Order Dispatch:\n\nInstrument: ${log.instrument}\nAction: ${log.action}\nEntry: ₹${log.entry_price}\n\nSend this order to 0Click API now?`)) {
+                dispatchJournalItemManually(logId, btnEl);
+            }
+            return;
+        }
+
+        state.pendingDispatchLogId = logId;
+        state.pendingDispatchBtnEl = btnEl;
+
+        const isBuy = log.action.includes('CALL') || log.action.includes('BUY') || (log.signal_type && log.signal_type.includes('BUY')) || log.action.includes('SELL PUT');
+        const actionBadge = document.getElementById('confirm-modal-action-badge');
+        const styleBadge = document.getElementById('confirm-modal-style-badge');
+        const contractEl = document.getElementById('confirm-modal-contract');
+        const lotsEl = document.getElementById('confirm-modal-lots');
+        const entryEl = document.getElementById('confirm-modal-entry');
+        const slEl = document.getElementById('confirm-modal-sl');
+        const tgtEl = document.getElementById('confirm-modal-target');
+        const modeEl = document.getElementById('confirm-modal-mode');
+        const urlEl = document.getElementById('confirm-modal-url');
+        const reasonEl = document.getElementById('confirm-modal-reason');
+        const submitBtn = document.getElementById('btn-execute-confirmed-dispatch');
+
+        if (actionBadge) {
+            actionBadge.textContent = isBuy ? '▲ CALL / LONG' : '▼ PUT / SHORT';
+            actionBadge.className = isBuy 
+                ? 'px-2 py-0.5 rounded font-black text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                : 'px-2 py-0.5 rounded font-black text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        }
+        if (styleBadge) {
+            const style = zeroClickSettings.tradeStyle || 'OPTION_SELLING';
+            styleBadge.textContent = style === 'OPTION_BUYING' ? '🚀 OPTION BUYING' : '👑 OPTION SELLING';
+            styleBadge.className = style === 'OPTION_BUYING'
+                ? 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30'
+                : 'px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        }
+        if (contractEl) {
+            contractEl.textContent = log.opt_strike ? `NIFTY ${log.opt_strike} ${log.opt_type || ''}` : log.instrument;
+        }
+        if (lotsEl) {
+            const lots = parseInt(zeroClickSettings.lots || 1, 10);
+            lotsEl.textContent = `${lots} Lot${lots > 1 ? 's' : ''} (${lots * 25} Qty)`;
+        }
+        if (entryEl) entryEl.textContent = `₹${log.opt_entry || log.entry_price || '--'}`;
+        if (slEl) slEl.textContent = `₹${log.opt_sl || log.stop_loss || '--'}`;
+        if (tgtEl) tgtEl.textContent = `₹${log.opt_target || log.target_price || '--'}`;
+        if (modeEl) {
+            const mode = zeroClickSettings.mode || 'SIMULATION';
+            modeEl.textContent = mode;
+            modeEl.className = mode === 'LIVE'
+                ? 'px-1.5 py-0.2 rounded font-mono font-bold text-[9.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'px-1.5 py-0.2 rounded font-mono font-bold text-[9.5px] bg-purple-500/20 text-purple-300 border border-purple-500/40';
+        }
+        if (urlEl) {
+            urlEl.textContent = (zeroClickSettings.webhookUrl || 'https://0click.in').replace(/^https?:\/\//, '');
+        }
+        if (reasonEl) {
+            reasonEl.textContent = log.trigger_reason || log.action || 'High Confluence Setup';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span class="text-amber-300 font-black">⚡</span><span>Yes, Dispatch Order</span>`;
+        }
+
+        modal.classList.remove('hidden');
+    };
+
+    window.closeDispatchConfirmModal = function() {
+        const modal = document.getElementById('modal-dispatch-confirm');
+        if (modal) modal.classList.add('hidden');
+        state.pendingDispatchLogId = null;
+        state.pendingDispatchBtnEl = null;
+    };
+
+    window.executeConfirmedDispatch = async function() {
+        const submitBtn = document.getElementById('btn-execute-confirmed-dispatch');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Dispatched...`;
+        }
+        if (state.pendingDispatchLogId) {
+            await dispatchJournalItemManually(state.pendingDispatchLogId, state.pendingDispatchBtnEl);
+        }
+        closeDispatchConfirmModal();
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDispatchConfirmModal();
+        }
+    });
+
     window.dispatchJournalItemManually = async function(logId, btnEl) {
         if (!logId) return;
 
-        const originalHtml = btnEl.innerHTML;
-        const originalClass = btnEl.className;
-        btnEl.disabled = true;
-        btnEl.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Sending...`;
+        const originalHtml = btnEl ? btnEl.innerHTML : '';
+        const originalClass = btnEl ? btnEl.className : '';
+        if (btnEl) {
+            btnEl.disabled = true;
+            btnEl.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Sending...`;
+        }
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
@@ -4403,8 +4604,10 @@
 
             const res = await resp.json();
             if (res.success) {
-                btnEl.className = 'px-2 py-0.5 rounded-lg bg-emerald-950 border border-emerald-500/60 text-emerald-300 text-[9.5px] font-bold flex items-center gap-1';
-                btnEl.innerHTML = `✓ Dispatched (${res.status_code || 200})`;
+                if (btnEl) {
+                    btnEl.className = 'px-2 py-0.5 rounded-lg bg-emerald-950 border border-emerald-500/60 text-emerald-300 text-[9.5px] font-bold flex items-center gap-1';
+                    btnEl.innerHTML = `✓ Dispatched (${res.status_code || 200})`;
+                }
                 
                 try {
                     playSynthesizedAlert('crystal', 'BUY');
@@ -4415,16 +4618,20 @@
                 }, 600);
             } else {
                 alert(`0Click API Dispatch Failed: ${res.message || res.error || 'Server error'}`);
-                btnEl.disabled = false;
-                btnEl.innerHTML = originalHtml;
-                btnEl.className = originalClass;
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalHtml;
+                    btnEl.className = originalClass;
+                }
             }
         } catch (e) {
             console.error('Error dispatching to 0Click:', e);
             alert('Network error while dispatching to 0Click API.');
-            btnEl.disabled = false;
-            btnEl.innerHTML = originalHtml;
-            btnEl.className = originalClass;
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalHtml;
+                btnEl.className = originalClass;
+            }
         }
     };
 
