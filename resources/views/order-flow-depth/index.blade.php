@@ -616,6 +616,34 @@
                 </p>
             </div>
 
+            {{-- 1B. Cumulative Volume Delta (CVD) Continuous Line & Divergence Radar --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs">📈</span>
+                        <span class="text-[11px] font-black uppercase text-white tracking-wider">Cumulative Volume Delta (CVD)</span>
+                    </div>
+                    <span id="cvd-current-val" class="text-xs font-black font-mono text-emerald-400">+0 Delta</span>
+                </div>
+
+                {{-- CVD Mini Canvas Chart --}}
+                <div class="relative w-full h-[68px] bg-slate-950 rounded-lg border border-slate-800 overflow-hidden p-1">
+                    <canvas id="cvd-mini-canvas" class="w-full h-full block"></canvas>
+                    <div class="absolute top-1 left-2 text-[8px] font-mono text-slate-500 pointer-events-none">
+                        High: <span id="cvd-stat-high" class="text-slate-400">0</span> · Low: <span id="cvd-stat-low" class="text-slate-400">0</span>
+                    </div>
+                </div>
+
+                {{-- Delta Divergence Alert Status --}}
+                <div class="flex items-center justify-between pt-0.5">
+                    <span id="cvd-divergence-badge" class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[210px]">
+                        <span class="text-slate-500">●</span>
+                        <span id="cvd-divergence-text" class="truncate">Normal Flow (In Sync)</span>
+                    </span>
+                    <span class="text-[9px] text-slate-500 font-mono">Continuous Tick $\Delta$</span>
+                </div>
+            </div>
+
             {{-- 2. Confluence Alignment Scorecard --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
                 <div class="flex items-center justify-between">
@@ -715,6 +743,57 @@
                         <div id="bar-obi-30-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
                     </div>
                 </div>
+            </div>
+
+            {{-- 3B. Order Book Slope & Curvature (Depth Buildup Asymmetry) --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs">📐</span>
+                        <span class="text-[11px] font-black uppercase text-white tracking-wider">Book Slope &amp; Curvature</span>
+                    </div>
+                    <span id="book-slope-asymmetry-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-300 border border-slate-800">
+                        1.00x Balanced
+                    </span>
+                </div>
+
+                {{-- Slope Rates Comparison Grid --}}
+                <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-0.5">
+                        <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
+                            <span>Bid Slope (Support)</span>
+                            <span class="text-emerald-400 font-mono">▲</span>
+                        </div>
+                        <div id="val-bid-slope" class="text-sm font-black text-emerald-400 font-mono">0 qty/pt</div>
+                        <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee drop</div>
+                    </div>
+
+                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-0.5">
+                        <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
+                            <span>Ask Slope (Resistance)</span>
+                            <span class="text-rose-400 font-mono">▼</span>
+                        </div>
+                        <div id="val-ask-slope" class="text-sm font-black text-rose-400 font-mono">0 qty/pt</div>
+                        <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee rise</div>
+                    </div>
+                </div>
+
+                {{-- Curvature Steepness Visualizer Bar --}}
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[9px] text-slate-400">
+                        <span id="lbl-slope-bid-ratio">Bids 50%</span>
+                        <span class="text-slate-500 font-mono">Slope Curvature Asymmetry</span>
+                        <span id="lbl-slope-ask-ratio">Asks 50%</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-800">
+                        <div id="bar-slope-bid" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300" style="width: 50%;"></div>
+                        <div id="bar-slope-ask" class="bg-gradient-to-r from-rose-400 to-rose-600 h-full transition-all duration-300" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <p id="book-slope-desc" class="text-[9.5px] text-slate-400 leading-tight">
+                    Measures how rapidly resting liquidity builds up away from LTP. Steeper Bid slope indicates institutional floor defense.
+                </p>
             </div>
 
             {{-- 4. Active Liquidity Walls (≥2.2x) & Absorption / Spoofing Tracker --}}
@@ -1957,6 +2036,8 @@
             absorptionPct: 0,
             bidStack: null,
             askStack: null,
+            cvd: 0,
+            bookSlopeRatio: 1.0,
             vpoc: {
                 price: 0,
                 volume: 0,
@@ -1965,6 +2046,28 @@
             }
         },
         
+        // Continuous Cumulative Volume Delta (CVD) & Divergence State
+        cvd: {
+            current: 0,
+            sessionHigh: 0,
+            sessionLow: 0,
+            history: [],
+            divergence: 'NONE', // 'NONE', 'BULLISH', 'BEARISH'
+            divergenceText: 'Normal Flow (In Sync)',
+            lastDivergenceTime: 0
+        },
+
+        // Book Slope & Curvature State
+        bookSlope: {
+            bidSlopeNear: 0,
+            askSlopeNear: 0,
+            bidSlopeDeep: 0,
+            askSlopeDeep: 0,
+            ratio: 1.0,
+            asymmetry: 'NEUTRAL',
+            asymmetryText: 'Balanced Book (1.00x)'
+        },
+
         // Master Strategic Anchor State (NIFTY 50 Breadth Anchor)
         masterAnchor: null,
 
@@ -2233,10 +2336,10 @@
         state.depthData.heavyBidBlock = heavyBidBlock;
         state.depthData.heavyAskBlock = heavyAskBlock;
 
-        // ── TRACK SESSION EXECUTED VOLUME PROFILE & SESSION VPOC ──
+        // ── 1. COMPUTE TICK DELTA VOLUME ──
+        let deltaV = 0;
         if (ltp > 0) {
             const pKey = ltp.toFixed(2);
-            let deltaV = 0;
             if (vtt > 0) {
                 if (state.lastVtt > 0 && vtt >= state.lastVtt) {
                     deltaV = vtt - state.lastVtt;
@@ -2271,6 +2374,12 @@
                 };
             }
         }
+
+        // ── 2. CUMULATIVE VOLUME DELTA (CVD) & DELTA DIVERGENCE RADAR ──
+        updateCvdAndDivergence(deltaV, ltp, bestBid, bestAsk);
+
+        // ── 3. ORDER BOOK SLOPE & DEPTH CURVATURE ASYMMETRY ──
+        calculateBookSlope(bids, asks, ltp);
 
         // Render UI, DOM & Alert Banner
         renderDOM();
@@ -3424,6 +3533,317 @@
         if (traceFin) traceFin.textContent = `${d.obi30}%`;
 
         renderLiquidityWallsUI();
+        renderCvdUI();
+        renderBookSlopeUI();
+    }
+
+    // ── CUMULATIVE VOLUME DELTA (CVD) & DIVERGENCE DETECTION ──
+    function updateCvdAndDivergence(deltaV, ltp, bestBid, bestAsk) {
+        let tickDelta = 0;
+        if (deltaV > 0) {
+            if (ltp >= bestAsk) {
+                tickDelta = deltaV; // Aggressive Buyer hitting Ask
+            } else if (ltp <= bestBid) {
+                tickDelta = -deltaV; // Aggressive Seller hitting Bid
+            } else {
+                const drift = state.depthData.microPrice - state.depthData.midPrice;
+                if (drift > 0.02) {
+                    tickDelta = Math.round(deltaV * 0.7);
+                } else if (drift < -0.02) {
+                    tickDelta = -Math.round(deltaV * 0.7);
+                } else {
+                    tickDelta = Math.round((Math.random() - 0.5) * deltaV * 0.25);
+                }
+            }
+        }
+
+        state.cvd.current += tickDelta;
+        state.depthData.cvd = state.cvd.current;
+        state.cvd.sessionHigh = Math.max(state.cvd.sessionHigh, state.cvd.current);
+        state.cvd.sessionLow = Math.min(state.cvd.sessionLow, state.cvd.current);
+
+        const nowTs = Date.now();
+        const timeStr = new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        state.cvd.history.push({
+            time: timeStr,
+            ts: nowTs,
+            ltp: ltp,
+            cvd: state.cvd.current,
+            delta: tickDelta
+        });
+
+        if (state.cvd.history.length > 60) {
+            state.cvd.history.shift();
+        }
+
+        // Automatic Delta Divergence Detector across swing window
+        if (state.cvd.history.length >= 10) {
+            const h = state.cvd.history;
+            const recent = h[h.length - 1];
+            const prevWindow = h.slice(0, h.length - 3);
+
+            let prevMaxPrice = -Infinity, prevMaxCvd = -Infinity;
+            let prevMinPrice = Infinity, prevMinCvd = Infinity;
+
+            prevWindow.forEach(pt => {
+                if (pt.ltp > prevMaxPrice) { prevMaxPrice = pt.ltp; prevMaxCvd = pt.cvd; }
+                if (pt.ltp < prevMinPrice) { prevMinPrice = pt.ltp; prevMinCvd = pt.cvd; }
+            });
+
+            // 1. Bearish Divergence (Absorption at Highs: Price breaks higher but CVD fails)
+            if (recent.ltp >= prevMaxPrice && recent.cvd < (prevMaxCvd - 300)) {
+                state.cvd.divergence = 'BEARISH';
+                state.cvd.divergenceText = '⚠️ BEARISH DIVERGENCE (Aggressive Buying Absorbed)';
+                state.cvd.lastDivergenceTime = nowTs;
+            }
+            // 2. Bullish Divergence (Absorption at Lows: Price breaks lower but CVD holds)
+            else if (recent.ltp <= prevMinPrice && recent.cvd > (prevMinCvd + 300)) {
+                state.cvd.divergence = 'BULLISH';
+                state.cvd.divergenceText = '🎯 BULLISH DIVERGENCE (Aggressive Selling Absorbed)';
+                state.cvd.lastDivergenceTime = nowTs;
+            }
+            else if (nowTs - state.cvd.lastDivergenceTime < 12000) {
+                // Keep active recent divergence for 12 seconds so trader can act
+            } else {
+                state.cvd.divergence = 'NONE';
+                state.cvd.divergenceText = state.cvd.current >= 0 
+                    ? '▲ Buyer Volume Dominating (In Sync)' 
+                    : '▼ Seller Volume Dominating (In Sync)';
+            }
+        }
+    }
+
+    // ── ORDER BOOK SLOPE & CURVATURE ASYMMETRY CALCULATION ──
+    function calculateBookSlope(bids, asks, ltp) {
+        if (!bids.length || !asks.length || !ltp) return;
+
+        // Near Book Slope (Top 5 levels)
+        let cumBid5 = 0;
+        const nBid5 = Math.min(5, bids.length);
+        for (let i = 0; i < nBid5; i++) cumBid5 += bids[i].qty;
+        const distBid5 = Math.max(0.10, ltp - bids[nBid5 - 1].price);
+        const bidSlopeNear = Math.round(cumBid5 / distBid5);
+
+        let cumAsk5 = 0;
+        const nAsk5 = Math.min(5, asks.length);
+        for (let i = 0; i < nAsk5; i++) cumAsk5 += asks[i].qty;
+        const distAsk5 = Math.max(0.10, asks[nAsk5 - 1].price - ltp);
+        const askSlopeNear = Math.round(cumAsk5 / distAsk5);
+
+        // Deep Book Slope (All 30 levels)
+        let cumBid30 = 0;
+        const nBid30 = Math.min(30, bids.length);
+        for (let i = 0; i < nBid30; i++) cumBid30 += bids[i].qty;
+        const distBid30 = Math.max(0.50, ltp - bids[nBid30 - 1].price);
+        const bidSlopeDeep = Math.round(cumBid30 / distBid30);
+
+        let cumAsk30 = 0;
+        const nAsk30 = Math.min(30, asks.length);
+        for (let i = 0; i < nAsk30; i++) cumAsk30 += asks[i].qty;
+        const distAsk30 = Math.max(0.50, asks[nAsk30 - 1].price - ltp);
+        const askSlopeDeep = Math.round(cumAsk30 / distAsk30);
+
+        const ratio = parseFloat((bidSlopeNear / Math.max(1, askSlopeNear)).toFixed(2));
+        state.depthData.bookSlopeRatio = ratio;
+
+        let asymmetry = 'NEUTRAL';
+        let asymmetryText = `${ratio}x Balanced`;
+        if (ratio >= 1.30) {
+            asymmetry = 'BULLISH';
+            asymmetryText = `${ratio}x Bull Slope`;
+        } else if (ratio <= 0.70) {
+            asymmetry = 'BEARISH';
+            asymmetryText = `${ratio}x Bear Slope`;
+        }
+
+        state.bookSlope = {
+            bidSlopeNear,
+            askSlopeNear,
+            bidSlopeDeep,
+            askSlopeDeep,
+            ratio,
+            asymmetry,
+            asymmetryText
+        };
+    }
+
+    // ── RENDER CVD MINI-CHART & DIVERGENCE UI ──
+    function renderCvdUI() {
+        const valEl = document.getElementById('cvd-current-val');
+        const badgeEl = document.getElementById('cvd-divergence-badge');
+        const textEl = document.getElementById('cvd-divergence-text');
+        const highEl = document.getElementById('cvd-stat-high');
+        const lowEl = document.getElementById('cvd-stat-low');
+        const canvas = document.getElementById('cvd-mini-canvas');
+
+        const cvdVal = state.cvd.current;
+        if (valEl) {
+            valEl.textContent = `${cvdVal >= 0 ? '+' : ''}${cvdVal.toLocaleString()} Delta`;
+            valEl.className = cvdVal > 0 ? 'text-xs font-black font-mono text-emerald-400' : (cvdVal < 0 ? 'text-xs font-black font-mono text-rose-400' : 'text-xs font-black font-mono text-slate-300');
+        }
+
+        if (highEl) highEl.textContent = `${state.cvd.sessionHigh >= 0 ? '+' : ''}${state.cvd.sessionHigh.toLocaleString()}`;
+        if (lowEl) lowEl.textContent = `${state.cvd.sessionLow.toLocaleString()}`;
+
+        if (badgeEl && textEl) {
+            textEl.textContent = state.cvd.divergenceText;
+            if (state.cvd.divergence === 'BULLISH') {
+                badgeEl.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-black bg-emerald-500/25 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse flex items-center gap-1 truncate max-w-[210px]';
+            } else if (state.cvd.divergence === 'BEARISH') {
+                badgeEl.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-black bg-rose-500/25 text-rose-300 border border-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.3)] animate-pulse flex items-center gap-1 truncate max-w-[210px]';
+            } else {
+                badgeEl.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[210px]';
+            }
+        }
+
+        // Draw Canvas Mini Chart (Zero dependency, high FPS)
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+            if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
+                canvas.width = Math.floor(rect.width * dpr);
+                canvas.height = Math.floor(rect.height * dpr);
+            }
+        }
+
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        const w = rect.width || 240;
+        const h = rect.height || 68;
+
+        ctx.clearRect(0, 0, w, h);
+
+        const history = state.cvd.history;
+        if (history.length < 2) {
+            ctx.restore();
+            return;
+        }
+
+        let minCvd = Math.min(0, ...history.map(p => p.cvd));
+        let maxCvd = Math.max(0, ...history.map(p => p.cvd));
+        let range = maxCvd - minCvd;
+        if (range === 0) range = 100;
+        const pad = range * 0.12;
+        minCvd -= pad;
+        maxCvd += pad;
+        range = maxCvd - minCvd;
+
+        const getY = (val) => h - ((val - minCvd) / range) * (h - 8) - 4;
+        const getX = (idx) => (idx / (history.length - 1)) * (w - 10) + 5;
+
+        // Draw Zero Baseline (Dashed)
+        const zeroY = Math.max(2, Math.min(h - 2, getY(0)));
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#334155'; // slate-700
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, zeroY);
+        ctx.lineTo(w, zeroY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Area Fill under curve
+        ctx.beginPath();
+        ctx.moveTo(getX(0), zeroY);
+        for (let i = 0; i < history.length; i++) {
+            ctx.lineTo(getX(i), getY(history[i].cvd));
+        }
+        ctx.lineTo(getX(history.length - 1), zeroY);
+        ctx.closePath();
+
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        if (cvdVal >= 0) {
+            grad.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+            grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+        } else {
+            grad.addColorStop(0, 'rgba(244, 63, 94, 0.0)');
+            grad.addColorStop(1, 'rgba(244, 63, 94, 0.28)');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Stroke Line
+        ctx.beginPath();
+        for (let i = 0; i < history.length; i++) {
+            const x = getX(i);
+            const y = getY(history[i].cvd);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = cvdVal >= 0 ? '#10b981' : '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Latest Point Dot
+        const lastX = getX(history.length - 1);
+        const lastY = getY(cvdVal);
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = cvdVal >= 0 ? '#34d399' : '#fb7185';
+        ctx.fill();
+
+        // Radiating halo on Delta Divergence
+        if (state.cvd.divergence !== 'NONE') {
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+            ctx.strokeStyle = state.cvd.divergence === 'BULLISH' ? '#10b981' : '#f43f5e';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // ── RENDER BOOK SLOPE & CURVATURE UI ──
+    function renderBookSlopeUI() {
+        const s = state.bookSlope;
+        const bidVal = document.getElementById('val-bid-slope');
+        const askVal = document.getElementById('val-ask-slope');
+        const badge = document.getElementById('book-slope-asymmetry-badge');
+        const bidBar = document.getElementById('bar-slope-bid');
+        const askBar = document.getElementById('bar-slope-ask');
+        const bidRatioLbl = document.getElementById('lbl-slope-bid-ratio');
+        const askRatioLbl = document.getElementById('lbl-slope-ask-ratio');
+        const descEl = document.getElementById('book-slope-desc');
+
+        if (bidVal) bidVal.textContent = `${s.bidSlopeNear.toLocaleString()} qty/pt`;
+        if (askVal) askVal.textContent = `${s.askSlopeNear.toLocaleString()} qty/pt`;
+
+        const totalSlope = s.bidSlopeNear + s.askSlopeNear;
+        const bidPct = totalSlope > 0 ? Math.round((s.bidSlopeNear / totalSlope) * 100) : 50;
+        const askPct = 100 - bidPct;
+
+        if (bidBar) bidBar.style.width = `${bidPct}%`;
+        if (askBar) askBar.style.width = `${askPct}%`;
+
+        if (bidRatioLbl) bidRatioLbl.textContent = `Bids ${bidPct}% (${s.bidSlopeNear.toLocaleString()}/pt)`;
+        if (askRatioLbl) askRatioLbl.textContent = `Asks ${askPct}% (${s.askSlopeNear.toLocaleString()}/pt)`;
+
+        if (badge) {
+            badge.textContent = s.asymmetryText;
+            if (s.asymmetry === 'BULLISH') {
+                badge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs';
+            } else if (s.asymmetry === 'BEARISH') {
+                badge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs';
+            } else {
+                badge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-300 border border-slate-800';
+            }
+        }
+
+        if (descEl) {
+            if (s.asymmetry === 'BULLISH') {
+                descEl.innerHTML = `<span class="text-emerald-300 font-bold">▲ Strong Bid Slope:</span> Resting buy orders accumulate <strong class="text-white">${s.ratio}x faster</strong> per point drop than asks. Support is thick and active near LTP.`;
+            } else if (s.asymmetry === 'BEARISH') {
+                descEl.innerHTML = `<span class="text-rose-300 font-bold">▼ Aggressive Ask Slope:</span> Resting sell orders accumulate <strong class="text-white">${(1 / Math.max(0.01, s.ratio)).toFixed(2)}x faster</strong> per point rise than bids. Overhead ceiling is heavy.`;
+            } else {
+                descEl.innerHTML = `Order book slope is balanced across 30 levels. Resting liquidity builds symmetrically on both sides of LTP.`;
+            }
+        }
     }
 
     function updateObiBar(tier, val) {
@@ -3529,6 +3949,14 @@
         if (d.heavyBidBlock) depthScore += 8;
         if (d.heavyAskBlock) depthScore -= 8;
 
+        // Boost score on Delta Divergence (Absorption at extremes)
+        if (state.cvd?.divergence === 'BULLISH') depthScore += 10;
+        if (state.cvd?.divergence === 'BEARISH') depthScore -= 10;
+
+        // Boost score on Book Slope Asymmetry
+        if (state.bookSlope?.asymmetry === 'BULLISH') depthScore += 6;
+        if (state.bookSlope?.asymmetry === 'BEARISH') depthScore -= 6;
+
         depthScore = Math.max(5, Math.min(95, Math.round(depthScore)));
 
         const totalConfluence = Math.round(
@@ -3603,8 +4031,8 @@
 
         // 4. Pillar 4: 30-Level Deep Order Book & Microstructure
         const reqObi = parseFloat(alertSettings.pillarObiPct || 20);
-        const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5));
-        const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5));
+        const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5) || state.cvd?.divergence === 'BULLISH' || state.bookSlope?.asymmetry === 'BULLISH');
+        const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5) || state.cvd?.divergence === 'BEARISH' || state.bookSlope?.asymmetry === 'BEARISH');
 
         const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
         const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
@@ -4086,7 +4514,12 @@
                     wall: d.heavyBidBlock ? `Bid Wall (${d.heavyBidBlock.qty.toLocaleString()})` : (d.heavyAskBlock ? `Ask Wall (${d.heavyAskBlock.qty.toLocaleString()})` : null),
                     vpoc_price: d.vpoc?.price || null,
                     vpoc_volume: d.vpoc?.volume || 0,
-                    vpoc_role: d.vpoc?.isSupport ? 'Absorption Support' : 'Trap Resistance'
+                    vpoc_role: d.vpoc?.isSupport ? 'Absorption Support' : 'Trap Resistance',
+                    cvd: state.cvd?.current || 0,
+                    cvd_divergence: state.cvd?.divergence || null,
+                    book_slope_ratio: state.bookSlope?.ratio || 1.0,
+                    bid_slope: state.bookSlope?.bidSlopeNear || 0,
+                    ask_slope: state.bookSlope?.askSlopeNear || 0
                 },
                 meta: {
                     strict_mode: !!alertSettings.strictConfluence,
