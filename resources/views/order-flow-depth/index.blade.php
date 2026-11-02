@@ -2501,9 +2501,6 @@
                     });
                 }
             }
-                    rationale: `⚡ Institutional Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`
-                });
-            }
         } else {
             renderAlertPlaceholder();
         }
