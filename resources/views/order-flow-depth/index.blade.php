@@ -77,7 +77,7 @@
                 </div>
             </div>
 
-            {{-- Right: Live Feed Connection & Mode Toggles --}}
+            {{-- Right: Live Feed Connection, Alert Rules & Mode Toggles --}}
             <div class="flex items-center gap-1.5 text-xs">
                 <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800">
                     <button id="btn-mode-live" class="px-2 py-0.5 rounded font-bold text-[11px] bg-emerald-600 text-white transition shadow-sm">
@@ -93,6 +93,12 @@
                     <span id="feed-status-dot" class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <span id="feed-status-text">Connecting...</span>
                 </div>
+
+                {{-- Alert Rules Settings Button --}}
+                <button id="btn-open-settings" onclick="toggleSettingsModal(true)" title="Configure Liquidity Block & Consecutive Stack Alert Rules" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-amber-500/40 hover:bg-slate-800 text-amber-300 hover:text-white transition text-[11px] flex items-center gap-1 font-bold shadow-sm">
+                    <span>⚙️</span>
+                    <span class="hidden sm:inline">Alert Rules</span>
+                </button>
 
                 {{-- Sound Alert Toggle --}}
                 <button id="btn-sound-toggle" title="Toggle audio alert on high confluence signals" class="p-1 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition text-xs">
@@ -153,6 +159,11 @@
         </div>
     </div>
 
+    {{-- ════════════════════════ LIVE DIRECTIONAL LIQUIDITY ALERT BANNER ════════════════════════ --}}
+    <div id="liquidity-alert-banner" class="hidden transition-all duration-300">
+        {{-- Injected dynamically when Single Block or Consecutive Stack is active --}}
+    </div>
+
     {{-- ════════════════════════ 2. THREE-COLUMN COMMAND DASHBOARD (NO SCROLL) ════════════════════════ --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-start">
         
@@ -171,7 +182,8 @@
                     <div class="flex items-center gap-2 text-[10px]">
                         <span class="text-emerald-400 font-bold">● Bids</span>
                         <span class="text-rose-400 font-bold">● Asks</span>
-                        <span class="text-amber-300 font-bold">■ Wall</span>
+                        <span class="text-amber-300 font-bold">⚡ Block</span>
+                        <span class="text-cyan-400 font-bold">🌊 Stack</span>
                     </div>
                 </div>
 
@@ -510,16 +522,221 @@
 
     </div>
 
+    {{-- ════════════════════════ 3. MODAL: LIQUIDITY ALERT RULES SETTINGS ════════════════════════ --}}
+    <div id="modal-alert-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 max-w-md w-full shadow-2xl space-y-3.5">
+            
+            {{-- Header --}}
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">⚙️</span>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-white">Liquidity &amp; Stack Alert Rules</h3>
+                        <p class="text-[10px] text-slate-400">Highlight large institutional orders and continuous directional stacks</p>
+                    </div>
+                </div>
+                <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-sm">
+                    ✕
+                </button>
+            </div>
+
+            {{-- Body Settings Form --}}
+            <div class="space-y-3 text-xs">
+                
+                {{-- Rule 1: Single Level QTY Threshold --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
+                            <span>⚡ Single Level Heavy Block</span>
+                            <span class="text-[10px] text-amber-400 font-normal">(Qty ≥ X)</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="cfg-single-qty" min="100" step="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold font-mono focus:outline-none focus:border-amber-400" value="2500" placeholder="e.g. 2500">
+                        <span class="text-[11px] text-slate-400 font-bold">Qty</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Presets:</span>
+                        <button type="button" onclick="setSinglePreset(1000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">1,000</button>
+                        <button type="button" onclick="setSinglePreset(2000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">2,000</button>
+                        <button type="button" onclick="setSinglePreset(3500)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">3,500</button>
+                        <button type="button" onclick="setSinglePreset(5000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">5,000</button>
+                        <button type="button" onclick="setSinglePreset(10000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">10,000</button>
+                    </div>
+                </div>
+
+                {{-- Rule 2: Continuous / Consecutive Stack Alert (Directional Rush) --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
+                            <span>🌊 Continuous / Consecutive Stack</span>
+                        </label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-enable-stack" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-slate-400">
+                        Flags when multiple continuous price levels are all stacked with heavy size, revealing institutional push in that direction.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold block mb-1">Consecutive Levels:</span>
+                            <select id="cfg-stack-count" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-bold cursor-pointer focus:outline-none">
+                                <option value="2">2 Levels in a row</option>
+                                <option value="3" selected>3 Levels in a row (Recommended)</option>
+                                <option value="4">4 Levels in a row</option>
+                                <option value="5">5 Levels in a row</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-bold block mb-1">Min Qty Each Level:</span>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="cfg-stack-qty" min="100" step="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-cyan-300 font-bold font-mono focus:outline-none focus:border-cyan-400" value="1500" placeholder="1500">
+                                <span class="text-[10px] text-slate-400 font-bold">Qty</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Rule 3: Audio Alert --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-white text-[11px] block">Play Audio Alert on Stack Trigger</span>
+                        <span class="text-[10px] text-slate-400">Bullish chime for Bid stack, bearish alarm for Ask stack</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="cfg-sound-stack" class="sr-only peer" checked>
+                        <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button type="button" onclick="resetAlertDefaults()" class="text-xs text-slate-400 hover:text-white font-semibold">
+                    Reset Defaults
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleSettingsModal(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="saveAlertSettings()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition">
+                        Save &amp; Apply
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
-{{-- ════════════════════════ 3. SCRIPTS: PROTOBUF, WEBSOCKET & CONFLUENCE ENGINE ════════════════════════ --}}
+{{-- ════════════════════════ 4. SCRIPTS: PROTOBUF, WEBSOCKET & CONFLUENCE ENGINE ════════════════════════ --}}
 <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
 
 <script>
 (function() {
     'use strict';
 
-    // ── 1. GLOBAL STATE ──
+    // ── 1. ALERT SETTINGS STATE & STORAGE ──
+    const alertSettings = {
+        singleThreshold: 2500,     // Single level Qty >= X
+        enableStack: true,         // Consecutive stack detection
+        stackMinConsecutive: 3,    // N continuous levels
+        stackMinQty: 1500,         // Min qty on each level
+        soundEnabled: true
+    };
+
+    function loadAlertSettings() {
+        try {
+            const saved = localStorage.getItem('d30_alert_rules');
+            if (saved) {
+                Object.assign(alertSettings, JSON.parse(saved));
+            }
+        } catch(e) {}
+
+        const singleInput = document.getElementById('cfg-single-qty');
+        const enableStack = document.getElementById('cfg-enable-stack');
+        const stackCount = document.getElementById('cfg-stack-count');
+        const stackQty = document.getElementById('cfg-stack-qty');
+        const soundStack = document.getElementById('cfg-sound-stack');
+
+        if (singleInput) singleInput.value = alertSettings.singleThreshold;
+        if (enableStack) enableStack.checked = alertSettings.enableStack;
+        if (stackCount) stackCount.value = alertSettings.stackMinConsecutive;
+        if (stackQty) stackQty.value = alertSettings.stackMinQty;
+        if (soundStack) soundStack.checked = alertSettings.soundEnabled;
+    }
+
+    window.toggleSettingsModal = function(show) {
+        const modal = document.getElementById('modal-alert-settings');
+        if (!modal) return;
+        if (show) {
+            loadAlertSettings();
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    };
+
+    window.setSinglePreset = function(qty) {
+        const input = document.getElementById('cfg-single-qty');
+        if (input) input.value = qty;
+    };
+
+    window.resetAlertDefaults = function() {
+        alertSettings.singleThreshold = 2500;
+        alertSettings.enableStack = true;
+        alertSettings.stackMinConsecutive = 3;
+        alertSettings.stackMinQty = 1500;
+        alertSettings.soundEnabled = true;
+
+        const singleInput = document.getElementById('cfg-single-qty');
+        const enableStack = document.getElementById('cfg-enable-stack');
+        const stackCount = document.getElementById('cfg-stack-count');
+        const stackQty = document.getElementById('cfg-stack-qty');
+        const soundStack = document.getElementById('cfg-sound-stack');
+
+        if (singleInput) singleInput.value = 2500;
+        if (enableStack) enableStack.checked = true;
+        if (stackCount) stackCount.value = 3;
+        if (stackQty) stackQty.value = 1500;
+        if (soundStack) soundStack.checked = true;
+    };
+
+    window.saveAlertSettings = function() {
+        const singleInput = document.getElementById('cfg-single-qty');
+        const enableStack = document.getElementById('cfg-enable-stack');
+        const stackCount = document.getElementById('cfg-stack-count');
+        const stackQty = document.getElementById('cfg-stack-qty');
+        const soundStack = document.getElementById('cfg-sound-stack');
+
+        alertSettings.singleThreshold = Math.max(100, parseInt(singleInput?.value || 2500));
+        alertSettings.enableStack = !!(enableStack?.checked);
+        alertSettings.stackMinConsecutive = Math.max(2, parseInt(stackCount?.value || 3));
+        alertSettings.stackMinQty = Math.max(100, parseInt(stackQty?.value || 1500));
+        alertSettings.soundEnabled = !!(soundStack?.checked);
+
+        try {
+            localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
+        } catch(e) {}
+
+        toggleSettingsModal(false);
+
+        // Re-render DOM with new rules immediately
+        renderDOM();
+        evaluateConfluenceRadar();
+    };
+
+    window.dismissAlertBanner = function() {
+        const banner = document.getElementById('liquidity-alert-banner');
+        if (banner) banner.className = 'hidden';
+    };
+
+    // ── 2. GLOBAL APP STATE ──
     const state = {
         symbol: "NIFTY",
         expiry: "{{ $selectedExpiry }}",
@@ -529,12 +746,13 @@
         activeInstrumentKey: null,
         activeInstrumentType: 'FUT',
         activeStrike: 0,
-        feedMode: 'live', // 'live' or 'sim'
+        feedMode: 'live',
         ws: null,
         wsUrl: null,
         protobufRoot: null,
         soundEnabled: true,
         lastAlertTime: 0,
+        lastStackAlertTime: 0,
         
         // 30 Depth Data Store
         depthData: {
@@ -553,13 +771,15 @@
             obi20: 0,
             obi30: 0,
             liquidityWalls: [],
-            absorptionPct: 0
+            absorptionPct: 0,
+            bidStack: null,
+            askStack: null
         },
         
         simInterval: null
     };
 
-    // ── 2. MINI-TAB SWITCHER ──
+    // ── 3. MINI-TAB SWITCHER ──
     window.switchMiniTab = function(tabName) {
         document.querySelectorAll('.mini-tab-pane').forEach(el => el.classList.add('hidden'));
         const target = document.getElementById('pane-' + tabName);
@@ -577,7 +797,7 @@
         }
     };
 
-    // ── 3. INITIALIZE PROTOBUF ──
+    // ── 4. INITIALIZE PROTOBUF ──
     async function initProtobuf() {
         try {
             state.protobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
@@ -588,7 +808,7 @@
         }
     }
 
-    // ── 4. UPSTOX WEBSOCKET CONNECTION ──
+    // ── 5. UPSTOX WEBSOCKET CONNECTION ──
     async function connectWebSocket() {
         if (state.feedMode !== 'live') return;
 
@@ -626,7 +846,6 @@
                 if (statusText) statusText.textContent = 'Live Feed Active';
                 subscribeActiveTarget();
 
-                // Detect if outside trading hours (Mon-Fri 09:15 - 15:30 IST)
                 const now = new Date();
                 const day = now.getDay();
                 const hr = now.getHours();
@@ -663,7 +882,7 @@
         }
     }
 
-    // ── 5. SUBSCRIBE IN "full_d30" MODE ──
+    // ── 6. SUBSCRIBE IN "full_d30" MODE ──
     function subscribeActiveTarget() {
         if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
         if (!state.activeInstrumentKey) return;
@@ -681,20 +900,19 @@
         console.log(`📡 Subscribed to 30-depth stream for ${state.activeInstrumentKey} (mode: full_d30)`);
     }
 
-    // ── 6. PROTOBUF DECODER ──
+    // ── 7. PROTOBUF DECODER ──
     function decodeProtobufFeed(buffer) {
         if (!state.protobufRoot) return;
 
         try {
             const arr = new Uint8Array(buffer);
-            if (arr.length > 0 && arr[0] === 123) return; // Skip JSON text handshake
+            if (arr.length > 0 && arr[0] === 123) return;
 
             const FeedResponse = state.protobufRoot.lookupType("com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse");
             const message = FeedResponse.decode(arr);
             const obj = FeedResponse.toObject(message, { enums: String, bytes: String });
 
             if (obj && obj.feeds) {
-                // Check Index Spot Key
                 if (obj.feeds[state.indexKey]) {
                     const idxFeed = obj.feeds[state.indexKey];
                     let idxLtp = idxFeed.fullFeed?.indexFF?.ltpc?.ltp ?? idxFeed.ltpc?.ltp;
@@ -703,7 +921,6 @@
                     }
                 }
 
-                // Check Active Target Contract (Future / Option)
                 if (obj.feeds[state.activeInstrumentKey]) {
                     const targetFeed = obj.feeds[state.activeInstrumentKey];
                     parseMarketFeed(targetFeed);
@@ -714,7 +931,7 @@
         }
     }
 
-    // ── 7. PARSE 30-DEPTH ORDERS FROM FEED ──
+    // ── 8. PARSE 30-DEPTH ORDERS FROM FEED ──
     function parseMarketFeed(feed) {
         const mff = feed.fullFeed?.marketFF;
         if (!mff) return;
@@ -744,7 +961,7 @@
         applyNewDepthState(bids, asks, ltp, atp, vtt, tbq, tsq);
     }
 
-    // ── 8. MICROSTRUCTURE CALCULATIONS & RE-EVALUATION ──
+    // ── 9. MICROSTRUCTURE & CONSECUTIVE STACK CALCULATIONS ──
     function applyNewDepthState(bids, asks, ltp, atp, vtt, tbq, tsq) {
         state.depthData.bids = bids;
         state.depthData.asks = asks;
@@ -759,11 +976,9 @@
         const bestBidQ = bids.length > 0 ? bids[0].qty : 100;
         const bestAskQ = asks.length > 0 ? asks[0].qty : 100;
 
-        // 1. Spread & Mid Price
         state.depthData.spread = Math.max(0.05, parseFloat((bestAsk - bestBid).toFixed(2)));
         state.depthData.midPrice = parseFloat(((bestBid + bestAsk) / 2).toFixed(2));
 
-        // 2. Micro-Price (Cross Depth-Weighted)
         const totalTopQ = bestBidQ + bestAskQ;
         if (totalTopQ > 0) {
             state.depthData.microPrice = parseFloat(((bestAsk * bestBidQ + bestBid * bestAskQ) / totalTopQ).toFixed(2));
@@ -771,19 +986,24 @@
             state.depthData.microPrice = state.depthData.midPrice;
         }
 
-        // 3. Tiered OBI Calculations (5, 10, 20, 30)
         state.depthData.obi5  = calculateTierObi(bids, asks, 5);
         state.depthData.obi10 = calculateTierObi(bids, asks, 10);
         state.depthData.obi20 = calculateTierObi(bids, asks, 20);
         state.depthData.obi30 = calculateTierObi(bids, asks, 30);
 
-        // 4. Liquidity Wall Scanner
+        // Scan standard walls
         scanLiquidityWalls(bids, asks);
 
-        // 5. Update All Visual Components
+        // Continuous Stack Detection (User Setting: Continuous X Qty in Bid or Ask)
+        const stacks = detectLiquidityStacks(bids, asks);
+        state.depthData.bidStack = stacks.bidStack;
+        state.depthData.askStack = stacks.askStack;
+
+        // Render UI, DOM & Alert Banner
         renderDOM();
         updateMicrostructureUI();
         evaluateConfluenceRadar();
+        renderAlertBanner(stacks.bidStack, stacks.askStack);
     }
 
     function calculateTierObi(bids, asks, tier) {
@@ -817,7 +1037,170 @@
         state.depthData.liquidityWalls = walls;
     }
 
-    // ── 9. RENDER 30-DEPTH DOM VISUAL LADDER WITH LTP HIGHLIGHT ──
+    // ── 10. CONSECUTIVE / CONTINUOUS STACK DETECTION ──
+    function detectLiquidityStacks(bids, asks) {
+        if (!alertSettings.enableStack) return { bidStack: null, askStack: null };
+
+        let bidStack = null;
+        let currentBidRun = [];
+        for (let i = 0; i < Math.min(bids.length, 30); i++) {
+            if (bids[i] && bids[i].qty >= alertSettings.stackMinQty) {
+                currentBidRun.push({ index: i, level: i + 1, price: bids[i].price, qty: bids[i].qty });
+            } else {
+                if (currentBidRun.length >= alertSettings.stackMinConsecutive) {
+                    if (!bidStack || currentBidRun.length > bidStack.levels.length) {
+                        bidStack = {
+                            side: 'BID',
+                            levels: [...currentBidRun],
+                            count: currentBidRun.length,
+                            totalQty: currentBidRun.reduce((sum, x) => sum + x.qty, 0),
+                            highP: Math.max(...currentBidRun.map(x => x.price)),
+                            lowP: Math.min(...currentBidRun.map(x => x.price))
+                        };
+                    }
+                }
+                currentBidRun = [];
+            }
+        }
+        if (currentBidRun.length >= alertSettings.stackMinConsecutive) {
+            if (!bidStack || currentBidRun.length > bidStack.levels.length) {
+                bidStack = {
+                    side: 'BID',
+                    levels: [...currentBidRun],
+                    count: currentBidRun.length,
+                    totalQty: currentBidRun.reduce((sum, x) => sum + x.qty, 0),
+                    highP: Math.max(...currentBidRun.map(x => x.price)),
+                    lowP: Math.min(...currentBidRun.map(x => x.price))
+                };
+            }
+        }
+
+        let askStack = null;
+        let currentAskRun = [];
+        for (let i = 0; i < Math.min(asks.length, 30); i++) {
+            if (asks[i] && asks[i].qty >= alertSettings.stackMinQty) {
+                currentAskRun.push({ index: i, level: i + 1, price: asks[i].price, qty: asks[i].qty });
+            } else {
+                if (currentAskRun.length >= alertSettings.stackMinConsecutive) {
+                    if (!askStack || currentAskRun.length > askStack.levels.length) {
+                        askStack = {
+                            side: 'ASK',
+                            levels: [...currentAskRun],
+                            count: currentAskRun.length,
+                            totalQty: currentAskRun.reduce((sum, x) => sum + x.qty, 0),
+                            highP: Math.max(...currentAskRun.map(x => x.price)),
+                            lowP: Math.min(...currentAskRun.map(x => x.price))
+                        };
+                    }
+                }
+                currentAskRun = [];
+            }
+        }
+        if (currentAskRun.length >= alertSettings.stackMinConsecutive) {
+            if (!askStack || currentAskRun.length > askStack.levels.length) {
+                askStack = {
+                    side: 'ASK',
+                    levels: [...currentAskRun],
+                    count: currentAskRun.length,
+                    totalQty: currentAskRun.reduce((sum, x) => sum + x.qty, 0),
+                    highP: Math.max(...currentAskRun.map(x => x.price)),
+                    lowP: Math.min(...currentAskRun.map(x => x.price))
+                };
+            }
+        }
+
+        return { bidStack, askStack };
+    }
+
+    // ── 11. DIRECTIONAL ALERT BANNER ──
+    function renderAlertBanner(bidStack, askStack) {
+        const banner = document.getElementById('liquidity-alert-banner');
+        if (!banner) return;
+
+        if (bidStack && (!askStack || bidStack.totalQty >= askStack.totalQty)) {
+            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950 via-emerald-900/90 to-slate-900 border-2 border-emerald-500/80 shadow-lg shadow-emerald-500/10 text-white';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base animate-bounce">🚀</span>
+                        <div>
+                            <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                                BULLISH LIQUIDITY STACK (${bidStack.count} CONTINUOUS LEVELS)
+                            </span>
+                            <p class="font-black text-emerald-200 text-xs mt-0.5 font-mono">
+                                ${bidStack.count} Consecutive Bid Levels Stacked (Total ${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)})
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-emerald-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-emerald-500/50">
+                            ⚡ DIRECTION: GO LONG / BUY CALL
+                        </span>
+                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
+                    </div>
+                </div>
+            `;
+            triggerStackAlertAudio('BUY');
+        } else if (askStack) {
+            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950 via-rose-900/90 to-slate-900 border-2 border-rose-500/80 shadow-lg shadow-rose-500/10 text-white';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base animate-bounce">🩸</span>
+                        <div>
+                            <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                                BEARISH LIQUIDITY STACK (${askStack.count} CONTINUOUS LEVELS)
+                            </span>
+                            <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
+                                ${askStack.count} Consecutive Ask Levels Stacked (Total ${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)})
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-rose-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-rose-500/50">
+                            ⚡ DIRECTION: GO SHORT / BUY PUT
+                        </span>
+                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
+                    </div>
+                </div>
+            `;
+            triggerStackAlertAudio('SELL');
+        } else {
+            banner.className = 'hidden';
+        }
+    }
+
+    function triggerStackAlertAudio(side) {
+        if (!alertSettings.soundEnabled) return;
+        const now = Date.now();
+        if (now - state.lastStackAlertTime < 18000) return;
+        state.lastStackAlertTime = now;
+
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'triangle';
+            if (side === 'BUY') {
+                osc.frequency.setValueAtTime(620, ctx.currentTime);
+                osc.frequency.setValueAtTime(920, ctx.currentTime + 0.12);
+            } else {
+                osc.frequency.setValueAtTime(540, ctx.currentTime);
+                osc.frequency.setValueAtTime(340, ctx.currentTime + 0.12);
+            }
+
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        } catch(e) {}
+    }
+
+    // ── 12. RENDER 30-DEPTH DOM VISUAL LADDER WITH CUSTOM HIGHLIGHTS ──
     function renderDOM() {
         const container = document.getElementById('dom-rows-container');
         if (!container) return;
@@ -825,8 +1208,10 @@
         const bids = state.depthData.bids;
         const asks = state.depthData.asks;
         const ltp = state.depthData.ltp;
+        const bidStack = state.depthData.bidStack;
+        const askStack = state.depthData.askStack;
 
-        // Update the top sticky LTP Highlight banner
+        // Sticky LTP banner
         const bannerLtp = document.getElementById('banner-ltp-val');
         const bannerSpread = document.getElementById('banner-spread-val');
         const bannerVwap = document.getElementById('banner-vwap-pill');
@@ -856,25 +1241,43 @@
             const bidPct = b ? Math.min(100, (b.qty / maxQty) * 100) : 0;
             const askPct = a ? Math.min(100, (a.qty / maxQty) * 100) : 0;
 
-            const isBidWall = b && b.qty >= maxQty * 0.7;
-            const isAskWall = a && a.qty >= maxQty * 0.7;
+            // 1. Single Level Block Check (User threshold)
+            const isBidBlock = b && (b.qty >= alertSettings.singleThreshold);
+            const isAskBlock = a && (a.qty >= alertSettings.singleThreshold);
 
-            // Highlight row closest to LTP
+            // 2. Consecutive Stack Check (User setting)
+            const isBidInStack = bidStack && bidStack.levels.some(x => x.index === i);
+            const isAskInStack = askStack && askStack.levels.some(x => x.index === i);
+
+            // 3. LTP Row Check
             const isNearLtp = (b && Math.abs(b.price - ltp) < 0.05) || (a && Math.abs(a.price - ltp) < 0.05);
 
+            // Dynamic Row Classes
+            let rowClasses = "grid grid-cols-12 gap-1 items-center py-0.5 px-1.5 rounded transition text-[11px] relative ";
+            if (isNearLtp) {
+                rowClasses += "bg-amber-500/20 ring-1 ring-amber-400 font-bold ";
+            } else if (isBidInStack || isAskInStack) {
+                rowClasses += (isBidInStack ? "bg-emerald-950/50 border-l-4 border-emerald-400 " : "bg-rose-950/50 border-r-4 border-rose-400 ");
+            } else if (i % 2 === 0) {
+                rowClasses += "bg-slate-950/40 hover:bg-slate-800/60 ";
+            } else {
+                rowClasses += "hover:bg-slate-800/60 ";
+            }
+
             html += `
-            <div class="grid grid-cols-12 gap-1 items-center py-0.5 px-1.5 rounded transition text-[11px] relative ${isNearLtp ? 'bg-amber-500/20 ring-1 ring-amber-400 font-bold' : (i % 2 === 0 ? 'bg-slate-950/40 hover:bg-slate-800/60' : 'hover:bg-slate-800/60')}">
+            <div class="${rowClasses}">
                 
                 {{-- Bid Orders --}}
                 <div class="col-span-2 text-left text-slate-400 text-[10px]">
                     ${b ? (b.orders || 1) : '-'}
+                    ${isBidInStack ? '<span class="text-[9px] text-emerald-300 font-black">🌊</span>' : ''}
                 </div>
 
-                {{-- Bid Qty with horizontal fill bar --}}
-                <div class="col-span-2 text-right relative pr-1.5">
-                    <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/20 rounded-l ${isBidWall ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
-                    <span class="relative font-mono font-bold text-slate-100 ${isBidWall ? 'text-amber-300 font-black' : ''}">
-                        ${b ? b.qty.toLocaleString() : '-'}
+                {{-- Bid Qty with horizontal fill bar & block badge --}}
+                <div class="col-span-2 text-right relative pr-1.5 ${isBidBlock ? 'ring-1 ring-amber-400 bg-amber-500/20 rounded' : ''}">
+                    <div class="absolute right-0 top-0 bottom-0 bg-emerald-500/20 rounded-l ${isBidBlock ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
+                    <span class="relative font-mono font-bold text-slate-100 ${isBidBlock ? 'text-amber-300 font-black' : (isBidInStack ? 'text-emerald-300 font-black' : '')}">
+                        ${b ? (isBidBlock ? '⚡ ' : '') + b.qty.toLocaleString() : '-'}
                     </span>
                 </div>
 
@@ -888,23 +1291,24 @@
                     ${a ? a.price.toFixed(2) : '-'}
                 </div>
 
-                {{-- Ask Qty with horizontal fill bar --}}
-                <div class="col-span-2 text-left relative pl-1.5">
-                    <div class="absolute left-0 top-0 bottom-0 bg-rose-500/20 rounded-r ${isAskWall ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
-                    <span class="relative font-mono font-bold text-slate-100 ${isAskWall ? 'text-amber-300 font-black' : ''}">
-                        ${a ? a.qty.toLocaleString() : '-'}
+                {{-- Ask Qty with horizontal fill bar & block badge --}}
+                <div class="col-span-2 text-left relative pl-1.5 ${isAskBlock ? 'ring-1 ring-amber-400 bg-amber-500/20 rounded' : ''}">
+                    <div class="absolute left-0 top-0 bottom-0 bg-rose-500/20 rounded-r ${isAskBlock ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
+                    <span class="relative font-mono font-bold text-slate-100 ${isAskBlock ? 'text-amber-300 font-black' : (isAskInStack ? 'text-rose-300 font-black' : '')}">
+                        ${a ? (isAskBlock ? '⚡ ' : '') + a.qty.toLocaleString() : '-'}
                     </span>
                 </div>
 
                 {{-- Ask Orders --}}
                 <div class="col-span-2 text-right text-slate-400 text-[10px]">
+                    ${isAskInStack ? '<span class="text-[9px] text-rose-300 font-black">🌊</span>' : ''}
                     ${a ? (a.orders || 1) : '-'}
                 </div>
 
             </div>
             `;
 
-            // If Level 1 (i == 0), inject the prominent LTP Spread Center Divider
+            // Insert LTP divider right after Level 1 (i == 0)
             if (i === 0 && ltp > 0) {
                 html += `
                 <div class="my-0.5 py-0.5 px-2 rounded bg-amber-500/15 border-y border-amber-400/60 flex items-center justify-between text-[10px] font-black text-amber-300 shadow-sm">
@@ -914,7 +1318,7 @@
                         <span class="text-white bg-slate-900 px-1.5 py-0.2 rounded font-mono text-xs border border-amber-400/40">₹${ltp.toFixed(2)}</span>
                     </div>
                     <div class="text-[9px] text-slate-300 font-mono">
-                        Inside Spread: <strong class="text-white">${state.depthData.spread.toFixed(2)} pts</strong>
+                        Spread: <strong class="text-white">${state.depthData.spread.toFixed(2)} pts</strong>
                     </div>
                 </div>
                 `;
@@ -923,18 +1327,16 @@
 
         container.innerHTML = html;
 
-        // Update totals
         const bidTotEl = document.getElementById('val-total-bid-depth');
         const askTotEl = document.getElementById('val-total-ask-depth');
         if (bidTotEl) bidTotEl.textContent = totalBidSum.toLocaleString();
         if (askTotEl) askTotEl.textContent = totalAskSum.toLocaleString();
     }
 
-    // ── 10. UPDATE MICROSTRUCTURE UI & FORMULA TRACES ──
+    // ── 13. UPDATE MICROSTRUCTURE UI & FORMULA TRACES ──
     function updateMicrostructureUI() {
         const d = state.depthData;
 
-        // Top bar values
         const targetLtpEl = document.getElementById('val-target-ltp');
         const spreadEl = document.getElementById('val-spread');
         const atpEl = document.getElementById('val-atp');
@@ -950,12 +1352,10 @@
             ratioEl.className = ratio >= 1.2 ? 'font-black text-emerald-400 text-xs' : (ratio <= 0.8 ? 'font-black text-rose-400 text-xs' : 'font-black text-slate-300 text-xs');
         }
 
-        // Tiered OBI Bars
         updateObiBar('5', d.obi5);
         updateObiBar('10', d.obi10);
         updateObiBar('30', d.obi30);
 
-        // Micro-price UI
         const midPriceEl = document.getElementById('val-mid-price');
         const microPriceEl = document.getElementById('val-micro-price');
         const sideLtpEl = document.getElementById('val-side-ltp');
@@ -971,7 +1371,6 @@
             microDivEl.className = div > 0.1 ? 'text-[10px] font-bold text-emerald-400 font-mono' : (div < -0.1 ? 'text-[10px] font-bold text-rose-400 font-mono' : 'text-[10px] font-bold text-slate-400 font-mono');
         }
 
-        // Math Trace Data
         const traceNum = document.getElementById('trace-obi-numerator');
         const traceDen = document.getElementById('trace-obi-denominator');
         const traceRaw = document.getElementById('trace-obi-raw');
@@ -985,7 +1384,6 @@
         if (traceRaw) traceRaw.textContent = (sumB30 + sumA30 > 0 ? (sumB30 - sumA30) / (sumB30 + sumA30) : 0).toFixed(3);
         if (traceFin) traceFin.textContent = `${d.obi30}%`;
 
-        // Liquidity Walls Cards
         renderLiquidityWallsUI();
     }
 
@@ -1038,7 +1436,7 @@
         list.innerHTML = html;
     }
 
-    // ── 11. MULTI-STRATEGY CONFLUENCE & TRADE SUGGESTION ENGINE ──
+    // ── 14. MULTI-STRATEGY CONFLUENCE & TRADE SUGGESTION ENGINE ──
     function evaluateConfluenceRadar() {
         const d = state.depthData;
         const signals = state.strategySignals?.factors || {};
@@ -1050,6 +1448,11 @@
         let depthScore = 50 + (d.obi30 * 0.45);
         if (d.microPrice > d.ltp + 0.1) depthScore += 8;
         if (d.microPrice < d.ltp - 0.1) depthScore -= 8;
+
+        // Boost score if institutional stack detected
+        if (d.bidStack) depthScore += 12;
+        if (d.askStack) depthScore -= 12;
+
         depthScore = Math.max(5, Math.min(95, Math.round(depthScore)));
 
         const totalConfluence = Math.round(
@@ -1103,7 +1506,7 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `30-Depth OBI (+${d.obi30}%) confirms buying force, reinforced by Quant POP and Heavyweight Breadth.`;
+                tradeRationale.textContent = `30-Depth OBI (+${d.obi30}%) ${d.bidStack ? 'with ' + d.bidStack.count + '-level Bid Stack' : ''} confirms buying force, backed by Quant & Breadth.`;
             }
 
             triggerAlertAudio('BUY');
@@ -1131,7 +1534,7 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `Ask Wall dominating with negative OBI (${d.obi30}%). Downside bias confirmed across strategies.`;
+                tradeRationale.textContent = `Ask Wall dominating with negative OBI (${d.obi30}%) ${d.askStack ? 'and ' + d.askStack.count + '-level Ask Stack' : ''}. Downside bias confirmed.`;
             }
 
             triggerAlertAudio('SELL');
@@ -1180,19 +1583,19 @@
             gain.connect(ctx.destination);
             osc.start();
             osc.stop(ctx.currentTime + 0.25);
-        } catch (e) {
-            // Audio context blocked
-        }
+        } catch (e) {}
     }
 
-    // ── 12. HIGH-FIDELITY MICRO-SIMULATOR (FOR OFF-MARKET TESTING) ──
+    // ── 15. HIGH-FIDELITY MICRO-SIMULATOR (WITH STACK & BLOCK INJECTIONS) ──
     function startSimulator() {
         if (state.simInterval) clearInterval(state.simInterval);
 
         let basePrice = 24150.0;
         let trendBias = 1;
+        let tickCount = 0;
 
         state.simInterval = setInterval(() => {
+            tickCount++;
             basePrice += (Math.random() - 0.48) * 0.4 * trendBias;
             basePrice = Math.max(10, parseFloat(basePrice.toFixed(2)));
 
@@ -1201,24 +1604,33 @@
             const bids = [];
             const asks = [];
 
+            // Generate Bids
             let runningBidP = basePrice - 0.05;
             for (let i = 0; i < 30; i++) {
                 runningBidP = parseFloat((runningBidP - (0.05 + Math.random() * 0.05)).toFixed(2));
                 let qty = Math.floor(150 + Math.random() * 800);
                 
-                if (i === 7 && trendBias > 0) qty = 4500;
-                if (i === 14) qty = 2800;
+                // Simulate consecutive stack on levels 3, 4, 5 every few ticks
+                if (trendBias > 0 && (i >= 2 && i <= 4)) {
+                    qty = 2800 + Math.floor(Math.random() * 800);
+                } else if (i === 8) {
+                    qty = 4200; // Single block
+                }
 
                 bids.push({ price: runningBidP, qty: qty, orders: Math.floor(qty / 120) + 1 });
             }
 
+            // Generate Asks
             let runningAskP = basePrice + 0.05;
             for (let i = 0; i < 30; i++) {
                 runningAskP = parseFloat((runningAskP + (0.05 + Math.random() * 0.05)).toFixed(2));
                 let qty = Math.floor(150 + Math.random() * 800);
 
-                if (i === 9 && trendBias < 0) qty = 5200;
-                if (i === 18) qty = 3100;
+                if (trendBias < 0 && (i >= 2 && i <= 4)) {
+                    qty = 3100 + Math.floor(Math.random() * 900);
+                } else if (i === 7) {
+                    qty = 3800; // Single block
+                }
 
                 asks.push({ price: runningAskP, qty: qty, orders: Math.floor(qty / 120) + 1 });
             }
@@ -1271,8 +1683,10 @@
         if (spotEl) spotEl.textContent = `₹${spot.toFixed(2)}`;
     }
 
-    // ── 13. EVENT LISTENERS & SETUP ──
+    // ── 16. EVENT LISTENERS & SETUP ──
     document.addEventListener('DOMContentLoaded', async () => {
+        loadAlertSettings();
+
         const btnLive = document.getElementById('btn-mode-live');
         const btnSim = document.getElementById('btn-mode-sim');
         if (btnLive) btnLive.addEventListener('click', () => window.switchMode('live'));
