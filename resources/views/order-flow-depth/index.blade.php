@@ -628,17 +628,17 @@
 
     </div>
 
-    {{-- ════════════════════════ 3. MODAL: LIQUIDITY & STRATEGY ALERT RULES ════════════════════════ --}}
+    {{-- ════════════════════════ 3. MODAL: LIQUIDITY & STRATEGY ALERT RULES (TABBED ENTERPRISE) ════════════════════════ --}}
     <div id="modal-alert-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             
             {{-- Header --}}
-            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-slate-950/80">
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-slate-950/90">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">⚙️</span>
                     <div>
-                        <h3 class="text-sm sm:text-base font-black text-white">Alert Rules &amp; Triggers Control</h3>
-                        <p class="text-[10px] text-slate-400">Enable/disable individual alert engines and configure acoustic alarm thresholds</p>
+                        <h3 class="text-sm sm:text-base font-black text-white">Order Flow Rules &amp; Auto-Execution</h3>
+                        <p class="text-[10px] text-slate-400">Configure microstructure detection, acoustic alarms, and automated 0Click trade execution</p>
                     </div>
                 </div>
                 <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-sm">
@@ -646,8 +646,21 @@
                 </button>
             </div>
 
-            {{-- Body Settings Form (Scrollable with customized scrollbar) --}}
-            <div class="space-y-3 p-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
+            {{-- Enterprise Tab Selector Bar --}}
+            <div class="flex border-b border-slate-800 bg-slate-950 px-4 pt-2 gap-2 text-xs font-bold">
+                <button type="button" id="tab-btn-alerts" onclick="switchAlertModalTab('alerts')" class="px-3.5 py-2 rounded-t-lg border-b-2 border-indigo-500 text-white bg-slate-900 flex items-center gap-1.5 transition cursor-pointer">
+                    <span>🔔</span>
+                    <span>Alert Rules &amp; Sound</span>
+                </button>
+                <button type="button" id="tab-btn-api" onclick="switchAlertModalTab('api')" class="px-3.5 py-2 rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 flex items-center gap-1.5 transition cursor-pointer">
+                    <span>⚡</span>
+                    <span>0Click Trade API &amp; Webhook</span>
+                    <span id="tab-api-badge" class="ml-1 px-1.5 py-0.2 rounded text-[8px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40">SIMULATION</span>
+                </button>
+            </div>
+
+            {{-- ════════ TAB 1 PANE: ALERT RULES & ACOUSTIC CHIMES ════════ --}}
+            <div id="tab-pane-alerts" class="space-y-3 p-4 text-xs overflow-y-auto flex-1 custom-scrollbar max-h-[68vh]">
                 
                 {{-- Category 1: Confluence Alignment Scorecard & Strategy Alerts --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
@@ -783,10 +796,10 @@
                             
                             {{-- Test Buttons: Bull & Bear full width 2-column grid --}}
                             <div class="grid grid-cols-2 gap-2">
-                                <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish tone" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 active:scale-95">
+                                <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish tone" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer">
                                     <span>▶️ Test Bull Tone</span>
                                 </button>
-                                <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish tone" class="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-rose-600/20 active:scale-95">
+                                <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish tone" class="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-rose-600/20 active:scale-95 cursor-pointer">
                                     <span>▶️ Test Bear Tone</span>
                                 </button>
                             </div>
@@ -814,6 +827,11 @@
                     </p>
                 </div>
 
+            </div>
+
+            {{-- ════════ TAB 2 PANE: 0CLICK.IN TRADE WEBHOOK & API EXECUTION ════════ --}}
+            <div id="tab-pane-api" class="space-y-3 p-4 text-xs overflow-y-auto flex-1 custom-scrollbar max-h-[68vh] hidden">
+                
                 {{-- Category 6: 0Click.in Trade Webhook & API Dispatch (Contract v1.0) --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-sky-900/40 space-y-2.5">
                     <div class="flex items-center justify-between border-b border-slate-900 pb-2">
@@ -840,6 +858,24 @@
                             <input type="checkbox" id="zc-forward-toggle" class="sr-only peer">
                             <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500"></div>
                         </label>
+                    </div>
+
+                    {{-- Trade Strategy Style Selection (Option Selling vs Option Buying) --}}
+                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-indigo-900/40 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-bold text-white flex items-center gap-1">
+                                <span>👑 Preferred Execution Strategy:</span>
+                            </label>
+                            <span class="text-[9px] text-amber-300 font-bold font-mono">Statistical Edge</span>
+                        </div>
+                        <select id="zc-trade-style" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 cursor-pointer">
+                            <option value="OPTION_SELLING" selected>👑 Option Selling (Writing - Theta Decay Advantage) [Recommended]</option>
+                            <option value="OPTION_BUYING">🚀 Option Buying (Directional Momentum Breakout)</option>
+                        </select>
+                        <p class="text-[9.5px] text-slate-400 leading-tight">
+                            <span class="text-emerald-400 font-bold">Option Selling:</span> Bull trend sells ITM PE; Bear trend sells ITM CE to profit from time decay and high win-rate POP.<br>
+                            <span class="text-sky-400 font-bold">Option Buying:</span> Buys ATM CE/PE for fast scalp momentum.
+                        </p>
                     </div>
 
                     {{-- Webhook Connection Details --}}
@@ -869,7 +905,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px]">
                             <div>
                                 <label class="text-slate-400 block mb-0.5">Execution Mode</label>
-                                <select id="zc-mode-select" onchange="updateZcModeBadge()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-sky-400">
+                                <select id="zc-mode-select" onchange="updateZcModeBadge()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-sky-400 cursor-pointer">
                                     <option value="SIMULATION" selected>SIMULATION</option>
                                     <option value="LIVE">LIVE</option>
                                 </select>
@@ -882,9 +918,10 @@
 
                             <div>
                                 <label class="text-slate-400 block mb-0.5">SL Calculation</label>
-                                <select id="zc-sl-mode-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white focus:outline-none">
+                                <select id="zc-sl-mode-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white focus:outline-none cursor-pointer">
                                     <option value="candle_hl" selected>Candle High/Low</option>
                                     <option value="wall">Order Book Wall</option>
+                                    <option value="fixed_pts">Fixed Points</option>
                                 </select>
                             </div>
 
@@ -916,10 +953,10 @@
                         {{-- Test Dispatch Buttons & Live Status Box --}}
                         <div class="pt-1.5 space-y-1.5">
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="testZeroClickWebhook('BUY')" title="Send a simulated test Bullish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1">
+                                <button type="button" onclick="testZeroClickWebhook('BUY')" title="Send a simulated test Bullish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1 cursor-pointer">
                                     <span>Preview Bull Call</span>
                                 </button>
-                                <button type="button" onclick="testZeroClickWebhook('SELL')" title="Send a simulated test Bearish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1">
+                                <button type="button" onclick="testZeroClickWebhook('SELL')" title="Send a simulated test Bearish Call to 0click.in" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-700/60 text-[10.5px] font-bold transition flex items-center justify-center gap-1 cursor-pointer">
                                     <span>Preview Bear Call</span>
                                 </button>
                             </div>
@@ -931,15 +968,15 @@
             </div>
 
             {{-- Actions --}}
-            <div class="flex items-center justify-between px-4 py-3 border-t border-slate-800 bg-slate-950/80">
-                <button type="button" onclick="resetAlertDefaults()" class="text-xs text-slate-400 hover:text-white font-semibold">
+            <div class="flex items-center justify-between px-4 py-3 border-t border-slate-800 bg-slate-950/90">
+                <button type="button" onclick="resetAlertDefaults()" class="text-xs text-slate-400 hover:text-white font-semibold cursor-pointer">
                     Reset Defaults
                 </button>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="toggleSettingsModal(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold transition">
+                    <button type="button" onclick="toggleSettingsModal(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold transition cursor-pointer">
                         Cancel
                     </button>
-                    <button type="button" onclick="saveAlertSettings()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition">
+                    <button type="button" onclick="saveAlertSettings()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md transition cursor-pointer">
                         Save &amp; Apply
                     </button>
                 </div>
@@ -994,15 +1031,51 @@
         }
     };
 
+    window.switchAlertModalTab = function(tabName) {
+        const paneAlerts = document.getElementById('tab-pane-alerts');
+        const paneApi = document.getElementById('tab-pane-api');
+        const btnAlerts = document.getElementById('tab-btn-alerts');
+        const btnApi = document.getElementById('tab-btn-api');
+
+        if (tabName === 'api') {
+            if (paneAlerts) paneAlerts.classList.add('hidden');
+            if (paneApi) paneApi.classList.remove('hidden');
+            if (btnAlerts) {
+                btnAlerts.className = 'px-3.5 py-2 rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 flex items-center gap-1.5 transition cursor-pointer';
+            }
+            if (btnApi) {
+                btnApi.className = 'px-3.5 py-2 rounded-t-lg border-b-2 border-sky-400 text-white bg-slate-900 flex items-center gap-1.5 transition cursor-pointer';
+            }
+        } else {
+            if (paneApi) paneApi.classList.add('hidden');
+            if (paneAlerts) paneAlerts.classList.remove('hidden');
+            if (btnAlerts) {
+                btnAlerts.className = 'px-3.5 py-2 rounded-t-lg border-b-2 border-indigo-500 text-white bg-slate-900 flex items-center gap-1.5 transition cursor-pointer';
+            }
+            if (btnApi) {
+                btnApi.className = 'px-3.5 py-2 rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 flex items-center gap-1.5 transition cursor-pointer';
+            }
+        }
+    };
+
     window.updateZcModeBadge = function() {
         const modeSelect = document.getElementById('zc-mode-select');
         const badge = document.getElementById('zc-mode-badge');
-        if (modeSelect && badge) {
+        const tabBadge = document.getElementById('tab-api-badge');
+        if (modeSelect) {
             const val = modeSelect.value;
-            badge.textContent = val;
-            badge.className = val === 'LIVE'
-                ? 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                : 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40';
+            if (badge) {
+                badge.textContent = val;
+                badge.className = val === 'LIVE'
+                    ? 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40';
+            }
+            if (tabBadge) {
+                tabBadge.textContent = val;
+                tabBadge.className = val === 'LIVE'
+                    ? 'ml-1 px-1.5 py-0.2 rounded text-[8px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    : 'ml-1 px-1.5 py-0.2 rounded text-[8px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40';
+            }
         }
     };
 
@@ -1019,6 +1092,7 @@
         const lotsInput = document.getElementById('zc-lots-input');
         const slPtsInput = document.getElementById('zc-sl-pts-input');
         const tpPtsInput = document.getElementById('zc-tp-pts-input');
+        const tradeStyleSelect = document.getElementById('zc-trade-style');
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
 
@@ -1035,6 +1109,7 @@
                     webhook_url: urlInput?.value.trim() || 'https://0click.in/api/webhook/tradingview',
                     webhook_token: tokenInput?.value.trim() || '',
                     mode: modeSelect?.value || 'SIMULATION',
+                    trade_style: tradeStyleSelect?.value || zeroClickSettings.tradeStyle || 'OPTION_SELLING',
                     lots: parseInt(lotsInput?.value || 1, 10),
                     price: state.depthData?.ltp || 23300.0,
                     sl: (state.depthData?.ltp || 23300.0) + (signal === 'BUY' ? -parseInt(slPtsInput?.value || 15) : parseInt(slPtsInput?.value || 15)),
@@ -1126,6 +1201,7 @@
         // 0Click Inputs
         const zcAutoLog = document.getElementById('zc-auto-log-toggle');
         const zcForward = document.getElementById('zc-forward-toggle');
+        const zcTradeStyle = document.getElementById('zc-trade-style');
         const zcUrl = document.getElementById('zc-webhook-url');
         const zcToken = document.getElementById('zc-webhook-token');
         const zcMode = document.getElementById('zc-mode-select');
@@ -1137,6 +1213,7 @@
 
         if (zcAutoLog) zcAutoLog.checked = zeroClickSettings.autoLog !== false;
         if (zcForward) zcForward.checked = !!zeroClickSettings.forwardToZeroClick;
+        if (zcTradeStyle) zcTradeStyle.value = zeroClickSettings.tradeStyle || 'OPTION_SELLING';
         if (zcUrl) zcUrl.value = zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview';
         if (zcToken) zcToken.value = zeroClickSettings.webhookToken || '';
         if (zcMode) zcMode.value = zeroClickSettings.mode || 'SIMULATION';
@@ -1182,6 +1259,7 @@
 
         zeroClickSettings.autoLog = true;
         zeroClickSettings.forwardToZeroClick = false;
+        zeroClickSettings.tradeStyle = 'OPTION_SELLING';
         zeroClickSettings.webhookUrl = 'https://0click.in/api/webhook/tradingview';
         zeroClickSettings.mode = 'SIMULATION';
         zeroClickSettings.lots = 1;
@@ -1223,6 +1301,7 @@
         // Save 0Click Settings
         const zcAutoLog = document.getElementById('zc-auto-log-toggle');
         const zcForward = document.getElementById('zc-forward-toggle');
+        const zcTradeStyle = document.getElementById('zc-trade-style');
         const zcUrl = document.getElementById('zc-webhook-url');
         const zcToken = document.getElementById('zc-webhook-token');
         const zcMode = document.getElementById('zc-mode-select');
@@ -1234,6 +1313,7 @@
 
         zeroClickSettings.autoLog = !!zcAutoLog?.checked;
         zeroClickSettings.forwardToZeroClick = !!zcForward?.checked;
+        zeroClickSettings.tradeStyle = zcTradeStyle?.value || 'OPTION_SELLING';
         zeroClickSettings.webhookUrl = zcUrl?.value.trim() || 'https://0click.in/api/webhook/tradingview';
         zeroClickSettings.webhookToken = zcToken?.value.trim() || '';
         zeroClickSettings.mode = zcMode?.value || 'SIMULATION';
@@ -2942,48 +3022,58 @@
         let optSlStr = '--';
         let optTgtStr = '--';
 
-        if (totalConfluence >= 75) {
-            optAction = 'BUY CALL (CE)';
-            recommendedStrike = atmRounded;
-            if (state.contracts?.strikes?.[recommendedStrike]?.CE?.trading_symbol) {
-                optSymbol = state.contracts.strikes[recommendedStrike].CE.trading_symbol;
-            } else if (state.contracts?.atm_ce?.trading_symbol) {
+        const isOptionSelling = (zeroClickSettings.tradeStyle !== 'OPTION_BUYING'); // Default to Option Selling as requested by user
+
+        if (totalConfluence >= 68 || isUnifiedBuy) {
+            recommendedStrike = isOptionSelling ? (atmRounded + 50) : atmRounded;
+            const optType = isOptionSelling ? 'PE' : 'CE';
+            optAction = isOptionSelling ? 'SELL PUT (PE ITM)' : 'BUY CALL (CE)';
+
+            if (state.contracts?.strikes?.[recommendedStrike]?.[optType]?.trading_symbol) {
+                optSymbol = state.contracts.strikes[recommendedStrike][optType].trading_symbol;
+            } else if (optType === 'CE' && state.contracts?.atm_ce?.trading_symbol) {
                 optSymbol = state.contracts.atm_ce.trading_symbol;
+            } else if (optType === 'PE' && state.contracts?.atm_pe?.trading_symbol) {
+                optSymbol = state.contracts.atm_pe.trading_symbol;
             } else {
-                optSymbol = `NIFTY ${recommendedStrike} CE`;
+                optSymbol = `NIFTY ${recommendedStrike} ${optType}`;
             }
 
-            estPremium = Math.max(75, Math.round(115 + (d.ltp - recommendedStrike) * 0.65));
-            optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
-            optSlStr = `₹${Math.max(10, estPremium - 18)}`;
-            optTgtStr = `₹${estPremium + 42}`;
+            estPremium = isOptionSelling ? Math.max(90, Math.round(135 + ((recommendedStrike - d.ltp) * 0.55))) : Math.max(75, Math.round(115 + (d.ltp - recommendedStrike) * 0.65));
+            optEntryStr = isOptionSelling ? `Collect ₹${estPremium}` : `₹${estPremium - 3} - ₹${estPremium + 2}`;
+            optSlStr = isOptionSelling ? `₹${estPremium + 28}` : `₹${Math.max(10, estPremium - 18)}`;
+            optTgtStr = isOptionSelling ? `₹${Math.max(15, estPremium - 75)}` : `₹${estPremium + 42}`;
 
             if (elOptBadge) {
-                elOptBadge.textContent = 'BUY CALL (CE)';
+                elOptBadge.textContent = isOptionSelling ? '👑 SELL PUT (ITM)' : 'BUY CALL (CE)';
                 elOptBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase';
             }
             if (elOptStrike) elOptStrike.textContent = optSymbol;
             if (elOptEntry) elOptEntry.textContent = optEntryStr;
             if (elOptSlTgt) elOptSlTgt.textContent = `SL: ${optSlStr} | TGT: ${optTgtStr}`;
 
-        } else if (totalConfluence <= 32) {
-            optAction = 'BUY PUT (PE)';
-            recommendedStrike = atmRounded;
-            if (state.contracts?.strikes?.[recommendedStrike]?.PE?.trading_symbol) {
-                optSymbol = state.contracts.strikes[recommendedStrike].PE.trading_symbol;
-            } else if (state.contracts?.atm_pe?.trading_symbol) {
+        } else if (totalConfluence <= 35 || isUnifiedSell) {
+            recommendedStrike = isOptionSelling ? (atmRounded - 50) : atmRounded;
+            const optType = isOptionSelling ? 'CE' : 'PE';
+            optAction = isOptionSelling ? 'SELL CALL (CE ITM)' : 'BUY PUT (PE)';
+
+            if (state.contracts?.strikes?.[recommendedStrike]?.[optType]?.trading_symbol) {
+                optSymbol = state.contracts.strikes[recommendedStrike][optType].trading_symbol;
+            } else if (optType === 'PE' && state.contracts?.atm_pe?.trading_symbol) {
                 optSymbol = state.contracts.atm_pe.trading_symbol;
+            } else if (optType === 'CE' && state.contracts?.atm_ce?.trading_symbol) {
+                optSymbol = state.contracts.atm_ce.trading_symbol;
             } else {
-                optSymbol = `NIFTY ${recommendedStrike} PE`;
+                optSymbol = `NIFTY ${recommendedStrike} ${optType}`;
             }
 
-            estPremium = Math.max(75, Math.round(115 + (recommendedStrike - d.ltp) * 0.65));
-            optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
-            optSlStr = `₹${Math.max(10, estPremium - 18)}`;
-            optTgtStr = `₹${estPremium + 42}`;
+            estPremium = isOptionSelling ? Math.max(90, Math.round(135 + ((d.ltp - recommendedStrike) * 0.55))) : Math.max(75, Math.round(115 + (recommendedStrike - d.ltp) * 0.65));
+            optEntryStr = isOptionSelling ? `Collect ₹${estPremium}` : `₹${estPremium - 3} - ₹${estPremium + 2}`;
+            optSlStr = isOptionSelling ? `₹${estPremium + 28}` : `₹${Math.max(10, estPremium - 18)}`;
+            optTgtStr = isOptionSelling ? `₹${Math.max(15, estPremium - 75)}` : `₹${estPremium + 42}`;
 
             if (elOptBadge) {
-                elOptBadge.textContent = 'BUY PUT (PE)';
+                elOptBadge.textContent = isOptionSelling ? '👑 SELL CALL (ITM)' : 'BUY PUT (PE)';
                 elOptBadge.className = 'px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white uppercase';
             }
             if (elOptStrike) elOptStrike.textContent = optSymbol;
@@ -3020,15 +3110,17 @@
 
         // Auto-Log High Probability Opportunity into Journal
         if (alertSettings.enableConfluence && optAction !== 'WAIT' && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
+            const isBuy = (totalConfluence >= 68 || isUnifiedBuy);
             logOpportunityCall({
                 action: optAction,
                 symbol: optSymbol,
                 strike: recommendedStrike,
-                slPrice: (optAction.includes('CALL') ? d.ltp - 18 : d.ltp + 18),
-                targetPrice: (optAction.includes('CALL') ? d.ltp + 42 : d.ltp - 42),
+                optType: isOptionSelling ? (isBuy ? 'PE' : 'CE') : (isBuy ? 'CE' : 'PE'),
+                slPrice: isBuy ? (d.ltp - 18) : (d.ltp + 18),
+                targetPrice: isBuy ? (d.ltp + 42) : (d.ltp - 42),
                 optEstEntry: estPremium,
-                optEstSl: Math.max(10, estPremium - 18),
-                optEstTgt: estPremium + 42,
+                optEstSl: isOptionSelling ? estPremium + 28 : Math.max(10, estPremium - 18),
+                optEstTgt: isOptionSelling ? Math.max(15, estPremium - 75) : estPremium + 42,
                 confluence: totalConfluence,
                 rationale: tradeRationale ? tradeRationale.textContent.trim() : 'Confluence signal'
             });
@@ -3055,7 +3147,7 @@
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
             
             const entryPrice = parseFloat(tradeSetup.entryPrice || state.depthData.ltp);
-            const isBuy = tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY') || (tradeSetup.signalType && tradeSetup.signalType.includes('BUY'));
+            const isBuy = tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY') || (tradeSetup.signalType && tradeSetup.signalType.includes('BUY')) || (tradeSetup.action.includes('SELL PUT'));
 
             let slPrice = parseFloat(tradeSetup.slPrice);
             let targetPrice = parseFloat(tradeSetup.targetPrice);
@@ -3078,6 +3170,45 @@
                 }
             }
 
+            // Capture complete 4-5 multi-engine factors snapshot
+            const sigs = state.strategySignals?.factors || {};
+            const d = state.depthData;
+            const factorsSnapshot = tradeSetup.factors || {
+                breadth: {
+                    name: 'NIFTY 50 Stocks Breadth',
+                    signal: sigs.market_breadth?.signal || 'NEUTRAL',
+                    score: sigs.market_breadth?.score || 50,
+                    advances: sigs.market_breadth?.advances ?? 25,
+                    declines: sigs.market_breadth?.declines ?? 25,
+                    details: sigs.market_breadth?.details || 'NIFTY 50 stock weightage'
+                },
+                oi_flow: {
+                    name: 'Options Flow & Buildup',
+                    signal: sigs.oi_buildup?.signal || 'NEUTRAL',
+                    score: sigs.oi_buildup?.score || 50,
+                    pcr: sigs.oi_buildup?.pcr || 1.0,
+                    details: sigs.oi_buildup?.details || 'Call/Put writing flow'
+                },
+                trending_oi: {
+                    name: 'Trending OI & Quant Engine',
+                    signal: sigs.quant_engine?.signal || 'NEUTRAL',
+                    score: sigs.quant_engine?.score || 50,
+                    pop_pct: sigs.quant_engine?.pop_pct || 50,
+                    details: sigs.quant_engine?.details || 'Quant probability'
+                },
+                dom_depth: {
+                    name: '30-Level Order Book (DOM)',
+                    signal: d.obi30 > 12 ? 'BULLISH' : (d.obi30 < -12 ? 'BEARISH' : 'NEUTRAL'),
+                    score: Math.round(50 + (d.obi30 * 0.45)),
+                    obi: d.obi30,
+                    near_obi: d.obi5,
+                    mid_obi: d.obi10,
+                    drift: parseFloat((d.microPrice - d.ltp).toFixed(2)),
+                    stack: d.bidStack ? `${d.bidStack.count}L Bull Stack` : (d.askStack ? `${d.askStack.count}L Bear Stack` : null),
+                    wall: d.heavyBidBlock ? `Bid Wall (${d.heavyBidBlock.qty.toLocaleString()})` : (d.heavyAskBlock ? `Ask Wall (${d.heavyAskBlock.qty.toLocaleString()})` : null)
+                }
+            };
+
             const payload = {
                 mode: state.feedMode,
                 symbol: state.symbol || 'NIFTY',
@@ -3090,7 +3221,7 @@
                 stop_loss: parseFloat(slPrice.toFixed(2)),
                 target_price: parseFloat(targetPrice.toFixed(2)),
                 opt_strike: tradeSetup.strike || Math.round(state.depthData.ltp / 50) * 50,
-                opt_type: isBuy ? 'CE' : 'PE',
+                opt_type: tradeSetup.optType || (tradeSetup.action.includes('PE') ? 'PE' : 'CE'),
                 opt_entry: tradeSetup.optEstEntry || 135,
                 opt_sl: tradeSetup.optEstSl || 115,
                 opt_target: tradeSetup.optEstTgt || 175,
@@ -3098,6 +3229,9 @@
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
                 trigger_reason: tradeSetup.rationale || 'Liquidity event',
+
+                // Multi-engine snapshot
+                factors: factorsSnapshot,
 
                 // 0Click.in Trade Webhook Integration fields
                 dispatch_webhook: !!zeroClickSettings.forwardToZeroClick,
@@ -3139,7 +3273,7 @@
 
         for (let i = state.activeLoggedSignals.length - 1; i >= 0; i--) {
             const sig = state.activeLoggedSignals[i];
-            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL') || sig.action.includes('BUY'));
+            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL') || sig.action.includes('BUY') || sig.action.includes('SELL PUT'));
             const pnlPts = isBuy ? (currentLtp - sig.entry_price) : (sig.entry_price - currentLtp);
 
             sig.max_favorable_pts = Math.max(sig.max_favorable_pts || 0, pnlPts);
@@ -3215,7 +3349,8 @@
 
                 let html = '';
                 res.logs.forEach(l => {
-                    const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY'));
+                    const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY')) || l.action.includes('SELL PUT');
+                    
                     let statusBadge = '';
                     if (l.status === 'TARGET_HIT') {
                         statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-500 text-slate-950 uppercase">TARGET HIT (+${l.pnl_points} pts)</span>`;
@@ -3225,38 +3360,129 @@
                         statusBadge = `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">ACTIVE (${l.max_favorable_pts > 0 ? '+' + l.max_favorable_pts : '0'} MFE)</span>`;
                     }
 
-                    let webhookBadge = '';
-                    if (l.notes && l.notes.includes('0Click:')) {
-                        const isSent = l.notes.includes('0Click: SENT');
-                        webhookBadge = isSent
-                            ? `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${l.notes}">⚡ 0CLICK: SENT</span>`
-                            : `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${l.notes}">⚡ 0CLICK: ERR</span>`;
+                    // Parse Notes (supports JSON format and legacy strings)
+                    let parsedNotes = {};
+                    try {
+                        parsedNotes = typeof l.notes === 'string' ? JSON.parse(l.notes) : (l.notes || {});
+                    } catch(e) {
+                        parsedNotes = { webhook: l.notes };
                     }
 
-                    const actionBadgeText = l.action.includes('WALL') ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') : (l.action.includes('STACK') ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') : (isBuy ? '▲ CALL' : '▼ PUT'));
+                    const webhookStatus = parsedNotes.webhook || (typeof l.notes === 'string' && l.notes.includes('0Click:') ? l.notes : null);
+                    const tradeStyle = parsedNotes.trade_style || (l.action.includes('SELL') ? 'OPTION_SELLING' : 'OPTION_BUYING');
+                    const factors = parsedNotes.factors || null;
+
+                    let webhookBadge = '';
+                    if (webhookStatus) {
+                        const isSent = webhookStatus.includes('SENT');
+                        webhookBadge = isSent
+                            ? `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${webhookStatus}">⚡ 0CLICK: SENT</span>`
+                            : `<span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${webhookStatus}">⚡ 0CLICK: ERR</span>`;
+                    }
+
+                    const actionBadgeText = l.action.includes('WALL') 
+                        ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') 
+                        : (l.action.includes('STACK') 
+                            ? (isBuy ? '🌊 BUY STACK' : '🌊 SELL STACK') 
+                            : (isBuy ? '▲ CALL / LONG' : '▼ PUT / SHORT'));
+
+                    const styleBadge = tradeStyle === 'OPTION_SELLING'
+                        ? `<span class="px-1 py-0.2 rounded text-[7.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">👑 SELL (DECAY)</span>`
+                        : `<span class="px-1 py-0.2 rounded text-[7.5px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">🚀 BUY (MOMENTUM)</span>`;
+
+                    // Evaluate multi-engine alignment count if factors are available
+                    let factorGridHtml = '';
+                    let alignmentBadge = '';
+                    if (factors) {
+                        const targetDir = isBuy ? 'BULLISH' : 'BEARISH';
+                        const bSig = factors.breadth?.signal || 'NEUTRAL';
+                        const oSig = factors.oi_flow?.signal || 'NEUTRAL';
+                        const qSig = factors.trending_oi?.signal || 'NEUTRAL';
+                        const dSig = factors.dom_depth?.signal || (l.obi_pct > 10 ? 'BULLISH' : (l.obi_pct < -10 ? 'BEARISH' : 'NEUTRAL'));
+
+                        const engines = [
+                            { label: '🏢 Stocks', sig: bSig },
+                            { label: '📊 Options', sig: oSig },
+                            { label: '📈 Trending OI', sig: qSig },
+                            { label: '🌊 30-Depth Book', sig: dSig }
+                        ];
+
+                        let alignedCount = 0;
+                        engines.forEach(e => {
+                            if (e.sig === targetDir) alignedCount++;
+                        });
+
+                        if (alignedCount === 4) {
+                            alignmentBadge = `<span class="px-1.5 py-0.2 rounded text-[7.5px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse">🎯 4/4 FULL CONFLUENCE</span>`;
+                        } else if (alignedCount === 3) {
+                            alignmentBadge = `<span class="px-1.5 py-0.2 rounded text-[7.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">⚡ 3/4 ALIGNMENT</span>`;
+                        } else {
+                            alignmentBadge = `<span class="px-1.5 py-0.2 rounded text-[7.5px] font-mono text-slate-400 bg-slate-900 border border-slate-800">${alignedCount}/4 Align</span>`;
+                        }
+
+                        factorGridHtml = `
+                        <div class="grid grid-cols-4 gap-1 pt-1 border-t border-slate-900/90 text-[8px] font-mono">
+                            <div class="p-1 rounded bg-slate-900/80 border border-slate-800 text-center">
+                                <span class="text-slate-400 block text-[7px] truncate font-sans">🏢 NIFTY 50</span>
+                                <span class="font-bold ${bSig === 'BULLISH' ? 'text-emerald-400' : (bSig === 'BEARISH' ? 'text-rose-400' : 'text-slate-400')}">${bSig === 'BULLISH' ? '▲ BULL' : (bSig === 'BEARISH' ? '▼ BEAR' : '— NEUT')}</span>
+                            </div>
+                            <div class="p-1 rounded bg-slate-900/80 border border-slate-800 text-center">
+                                <span class="text-slate-400 block text-[7px] truncate font-sans">📊 Opt Flow</span>
+                                <span class="font-bold ${oSig === 'BULLISH' ? 'text-emerald-400' : (oSig === 'BEARISH' ? 'text-rose-400' : 'text-slate-400')}">${oSig === 'BULLISH' ? '▲ BULL' : (oSig === 'BEARISH' ? '▼ BEAR' : '— NEUT')}</span>
+                            </div>
+                            <div class="p-1 rounded bg-slate-900/80 border border-slate-800 text-center">
+                                <span class="text-slate-400 block text-[7px] truncate font-sans">📈 Trend OI</span>
+                                <span class="font-bold ${qSig === 'BULLISH' ? 'text-emerald-400' : (qSig === 'BEARISH' ? 'text-rose-400' : 'text-slate-400')}">${qSig === 'BULLISH' ? '▲ BULL' : (qSig === 'BEARISH' ? '▼ BEAR' : '— NEUT')}</span>
+                            </div>
+                            <div class="p-1 rounded bg-slate-900/80 border border-slate-800 text-center">
+                                <span class="text-slate-400 block text-[7px] truncate font-sans">🌊 30D Book</span>
+                                <span class="font-bold ${dSig === 'BULLISH' ? 'text-emerald-400' : (dSig === 'BEARISH' ? 'text-rose-400' : 'text-slate-400')}">${dSig === 'BULLISH' ? '▲ BULL' : (dSig === 'BEARISH' ? '▼ BEAR' : '— NEUT')}</span>
+                            </div>
+                        </div>
+                        `;
+                    }
+
+                    // Recommended Option Strike badge
+                    let optContractSnippet = '';
+                    if (l.opt_strike) {
+                        optContractSnippet = `
+                        <div class="flex items-center justify-between text-[8.5px] font-mono px-1 py-0.5 rounded bg-slate-900/60 border border-slate-800/80 text-slate-300">
+                            <span class="text-amber-300 font-bold truncate">⚡ Option: NIFTY ${l.opt_strike} ${l.opt_type}</span>
+                            <span class="text-slate-400">Entry: ₹${l.opt_entry || '--'} | SL: ₹${l.opt_sl || '--'} | TGT: ₹${l.opt_target || '--'}</span>
+                        </div>
+                        `;
+                    }
 
                     html += `
-                    <div class="p-1.5 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1">
+                    <div class="p-2 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1.5 shadow-md">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-1 font-mono">
+                            <div class="flex items-center gap-1 font-mono flex-wrap">
                                 <span class="text-slate-400 text-[9px]">${l.signal_time}</span>
                                 <span class="px-1 py-0.2 rounded font-black text-[8px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
                                     ${actionBadgeText}
                                 </span>
-                                <span class="font-bold text-white text-[10.5px] truncate max-w-[120px]">${l.instrument}</span>
+                                ${styleBadge}
+                                <span class="font-bold text-white text-[10.5px] truncate max-w-[130px]">${l.instrument}</span>
                             </div>
                             <div class="flex items-center gap-1">
+                                ${alignmentBadge}
                                 ${webhookBadge}
                                 ${statusBadge}
                             </div>
                         </div>
+
+                        ${optContractSnippet}
+
                         <div class="text-[9px] text-amber-300/90 font-sans truncate">${l.trigger_reason || l.action}</div>
+                        
                         <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-0.5 border-t border-slate-900">
                             <span>Entry: ₹${l.entry_price}</span>
                             <span class="text-rose-400">SL: ₹${l.stop_loss}</span>
                             <span class="text-emerald-400">TGT: ₹${l.target_price}</span>
                             <span class="text-slate-300 font-bold">${l.confluence_score}% Conf</span>
                         </div>
+
+                        ${factorGridHtml}
                     </div>
                     `;
                 });

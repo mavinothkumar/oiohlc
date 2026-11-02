@@ -259,15 +259,26 @@ class OrderFlowStrategyController extends Controller
 
         // Optional: Auto-dispatch to 0Click.in Trade Webhook if enabled by user
         $webhookResult = null;
+        $statusMsg = null;
         if ($request->boolean('dispatch_webhook') && $request->filled('webhook_url')) {
             $webhookResult = $this->dispatchZeroClickWebhook($log, $request);
             if ($webhookResult) {
                 $statusMsg = $webhookResult['success'] 
                     ? '0Click: SENT (' . ($webhookResult['status_code'] ?? 200) . ')' 
                     : '0Click: FAILED (' . ($webhookResult['status_code'] ?? 500) . ')';
-                $log->update(['notes' => $statusMsg]);
             }
         }
+
+        // Store comprehensive engine factors breakdown and webhook audit in notes
+        $factors = $request->input('factors');
+        $tradeStyle = $request->input('trade_style', 'OPTION_SELLING');
+        $notesPayload = [
+            'webhook'     => $statusMsg,
+            'trade_style' => $tradeStyle,
+            'factors'     => $factors,
+            'logged_at'   => Carbon::now('Asia/Kolkata')->toDateTimeString(),
+        ];
+        $log->update(['notes' => json_encode($notesPayload)]);
 
         return response()->json([
             'success'        => true,
