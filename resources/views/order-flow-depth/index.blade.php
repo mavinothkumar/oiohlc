@@ -1791,19 +1791,21 @@
                 if (AudioCtx) _sharedAudioCtx = new AudioCtx();
             }
             if (_sharedAudioCtx && _sharedAudioCtx.state === 'suspended') {
-                _sharedAudioCtx.resume();
+                _sharedAudioCtx.resume().catch(() => {});
             }
-        } catch(e) {
-            console.warn('AudioContext init error:', e);
-        }
+        } catch(e) {}
         return _sharedAudioCtx;
     }
 
     // Auto-unlock audio context on user interaction
     ['click', 'touchstart', 'keydown'].forEach(evt => {
         document.addEventListener(evt, () => {
-            getAudioCtx();
-        }, { passive: true });
+            if (!_sharedAudioCtx) {
+                getAudioCtx();
+            } else if (_sharedAudioCtx.state === 'suspended') {
+                _sharedAudioCtx.resume().catch(() => {});
+            }
+        }, { passive: true, once: true });
     });
 
     function playSynthesizedAlert(profile = 'crystal', side = 'BUY') {
@@ -1811,7 +1813,8 @@
             const ctx = getAudioCtx();
             if (!ctx) return;
             if (ctx.state === 'suspended') {
-                ctx.resume();
+                ctx.resume().catch(() => {});
+                return; // Don't trigger browser autoplay warning until user interacts
             }
             const now = ctx.currentTime;
             const isBuy = (side === 'BUY');
@@ -2663,6 +2666,8 @@
         const elOptSlTgt  = document.getElementById('opt-rec-sltgt');
 
         const atmRounded = Math.round(d.ltp / 50) * 50;
+        let recommendedStrike = atmRounded;
+        let estPremium = 125;
         let optSymbol = `NIFTY ${atmRounded} CE`;
         let optAction = 'WAIT';
         let optEntryStr = '--';
@@ -2671,7 +2676,7 @@
 
         if (totalConfluence >= 75) {
             optAction = 'BUY CALL (CE)';
-            const recommendedStrike = atmRounded;
+            recommendedStrike = atmRounded;
             if (state.contracts?.strikes?.[recommendedStrike]?.CE?.trading_symbol) {
                 optSymbol = state.contracts.strikes[recommendedStrike].CE.trading_symbol;
             } else if (state.contracts?.atm_ce?.trading_symbol) {
@@ -2680,7 +2685,7 @@
                 optSymbol = `NIFTY ${recommendedStrike} CE`;
             }
 
-            const estPremium = Math.max(75, Math.round(115 + (d.ltp - recommendedStrike) * 0.65));
+            estPremium = Math.max(75, Math.round(115 + (d.ltp - recommendedStrike) * 0.65));
             optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
             optSlStr = `₹${Math.max(10, estPremium - 18)}`;
             optTgtStr = `₹${estPremium + 42}`;
@@ -2695,7 +2700,7 @@
 
         } else if (totalConfluence <= 32) {
             optAction = 'BUY PUT (PE)';
-            const recommendedStrike = atmRounded;
+            recommendedStrike = atmRounded;
             if (state.contracts?.strikes?.[recommendedStrike]?.PE?.trading_symbol) {
                 optSymbol = state.contracts.strikes[recommendedStrike].PE.trading_symbol;
             } else if (state.contracts?.atm_pe?.trading_symbol) {
@@ -2704,7 +2709,7 @@
                 optSymbol = `NIFTY ${recommendedStrike} PE`;
             }
 
-            const estPremium = Math.max(75, Math.round(115 + (recommendedStrike - d.ltp) * 0.65));
+            estPremium = Math.max(75, Math.round(115 + (recommendedStrike - d.ltp) * 0.65));
             optEntryStr = `₹${estPremium - 3} - ₹${estPremium + 2}`;
             optSlStr = `₹${Math.max(10, estPremium - 18)}`;
             optTgtStr = `₹${estPremium + 42}`;
