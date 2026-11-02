@@ -706,8 +706,8 @@
                             <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Sound Profile (5 Available):</label>
                             <span class="text-[9px] text-amber-400 font-bold">Synthesized Zero-Lag Web Audio</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <select id="cfg-sound-profile" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold cursor-pointer focus:outline-none focus:border-amber-400">
+                        <div class="space-y-2">
+                            <select id="cfg-sound-profile" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white font-bold cursor-pointer focus:outline-none focus:border-amber-400">
                                 <option value="crystal">🔔 1. Crystal Chime (Harmonic Bell)</option>
                                 <option value="radar">📡 2. Radar Sonar Pulse (Submarine Ping)</option>
                                 <option value="laser">⚡ 3. Cyber Laser Sweep (Sci-Fi Warp)</option>
@@ -715,16 +715,18 @@
                                 <option value="tactical">🎯 5. Tactical Double-Pip (Dual Click)</option>
                             </select>
                             
-                            {{-- Test Buttons: Bull & Bear --}}
-                            <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish (Buy / Bid Stack) tone" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1 transition shadow-md shadow-emerald-600/20 active:scale-95 shrink-0">
-                                <span>▶️ Bull</span>
-                            </button>
-                            <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish (Sell / Ask Stack) tone" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-1 transition shadow-md shadow-rose-600/20 active:scale-95 shrink-0">
-                                <span>▶️ Bear</span>
-                            </button>
+                            {{-- Test Buttons: Bull & Bear full width 2-column grid --}}
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="testCurrentSound('BUY')" title="Test Bullish (Buy / Bid Stack & Block) tone" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/20 active:scale-95">
+                                    <span>▶️ Test Bull (Bid)</span>
+                                </button>
+                                <button type="button" onclick="testCurrentSound('SELL')" title="Test Bearish (Sell / Ask Stack & Block) tone" class="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-rose-600/20 active:scale-95">
+                                    <span>▶️ Test Bear (Ask)</span>
+                                </button>
+                            </div>
                         </div>
                         <p class="text-[9px] text-slate-500 leading-tight">
-                            Sounds automatically modulate higher in pitch for Bullish Bid Stacks and lower in pitch for Bearish Ask Stacks.
+                            Sounds automatically modulate higher in pitch for Bullish Bid Stacks/Blocks and lower in pitch for Bearish Ask Stacks/Blocks.
                         </p>
                     </div>
                 </div>
@@ -894,6 +896,10 @@
     };
 
     window.testCurrentSound = function(testSide = 'BUY') {
+        const ctx = getAudioCtx();
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume();
+        }
         const sel = document.getElementById('cfg-sound-profile');
         const profile = sel ? sel.value : (alertSettings.soundProfile || 'crystal');
         playSynthesizedAlert(profile, testSide);
@@ -902,6 +908,7 @@
     window.dismissAlertBanner = function() {
         const banner = document.getElementById('liquidity-alert-banner');
         if (banner) banner.className = 'hidden';
+        state.dismissedAlertKey = state.currentAlertKey;
     };
 
     window.copyOrderDetails = function() {
@@ -939,6 +946,8 @@
         wsUrl: null,
         protobufRoot: null,
         soundEnabled: true,
+        currentAlertKey: '',
+        dismissedAlertKey: '',
         lastAlertTime: 0,
         lastStackAlertTime: 0,
         lastSignalLogTime: 0,
@@ -1192,11 +1201,45 @@
         state.depthData.bidStack = stacks.bidStack;
         state.depthData.askStack = stacks.askStack;
 
+        // Single Level Heavy Block Detection (User Setting: Single Level Qty >= Threshold)
+        let heavyBidBlock = null;
+        let heavyAskBlock = null;
+        const sThresh = parseInt(alertSettings.singleThreshold || 2500);
+
+        for (let i = 0; i < Math.min(bids.length, 30); i++) {
+            if (bids[i] && bids[i].qty >= sThresh) {
+                if (!heavyBidBlock || bids[i].qty > heavyBidBlock.qty) {
+                    heavyBidBlock = {
+                        side: 'BID',
+                        level: i + 1,
+                        price: bids[i].price,
+                        qty: bids[i].qty
+                    };
+                }
+            }
+        }
+
+        for (let i = 0; i < Math.min(asks.length, 30); i++) {
+            if (asks[i] && asks[i].qty >= sThresh) {
+                if (!heavyAskBlock || asks[i].qty > heavyAskBlock.qty) {
+                    heavyAskBlock = {
+                        side: 'ASK',
+                        level: i + 1,
+                        price: asks[i].price,
+                        qty: asks[i].qty
+                    };
+                }
+            }
+        }
+
+        state.depthData.heavyBidBlock = heavyBidBlock;
+        state.depthData.heavyAskBlock = heavyAskBlock;
+
         // Render UI, DOM & Alert Banner
         renderDOM();
         updateMicrostructureUI();
         evaluateConfluenceRadar();
-        renderAlertBanner(stacks.bidStack, stacks.askStack);
+        renderAlertBanner(stacks.bidStack, stacks.askStack, heavyBidBlock, heavyAskBlock);
 
         // Check active trade signals against live price for Target / Stop Loss hits
         checkActiveSignalsOutcome(ltp);
@@ -1381,11 +1424,44 @@
     }
 
     // ── 11. DIRECTIONAL ALERT BANNER ──
-    function renderAlertBanner(bidStack, askStack) {
+    function renderAlertBanner(bidStack, askStack, heavyBidBlock = null, heavyAskBlock = null) {
         const banner = document.getElementById('liquidity-alert-banner');
         if (!banner) return;
 
+        let alertType = null;
+        let alertKey = '';
+
+        // Priority 1: Multi-level continuous stacks
         if (bidStack && (!askStack || bidStack.totalQty >= askStack.totalQty)) {
+            alertType = 'STACK_BUY';
+            alertKey = `STACK_BUY_${bidStack.lowP}_${bidStack.highP}_${bidStack.totalQty}`;
+        } else if (askStack) {
+            alertType = 'STACK_SELL';
+            alertKey = `STACK_SELL_${askStack.lowP}_${askStack.highP}_${askStack.totalQty}`;
+        } else if (heavyBidBlock && (!heavyAskBlock || heavyBidBlock.qty >= heavyAskBlock.qty)) {
+            // Priority 2: Single level heavy institutional block (Qty >= alertSettings.singleThreshold)
+            alertType = 'BLOCK_BUY';
+            alertKey = `BLOCK_BUY_${heavyBidBlock.price}_${heavyBidBlock.qty}`;
+        } else if (heavyAskBlock) {
+            alertType = 'BLOCK_SELL';
+            alertKey = `BLOCK_SELL_${heavyAskBlock.price}_${heavyAskBlock.qty}`;
+        }
+
+        if (!alertType) {
+            banner.className = 'hidden';
+            state.currentAlertKey = '';
+            return;
+        }
+
+        state.currentAlertKey = alertKey;
+
+        // Respect manual dismissal of this specific alert until a new event occurs
+        if (state.dismissedAlertKey === alertKey) {
+            banner.className = 'hidden';
+            return;
+        }
+
+        if (alertType === 'STACK_BUY') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950 via-emerald-900/90 to-slate-900 border-2 border-emerald-500/80 shadow-lg shadow-emerald-500/10 text-white';
             banner.innerHTML = `
                 <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
@@ -1409,7 +1485,7 @@
                 </div>
             `;
             triggerStackAlertAudio('BUY');
-        } else if (askStack) {
+        } else if (alertType === 'STACK_SELL') {
             banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950 via-rose-900/90 to-slate-900 border-2 border-rose-500/80 shadow-lg shadow-rose-500/10 text-white';
             banner.innerHTML = `
                 <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
@@ -1433,17 +1509,87 @@
                 </div>
             `;
             triggerStackAlertAudio('SELL');
+        } else if (alertType === 'BLOCK_BUY') {
+            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-slate-900 border-2 border-amber-400/90 shadow-lg shadow-amber-400/20 text-white';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base animate-bounce">⚡</span>
+                        <div>
+                            <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                                INSTITUTIONAL BID BLOCK DETECTED (LEVEL ${heavyBidBlock.level})
+                            </span>
+                            <p class="font-black text-amber-200 text-xs mt-0.5 font-mono">
+                                Heavy Resting Buy Wall: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-emerald-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-emerald-500/50">
+                            🛡️ STRONG SUPPORT / ACCUMULATION
+                        </span>
+                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
+                    </div>
+                </div>
+            `;
+            triggerStackAlertAudio('BUY');
+        } else if (alertType === 'BLOCK_SELL') {
+            banner.className = 'block my-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-rose-950/90 to-slate-900 border-2 border-rose-400/90 shadow-lg shadow-rose-400/20 text-white';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base animate-bounce">⚡</span>
+                        <div>
+                            <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                                INSTITUTIONAL ASK BLOCK DETECTED (LEVEL ${heavyAskBlock.level})
+                            </span>
+                            <p class="font-black text-rose-200 text-xs mt-0.5 font-mono">
+                                Heavy Resting Sell Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-rose-300 font-black bg-slate-950/90 px-2 py-0.5 rounded-lg border border-rose-500/50">
+                            🚧 STRONG RESISTANCE / SUPPLY
+                        </span>
+                        <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-xs bg-slate-950">✕</button>
+                    </div>
+                </div>
+            `;
+            triggerStackAlertAudio('SELL');
         } else {
             banner.className = 'hidden';
         }
     }
 
     // ── 12. SOUND SYNTHESIS ENGINE (5 WEB AUDIO PROFILES) ──
+    let _sharedAudioCtx = null;
+    function getAudioCtx() {
+        try {
+            if (!_sharedAudioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) _sharedAudioCtx = new AudioCtx();
+            }
+            if (_sharedAudioCtx && _sharedAudioCtx.state === 'suspended') {
+                _sharedAudioCtx.resume();
+            }
+        } catch(e) {
+            console.warn('AudioContext init error:', e);
+        }
+        return _sharedAudioCtx;
+    }
+
+    // Auto-unlock audio context on user interaction
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            getAudioCtx();
+        }, { passive: true });
+    });
+
     function playSynthesizedAlert(profile = 'crystal', side = 'BUY') {
         try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (!AudioCtx) return;
-            const ctx = new AudioCtx();
+            const ctx = getAudioCtx();
+            if (!ctx) return;
             if (ctx.state === 'suspended') {
                 ctx.resume();
             }
@@ -1568,7 +1714,7 @@
     function triggerStackAlertAudio(side) {
         if (!state.soundEnabled || !alertSettings.soundEnabled) return;
         const now = Date.now();
-        if (now - state.lastStackAlertTime < 15000) return; // 15s throttle
+        if (now - state.lastStackAlertTime < 8000) return; // 8s throttle
         state.lastStackAlertTime = now;
 
         playSynthesizedAlert(alertSettings.soundProfile || 'crystal', side);
@@ -2009,6 +2155,10 @@
         if (d.bidStack) depthScore += 12;
         if (d.askStack) depthScore -= 12;
 
+        // Boost score if single heavy block detected
+        if (d.heavyBidBlock) depthScore += 8;
+        if (d.heavyAskBlock) depthScore -= 8;
+
         depthScore = Math.max(5, Math.min(95, Math.round(depthScore)));
 
         const totalConfluence = Math.round(
@@ -2062,7 +2212,8 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `30-Depth OBI (+${d.obi30}%) ${d.bidStack ? 'with ' + d.bidStack.count + '-level Bid Stack' : ''} confirms buying force, backed by Quant & Breadth.`;
+                const stackDesc = d.bidStack ? `with ${d.bidStack.count}-level Bid Stack` : (d.heavyBidBlock ? `with ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Block` : '');
+                tradeRationale.textContent = `30-Depth OBI (+${d.obi30}%) ${stackDesc} confirms buying force, backed by Quant & Breadth.`;
             }
 
             triggerAlertAudio('BUY');
@@ -2090,7 +2241,8 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `Ask Wall dominating with negative OBI (${d.obi30}%) ${d.askStack ? 'and ' + d.askStack.count + '-level Ask Stack' : ''}. Downside bias confirmed.`;
+                const stackDesc = d.askStack ? `and ${d.askStack.count}-level Ask Stack` : (d.heavyAskBlock ? `and ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Block` : '');
+                tradeRationale.textContent = `Ask Wall dominating with negative OBI (${d.obi30}%) ${stackDesc}. Downside bias confirmed.`;
             }
 
             triggerAlertAudio('SELL');
@@ -2432,7 +2584,7 @@
                 if (trendBias > 0 && (i >= 2 && i <= 4)) {
                     qty = 2800 + Math.floor(Math.random() * 800);
                 } else if (i === 8) {
-                    qty = 4200; // Single block
+                    qty = Math.max(5200, (alertSettings.singleThreshold || 2500) + 250); // Single heavy block
                 }
 
                 bids.push({ price: runningBidP, qty: qty, orders: Math.floor(qty / 120) + 1 });
@@ -2447,7 +2599,7 @@
                 if (trendBias < 0 && (i >= 2 && i <= 4)) {
                     qty = 3100 + Math.floor(Math.random() * 900);
                 } else if (i === 7) {
-                    qty = 3800; // Single block
+                    qty = Math.max(5200, (alertSettings.singleThreshold || 2500) + 250); // Single heavy block
                 }
 
                 asks.push({ price: runningAskP, qty: qty, orders: Math.floor(qty / 120) + 1 });
