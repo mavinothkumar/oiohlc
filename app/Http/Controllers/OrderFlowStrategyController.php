@@ -469,7 +469,28 @@ class OrderFlowStrategyController extends Controller
                 ],
             ];
 
-            // 1. Primary Macro Driver: Unified Monitor (Zero-Click Alert Engine)
+            // 1. Live Options Chain PCR & Total Open Interest
+            $livePcr = 1.0;
+            $putOi = 0;
+            $callOi = 0;
+            $hasLiveChain = false;
+            try {
+                if (Schema::hasTable('option_chains')) {
+                    $pcrRow = DB::table('option_chains')
+                        ->where('trading_symbol', 'like', "{$symbol}%")
+                        ->where('created_at', '>=', Carbon::now('Asia/Kolkata')->subMinutes(30))
+                        ->selectRaw('SUM(CASE WHEN option_type = "PE" THEN oi ELSE 0 END) as put_oi, SUM(CASE WHEN option_type = "CE" THEN oi ELSE 0 END) as call_oi')
+                        ->first();
+                    if ($pcrRow && $pcrRow->call_oi > 0) {
+                        $putOi = (int)$pcrRow->put_oi;
+                        $callOi = (int)$pcrRow->call_oi;
+                        $livePcr = round($putOi / $callOi, 2);
+                        $hasLiveChain = true;
+                    }
+                }
+            } catch (\Throwable $e) {}
+
+            // 2. Primary Macro Driver: Unified Monitor (Zero-Click Alert Engine)
             $latestAlert = null;
             if (Schema::hasTable('zero_click_alert_logs')) {
                 $latestAlert = DB::table('zero_click_alert_logs')
@@ -503,8 +524,12 @@ class OrderFlowStrategyController extends Controller
                     'net_points'     => $netPts,
                 ];
 
+                // Dynamically calculated probability of profit (POP) based on net points drag and breadth magnitude
+                $popPct = min(94.0, max(58.0, round(50.0 + (abs($netPts) * 0.45) + (abs($breadthWeight - 50.0) * 0.5), 1)));
+                $expectedMove = round(max(40.0, abs((float)$latestAlert->tp_price - (float)$latestAlert->spot_price)), 1);
+
                 if ($isSell) {
-                    $bScore = max(10, min(30, round(100 - $breadthWeight)));
+                    $bScore = max(8, min(30, round(100 - $breadthWeight)));
                     $signals['market_breadth'] = [
                         'name'     => 'Unified Stock Weightage Breadth',
                         'signal'   => 'BEARISH',
@@ -515,30 +540,32 @@ class OrderFlowStrategyController extends Controller
                         'declines' => $breadthCount,
                     ];
 
+                    $quantScore = max(6, min(32, round(100 - $popPct)));
                     $signals['quant_engine'] = [
                         'name'          => 'Quant Statistical Prob Engine',
                         'signal'        => 'BEARISH',
-                        'score'         => 18,
+                        'score'         => $quantScore,
                         'weight'        => 25,
-                        'details'       => "5m Breakdown at {$candleTime} (Net Drag {$netPts} pts | POP 84%)",
-                        'pop_pct'       => 84.0,
-                        'expected_move' => 110.0,
+                        'details'       => "5m Breakdown at {$candleTime} (Net Drag {$netPts} pts | POP {$popPct}%)",
+                        'pop_pct'       => $popPct,
+                        'expected_move' => $expectedMove,
                     ];
 
+                    $oiScore = min(38, max(10, round(50 - (abs($netPts) * 0.75) - (($breadthWeight - 50) * 0.3))));
                     $signals['oi_buildup'] = [
                         'name'     => 'OI Buildup & Trending Flow',
                         'signal'   => 'BEARISH',
-                        'score'    => 22,
+                        'score'    => $oiScore,
                         'weight'   => 20,
-                        'details'  => "Call Writing Dominance at {$strike} CE (Downside Flow)",
-                        'pcr'      => 0.76,
-                        'net_flow' => "Heavy Call Writing at {$strike} CE",
+                        'details'  => "Call Writing Dominance at {$strike} CE (Live PCR: {$livePcr})",
+                        'pcr'      => $livePcr,
+                        'net_flow' => "Downside Flow at {$strike} CE",
                     ];
 
                     $signals['price_action'] = [
                         'name'     => 'Price Action & Breakout Levels',
                         'signal'   => 'BEARISH',
-                        'score'    => 20,
+                        'score'    => max(10, min(35, round(50 - abs($netPts)))),
                         'weight'   => 15,
                         'details'  => "Breakdown below {$latestAlert->spot_price} | TGT: {$latestAlert->tp_price} | SL: {$latestAlert->sl_price}",
                         'pivot'    => (int)$strike,
@@ -546,7 +573,7 @@ class OrderFlowStrategyController extends Controller
                         's1'       => (float)$latestAlert->tp_price,
                     ];
                 } else {
-                    $bScore = min(90, max(70, round($breadthWeight)));
+                    $bScore = min(92, max(70, round($breadthWeight)));
                     $signals['market_breadth'] = [
                         'name'     => 'Unified Stock Weightage Breadth',
                         'signal'   => 'BULLISH',
@@ -557,30 +584,32 @@ class OrderFlowStrategyController extends Controller
                         'declines' => max(0, 50 - $breadthCount),
                     ];
 
+                    $quantScore = min(94, max(68, round($popPct)));
                     $signals['quant_engine'] = [
                         'name'          => 'Quant Statistical Prob Engine',
                         'signal'        => 'BULLISH',
-                        'score'         => 82,
+                        'score'         => $quantScore,
                         'weight'        => 25,
-                        'details'       => "5m Breakout at {$candleTime} (Net Push +{$netPts} pts | POP 84%)",
-                        'pop_pct'       => 84.0,
-                        'expected_move' => 110.0,
+                        'details'       => "5m Breakout at {$candleTime} (Net Push +{$netPts} pts | POP {$popPct}%)",
+                        'pop_pct'       => $popPct,
+                        'expected_move' => $expectedMove,
                     ];
 
+                    $oiScore = min(90, max(62, round(50 + ($netPts * 0.75) + (($breadthWeight - 50) * 0.3))));
                     $signals['oi_buildup'] = [
                         'name'     => 'OI Buildup & Trending Flow',
                         'signal'   => 'BULLISH',
-                        'score'    => 78,
+                        'score'    => $oiScore,
                         'weight'   => 20,
-                        'details'  => "Put Writing Dominance at {$strike} PE (Upside Support)",
-                        'pcr'      => 1.28,
-                        'net_flow' => "Heavy Put Writing at {$strike} PE",
+                        'details'  => "Put Writing Dominance at {$strike} PE (Live PCR: {$livePcr})",
+                        'pcr'      => $livePcr,
+                        'net_flow' => "Upside Support at {$strike} PE",
                     ];
 
                     $signals['price_action'] = [
                         'name'     => 'Price Action & Breakout Levels',
                         'signal'   => 'BULLISH',
-                        'score'    => 80,
+                        'score'    => min(90, max(65, round(50 + $netPts))),
                         'weight'   => 15,
                         'details'  => "Breakout above {$latestAlert->spot_price} | TGT: {$latestAlert->tp_price} | SL: {$latestAlert->sl_price}",
                         'pivot'    => (int)$strike,
@@ -589,43 +618,43 @@ class OrderFlowStrategyController extends Controller
                     ];
                 }
             } else {
-                // Fallback: Evaluate Quant Engine & Trend when no alert is active
-                try {
-                    if (Schema::hasTable('daily_trend')) {
-                        $trendRow = DB::table('daily_trend')
-                            ->where('symbol_name', $symbol)
-                            ->orderByDesc('id')
-                            ->first();
+                // Fallback: Dynamically evaluate Live PCR & trend when no 5m zero-click alert has triggered
+                $confluence = min(88, max(15, (int) round(50 + ($livePcr - 1.0) * 80)));
+                $quantSignal = $confluence >= 60 ? 'BULLISH' : ($confluence <= 40 ? 'BEARISH' : 'NEUTRAL');
+                $expectedMove = round($spot * 0.0075, 1);
+                $pop = $confluence >= 65 || $confluence <= 35 ? 76.0 : 54.0;
 
-                        if ($trendRow) {
-                            $pcr = (float) ($trendRow->pcr ?? 1.0);
-                            $confluence = min(88, max(15, (int) round(50 + ($pcr - 1.0) * 120)));
-                            $quantSignal = $confluence >= 60 ? 'BULLISH' : ($confluence <= 40 ? 'BEARISH' : 'NEUTRAL');
-                            $expectedMove = round($spot * 0.0075, 1);
-                            $pop = $confluence >= 65 || $confluence <= 35 ? 78.0 : 60.0;
+                $signals['quant_engine'] = [
+                    'name'          => 'Quant Statistical Prob Engine',
+                    'signal'        => $quantSignal,
+                    'score'         => $confluence,
+                    'weight'        => 25,
+                    'details'       => "POP {$pop}% | Expected Range ±{$expectedMove} pts",
+                    'pop_pct'       => $pop,
+                    'expected_move' => $expectedMove,
+                ];
 
-                            $signals['quant_engine'] = [
-                                'name'          => 'Quant Statistical Prob Engine',
-                                'signal'        => $quantSignal,
-                                'score'         => $confluence,
-                                'weight'        => 25,
-                                'details'       => "POP {$pop}% | Expected Range ±{$expectedMove} pts",
-                                'pop_pct'       => $pop,
-                                'expected_move' => $expectedMove,
-                            ];
+                $signals['oi_buildup'] = [
+                    'name'     => 'OI Buildup & Trending Flow',
+                    'signal'   => $quantSignal,
+                    'score'    => $confluence,
+                    'weight'   => 25,
+                    'details'  => "Live Market PCR: {$livePcr}",
+                    'pcr'      => $livePcr,
+                    'net_flow' => $quantSignal,
+                ];
 
-                            $signals['oi_buildup'] = [
-                                'name'     => 'OI Buildup & Trending Flow',
-                                'signal'   => $quantSignal,
-                                'score'    => $confluence,
-                                'weight'   => 25,
-                                'details'  => "PCR: {$pcr}",
-                                'pcr'      => round($pcr, 2),
-                                'net_flow' => $quantSignal,
-                            ];
-                        }
-                    }
-                } catch (\Throwable $e) {}
+                if ($hasLiveChain) {
+                    $signals['market_breadth'] = [
+                        'name'     => 'Market Flow Direction',
+                        'signal'   => $quantSignal,
+                        'score'    => $confluence,
+                        'weight'   => 20,
+                        'details'  => "Options Chain Bias: {$quantSignal} (PCR: {$livePcr})",
+                        'advances' => $confluence >= 50 ? 30 : 20,
+                        'declines' => $confluence >= 50 ? 20 : 30,
+                    ];
+                }
             }
 
         // 4. Calculate Aggregate Confluence Score
