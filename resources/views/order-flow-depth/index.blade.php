@@ -248,7 +248,7 @@
             </div>
         </div>
 
-        {{-- ───────────────────── COLUMN 2: HIGH WATCHABLE STATS & CONFLUENCE ───────────────────── --}}
+        {{-- ───────────────────── COLUMN 2: TOP RECOMMENDATION & ENGINE INSPECTOR ───────────────────── --}}
         <div class="lg:col-span-4 space-y-2.5">
             
             {{-- 1. Real-Time High Probability Trade Suggestion Card (TOP PRIORITY) --}}
@@ -339,7 +339,165 @@
                 </div>
             </div>
 
-            {{-- 2. Confluence Scorecard & Alignment Meter --}}
+            {{-- 2. Interactive Mini-Tabs: Engine Inspector (Journal Default, Alert, Math, Vacuum, JSON) --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-1">
+                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Engine Inspector</span>
+                    
+                    {{-- Mini Tab Buttons (Journal as 1st Default, Alerts 2nd, Math 3rd, Vacuum 4th, JSON 5th) --}}
+                    <div class="flex items-center gap-1 text-[10px] flex-wrap">
+                        <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2.5 py-1 rounded bg-indigo-600 text-white font-bold transition flex items-center gap-1 cursor-pointer">
+                            <span>Journal 📖</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-alerts')" id="btn-mini-alerts" class="mini-tab-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition flex items-center gap-1 cursor-pointer">
+                            <span>Alerts ⚡</span>
+                            <span id="badge-alert-count" class="px-1 rounded bg-amber-500/20 text-amber-300 text-[8.5px] font-mono">0</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-trace')" id="btn-mini-trace" class="mini-tab-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>Math</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-vacuum')" id="btn-mini-vacuum" class="mini-tab-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>Vacuum</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>JSON</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 1: Today's Opportunity Journal & Outcome Audit (DEFAULT ACTIVE, 2X HEIGHT) --}}
+                <div id="pane-mini-journal" class="mini-tab-pane space-y-2 text-[10px]">
+                    {{-- Performance Scorecard Summary --}}
+                    <div class="grid grid-cols-4 gap-1.5 text-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+                        <div>
+                            <span class="text-[8.5px] uppercase text-slate-400 font-bold block">Calls</span>
+                            <span id="journal-total-count" class="font-black text-white text-xs">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[8.5px] uppercase text-slate-400 font-bold block">Win Rate</span>
+                            <span id="journal-win-rate" class="font-black text-emerald-400 text-xs">0%</span>
+                        </div>
+                        <div>
+                            <span class="text-[8.5px] uppercase text-slate-400 font-bold block">Hit / Stop</span>
+                            <span class="font-black text-xs font-mono">
+                                <span id="journal-target-count" class="text-emerald-400">0</span>/<span id="journal-stopped-count" class="text-rose-400">0</span>
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-[8.5px] uppercase text-slate-400 font-bold block">Net Pts</span>
+                            <span id="journal-net-pnl" class="font-black text-amber-300 text-xs font-mono">+0.0</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 border-b border-slate-800/80 pb-1">
+                        <span class="font-bold text-slate-300">Today's Verified Setups:</span>
+                        <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer">
+                            <span>🔄</span>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+
+                    {{-- Scrollable Signals List (Doubled Height for Full Multi-Engine Card Viewing) --}}
+                    <div id="journal-logs-container" class="space-y-1.5 max-h-[25rem] overflow-y-auto pr-1 font-sans custom-scrollbar">
+                        <div class="text-center py-10 text-slate-500 text-[10px]">
+                            No trade signals logged yet today. Waiting for setup triggers...
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 2: Live Session Alert Feed & Trigger Reason (2X HEIGHT) --}}
+                <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-1.5 text-[10px]">
+                    <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800">
+                        <span class="text-slate-400 font-bold uppercase tracking-wider">Live Alarm Trigger Feed:</span>
+                        <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[9px] font-bold cursor-pointer">
+                            Clear Feed
+                        </button>
+                    </div>
+                    <div id="live-alerts-history-container" class="space-y-1 overflow-y-auto max-h-[25rem] pr-1 custom-scrollbar">
+                        <div class="text-center py-10 text-slate-500 text-[10px]">
+                            No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 3: Math Trace --}}
+                <div id="pane-mini-trace" class="mini-tab-pane hidden space-y-1.5 font-mono text-[10px]">
+                    <div class="flex justify-between p-1.5 rounded bg-slate-950 border border-slate-850">
+                        <span class="text-slate-400">Numerator (B - A):</span>
+                        <span id="trace-obi-numerator" class="text-white font-bold">0</span>
+                    </div>
+                    <div class="flex justify-between p-1.5 rounded bg-slate-950 border border-slate-850">
+                        <span class="text-slate-400">Denominator (B + A):</span>
+                        <span id="trace-obi-denominator" class="text-white font-bold">0</span>
+                    </div>
+                    <div class="flex justify-between p-1.5 rounded bg-slate-950 border border-slate-850">
+                        <span class="text-slate-400">Raw Ratio:</span>
+                        <span id="trace-obi-raw" class="text-emerald-400 font-bold">0.000</span>
+                    </div>
+                    <div class="flex justify-between p-1.5 rounded bg-slate-950 border border-emerald-500/40">
+                        <span class="text-emerald-300 font-bold">30-Depth OBI:</span>
+                        <span id="trace-obi-final" class="text-emerald-300 font-black">0.0%</span>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 4: Vacuum & Air Pockets --}}
+                <div id="pane-mini-vacuum" class="mini-tab-pane hidden space-y-1.5 text-[11px]">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 text-[10px]">Air Pocket Status:</span>
+                        <span id="vacuum-status-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-950 text-slate-300 border border-slate-800">NORMAL BOOK</span>
+                    </div>
+                    <div id="vacuum-alert-box" class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-400">
+                        No continuous air pocket detected. 30-depth order flow is continuous.
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 5: Raw Strategy JSON (Enlarged) --}}
+                <div id="pane-mini-json" class="mini-tab-pane hidden space-y-1.5">
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="text-slate-400">Live Strategy Signals:</span>
+                        <button onclick="refreshStrategySignals()" class="text-indigo-400 hover:text-indigo-300 font-bold cursor-pointer">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <pre id="raw-json-inspector" class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[9px] text-emerald-400 font-mono overflow-x-auto max-h-80 custom-scrollbar">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- ───────────────────── COLUMN 3: MICRO-PRICE, CONFLUENCE, OBI & LIQUIDITY WALLS ───────────────────── --}}
+        <div class="lg:col-span-3 space-y-2.5">
+            
+            {{-- 1. Depth-Weighted Micro-Price & Lead Drift --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Micro-Price &amp; Lead Drift</span>
+                    <span id="val-micro-divergence" class="text-[10px] font-bold text-cyan-300 font-mono">+0.00 pts</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                        <span class="text-[9px] text-slate-400 block uppercase font-bold">Std Mid</span>
+                        <span id="val-mid-price" class="font-bold text-white text-[11px] font-mono mt-0.5 block">--</span>
+                    </div>
+
+                    <div class="bg-slate-950 p-1.5 rounded-lg border border-cyan-800/60">
+                        <span class="text-[9px] text-cyan-400 block uppercase font-black">Micro</span>
+                        <span id="val-micro-price" class="font-black text-cyan-300 text-[11px] font-mono mt-0.5 block">--</span>
+                    </div>
+
+                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                        <span class="text-[9px] text-slate-400 block uppercase font-bold">LTP</span>
+                        <span id="val-side-ltp" class="font-bold text-amber-300 text-[11px] font-mono mt-0.5 block">--</span>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-slate-400 leading-tight">
+                    Micro-Price incorporates order volume into the spread to lead the next market tick.
+                </p>
+            </div>
+
+            {{-- 2. Confluence Alignment Scorecard --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-[11px] font-black uppercase text-white tracking-wider">Confluence Alignment Scorecard</span>
@@ -440,41 +598,7 @@
                 </div>
             </div>
 
-        </div>
-
-        {{-- ───────────────────── COLUMN 3: LEAD DRIFT, WALLS & DEEP-DIVE TABS ───────────────────── --}}
-        <div class="lg:col-span-3 space-y-2.5">
-            
-            {{-- 1. Depth-Weighted Micro-Price & Drift --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Micro-Price & Lead Drift</span>
-                    <span id="val-micro-divergence" class="text-[10px] font-bold text-cyan-300 font-mono">+0.00 pts</span>
-                </div>
-
-                <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                        <span class="text-[9px] text-slate-400 block uppercase font-bold">Std Mid</span>
-                        <span id="val-mid-price" class="font-bold text-white text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-cyan-800/60">
-                        <span class="text-[9px] text-cyan-400 block uppercase font-black">Micro</span>
-                        <span id="val-micro-price" class="font-black text-cyan-300 text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                        <span class="text-[9px] text-slate-400 block uppercase font-bold">LTP</span>
-                        <span id="val-side-ltp" class="font-bold text-amber-300 text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-                </div>
-
-                <p class="text-[10px] text-slate-400 leading-tight">
-                    Micro-Price incorporates order volume into the spread to lead the next market tick.
-                </p>
-            </div>
-
-            {{-- 2. Active Liquidity Walls & Absorption / Spoofing Tracker --}}
+            {{-- 4. Active Liquidity Walls (≥2.2x) & Absorption / Spoofing Tracker --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-[11px] font-black uppercase text-white tracking-wider">Liquidity Walls (≥2.2x)</span>
@@ -496,130 +620,6 @@
                     </div>
                     <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
                         <div id="bar-absorption" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-300" style="width: 0%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3. Interactive Mini-Tabs for Deep-Dive Debugging --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Engine Inspector</span>
-                    
-                    {{-- Mini Tab Buttons --}}
-                    <div class="flex items-center gap-1 text-[10px]">
-                        <button onclick="switchMiniTab('mini-trace')" id="btn-mini-trace" class="mini-tab-btn px-2 py-0.5 rounded bg-indigo-600 text-white font-bold transition">
-                            Math
-                        </button>
-                        <button onclick="switchMiniTab('mini-vacuum')" id="btn-mini-vacuum" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
-                            Vacuum
-                        </button>
-                        <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
-                            JSON
-                        </button>
-                        <button onclick="switchMiniTab('mini-alerts')" id="btn-mini-alerts" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition flex items-center gap-1">
-                            <span>Alerts ⚡</span>
-                            <span id="badge-alert-count" class="px-1 rounded bg-amber-500/20 text-amber-300 text-[8.5px] font-mono">0</span>
-                        </button>
-                        <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white transition">
-                            Journal 📖
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 1: Math Trace --}}
-                <div id="pane-mini-trace" class="mini-tab-pane space-y-1 font-mono text-[10px]">
-                    <div class="flex justify-between p-1 rounded bg-slate-950">
-                        <span class="text-slate-400">Numerator (B - A):</span>
-                        <span id="trace-obi-numerator" class="text-white font-bold">0</span>
-                    </div>
-                    <div class="flex justify-between p-1 rounded bg-slate-950">
-                        <span class="text-slate-400">Denominator (B + A):</span>
-                        <span id="trace-obi-denominator" class="text-white font-bold">0</span>
-                    </div>
-                    <div class="flex justify-between p-1 rounded bg-slate-950">
-                        <span class="text-slate-400">Raw Ratio:</span>
-                        <span id="trace-obi-raw" class="text-emerald-400 font-bold">0.000</span>
-                    </div>
-                    <div class="flex justify-between p-1 rounded bg-slate-950 border border-emerald-500/40">
-                        <span class="text-emerald-300 font-bold">30-Depth OBI:</span>
-                        <span id="trace-obi-final" class="text-emerald-300 font-black">0.0%</span>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 2: Vacuum & Air Pockets --}}
-                <div id="pane-mini-vacuum" class="mini-tab-pane hidden space-y-1.5 text-[11px]">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 text-[10px]">Air Pocket Status:</span>
-                        <span id="vacuum-status-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-950 text-slate-300 border border-slate-800">NORMAL BOOK</span>
-                    </div>
-                    <div id="vacuum-alert-box" class="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-400">
-                        No continuous air pocket detected. 30-depth order flow is continuous.
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 3: Raw Strategy JSON --}}
-                <div id="pane-mini-json" class="mini-tab-pane hidden space-y-1.5">
-                    <div class="flex items-center justify-between text-[10px]">
-                        <span class="text-slate-400">Live Strategy Signals:</span>
-                        <button onclick="refreshStrategySignals()" class="text-indigo-400 hover:text-indigo-300 font-bold">
-                            🔄 Refresh
-                        </button>
-                    </div>
-                    <pre id="raw-json-inspector" class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-[9px] text-emerald-400 font-mono overflow-x-auto max-h-32">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
-                </div>
-
-                {{-- Mini Tab Pane 4: Live Session Alert Feed & Trigger Reason --}}
-                <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-1.5 text-[10px]">
-                    <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800">
-                        <span class="text-slate-400 font-bold uppercase tracking-wider">Live Alarm Trigger Feed:</span>
-                        <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[9px] font-bold">
-                            Clear Feed
-                        </button>
-                    </div>
-                    <div id="live-alerts-history-container" class="space-y-1 overflow-y-auto max-h-48 pr-0.5">
-                        <div class="text-center py-6 text-slate-500 text-[10px]">
-                            No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 5: Today's Opportunity Journal & Outcome Audit --}}
-                <div id="pane-mini-journal" class="mini-tab-pane hidden space-y-2 text-[10px]">
-                    {{-- Performance Scorecard Summary --}}
-                    <div class="grid grid-cols-4 gap-1 text-center bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                        <div>
-                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Calls</span>
-                            <span id="journal-total-count" class="font-black text-white text-xs">0</span>
-                        </div>
-                        <div>
-                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Win Rate</span>
-                            <span id="journal-win-rate" class="font-black text-emerald-400 text-xs">0%</span>
-                        </div>
-                        <div>
-                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Hit / Stop</span>
-                            <span class="font-black text-xs font-mono">
-                                <span id="journal-target-count" class="text-emerald-400">0</span>/<span id="journal-stopped-count" class="text-rose-400">0</span>
-                            </span>
-                        </div>
-                        <div>
-                            <span class="text-[8px] uppercase text-slate-400 font-bold block">Net Pts</span>
-                            <span id="journal-net-pnl" class="font-black text-amber-300 text-xs font-mono">+0.0</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between text-[10px] text-slate-400 border-b border-slate-800/80 pb-1">
-                        <span>Today's Verified Setups:</span>
-                        <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer">
-                            <span>🔄</span>
-                            <span>Refresh</span>
-                        </button>
-                    </div>
-
-                    {{-- Scrollable Signals List --}}
-                    <div id="journal-logs-container" class="space-y-1 max-h-48 overflow-y-auto pr-0.5 font-sans">
-                        <div class="text-center py-6 text-slate-500 text-[10px]">
-                            No trade signals logged yet today.
-                        </div>
                     </div>
                 </div>
             </div>
