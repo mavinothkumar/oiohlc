@@ -295,10 +295,10 @@
                     </div>
                 </div>
 
-                {{-- Rationale Snippet --}}
-                <div class="mt-2 bg-slate-950/70 p-2 rounded-lg border border-slate-800/80 text-[11px] text-slate-300 flex items-start gap-1.5">
-                    <span class="text-amber-400 text-xs">💡</span>
-                    <p id="trade-rationale" class="line-clamp-2 leading-relaxed">
+                {{-- Rationale Snippet (Single line fixed height to prevent layout jerking) --}}
+                <div class="mt-2 bg-slate-950/70 px-2.5 rounded-lg border border-slate-800/80 text-[10.5px] text-slate-300 flex items-center gap-1.5 overflow-hidden h-7">
+                    <span class="text-amber-400 text-xs shrink-0">💡</span>
+                    <p id="trade-rationale" class="truncate whitespace-nowrap text-slate-300 font-medium flex-1">
                         Awaiting 30-depth order book alignment with quant and heavyweight breadth.
                     </p>
                 </div>
@@ -2537,7 +2537,7 @@
             if (tradeSl) tradeSl.textContent = `₹${(d.heavyBidBlock.price + 5.0).toFixed(2)}`;
             if (tradeTarget) tradeTarget.textContent = `₹${unified.tp_price ? unified.tp_price.toFixed(2) : (d.ltp - 40).toFixed(2)}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `Unified 5m Trend is BEARISH (${unified.candle_time} SELL ${unified.strike} CE), BUT Level ${d.heavyBidBlock.level} DOM has ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Wall at ₹${d.heavyBidBlock.price.toFixed(2)}. Do not short directly into this buy block — wait for wall consumption before entry!`;
+                tradeRationale.textContent = `Unified ${unified?.candle_time || ''} SELL · Level ${d.heavyBidBlock.level} Bid Wall (${d.heavyBidBlock.qty.toLocaleString()} Qty) absorbing downside`;
             }
         } else if (alertSettings.enableAbsorption && isUnifiedBuy && d.heavyAskBlock && d.heavyAskBlock.level <= 3) {
             // Unified is Bullish, but resting sell wall is capping the move
@@ -2556,7 +2556,7 @@
             if (tradeSl) tradeSl.textContent = `₹${(d.heavyAskBlock.price - 5.0).toFixed(2)}`;
             if (tradeTarget) tradeTarget.textContent = `₹${unified.tp_price ? unified.tp_price.toFixed(2) : (d.ltp + 40).toFixed(2)}`;
             if (tradeRationale) {
-                tradeRationale.textContent = `Unified 5m Trend is BULLISH (${unified.candle_time} BUY ${unified.strike} PE), BUT Level ${d.heavyAskBlock.level} DOM has ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Wall at ₹${d.heavyAskBlock.price.toFixed(2)}. Do not buy directly into this wall — wait for breakout before entry!`;
+                tradeRationale.textContent = `Unified ${unified?.candle_time || ''} BUY · Level ${d.heavyAskBlock.level} Ask Wall (${d.heavyAskBlock.qty.toLocaleString()} Qty) capping upside`;
             }
         } else if (alertSettings.enableConfluence && (totalConfluence >= 68 || isUnifiedBuy)) {
             if (sigText) sigText.textContent = '🚀 HIGH CONFIDENCE BUY / LONG';
@@ -2582,9 +2582,9 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                const stackDesc = d.bidStack ? `with ${d.bidStack.count}-level Bid Stack` : (d.heavyBidBlock ? `with ${d.heavyBidBlock.qty.toLocaleString()} Qty Bid Block` : '');
-                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) + ` : '';
-                tradeRationale.textContent = `${uniDesc}30-Depth OBI (+${d.obi30}%) ${stackDesc} confirms buying momentum, backed by Quant & Breadth.`;
+                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) · ` : '';
+                const domDesc = d.bidStack ? `${d.bidStack.count}L Stack` : (d.heavyBidBlock ? `${d.heavyBidBlock.qty.toLocaleString()} Wall` : `OBI +${d.obi30}%`);
+                tradeRationale.textContent = `${uniDesc}${domDesc} · Upside active`;
             }
 
             triggerAlertAudio('BUY');
@@ -2621,9 +2621,9 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                const stackDesc = d.askStack ? `and ${d.askStack.count}-level Ask Stack` : (d.heavyAskBlock ? `and ${d.heavyAskBlock.qty.toLocaleString()} Qty Ask Block` : '');
-                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) + ` : '';
-                tradeRationale.textContent = `${uniDesc}Ask Wall dominating with negative OBI (${d.obi30}%) ${stackDesc}. Downside momentum confirmed.`;
+                const uniDesc = unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) · ` : '';
+                const domDesc = d.askStack ? `${d.askStack.count}L Stack` : (d.heavyAskBlock ? `${d.heavyAskBlock.qty.toLocaleString()} Wall` : `OBI ${d.obi30}%`);
+                tradeRationale.textContent = `${uniDesc}${domDesc} · Downside active`;
             }
 
             triggerAlertAudio('SELL');
@@ -2654,8 +2654,8 @@
             if (tradeTarget) tradeTarget.textContent = `Range Bound`;
             if (tradeRationale) {
                 tradeRationale.textContent = (!alertSettings.enableConfluence)
-                    ? 'Confluence Alignment scorecard alerts are paused in Alert Rules settings.'
-                    : `Order book in equilibrium (OBI: ${d.obi30}%). Stand aside until clear confluence appears.`;
+                    ? 'Confluence alerts paused in settings'
+                    : `Order book balanced (OBI: ${d.obi30}%) · Stand aside`;
             }
         }
 
