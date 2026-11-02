@@ -4204,13 +4204,24 @@
             const tradeStyle = parsedNotes.trade_style || (l.action.includes('SELL') ? 'OPTION_SELLING' : 'OPTION_BUYING');
             const factors = parsedNotes.factors || null;
 
+            const isSentTo0Click = (webhookStatus && webhookStatus.includes('SENT')) || (typeof l.notes === 'string' && l.notes.includes('0Click: SENT'));
+            const isError0Click = (webhookStatus && webhookStatus.includes('ERR')) || (typeof l.notes === 'string' && l.notes.includes('0Click: FAILED'));
+
             let webhookBadge = '';
-            if (webhookStatus) {
-                const isSent = webhookStatus.includes('SENT');
-                webhookBadge = isSent
-                    ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40" title="${webhookStatus}">⚡ 0CLICK: SENT</span>`
-                    : `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${webhookStatus}">⚡ 0CLICK: ERR</span>`;
+            if (isSentTo0Click) {
+                webhookBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-mono font-black bg-purple-500 text-white shadow-xs flex items-center gap-1 shadow-purple-900/40" title="${webhookStatus || 'Sent to 0Click'}"><span class="animate-pulse">⚡</span> 0CLICK: SENT</span>`;
+            } else if (isError0Click) {
+                webhookBadge = `<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40" title="${webhookStatus}">⚡ 0CLICK: ERR</span>`;
             }
+
+            // Distinct visual highlight for Journal entries that have been dispatched to 0Click API
+            const cardHighlightClass = isSentTo0Click
+                ? 'border-purple-500/80 ring-1 ring-purple-500/50 bg-gradient-to-r from-purple-950/25 via-slate-950 to-slate-950 shadow-lg shadow-purple-950/30 border-l-4 border-l-purple-400'
+                : (isBuy ? 'border-emerald-800/50 shadow-emerald-950/20' : 'border-rose-800/50 shadow-rose-950/20');
+
+            const dispatchedPill = isSentTo0Click
+                ? `<span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold text-purple-300 bg-purple-950/90 border border-purple-500/50 flex items-center gap-1"><span>✓</span> API DISPATCHED</span>`
+                : '';
 
             const actionBadgeText = l.action.includes('WALL') 
                 ? (isBuy ? '🛡️ BUY WALL' : '🚧 SELL WALL') 
@@ -4312,7 +4323,7 @@
             }
 
             html += `
-            <div class="p-2.5 rounded-xl bg-slate-950 border ${isBuy ? 'border-emerald-800/50 shadow-emerald-950/20' : 'border-rose-800/50 shadow-rose-950/20'} text-xs space-y-2 shadow-lg">
+            <div class="p-2.5 rounded-xl bg-slate-950 border ${cardHighlightClass} text-xs space-y-2 shadow-lg transition duration-200">
                 <div class="flex items-center justify-between gap-1 flex-wrap">
                     <div class="flex items-center gap-1.5 font-mono flex-wrap">
                         <span class="text-slate-400 text-[10.5px]">${l.signal_time}</span>
@@ -4320,6 +4331,7 @@
                             ${actionBadgeText}
                         </span>
                         ${styleBadge}
+                        ${dispatchedPill}
                         <span class="font-black text-white text-xs sm:text-[13px] truncate max-w-[150px]">${l.instrument}</span>
                     </div>
                     <div class="flex items-center gap-1">
@@ -4333,11 +4345,24 @@
 
                 <div class="text-[10.5px] text-amber-300/95 font-sans leading-tight">${l.trigger_reason || l.action}</div>
                 
-                <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1 border-t border-slate-900 flex-wrap gap-1">
-                    <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
-                    <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
-                    <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
-                    <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
+                <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1.5 border-t border-slate-900 flex-wrap gap-1.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
+                        <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
+                        <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
+                        <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
+                    </div>
+                    <div>
+                        ${isSentTo0Click 
+                            ? `<button type="button" onclick="dispatchJournalItemManually(${l.id}, this)" class="px-2 py-0.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[9.5px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs" title="Already sent to 0Click API. Click to re-dispatch this trade to broker">
+                                 <span>⚡ Re-send API</span>
+                               </button>`
+                            : `<button type="button" onclick="dispatchJournalItemManually(${l.id}, this)" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[9.5px] font-bold shadow-md hover:shadow-purple-500/30 transition flex items-center gap-1 cursor-pointer active:scale-95" title="Click to manually trigger and send this trade to Broker / 0Click API">
+                                 <span class="text-amber-300 font-black">⚡</span>
+                                 <span>Send to 0Click</span>
+                               </button>`
+                        }
+                    </div>
                 </div>
 
                 ${factorGridHtml}
@@ -4347,6 +4372,61 @@
 
         container.innerHTML = html;
     }
+
+    window.dispatchJournalItemManually = async function(logId, btnEl) {
+        if (!logId) return;
+
+        const originalHtml = btnEl.innerHTML;
+        const originalClass = btnEl.className;
+        btnEl.disabled = true;
+        btnEl.innerHTML = `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Sending...`;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const payload = {
+                webhook_url: zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview',
+                webhook_token: zeroClickSettings.webhookToken || '',
+                execution_mode: zeroClickSettings.mode || 'SIMULATION',
+                lots: parseInt(zeroClickSettings.lots || 1, 10),
+                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING'
+            };
+
+            const resp = await fetch(`/api/order-flow/dispatch-log/${logId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const res = await resp.json();
+            if (res.success) {
+                btnEl.className = 'px-2 py-0.5 rounded-lg bg-emerald-950 border border-emerald-500/60 text-emerald-300 text-[9.5px] font-bold flex items-center gap-1';
+                btnEl.innerHTML = `✓ Dispatched (${res.status_code || 200})`;
+                
+                try {
+                    playSynthesizedAlert('crystal', 'BUY');
+                } catch(e) {}
+
+                setTimeout(() => {
+                    refreshSignalLogs();
+                }, 600);
+            } else {
+                alert(`0Click API Dispatch Failed: ${res.message || res.error || 'Server error'}`);
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalHtml;
+                btnEl.className = originalClass;
+            }
+        } catch (e) {
+            console.error('Error dispatching to 0Click:', e);
+            alert('Network error while dispatching to 0Click API.');
+            btnEl.disabled = false;
+            btnEl.innerHTML = originalHtml;
+            btnEl.className = originalClass;
+        }
+    };
 
     window.refreshSignalLogs = async function() {
         try {

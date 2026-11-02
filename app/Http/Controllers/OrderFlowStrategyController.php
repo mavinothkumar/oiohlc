@@ -432,6 +432,51 @@ class OrderFlowStrategyController extends Controller
     }
 
     /**
+     * Manually trigger and dispatch an existing Journal Setup to 0Click Webhook
+     */
+    public function dispatchLogToWebhook(int $id, Request $request): JsonResponse
+    {
+        $log = OrderFlowSignalLog::find($id);
+        if (!$log) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Journal entry not found with ID #' . $id,
+            ], 404);
+        }
+
+        $webhookResult = $this->dispatchZeroClickWebhook($log, $request);
+
+        $statusMsg = $webhookResult['success'] 
+            ? '0Click: SENT (' . ($webhookResult['status_code'] ?? 200) . ')' 
+            : '0Click: FAILED (' . ($webhookResult['status_code'] ?? 500) . ')';
+
+        // Parse existing notes and update with webhook status and timestamp
+        $notes = [];
+        if (!empty($log->notes)) {
+            $decoded = json_decode($log->notes, true);
+            $notes = is_array($decoded) ? $decoded : ['notes' => $log->notes];
+        }
+
+        $notes['webhook'] = $statusMsg;
+        $notes['dispatched_at'] = Carbon::now('Asia/Kolkata')->toDateTimeString();
+        $notes['dispatched_manually'] = true;
+
+        if ($request->filled('trade_style')) {
+            $notes['trade_style'] = $request->input('trade_style');
+        }
+
+        $log->update(['notes' => json_encode($notes)]);
+
+        return response()->json([
+            'success'        => $webhookResult['success'],
+            'status_code'    => $webhookResult['status_code'] ?? ($webhookResult['success'] ? 200 : 500),
+            'message'        => $statusMsg,
+            'webhook_result' => $webhookResult,
+            'data'           => $log->fresh(),
+        ]);
+    }
+
+    /**
      * Test / Preview 0Click Webhook Dispatch from Settings Modal
      */
     public function testWebhook(Request $request): JsonResponse
