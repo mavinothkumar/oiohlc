@@ -1259,6 +1259,31 @@
                             </div>
                         </div>
 
+                        {{-- Earliest API Execution Time Restriction --}}
+                        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-2">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="zc-enable-time-restriction" onchange="toggleTimeRestrictionInput(this.checked)" class="sr-only peer">
+                                        <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500"></div>
+                                    </label>
+                                    <div>
+                                        <div class="text-[11px] font-bold text-indigo-300 flex items-center gap-1.5 flex-wrap">
+                                            <span>Earliest API Execution Start Time:</span>
+                                            <span id="zc-time-restriction-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">Active after 09:30 AM</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="zc-time-restriction-input-wrap" class="flex items-center gap-1.5 shrink-0 ml-auto transition-opacity">
+                                    <input type="time" id="zc-api-start-time" value="09:30" class="w-24 bg-slate-950 border border-indigo-500/50 rounded-lg px-2 py-1 text-xs text-indigo-300 font-mono font-black focus:outline-none focus:border-indigo-400 text-center">
+                                    <span class="text-[10px] text-slate-400 font-bold">IST</span>
+                                </div>
+                            </div>
+                            <div class="text-[9.5px] text-slate-400 leading-tight">
+                                Confluence signals, sound chimes, and Journal tracking operate uninterrupted from market open (09:15). When enabled, automated broker/0Click API order execution is locked until this time (default <strong>09:30 AM</strong>) to avoid market open volatility.
+                            </div>
+                        </div>
+
                         {{-- Test Dispatch Buttons & Live Status Box --}}
                         <div class="pt-1.5 space-y-1.5">
                             <div class="flex items-center gap-2">
@@ -1370,6 +1395,12 @@
                     </div>
                 </div>
 
+                {{-- Opening Time Restriction Notice (visible if executing before configured start time) --}}
+                <div id="confirm-modal-time-warn" class="hidden text-[10px] flex items-start gap-1.5 leading-tight p-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300">
+                    <span class="text-indigo-400 text-xs shrink-0">🕒</span>
+                    <span id="confirm-modal-time-warn-text">Opening Time Alert: Current time is before configured 09:30 AM API execution time. Manual dispatch will override and execute immediately.</span>
+                </div>
+
                 {{-- Safety notice --}}
                 <div class="text-[10px] text-slate-400 flex items-start gap-1.5 leading-tight p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300/90">
                     <span class="text-amber-400 text-xs">⚠️</span>
@@ -1440,7 +1471,9 @@
         targetTp1Pts: 100,
         targetTp2Pts: 150,
         enableDailyCap: true,
-        maxDailyTrades: 3
+        maxDailyTrades: 3,
+        enableTimeRestriction: true,
+        apiStartTime: '09:30'
     };
 
     function getApiDispatchedCount() {
@@ -1455,6 +1488,53 @@
             return false;
         }).length;
     }
+
+    window.getIstCurrentTimeStr = function() {
+        try {
+            const parts = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).formatToParts(new Date());
+            const hour = parts.find(p => p.type === 'hour')?.value || '00';
+            const minute = parts.find(p => p.type === 'minute')?.value || '00';
+            return `${hour}:${minute}`;
+        } catch(e) {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+    };
+
+    window.isApiTimePermitted = function() {
+        if (zeroClickSettings.enableTimeRestriction === false) return true;
+        const target = zeroClickSettings.apiStartTime || '09:30';
+        const current = getIstCurrentTimeStr();
+        return current >= target;
+    };
+
+    window.toggleTimeRestrictionInput = function(enabled) {
+        const wrap = document.getElementById('zc-time-restriction-input-wrap');
+        const badge = document.getElementById('zc-time-restriction-badge');
+        const input = document.getElementById('zc-api-start-time');
+        const timeVal = (input && input.value) ? input.value : '09:30';
+
+        if (wrap) {
+            wrap.style.opacity = enabled ? '1' : '0.4';
+            wrap.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+
+        if (badge) {
+            if (enabled) {
+                badge.textContent = `Active after ${timeVal} IST`;
+                badge.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40';
+            } else {
+                badge.textContent = 'Unlocked (No Time Restriction)';
+                badge.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            }
+        }
+    };
 
     window.toggleDailyCapInput = function(enabled) {
         const wrap = document.getElementById('zc-daily-cap-input-wrap');
@@ -1738,6 +1818,14 @@
             }
         }
 
+        // Time restriction controls
+        const zcEnableTime = document.getElementById('zc-enable-time-restriction');
+        const zcStartTime = document.getElementById('zc-api-start-time');
+        const isTimeEnabled = zeroClickSettings.enableTimeRestriction !== false;
+        if (zcEnableTime) zcEnableTime.checked = isTimeEnabled;
+        if (zcStartTime) zcStartTime.value = zeroClickSettings.apiStartTime || '09:30';
+        toggleTimeRestrictionInput(isTimeEnabled);
+
         updateZcModeBadge();
         updateLegendLabels();
     }
@@ -1833,6 +1921,8 @@
         zeroClickSettings.targetTp2Pts = 150;
         zeroClickSettings.enableDailyCap = true;
         zeroClickSettings.maxDailyTrades = 3;
+        zeroClickSettings.enableTimeRestriction = true;
+        zeroClickSettings.apiStartTime = '09:30';
 
         loadAlertSettings();
     };
@@ -1917,6 +2007,11 @@
         } else {
             zeroClickSettings.maxDailyTrades = parsedTrades;
         }
+
+        const zcEnableTime = document.getElementById('zc-enable-time-restriction');
+        const zcStartTime = document.getElementById('zc-api-start-time');
+        zeroClickSettings.enableTimeRestriction = !!zcEnableTime?.checked;
+        zeroClickSettings.apiStartTime = (zcStartTime?.value && zcStartTime.value.trim()) ? zcStartTime.value.trim() : '09:30';
 
         try {
             localStorage.setItem('d30_alert_rules', JSON.stringify(alertSettings));
@@ -4115,10 +4210,16 @@
         const isCapActive = zeroClickSettings.enableDailyCap !== false && parseInt(zeroClickSettings.maxDailyTrades, 10) > 0;
         const maxTradesAllowed = isCapActive ? parseInt(zeroClickSettings.maxDailyTrades, 10) : 0;
         const isTradeCapReached = isCapActive && (totalDispatched >= maxTradesAllowed);
+        const isTimeAllowed = isApiTimePermitted();
 
         if (apiCapPill) {
             apiCapPill.classList.remove('hidden');
-            if (!isCapActive) {
+            if (!isTimeAllowed) {
+                const startTimeStr = zeroClickSettings.apiStartTime || '09:30';
+                apiCapPill.textContent = `🔒 API Locked (Starts ${startTimeStr})`;
+                apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/40';
+                apiCapPill.title = `API order execution is locked until ${startTimeStr} IST (Opening Volatility Filter). Confluence signals, sound alarms, and Journal continue running 100%!`;
+            } else if (!isCapActive) {
                 apiCapPill.textContent = 'API: Unlimited';
                 apiCapPill.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
                 apiCapPill.title = 'Daily trade restriction disabled: unlimited API orders permitted';
@@ -4585,6 +4686,15 @@
             const maxTradesAllowed = isCapActive ? parseInt(zeroClickSettings.maxDailyTrades, 10) : 0;
             const isTradeCapReached = isCapActive && (totalDispatched >= maxTradesAllowed);
 
+            const isTimeAllowed = isApiTimePermitted();
+            let finalTriggerReason = tradeSetup.rationale || 'Liquidity event';
+            if (!isTimeAllowed) {
+                const startTimeStr = zeroClickSettings.apiStartTime || '09:30';
+                finalTriggerReason += ` · 🔒 [Pre-${startTimeStr} Filter: Signal Logged Only, API Locked]`;
+            } else if (isTradeCapReached) {
+                finalTriggerReason += ` · 🔒 [Daily API Cap Reached: ${totalDispatched}/${maxTradesAllowed} - Signal Logged Only]`;
+            }
+
             const payload = {
                 mode: state.feedMode,
                 symbol: state.symbol || 'NIFTY',
@@ -4604,15 +4714,15 @@
                 confluence_score: tradeSetup.confluence || 50,
                 obi_pct: state.depthData.obi30,
                 micro_drift: parseFloat((state.depthData.microPrice - state.depthData.ltp).toFixed(2)),
-                trigger_reason: isTradeCapReached 
-                    ? `${tradeSetup.rationale || 'Liquidity event'} · [Daily API Cap Reached: ${totalDispatched}/${maxTradesAllowed} - Signal Logged Only]`
-                    : (tradeSetup.rationale || 'Liquidity event'),
+                trigger_reason: finalTriggerReason,
 
                 // Multi-engine snapshot
                 factors: factorsSnapshot,
 
-                // 0Click.in Trade Webhook Integration fields (Restricted by user daily cap)
-                dispatch_webhook: !!zeroClickSettings.forwardToZeroClick && !isTradeCapReached,
+                // 0Click.in Trade Webhook Integration fields (Restricted by time window and user daily cap)
+                dispatch_webhook: !!zeroClickSettings.forwardToZeroClick && !isTradeCapReached && isTimeAllowed,
+                api_start_time: zeroClickSettings.apiStartTime || '09:30',
+                enable_time_restriction: zeroClickSettings.enableTimeRestriction !== false,
                 max_daily_trades: maxTradesAllowed,
                 webhook_url: zeroClickSettings.webhookUrl || 'https://0click.in/api/webhook/tradingview',
                 webhook_token: zeroClickSettings.webhookToken || '',
@@ -5046,6 +5156,22 @@
         if (reasonEl) {
             reasonEl.textContent = log.trigger_reason || log.action || 'High Confluence Setup';
         }
+
+        const timeWarnEl = document.getElementById('confirm-modal-time-warn');
+        const timeWarnTextEl = document.getElementById('confirm-modal-time-warn-text');
+        if (timeWarnEl) {
+            const isTimeAllowed = isApiTimePermitted();
+            if (!isTimeAllowed) {
+                const startTimeStr = zeroClickSettings.apiStartTime || '09:30';
+                timeWarnEl.classList.remove('hidden');
+                if (timeWarnTextEl) {
+                    timeWarnTextEl.textContent = `Opening Time Alert: Current time is before configured ${startTimeStr} AM API execution time. Confirming will override the restriction and manually dispatch this order.`;
+                }
+            } else {
+                timeWarnEl.classList.add('hidden');
+            }
+        }
+
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = `<span class="text-amber-300 font-black">⚡</span><span>Yes, Dispatch Order</span>`;

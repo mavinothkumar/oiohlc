@@ -261,28 +261,42 @@ class OrderFlowStrategyController extends Controller
         $webhookResult = null;
         $statusMsg = null;
         if ($request->boolean('dispatch_webhook') && $request->filled('webhook_url')) {
-            $maxDailyTrades = (int) $request->input('max_daily_trades', 0);
-            $todayDispatchedCount = 0;
-            if ($maxDailyTrades > 0) {
-                $todayDispatchedCount = OrderFlowSignalLog::where('symbol', $request->input('symbol', 'NIFTY'))
-                    ->where('mode', $request->input('mode', 'live'))
-                    ->whereDate('created_at', Carbon::today('Asia/Kolkata'))
-                    ->where('id', '!=', $log->id)
-                    ->where(function($q) {
-                        $q->where('notes', 'like', '%0Click: SENT%');
-                    })
-                    ->count();
-            }
+            $nowIst = Carbon::now('Asia/Kolkata');
+            $currentTime = $nowIst->format('H:i');
+            $enableTimeRestriction = $request->boolean('enable_time_restriction', true);
+            $apiStartTime = $request->input('api_start_time', '09:30');
 
-            if ($maxDailyTrades > 0 && $todayDispatchedCount >= $maxDailyTrades) {
-                $statusMsg = '0Click: CAP REACHED (' . $todayDispatchedCount . '/' . $maxDailyTrades . ')';
-                $webhookResult = ['success' => false, 'status_code' => 429, 'message' => 'Daily trade execution cap reached'];
+            if ($enableTimeRestriction && $currentTime < $apiStartTime) {
+                $statusMsg = '0Click: TIME LOCKED (Before ' . $apiStartTime . ' IST)';
+                $webhookResult = [
+                    'success'     => false,
+                    'status_code' => 403,
+                    'message'     => 'API order execution locked before ' . $apiStartTime . ' IST (Opening market volatility guard)',
+                ];
             } else {
-                $webhookResult = $this->dispatchZeroClickWebhook($log, $request);
-                if ($webhookResult) {
-                    $statusMsg = $webhookResult['success'] 
-                        ? '0Click: SENT (' . ($webhookResult['status_code'] ?? 200) . ')' 
-                        : '0Click: FAILED (' . ($webhookResult['status_code'] ?? 500) . ')';
+                $maxDailyTrades = (int) $request->input('max_daily_trades', 0);
+                $todayDispatchedCount = 0;
+                if ($maxDailyTrades > 0) {
+                    $todayDispatchedCount = OrderFlowSignalLog::where('symbol', $request->input('symbol', 'NIFTY'))
+                        ->where('mode', $request->input('mode', 'live'))
+                        ->whereDate('created_at', Carbon::today('Asia/Kolkata'))
+                        ->where('id', '!=', $log->id)
+                        ->where(function($q) {
+                            $q->where('notes', 'like', '%0Click: SENT%');
+                        })
+                        ->count();
+                }
+
+                if ($maxDailyTrades > 0 && $todayDispatchedCount >= $maxDailyTrades) {
+                    $statusMsg = '0Click: CAP REACHED (' . $todayDispatchedCount . '/' . $maxDailyTrades . ')';
+                    $webhookResult = ['success' => false, 'status_code' => 429, 'message' => 'Daily trade execution cap reached'];
+                } else {
+                    $webhookResult = $this->dispatchZeroClickWebhook($log, $request);
+                    if ($webhookResult) {
+                        $statusMsg = $webhookResult['success'] 
+                            ? '0Click: SENT (' . ($webhookResult['status_code'] ?? 200) . ')' 
+                            : '0Click: FAILED (' . ($webhookResult['status_code'] ?? 500) . ')';
+                    }
                 }
             }
         }
