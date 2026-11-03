@@ -358,6 +358,7 @@
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span id="rec-tape-capsule" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800" title="Tape State">TAPE: BALANCED</span>
+                        <span id="dom-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800 cursor-help" title="Institutional Driver Diagnosis: Detects and resolves divergences between Options Flow, Equities, and Futures Book">DRIVER: BALANCED</span>
                         <span id="anchor-status-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400">BIAS: NEUTRAL</span>
                         <span id="api-trade-cap-pill" class="hidden px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">API: 0/3</span>
                     </div>
@@ -676,7 +677,7 @@
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-[11px] font-black uppercase text-white tracking-wider">Confluence Alignment Scorecard</span>
-                    <span class="text-[10px] text-slate-400">6 Strategy Engines</span>
+                    <span id="scorecard-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-950 text-slate-400 border border-slate-800 cursor-help" title="Market Driver Diagnosis">⚖️ DRIVER: BALANCED</span>
                 </div>
 
                 {{-- Alignment Bar --}}
@@ -1653,6 +1654,66 @@
         renderBox(boxOptFlow, isP2Bull, isP2Bear, 'Opt Flow');
         renderBox(boxTrendOi, isP3Bull, isP3Bear, 'Trend OI');
         renderBox(boxD30, isP4Bull, isP4Bear, '30 D Book');
+    };
+
+    window.updateDomDriverDiagnosis = function(gw, rw, gcPct, rcPct, bullFlow, bearFlow, obi30) {
+        const domPill = document.getElementById('dom-driver-diagnosis-pill');
+        const scorePill = document.getElementById('scorecard-driver-diagnosis-pill');
+
+        let shortLabel = 'DRIVER: BALANCED';
+        let fullLabel = '⚖️ DRIVER: BALANCED AUCTION';
+        let badgeClass = 'bg-slate-900 text-slate-400 border-slate-800';
+        let tooltip = 'Two-way auction in equilibrium. No single institutional driver dominating.';
+
+        // Scenario 1: Full Institutional Trend (Both Stocks & Options aligned)
+        if (gw >= 75 && gcPct >= 70 && bullFlow >= 70) {
+            shortLabel = 'DRIVER: FULL BULL TREND';
+            fullLabel = '🚀 FULL INSTITUTIONAL TREND (BULL)';
+            badgeClass = 'bg-emerald-950/90 text-emerald-300 border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.25)]';
+            tooltip = 'High Conviction: Equities (Stocks) & Options Flow are in unanimous Bullish alignment. Trend continuation expected.';
+        } else if (rw >= 75 && rcPct >= 70 && bearFlow >= 70) {
+            shortLabel = 'DRIVER: FULL BEAR TREND';
+            fullLabel = '🩸 FULL INSTITUTIONAL TREND (BEAR)';
+            badgeClass = 'bg-rose-950/90 text-rose-300 border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.25)]';
+            tooltip = 'High Conviction: Heavy cash selling & Bearish Options flow aligned. Downside continuation expected.';
+        }
+        // Scenario 2: Options-Led Squeeze (Options strongly Bullish >=70%, but Stocks mixed <65%)
+        else if (bullFlow >= 70 && gw < 65) {
+            shortLabel = 'DRIVER: OPTIONS SQUEEZE';
+            fullLabel = '⚡ OPTIONS-LED SQUEEZE (HEAVYWEIGHTS LAGGING)';
+            badgeClass = 'bg-indigo-950/90 text-indigo-300 border-indigo-400/60 shadow-[0_0_10px_rgba(99,102,241,0.25)] animate-pulse';
+            tooltip = 'Institutional Put Writing & Call buying driving index UP while core heavyweights rest. Futures Ask walls are hedging blocks, not real resistance.';
+        }
+        // Scenario 3: Options-Led Downside (Options strongly Bearish >=70%, but Stocks mixed <65%)
+        else if (bearFlow >= 70 && rw < 65) {
+            shortLabel = 'DRIVER: OPTIONS DOWNSIDE';
+            fullLabel = '⚡ OPTIONS-LED DOWNSIDE (CALL WRITING)';
+            badgeClass = 'bg-purple-950/90 text-purple-300 border-purple-400/60 shadow-[0_0_10px_rgba(168,85,247,0.25)] animate-pulse';
+            tooltip = 'Heavy Call Writing overhead capping index while cash equities hold steady. Trade with Options flow.';
+        }
+        // Scenario 4: Cash Equities Heavyweights Driving (Stocks strong >=75%, Options slower <65%)
+        else if (gw >= 75 && bullFlow < 65) {
+            shortLabel = 'DRIVER: CASH RALLY';
+            fullLabel = '🏛️ CASH HEAVYWEIGHT DRIVEN RALLY';
+            badgeClass = 'bg-cyan-950/90 text-cyan-300 border-cyan-500/60 shadow-xs';
+            tooltip = 'Institutions accumulating core heavyweight stocks (Reliance, HDFC Bank, etc.). Options delta will catch up soon.';
+        } else if (rw >= 75 && bearFlow < 65) {
+            shortLabel = 'DRIVER: CASH SELLOFF';
+            fullLabel = '🏛️ CASH HEAVYWEIGHT SELLOFF';
+            badgeClass = 'bg-amber-950/90 text-amber-300 border-amber-500/60 shadow-xs';
+            tooltip = 'Heavyweight equities dragging index down. Options chain expected to price in downside risk.';
+        }
+
+        if (domPill) {
+            domPill.textContent = shortLabel;
+            domPill.className = `px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono border transition-all duration-200 cursor-help ${badgeClass}`;
+            domPill.title = `Market Driver Diagnosis: ${tooltip}`;
+        }
+        if (scorePill) {
+            scorePill.textContent = fullLabel;
+            scorePill.className = `px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono border transition-all duration-200 cursor-help ${badgeClass}`;
+            scorePill.title = `Market Driver Diagnosis: ${tooltip}`;
+        }
     };
 
     window.toggleZcTokenVisibility = function() {
@@ -4401,6 +4462,9 @@
 
         // Update 4-Pillar Real-Time UI Boxes (50 Stock | Opt Flow | Trend OI | 30 D Book)
         updatePillarStatusBoxes(isP1Bull, isP1Bear, isP2Bull, isP2Bear, isP3Bull, isP3Bear, isP4Bull, isP4Bear);
+
+        // Update Institutional Market Driver Diagnosis & Conflict Resolver
+        updateDomDriverDiagnosis(gw, rw, gcPct, rcPct, bullFlow, bearFlow, d.obi30);
 
         // Check for Counter-Trend Liquidity Absorption Wall
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';

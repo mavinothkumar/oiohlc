@@ -118,6 +118,12 @@
                 <span id="spot-price-display" class="font-bold text-cyan-400">---</span>
                 <span id="spot-change-display" class="font-semibold text-gray-400 text-[10px]"></span>
             </div>
+
+            <!-- Real-Time Institutional Driver Diagnosis Pill (Resolving Stock vs Options Conflicts) -->
+            <div id="driver-diagnosis-pill" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10.5px] font-black tracking-wider transition-all duration-200 cursor-help bg-slate-900 text-slate-400 border-slate-700 shrink-0 shadow-xs" title="Institutional Driver Diagnosis: Resolving conflicts between Options Flow, Heavyweight Cash Breadth, and Futures">
+                <span id="driver-diagnosis-icon">⚖️</span>
+                <span id="driver-diagnosis-text">CALCULATING DRIVER...</span>
+            </div>
         </div>
 
         <!-- Center: Master Unified Timeline Scrubber & Replay Controller -->
@@ -3227,6 +3233,7 @@
 
         // Update overall Bull/Bear picture and Trigger Strength
         updateOverallAndTriggerStats(index);
+        updateDriverDiagnosis(timeStr);
     }
 
     function syncWeightageUI(index, timeStr) {
@@ -3764,6 +3771,78 @@
                 combBadge.className = 'font-bold text-amber-300 text-[10px]';
             }
         }
+
+        // Also update driver diagnosis on trigger stats refresh
+        const activeTimeStr = timestampsList?.[maxIdx] || '';
+        if (activeTimeStr) updateDriverDiagnosis(activeTimeStr);
+    }
+
+    // ── 10c. Institutional Driver Diagnosis & Conflict Resolver ──────────────────
+    function updateDriverDiagnosis(timeStr) {
+        const pill = document.getElementById('driver-diagnosis-pill');
+        const icon = document.getElementById('driver-diagnosis-icon');
+        const text = document.getElementById('driver-diagnosis-text');
+        if (!pill || !text) return;
+
+        const wb = weightageData?.breadth_by_time?.[timeStr];
+        const ob = breadthData?.breadth_by_time?.[timeStr];
+
+        const gw = wb ? (parseFloat(wb.green_weight) || 0) : 50;
+        const rw = wb ? (parseFloat(wb.red_weight) || 0) : 50;
+        const gcp = wb ? (parseFloat(wb.green_count_pct) || 0) : 50;
+        const rcp = wb ? (parseFloat(wb.red_count_pct) || 0) : 50;
+
+        const uw = ob ? (parseFloat(ob.up_weight) || 0) : 50;
+        const dw = ob ? (parseFloat(ob.down_weight) || 0) : 50;
+
+        let label = 'BALANCED MARKET EQUILIBRIUM';
+        let iconChar = '⚖️';
+        let badgeClass = 'bg-[#1a1e29] text-gray-400 border-gray-700';
+        let tooltip = 'Two-way auction in equilibrium. No single institutional driver dominating.';
+
+        // Scenario 1: Full Institutional Trend (Both Stocks & Options aligned)
+        if (gw >= 75 && gcp >= 70 && uw >= 70) {
+            label = 'FULL INSTITUTIONAL TREND (BULL)';
+            iconChar = '🚀';
+            badgeClass = 'bg-emerald-950/90 text-emerald-300 border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.25)]';
+            tooltip = 'High Conviction: Both Cash Equities (Stocks) & Options Flow are in unanimous agreement. Trend continuation expected.';
+        } else if (rw >= 75 && rcp >= 70 && dw >= 70) {
+            label = 'FULL INSTITUTIONAL TREND (BEAR)';
+            iconChar = '🩸';
+            badgeClass = 'bg-rose-950/90 text-rose-300 border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.25)]';
+            tooltip = 'High Conviction: Heavy cash selling & Bearish Options flow aligned. Downside continuation expected.';
+        }
+        // Scenario 2: Options-Led Squeeze (Options strongly Bullish >=70%, but Stocks mixed <65%) -> Exact User Case!
+        else if (uw >= 70 && gw < 65) {
+            label = 'OPTIONS-LED SQUEEZE (HEAVYWEIGHTS LAGGING)';
+            iconChar = '⚡';
+            badgeClass = 'bg-indigo-950/90 text-indigo-300 border-indigo-400/60 shadow-[0_0_10px_rgba(99,102,241,0.25)] animate-pulse';
+            tooltip = 'Institutional Put Writing & Call buying driving index UP while core heavyweights rest. Expect sharp pullbacks; trade with Options tide, do not short into Futures Ask walls.';
+        }
+        // Scenario 3: Options-Led Downside (Options strongly Bearish >=70%, but Stocks mixed <65%)
+        else if (dw >= 70 && rw < 65) {
+            label = 'OPTIONS-LED DOWNSIDE (CALL WRITING)';
+            iconChar = '⚡';
+            badgeClass = 'bg-purple-950/90 text-purple-300 border-purple-400/60 shadow-[0_0_10px_rgba(168,85,247,0.25)] animate-pulse';
+            tooltip = 'Heavy Call Writing overhead capping index while cash equities hold steady. Trade with Options flow.';
+        }
+        // Scenario 4: Cash Equities Heavyweights Driving (Stocks strong >=75%, Options slower <65%)
+        else if (gw >= 75 && uw < 65) {
+            label = 'CASH HEAVYWEIGHT DRIVEN RALLY';
+            iconChar = '🏛️';
+            badgeClass = 'bg-cyan-950/90 text-cyan-300 border-cyan-500/60 shadow-xs';
+            tooltip = 'Institutions accumulating core heavyweight stocks (Reliance, HDFC Bank, etc.). Options delta will catch up soon.';
+        } else if (rw >= 75 && dw < 65) {
+            label = 'CASH HEAVYWEIGHT SELLOFF';
+            iconChar = '🏛️';
+            badgeClass = 'bg-amber-950/90 text-amber-300 border-amber-500/60 shadow-xs';
+            tooltip = 'Heavyweight equities dragging index down. Options chain expected to price in downside risk.';
+        }
+
+        pill.className = `hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[10px] font-black tracking-wider transition-all duration-200 cursor-help shrink-0 ${badgeClass}`;
+        pill.title = `Market Driver Diagnosis (${timeStr || 'Current'}): ${tooltip}`;
+        if (icon) icon.textContent = iconChar;
+        if (text) text.textContent = label;
     }
 
     // ── 11. Event Handlers & Settings Sync ────────────────────────────────────────
