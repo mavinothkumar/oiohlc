@@ -309,20 +309,37 @@
         <div class="lg:col-span-4 space-y-2.5">
             
             {{-- 1. Real-Time High Probability Trade Suggestion Card (TOP PRIORITY) --}}
-            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-1.5">
-                    <div class="flex items-center gap-1.5">
-                        <span id="signal-badge-icon" class="text-lg">🔥</span>
+            <div id="top-recommendation-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden transition-all duration-200">
+                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span id="signal-badge-icon" class="text-base sm:text-lg">🎯</span>
                         <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider">Top Recommendation</span>
-                            <h2 id="signal-main-text" class="text-sm sm:text-base font-black text-white leading-tight">
-                                INITIALIZING CONFLUENCE...
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Confluence Engine</span>
+                            <h2 id="signal-main-text" class="text-xs sm:text-sm font-black text-white leading-tight">
+                                CONFLUENCE SCANNER
                             </h2>
                         </div>
                     </div>
-                    <span id="signal-confidence-pill" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-300 border border-slate-700">
-                        WAITING
-                    </span>
+
+                    {{-- 4 Pillar Real-Time Status Boxes: 50 Stock | Opt Flow | Trend OI | 30 D Book --}}
+                    <div class="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                        <div id="pillar-box-stock" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 1: Nifty 50 Stocks Breadth (≥80% Weight & Stocks)">
+                            <span>50 Stock</span>
+                        </div>
+                        <div id="pillar-box-optflow" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 2: Options Flow Parity (≥70% Buy or Sell Flow)">
+                            <span>Opt Flow</span>
+                        </div>
+                        <div id="pillar-box-trendoi" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 3: Trending OI & PCR Difference">
+                            <span>Trend OI</span>
+                        </div>
+                        <div id="pillar-box-d30" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 4: 30-Level Order Book (OBI, Stack & Divergence)">
+                            <span>30 D Book</span>
+                        </div>
+                        <button type="button" onclick="toggleRecDetails()" id="btn-toggle-rec-details" class="ml-1 px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Show/Hide Trade & Strike Details to enlarge Engine Inspector">
+                            <span id="rec-toggle-label">Details</span>
+                            <span id="rec-toggle-icon">▼</span>
+                        </button>
+                    </div>
                 </div>
 
                 {{-- Master Anchor Process Indicator (NIFTY 50 Stock Anchor & API Cap) --}}
@@ -338,73 +355,76 @@
                     </div>
                 </div>
 
-                {{-- Trade Parameters Grid --}}
-                <div class="grid grid-cols-2 gap-1.5 text-xs">
-                    <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Instrument</span>
-                        <p id="trade-instrument" class="text-xs font-black text-amber-300 truncate mt-0.5">NIFTY FUT</p>
-                        <span id="trade-type" class="text-[9px] font-bold text-emerald-400">Momentum Scalp</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Entry Zone</span>
-                        <p id="trade-entry-zone" class="text-xs font-black text-white font-mono mt-0.5">₹--</p>
-                        <span class="text-[9px] text-slate-400">Limit Pullback</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Stop Loss (Wall)</span>
-                        <p id="trade-sl" class="text-xs font-black text-rose-400 font-mono mt-0.5">₹--</p>
-                        <span id="trade-sl-wall" class="text-[9px] text-slate-400 truncate block">Behind Bid Wall</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                        <span class="text-[9px] uppercase font-bold text-slate-400 block">Target (Wall)</span>
-                        <p id="trade-target" class="text-xs font-black text-emerald-400 font-mono mt-0.5">₹--</p>
-                        <span id="trade-rr" class="text-[9px] font-bold text-emerald-300">1 : 2.2 R:R</span>
-                    </div>
-                </div>
-
-                {{-- Rationale Snippet (Single line fixed height to prevent layout jerking) --}}
-                <div class="mt-2 bg-slate-950/70 px-2.5 rounded-lg border border-slate-800/80 text-[10.5px] text-slate-300 flex items-center gap-1.5 overflow-hidden h-7">
-                    <span class="text-amber-400 text-xs shrink-0">💡</span>
-                    <p id="trade-rationale" class="truncate whitespace-nowrap text-slate-300 font-medium flex-1">
-                        Awaiting 30-depth order book alignment with quant and heavyweight breadth.
-                    </p>
-                </div>
-
-                {{-- ⚡ DIRECT OPTION STRIKE EXECUTION CARD (Options Trader Mode) --}}
-                <div class="mt-2 p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5 shadow-inner">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs">⚡</span>
-                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider">Option Strike Recommendation:</span>
-                            <span id="opt-rec-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400">STAND ASIDE</span>
+                {{-- Collapsible Details Section: Trade Parameters & Option Strike Recommendation --}}
+                <div id="rec-collapsible-section" class="space-y-2 transition-all duration-200">
+                    {{-- Trade Parameters Grid --}}
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Instrument</span>
+                            <p id="trade-instrument" class="text-xs font-black text-amber-300 truncate mt-0.5">NIFTY FUT</p>
+                            <span id="trade-type" class="text-[9px] font-bold text-emerald-400">Momentum Scalp</span>
                         </div>
-                        <button type="button" onclick="copyOrderDetails()" id="btn-copy-order" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
-                            <span>📋</span>
-                            <span>Copy Order</span>
-                        </button>
-                    </div>
 
-                    <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
-                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Suggested Strike</span>
-                            <span id="opt-rec-strike" class="text-[11px] font-black text-amber-300 truncate mt-0.5 block font-mono">--</span>
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Entry Zone</span>
+                            <p id="trade-entry-zone" class="text-xs font-black text-white font-mono mt-0.5">₹--</p>
+                            <span class="text-[9px] text-slate-400">Limit Pullback</span>
                         </div>
-                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Option Entry</span>
-                            <span id="opt-rec-entry" class="text-[11px] font-bold text-white font-mono mt-0.5 block">--</span>
+
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Stop Loss (Wall)</span>
+                            <p id="trade-sl" class="text-xs font-black text-rose-400 font-mono mt-0.5">₹--</p>
+                            <span id="trade-sl-wall" class="text-[9px] text-slate-400 truncate block">Behind Bid Wall</span>
                         </div>
-                        <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                            <span class="text-[8.5px] uppercase font-bold text-slate-400 block">SL / Target</span>
-                            <span id="opt-rec-sltgt" class="text-[10px] font-bold text-slate-300 font-mono mt-0.5 block">--</span>
+
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Target (Wall)</span>
+                            <p id="trade-target" class="text-xs font-black text-emerald-400 font-mono mt-0.5">₹--</p>
+                            <span id="trade-rr" class="text-[9px] font-bold text-emerald-300">1 : 2.2 R:R</span>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5 px-0.5">
-                        <span id="opt-rec-note">Calculated for NIFTY Derivatives (Lot Size: 25)</span>
-                        <span id="opt-copy-status" class="text-emerald-400 font-bold hidden animate-pulse">✓ Copied to clipboard!</span>
+                    {{-- Rationale Snippet (Single line fixed height to prevent layout jerking) --}}
+                    <div class="bg-slate-950/70 px-2.5 rounded-lg border border-slate-800/80 text-[10.5px] text-slate-300 flex items-center gap-1.5 overflow-hidden h-7">
+                        <span class="text-amber-400 text-xs shrink-0">💡</span>
+                        <p id="trade-rationale" class="truncate whitespace-nowrap text-slate-300 font-medium flex-1">
+                            Awaiting 30-depth order book alignment with quant and heavyweight breadth.
+                        </p>
+                    </div>
+
+                    {{-- ⚡ DIRECT OPTION STRIKE EXECUTION CARD (Options Trader Mode) --}}
+                    <div class="p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5 shadow-inner">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs">⚡</span>
+                                <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider">Option Strike Recommendation:</span>
+                                <span id="opt-rec-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400">STAND ASIDE</span>
+                            </div>
+                            <button type="button" onclick="copyOrderDetails()" id="btn-copy-order" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
+                                <span>📋</span>
+                                <span>Copy Order</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Suggested Strike</span>
+                                <span id="opt-rec-strike" class="text-[11px] font-black text-amber-300 truncate mt-0.5 block font-mono">--</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Option Entry</span>
+                                <span id="opt-rec-entry" class="text-[11px] font-bold text-white font-mono mt-0.5 block">--</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">SL / Target</span>
+                                <span id="opt-rec-sltgt" class="text-[10px] font-bold text-slate-300 font-mono mt-0.5 block">--</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5 px-0.5">
+                            <span id="opt-rec-note">Calculated for NIFTY Derivatives (Lot Size: 25)</span>
+                            <span id="opt-copy-status" class="text-emerald-400 font-bold hidden animate-pulse">✓ Copied to clipboard!</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -490,8 +510,8 @@
                         </button>
                     </div>
 
-                    {{-- Scrollable Signals List (Doubled Height for Full Multi-Engine Card Viewing with Dark Scrollbar) --}}
-                    <div id="journal-logs-container" class="space-y-2 max-h-[28rem] overflow-y-auto pr-1.5 font-sans custom-scrollbar">
+                    {{-- Scrollable Signals List (Enlarged Height for Full Multi-Engine Card Viewing with Dark Scrollbar) --}}
+                    <div id="journal-logs-container" class="space-y-2 max-h-[46rem] xl:max-h-[52rem] overflow-y-auto pr-1.5 font-sans custom-scrollbar">
                         <div class="text-center py-10 text-slate-500 text-xs">
                             No trade signals logged yet today. Waiting for setup triggers...
                         </div>
@@ -509,7 +529,7 @@
                             Clear Feed
                         </button>
                     </div>
-                    <div id="live-alerts-history-container" class="space-y-1.5 overflow-y-auto max-h-[28rem] pr-1.5 custom-scrollbar">
+                    <div id="live-alerts-history-container" class="space-y-1.5 overflow-y-auto max-h-[46rem] xl:max-h-[52rem] pr-1.5 custom-scrollbar">
                         <div class="text-center py-10 text-slate-500 text-xs">
                             No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
                         </div>
@@ -1564,6 +1584,67 @@
                 badge.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
             }
         }
+    };
+
+    window.toggleRecDetails = function(forced) {
+        const sec = document.getElementById('rec-collapsible-section');
+        const icon = document.getElementById('rec-toggle-icon');
+        const label = document.getElementById('rec-toggle-label');
+        if (!sec) return;
+
+        let willHide;
+        if (typeof forced === 'boolean') {
+            willHide = forced;
+        } else {
+            willHide = !sec.classList.contains('hidden');
+        }
+
+        if (willHide) {
+            sec.classList.add('hidden');
+            if (icon) icon.textContent = '▶';
+            if (label) label.textContent = 'Details';
+        } else {
+            sec.classList.remove('hidden');
+            if (icon) icon.textContent = '▼';
+            if (label) label.textContent = 'Details';
+        }
+
+        try {
+            localStorage.setItem('order_flow_rec_collapsed', willHide ? 'true' : 'false');
+        } catch(e) {}
+    };
+
+    window.initRecCollapsibleState = function() {
+        const saved = localStorage.getItem('order_flow_rec_collapsed');
+        // Default to collapsed so Engine Inspector sits high up immediately
+        const isCollapsed = (saved === null) ? true : (saved === 'true');
+        toggleRecDetails(isCollapsed);
+    };
+
+    window.updatePillarStatusBoxes = function(isP1Bull, isP1Bear, isP2Bull, isP2Bear, isP3Bull, isP3Bear, isP4Bull, isP4Bear) {
+        const boxStock = document.getElementById('pillar-box-stock');
+        const boxOptFlow = document.getElementById('pillar-box-optflow');
+        const boxTrendOi = document.getElementById('pillar-box-trendoi');
+        const boxD30 = document.getElementById('pillar-box-d30');
+
+        function renderBox(el, isBull, isBear, label) {
+            if (!el) return;
+            if (isBull) {
+                el.className = 'px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide border transition-all duration-150 bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-xs flex items-center gap-1';
+                el.innerHTML = `<span class="text-[9px]">▲</span><span>${label}</span>`;
+            } else if (isBear) {
+                el.className = 'px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide border transition-all duration-150 bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-xs flex items-center gap-1';
+                el.innerHTML = `<span class="text-[9px]">▼</span><span>${label}</span>`;
+            } else {
+                el.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/60 text-slate-500 border-slate-800 flex items-center gap-1';
+                el.innerHTML = `<span>${label}</span>`;
+            }
+        }
+
+        renderBox(boxStock, isP1Bull, isP1Bear, '50 Stock');
+        renderBox(boxOptFlow, isP2Bull, isP2Bear, 'Opt Flow');
+        renderBox(boxTrendOi, isP3Bull, isP3Bear, 'Trend OI');
+        renderBox(boxD30, isP4Bull, isP4Bear, '30 D Book');
     };
 
     window.toggleZcTokenVisibility = function() {
@@ -4175,6 +4256,9 @@
         const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
         const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
 
+        // Update 4-Pillar Real-Time UI Boxes (50 Stock | Opt Flow | Trend OI | 30 D Book)
+        updatePillarStatusBoxes(isP1Bull, isP1Bear, isP2Bull, isP2Bear, isP3Bull, isP3Bear, isP4Bull, isP4Bear);
+
         // Check for Counter-Trend Liquidity Absorption Wall
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
         const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
@@ -4396,25 +4480,14 @@
             state.lastConfluenceSignalKey = 'NEUTRAL';
             if (sigText) {
                 if (!alertSettings.enableConfluence) {
-                    sigText.textContent = '⏸️ CONFLUENCE ALERTS MUTED';
-                } else if (strictMode) {
-                    const maxPillars = Math.max(bullPillarsCount, bearPillarsCount);
-                    sigText.textContent = `⏸️ WAITING FOR STRICT 4/4 CONFLUENCE (${maxPillars}/4 Aligned)`;
+                    sigText.textContent = 'CONFLUENCE ALERTS MUTED';
                 } else {
-                    sigText.textContent = '⏸️ BALANCED / WAIT FOR SIGNAL';
+                    sigText.textContent = 'CONFLUENCE SCANNER';
                 }
             }
             if (sigPill) {
-                if (!alertSettings.enableConfluence) {
-                    sigPill.textContent = 'MUTED';
-                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
-                } else if (strictMode) {
-                    sigPill.textContent = `STRICT ${Math.max(bullPillarsCount, bearPillarsCount)}/4 ACTIVE`;
-                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/50';
-                } else {
-                    sigPill.textContent = 'NEUTRAL';
-                    sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
-                }
+                sigPill.textContent = 'SCANNING';
+                sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700';
             }
             if (sigIcon) sigIcon.textContent = strictMode ? '🎯' : '⚖️';
             if (heroBadge) {
@@ -5407,6 +5480,9 @@
     document.addEventListener('DOMContentLoaded', async () => {
         loadAlertSettings();
         refreshSignalLogs();
+        if (typeof initRecCollapsibleState === 'function') {
+            initRecCollapsibleState();
+        }
 
         const btnLive = document.getElementById('btn-mode-live');
         const btnSim = document.getElementById('btn-mode-sim');
