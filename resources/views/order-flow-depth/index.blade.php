@@ -923,40 +923,40 @@
 
                     {{-- 4 Pillars Thresholds Grid --}}
                     <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-900 text-[10px]">
-                        {{-- Pillar 1: Market Breadth --}}
+                        {{-- Pillar 1: Nifty 50 Stocks Breadth (BOTH Weight & Stocks) --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🏢 Pillar 1: Nifty 50 Breadth</span>
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🏢 Pillar 1: Nifty 50 Stocks</span>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Min Weight %:</span>
-                                <input type="number" id="cfg-pillar-breadth-weight" min="50" max="95" step="1" value="60" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
+                                <input type="number" id="cfg-pillar-breadth-weight" min="50" max="95" step="1" value="80" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
                             </div>
                             <div class="flex items-center justify-between gap-1">
-                                <span class="text-slate-400 text-[9.5px]">Min Net Drag/Push:</span>
-                                <input type="number" id="cfg-pillar-breadth-pts" min="0.5" max="30" step="0.5" value="2.5" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
+                                <span class="text-slate-400 text-[9.5px]">Min Stocks %:</span>
+                                <input type="number" id="cfg-pillar-breadth-stocks" min="50" max="95" step="1" value="80" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]" title="Min % of 50 stocks (80% = 40 stocks)">
                             </div>
                         </div>
 
-                        {{-- Pillar 2: OI Sentiment & PCR --}}
+                        {{-- Pillar 2: Nifty 50 Options Flow Parity --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📊 Pillar 2: Trending OI &amp; PCR</span>
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📊 Pillar 2: Nifty Options Flow</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-400 text-[9.5px]">Min Flow %:</span>
+                                <input type="number" id="cfg-pillar-options-flow" min="50" max="95" step="1" value="70" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-[10.5px]" title="Requires Buy or Sell flow >= 70%">
+                            </div>
+                            <span class="text-[9px] text-slate-500 block leading-tight">Requires BUY or SELL flow ≥ 70%</span>
+                        </div>
+
+                        {{-- Pillar 3: Trending OI & PCR Sentiment --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📈 Pillar 3: Trending OI</span>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Bull Min PCR:</span>
                                 <input type="number" id="cfg-pillar-oi-bull-pcr" min="0.5" max="2.5" step="0.05" value="1.05" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-emerald-400 text-[10.5px]">
                             </div>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Bear Max PCR:</span>
-                                <input type="number" id="cfg-pillar-oi-bear-pcr" min="0.5" max="2.5" step="0.05" value="0.85" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-rose-400 text-[10.5px]">
+                                <input type="number" id="cfg-pillar-oi-bear-pcr" min="0.5" max="2.5" step="0.05" value="0.95" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-rose-400 text-[10.5px]">
                             </div>
-                        </div>
-
-                        {{-- Pillar 3: Quant POP Engine --}}
-                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📈 Pillar 3: Quant POP Engine</span>
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="text-slate-400 text-[9.5px]">Min POP (%):</span>
-                                <input type="number" id="cfg-pillar-quant-pop" min="50" max="95" step="1" value="70" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-[10.5px]">
-                            </div>
-                            <span class="text-[9px] text-slate-500 block leading-tight">Statistical probability of profit threshold</span>
                         </div>
 
                         {{-- Pillar 4: 30-Level Deep Order Book --}}
@@ -1417,12 +1417,12 @@
         autoLog: true,               // Auto-log opportunities to Journal
 
         // 🎯 4-Pillar High-Probability Strategy Customization
-        strictConfluence: false,     // Require 4/4 simultaneous confluence
-        pillarBreadthWeight: 60,     // Pillar 1: Min Weight % (Default: 60%)
-        pillarBreadthPts: 2.5,       // Pillar 1: Min Net Pts (Default: 2.5 pts)
-        pillarOiBullPcr: 1.05,       // Pillar 2: Bull Min PCR (Default: 1.05)
-        pillarOiBearPcr: 0.85,       // Pillar 2: Bear Max PCR (Default: 0.85)
-        pillarQuantPop: 70,          // Pillar 3: Min Quant POP % (Default: 70%)
+        strictConfluence: true,      // Require 4/4 simultaneous confluence
+        pillarBreadthWeight: 80,     // Pillar 1: Min Weight % (Default: 80%)
+        pillarBreadthStocks: 80,     // Pillar 1: Min Stocks % (Default: 80% = 40 stocks)
+        pillarOptionsFlow: 70,       // Pillar 2: Min Options Flow % (Default: 70%)
+        pillarOiBullPcr: 1.05,       // Pillar 3: Bull Min PCR (Default: 1.05)
+        pillarOiBearPcr: 0.95,       // Pillar 3: Bear Max PCR (Default: 0.95)
         pillarObiPct: 20,            // Pillar 4: Min 30D OBI % (Default: 20%)
         pillarMicroDrift: 0.15       // Pillar 4: Min Lead Drift (Default: 0.15 pts)
     };
@@ -1671,19 +1671,19 @@
         // 4-Pillar High-Probability Inputs
         const strictConf = document.getElementById('cfg-strict-confluence');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
-        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
+        const optFlow = document.getElementById('cfg-pillar-options-flow');
         const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
         const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
-        const quantPop = document.getElementById('cfg-pillar-quant-pop');
         const obiPct = document.getElementById('cfg-pillar-obi-pct');
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
 
         if (strictConf) strictConf.checked = !!alertSettings.strictConfluence;
-        if (bWeight) bWeight.value = alertSettings.pillarBreadthWeight ?? 60;
-        if (bPts) bPts.value = alertSettings.pillarBreadthPts ?? 2.5;
+        if (bWeight) bWeight.value = alertSettings.pillarBreadthWeight ?? 80;
+        if (bStocks) bStocks.value = alertSettings.pillarBreadthStocks ?? 80;
+        if (optFlow) optFlow.value = alertSettings.pillarOptionsFlow ?? 70;
         if (oiBull) oiBull.value = alertSettings.pillarOiBullPcr ?? 1.05;
-        if (oiBear) oiBear.value = alertSettings.pillarOiBearPcr ?? 0.85;
-        if (quantPop) quantPop.value = alertSettings.pillarQuantPop ?? 70;
+        if (oiBear) oiBear.value = alertSettings.pillarOiBearPcr ?? 0.95;
         if (obiPct) obiPct.value = alertSettings.pillarObiPct ?? 20;
         if (microDrift) microDrift.value = alertSettings.pillarMicroDrift ?? 0.15;
 
@@ -1761,39 +1761,39 @@
     window.setPillarPreset = function(presetName) {
         const strictEl = document.getElementById('cfg-strict-confluence');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
-        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
+        const optFlow = document.getElementById('cfg-pillar-options-flow');
         const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
         const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
-        const quantPop = document.getElementById('cfg-pillar-quant-pop');
         const obiPct = document.getElementById('cfg-pillar-obi-pct');
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
 
         if (presetName === 'sniper') {
             if (strictEl) strictEl.checked = true;
-            if (bWeight) bWeight.value = 70;
-            if (bPts) bPts.value = 5.0;
+            if (bWeight) bWeight.value = 85;
+            if (bStocks) bStocks.value = 85;
+            if (optFlow) optFlow.value = 75;
             if (oiBull) oiBull.value = 1.15;
-            if (oiBear) oiBear.value = 0.80;
-            if (quantPop) quantPop.value = 75;
+            if (oiBear) oiBear.value = 0.85;
             if (obiPct) obiPct.value = 25;
             if (microDrift) microDrift.value = 0.20;
         } else if (presetName === 'standard') {
-            if (strictEl) strictEl.checked = false;
-            if (bWeight) bWeight.value = 60;
-            if (bPts) bPts.value = 2.5;
+            if (strictEl) strictEl.checked = true;
+            if (bWeight) bWeight.value = 80;
+            if (bStocks) bStocks.value = 80;
+            if (optFlow) optFlow.value = 70;
             if (oiBull) oiBull.value = 1.05;
-            if (oiBear) oiBear.value = 0.85;
-            if (quantPop) quantPop.value = 70;
+            if (oiBear) oiBear.value = 0.95;
             if (obiPct) obiPct.value = 20;
             if (microDrift) microDrift.value = 0.15;
         } else if (presetName === 'scalper') {
             if (strictEl) strictEl.checked = false;
-            if (bWeight) bWeight.value = 55;
-            if (bPts) bPts.value = 1.5;
+            if (bWeight) bWeight.value = 75;
+            if (bStocks) bStocks.value = 75;
+            if (optFlow) optFlow.value = 65;
             if (oiBull) oiBull.value = 1.02;
-            if (oiBear) oiBear.value = 0.90;
-            if (quantPop) quantPop.value = 60;
-            if (obiPct) obiPct.value = 12;
+            if (oiBear) oiBear.value = 0.98;
+            if (obiPct) obiPct.value = 15;
             if (microDrift) microDrift.value = 0.10;
         }
     };
@@ -1812,12 +1812,12 @@
         alertSettings.soundProfile = 'crystal';
         alertSettings.autoLog = true;
 
-        alertSettings.strictConfluence = false;
-        alertSettings.pillarBreadthWeight = 60;
-        alertSettings.pillarBreadthPts = 2.5;
+        alertSettings.strictConfluence = true;
+        alertSettings.pillarBreadthWeight = 80;
+        alertSettings.pillarBreadthStocks = 80;
+        alertSettings.pillarOptionsFlow = 70;
         alertSettings.pillarOiBullPcr = 1.05;
-        alertSettings.pillarOiBearPcr = 0.85;
-        alertSettings.pillarQuantPop = 70;
+        alertSettings.pillarOiBearPcr = 0.95;
         alertSettings.pillarObiPct = 20;
         alertSettings.pillarMicroDrift = 0.15;
 
@@ -1867,19 +1867,19 @@
         // 4-Pillar High-Probability Settings
         const strictConf = document.getElementById('cfg-strict-confluence');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
-        const bPts = document.getElementById('cfg-pillar-breadth-pts');
+        const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
+        const optFlow = document.getElementById('cfg-pillar-options-flow');
         const oiBull = document.getElementById('cfg-pillar-oi-bull-pcr');
         const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
-        const quantPop = document.getElementById('cfg-pillar-quant-pop');
         const obiPct = document.getElementById('cfg-pillar-obi-pct');
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
 
         alertSettings.strictConfluence = !!(strictConf?.checked);
-        alertSettings.pillarBreadthWeight = Math.max(50, Math.min(99, parseFloat(bWeight?.value || 60)));
-        alertSettings.pillarBreadthPts = Math.max(0.1, parseFloat(bPts?.value || 2.5));
+        alertSettings.pillarBreadthWeight = Math.max(50, Math.min(99, parseFloat(bWeight?.value || 80)));
+        alertSettings.pillarBreadthStocks = Math.max(50, Math.min(99, parseFloat(bStocks?.value || 80)));
+        alertSettings.pillarOptionsFlow = Math.max(50, Math.min(99, parseFloat(optFlow?.value || 70)));
         alertSettings.pillarOiBullPcr = Math.max(0.5, parseFloat(oiBull?.value || 1.05));
-        alertSettings.pillarOiBearPcr = Math.max(0.2, parseFloat(oiBear?.value || 0.85));
-        alertSettings.pillarQuantPop = Math.max(50, Math.min(99, parseFloat(quantPop?.value || 70)));
+        alertSettings.pillarOiBearPcr = Math.max(0.2, parseFloat(oiBear?.value || 0.95));
         alertSettings.pillarObiPct = Math.max(5, Math.min(95, parseFloat(obiPct?.value || 20)));
         alertSettings.pillarMicroDrift = Math.max(0.01, parseFloat(microDrift?.value || 0.15));
 
@@ -4005,34 +4005,77 @@
         const targetName = activeOption ? activeOption.textContent.trim() : 'Contract';
 
         // ── 4-PILLAR RIGOROUS CONFLUENCE EVALUATION ──
-        // 1. Pillar 1: Market Breadth (Nifty 50 Stocks)
-        const breadthWeightVal = parseFloat(unified?.breadth_weight || (signals.market_breadth?.advances ? ((signals.market_breadth.advances / (signals.market_breadth.advances + signals.market_breadth.declines)) * 100) : 50));
-        const netPtsVal = unified?.net_points ? Math.abs(parseFloat(unified.net_points)) : 0;
-        const reqBreadthWeight = parseFloat(alertSettings.pillarBreadthWeight || 60);
-        const reqBreadthPts = parseFloat(alertSettings.pillarBreadthPts || 2.5);
+        // 1. Pillar 1: NIFTY 50 Stocks Breadth (MUST be >= 80% in BOTH Weight AND Stocks)
+        const reqBreadthWeight = parseFloat(alertSettings.pillarBreadthWeight || 80);
+        const reqBreadthStocks = parseFloat(alertSettings.pillarBreadthStocks || 80); // 80% of 50 stocks = 40 stocks
 
-        const isP1Bull = (breadthWeightVal >= reqBreadthWeight || signals.market_breadth?.signal === 'BULLISH') && (netPtsVal >= reqBreadthPts || netPtsVal === 0);
-        const isP1Bear = (breadthWeightVal >= reqBreadthWeight || signals.market_breadth?.signal === 'BEARISH') && (netPtsVal >= reqBreadthPts || netPtsVal === 0);
+        const mb = signals.market_breadth || {};
+        const gw = parseFloat(mb.green_weight ?? (mb.advances ? ((mb.advances / (mb.advances + mb.declines)) * 100) : 50));
+        const rw = parseFloat(mb.red_weight ?? (mb.declines ? ((mb.declines / (mb.advances + mb.declines)) * 100) : 50));
+        const gcPct = parseFloat(mb.green_count_pct ?? (mb.advances ? ((mb.advances / 50) * 100) : 50));
+        const rcPct = parseFloat(mb.red_count_pct ?? (mb.declines ? ((mb.declines / 50) * 100) : 50));
 
-        // 2. Pillar 2: Trending OI Flow & PCR Sentiment
-        const livePcr = parseFloat(signals.oi_buildup?.pcr || 1.0);
+        // Master Strategic Anchor: NIFTY 50 Stock Breadth Engine
+        // When Nifty 50 stocks trigger a signal (>= 80% in BOTH Weight and Stocks),
+        // it locks our macro direction until an opposite Nifty 50 80%+ call triggers.
+        if (signals.anchor_trigger) {
+            state.masterAnchor = signals.anchor_trigger;
+        } else if (unified && unified.has_call) {
+            const uWeight = parseFloat(unified.breadth_weight || 0);
+            const uCount = parseInt(unified.breadth_count || 0);
+            const uCountPct = (uCount / 50) * 100;
+            // Strictly require >= 80% in BOTH Weight and Stocks to establish master anchor!
+            if (uWeight >= reqBreadthWeight && uCountPct >= reqBreadthStocks) {
+                const uDir = unified.signal === 'BUY' ? 'BULLISH' : (unified.signal === 'SELL' ? 'BEARISH' : 'NEUTRAL');
+                if (uDir !== 'NEUTRAL') {
+                    state.masterAnchor = {
+                        direction: uDir,
+                        candleTime: unified.candle_time || '10:55',
+                        strike: unified.strike || 23450,
+                        weight: uWeight,
+                        count: uCount,
+                        count_pct: uCountPct,
+                        netPoints: parseFloat(unified.net_points || 0),
+                        timestamp: Date.now()
+                    };
+                }
+            }
+        }
+
+        const rawAnchor = signals.anchor_trigger || state.masterAnchor;
+        const isAnchorValid = rawAnchor && (rawAnchor.weight >= reqBreadthWeight) && ((rawAnchor.count_pct || rawAnchor.countPct || (rawAnchor.count * 2)) >= reqBreadthStocks);
+        const activeAnchor = isAnchorValid ? rawAnchor : null;
+
+        const isP1Bull = (gw >= reqBreadthWeight && gcPct >= reqBreadthStocks) ||
+                         (activeAnchor && activeAnchor.direction === 'BULLISH');
+        const isP1Bear = (rw >= reqBreadthWeight && rcPct >= reqBreadthStocks) ||
+                         (activeAnchor && activeAnchor.direction === 'BEARISH');
+
+        // 2. Pillar 2: NIFTY 50 Options Flow Parity (MUST be >= 70% in either BUY or SELL flow)
+        const reqOptFlow = parseFloat(alertSettings.pillarOptionsFlow || 70);
+        const of = signals.options_flow || {};
+        const bullFlow = parseFloat(of.bull_flow_pct ?? 0);
+        const bearFlow = parseFloat(of.bear_flow_pct ?? 0);
+
+        const isP2Bull = (bullFlow >= reqOptFlow);
+        const isP2Bear = (bearFlow >= reqOptFlow);
+
+        // 3. Pillar 3: Trending OI & PCR Sentiment (Difference of CE and PE MUST match the flow)
+        // Bullish: Put OI > Call OI (PE - CE > 0, PCR >= 1.05)
+        // Bearish: Call OI > Put OI (CE - PE > 0, PCR <= 0.95)
+        const toi = signals.trending_oi || {};
+        const toiPcr = parseFloat(toi.pcr || signals.oi_buildup?.pcr || 1.0);
+        const toiDiff = parseFloat(toi.diff_oi ?? 0);
         const reqBullPcr = parseFloat(alertSettings.pillarOiBullPcr || 1.05);
-        const reqBearPcr = parseFloat(alertSettings.pillarOiBearPcr || 0.85);
+        const reqBearPcr = parseFloat(alertSettings.pillarOiBearPcr || 0.95);
 
-        const isP2Bull = (livePcr >= reqBullPcr) || (signals.oi_buildup?.signal === 'BULLISH');
-        const isP2Bear = (livePcr <= reqBearPcr) || (signals.oi_buildup?.signal === 'BEARISH');
-
-        // 3. Pillar 3: Quant POP Engine
-        const popVal = parseFloat(signals.quant_engine?.pop_pct || 70);
-        const reqQuantPop = parseFloat(alertSettings.pillarQuantPop || 70);
-
-        const isP3Bull = (popVal >= reqQuantPop) && (signals.quant_engine?.signal === 'BULLISH' || !signals.quant_engine?.signal || signals.quant_engine?.signal === 'NEUTRAL');
-        const isP3Bear = (popVal >= reqQuantPop) && (signals.quant_engine?.signal === 'BEARISH' || !signals.quant_engine?.signal || signals.quant_engine?.signal === 'NEUTRAL');
+        const isP3Bull = (toiPcr >= reqBullPcr && toiDiff >= 0);
+        const isP3Bear = (toiPcr <= reqBearPcr && toiDiff <= 0);
 
         // 4. Pillar 4: 30-Level Deep Order Book & Microstructure
         const reqObi = parseFloat(alertSettings.pillarObiPct || 20);
-        const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5) || state.cvd?.divergence === 'BULLISH' || state.bookSlope?.asymmetry === 'BULLISH');
-        const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5) || state.cvd?.divergence === 'BEARISH' || state.bookSlope?.asymmetry === 'BEARISH');
+        const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5) || state.cvd?.divergence === 'BULLISH' || (state.bookSlope?.asymmetry === 'BULLISH' && state.bookSlope?.ratio >= 1.35));
+        const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5) || state.cvd?.divergence === 'BEARISH' || (state.bookSlope?.asymmetry === 'BEARISH' && state.bookSlope?.ratio <= 0.74));
 
         const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
         const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
@@ -4041,27 +4084,6 @@
         const isUnifiedSell = unified?.has_call && unified.signal === 'SELL';
         const isUnifiedBuy = unified?.has_call && unified.signal === 'BUY';
 
-        // ── ⚓ MASTER STRATEGIC ANCHOR: NIFTY 50 STOCK BREADTH ENGINE ──
-        // When Nifty 50 stocks trigger a signal (e.g. 10:55 candle with >80% breadth),
-        // it locks our macro direction until an opposite Nifty 50 call triggers.
-        if (unified && unified.has_call) {
-            const uDir = unified.signal === 'BUY' ? 'BULLISH' : (unified.signal === 'SELL' ? 'BEARISH' : 'NEUTRAL');
-            if (uDir !== 'NEUTRAL') {
-                if (!state.masterAnchor || state.masterAnchor.direction !== uDir || state.masterAnchor.candleTime !== unified.candle_time) {
-                    state.masterAnchor = {
-                        direction: uDir,
-                        candleTime: unified.candle_time || '10:55',
-                        strike: unified.strike || 23450,
-                        weight: parseFloat(unified.breadth_weight || 80),
-                        count: parseInt(unified.breadth_count || 40),
-                        netPoints: parseFloat(unified.net_points || 0),
-                        timestamp: Date.now()
-                    };
-                }
-            }
-        }
-
-        const activeAnchor = state.masterAnchor;
         const anchorPill = document.getElementById('anchor-candle-pill');
         const anchorBadge = document.getElementById('anchor-status-pill');
         const apiCapPill = document.getElementById('api-trade-cap-pill');
@@ -4069,13 +4091,22 @@
         if (activeAnchor) {
             const isBearAnchor = (activeAnchor.direction === 'BEARISH');
             if (anchorPill) {
-                anchorPill.textContent = `${activeAnchor.candleTime} Candle · ${activeAnchor.weight}% ${isBearAnchor ? 'Red' : 'Green'} (${activeAnchor.count} Stocks)`;
+                const cTime = activeAnchor.candleTime || activeAnchor.candle_time || 'Anchor';
+                anchorPill.textContent = `${cTime} Candle · ${activeAnchor.weight}% ${isBearAnchor ? 'Red' : 'Green'} (${activeAnchor.count} Stocks)`;
             }
             if (anchorBadge) {
                 anchorBadge.textContent = isBearAnchor ? '▼ DOWNSIDE BIAS' : '▲ UPSIDE BIAS';
                 anchorBadge.className = isBearAnchor
                     ? 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500 text-white uppercase shadow-xs'
                     : 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-emerald-500 text-slate-950 uppercase shadow-xs';
+            }
+        } else {
+            if (anchorPill) {
+                anchorPill.textContent = 'Awaiting 80%+ Breadth Trigger';
+            }
+            if (anchorBadge) {
+                anchorBadge.textContent = 'STAND ASIDE';
+                anchorBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400 uppercase';
             }
         }
 
@@ -4108,20 +4139,26 @@
         const meetsStrictBear = (bearPillarsCount === 4);
 
         // Nifty 50 Anchor Directional Lock:
-        // Downside anchor strictly allows only Downside confluence and blocks opposite Upside;
-        // Upside anchor strictly allows only Upside confluence and blocks opposite Downside!
+        // Must have an active 80%+ Anchor OR current candle must reach >= 80% in BOTH weight & stocks!
         let isBuyQualified = false;
         let isSellQualified = false;
 
         if (activeAnchor && activeAnchor.direction === 'BEARISH') {
-            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3 || totalConfluence <= 38 || isUnifiedSell));
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3 && isP1Bear));
             isBuyQualified = false;
         } else if (activeAnchor && activeAnchor.direction === 'BULLISH') {
-            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3 || totalConfluence >= 65 || isUnifiedBuy));
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3 && isP1Bull));
             isSellQualified = false;
+        } else if (isP1Bull) {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3));
+            isSellQualified = false;
+        } else if (isP1Bear) {
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3));
+            isBuyQualified = false;
         } else {
-            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (totalConfluence >= 68 || isUnifiedBuy));
-            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (totalConfluence <= 35 || isUnifiedSell));
+            // Stand aside when neither 80% stock anchor nor current 80% candle exists
+            isBuyQualified = false;
+            isSellQualified = false;
         }
 
         if (alertSettings.enableAbsorption && isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
@@ -4482,25 +4519,40 @@
             const factorsSnapshot = tradeSetup.factors || {
                 breadth: {
                     name: 'NIFTY 50 Stocks Breadth',
-                    signal: sigs.market_breadth?.signal || 'NEUTRAL',
-                    score: sigs.market_breadth?.score || 50,
-                    advances: sigs.market_breadth?.advances ?? 25,
-                    declines: sigs.market_breadth?.declines ?? 25,
-                    details: sigs.market_breadth?.details || 'NIFTY 50 stock weightage'
+                    signal: sigs.market_breadth?.signal || (isBuy ? 'BULLISH' : 'BEARISH'),
+                    score: sigs.market_breadth?.score || (isBuy ? 80 : 20),
+                    green_weight: sigs.market_breadth?.green_weight,
+                    red_weight: sigs.market_breadth?.red_weight,
+                    green_count: sigs.market_breadth?.green_count,
+                    red_count: sigs.market_breadth?.red_count,
+                    green_count_pct: sigs.market_breadth?.green_count_pct,
+                    red_count_pct: sigs.market_breadth?.red_count_pct,
+                    advances: sigs.market_breadth?.advances ?? (isBuy ? 40 : 10),
+                    declines: sigs.market_breadth?.declines ?? (isBuy ? 10 : 40),
+                    details: sigs.market_breadth?.details || 'NIFTY 50 stock breadth'
+                },
+                options_flow: {
+                    name: 'NIFTY Options Flow Parity',
+                    signal: sigs.options_flow?.signal || (isBuy ? 'BULLISH' : 'BEARISH'),
+                    score: isBuy ? (sigs.options_flow?.bull_flow_pct || 75) : (sigs.options_flow?.bear_flow_pct || 75),
+                    bull_flow_pct: sigs.options_flow?.bull_flow_pct,
+                    bear_flow_pct: sigs.options_flow?.bear_flow_pct,
+                    details: sigs.options_flow?.details || 'Options Flow'
                 },
                 oi_flow: {
-                    name: 'Options Flow & Buildup',
-                    signal: sigs.oi_buildup?.signal || 'NEUTRAL',
-                    score: sigs.oi_buildup?.score || 50,
-                    pcr: sigs.oi_buildup?.pcr || 1.0,
-                    details: sigs.oi_buildup?.details || 'Call/Put writing flow'
+                    name: 'Options Flow Parity',
+                    signal: sigs.options_flow?.signal || (isBuy ? 'BULLISH' : 'BEARISH'),
+                    score: isBuy ? (sigs.options_flow?.bull_flow_pct || 75) : (sigs.options_flow?.bear_flow_pct || 75),
+                    pcr: sigs.trending_oi?.pcr || sigs.oi_buildup?.pcr || 1.0,
+                    details: sigs.options_flow?.details || 'Options Flow'
                 },
                 trending_oi: {
-                    name: 'Trending OI & Quant Engine',
-                    signal: sigs.quant_engine?.signal || 'NEUTRAL',
-                    score: sigs.quant_engine?.score || 50,
-                    pop_pct: sigs.quant_engine?.pop_pct || 50,
-                    details: sigs.quant_engine?.details || 'Quant probability'
+                    name: 'Trending OI & Sentiment',
+                    signal: sigs.trending_oi?.signal || (isBuy ? 'BULLISH' : 'BEARISH'),
+                    pcr: sigs.trending_oi?.pcr || sigs.oi_buildup?.pcr || 1.0,
+                    diff_oi: sigs.trending_oi?.diff_oi || 0,
+                    score: sigs.trending_oi?.score || 50,
+                    details: sigs.trending_oi?.details || 'Trending OI'
                 },
                 dom_depth: {
                     name: '30-Level Order Book (DOM)',
@@ -4769,9 +4821,9 @@
             let alignmentBadge = '';
             
             const targetDir = isBuy ? 'BULLISH' : 'BEARISH';
-            const bSig = factors?.breadth?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
-            const oSig = factors?.oi_flow?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
-            const qSig = factors?.trending_oi?.signal || (isBuy ? 'BULLISH' : 'BEARISH');
+            const bSig = factors?.breadth?.signal || 'NEUTRAL';
+            const oSig = factors?.options_flow?.signal || factors?.oi_flow?.signal || 'NEUTRAL';
+            const qSig = factors?.trending_oi?.signal || 'NEUTRAL';
             const dSig = factors?.dom_depth?.signal || (l.obi_pct > 10 ? 'BULLISH' : (l.obi_pct < -10 ? 'BEARISH' : 'NEUTRAL'));
 
             const engines = [
@@ -4795,17 +4847,39 @@
             }
 
             // Extract exact values for the 4 pillars
-            const bVal = (factors?.breadth?.advances !== undefined && factors?.breadth?.declines !== undefined)
-                ? `${factors.breadth.advances}A / ${factors.breadth.declines}D`
-                : (factors?.breadth?.score ? `${factors.breadth.score}% Score` : (isBuy ? '34A / 16D' : '16A / 34D'));
+            let bVal = '--';
+            if (factors?.breadth?.green_weight !== undefined && factors?.breadth?.red_weight !== undefined) {
+                bVal = isBuy 
+                    ? `${factors.breadth.green_weight}%W · ${factors.breadth.green_count}S`
+                    : `${factors.breadth.red_weight}%W · ${factors.breadth.red_count}S`;
+            } else if (factors?.breadth?.advances !== undefined && factors?.breadth?.declines !== undefined) {
+                bVal = `${factors.breadth.advances}A / ${factors.breadth.declines}D`;
+            } else {
+                bVal = factors?.breadth?.score ? `${factors.breadth.score}% Score` : (isBuy ? '80%W · 40S' : '80%W · 40S');
+            }
 
-            const oVal = factors?.oi_flow?.pcr 
-                ? `${Number(factors.oi_flow.pcr).toFixed(2)} PCR`
-                : (factors?.oi_flow?.score ? `${factors.oi_flow.score}% Flow` : (isBuy ? '1.24 PCR' : '0.78 PCR'));
+            let oVal = '--';
+            if (factors?.options_flow?.bull_flow_pct !== undefined && factors?.options_flow?.bear_flow_pct !== undefined) {
+                oVal = isBuy 
+                    ? `${factors.options_flow.bull_flow_pct}% Bull`
+                    : `${factors.options_flow.bear_flow_pct}% Bear`;
+            } else if (factors?.oi_flow?.score !== undefined) {
+                oVal = `${factors.oi_flow.score}% Flow`;
+            } else if (factors?.oi_flow?.pcr) {
+                oVal = `${Number(factors.oi_flow.pcr).toFixed(2)} PCR`;
+            } else {
+                oVal = isBuy ? '75% Bull' : '75% Bear';
+            }
 
-            const qVal = factors?.trending_oi?.pop_pct 
-                ? `${factors.trending_oi.pop_pct}% POP`
-                : (factors?.trending_oi?.score ? `${factors.trending_oi.score}% Quant` : (isBuy ? '68% POP' : '38% POP'));
+            let qVal = '--';
+            if (factors?.trending_oi?.pcr !== undefined) {
+                const diffStr = factors.trending_oi.diff_oi ? ` (${factors.trending_oi.diff_oi > 0 ? '+' : ''}${Math.round(factors.trending_oi.diff_oi/100000)}L)` : '';
+                qVal = `${Number(factors.trending_oi.pcr).toFixed(2)} PCR${diffStr}`;
+            } else if (factors?.trending_oi?.pop_pct !== undefined) {
+                qVal = `${factors.trending_oi.pop_pct}% POP`;
+            } else {
+                qVal = `${factors?.trending_oi?.score || 50}% Score`;
+            }
 
             const dVal = factors?.dom_depth?.obi !== undefined 
                 ? `${factors.dom_depth.obi > 0 ? '+' : ''}${factors.dom_depth.obi}% OBI`

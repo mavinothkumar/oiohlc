@@ -717,38 +717,70 @@ class OrderFlowStrategyController extends Controller
         $cacheKey = "order_flow_signals_{$symbol}_{$date}_{$expiry}_{$atm}";
         return Cache::remember($cacheKey, 5, function () use ($symbol, $date, $expiry, $atm, $spot) {
             $signals = [
-                'quant_engine' => [
-                    'name'        => 'Quant Statistical Prob Engine',
-                    'signal'      => 'NEUTRAL',
-                    'score'       => 50,
-                    'weight'      => 25,
-                    'details'     => 'No high-impact skew detected',
-                    'pop_pct'     => 70.0,
-                    'expected_move' => 120.0,
+                'market_breadth' => [
+                    'name'            => 'NIFTY 50 Stocks Breadth',
+                    'signal'          => 'NEUTRAL',
+                    'score'           => 50,
+                    'weight'          => 25,
+                    'details'         => 'Heavyweights showing mixed divergence',
+                    'advances'        => 25,
+                    'declines'        => 25,
+                    'green_weight'    => 50.0,
+                    'red_weight'      => 50.0,
+                    'green_count'     => 25,
+                    'red_count'       => 25,
+                    'green_count_pct' => 50.0,
+                    'red_count_pct'   => 50.0,
+                    'nifty_move_pts'  => 0.0,
+                    'candle_time'     => null,
                 ],
-                'oi_buildup' => [
-                    'name'        => 'OI Buildup & Trending Flow',
+                'options_flow' => [
+                    'name'          => 'NIFTY Options Flow Parity',
+                    'signal'        => 'NEUTRAL',
+                    'score'         => 50,
+                    'weight'        => 25,
+                    'details'       => 'Options Flow in equilibrium',
+                    'bull_flow_pct' => 50.0,
+                    'bear_flow_pct' => 50.0,
+                    'net_points'    => 0.0,
+                    'candle_time'   => null,
+                ],
+                'trending_oi' => [
+                    'name'        => 'Trending OI & Sentiment',
                     'signal'      => 'NEUTRAL',
                     'score'       => 50,
                     'weight'      => 25,
                     'details'     => 'Balanced Call and Put open interest',
+                    'call_oi'     => 0,
+                    'put_oi'      => 0,
+                    'diff_oi'     => 0,
                     'pcr'         => 1.0,
-                    'net_flow'    => 'Neutral',
+                    'sentiment'   => 0,
+                    'candle_time' => null,
                 ],
-                'market_breadth' => [
-                    'name'        => 'Heavyweight Market Breadth',
-                    'signal'      => 'NEUTRAL',
-                    'score'       => 50,
-                    'weight'      => 20,
-                    'details'     => 'Heavyweights showing mixed divergence',
-                    'advances'    => 25,
-                    'declines'    => 25,
+                'quant_engine' => [
+                    'name'          => 'Quant Statistical Prob Engine',
+                    'signal'        => 'NEUTRAL',
+                    'score'         => 50,
+                    'weight'        => 15,
+                    'details'       => 'Equilibrium state',
+                    'pop_pct'       => 50.0,
+                    'expected_move' => 60.0,
+                ],
+                'oi_buildup' => [
+                    'name'     => 'OI Buildup & PCR',
+                    'signal'   => 'NEUTRAL',
+                    'score'    => 50,
+                    'weight'   => 10,
+                    'details'  => 'Balanced Call and Put open interest',
+                    'pcr'      => 1.0,
+                    'net_flow' => 'Neutral',
                 ],
                 'price_action' => [
                     'name'        => 'Price Action & Breakout Levels',
                     'signal'      => 'NEUTRAL',
                     'score'       => 50,
-                    'weight'      => 15,
+                    'weight'      => 10,
                     'details'     => 'Trading near pivot equilibrium',
                     'pivot'       => $atm,
                     'r1'          => $atm + 100,
@@ -762,220 +794,289 @@ class OrderFlowStrategyController extends Controller
                     'details'     => 'Awaiting live Upstox WebSocket feed updates',
                 ],
                 'unified_macro' => [
-                    'has_call'    => false,
-                    'signal'      => 'NEUTRAL',
-                    'candle_time' => null,
+                    'has_call'       => false,
+                    'signal'         => 'NEUTRAL',
+                    'action'         => null,
+                    'candle_time'    => null,
+                    'strike'         => $atm,
+                    'instrument'     => 'CE',
+                    'spot_price'     => $spot,
+                    'sl_price'       => null,
+                    'tp_price'       => null,
+                    'breadth_weight' => 50.0,
+                    'breadth_count'  => 25,
+                    'net_points'     => 0.0,
                 ],
+                'anchor_trigger' => null,
             ];
 
-            // 1. Live Options Chain PCR & Total Open Interest
-            $livePcr = 1.0;
-            $putOi = 0;
-            $callOi = 0;
-            $hasLiveChain = false;
+            // ── 1. REAL PILLAR 1: NIFTY 50 STOCKS BREADTH (BOTTOM-UP CONSTITUENTS) ──
+            $wBreadthLatest = null;
+            $anchorTrigger = null;
             try {
-                if (Schema::hasTable('option_chains')) {
-                    $pcrRow = DB::table('option_chains')
-                        ->where('trading_symbol', 'like', "{$symbol}%")
-                        ->where('created_at', '>=', Carbon::now('Asia/Kolkata')->subMinutes(30))
-                        ->selectRaw('SUM(CASE WHEN option_type = "PE" THEN oi ELSE 0 END) as put_oi, SUM(CASE WHEN option_type = "CE" THEN oi ELSE 0 END) as call_oi')
-                        ->first();
-                    if ($pcrRow && $pcrRow->call_oi > 0) {
-                        $putOi = (int)$pcrRow->put_oi;
-                        $callOi = (int)$pcrRow->call_oi;
-                        $livePcr = round($putOi / $callOi, 2);
-                        $hasLiveChain = true;
+                $wCtrl = app(NiftyWeightageMonitorController::class);
+                $wRes = $wCtrl->getData(new Request(['date' => $date]));
+                $wData = $wRes->getData(true);
+                $wBreadth = $wData['breadth_by_time'] ?? [];
+
+                // Scan all 5m candles today for Master Strategic Anchor (MUST be >= 80% in BOTH Weight AND Stocks)
+                foreach ($wBreadth as $timeKey => $bInfo) {
+                    $gw = (float)($bInfo['green_weight'] ?? 0);
+                    $rw = (float)($bInfo['red_weight'] ?? 0);
+                    $gcPct = (float)($bInfo['green_count_pct'] ?? 0);
+                    $rcPct = (float)($bInfo['red_count_pct'] ?? 0);
+                    $gc = (int)($bInfo['green_count'] ?? 0);
+                    $rc = (int)($bInfo['red_count'] ?? 0);
+                    $pts = (float)($bInfo['nifty_move_pts'] ?? 0);
+
+                    if ($gw >= 80.0 && $gcPct >= 80.0) {
+                        $anchorTrigger = [
+                            'direction'   => 'BULLISH',
+                            'signal'      => 'BUY',
+                            'candle_time' => $timeKey,
+                            'weight'      => $gw,
+                            'count'       => $gc,
+                            'count_pct'   => $gcPct,
+                            'net_points'  => $pts,
+                        ];
+                    } elseif ($rw >= 80.0 && $rcPct >= 80.0) {
+                        $anchorTrigger = [
+                            'direction'   => 'BEARISH',
+                            'signal'      => 'SELL',
+                            'candle_time' => $timeKey,
+                            'weight'      => $rw,
+                            'count'       => $rc,
+                            'count_pct'   => $rcPct,
+                            'net_points'  => $pts,
+                        ];
                     }
+                }
+
+                if (!empty($wBreadth)) {
+                    $lastTimeKey = array_key_last($wBreadth);
+                    $wBreadthLatest = $wBreadth[$lastTimeKey];
+                    $wBreadthLatest['time_key'] = $lastTimeKey;
                 }
             } catch (\Throwable $e) {}
 
-            // 2. Primary Macro Driver: Unified Monitor (Zero-Click Alert Engine)
-            $latestAlert = null;
-            if (Schema::hasTable('zero_click_alert_logs')) {
-                $latestAlert = DB::table('zero_click_alert_logs')
-                    ->where('symbol', $symbol)
-                    ->where('trade_date', $date)
-                    ->orderByDesc('id')
-                    ->first();
+            if ($wBreadthLatest) {
+                $gw = (float)($wBreadthLatest['green_weight'] ?? 50);
+                $rw = (float)($wBreadthLatest['red_weight'] ?? 50);
+                $gc = (int)($wBreadthLatest['green_count'] ?? 25);
+                $rc = (int)($wBreadthLatest['red_count'] ?? 25);
+                $gcPct = (float)($wBreadthLatest['green_count_pct'] ?? 50);
+                $rcPct = (float)($wBreadthLatest['red_count_pct'] ?? 50);
+                $pts = (float)($wBreadthLatest['nifty_move_pts'] ?? 0);
+                $cTime = $wBreadthLatest['time_key'] ?? 'live';
+
+                // Condition 1: MUST reach >= 80% in BOTH Weight AND Stocks to be Bullish or Bearish!
+                $breadthSignal = 'NEUTRAL';
+                if ($gw >= 80.0 && $gcPct >= 80.0) {
+                    $breadthSignal = 'BULLISH';
+                } elseif ($rw >= 80.0 && $rcPct >= 80.0) {
+                    $breadthSignal = 'BEARISH';
+                }
+
+                $signals['market_breadth'] = [
+                    'name'            => 'NIFTY 50 Stocks Breadth',
+                    'signal'          => $breadthSignal,
+                    'score'           => round($gw),
+                    'weight'          => 25,
+                    'details'         => "{$gw}% Green ({$gc} stocks) vs {$rw}% Red ({$rc} stocks) at {$cTime}",
+                    'advances'        => $gc,
+                    'declines'        => $rc,
+                    'green_weight'    => $gw,
+                    'red_weight'      => $rw,
+                    'green_count'     => $gc,
+                    'red_count'       => $rc,
+                    'green_count_pct' => $gcPct,
+                    'red_count_pct'   => $rcPct,
+                    'nifty_move_pts'  => $pts,
+                    'candle_time'     => $cTime,
+                ];
             }
 
-            if ($latestAlert) {
-                $isSell = ($latestAlert->signal === 'SELL');
-                $candleTime = $latestAlert->candle_time;
-                $strike = (int)$latestAlert->strike;
-                $inst = $latestAlert->instrument;
-                $netPts = (float)$latestAlert->net_points;
-                $breadthWeight = (float)$latestAlert->breadth_weight_pct;
-                $breadthCount = (int)$latestAlert->breadth_count;
+            // ── 2. REAL PILLAR 2: NIFTY 50 OPTIONS FLOW PARITY ──
+            $oBreadthLatest = null;
+            try {
+                $oCtrl = app(OptionsBreadthMonitorController::class);
+                $oRes = $oCtrl->getData(new Request([
+                    'symbol'      => 'NIFTY',
+                    'date'        => $date,
+                    'range'       => 5,
+                    'expiry'      => $expiry,
+                    'basket_mode' => 'dynamic'
+                ]));
+                $oData = $oRes->getData(true);
+                $oBreadth = $oData['breadth_by_time'] ?? [];
+                if (!empty($oBreadth)) {
+                    $lastOTime = array_key_last($oBreadth);
+                    $oBreadthLatest = $oBreadth[$lastOTime];
+                    $oBreadthLatest['time_key'] = $lastOTime;
+                }
+            } catch (\Throwable $e) {}
 
+            if ($oBreadthLatest) {
+                $bullFlow = (float)($oBreadthLatest['up_weight'] ?? 50);
+                $bearFlow = (float)($oBreadthLatest['down_weight'] ?? 50);
+                $oPts = (float)($oBreadthLatest['net_points'] ?? 0);
+                $oTime = $oBreadthLatest['time_key'] ?? 'live';
+
+                // Condition 2: MUST reach >= 70% in Bull Flow or Bear Flow!
+                $optSignal = 'NEUTRAL';
+                if ($bullFlow >= 70.0) {
+                    $optSignal = 'BULLISH';
+                } elseif ($bearFlow >= 70.0) {
+                    $optSignal = 'BEARISH';
+                }
+
+                $signals['options_flow'] = [
+                    'name'          => 'NIFTY Options Flow Parity',
+                    'signal'        => $optSignal,
+                    'score'         => round($bullFlow),
+                    'weight'        => 25,
+                    'bull_flow_pct' => $bullFlow,
+                    'bear_flow_pct' => $bearFlow,
+                    'net_points'    => $oPts,
+                    'candle_time'   => $oTime,
+                    'details'       => "Options Flow: {$bullFlow}% Bull vs {$bearFlow}% Bear at {$oTime}",
+                ];
+            }
+
+            // ── 3. REAL PILLAR 3: TRENDING OI & SENTIMENT (CE vs PE DIFFERENCE) ──
+            try {
+                $toiCtrl = app(TrendingOiController::class);
+                $tRes = $toiCtrl->getData(new Request([
+                    'mode'        => 'live',
+                    'expiry'      => $expiry,
+                    'date'        => $date,
+                    'underlying'  => 'NSE_INDEX|Nifty 50',
+                    'interval'    => 5,
+                    'lookback'    => 'auto',
+                    'skip_open'   => 0
+                ]));
+                $tData = $tRes->getData(true);
+                $chart = $tData['chart'] ?? [];
+                $labels = $chart['labels'] ?? [];
+                $len = count($labels);
+                if ($len > 0) {
+                    $lastIdx = $len - 1;
+                    $cOi = (float)($chart['call_oi'][$lastIdx] ?? 0);
+                    $pOi = (float)($chart['put_oi'][$lastIdx] ?? 0);
+                    $sent = (float)($chart['sentiment'][$lastIdx] ?? 0);
+                    $diff = $pOi - $cOi; // Positive = Put Writing (Bullish); Negative = Call Writing (Bearish)
+                    $toiPcr = $cOi > 0 ? round($pOi / $cOi, 2) : 1.0;
+                    $toiTime = $labels[$lastIdx];
+
+                    // Condition 3: MUST match the flow! (PE > CE and PCR >= 1.05 for Bull; CE > PE and PCR <= 0.95 for Bear)
+                    $toiSignal = 'NEUTRAL';
+                    if ($pOi > $cOi && $toiPcr >= 1.05 && $diff > 0) {
+                        $toiSignal = 'BULLISH';
+                    } elseif ($cOi > $pOi && $toiPcr <= 0.95 && $diff < 0) {
+                        $toiSignal = 'BEARISH';
+                    }
+
+                    $diffL = round(abs($diff) / 100000, 1);
+                    $diffSign = $diff >= 0 ? "+{$diffL}L PE" : "-{$diffL}L CE";
+
+                    $signals['trending_oi'] = [
+                        'name'        => 'Trending OI & Sentiment',
+                        'signal'      => $toiSignal,
+                        'score'       => $toiSignal === 'BULLISH' ? 75 : ($toiSignal === 'BEARISH' ? 25 : 50),
+                        'weight'      => 25,
+                        'call_oi'     => $cOi,
+                        'put_oi'      => $pOi,
+                        'diff_oi'     => $diff,
+                        'pcr'         => $toiPcr,
+                        'sentiment'   => $sent,
+                        'candle_time' => $toiTime,
+                        'details'     => "PCR: {$toiPcr} | Diff: {$diffSign} | {$toiSignal}",
+                    ];
+
+                    $signals['oi_buildup']['pcr'] = $toiPcr;
+                    $signals['oi_buildup']['signal'] = $toiSignal;
+                    $signals['oi_buildup']['details'] = $signals['trending_oi']['details'];
+                }
+            } catch (\Throwable $e) {}
+
+            // ── 4. MASTER STRATEGIC ANCHOR & UNIFIED MACRO SYNC ──
+            $signals['anchor_trigger'] = $anchorTrigger;
+            if ($anchorTrigger) {
                 $signals['unified_macro'] = [
                     'has_call'       => true,
-                    'signal'         => $latestAlert->signal,
-                    'action'         => $latestAlert->action,
-                    'candle_time'    => $candleTime,
-                    'strike'         => $strike,
-                    'instrument'     => $inst,
-                    'spot_price'     => (float)$latestAlert->spot_price,
-                    'sl_price'       => (float)$latestAlert->sl_price,
-                    'tp_price'       => (float)$latestAlert->tp_price,
-                    'breadth_weight' => $breadthWeight,
-                    'breadth_count'  => $breadthCount,
-                    'net_points'     => $netPts,
+                    'signal'         => $anchorTrigger['signal'],
+                    'action'         => $anchorTrigger['signal'] === 'BUY' ? 'SELL PE' : 'SELL CE',
+                    'candle_time'    => $anchorTrigger['candle_time'],
+                    'strike'         => $atm,
+                    'instrument'     => $anchorTrigger['signal'] === 'BUY' ? 'PE' : 'CE',
+                    'spot_price'     => $spot,
+                    'sl_price'       => null,
+                    'tp_price'       => null,
+                    'breadth_weight' => $anchorTrigger['weight'],
+                    'breadth_count'  => $anchorTrigger['count'],
+                    'net_points'     => $anchorTrigger['net_points'],
                 ];
-
-                // Dynamically calculated probability of profit (POP) based on net points drag and breadth magnitude
-                $popPct = min(94.0, max(58.0, round(50.0 + (abs($netPts) * 0.45) + (abs($breadthWeight - 50.0) * 0.5), 1)));
-                $expectedMove = round(max(40.0, abs((float)$latestAlert->tp_price - (float)$latestAlert->spot_price)), 1);
-
-                if ($isSell) {
-                    $bScore = max(8, min(30, round(100 - $breadthWeight)));
-                    $signals['market_breadth'] = [
-                        'name'     => 'Unified Stock Weightage Breadth',
-                        'signal'   => 'BEARISH',
-                        'score'    => $bScore,
-                        'weight'   => 25,
-                        'details'  => "Bears Leading: {$breadthWeight}% Red Weight ({$breadthCount} stocks down, {$netPts} pts at {$candleTime})",
-                        'advances' => max(0, 50 - $breadthCount),
-                        'declines' => $breadthCount,
-                    ];
-
-                    $quantScore = max(6, min(32, round(100 - $popPct)));
-                    $signals['quant_engine'] = [
-                        'name'          => 'Quant Statistical Prob Engine',
-                        'signal'        => 'BEARISH',
-                        'score'         => $quantScore,
-                        'weight'        => 25,
-                        'details'       => "5m Breakdown at {$candleTime} (Net Drag {$netPts} pts | POP {$popPct}%)",
-                        'pop_pct'       => $popPct,
-                        'expected_move' => $expectedMove,
-                    ];
-
-                    $oiScore = min(38, max(10, round(50 - (abs($netPts) * 0.75) - (($breadthWeight - 50) * 0.3))));
-                    $signals['oi_buildup'] = [
-                        'name'     => 'OI Buildup & Trending Flow',
-                        'signal'   => 'BEARISH',
-                        'score'    => $oiScore,
-                        'weight'   => 20,
-                        'details'  => "Call Writing Dominance at {$strike} CE (Live PCR: {$livePcr})",
-                        'pcr'      => $livePcr,
-                        'net_flow' => "Downside Flow at {$strike} CE",
-                    ];
-
-                    $signals['price_action'] = [
-                        'name'     => 'Price Action & Breakout Levels',
-                        'signal'   => 'BEARISH',
-                        'score'    => max(10, min(35, round(50 - abs($netPts)))),
-                        'weight'   => 15,
-                        'details'  => "Breakdown below {$latestAlert->spot_price} | TGT: {$latestAlert->tp_price} | SL: {$latestAlert->sl_price}",
-                        'pivot'    => (int)$strike,
-                        'r1'       => (float)$latestAlert->sl_price,
-                        's1'       => (float)$latestAlert->tp_price,
-                    ];
-                } else {
-                    $bScore = min(92, max(70, round($breadthWeight)));
-                    $signals['market_breadth'] = [
-                        'name'     => 'Unified Stock Weightage Breadth',
-                        'signal'   => 'BULLISH',
-                        'score'    => $bScore,
-                        'weight'   => 25,
-                        'details'  => "Bulls Leading: {$breadthWeight}% Green Weight ({$breadthCount} stocks up, +{$netPts} pts at {$candleTime})",
-                        'advances' => $breadthCount,
-                        'declines' => max(0, 50 - $breadthCount),
-                    ];
-
-                    $quantScore = min(94, max(68, round($popPct)));
-                    $signals['quant_engine'] = [
-                        'name'          => 'Quant Statistical Prob Engine',
-                        'signal'        => 'BULLISH',
-                        'score'         => $quantScore,
-                        'weight'        => 25,
-                        'details'       => "5m Breakout at {$candleTime} (Net Push +{$netPts} pts | POP {$popPct}%)",
-                        'pop_pct'       => $popPct,
-                        'expected_move' => $expectedMove,
-                    ];
-
-                    $oiScore = min(90, max(62, round(50 + ($netPts * 0.75) + (($breadthWeight - 50) * 0.3))));
-                    $signals['oi_buildup'] = [
-                        'name'     => 'OI Buildup & Trending Flow',
-                        'signal'   => 'BULLISH',
-                        'score'    => $oiScore,
-                        'weight'   => 20,
-                        'details'  => "Put Writing Dominance at {$strike} PE (Live PCR: {$livePcr})",
-                        'pcr'      => $livePcr,
-                        'net_flow' => "Upside Support at {$strike} PE",
-                    ];
-
-                    $signals['price_action'] = [
-                        'name'     => 'Price Action & Breakout Levels',
-                        'signal'   => 'BULLISH',
-                        'score'    => min(90, max(65, round(50 + $netPts))),
-                        'weight'   => 15,
-                        'details'  => "Breakout above {$latestAlert->spot_price} | TGT: {$latestAlert->tp_price} | SL: {$latestAlert->sl_price}",
-                        'pivot'    => (int)$strike,
-                        'r1'       => (float)$latestAlert->tp_price,
-                        's1'       => (float)$latestAlert->sl_price,
-                    ];
-                }
             } else {
-                // Fallback: Dynamically evaluate Live PCR & trend when no 5m zero-click alert has triggered
-                $confluence = min(88, max(15, (int) round(50 + ($livePcr - 1.0) * 80)));
-                $quantSignal = $confluence >= 60 ? 'BULLISH' : ($confluence <= 40 ? 'BEARISH' : 'NEUTRAL');
-                $expectedMove = round($spot * 0.0075, 1);
-                $pop = $confluence >= 65 || $confluence <= 35 ? 76.0 : 54.0;
+                // Secondary check: look for legitimate historical alerts in zero_click_alert_logs (strictly >= 80% breadth)
+                $legitAlert = null;
+                if (Schema::hasTable('zero_click_alert_logs')) {
+                    $legitAlert = DB::table('zero_click_alert_logs')
+                        ->where('symbol', $symbol)
+                        ->where('trade_date', $date)
+                        ->whereNotIn('category', ['ORDER_FLOW_DEPTH', 'ORDER_FLOW_TEST', 'ORDER_FLOW_STRATEGY'])
+                        ->where('breadth_weight_pct', '>=', 80.0)
+                        ->where('breadth_count', '>=', 40)
+                        ->orderByDesc('id')
+                        ->first();
+                }
 
-                $signals['quant_engine'] = [
-                    'name'          => 'Quant Statistical Prob Engine',
-                    'signal'        => $quantSignal,
-                    'score'         => $confluence,
-                    'weight'        => 25,
-                    'details'       => "POP {$pop}% | Expected Range ±{$expectedMove} pts",
-                    'pop_pct'       => $pop,
-                    'expected_move' => $expectedMove,
-                ];
-
-                $signals['oi_buildup'] = [
-                    'name'     => 'OI Buildup & Trending Flow',
-                    'signal'   => $quantSignal,
-                    'score'    => $confluence,
-                    'weight'   => 25,
-                    'details'  => "Live Market PCR: {$livePcr}",
-                    'pcr'      => $livePcr,
-                    'net_flow' => $quantSignal,
-                ];
-
-                if ($hasLiveChain) {
-                    $signals['market_breadth'] = [
-                        'name'     => 'Market Flow Direction',
-                        'signal'   => $quantSignal,
-                        'score'    => $confluence,
-                        'weight'   => 20,
-                        'details'  => "Options Chain Bias: {$quantSignal} (PCR: {$livePcr})",
-                        'advances' => $confluence >= 50 ? 30 : 20,
-                        'declines' => $confluence >= 50 ? 20 : 30,
+                if ($legitAlert) {
+                    $signals['anchor_trigger'] = [
+                        'direction'   => $legitAlert->signal === 'BUY' ? 'BULLISH' : 'BEARISH',
+                        'signal'      => $legitAlert->signal,
+                        'candle_time' => $legitAlert->candle_time,
+                        'weight'      => (float)$legitAlert->breadth_weight_pct,
+                        'count'       => (int)$legitAlert->breadth_count,
+                        'count_pct'   => (float)$legitAlert->breadth_pct,
+                        'net_points'  => (float)$legitAlert->net_points,
+                    ];
+                    $signals['unified_macro'] = [
+                        'has_call'       => true,
+                        'signal'         => $legitAlert->signal,
+                        'action'         => $legitAlert->action,
+                        'candle_time'    => $legitAlert->candle_time,
+                        'strike'         => (int)$legitAlert->strike,
+                        'instrument'     => $legitAlert->instrument,
+                        'spot_price'     => (float)$legitAlert->spot_price,
+                        'sl_price'       => (float)$legitAlert->sl_price,
+                        'tp_price'       => (float)$legitAlert->tp_price,
+                        'breadth_weight' => (float)$legitAlert->breadth_weight_pct,
+                        'breadth_count'  => (int)$legitAlert->breadth_count,
+                        'net_points'     => (float)$legitAlert->net_points,
                     ];
                 }
             }
 
-        // 4. Calculate Aggregate Confluence Score
-        $totalWeight = 0;
-        $weightedScore = 0;
+            // ── 5. AGGREGATE STATIC CONFLUENCE SCORE ──
+            $totalWeight = 0;
+            $weightedScore = 0;
 
-        foreach ($signals as $key => $sig) {
-            if ($key === 'depth_orderflow' || !isset($sig['weight'], $sig['score'])) continue;
-            $w = $sig['weight'];
-            $s = $sig['score'];
-            $weightedScore += ($s * $w);
-            $totalWeight += $w;
-        }
+            foreach ($signals as $key => $sig) {
+                if ($key === 'depth_orderflow' || !isset($sig['weight'], $sig['score'])) continue;
+                $w = $sig['weight'];
+                $s = $sig['score'];
+                $weightedScore += ($s * $w);
+                $totalWeight += $w;
+            }
 
-        $staticConfluence = $totalWeight > 0 ? round($weightedScore / $totalWeight) : 50;
+            $staticConfluence = $totalWeight > 0 ? round($weightedScore / $totalWeight) : 50;
 
-        $overallSignal = 'NEUTRAL';
-        if ($staticConfluence >= 70) {
-            $overallSignal = 'BULLISH';
-        } elseif ($staticConfluence <= 35) {
-            $overallSignal = 'BEARISH';
-        }
+            $overallSignal = 'NEUTRAL';
+            if ($staticConfluence >= 70 && $signals['market_breadth']['signal'] === 'BULLISH' && $signals['options_flow']['signal'] === 'BULLISH') {
+                $overallSignal = 'BULLISH';
+            } elseif ($staticConfluence <= 35 && $signals['market_breadth']['signal'] === 'BEARISH' && $signals['options_flow']['signal'] === 'BEARISH') {
+                $overallSignal = 'BEARISH';
+            }
 
             return [
                 'factors'           => $signals,
