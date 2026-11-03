@@ -334,6 +334,20 @@ class OrderFlowStrategyController extends Controller
         $isBull = (str_contains($log->signal_type, 'BUY') || str_contains($log->action, 'CALL') || str_contains($log->action, 'BUY'));
         $marketSignal = $isBull ? 'BUY' : 'SELL';
 
+        $protectionBasis = strtoupper(trim((string)$request->input('protection_basis', 'STRIKE')));
+        if (!in_array($protectionBasis, ['STRIKE', 'NIFTY', 'BOTH', 'INDEX'], true)) {
+            $protectionBasis = 'STRIKE';
+        }
+        if ($protectionBasis === 'INDEX') {
+            $protectionBasis = 'NIFTY';
+        }
+
+        $slPts = max(1, (float)$request->input('sl_pts', 20));
+        $tpPts = max(1, (float)$request->input('tp_pts', 20));
+
+        $spotPrice = (float)($log->spot_price ?: $log->entry_price ?: 23600.0);
+        $optEntry = (float)($log->opt_entry ?: 135.0);
+
         // 0Click Standard Contract v1.0:
         // Option Selling: Bullish Market -> SELL ITM PE; Bearish Market -> SELL ITM CE
         // Option Buying: Bullish Market -> BUY ATM CE; Bearish Market -> BUY ATM PE
@@ -345,27 +359,69 @@ class OrderFlowStrategyController extends Controller
             $orderAction = 'SELL';
         }
 
-        $strike = $log->opt_strike ?: (int)round($log->spot_price / 100.0) * 100;
+        $strike = $log->opt_strike ?: (int)round($spotPrice / 100.0) * 100;
         $strikeName = "{$log->symbol} {$strike} {$instrument}";
 
+        // Calculate Strike SL & TP vs Nifty Spot SL & TP
+        $posSlPrice = null;
+        $posTgtPrice = null;
+        $niftySl = null;
+        $niftyTp = null;
+
+        if ($protectionBasis === 'STRIKE' || $protectionBasis === 'BOTH') {
+            // For Option Selling (SELL): premium rise is loss -> optEntry + slPts, decay is profit -> optEntry - tpPts
+            // For Option Buying (BUY): premium drop is loss -> optEntry - slPts, rise is profit -> optEntry + tpPts
+            $posSlPrice = ($orderAction === 'SELL')
+                ? round($optEntry + $slPts, 2)
+                : max(0.05, round($optEntry - $slPts, 2));
+
+            $posTgtPrice = ($orderAction === 'SELL')
+                ? max(0.05, round($optEntry - $tpPts, 2))
+                : round($optEntry + $tpPts, 2);
+        }
+
+        if ($protectionBasis === 'NIFTY' || $protectionBasis === 'BOTH') {
+            $niftySl = $isBull ? round($spotPrice - $slPts, 2) : round($spotPrice + $slPts, 2);
+            $niftyTp = $isBull ? round($spotPrice + $tpPts, 2) : round($spotPrice - $tpPts, 2);
+        }
+
         $payload = [
-            'category'       => 'ORDER_FLOW_DEPTH',
-            'signal'         => $marketSignal,
-            'action'         => $orderAction,
-            'trade_type'     => $orderAction,
-            'symbol'         => $log->symbol,
-            'instrument'     => $instrument,
-            'option_type'    => $instrument,
-            'strike'         => $strike,
-            'strike_name'    => $strikeName,
-            'trading_symbol' => $strikeName,
-            'price'          => $log->spot_price ?: $log->entry_price,
-            'sl'             => $log->stop_loss,
-            'tp'             => $log->target_price,
-            'lots'           => $lots,
-            'mode'           => $mode,
-            'product'        => 'MARGIN',
+            'category'         => 'ORDER_FLOW_DEPTH',
+            'signal'           => $marketSignal,
+            'action'           => $orderAction,
+            'trade_type'       => $orderAction,
+            'symbol'           => $log->symbol,
+            'instrument'       => $instrument,
+            'option_type'      => $instrument,
+            'strike'           => $strike,
+            'strike_name'      => $strikeName,
+            'trading_symbol'   => $strikeName,
+            'price'            => $spotPrice,
+            'opt_price'        => $optEntry,
+            'protection_basis' => $protectionBasis,
+            'sl_pts'           => $slPts,
+            'tp_pts'           => $tpPts,
+            'strike_sl'        => $posSlPrice,
+            'strike_tp'        => $posTgtPrice,
+            'sl'               => ($protectionBasis === 'STRIKE') ? $slPts : $niftySl,
+            'tp'               => ($protectionBasis === 'STRIKE') ? $tpPts : $niftyTp,
+            'nifty_sl'         => $niftySl,
+            'nifty_tp'         => $niftyTp,
+            'lots'             => $lots,
+            'mode'             => $mode,
+            'product'          => 'MARGIN',
         ];
+
+        if ($request->filled('mtm_target') && (float)$request->input('mtm_target') > 0) {
+            $payload['mtm_target'] = (float)$request->input('mtm_target');
+        }
+        if ($request->filled('mtm_loss') && (float)$request->input('mtm_loss') > 0) {
+            $payload['mtm_loss'] = (float)$request->input('mtm_loss');
+        }
+        if ($request->boolean('auto_trailing_loss')) {
+            $payload['auto_trailing_loss'] = true;
+            $payload['trail_step'] = (float)$request->input('trail_step', 1000);
+        }
 
         if (!empty($token)) {
             $payload['secret'] = $token;
@@ -502,8 +558,17 @@ class OrderFlowStrategyController extends Controller
         $lots = max(1, (int) $request->input('lots', 1));
         $tradeStyle = $request->input('trade_style', 'OPTION_SELLING');
         $price = (float) $request->input('price', 23300.0);
-        $sl = (float) $request->input('sl', $signal === 'BUY' ? $price - 25 : $price + 25);
-        $tp = (float) $request->input('tp', $signal === 'BUY' ? $price + 60 : $price - 60);
+        $optPrice = (float) $request->input('opt_price', 135.0);
+        $protectionBasis = strtoupper(trim((string)$request->input('protection_basis', 'STRIKE')));
+        if (!in_array($protectionBasis, ['STRIKE', 'NIFTY', 'BOTH', 'INDEX'], true)) {
+            $protectionBasis = 'STRIKE';
+        }
+        if ($protectionBasis === 'INDEX') {
+            $protectionBasis = 'NIFTY';
+        }
+
+        $slPts = max(1, (float)$request->input('sl_pts', 20));
+        $tpPts = max(1, (float)$request->input('tp_pts', 20));
 
         $isBull = ($signal === 'BUY');
         if ($tradeStyle === 'OPTION_BUYING') {
@@ -517,24 +582,63 @@ class OrderFlowStrategyController extends Controller
         $strike = ((int)floor($price / 100.0) + ($isBull ? 1 : -1)) * 100;
         $strikeName = "NIFTY {$strike} {$instrument}";
 
+        $posSlPrice = null;
+        $posTgtPrice = null;
+        $niftySl = null;
+        $niftyTp = null;
+
+        if ($protectionBasis === 'STRIKE' || $protectionBasis === 'BOTH') {
+            $posSlPrice = ($orderAction === 'SELL')
+                ? round($optPrice + $slPts, 2)
+                : max(0.05, round($optPrice - $slPts, 2));
+
+            $posTgtPrice = ($orderAction === 'SELL')
+                ? max(0.05, round($optPrice - $tpPts, 2))
+                : round($optPrice + $tpPts, 2);
+        }
+
+        if ($protectionBasis === 'NIFTY' || $protectionBasis === 'BOTH') {
+            $niftySl = $isBull ? round($price - $slPts, 2) : round($price + $slPts, 2);
+            $niftyTp = $isBull ? round($price + $tpPts, 2) : round($price - $tpPts, 2);
+        }
+
         $payload = [
-            'category'       => 'ORDER_FLOW_TEST',
-            'signal'         => $signal,
-            'action'         => $orderAction,
-            'trade_type'     => $orderAction,
-            'symbol'         => 'NIFTY',
-            'instrument'     => $instrument,
-            'option_type'    => $instrument,
-            'strike'         => $strike,
-            'strike_name'    => $strikeName,
-            'trading_symbol' => $strikeName,
-            'price'          => $price,
-            'sl'             => $sl,
-            'tp'             => $tp,
-            'lots'           => $lots,
-            'mode'           => $mode,
-            'product'        => 'MARGIN',
+            'category'         => 'ORDER_FLOW_TEST',
+            'signal'           => $signal,
+            'action'           => $orderAction,
+            'trade_type'       => $orderAction,
+            'symbol'           => 'NIFTY',
+            'instrument'       => $instrument,
+            'option_type'      => $instrument,
+            'strike'           => $strike,
+            'strike_name'      => $strikeName,
+            'trading_symbol'   => $strikeName,
+            'price'            => $price,
+            'opt_price'        => $optPrice,
+            'protection_basis' => $protectionBasis,
+            'sl_pts'           => $slPts,
+            'tp_pts'           => $tpPts,
+            'strike_sl'        => $posSlPrice,
+            'strike_tp'        => $posTgtPrice,
+            'sl'               => ($protectionBasis === 'STRIKE') ? $slPts : $niftySl,
+            'tp'               => ($protectionBasis === 'STRIKE') ? $tpPts : $niftyTp,
+            'nifty_sl'         => $niftySl,
+            'nifty_tp'         => $niftyTp,
+            'lots'             => $lots,
+            'mode'             => $mode,
+            'product'          => 'MARGIN',
         ];
+
+        if ($request->filled('mtm_target') && (float)$request->input('mtm_target') > 0) {
+            $payload['mtm_target'] = (float)$request->input('mtm_target');
+        }
+        if ($request->filled('mtm_loss') && (float)$request->input('mtm_loss') > 0) {
+            $payload['mtm_loss'] = (float)$request->input('mtm_loss');
+        }
+        if ($request->boolean('auto_trailing_loss')) {
+            $payload['auto_trailing_loss'] = true;
+            $payload['trail_step'] = (float)$request->input('trail_step', 1000);
+        }
 
         if (!empty($token)) {
             $payload['secret'] = $token;

@@ -1230,22 +1230,49 @@
                             </div>
 
                             <div>
-                                <label class="text-slate-400 block mb-0.5">SL Calculation</label>
-                                <select id="zc-sl-mode-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-white focus:outline-none cursor-pointer">
-                                    <option value="candle_hl" selected>Candle High/Low</option>
-                                    <option value="wall">Order Book Wall</option>
-                                    <option value="fixed_pts">Fixed Points</option>
+                                <label class="text-slate-400 block mb-0.5">SL & TP Reference Basis</label>
+                                <select id="zc-protection-basis-select" onchange="updateZcBasisHint()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-sky-300 font-bold focus:outline-none focus:border-sky-400 cursor-pointer">
+                                    <option value="STRIKE" selected>🎯 Strike / Option Premium (Pts)</option>
+                                    <option value="NIFTY">📈 NIFTY 50 Spot (Index Pts)</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="text-rose-400 font-bold block mb-0.5">SL Buffer (Pts)</label>
-                                <input type="number" id="zc-sl-pts-input" value="15" min="0" max="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-rose-300 font-mono focus:outline-none">
+                                <label class="text-rose-400 font-bold block mb-0.5" id="lbl-zc-sl-pts">SL (Points)</label>
+                                <input type="number" id="zc-sl-pts-input" oninput="updateZcBasisHint()" value="20" min="0" max="500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-rose-300 font-mono font-bold focus:outline-none">
                             </div>
 
                             <div>
-                                <label class="text-emerald-400 font-bold block mb-0.5">Target TP1 (Pts)</label>
-                                <input type="number" id="zc-tp-pts-input" value="100" min="10" max="500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-300 font-mono focus:outline-none">
+                                <label class="text-emerald-400 font-bold block mb-0.5" id="lbl-zc-tp-pts">TP (Points)</label>
+                                <input type="number" id="zc-tp-pts-input" oninput="updateZcBasisHint()" value="20" min="1" max="1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-300 font-mono font-bold focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- Dynamic Protection Formula Hint --}}
+                        <div id="zc-basis-hint-box" class="px-2.5 py-1.5 rounded-lg bg-sky-950/40 border border-sky-500/30 text-[10px] text-sky-200 flex items-center gap-2">
+                            <span class="text-xs">💡</span>
+                            <span id="zc-basis-hint-text"><b>Strike Basis:</b> If Option Entry is ₹135 with 20 SL & 20 TP &rarr; <b>SL: ₹155.00</b> (+20), <b>Target: ₹115.00</b> (-20) on option selling decay.</span>
+                        </div>
+
+                        {{-- Optional Portfolio MTM Amount Protection Row --}}
+                        <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5">
+                            <div class="text-[10.5px] font-bold text-slate-300 flex items-center gap-1.5">
+                                <span>🛡️ Portfolio MTM Protection (₹ Amount)</span>
+                                <span class="text-[9px] text-slate-500 font-normal">(Optional dual protection running simultaneously in 0Click)</span>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-emerald-400 font-bold text-[9.5px] block mb-0.5">Target Profit (₹)</label>
+                                    <input type="number" id="zc-mtm-target-input" placeholder="e.g. 5000" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-emerald-300 font-mono focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-rose-400 font-bold text-[9.5px] block mb-0.5">Max Stop Loss (₹)</label>
+                                    <input type="number" id="zc-mtm-loss-input" placeholder="e.g. 3000" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-rose-300 font-mono focus:outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 pt-3 sm:pt-4">
+                                    <input type="checkbox" id="zc-mtm-auto-trail" class="accent-amber-400 h-3.5 w-3.5 cursor-pointer">
+                                    <label for="zc-mtm-auto-trail" class="text-[10px] font-bold text-amber-300 cursor-pointer">Auto-Trail MTM</label>
+                                </div>
                             </div>
                         </div>
 
@@ -1495,6 +1522,12 @@
         mode: 'SIMULATION',
         lots: 1,
         tradeStyle: 'OPTION_SELLING',
+        protectionBasis: 'STRIKE', // 'STRIKE' (Strike/Option Premium Points) or 'NIFTY' (Index Spot Points)
+        slPts: 20,
+        tpPts: 20,
+        mtmTarget: null,
+        mtmLoss: null,
+        mtmAutoTrail: false,
         slMode: 'candle_hl',
         slBufferPts: 15,
         targetTp1Pts: 100,
@@ -1503,6 +1536,30 @@
         maxDailyTrades: 3,
         enableTimeRestriction: true,
         apiStartTime: '09:30'
+    };
+
+    window.updateZcBasisHint = function() {
+        const basis = document.getElementById('zc-protection-basis-select')?.value || zeroClickSettings.protectionBasis || 'STRIKE';
+        const textEl = document.getElementById('zc-basis-hint-text');
+        const slInput = document.getElementById('zc-sl-pts-input');
+        const tpInput = document.getElementById('zc-tp-pts-input');
+        const slVal = parseFloat(slInput?.value || 20);
+        const tpVal = parseFloat(tpInput?.value || 20);
+
+        if (!textEl) return;
+        if (basis === 'STRIKE') {
+            const sampleEntry = 135.0;
+            const slPrice = (sampleEntry + slVal).toFixed(2);
+            const tpPrice = Math.max(0.05, sampleEntry - tpVal).toFixed(2);
+            textEl.innerHTML = `<b>🎯 Strike / Option Premium Basis:</b> If Option entry is ₹${sampleEntry} with ${slVal} SL & ${tpVal} TP &rarr; <b>SL: ₹${slPrice}</b> (+${slVal} pts), <b>Target: ₹${tpPrice}</b> (-${tpVal} pts) for Option Selling (decay).`;
+        } else {
+            const sampleSpot = 23670.0;
+            const bullSl = (sampleSpot - slVal).toFixed(1);
+            const bullTp = (sampleSpot + tpVal).toFixed(1);
+            const bearSl = (sampleSpot + slVal).toFixed(1);
+            const bearTp = (sampleSpot - tpVal).toFixed(1);
+            textEl.innerHTML = `<b>📈 NIFTY 50 Spot Basis:</b> If Nifty Spot is 23,670 with ${slVal} SL & ${tpVal} TP &rarr; <b>Bull:</b> SL ${bullSl} (-${slVal}), TP ${bullTp} (+${tpVal}) | <b>Bear:</b> SL ${bearSl} (+${slVal}), TP ${bearTp} (-${tpVal}).`;
+        }
     };
 
     function getApiDispatchedCount() {
@@ -1782,11 +1839,21 @@
         const tokenInput = document.getElementById('zc-webhook-token');
         const modeSelect = document.getElementById('zc-mode-select');
         const lotsInput = document.getElementById('zc-lots-input');
+        const basisSelect = document.getElementById('zc-protection-basis-select');
         const slPtsInput = document.getElementById('zc-sl-pts-input');
         const tpPtsInput = document.getElementById('zc-tp-pts-input');
         const tradeStyleSelect = document.getElementById('zc-trade-style');
+        const mtmTargetInput = document.getElementById('zc-mtm-target-input');
+        const mtmLossInput = document.getElementById('zc-mtm-loss-input');
+        const mtmAutoTrail = document.getElementById('zc-mtm-auto-trail');
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+
+        const protectionBasis = basisSelect?.value || zeroClickSettings.protectionBasis || 'STRIKE';
+        const slPts = parseFloat(slPtsInput?.value || zeroClickSettings.slPts || 20);
+        const tpPts = parseFloat(tpPtsInput?.value || zeroClickSettings.tpPts || 20);
+        const mtmTarget = parseFloat(mtmTargetInput?.value || zeroClickSettings.mtmTarget || 0);
+        const mtmLoss = parseFloat(mtmLossInput?.value || zeroClickSettings.mtmLoss || 0);
 
         try {
             const resp = await fetch(`{{ route('api.order-flow.test-webhook') }}`, {
@@ -1803,9 +1870,14 @@
                     mode: modeSelect?.value || 'SIMULATION',
                     trade_style: tradeStyleSelect?.value || zeroClickSettings.tradeStyle || 'OPTION_SELLING',
                     lots: parseInt(lotsInput?.value || 1, 10),
+                    protection_basis: protectionBasis,
+                    sl_pts: slPts,
+                    tp_pts: tpPts,
                     price: state.depthData?.ltp || 23300.0,
-                    sl: (state.depthData?.ltp || 23300.0) + (signal === 'BUY' ? -parseInt(slPtsInput?.value || 15) : parseInt(slPtsInput?.value || 15)),
-                    tp: (state.depthData?.ltp || 23300.0) + (signal === 'BUY' ? parseInt(tpPtsInput?.value || 100) : -parseInt(tpPtsInput?.value || 100))
+                    opt_price: 135.0,
+                    mtm_target: mtmTarget > 0 ? mtmTarget : null,
+                    mtm_loss: mtmLoss > 0 ? mtmLoss : null,
+                    auto_trailing_loss: !!mtmAutoTrail?.checked
                 })
             });
 
@@ -1925,10 +1997,13 @@
         const zcToken = document.getElementById('zc-webhook-token');
         const zcMode = document.getElementById('zc-mode-select');
         const zcLots = document.getElementById('zc-lots-input');
-        const zcSlMode = document.getElementById('zc-sl-mode-select');
+        const zcBasis = document.getElementById('zc-protection-basis-select');
         const zcSlPts = document.getElementById('zc-sl-pts-input');
         const zcTpPts = document.getElementById('zc-tp-pts-input');
         const zcTp2Pts = document.getElementById('zc-tp2-pts-input');
+        const zcMtmTarget = document.getElementById('zc-mtm-target-input');
+        const zcMtmLoss = document.getElementById('zc-mtm-loss-input');
+        const zcMtmTrail = document.getElementById('zc-mtm-auto-trail');
 
         if (zcAutoLog) zcAutoLog.checked = zeroClickSettings.autoLog !== false;
         if (zcForward) zcForward.checked = !!zeroClickSettings.forwardToZeroClick;
@@ -1937,10 +2012,14 @@
         if (zcToken) zcToken.value = zeroClickSettings.webhookToken || '';
         if (zcMode) zcMode.value = zeroClickSettings.mode || 'SIMULATION';
         if (zcLots) zcLots.value = zeroClickSettings.lots || 1;
-        if (zcSlMode) zcSlMode.value = zeroClickSettings.slMode || 'candle_hl';
-        if (zcSlPts) zcSlPts.value = zeroClickSettings.slBufferPts || 15;
-        if (zcTpPts) zcTpPts.value = zeroClickSettings.targetTp1Pts || 100;
+        if (zcBasis) zcBasis.value = zeroClickSettings.protectionBasis || 'STRIKE';
+        if (zcSlPts) zcSlPts.value = zeroClickSettings.slPts ?? (zeroClickSettings.slBufferPts || 20);
+        if (zcTpPts) zcTpPts.value = zeroClickSettings.tpPts ?? (zeroClickSettings.targetTp1Pts || 20);
         if (zcTp2Pts) zcTp2Pts.value = zeroClickSettings.targetTp2Pts || 150;
+        if (zcMtmTarget) zcMtmTarget.value = zeroClickSettings.mtmTarget || '';
+        if (zcMtmLoss) zcMtmLoss.value = zeroClickSettings.mtmLoss || '';
+        if (zcMtmTrail) zcMtmTrail.checked = !!zeroClickSettings.mtmAutoTrail;
+        if (typeof updateZcBasisHint === 'function') updateZcBasisHint();
 
         const zcEnableCap = document.getElementById('zc-enable-daily-cap');
         const zcMaxTrades = document.getElementById('zc-max-daily-trades');
@@ -2131,10 +2210,13 @@
         const zcToken = document.getElementById('zc-webhook-token');
         const zcMode = document.getElementById('zc-mode-select');
         const zcLots = document.getElementById('zc-lots-input');
-        const zcSlMode = document.getElementById('zc-sl-mode-select');
+        const zcBasis = document.getElementById('zc-protection-basis-select');
         const zcSlPts = document.getElementById('zc-sl-pts-input');
         const zcTpPts = document.getElementById('zc-tp-pts-input');
         const zcTp2Pts = document.getElementById('zc-tp2-pts-input');
+        const zcMtmTarget = document.getElementById('zc-mtm-target-input');
+        const zcMtmLoss = document.getElementById('zc-mtm-loss-input');
+        const zcMtmTrail = document.getElementById('zc-mtm-auto-trail');
 
         zeroClickSettings.autoLog = !!zcAutoLog?.checked;
         zeroClickSettings.forwardToZeroClick = !!zcForward?.checked;
@@ -2143,10 +2225,15 @@
         zeroClickSettings.webhookToken = zcToken?.value.trim() || '';
         zeroClickSettings.mode = zcMode?.value || 'SIMULATION';
         zeroClickSettings.lots = parseInt(zcLots?.value || 1, 10);
-        zeroClickSettings.slMode = zcSlMode?.value || 'candle_hl';
-        zeroClickSettings.slBufferPts = parseInt(zcSlPts?.value || 15, 10);
-        zeroClickSettings.targetTp1Pts = parseInt(zcTpPts?.value || 100, 10);
+        zeroClickSettings.protectionBasis = zcBasis?.value || 'STRIKE';
+        zeroClickSettings.slPts = parseFloat(zcSlPts?.value || 20);
+        zeroClickSettings.tpPts = parseFloat(zcTpPts?.value || 20);
+        zeroClickSettings.slBufferPts = zeroClickSettings.slPts;
+        zeroClickSettings.targetTp1Pts = zeroClickSettings.tpPts;
         zeroClickSettings.targetTp2Pts = parseInt(zcTp2Pts?.value || 150, 10);
+        zeroClickSettings.mtmTarget = zcMtmTarget?.value ? parseFloat(zcMtmTarget.value) : null;
+        zeroClickSettings.mtmLoss = zcMtmLoss?.value ? parseFloat(zcMtmLoss.value) : null;
+        zeroClickSettings.mtmAutoTrail = !!zcMtmTrail?.checked;
 
         const zcEnableCap = document.getElementById('zc-enable-daily-cap');
         const zcMaxTrades = document.getElementById('zc-max-daily-trades');
@@ -5008,7 +5095,13 @@
                 webhook_token: zeroClickSettings.webhookToken || '',
                 execution_mode: zeroClickSettings.mode || 'SIMULATION',
                 lots: parseInt(zeroClickSettings.lots || 1, 10),
-                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING'
+                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING',
+                protection_basis: zeroClickSettings.protectionBasis || 'STRIKE',
+                sl_pts: zeroClickSettings.slPts || 20,
+                tp_pts: zeroClickSettings.tpPts || 20,
+                mtm_target: zeroClickSettings.mtmTarget || null,
+                mtm_loss: zeroClickSettings.mtmLoss || null,
+                auto_trailing_loss: !!zeroClickSettings.mtmAutoTrail
             };
 
             const resp = await fetch(`{{ route('api.order-flow.log-signal') }}`, {
@@ -5502,7 +5595,13 @@
                 webhook_token: zeroClickSettings.webhookToken || '',
                 execution_mode: zeroClickSettings.mode || 'SIMULATION',
                 lots: parseInt(zeroClickSettings.lots || 1, 10),
-                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING'
+                trade_style: zeroClickSettings.tradeStyle || 'OPTION_SELLING',
+                protection_basis: zeroClickSettings.protectionBasis || 'STRIKE',
+                sl_pts: zeroClickSettings.slPts || 20,
+                tp_pts: zeroClickSettings.tpPts || 20,
+                mtm_target: zeroClickSettings.mtmTarget || null,
+                mtm_loss: zeroClickSettings.mtmLoss || null,
+                auto_trailing_loss: !!zeroClickSettings.mtmAutoTrail
             };
 
             const resp = await fetch(`/api/order-flow/dispatch-log/${logId}`, {
