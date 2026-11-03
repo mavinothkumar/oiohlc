@@ -261,6 +261,13 @@
                             <span class="text-slate-400">➔ BALANCED</span>
                         </div>
                     </div>
+
+                    {{-- Dynamic Order Flow Execution Capsule: Lifting the Offer vs Hitting the Bid --}}
+                    <div id="banner-tape-capsule" class="px-2 py-0.5 rounded text-[9.5px] font-black font-mono tracking-wider flex items-center gap-1.5 bg-slate-950 text-slate-400 border border-slate-800 shrink-0 shadow-xs transition-all duration-150 cursor-help" title="Tape Execution State: Real-time aggressive market orders vs resting liquidity">
+                        <span id="tape-capsule-icon">⚖️</span>
+                        <span id="tape-capsule-text">BALANCED AUCTION</span>
+                    </div>
+
                     <div class="flex items-center gap-1.5 text-[10px] shrink-0">
                         {{-- Spread Traffic Light Guard --}}
                         <span id="banner-spread-guard" class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -350,6 +357,7 @@
                         <span id="anchor-candle-pill" class="font-bold text-amber-300">NIFTY 50 Stocks (Awaiting Trigger)</span>
                     </div>
                     <div class="flex items-center gap-1.5">
+                        <span id="rec-tape-capsule" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800" title="Tape State">TAPE: BALANCED</span>
                         <span id="anchor-status-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400">BIAS: NEUTRAL</span>
                         <span id="api-trade-cap-pill" class="hidden px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">API: 0/3</span>
                     </div>
@@ -654,13 +662,13 @@
                     </div>
                 </div>
 
-                {{-- Delta Divergence Alert Status --}}
-                <div class="flex items-center justify-between pt-0.5">
-                    <span id="cvd-divergence-badge" class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[210px]">
+                {{-- Delta Divergence Alert Status & Execution State --}}
+                <div class="flex items-center justify-between pt-0.5 flex-wrap gap-1">
+                    <span id="cvd-divergence-badge" class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[200px]">
                         <span class="text-slate-500">●</span>
                         <span id="cvd-divergence-text" class="truncate">Normal Flow (In Sync)</span>
                     </span>
-                    <span class="text-[9px] text-slate-500 font-mono">Continuous Tick $\Delta$</span>
+                    <span id="cvd-tape-capsule" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-slate-950 text-slate-400 border border-slate-800 truncate" title="Tape Execution State">⚖️ BALANCED AUCTION</span>
                 </div>
             </div>
 
@@ -2244,6 +2252,19 @@
             asymmetryText: 'Balanced Book (1.00x)'
         },
 
+        // Real-Time Tape Mechanics & Order Flow Execution State ("Lifting the Offer" vs "Hitting the Bid" vs "Absorption")
+        tapeMechanics: {
+            state: 'BALANCED',
+            label: 'BALANCED AUCTION',
+            subtext: 'Spread Equilibrium',
+            color: 'slate',
+            recentAskVolume: 0,
+            recentBidVolume: 0,
+            askHits: 0,
+            bidHits: 0,
+            lastTickTime: 0
+        },
+
         // Master Strategic Anchor State (NIFTY 50 Breadth Anchor)
         masterAnchor: null,
 
@@ -3711,22 +3732,39 @@
         renderLiquidityWallsUI();
         renderCvdUI();
         renderBookSlopeUI();
+        renderTapeMechanicsCapsule();
     }
 
     // ── CUMULATIVE VOLUME DELTA (CVD) & DIVERGENCE DETECTION ──
     function updateCvdAndDivergence(deltaV, ltp, bestBid, bestAsk) {
         let tickDelta = 0;
+        let isAskHit = false;
+        let isBidHit = false;
+        const tm = state.tapeMechanics;
+
         if (deltaV > 0) {
             if (ltp >= bestAsk) {
-                tickDelta = deltaV; // Aggressive Buyer hitting Ask
+                tickDelta = deltaV; // Aggressive Buyer hitting Ask (Lifting the Offer)
+                isAskHit = true;
+                tm.askHits = (tm.askHits || 0) + 1;
+                tm.bidHits = Math.max(0, (tm.bidHits || 0) - 1);
+                tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.82 + deltaV;
+                tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.82;
             } else if (ltp <= bestBid) {
-                tickDelta = -deltaV; // Aggressive Seller hitting Bid
+                tickDelta = -deltaV; // Aggressive Seller hitting Bid (Hitting the Bid)
+                isBidHit = true;
+                tm.bidHits = (tm.bidHits || 0) + 1;
+                tm.askHits = Math.max(0, (tm.askHits || 0) - 1);
+                tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.82 + deltaV;
+                tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.82;
             } else {
                 const drift = state.depthData.microPrice - state.depthData.midPrice;
                 if (drift > 0.02) {
                     tickDelta = Math.round(deltaV * 0.7);
+                    tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.85 + (deltaV * 0.7);
                 } else if (drift < -0.02) {
                     tickDelta = -Math.round(deltaV * 0.7);
+                    tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.85 + (deltaV * 0.7);
                 } else {
                     tickDelta = Math.round((Math.random() - 0.5) * deltaV * 0.25);
                 }
@@ -3787,6 +3825,41 @@
                     ? '▲ Buyer Volume Dominating (In Sync)' 
                     : '▼ Seller Volume Dominating (In Sync)';
             }
+        }
+
+        // ── DYNAMIC TAPE MECHANICS DETERMINATION ──
+        const askVol = tm.recentAskVolume || 0;
+        const bidVol = tm.recentBidVolume || 0;
+        const isBearDiv = (state.cvd.divergence === 'BEARISH');
+        const isBullDiv = (state.cvd.divergence === 'BULLISH');
+        const heavyAsk = state.depthData?.heavyAskBlock;
+        const heavyBid = state.depthData?.heavyBidBlock;
+
+        if (isBearDiv || (heavyAsk && askVol > bidVol * 1.4 && heavyAsk.level <= 3)) {
+            tm.state = 'ASK_ABSORPTION';
+            tm.label = '⚡ ASK ABSORPTION';
+            tm.subtext = 'Aggressive Buys Absorbed by Passive Sellers';
+            tm.color = 'amber';
+        } else if (isBullDiv || (heavyBid && bidVol > askVol * 1.4 && heavyBid.level <= 3)) {
+            tm.state = 'BID_ABSORPTION';
+            tm.label = '🛡️ BID ABSORPTION';
+            tm.subtext = 'Aggressive Sells Absorbed by Passive Buyers';
+            tm.color = 'cyan';
+        } else if (isAskHit || askVol > Math.max(300, bidVol * 1.25) || tm.askHits >= 2) {
+            tm.state = 'LIFTING_OFFER';
+            tm.label = '🟢 LIFTING THE OFFER';
+            tm.subtext = 'Aggressive Market Buying @ Ask (+Delta)';
+            tm.color = 'emerald';
+        } else if (isBidHit || bidVol > Math.max(300, askVol * 1.25) || tm.bidHits >= 2) {
+            tm.state = 'HITTING_BID';
+            tm.label = '🔴 HITTING THE BID';
+            tm.subtext = 'Aggressive Market Selling @ Bid (-Delta)';
+            tm.color = 'rose';
+        } else {
+            tm.state = 'BALANCED';
+            tm.label = '⚖️ BALANCED AUCTION';
+            tm.subtext = 'Equilibrium at Mid-Price';
+            tm.color = 'slate';
         }
     }
 
@@ -4019,6 +4092,76 @@
             } else {
                 descEl.innerHTML = `Order book slope is balanced across 30 levels. Resting liquidity builds symmetrically on both sides of LTP.`;
             }
+        }
+    }
+
+    // ── RENDER DYNAMIC ORDER FLOW TAPE EXECUTION CAPSULE ──
+    function renderTapeMechanicsCapsule() {
+        const tm = state.tapeMechanics;
+        if (!tm) return;
+
+        const bannerCapsule = document.getElementById('banner-tape-capsule');
+        const iconEl = document.getElementById('tape-capsule-icon');
+        const textEl = document.getElementById('tape-capsule-text');
+        const recTapeEl = document.getElementById('rec-tape-capsule');
+        const cvdCapsule = document.getElementById('cvd-tape-capsule');
+
+        let bgClass, borderClass, textClass, iconChar, shortLabel;
+
+        switch (tm.state) {
+            case 'LIFTING_OFFER':
+                bgClass = 'bg-emerald-500/20';
+                borderClass = 'border-emerald-500/50';
+                textClass = 'text-emerald-300';
+                iconChar = '🟢';
+                shortLabel = 'LIFTING OFFER';
+                break;
+            case 'HITTING_BID':
+                bgClass = 'bg-rose-500/20';
+                borderClass = 'border-rose-500/50';
+                textClass = 'text-rose-300';
+                iconChar = '🔴';
+                shortLabel = 'HITTING BID';
+                break;
+            case 'ASK_ABSORPTION':
+                bgClass = 'bg-amber-500/20';
+                borderClass = 'border-amber-500/50';
+                textClass = 'text-amber-300';
+                iconChar = '⚡';
+                shortLabel = 'ASK ABSORPTION';
+                break;
+            case 'BID_ABSORPTION':
+                bgClass = 'bg-cyan-500/20';
+                borderClass = 'border-cyan-500/50';
+                textClass = 'text-cyan-300';
+                iconChar = '🛡️';
+                shortLabel = 'BID ABSORPTION';
+                break;
+            default:
+                bgClass = 'bg-slate-950';
+                borderClass = 'border-slate-800';
+                textClass = 'text-slate-400';
+                iconChar = '⚖️';
+                shortLabel = 'BALANCED AUCTION';
+        }
+
+        if (bannerCapsule) {
+            bannerCapsule.className = `px-2 py-0.5 rounded text-[9.5px] font-black font-mono tracking-wider flex items-center gap-1.5 ${bgClass} ${textClass} border ${borderClass} shrink-0 shadow-xs transition-all duration-150 cursor-help`;
+            bannerCapsule.title = `${tm.label}: ${tm.subtext}`;
+            if (iconEl) iconEl.textContent = iconChar;
+            if (textEl) textEl.textContent = shortLabel;
+        }
+
+        if (recTapeEl) {
+            recTapeEl.className = `px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono ${bgClass} ${textClass} border ${borderClass}`;
+            recTapeEl.textContent = `TAPE: ${shortLabel}`;
+            recTapeEl.title = tm.subtext;
+        }
+
+        if (cvdCapsule) {
+            cvdCapsule.className = `px-1.5 py-0.2 rounded text-[9px] font-mono font-black ${bgClass} ${textClass} border ${borderClass} truncate`;
+            cvdCapsule.textContent = `${iconChar} ${shortLabel}`;
+            cvdCapsule.title = tm.subtext;
         }
     }
 
