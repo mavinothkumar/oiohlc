@@ -1853,7 +1853,7 @@
         const slPts = parseFloat(slPtsInput?.value || zeroClickSettings.slPts || 20);
         const tpPts = parseFloat(tpPtsInput?.value || zeroClickSettings.tpPts || 20);
         const mtmTarget = parseFloat(mtmTargetInput?.value || zeroClickSettings.mtmTarget || 0);
-        const mtmLoss = parseFloat(mtmLossInput?.value || zeroClickSettings.mtmLoss || 0);
+        const mtmLoss = parseFloat(mtmLossInput?.value || zeroClickSettings.mtmLoss || (mtmAutoTrail?.checked && mtmTarget > 0 ? mtmTarget : 0));
 
         try {
             const resp = await fetch(`{{ route('api.order-flow.test-webhook') }}`, {
@@ -2232,7 +2232,7 @@
         zeroClickSettings.targetTp1Pts = zeroClickSettings.tpPts;
         zeroClickSettings.targetTp2Pts = parseInt(zcTp2Pts?.value || 150, 10);
         zeroClickSettings.mtmTarget = zcMtmTarget?.value ? parseFloat(zcMtmTarget.value) : null;
-        zeroClickSettings.mtmLoss = zcMtmLoss?.value ? parseFloat(zcMtmLoss.value) : null;
+        zeroClickSettings.mtmLoss = zcMtmLoss?.value ? parseFloat(zcMtmLoss.value) : (zcMtmTrail?.checked && zeroClickSettings.mtmTarget ? zeroClickSettings.mtmTarget : null);
         zeroClickSettings.mtmAutoTrail = !!zcMtmTrail?.checked;
 
         const zcEnableCap = document.getElementById('zc-enable-daily-cap');

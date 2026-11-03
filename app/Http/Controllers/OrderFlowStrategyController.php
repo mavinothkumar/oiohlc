@@ -417,6 +417,9 @@ class OrderFlowStrategyController extends Controller
         }
         if ($request->filled('mtm_loss') && (float)$request->input('mtm_loss') > 0) {
             $payload['mtm_loss'] = (float)$request->input('mtm_loss');
+        } elseif ($request->boolean('auto_trailing_loss') && !empty($payload['mtm_target'])) {
+            // If auto-trailing is active and loss wasn't specified, anchor initial loss limit to target value
+            $payload['mtm_loss'] = (float)$payload['mtm_target'];
         }
         if ($request->boolean('auto_trailing_loss')) {
             $payload['auto_trailing_loss'] = true;
@@ -634,6 +637,9 @@ class OrderFlowStrategyController extends Controller
         }
         if ($request->filled('mtm_loss') && (float)$request->input('mtm_loss') > 0) {
             $payload['mtm_loss'] = (float)$request->input('mtm_loss');
+        } elseif ($request->boolean('auto_trailing_loss') && !empty($payload['mtm_target'])) {
+            // If auto-trailing is active and loss wasn't specified, anchor initial loss limit to target value
+            $payload['mtm_loss'] = (float)$payload['mtm_target'];
         }
         if ($request->boolean('auto_trailing_loss')) {
             $payload['auto_trailing_loss'] = true;
