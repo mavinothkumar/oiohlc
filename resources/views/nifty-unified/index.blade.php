@@ -787,21 +787,6 @@
                                 <span>⏱ 5 Min</span>
                             </button>
                         </div>
-
-                        <div id="toi-diff-badge-container" class="flex items-center gap-1 hidden flex-wrap">
-                            <span id="toi-pe-val" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-help shadow-xs" title="Put OI (Change)">
-                                PE: --
-                            </span>
-                            <span id="toi-ce-val" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 cursor-help shadow-xs" title="Call OI (Change)">
-                                CE: --
-                            </span>
-                            <span id="toi-diff-val" class="px-1.5 py-0.2 rounded font-mono font-black text-[9.5px] border cursor-help shadow-xs" title="PE OI vs CE OI Net Difference">
-                                Diff: --
-                            </span>
-                            <span id="toi-direction-badge" class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] uppercase border cursor-help shadow-xs tracking-wider" title="Market Conviction &amp; Strength">
-                                --
-                            </span>
-                        </div>
                     </div>
                     <div class="flex items-center gap-1 sm:gap-1.5 text-[9px] select-none">
                         <button type="button" id="toi-toggle-call" onclick="toggleToiSeries('call')" class="px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer bg-emerald-950/60 border-emerald-500/50 text-emerald-300 font-semibold hover:brightness-125" title="Call OI Change (Click to toggle)">
@@ -823,12 +808,95 @@
                     </div>
                 </div>
 
-                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 380px;">
+                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 330px;">
                     <div id="toi-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                         <div class="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                         <span id="toi-loading-msg" class="text-[11px] text-amber-300 font-mono font-medium tracking-wide">Loading Trending OI &amp; Sentiment...</span>
                     </div>
                     <canvas id="chart-trending-oi"></canvas>
+                </div>
+
+                <!-- ── SEPARATE DECISION WIDGET (NET DIFF HERO & OI METRICS) ── -->
+                <div id="toi-decision-widget" class="mt-2 pt-2 border-t border-gray-800/80 flex flex-col gap-1.5 select-none">
+                    <!-- Top Hero: Net Diff (OI Skew) & Direction Conviction -->
+                    <div class="flex items-center justify-between bg-gradient-to-r from-[#121622] via-[#161d2d] to-[#121622] px-2.5 py-1.5 rounded-lg border border-slate-700/60 shadow-inner flex-wrap gap-2">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-[9.5px] uppercase font-bold tracking-wider text-slate-400">NET DIFF (OI SKEW):</span>
+                            <span id="toi-bottom-diff-hero" class="text-2xl sm:text-3xl font-black font-mono tracking-tight leading-none text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)]">
+                                +0.0 L
+                            </span>
+                            <span id="toi-bottom-diff-raw" class="text-[9.5px] font-mono text-slate-400">
+                                (+0)
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="toi-bottom-direction-pill" class="px-2.5 py-1 rounded-md font-mono font-black text-[10.5px] uppercase border shadow-md tracking-wider bg-slate-900 border-slate-700 text-slate-300">
+                                ◆ NEUTRAL
+                            </span>
+                            <span id="toi-bottom-time" class="text-[9.5px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-900/80 border border-slate-800">
+                                --:--
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Metrics Grid: PE, CE, PE/CE Ratio, Spot Price -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 font-mono">
+                        <!-- PUT OI (PE) -->
+                        <div class="bg-[#151922] p-1.5 rounded border border-rose-950/70 text-left">
+                            <div class="text-[8.5px] uppercase font-bold text-rose-400 flex items-center justify-between">
+                                <span>PUT OI (PE)</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            </div>
+                            <div id="toi-bottom-pe-val" class="text-sm sm:text-base font-black text-rose-300 mt-0.5 leading-tight">
+                                0.0 L
+                            </div>
+                            <div id="toi-bottom-pe-raw" class="text-[8px] text-gray-500 truncate mt-0.5">
+                                0 contracts
+                            </div>
+                        </div>
+
+                        <!-- CALL OI (CE) -->
+                        <div class="bg-[#151922] p-1.5 rounded border border-emerald-950/70 text-left">
+                            <div class="text-[8.5px] uppercase font-bold text-emerald-400 flex items-center justify-between">
+                                <span>CALL OI (CE)</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            </div>
+                            <div id="toi-bottom-ce-val" class="text-sm sm:text-base font-black text-emerald-300 mt-0.5 leading-tight">
+                                0.0 L
+                            </div>
+                            <div id="toi-bottom-ce-raw" class="text-[8px] text-gray-500 truncate mt-0.5">
+                                0 contracts
+                            </div>
+                        </div>
+
+                        <!-- PE/CE RATIO (PCR) -->
+                        <div class="bg-[#151922] p-1.5 rounded border border-amber-950/70 text-left">
+                            <div class="text-[8.5px] uppercase font-bold text-amber-400 flex items-center justify-between">
+                                <span>PE/CE RATIO</span>
+                                <span class="text-[8px] text-amber-500/80 font-normal">PCR</span>
+                            </div>
+                            <div id="toi-bottom-ratio-val" class="text-sm sm:text-base font-black text-amber-300 mt-0.5 leading-tight">
+                                1.00x
+                            </div>
+                            <div id="toi-bottom-bias" class="text-[8px] text-amber-400/80 truncate mt-0.5">
+                                Balanced
+                            </div>
+                        </div>
+
+                        <!-- SPOT PRICE -->
+                        <div class="bg-[#151922] p-1.5 rounded border border-cyan-950/70 text-left">
+                            <div class="text-[8.5px] uppercase font-bold text-cyan-400 flex items-center justify-between">
+                                <span>SPOT PRICE</span>
+                                <span class="w-2 h-0.5 border-t border-dashed border-cyan-400"></span>
+                            </div>
+                            <div id="toi-bottom-spot-val" class="text-sm sm:text-base font-black text-cyan-300 mt-0.5 leading-tight">
+                                ₹--
+                            </div>
+                            <div id="toi-bottom-spot-time" class="text-[8px] text-cyan-400/70 truncate mt-0.5">
+                                Nifty 50 Spot
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1800,75 +1868,95 @@
         const ceVal = (chart.call_oi && chart.call_oi[idx] !== undefined) ? Number(chart.call_oi[idx]) : 0;
         const peVal = (chart.put_oi && chart.put_oi[idx] !== undefined) ? Number(chart.put_oi[idx]) : 0;
         const diff = (chart.sentiment && chart.sentiment[idx] !== undefined) ? Number(chart.sentiment[idx]) : (peVal - ceVal);
+        const spotVal = (chart.spot && chart.spot[idx] !== undefined && Number(chart.spot[idx]) > 0)
+            ? Number(chart.spot[idx])
+            : 0;
 
-        const container = document.getElementById('toi-diff-badge-container');
-        const peEl = document.getElementById('toi-pe-val');
-        const ceEl = document.getElementById('toi-ce-val');
-        const valEl = document.getElementById('toi-diff-val');
-        const dirEl = document.getElementById('toi-direction-badge');
-        if (!container || !valEl || !dirEl) return;
-
-        container.classList.remove('hidden');
+        const diffHero = document.getElementById('toi-bottom-diff-hero');
+        const diffRaw = document.getElementById('toi-bottom-diff-raw');
+        const dirPill = document.getElementById('toi-bottom-direction-pill');
+        const timeEl = document.getElementById('toi-bottom-time');
+        const peValEl = document.getElementById('toi-bottom-pe-val');
+        const peRawEl = document.getElementById('toi-bottom-pe-raw');
+        const ceValEl = document.getElementById('toi-bottom-ce-val');
+        const ceRawEl = document.getElementById('toi-bottom-ce-raw');
+        const ratioValEl = document.getElementById('toi-bottom-ratio-val');
+        const biasEl = document.getElementById('toi-bottom-bias');
+        const spotValEl = document.getElementById('toi-bottom-spot-val');
 
         // Format in Lakhs
         const diffInLakh = (diff / 100000).toFixed(1);
         const peInLakh = (peVal / 100000).toFixed(1);
         const ceInLakh = (ceVal / 100000).toFixed(1);
-        const sign = diff >= 0 ? '+' : '';
+        const sign = diff > 0 ? '+' : '';
 
-        if (peEl) peEl.textContent = `PE: ${peInLakh}L`;
-        if (ceEl) ceEl.textContent = `CE: ${ceInLakh}L`;
-        valEl.textContent = `Diff: ${sign}${diffInLakh}L`;
-
-        // Market direction & conviction calculation
+        // Direction & conviction calculation
         const absDiff = Math.abs(diff);
-        let dirText = 'NEUTRAL';
-        let dirClass = 'bg-slate-900 border-slate-700 text-slate-400';
-        let valClass = 'bg-slate-900 border-slate-700 text-slate-300';
+        let dirText = '◆ NEUTRAL CHOP';
+        let dirClass = 'bg-slate-900 border-slate-700 text-slate-300';
+        let heroColorClass = 'text-slate-300';
+        let biasText = 'Balanced';
 
         if (diff > 0) {
             // PE > CE: Bullish (Put writing dominates -> support / long momentum)
-            valClass = 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300';
+            heroColorClass = 'text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.4)]';
             if (absDiff >= 7500000 || (ceVal > 0 && peVal / ceVal >= 1.6)) {
                 dirText = '▲ STRONG BULL';
-                dirClass = 'bg-emerald-500/25 border-emerald-500/80 text-emerald-200 font-extrabold';
+                dirClass = 'bg-emerald-500/25 border-emerald-500/80 text-emerald-200 font-extrabold ring-1 ring-emerald-500/50';
+                biasText = 'Heavy Put Writing';
             } else if (absDiff >= 1500000) {
                 dirText = '▲ MILD BULL';
-                dirClass = 'bg-emerald-950/70 border-emerald-500/40 text-emerald-400 font-bold';
+                dirClass = 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 font-bold';
+                biasText = 'Bullish Skew';
             } else {
                 dirText = '◆ LEAN BULL';
                 dirClass = 'bg-emerald-950/40 border-emerald-600/30 text-emerald-400/80';
+                biasText = 'Mild Skew';
             }
         } else if (diff < 0) {
             // CE > PE: Bearish (Call writing dominates -> resistance / short momentum)
-            valClass = 'bg-rose-950/80 border-rose-500/60 text-rose-300';
+            heroColorClass = 'text-rose-400 drop-shadow-[0_0_14px_rgba(251,113,133,0.4)]';
             if (absDiff >= 7500000 || (peVal > 0 && ceVal / peVal >= 1.6)) {
                 dirText = '▼ STRONG BEAR';
-                dirClass = 'bg-rose-500/25 border-rose-500/80 text-rose-200 font-extrabold';
+                dirClass = 'bg-rose-500/25 border-rose-500/80 text-rose-200 font-extrabold ring-1 ring-rose-500/50';
+                biasText = 'Heavy Call Writing';
             } else if (absDiff >= 1500000) {
                 dirText = '▼ MILD BEAR';
-                dirClass = 'bg-rose-950/70 border-rose-500/40 text-rose-400 font-bold';
+                dirClass = 'bg-rose-950/70 border-rose-500/50 text-rose-300 font-bold';
+                biasText = 'Bearish Skew';
             } else {
                 dirText = '◆ LEAN BEAR';
                 dirClass = 'bg-rose-950/40 border-rose-600/30 text-rose-400/80';
+                biasText = 'Mild Skew';
             }
-        } else {
-            valClass = 'bg-slate-900 border-slate-700 text-slate-400';
-            dirText = '◆ NEUTRAL CHOP';
-            dirClass = 'bg-slate-900 border-slate-700 text-slate-400';
         }
-
-        valEl.className = `px-1.5 py-0.2 rounded font-mono font-black text-[9.5px] border cursor-help shadow-xs ${valClass}`;
-        dirEl.className = `px-1.5 py-0.2 rounded font-mono font-black text-[9px] uppercase border cursor-help shadow-xs ${dirClass}`;
-        dirEl.textContent = dirText;
 
         const timeLabel = labels[idx] || '';
         const ratioStr = ceVal > 0 ? (peVal / ceVal).toFixed(2) + 'x' : '--';
-        const tooltip = `[${timeLabel}] PE OI: ${peInLakh}L (${fmt(peVal)}) vs CE OI: ${ceInLakh}L (${fmt(ceVal)}) | Net Diff: ${sign}${diffInLakh}L (${fmt(diff)}) | PE/CE Ratio: ${ratioStr} -> ${dirText}`;
-        valEl.title = tooltip;
-        dirEl.title = tooltip;
-        if (peEl) peEl.title = `[${timeLabel}] Put OI Change: ${peInLakh}L (${fmt(peVal)})`;
-        if (ceEl) ceEl.title = `[${timeLabel}] Call OI Change: ${ceInLakh}L (${fmt(ceVal)})`;
+
+        if (diffHero) {
+            diffHero.textContent = `${sign}${diffInLakh} L`;
+            diffHero.className = `text-2xl sm:text-3xl font-black font-mono tracking-tight leading-none ${heroColorClass}`;
+        }
+        if (diffRaw) {
+            diffRaw.textContent = `(${sign}${fmt(diff)} net)`;
+        }
+        if (dirPill) {
+            dirPill.textContent = dirText;
+            dirPill.className = `px-2.5 py-1 rounded-md font-mono font-black text-[10.5px] uppercase border shadow-md tracking-wider ${dirClass}`;
+        }
+        if (timeEl) {
+            timeEl.textContent = timeLabel ? `[${timeLabel}]` : '--:--';
+        }
+        if (peValEl) peValEl.textContent = `${peInLakh} L`;
+        if (peRawEl) peRawEl.textContent = `${fmt(peVal)}`;
+        if (ceValEl) ceValEl.textContent = `${ceInLakh} L`;
+        if (ceRawEl) ceRawEl.textContent = `${fmt(ceVal)}`;
+        if (ratioValEl) ratioValEl.textContent = ratioStr;
+        if (biasEl) biasEl.textContent = biasText;
+        if (spotValEl) {
+            spotValEl.textContent = spotVal > 0 ? `₹${spotVal.toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 2})}` : '₹--';
+        }
     }
     window.updateTrendingOiDiffBadge = updateTrendingOiDiffBadge;
 
@@ -1901,6 +1989,7 @@
 
         if (mode === 'live') {
             connectToiWebSocket();
+            reloadTrendingOiWithInterval(1);
         } else {
             disconnectToiWebSocket();
             reloadTrendingOiWithInterval(5);
@@ -2212,8 +2301,10 @@
     async function reloadTrendingOiWithInterval(interval = 5) {
         try {
             document.getElementById('toi-chart-loading')?.classList.remove('hidden');
-            let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
-            if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
+            const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+            const currentToiMode = (typeof selectedDate !== 'undefined' && selectedDate === todayStr) ? 'live' : 'history';
+            let resToi = await fetch(`/api/trending-oi/data?mode=${currentToiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
+            if (currentToiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
                 resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
             }
             if (resToi && !resToi.error) {
