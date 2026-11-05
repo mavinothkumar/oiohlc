@@ -141,11 +141,51 @@ class NiftyUnifiedMonitorController extends Controller
 
         $selectedExpiry = $request->input('expiry', $defaultExpiry);
 
+        // Resolve Institutional Quant S/R Levels (Nifty Spot) for the selected date
+        $quantPlaybook = null;
+        try {
+            $reportService = app(\App\Services\OrderFlow\OrderFlowCumulativeReportService::class);
+            $reportData = $reportService->generateReport($selectedDate);
+            $quantPlaybook = $reportData['tomorrow_playbook'] ?? null;
+        } catch (\Throwable $e) {
+            $quantPlaybook = null;
+        }
+
         return view('nifty-unified.index', compact(
             'selectedDate',
             'availableDates',
             'expiries',
-            'selectedExpiry'
+            'selectedExpiry',
+            'quantPlaybook'
         ));
+    }
+
+    /**
+     * Real-time Quant S/R Levels API for Nifty Unified Monitor.
+     * Updates automatically without refreshing the browser page!
+     */
+    public function getQuantLevels(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $date = $request->input('date', \Illuminate\Support\Carbon::today('Asia/Kolkata')->toDateString());
+        $symbol = $request->input('symbol', 'NIFTY');
+
+        try {
+            $reportService = app(\App\Services\OrderFlow\OrderFlowCumulativeReportService::class);
+            $reportData = $reportService->generateReport($date, $symbol);
+            $playbook = $reportData['tomorrow_playbook'] ?? null;
+
+            return response()->json([
+                'success'        => true,
+                'playbook'       => $playbook,
+                'market_context' => $reportData['market_context'] ?? null,
+                'date'           => $date,
+                'timestamp'      => \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateTimeString(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }

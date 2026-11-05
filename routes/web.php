@@ -34,12 +34,16 @@ Route::get( '/api/delta-neutral/ws-url', [ \App\Http\Controllers\DeltaNeutralStr
 
 // 30-Depth Order Flow & High-Probability Strategy Confluence Radar
 Route::get( '/order-flow-depth', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'index' ] )->name( 'order-flow-depth.index' );
+Route::get( '/order-flow-depth/report', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'dailyReport' ] )->name( 'order-flow-depth.report' );
 Route::get( '/api/order-flow/ws-url', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getWsUrl' ] )->name( 'api.order-flow.ws-url' );
 Route::get( '/api/order-flow/strategy-signals', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getStrategySignals' ] )->name( 'api.order-flow.strategy-signals' );
 Route::get( '/api/order-flow/contracts', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getContracts' ] )->name( 'api.order-flow.contracts' );
 Route::post( '/api/order-flow/log-signal', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'logSignal' ] )->name( 'api.order-flow.log-signal' );
 Route::post( '/api/order-flow/update-outcome', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'updateSignalOutcome' ] )->name( 'api.order-flow.update-outcome' );
 Route::get( '/api/order-flow/signal-logs', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getSignalLogs' ] )->name( 'api.order-flow.signal-logs' );
+Route::post( '/api/order-flow/log-alert', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'logAlert' ] )->name( 'api.order-flow.log-alert' );
+Route::get( '/api/order-flow/alert-logs', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getAlertLogs' ] )->name( 'api.order-flow.alert-logs' );
+Route::get( '/api/order-flow/cumulative-report', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getCumulativeReportApi' ] )->name( 'api.order-flow.cumulative-report' );
 Route::post( '/api/order-flow/test-webhook', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'testWebhook' ] )->name( 'api.order-flow.test-webhook' );
 Route::post( '/api/order-flow/dispatch-log/{id}', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'dispatchLogToWebhook' ] )->name( 'api.order-flow.dispatch-log' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
@@ -340,8 +344,17 @@ Route::get('/api/nifty-matrix-chart/ws-url', [\App\Http\Controllers\NiftyMatrixC
 Route::get('/nifty-unified-monitor', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index'])->name('nifty.unified.monitor');
 Route::get('/nifty-cockpit', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
 Route::get('/nifty-market-command', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
+Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');
+
+// Institutional Gamma Exposure (GEX) & Gamma Blast Scalping Radar
+Route::get('/gamma-blast-radar', [\App\Http\Controllers\GammaBlastRadarController::class, 'index'])->name('gamma-blast.index');
+Route::get('/gamma-exposure', [\App\Http\Controllers\GammaBlastRadarController::class, 'index']);
+Route::get('/gamma-blast', [\App\Http\Controllers\GammaBlastRadarController::class, 'index']);
+Route::get('/api/gamma-blast/data', [\App\Http\Controllers\GammaBlastRadarController::class, 'getData'])->name('api.gamma-blast.data');
+Route::get('/api/gamma-blast/expiries', [\App\Http\Controllers\GammaBlastRadarController::class, 'getExpiries'])->name('api.gamma-blast.expiries');
+
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
 Route::post('/api/nifty-weightage-monitor/alert-log', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'logAlert'])->name('api.nifty.weightage.monitor.alert-log');

@@ -261,6 +261,11 @@
                         👁️
                     </button>
                 </div>
+                <!-- Last Sync Time Badge (Only Time: HH:mm:ss) -->
+                <div class="flex items-center gap-1 border-l border-gray-700/80 pl-1" title="Last Synchronized Time (Only Time)">
+                    <span class="text-gray-400 text-[10px] font-bold hidden md:inline">Synced:</span>
+                    <span id="last-sync-time-badge" class="px-1.5 py-0.2 bg-gray-800 text-emerald-300 font-mono text-[10px] rounded font-bold select-none cursor-default" title="Last Synchronized Time">{{ \Carbon\Carbon::now('Asia/Kolkata')->format('H:i:s') }}</span>
+                </div>
             </div>
 
             <!-- Manual Reload -->
@@ -279,6 +284,87 @@
         </div>
     </div>
 
+    {{-- ════════════ INSTITUTIONAL QUANT LEVELS (NIFTY 50 SPOT BENCHMARK) ════════════ --}}
+    @php
+        $lvlR3 = $quantPlaybook['levels'][0]['price'] ?? null;
+        $lvlR2 = $quantPlaybook['levels'][1]['price'] ?? null;
+        $lvlR1 = $quantPlaybook['levels'][2]['price'] ?? null;
+        $lvlP  = $quantPlaybook['levels'][3]['price'] ?? $quantPlaybook['central_pivot'] ?? null;
+        $lvlS1 = $quantPlaybook['levels'][4]['price'] ?? null;
+        $lvlS2 = $quantPlaybook['levels'][5]['price'] ?? null;
+        $lvlS3 = $quantPlaybook['levels'][6]['price'] ?? null;
+        $hasQuant = !empty($quantPlaybook) && !empty($quantPlaybook['levels']);
+    @endphp
+    <div id="quant-strip-container" class="{{ $hasQuant ? '' : 'hidden ' }}cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar border-indigo-900/40 bg-[#0d121f] text-[11px] font-mono shrink-0">
+        <div class="flex items-center gap-1.5 shrink-0">
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 tracking-wider">
+                📐 QUANT LEVELS (SPOT)
+            </span>
+            <button type="button" onclick="toggleQuantPriceLines()" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border transition flex items-center gap-1 bg-indigo-950/90 border-indigo-500/60 hover:bg-indigo-900 cursor-pointer text-indigo-200" title="Toggle Quant Price Lines on both Charts">
+                <span class="text-[9.5px]">Chart Lines:</span>
+                <span id="strip-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+            </button>
+            <span class="text-[10px] text-slate-400 font-sans hidden sm:inline" title="Calibrated to Nifty 50 Cash/Spot Index">
+                Calibrated to Nifty 50 Spot:
+            </span>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
+            <div class="flex items-center gap-1" title="R3: Major Ceiling / Breakout Exhaustion">
+                <span class="text-rose-400 font-black text-[10px]">R3:</span>
+                <span id="quant-val-r3" class="text-rose-200 font-bold">{{ $lvlR3 ? '₹' . number_format($lvlR3, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1" title="R2: Value Area High (VAH) / Ask Wall">
+                <span class="text-rose-400 font-bold text-[10px]">R2:</span>
+                <span id="quant-val-r2" class="text-rose-100 font-bold">{{ $lvlR2 ? '₹' . number_format($lvlR2, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1" title="R1: Immediate Supply Pivot">
+                <span class="text-rose-300 font-bold text-[10px]">R1:</span>
+                <span id="quant-val-r1" class="text-slate-200 font-bold">{{ $lvlR1 ? '₹' . number_format($lvlR1, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/40" title="Central Equilibrium / POC Anchor (Bullish above · Bearish below)">
+                <span class="text-amber-400 font-black text-[10px]">PIVOT:</span>
+                <span id="quant-val-pivot" class="text-amber-300 font-black">{{ $lvlP ? '₹' . number_format($lvlP, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1" title="S1: Immediate Demand Pivot">
+                <span class="text-emerald-300 font-bold text-[10px]">S1:</span>
+                <span id="quant-val-s1" class="text-slate-200 font-bold">{{ $lvlS1 ? '₹' . number_format($lvlS1, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1" title="S2: Value Area Low (VAL) / Bid Wall">
+                <span class="text-emerald-400 font-bold text-[10px]">S2:</span>
+                <span id="quant-val-s2" class="text-emerald-100 font-bold">{{ $lvlS2 ? '₹' . number_format($lvlS2, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <div class="flex items-center gap-1" title="S3: Major Floor / Day Low Invalidation">
+                <span class="text-emerald-400 font-black text-[10px]">S3:</span>
+                <span id="quant-val-s3" class="text-emerald-200 font-bold">{{ $lvlS3 ? '₹' . number_format($lvlS3, 2) : '--' }}</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0 text-[10px] text-slate-400 font-sans hidden lg:flex">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span id="quant-lbl-bull-above" class="text-emerald-300 font-semibold">Bull Above {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
+            <span class="text-slate-600">·</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+            <span id="quant-lbl-bear-below" class="text-rose-300 font-semibold">Bear Below {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
+            <span class="text-slate-600">·</span>
+            <span class="text-slate-400 text-[10px]">Sync:</span>
+            <span id="quant-last-sync-time" class="font-mono text-sky-300 font-bold text-[10px]" title="Quant Levels Last Sync Time">{{ \Carbon\Carbon::now('Asia/Kolkata')->format('H:i:s') }}</span>
+            <a id="quant-link-report" href="{{ route('order-flow-depth.report', ['date' => $selectedDate]) }}" target="_blank" class="ml-1 text-sky-400 hover:text-sky-300 underline font-mono text-[9.5px]">Full Report &rarr;</a>
+        </div>
+    </div>
+
     <!-- ════════════ MAIN LAYOUT: COLUMN 1 (75%) | COLUMN 2 (25%) ════════════ -->
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-2.5 w-full items-start">
 
@@ -294,10 +380,16 @@
                     <!-- Left: 75% Candlestick Chart -->
                     <div class="lg:col-span-9 flex flex-col">
                         <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                                 <span class="text-xs font-bold text-white tracking-wide">NIFTY 50 (5m Candles)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Stock Weightage Breadth</span>
+                                <button type="button" onclick="toggleQuantPriceLines()" 
+                                    class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-blue-950/80 border-blue-500/50 text-blue-300 hover:bg-blue-900 cursor-pointer"
+                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on this chart">
+                                    <span>📐 S/R Levels:</span>
+                                    <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -466,10 +558,16 @@
                     <!-- Left: 75% Candlestick & Parity Chart -->
                     <div class="lg:col-span-9 flex flex-col">
                         <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                                 <span class="text-xs font-bold text-white tracking-wide">NIFTY (5m Candles &amp; Parity)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Options Flow Parity</span>
+                                <button id="btn-toggle-quant-lines" type="button" onclick="toggleQuantPriceLines()" 
+                                    class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-indigo-950/80 border-indigo-500/50 text-indigo-300 hover:bg-indigo-900 cursor-pointer"
+                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on this chart">
+                                    <span>📐 S/R Levels:</span>
+                                    <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="o-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -671,15 +769,43 @@
 
             <!-- ── ROW 1: TRENDING OI & SENTIMENT CHART (ALIGNED WITH ROW 1 WEIGHTAGE) ── -->
             <div class="cockpit-card p-2 flex flex-col border-rose-900/40 shadow-md">
-                <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                    <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-                        📈 Trending OI &amp; Sentiment
-                    </h3>
-                    <div class="flex items-center gap-2 text-[9px]">
-                        <span class="flex items-center gap-0.5 text-emerald-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Call</span>
-                        <span class="flex items-center gap-0.5 text-rose-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Put</span>
-                        <span class="flex items-center gap-0.5 text-amber-400 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Sentiment</span>
-                        <span class="flex items-center gap-0.5 text-cyan-400 font-semibold"><span class="w-1.5 h-0.5 border-t border-dashed border-cyan-400"></span> Spot</span>
+                <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800 gap-1 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <h3 class="text-xs font-bold text-white flex items-center gap-1">
+                            📈 Trending OI &amp; Sentiment
+                        </h3>
+                        <div id="toi-diff-badge-container" class="flex items-center gap-1 hidden flex-wrap">
+                            <span id="toi-pe-val" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-help shadow-xs" title="Put OI (Change)">
+                                PE: --
+                            </span>
+                            <span id="toi-ce-val" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 cursor-help shadow-xs" title="Call OI (Change)">
+                                CE: --
+                            </span>
+                            <span id="toi-diff-val" class="px-1.5 py-0.2 rounded font-mono font-black text-[9.5px] border cursor-help shadow-xs" title="PE OI vs CE OI Net Difference">
+                                Diff: --
+                            </span>
+                            <span id="toi-direction-badge" class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] uppercase border cursor-help shadow-xs tracking-wider" title="Market Conviction &amp; Strength">
+                                --
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 sm:gap-1.5 text-[9px] select-none">
+                        <button type="button" id="toi-toggle-call" onclick="toggleToiSeries('call')" class="px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer bg-emerald-950/60 border-emerald-500/50 text-emerald-300 font-semibold hover:brightness-125" title="Call OI Change (Click to toggle)">
+                            <span id="toi-dot-call" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span>Call</span>
+                        </button>
+                        <button type="button" id="toi-toggle-put" onclick="toggleToiSeries('put')" class="px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer bg-rose-950/60 border-rose-500/50 text-rose-300 font-semibold hover:brightness-125" title="Put OI Change (Click to toggle)">
+                            <span id="toi-dot-put" class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                            <span>Put</span>
+                        </button>
+                        <button type="button" id="toi-toggle-sentiment" onclick="toggleToiSeries('sentiment')" class="px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer bg-amber-950/60 border-amber-500/50 text-amber-300 font-semibold hover:brightness-125" title="Sentiment Diff OI (Click to toggle)">
+                            <span id="toi-dot-sentiment" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                            <span>Sentiment</span>
+                        </button>
+                        <button type="button" id="toi-toggle-spot" onclick="toggleToiSeries('spot')" class="px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer bg-cyan-950/60 border-cyan-500/50 text-cyan-300 font-semibold hover:brightness-125" title="Spot Price (Click to toggle)">
+                            <span id="toi-dot-spot" class="w-2 h-0.5 border-t border-dashed border-cyan-400"></span>
+                            <span>Spot</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1539,6 +1665,350 @@
     let oCandleSeries = null;
     let toiChartInstance = null;
     let buildupChartInstance = null;
+
+    // Quant S/R Lines Data & Instances
+    let quantPlaybookData = @json($quantPlaybook ?? null);
+    let showQuantLines = localStorage.getItem('nifty_unified_show_quant_lines') !== 'false'; // default true
+    let quantPriceLinesOptions = [];
+    let quantPriceLinesWeightage = [];
+
+    function updateQuantLinesButtonUI() {
+        const badgeO = document.getElementById('quant-lines-status-badge');
+        if (badgeO) {
+            badgeO.textContent = showQuantLines ? 'ON' : 'OFF';
+            badgeO.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+        }
+        const badgeW = document.getElementById('w-quant-lines-status-badge');
+        if (badgeW) {
+            badgeW.textContent = showQuantLines ? 'ON' : 'OFF';
+            badgeW.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+        }
+        const badgeStrip = document.getElementById('strip-quant-lines-status-badge');
+        if (badgeStrip) {
+            badgeStrip.textContent = showQuantLines ? 'ON' : 'OFF';
+            badgeStrip.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+        }
+    }
+
+    function toggleQuantPriceLines() {
+        showQuantLines = !showQuantLines;
+        localStorage.setItem('nifty_unified_show_quant_lines', showQuantLines ? 'true' : 'false');
+        updateQuantLinesButtonUI();
+        drawQuantPriceLines();
+    }
+    window.toggleQuantPriceLines = toggleQuantPriceLines;
+
+    // ── Trending OI & Sentiment Series Visibility (Call, Put, Sentiment, Spot) ───
+    let toiSeriesVisibility = {
+        call: true,
+        put: true,
+        sentiment: true,
+        spot: true,
+    };
+    try {
+        const savedToiVis = localStorage.getItem('nifty_unified_toi_visibility');
+        if (savedToiVis) {
+            toiSeriesVisibility = Object.assign(toiSeriesVisibility, JSON.parse(savedToiVis));
+        }
+    } catch (e) {
+        console.warn('Error reading saved TOI visibility:', e);
+    }
+
+    function updateToiLegendUI() {
+        const configs = [
+            { key: 'call', btnId: 'toi-toggle-call', dotId: 'toi-dot-call', activeBtn: 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 font-semibold hover:brightness-125', activeDot: 'w-1.5 h-1.5 rounded-full bg-emerald-400', label: 'Call OI Change' },
+            { key: 'put', btnId: 'toi-toggle-put', dotId: 'toi-dot-put', activeBtn: 'bg-rose-950/60 border-rose-500/50 text-rose-300 font-semibold hover:brightness-125', activeDot: 'w-1.5 h-1.5 rounded-full bg-rose-400', label: 'Put OI Change' },
+            { key: 'sentiment', btnId: 'toi-toggle-sentiment', dotId: 'toi-dot-sentiment', activeBtn: 'bg-amber-950/60 border-amber-500/50 text-amber-300 font-semibold hover:brightness-125', activeDot: 'w-1.5 h-1.5 rounded-full bg-amber-400', label: 'Sentiment (Diff)' },
+            { key: 'spot', btnId: 'toi-toggle-spot', dotId: 'toi-dot-spot', activeBtn: 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300 font-semibold hover:brightness-125', activeDot: 'w-2 h-0.5 border-t border-dashed border-cyan-400', label: 'Spot Price' },
+        ];
+
+        configs.forEach(cfg => {
+            const btn = document.getElementById(cfg.btnId);
+            const dot = document.getElementById(cfg.dotId);
+            const isVisible = toiSeriesVisibility[cfg.key] !== false;
+            if (btn) {
+                if (isVisible) {
+                    btn.className = `px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer select-none ${cfg.activeBtn}`;
+                    btn.title = `${cfg.label}: Visible (Click to Hide)`;
+                } else {
+                    btn.className = 'px-1.5 py-0.5 rounded border transition flex items-center gap-1 cursor-pointer select-none opacity-40 text-gray-500 line-through bg-gray-900/60 border-gray-700/60 hover:opacity-75';
+                    btn.title = `${cfg.label}: Hidden (Click to Show)`;
+                }
+            }
+            if (dot) {
+                if (isVisible) {
+                    dot.className = cfg.activeDot;
+                } else {
+                    dot.className = cfg.key === 'spot'
+                        ? 'w-2 h-0.5 border-t border-dashed border-gray-500'
+                        : 'w-1.5 h-1.5 rounded-full bg-gray-600';
+                }
+            }
+        });
+    }
+
+    function toggleToiSeries(key) {
+        if (!toiSeriesVisibility.hasOwnProperty(key)) return;
+        toiSeriesVisibility[key] = !toiSeriesVisibility[key];
+        try {
+            localStorage.setItem('nifty_unified_toi_visibility', JSON.stringify(toiSeriesVisibility));
+        } catch (e) {}
+        updateToiLegendUI();
+        if (toiChartInstance) {
+            const keyMap = { call: 0, put: 1, sentiment: 2, spot: 3 };
+            const dsIdx = keyMap[key];
+            if (dsIdx !== undefined && toiChartInstance.data.datasets && toiChartInstance.data.datasets[dsIdx]) {
+                const isVisible = toiSeriesVisibility[key] !== false;
+                if (typeof toiChartInstance.setDatasetVisibility === 'function') {
+                    toiChartInstance.setDatasetVisibility(dsIdx, isVisible);
+                }
+                toiChartInstance.data.datasets[dsIdx].hidden = !isVisible;
+                if (key === 'spot' && toiChartInstance.options.scales && toiChartInstance.options.scales.y1) {
+                    toiChartInstance.options.scales.y1.display = isVisible;
+                }
+                toiChartInstance.update();
+            }
+        }
+    }
+    window.toggleToiSeries = toggleToiSeries;
+
+    function updateTrendingOiDiffBadge(targetIndex = -1) {
+        if (!trendingOiData || !trendingOiData.chart) return;
+        const chart = trendingOiData.chart;
+        const labels = chart.labels || [];
+        if (labels.length === 0) return;
+
+        let idx = targetIndex;
+        if (idx < 0 || idx >= labels.length) {
+            idx = labels.length - 1;
+        }
+
+        const ceVal = (chart.call_oi && chart.call_oi[idx] !== undefined) ? Number(chart.call_oi[idx]) : 0;
+        const peVal = (chart.put_oi && chart.put_oi[idx] !== undefined) ? Number(chart.put_oi[idx]) : 0;
+        const diff = (chart.sentiment && chart.sentiment[idx] !== undefined) ? Number(chart.sentiment[idx]) : (peVal - ceVal);
+
+        const container = document.getElementById('toi-diff-badge-container');
+        const peEl = document.getElementById('toi-pe-val');
+        const ceEl = document.getElementById('toi-ce-val');
+        const valEl = document.getElementById('toi-diff-val');
+        const dirEl = document.getElementById('toi-direction-badge');
+        if (!container || !valEl || !dirEl) return;
+
+        container.classList.remove('hidden');
+
+        // Format in Lakhs
+        const diffInLakh = (diff / 100000).toFixed(1);
+        const peInLakh = (peVal / 100000).toFixed(1);
+        const ceInLakh = (ceVal / 100000).toFixed(1);
+        const sign = diff >= 0 ? '+' : '';
+
+        if (peEl) peEl.textContent = `PE: ${peInLakh}L`;
+        if (ceEl) ceEl.textContent = `CE: ${ceInLakh}L`;
+        valEl.textContent = `Diff: ${sign}${diffInLakh}L`;
+
+        // Market direction & conviction calculation
+        const absDiff = Math.abs(diff);
+        let dirText = 'NEUTRAL';
+        let dirClass = 'bg-slate-900 border-slate-700 text-slate-400';
+        let valClass = 'bg-slate-900 border-slate-700 text-slate-300';
+
+        if (diff > 0) {
+            // PE > CE: Bullish (Put writing dominates -> support / long momentum)
+            valClass = 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300';
+            if (absDiff >= 7500000 || (ceVal > 0 && peVal / ceVal >= 1.6)) {
+                dirText = '▲ STRONG BULL';
+                dirClass = 'bg-emerald-500/25 border-emerald-500/80 text-emerald-200 font-extrabold';
+            } else if (absDiff >= 1500000) {
+                dirText = '▲ MILD BULL';
+                dirClass = 'bg-emerald-950/70 border-emerald-500/40 text-emerald-400 font-bold';
+            } else {
+                dirText = '◆ LEAN BULL';
+                dirClass = 'bg-emerald-950/40 border-emerald-600/30 text-emerald-400/80';
+            }
+        } else if (diff < 0) {
+            // CE > PE: Bearish (Call writing dominates -> resistance / short momentum)
+            valClass = 'bg-rose-950/80 border-rose-500/60 text-rose-300';
+            if (absDiff >= 7500000 || (peVal > 0 && ceVal / peVal >= 1.6)) {
+                dirText = '▼ STRONG BEAR';
+                dirClass = 'bg-rose-500/25 border-rose-500/80 text-rose-200 font-extrabold';
+            } else if (absDiff >= 1500000) {
+                dirText = '▼ MILD BEAR';
+                dirClass = 'bg-rose-950/70 border-rose-500/40 text-rose-400 font-bold';
+            } else {
+                dirText = '◆ LEAN BEAR';
+                dirClass = 'bg-rose-950/40 border-rose-600/30 text-rose-400/80';
+            }
+        } else {
+            valClass = 'bg-slate-900 border-slate-700 text-slate-400';
+            dirText = '◆ NEUTRAL CHOP';
+            dirClass = 'bg-slate-900 border-slate-700 text-slate-400';
+        }
+
+        valEl.className = `px-1.5 py-0.2 rounded font-mono font-black text-[9.5px] border cursor-help shadow-xs ${valClass}`;
+        dirEl.className = `px-1.5 py-0.2 rounded font-mono font-black text-[9px] uppercase border cursor-help shadow-xs ${dirClass}`;
+        dirEl.textContent = dirText;
+
+        const timeLabel = labels[idx] || '';
+        const ratioStr = ceVal > 0 ? (peVal / ceVal).toFixed(2) + 'x' : '--';
+        const tooltip = `[${timeLabel}] PE OI: ${peInLakh}L (${fmt(peVal)}) vs CE OI: ${ceInLakh}L (${fmt(ceVal)}) | Net Diff: ${sign}${diffInLakh}L (${fmt(diff)}) | PE/CE Ratio: ${ratioStr} -> ${dirText}`;
+        valEl.title = tooltip;
+        dirEl.title = tooltip;
+        if (peEl) peEl.title = `[${timeLabel}] Put OI Change: ${peInLakh}L (${fmt(peVal)})`;
+        if (ceEl) ceEl.title = `[${timeLabel}] Call OI Change: ${ceInLakh}L (${fmt(ceVal)})`;
+    }
+    window.updateTrendingOiDiffBadge = updateTrendingOiDiffBadge;
+
+    function updateQuantLevelsUI(playbook) {
+        if (!playbook || !playbook.levels || !Array.isArray(playbook.levels)) return;
+        quantPlaybookData = playbook;
+
+        const stripContainer = document.getElementById('quant-strip-container');
+        if (stripContainer) stripContainer.classList.remove('hidden');
+
+        const findLevel = (code) => {
+            const found = playbook.levels.find(l => l.code === code);
+            return found ? parseFloat(found.price) : null;
+        };
+
+        const r3 = findLevel('R3');
+        const r2 = findLevel('R2');
+        const r1 = findLevel('R1');
+        const pivot = findLevel('PIVOT') || (playbook.central_pivot ? parseFloat(playbook.central_pivot) : null);
+        const s1 = findLevel('S1');
+        const s2 = findLevel('S2');
+        const s3 = findLevel('S3');
+
+        const setEl = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (val !== null && val !== undefined && !isNaN(val)) {
+                el.textContent = '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else {
+                el.textContent = '--';
+            }
+        };
+
+        setEl('quant-val-r3', r3);
+        setEl('quant-val-r2', r2);
+        setEl('quant-val-r1', r1);
+        setEl('quant-val-pivot', pivot);
+        setEl('quant-val-s1', s1);
+        setEl('quant-val-s2', s2);
+        setEl('quant-val-s3', s3);
+
+        const bullEl = document.getElementById('quant-lbl-bull-above');
+        if (bullEl && pivot) bullEl.textContent = `Bull Above ₹${Math.round(pivot).toLocaleString('en-IN')}`;
+        const bearEl = document.getElementById('quant-lbl-bear-below');
+        if (bearEl && pivot) bearEl.textContent = `Bear Below ₹${Math.round(pivot).toLocaleString('en-IN')}`;
+
+        const reportLink = document.getElementById('quant-link-report');
+        if (reportLink && typeof selectedDate !== 'undefined') {
+            reportLink.href = `/order-flow-depth/report?date=${selectedDate}`;
+        }
+
+        const quantSyncEl = document.getElementById('quant-last-sync-time');
+        if (quantSyncEl) {
+            const now = new Date();
+            quantSyncEl.textContent = String(now.getHours()).padStart(2, '0') + ':' +
+                                      String(now.getMinutes()).padStart(2, '0') + ':' +
+                                      String(now.getSeconds()).padStart(2, '0');
+        }
+
+        // Redraw price lines on both charts with updated levels
+        updateQuantLinesButtonUI();
+        drawQuantPriceLines();
+    }
+    window.updateQuantLevelsUI = updateQuantLevelsUI;
+
+    function drawQuantPriceLines() {
+        clearQuantPriceLines();
+        if (!showQuantLines || !quantPlaybookData || !quantPlaybookData.levels) return;
+
+        quantPlaybookData.levels.forEach(lvl => {
+            const price = parseFloat(lvl.price);
+            if (!price || isNaN(price)) return;
+
+            let color = '#f59e0b';
+            let lineWidth = 1;
+            let lineStyle = 2; // Dashed
+
+            if (lvl.code === 'R3') {
+                color = '#ef4444';
+                lineStyle = 2;
+            } else if (lvl.code === 'R2') {
+                color = '#f87171';
+                lineStyle = 2;
+            } else if (lvl.code === 'R1') {
+                color = '#fca5a5';
+                lineStyle = 3; // Dotted
+            } else if (lvl.code === 'PIVOT') {
+                color = '#f59e0b';
+                lineWidth = 2;
+                lineStyle = 0; // Solid
+            } else if (lvl.code === 'S1') {
+                color = '#6ee7b7';
+                lineStyle = 3; // Dotted
+            } else if (lvl.code === 'S2') {
+                color = '#34d399';
+                lineStyle = 2;
+            } else if (lvl.code === 'S3') {
+                color = '#10b981';
+                lineStyle = 2;
+            }
+
+            const title = `${lvl.code}: ₹${Math.round(price).toLocaleString()}`;
+
+            // Draw on Row 2 (Options Breadth Chart)
+            if (oCandleSeries) {
+                try {
+                    const line = oCandleSeries.createPriceLine({
+                        price: price,
+                        color: color,
+                        lineWidth: lineWidth,
+                        lineStyle: lineStyle,
+                        axisLabelVisible: true,
+                        title: title,
+                    });
+                    quantPriceLinesOptions.push(line);
+                } catch (e) {
+                    console.warn('Could not draw price line on Options chart for', lvl.code, e);
+                }
+            }
+
+            // Also draw on Row 1 (Weightage Chart)
+            if (wCandleSeries) {
+                try {
+                    const line = wCandleSeries.createPriceLine({
+                        price: price,
+                        color: color,
+                        lineWidth: lineWidth,
+                        lineStyle: lineStyle,
+                        axisLabelVisible: true,
+                        title: title,
+                    });
+                    quantPriceLinesWeightage.push(line);
+                } catch (e) {
+                    console.warn('Could not draw price line on Weightage chart for', lvl.code, e);
+                }
+            }
+        });
+    }
+
+    function clearQuantPriceLines() {
+        if (oCandleSeries && quantPriceLinesOptions.length > 0) {
+            quantPriceLinesOptions.forEach(line => {
+                try { oCandleSeries.removePriceLine(line); } catch (e) {}
+            });
+        }
+        quantPriceLinesOptions = [];
+
+        if (wCandleSeries && quantPriceLinesWeightage.length > 0) {
+            quantPriceLinesWeightage.forEach(line => {
+                try { wCandleSeries.removePriceLine(line); } catch (e) {}
+            });
+        }
+        quantPriceLinesWeightage = [];
+    }
 
     function fmt(val) {
         if (val === null || val === undefined || isNaN(val)) return '0';
@@ -2577,6 +3047,8 @@
                 borderColor: '#374151',
                 timeVisible: true,
                 secondsVisible: false,
+                barSpacing: 10,
+                minBarSpacing: 3,
             },
             rightPriceScale: {
                 borderColor: '#374151',
@@ -2648,6 +3120,9 @@
             if (toiChartInstance) toiChartInstance.resize();
             if (buildupChartInstance) buildupChartInstance.resize();
         });
+
+        updateQuantLinesButtonUI();
+        drawQuantPriceLines();
     }
 
     // ── 5. Unified Data Fetcher ───────────────────────────────────────────────────
@@ -2761,16 +3236,64 @@
                 document.getElementById('w-chart-loading')?.classList.add('hidden');
             });
 
+        // 4. Fetch Quant S/R Levels independently & update UI/chart price lines
+        const pQuant = fetch(`/api/nifty-unified/quant-levels?date=${selectedDate}&symbol=NIFTY&_t=${Date.now()}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.success && data.playbook) {
+                    updateQuantLevelsUI(data.playbook);
+                }
+            })
+            .catch(e => console.warn('Could not auto-update Quant S/R levels:', e));
+
         try {
-            await Promise.allSettled([pBreadth, pTrendingOi, pWeightage]);
+            await Promise.allSettled([pBreadth, pTrendingOi, pWeightage, pQuant]);
             applyChartHeight(currentChartHeight);
             if (timestampsList && timestampsList.length > 0) {
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
                 updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
             }
+
+            // Update Last Sync Time (Only Time: HH:mm:ss)
+            const syncNow = new Date();
+            const timeOnlyStr = String(syncNow.getHours()).padStart(2, '0') + ':' +
+                                String(syncNow.getMinutes()).padStart(2, '0') + ':' +
+                                String(syncNow.getSeconds()).padStart(2, '0');
+            const syncBadge = document.getElementById('last-sync-time-badge');
+            if (syncBadge) {
+                syncBadge.textContent = timeOnlyStr;
+                syncBadge.classList.add('bg-emerald-500/30', 'text-emerald-200');
+                setTimeout(() => syncBadge.classList.remove('bg-emerald-500/30', 'text-emerald-200'), 800);
+            }
+            const quantSyncEl = document.getElementById('quant-last-sync-time');
+            if (quantSyncEl) {
+                quantSyncEl.textContent = timeOnlyStr;
+            }
         } finally {
             const spinner = document.getElementById('reload-spinner');
             if (spinner) spinner.classList.remove('animate-spin');
+        }
+    }
+
+    // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View ─────────────────
+    function adjustChartTimeScale(chart, candleCount) {
+        if (!chart || candleCount <= 0) return;
+        if (candleCount < 65) {
+            try {
+                chart.timeScale().applyOptions({
+                    barSpacing: 10,
+                    minBarSpacing: 3,
+                    rightOffset: Math.max(10, 75 - candleCount),
+                });
+                chart.timeScale().setVisibleLogicalRange({
+                    from: -2,
+                    to: Math.max(75, candleCount + 10),
+                });
+            } catch (e) {
+                chart.timeScale().fitContent();
+            }
+        } else {
+            chart.timeScale().fitContent();
         }
     }
 
@@ -2849,7 +3372,8 @@
                 });
                 wCandleSeries.setMarkers(markers);
             }
-            if (wChart) wChart.timeScale().fitContent();
+            if (wChart) adjustChartTimeScale(wChart, chartCandles.length);
+            drawQuantPriceLines();
         }
 
         const wSlider = document.getElementById('w-slider');
@@ -2918,7 +3442,8 @@
                 });
                 oCandleSeries.setMarkers(markers);
             }
-            if (oChart) oChart.timeScale().fitContent();
+            if (oChart) adjustChartTimeScale(oChart, chartCandles.length);
+            drawQuantPriceLines();
         }
 
         const oSlider = document.getElementById('o-slider');
@@ -2973,6 +3498,7 @@
                             pointRadius: 1.5,
                             tension: 0.2,
                             yAxisID: 'y',
+                            hidden: toiSeriesVisibility.call === false,
                         },
                         {
                             label: 'Put OI Change',
@@ -2983,6 +3509,7 @@
                             pointRadius: 1.5,
                             tension: 0.2,
                             yAxisID: 'y',
+                            hidden: toiSeriesVisibility.put === false,
                         },
                         {
                             label: 'Sentiment (Diff in OI)',
@@ -2993,6 +3520,7 @@
                             pointRadius: 1.5,
                             tension: 0.2,
                             yAxisID: 'y',
+                            hidden: toiSeriesVisibility.sentiment === false,
                         },
                         {
                             label: 'Spot Price',
@@ -3003,6 +3531,7 @@
                             pointRadius: 0,
                             tension: 0.1,
                             yAxisID: 'y1',
+                            hidden: toiSeriesVisibility.spot === false,
                         }
                     ]
                 },
@@ -3010,6 +3539,12 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
+                    onHover: (event, activeElements) => {
+                        if (activeElements && activeElements.length > 0) {
+                            const idx = activeElements[0].index;
+                            updateTrendingOiDiffBadge(idx);
+                        }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -3043,7 +3578,7 @@
                         },
                         y1: {
                             type: 'linear',
-                            display: true,
+                            display: toiSeriesVisibility.spot !== false,
                             position: 'right',
                             grid: { drawOnChartArea: false },
                             ticks: {
@@ -3055,7 +3590,10 @@
                     }
                 }
             });
+            updateToiLegendUI();
         }
+
+        updateTrendingOiDiffBadge();
 
         // ROW 2: OI Buildup
         renderStrikeBuildupChart();
@@ -3482,6 +4020,25 @@
         if (activeBuildupTf === '5m') {
             const badge = document.getElementById('bld-window-badge');
             if (badge) badge.textContent = `${timeStr} (5M)`;
+        }
+        if (trendingOiData.chart && trendingOiData.chart.labels) {
+            const labels = trendingOiData.chart.labels;
+            const cleanTime = timeStr ? String(timeStr).slice(0, 5) : '';
+            let matchIdx = -1;
+            for (let i = labels.length - 1; i >= 0; i--) {
+                const l = String(labels[i] || '').slice(0, 5);
+                if (l === cleanTime) {
+                    matchIdx = i;
+                    break;
+                }
+            }
+            if (matchIdx !== -1) {
+                updateTrendingOiDiffBadge(matchIdx);
+            } else if (index >= 0 && index < labels.length) {
+                updateTrendingOiDiffBadge(index);
+            } else {
+                updateTrendingOiDiffBadge();
+            }
         }
     }
 
@@ -4625,6 +5182,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         applyCockpitFontScale(currentCockpitFontScale);
         applyTimerVisibility();
+        updateToiLegendUI();
         initLightweightCharts();
         setupControls();
         syncAlarmToolbarUI();

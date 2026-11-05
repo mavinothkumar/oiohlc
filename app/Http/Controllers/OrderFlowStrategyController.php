@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderFlowAlertLog;
 use App\Models\OrderFlowSignalLog;
 use App\Models\ZeroClickAlertLog;
+use App\Services\OrderFlow\OrderFlowCumulativeReportService;
 use App\Services\Quant\HighProbabilityEngine;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -17,10 +19,12 @@ use Illuminate\View\View;
 class OrderFlowStrategyController extends Controller
 {
     protected HighProbabilityEngine $quantEngine;
+    protected OrderFlowCumulativeReportService $reportService;
 
-    public function __construct(HighProbabilityEngine $quantEngine)
+    public function __construct(HighProbabilityEngine $quantEngine, OrderFlowCumulativeReportService $reportService)
     {
         $this->quantEngine = $quantEngine;
+        $this->reportService = $reportService;
     }
 
     /**
@@ -114,18 +118,63 @@ class OrderFlowStrategyController extends Controller
         // 6. Pre-calculate Strategy Confluence Signals for Initial Load
         $strategySignals = $this->computeStrategyConfluenceSignals($symbol, $workingDate, $selectedExpiry, $atmStrike, $spotPrice);
 
+        // 7. Highest Traded Ask & Bid Quantities so far today (From 09:15 onwards)
+        $sessionAskRecords = [];
+        $sessionBidRecords = [];
+        if (Schema::hasTable('order_flow_alert_logs')) {
+            $allTodayAlerts = OrderFlowAlertLog::where('trade_date', $workingDate)
+                ->where('symbol', $symbol)
+                ->orderBy('alert_time', 'asc')
+                ->get(['alert_time', 'price', 'quantity', 'side', 'alert_type', 'title', 'details']);
+
+            foreach ($allTodayAlerts as $r) {
+                $qty = (int) $r->quantity;
+                if ($qty <= 0 && !empty($r->title) && preg_match('/(\d+[\d,]*)\s*Qty/i', $r->title, $m)) {
+                    $qty = (int) str_replace(',', '', $m[1]);
+                }
+                if ($qty <= 0 && !empty($r->details) && preg_match('/(\d+[\d,]*)\s*Qty/i', $r->details, $m)) {
+                    $qty = (int) str_replace(',', '', $m[1]);
+                }
+                if ($qty <= 0) continue;
+
+                $timeStr = is_string($r->alert_time) ? $r->alert_time : ($r->alert_time ? $r->alert_time->format('H:i:s') : '--');
+                $price = (float) $r->price;
+
+                // Determine if ASK (Sell wall / Ask block) or BID (Buy wall / Bid block)
+                $isAsk = in_array(strtoupper((string) $r->side), ['SELL', 'ASK']) 
+                    || str_contains((string) $r->alert_type, 'SELL') 
+                    || str_contains((string) $r->alert_type, 'ASK')
+                    || str_contains(strtoupper((string) $r->title), 'ASK');
+
+                $item = [
+                    'time'  => $timeStr,
+                    'price' => $price,
+                    'qty'   => $qty,
+                    'side'  => $isAsk ? 'ASK' : 'BID',
+                ];
+
+                if ($isAsk) {
+                    $sessionAskRecords[] = $item;
+                } else {
+                    $sessionBidRecords[] = $item;
+                }
+            }
+        }
+
         return view('order-flow-depth.index', [
-            'symbol'          => $symbol,
-            'workingDate'     => $workingDate,
-            'expiries'        => $expiries,
-            'selectedExpiry'  => $selectedExpiry,
-            'indexKey'        => $indexKey,
-            'spotPrice'       => $spotPrice,
-            'openPrice'       => $openPrice,
-            'atmStrike'       => $atmStrike,
-            'strikeStep'      => $strikeStep,
-            'contracts'       => $contracts,
-            'strategySignals' => $strategySignals,
+            'symbol'            => $symbol,
+            'workingDate'       => $workingDate,
+            'expiries'          => $expiries,
+            'selectedExpiry'    => $selectedExpiry,
+            'indexKey'          => $indexKey,
+            'spotPrice'         => $spotPrice,
+            'openPrice'         => $openPrice,
+            'atmStrike'         => $atmStrike,
+            'strikeStep'        => $strikeStep,
+            'contracts'         => $contracts,
+            'strategySignals'   => $strategySignals,
+            'sessionAlertsAsk'  => $sessionAskRecords,
+            'sessionAlertsBid'  => $sessionBidRecords,
         ]);
     }
 
@@ -756,6 +805,156 @@ class OrderFlowStrategyController extends Controller
     }
 
     /**
+     * Store an Order Flow Alert of the day (Consecutive Stacks, Liquidity Blocks, Confluence Setups).
+     */
+    public function logAlert(Request $request): JsonResponse
+    {
+        $today = Carbon::today('Asia/Kolkata')->toDateString();
+        $alertType = (string) $request->input('alert_type', 'STACK_BUY');
+        $side = strtoupper((string) $request->input('side', 'BUY'));
+        $price = (float) $request->input('price', 0);
+        $symbol = (string) $request->input('symbol', 'NIFTY');
+
+        // Deduplication: prevent duplicate alert insertion within 30 seconds for same type & side & price vicinity
+        $recent = OrderFlowAlertLog::where('trade_date', $today)
+            ->where('symbol', $symbol)
+            ->where('alert_type', $alertType)
+            ->where('side', $side)
+            ->where('created_at', '>=', Carbon::now()->subSeconds(30))
+            ->whereBetween('price', [max(0, $price - 1.5), $price + 1.5])
+            ->first();
+
+        if ($recent) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Alert already persisted recently',
+                'data'    => $recent,
+            ]);
+        }
+
+        $alert = OrderFlowAlertLog::create([
+            'mode'             => $request->input('mode', 'live'),
+            'trade_date'       => $today,
+            'alert_time'       => Carbon::now('Asia/Kolkata')->format('H:i:s'),
+            'symbol'           => $symbol,
+            'instrument'       => $request->input('instrument'),
+            'alert_type'       => $alertType,
+            'side'             => $side,
+            'price'            => $price,
+            'quantity'         => $request->filled('quantity') ? (int) $request->input('quantity') : null,
+            'level'            => $request->filled('level') ? (int) $request->input('level') : null,
+            'confluence_score' => $request->filled('confluence_score') ? (int) $request->input('confluence_score') : null,
+            'title'            => (string) $request->input('title', 'Order Flow Alert'),
+            'details'          => $request->input('details'),
+            'guidance'         => $request->input('guidance'),
+            'sound'            => $request->input('sound'),
+            'meta'             => $request->input('meta'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $alert,
+        ]);
+    }
+
+    /**
+     * Fetch all logged alerts for today or specific date.
+     */
+    public function getAlertLogs(Request $request): JsonResponse
+    {
+        $date = $request->input('date', Carbon::today('Asia/Kolkata')->toDateString());
+        $mode = $request->input('mode');
+        $symbol = $request->input('symbol', 'NIFTY');
+
+        $query = OrderFlowAlertLog::where('trade_date', $date)
+            ->where('symbol', $symbol)
+            ->orderByDesc('id');
+
+        if ($mode && $mode !== 'all') {
+            $query->where('mode', $mode);
+        }
+
+        $alerts = $query->limit(300)->get();
+
+        $total = $alerts->count();
+        $buyCount = $alerts->where('side', 'BUY')->count();
+        $sellCount = $alerts->where('side', 'SELL')->count();
+        $stacksCount = $alerts->filter(fn($a) => str_contains($a->alert_type, 'STACK'))->count();
+        $blocksCount = $alerts->filter(fn($a) => str_contains($a->alert_type, 'BLOCK'))->count();
+
+        return response()->json([
+            'success' => true,
+            'date'    => $date,
+            'summary' => [
+                'total_alerts' => $total,
+                'buy_count'    => $buyCount,
+                'sell_count'   => $sellCount,
+                'stacks_count' => $stacksCount,
+                'blocks_count' => $blocksCount,
+            ],
+            'alerts'  => $alerts,
+        ]);
+    }
+
+    /**
+     * Enterprise Cumulative Report Dashboard (HTML View or JSON).
+     */
+    public function dailyReport(Request $request)
+    {
+        $symbol = $request->input('symbol', 'NIFTY');
+
+        // Resolve working date
+        $workingDay = null;
+        if (Schema::hasTable('nse_working_days')) {
+            $workingDay = DB::table('nse_working_days')
+                ->where('current', 1)
+                ->first();
+
+            if (!$workingDay) {
+                $workingDay = DB::table('nse_working_days')
+                    ->where('working_date', '<=', Carbon::today('Asia/Kolkata')->format('Y-m-d'))
+                    ->orderBy('working_date', 'desc')
+                    ->first();
+            }
+        }
+        $defaultDate = $workingDay ? $workingDay->working_date : Carbon::today('Asia/Kolkata')->format('Y-m-d');
+        $date = $request->input('date', $defaultDate);
+        $mode = $request->input('mode');
+
+        $report = $this->reportService->generateReport($date, $symbol, $mode);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'report'  => $report,
+            ]);
+        }
+
+        return view('order-flow-depth.report', [
+            'report'      => $report,
+            'symbol'      => $symbol,
+            'workingDate' => $date,
+        ]);
+    }
+
+    /**
+     * JSON API Endpoint for Enterprise Cumulative Report.
+     */
+    public function getCumulativeReportApi(Request $request): JsonResponse
+    {
+        $symbol = $request->input('symbol', 'NIFTY');
+        $date = $request->input('date', Carbon::today('Asia/Kolkata')->format('Y-m-d'));
+        $mode = $request->input('mode');
+
+        $report = $this->reportService->generateReport($date, $symbol, $mode);
+
+        return response()->json([
+            'success' => true,
+            'report'  => $report,
+        ]);
+    }
+
+    /**
      * Helper to resolve contracts (Future, ATM CE, ATM PE, and adjacent strikes).
      */
     protected function resolveAvailableContracts(string $symbol, ?string $expiry, int $atmStrike, int $step): array
@@ -1121,6 +1320,78 @@ class OrderFlowStrategyController extends Controller
                     $signals['oi_buildup']['signal'] = $toiSignal;
                     $signals['oi_buildup']['details'] = $signals['trending_oi']['details'];
                 }
+            } catch (\Throwable $e) {}
+
+            // ── 3.5 INSTITUTIONAL QUANT LEVELS & PRICE ACTION CONFLUENCE ──
+            try {
+                $reportService = app(\App\Services\OrderFlow\OrderFlowCumulativeReportService::class);
+                $rep = $reportService->generateReport($date, $symbol);
+                $ql = $rep['tomorrow_playbook']['levels'] ?? [];
+                $centralPivot = (float)($rep['tomorrow_playbook']['central_pivot'] ?? $atm);
+                
+                $r3 = (float)($ql[0]['price'] ?? ($atm + 150));
+                $r2 = (float)($ql[1]['price'] ?? ($atm + 100));
+                $r1 = (float)($ql[2]['price'] ?? ($atm + 50));
+                $s1 = (float)($ql[4]['price'] ?? ($atm - 50));
+                $s2 = (float)($ql[5]['price'] ?? ($atm - 100));
+                $s3 = (float)($ql[6]['price'] ?? ($atm - 150));
+
+                $distToPivot = abs($spot - $centralPivot);
+                $distToR1 = abs($spot - $r1);
+                $distToR2 = abs($spot - $r2);
+                $distToS1 = abs($spot - $s1);
+                $distToS2 = abs($spot - $s2);
+
+                $paSignal = 'NEUTRAL';
+                $paDetails = "Trading near Central Pivot ₹" . number_format($centralPivot, 0);
+                $paScore = 50;
+
+                if ($spot >= $centralPivot) {
+                    $paSignal = 'BULLISH';
+                    $paScore = 65;
+                    if ($distToR2 <= 15) {
+                        $paDetails = "Testing Major VAH / Resistance R2 ₹" . number_format($r2, 0) . " - Watching for Wall Absorption or Breakout";
+                        $paScore = 70;
+                    } elseif ($distToR1 <= 15) {
+                        $paDetails = "Testing Tactical Supply R1 ₹" . number_format($r1, 0) . " - Bullish acceptance targets R2";
+                        $paScore = 65;
+                    } elseif ($distToPivot <= 15) {
+                        $paDetails = "Holding above Central Equilibrium Pivot ₹" . number_format($centralPivot, 0) . " (Bullish Long Continuation Zone)";
+                        $paScore = 75;
+                    } else {
+                        $paDetails = "Bullish territory above Central Pivot (₹" . number_format($centralPivot, 0) . ")";
+                    }
+                } else {
+                    $paSignal = 'BEARISH';
+                    $paScore = 35;
+                    if ($distToS2 <= 15) {
+                        $paDetails = "Testing Major VAL / Support S2 ₹" . number_format($s2, 0) . " - Watching for Bid Wall defense or Breakdown";
+                        $paScore = 30;
+                    } elseif ($distToS1 <= 15) {
+                        $paDetails = "Testing Tactical Demand S1 ₹" . number_format($s1, 0) . " - First line of defense";
+                        $paScore = 35;
+                    } elseif ($distToPivot <= 15) {
+                        $paDetails = "Failing below Central Equilibrium Pivot ₹" . number_format($centralPivot, 0) . " (Bearish Short Breakdown Zone)";
+                        $paScore = 25;
+                    } else {
+                        $paDetails = "Bearish territory below Central Pivot (₹" . number_format($centralPivot, 0) . ")";
+                    }
+                }
+
+                $signals['price_action'] = [
+                    'name'          => 'Price Action & Institutional Quant Levels',
+                    'signal'        => $paSignal,
+                    'score'         => $paScore,
+                    'weight'        => 15,
+                    'details'       => $paDetails,
+                    'pivot'         => $centralPivot,
+                    'r1'            => $r1,
+                    'r2'            => $r2,
+                    'r3'            => $r3,
+                    's1'            => $s1,
+                    's2'            => $s2,
+                    's3'            => $s3,
+                ];
             } catch (\Throwable $e) {}
 
             // ── 4. MASTER STRATEGIC ANCHOR & UNIFIED MACRO SYNC ──

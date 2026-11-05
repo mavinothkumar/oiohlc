@@ -147,6 +147,13 @@
                     <span id="feed-status-text">Connecting...</span>
                 </div>
 
+                {{-- Cumulative EOD Institutional Report Button --}}
+                <button id="btn-open-eod-report" onclick="openCumulativeReportModal()" title="View Institutional End-of-Day Cumulative Report & Tomorrow's S/R Levels" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-indigo-950 via-slate-900 to-amber-950 border border-amber-500/50 hover:border-amber-400 text-amber-300 hover:text-white transition text-[11px] flex items-center gap-1.5 font-bold shadow-md cursor-pointer hover:shadow-amber-500/20 active:scale-95">
+                    <span class="text-xs">📊</span>
+                    <span class="hidden sm:inline">EOD Report</span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                </button>
+
                 {{-- Alert Rules Settings Button --}}
                 <button id="btn-open-settings" onclick="toggleSettingsModal(true)" title="Configure Liquidity Block & Consecutive Stack Alert Rules" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-amber-500/40 hover:bg-slate-800 text-amber-300 hover:text-white transition text-[11px] flex items-center gap-1 font-bold shadow-sm">
                     <span>⚙️</span>
@@ -438,6 +445,100 @@
                 </div>
             </div>
 
+            {{-- 1.5. Highest Number of ASK & BID QTY Traded So Far (Top 10 Footprint with Time) --}}
+            <div id="top-traded-volume-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-amber-400">🌊</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Session Volume Footprint</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5">
+                                <span>HIGHEST TRADED QTY</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">TOP 10</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    {{-- View Switcher (Both / Ask Only / Bid Only), Skip Open Filter & Collapse Button --}}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        {{-- Skip Open Time Filter --}}
+                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Skip opening minutes (e.g. 09:30 means records start from 09:31)">
+                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Skip Open:</span>
+                            <select id="sel-top-traded-skip" onchange="onTopTradedSkipChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
+                                <option value="09:15" class="bg-slate-900 text-slate-200">None (09:15+)</option>
+                                <option value="09:20" class="bg-slate-900 text-slate-200">09:20 (Start 09:21)</option>
+                                <option value="09:30" selected class="bg-slate-900 text-amber-300">09:30 (Start 09:31)</option>
+                                <option value="09:45" class="bg-slate-900 text-slate-200">09:45 (Start 09:46)</option>
+                                <option value="10:00" class="bg-slate-900 text-slate-200">10:00 (Start 10:01)</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
+                            <button type="button" onclick="switchTopTradedView('both')" id="btn-top-traded-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 10 Ask & Bid">Both</button>
+                            <button type="button" onclick="switchTopTradedView('ask')" id="btn-top-traded-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 10 Ask Traded Qty (Aggressive Buys)">Ask (Buys)</button>
+                            <button type="button" onclick="switchTopTradedView('bid')" id="btn-top-traded-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 10 Bid Traded Qty (Aggressive Sells)">Bid (Sells)</button>
+                        </div>
+                        <button type="button" onclick="toggleTopTradedCard()" id="btn-toggle-top-traded" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Top Traded Qty">
+                            <span id="top-traded-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Summary Pill Bar --}}
+                <div id="top-traded-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2">
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Ask:</span>
+                        <span id="top-traded-peak-ask" class="text-emerald-300 font-bold">--</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Bid:</span>
+                        <span id="top-traded-peak-bid" class="text-rose-300 font-bold">--</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[9px]">
+                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
+                        <span id="top-traded-bias-pill" class="px-1 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400">NEUTRAL</span>
+                    </div>
+                </div>
+
+                {{-- Collapsible Container --}}
+                <div id="top-traded-collapsible" class="transition-all duration-200">
+                    {{-- Grid for Top 10 Ask & Top 10 Bid --}}
+                    <div id="top-traded-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                        
+                        {{-- Top 10 ASK QTY Traded (Green / Aggressive Buy) --}}
+                        <div id="col-top-traded-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>TOP 10 ASK (BUY TRADES)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500">Lifting Offer</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-ask">
+                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Ask volume prints...</div>
+                            </div>
+                        </div>
+
+                        {{-- Top 10 BID QTY Traded (Red / Aggressive Sell) --}}
+                        <div id="col-top-traded-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-rose-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>TOP 10 BID (SELL TRADES)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500">Hitting Bid</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-bid">
+                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Bid volume prints...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
             {{-- 2. Interactive Mini-Tabs: Engine Inspector (Journal Default, Alert, Math, Vacuum, JSON) --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-1.5">
@@ -513,10 +614,15 @@
                                 ⏳ Active (<span id="count-jfilter-active">0</span>)
                             </button>
                         </div>
-                        <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer text-xs transition">
-                            <span>🔄</span>
-                            <span>Refresh</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btn-toggle-all-journal" onclick="toggleAllJournalCards()" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold flex items-center gap-1 cursor-pointer text-[10.5px] transition" title="Toggle Show/Hide on all Journal rows">
+                                <span id="label-toggle-all-journal">▼ Expand All</span>
+                            </button>
+                            <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer text-xs transition">
+                                <span>🔄</span>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
                     </div>
 
                     {{-- Scrollable Signals List (Enlarged Height for Full Multi-Engine Card Viewing with Dark Scrollbar) --}}
@@ -927,8 +1033,8 @@
                             </span>
                         </div>
                         <label class="flex items-center gap-1.5 cursor-pointer text-[10.5px] font-black text-amber-300">
-                            <input type="checkbox" id="cfg-strict-confluence" class="accent-indigo-500 w-3.5 h-3.5 cursor-pointer">
-                            <span>Strict 4/4 Full Confluence</span>
+                            <input type="checkbox" id="cfg-strict-confluence" class="accent-indigo-500 w-3.5 h-3.5 cursor-pointer" onchange="updateStrictConfluenceLabel()">
+                            <span id="lbl-strict-confluence">Strict 4/4 Full Confluence</span>
                         </label>
                     </div>
 
@@ -950,11 +1056,17 @@
                         </button>
                     </div>
 
-                    {{-- 4 Pillars Thresholds Grid --}}
+                    {{-- 4 Pillars Thresholds Grid with Individual Enable/Disable --}}
                     <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-900 text-[10px]">
                         {{-- Pillar 1: Nifty 50 Stocks Breadth (BOTH Weight & Stocks) --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🏢 Pillar 1: Nifty 50 Stocks</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-200 block text-[10.5px] truncate">🏢 Pillar 1: Nifty 50 Stocks</span>
+                                <label class="relative inline-flex items-center cursor-pointer" title="Enable or disable Pillar 1">
+                                    <input type="checkbox" id="cfg-pillar1-enabled" class="sr-only peer" checked onchange="updateStrictConfluenceLabel()">
+                                    <div class="w-7 h-3.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                </label>
+                            </div>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Min Weight %:</span>
                                 <input type="number" id="cfg-pillar-breadth-weight" min="50" max="95" step="1" value="80" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-white text-[10.5px]">
@@ -967,7 +1079,13 @@
 
                         {{-- Pillar 2: Nifty 50 Options Flow Parity --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📊 Pillar 2: Nifty Options Flow</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-200 block text-[10.5px] truncate">📊 Pillar 2: Nifty Options Flow</span>
+                                <label class="relative inline-flex items-center cursor-pointer" title="Enable or disable Pillar 2">
+                                    <input type="checkbox" id="cfg-pillar2-enabled" class="sr-only peer" checked onchange="updateStrictConfluenceLabel()">
+                                    <div class="w-7 h-3.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </label>
+                            </div>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Min Flow %:</span>
                                 <input type="number" id="cfg-pillar-options-flow" min="50" max="95" step="1" value="70" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-[10.5px]" title="Requires Buy or Sell flow >= 70%">
@@ -977,7 +1095,13 @@
 
                         {{-- Pillar 3: Trending OI & PCR Sentiment --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">📈 Pillar 3: Trending OI</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-200 block text-[10.5px] truncate">📈 Pillar 3: Trending OI</span>
+                                <label class="relative inline-flex items-center cursor-pointer" title="Enable or disable Pillar 3">
+                                    <input type="checkbox" id="cfg-pillar3-enabled" class="sr-only peer" checked onchange="updateStrictConfluenceLabel()">
+                                    <div class="w-7 h-3.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-500"></div>
+                                </label>
+                            </div>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Bull Min PCR:</span>
                                 <input type="number" id="cfg-pillar-oi-bull-pcr" min="0.5" max="2.5" step="0.05" value="1.05" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-emerald-400 text-[10.5px]">
@@ -990,7 +1114,13 @@
 
                         {{-- Pillar 4: 30-Level Deep Order Book --}}
                         <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
-                            <span class="font-bold text-slate-200 block text-[10.5px] truncate">🌊 Pillar 4: 30-Depth Order Book</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-bold text-slate-200 block text-[10.5px] truncate">🌊 Pillar 4: 30-Depth Order Book</span>
+                                <label class="relative inline-flex items-center cursor-pointer" title="Enable or disable Pillar 4">
+                                    <input type="checkbox" id="cfg-pillar4-enabled" class="sr-only peer" checked onchange="updateStrictConfluenceLabel()">
+                                    <div class="w-7 h-3.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-amber-500"></div>
+                                </label>
+                            </div>
                             <div class="flex items-center justify-between gap-1">
                                 <span class="text-slate-400 text-[9.5px]">Min OBI (%):</span>
                                 <input type="number" id="cfg-pillar-obi-pct" min="5" max="80" step="1" value="20" class="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono font-bold text-amber-300 text-[10.5px]">
@@ -1479,6 +1609,64 @@
         </div>
     </div>
 
+    {{-- ════════════════════════ 3C. MODAL: ENTERPRISE CUMULATIVE EOD REPORT ════════════════════════ --}}
+    <div id="modal-cumulative-report" onclick="if (event.target === this) closeCumulativeReportModal()" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-2 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden ring-1 ring-amber-500/30">
+            
+            {{-- Header --}}
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">🏛️</span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-black text-white">Institutional EOD Cumulative Report</h3>
+                            <span id="modal-report-badge" class="px-2 py-0.2 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                SYNTHESIS
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">Order Flow Alerts, Journal Audit, Range Dominance &amp; Tomorrow S/R Playbook</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="date" id="modal-report-date-input" value="{{ $workingDate }}" onchange="fetchModalCumulativeReport(this.value)" class="bg-slate-950 text-amber-300 text-xs font-mono font-bold rounded-lg px-2 py-1 border border-slate-800 focus:outline-none cursor-pointer">
+                    
+                    <a id="btn-modal-report-fullscreen" href="{{ route('order-flow-depth.report') }}?date={{ $workingDate }}" target="_blank" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm" title="Open Full-Screen Dashboard">
+                        <span>↗</span>
+                        <span class="hidden sm:inline">Full Screen</span>
+                    </a>
+
+                    <button type="button" onclick="closeCumulativeReportModal()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-sm cursor-pointer">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            {{-- Modal Body: Dynamic Report Content --}}
+            <div id="modal-report-content" class="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4 text-xs">
+                <div class="flex flex-col items-center justify-center py-12 text-slate-400 space-y-2">
+                    <span class="text-2xl animate-spin">⚡</span>
+                    <p class="text-xs font-mono">Synthesizing institutional microstructure data...</p>
+                </div>
+            </div>
+
+            {{-- Footer --}}
+            <div class="flex items-center justify-between px-4 py-2.5 border-t border-slate-800 bg-slate-950 text-xs">
+                <span class="text-[10px] text-slate-400 font-mono">Enterprise Microstructure AI Engine</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="copyModalDeskBrief()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                        <span>📋</span>
+                        <span>Copy Brief</span>
+                    </button>
+                    <button type="button" onclick="closeCumulativeReportModal()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
+                        Close
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 
 {{-- ════════════════════════ 4. SCRIPTS: PROTOBUF, WEBSOCKET & CONFLUENCE ENGINE ════════════════════════ --}}
@@ -1504,7 +1692,11 @@
         autoLog: true,               // Auto-log opportunities to Journal
 
         // 🎯 4-Pillar High-Probability Strategy Customization
-        strictConfluence: true,      // Require 4/4 simultaneous confluence
+        strictConfluence: true,      // Require simultaneous confluence across all active pillars
+        enablePillar1: true,         // Pillar 1: Nifty 50 Stocks Breadth
+        enablePillar2: true,         // Pillar 2: Nifty Options Flow Parity
+        enablePillar3: true,         // Pillar 3: Trending OI & PCR
+        enablePillar4: true,         // Pillar 4: 30-Depth Order Book
         pillarBreadthWeight: 80,     // Pillar 1: Min Weight % (Default: 80%)
         pillarBreadthStocks: 80,     // Pillar 1: Min Stocks % (Default: 80% = 40 stocks)
         pillarOptionsFlow: 70,       // Pillar 2: Min Options Flow % (Default: 70%)
@@ -1693,8 +1885,18 @@
         const boxTrendOi = document.getElementById('pillar-box-trendoi');
         const boxD30 = document.getElementById('pillar-box-d30');
 
-        function renderBox(el, isBull, isBear, label) {
+        const p1Active = alertSettings.enablePillar1 !== false;
+        const p2Active = alertSettings.enablePillar2 !== false;
+        const p3Active = alertSettings.enablePillar3 !== false;
+        const p4Active = alertSettings.enablePillar4 !== false;
+
+        function renderBox(el, isBull, isBear, label, isActive) {
             if (!el) return;
+            if (!isActive) {
+                el.className = 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/40 text-slate-600 border-slate-900 flex items-center gap-1 opacity-50';
+                el.innerHTML = `<span>${label} (OFF)</span>`;
+                return;
+            }
             if (isBull) {
                 el.className = 'px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide border transition-all duration-150 bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-xs flex items-center gap-1';
                 el.innerHTML = `<span class="text-[9px]">▲</span><span>${label}</span>`;
@@ -1707,10 +1909,10 @@
             }
         }
 
-        renderBox(boxStock, isP1Bull, isP1Bear, '50 Stock');
-        renderBox(boxOptFlow, isP2Bull, isP2Bear, 'Opt Flow');
-        renderBox(boxTrendOi, isP3Bull, isP3Bear, 'Trend OI');
-        renderBox(boxD30, isP4Bull, isP4Bear, '30 D Book');
+        renderBox(boxStock, isP1Bull, isP1Bear, '50 Stock', p1Active);
+        renderBox(boxOptFlow, isP2Bull, isP2Bear, 'Opt Flow', p2Active);
+        renderBox(boxTrendOi, isP3Bull, isP3Bear, 'Trend OI', p3Active);
+        renderBox(boxD30, isP4Bull, isP4Bear, '30 D Book', p4Active);
     };
 
     window.updateDomDriverDiagnosis = function(gw, rw, gcPct, rcPct, bullFlow, bearFlow, obi30) {
@@ -1972,6 +2174,10 @@
 
         // 4-Pillar High-Probability Inputs
         const strictConf = document.getElementById('cfg-strict-confluence');
+        const p1Enabled = document.getElementById('cfg-pillar1-enabled');
+        const p2Enabled = document.getElementById('cfg-pillar2-enabled');
+        const p3Enabled = document.getElementById('cfg-pillar3-enabled');
+        const p4Enabled = document.getElementById('cfg-pillar4-enabled');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
         const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
         const optFlow = document.getElementById('cfg-pillar-options-flow');
@@ -1981,6 +2187,10 @@
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
 
         if (strictConf) strictConf.checked = !!alertSettings.strictConfluence;
+        if (p1Enabled) p1Enabled.checked = alertSettings.enablePillar1 !== false;
+        if (p2Enabled) p2Enabled.checked = alertSettings.enablePillar2 !== false;
+        if (p3Enabled) p3Enabled.checked = alertSettings.enablePillar3 !== false;
+        if (p4Enabled) p4Enabled.checked = alertSettings.enablePillar4 !== false;
         if (bWeight) bWeight.value = alertSettings.pillarBreadthWeight ?? 80;
         if (bStocks) bStocks.value = alertSettings.pillarBreadthStocks ?? 80;
         if (optFlow) optFlow.value = alertSettings.pillarOptionsFlow ?? 70;
@@ -1988,6 +2198,7 @@
         if (oiBear) oiBear.value = alertSettings.pillarOiBearPcr ?? 0.95;
         if (obiPct) obiPct.value = alertSettings.pillarObiPct ?? 20;
         if (microDrift) microDrift.value = alertSettings.pillarMicroDrift ?? 0.15;
+        updateStrictConfluenceLabel();
 
         // 0Click Inputs
         const zcAutoLog = document.getElementById('zc-auto-log-toggle');
@@ -2070,6 +2281,18 @@
         }
     };
 
+    window.updateStrictConfluenceLabel = function() {
+        const p1 = document.getElementById('cfg-pillar1-enabled')?.checked;
+        const p2 = document.getElementById('cfg-pillar2-enabled')?.checked;
+        const p3 = document.getElementById('cfg-pillar3-enabled')?.checked;
+        const p4 = document.getElementById('cfg-pillar4-enabled')?.checked;
+        const count = (p1 ? 1 : 0) + (p2 ? 1 : 0) + (p3 ? 1 : 0) + (p4 ? 1 : 0);
+        const lbl = document.getElementById('lbl-strict-confluence');
+        if (lbl) {
+            lbl.textContent = `Strict ${count}/${count} Full Confluence`;
+        }
+    };
+
     window.setSinglePreset = function(qty) {
         const input = document.getElementById('cfg-single-qty');
         if (input) input.value = qty;
@@ -2077,6 +2300,10 @@
 
     window.setPillarPreset = function(presetName) {
         const strictEl = document.getElementById('cfg-strict-confluence');
+        const p1Enabled = document.getElementById('cfg-pillar1-enabled');
+        const p2Enabled = document.getElementById('cfg-pillar2-enabled');
+        const p3Enabled = document.getElementById('cfg-pillar3-enabled');
+        const p4Enabled = document.getElementById('cfg-pillar4-enabled');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
         const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
         const optFlow = document.getElementById('cfg-pillar-options-flow');
@@ -2084,6 +2311,11 @@
         const oiBear = document.getElementById('cfg-pillar-oi-bear-pcr');
         const obiPct = document.getElementById('cfg-pillar-obi-pct');
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
+
+        if (p1Enabled) p1Enabled.checked = true;
+        if (p2Enabled) p2Enabled.checked = true;
+        if (p3Enabled) p3Enabled.checked = true;
+        if (p4Enabled) p4Enabled.checked = true;
 
         if (presetName === 'sniper') {
             if (strictEl) strictEl.checked = true;
@@ -2113,6 +2345,7 @@
             if (obiPct) obiPct.value = 15;
             if (microDrift) microDrift.value = 0.10;
         }
+        updateStrictConfluenceLabel();
     };
 
     window.resetAlertDefaults = function() {
@@ -2130,6 +2363,10 @@
         alertSettings.autoLog = true;
 
         alertSettings.strictConfluence = true;
+        alertSettings.enablePillar1 = true;
+        alertSettings.enablePillar2 = true;
+        alertSettings.enablePillar3 = true;
+        alertSettings.enablePillar4 = true;
         alertSettings.pillarBreadthWeight = 80;
         alertSettings.pillarBreadthStocks = 80;
         alertSettings.pillarOptionsFlow = 70;
@@ -2185,6 +2422,10 @@
 
         // 4-Pillar High-Probability Settings
         const strictConf = document.getElementById('cfg-strict-confluence');
+        const p1Enabled = document.getElementById('cfg-pillar1-enabled');
+        const p2Enabled = document.getElementById('cfg-pillar2-enabled');
+        const p3Enabled = document.getElementById('cfg-pillar3-enabled');
+        const p4Enabled = document.getElementById('cfg-pillar4-enabled');
         const bWeight = document.getElementById('cfg-pillar-breadth-weight');
         const bStocks = document.getElementById('cfg-pillar-breadth-stocks');
         const optFlow = document.getElementById('cfg-pillar-options-flow');
@@ -2194,6 +2435,10 @@
         const microDrift = document.getElementById('cfg-pillar-micro-drift');
 
         alertSettings.strictConfluence = !!(strictConf?.checked);
+        alertSettings.enablePillar1 = !!(p1Enabled?.checked);
+        alertSettings.enablePillar2 = !!(p2Enabled?.checked);
+        alertSettings.enablePillar3 = !!(p3Enabled?.checked);
+        alertSettings.enablePillar4 = !!(p4Enabled?.checked);
         alertSettings.pillarBreadthWeight = Math.max(50, Math.min(99, parseFloat(bWeight?.value || 80)));
         alertSettings.pillarBreadthStocks = Math.max(50, Math.min(99, parseFloat(bStocks?.value || 80)));
         alertSettings.pillarOptionsFlow = Math.max(50, Math.min(99, parseFloat(optFlow?.value || 70)));
@@ -2422,8 +2667,340 @@
 
         volumeProfile: {},
         lastVtt: 0,
-        simInterval: null
+        simInterval: null,
+
+        // Highest Traded ASK and BID Quantities (Master Session Storage from 09:15 onwards)
+        topTradedVolume: {
+            sessionAnchorAsk: @json($sessionAlertsAsk ?? []),
+            sessionAnchorBid: @json($sessionAlertsBid ?? []),
+            allAsk: @json($sessionAlertsAsk ?? []),
+            allBid: @json($sessionAlertsBid ?? []),
+            skipTime: localStorage.getItem('order_flow_skip_open_time') || 'none',
+            activeView: 'both', // 'both', 'ask', 'bid'
+            isCollapsed: false,
+        }
     };
+
+    // ── HIGHEST TRADED ASK & BID VOLUME FOOTPRINT (FROM 09:15 WITH SKIP FILTER) ──
+    function initTopTradedVolume() {
+        const workingDate = "{{ $workingDate }}";
+        const savedSkip = localStorage.getItem('order_flow_skip_open_time');
+        if (savedSkip) {
+            state.topTradedVolume.skipTime = savedSkip;
+            const sel = document.getElementById('sel-top-traded-skip');
+            if (sel) sel.value = savedSkip;
+        }
+
+        try {
+            const savedAsk = localStorage.getItem(`order_flow_all_ask_${workingDate}`);
+            const savedBid = localStorage.getItem(`order_flow_all_bid_${workingDate}`);
+            if (savedAsk) {
+                const pAsk = JSON.parse(savedAsk);
+                if (Array.isArray(pAsk) && pAsk.length > 0) {
+                    state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, pAsk);
+                }
+            }
+            if (savedBid) {
+                const pBid = JSON.parse(savedBid);
+                if (Array.isArray(pBid) && pBid.length > 0) {
+                    state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, pBid);
+                }
+            }
+        } catch (e) {
+            console.warn('Error reading saved session trades:', e);
+        }
+
+        // Always re-merge master sessionAnchor trades (from 09:15 start) to ensure morning peak trades are never lost
+        if (state.topTradedVolume.sessionAnchorAsk && state.topTradedVolume.sessionAnchorAsk.length > 0) {
+            state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, state.topTradedVolume.sessionAnchorAsk);
+        }
+        if (state.topTradedVolume.sessionAnchorBid && state.topTradedVolume.sessionAnchorBid.length > 0) {
+            state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, state.topTradedVolume.sessionAnchorBid);
+        }
+
+        renderTopTradedVolumeUI();
+    }
+
+    function mergeSessionTrades(existing, incoming) {
+        const map = new Map();
+        [...(existing || []), ...(incoming || [])].forEach(item => {
+            if (!item || !item.qty || item.qty <= 0) return;
+            const priceNum = parseFloat(item.price);
+            const qtyNum = parseInt(item.qty);
+            const timeStr = String(item.time || '').trim();
+            const sideStr = String(item.side || 'ASK').toUpperCase();
+            if (!timeStr || isNaN(priceNum) || isNaN(qtyNum)) return;
+
+            const key = `${timeStr}_${priceNum.toFixed(2)}_${sideStr}`;
+            if (!map.has(key) || map.get(key).qty < qtyNum) {
+                map.set(key, {
+                    time: timeStr,
+                    price: priceNum,
+                    qty: qtyNum,
+                    side: sideStr
+                });
+            }
+        });
+        const arr = Array.from(map.values());
+        arr.sort((a, b) => a.time.localeCompare(b.time));
+        return arr;
+    }
+
+    function pruneTradesKeepHighest(list, maxKeep = 300, anchorList = []) {
+        if (!Array.isArray(list) || list.length <= maxKeep) return list;
+
+        // Collect anchor items so they are permanently protected from eviction
+        const anchorKeys = new Set((anchorList || []).map(x => `${x.time}_${Number(x.price).toFixed(2)}_${x.side}`));
+
+        // Sort copy by quantity descending to identify the highest session prints
+        const sortedByQty = [...list].sort((a, b) => b.qty - a.qty);
+        // Protect top 100 highest prints of all time across the entire day
+        const topPrints = sortedByQty.slice(0, 100);
+        const protectedKeys = new Set([
+            ...anchorKeys,
+            ...topPrints.map(x => `${x.time}_${Number(x.price).toFixed(2)}_${x.side}`)
+        ]);
+
+        const kept = [];
+        const seen = new Set();
+
+        // 1. Keep all protected items (anchors from trade start + top 100 highest volume prints)
+        list.forEach(item => {
+            const k = `${item.time}_${Number(item.price).toFixed(2)}_${item.side}`;
+            if (protectedKeys.has(k) && !seen.has(k)) {
+                kept.push(item);
+                seen.add(k);
+            }
+        });
+
+        // 2. Fill remaining capacity up to maxKeep with recent prints
+        for (let i = list.length - 1; i >= 0 && kept.length < maxKeep; i--) {
+            const item = list[i];
+            const k = `${item.time}_${Number(item.price).toFixed(2)}_${item.side}`;
+            if (!seen.has(k)) {
+                kept.push(item);
+                seen.add(k);
+            }
+        }
+
+        kept.sort((a, b) => a.time.localeCompare(b.time));
+        return kept;
+    }
+
+    function onTopTradedSkipChange(newVal) {
+        state.topTradedVolume.skipTime = newVal;
+        try {
+            localStorage.setItem('order_flow_skip_open_time', newVal);
+        } catch (e) {}
+        renderTopTradedVolumeUI();
+    }
+    window.onTopTradedSkipChange = onTopTradedSkipChange;
+
+    function getFilteredTopTraded(rawList, skipTime) {
+        if (!Array.isArray(rawList)) return [];
+        let filtered = rawList;
+        if (skipTime && skipTime !== 'none' && skipTime !== '09:15') {
+            // E.g. skipTime = '09:30'. Cutoff is 09:30:59, so values start from 09:31:00 onwards
+            const cutoff = skipTime.length === 5 ? (skipTime + ':59') : skipTime;
+            filtered = rawList.filter(item => item.time > cutoff);
+        }
+        // Deduplicate very close prints (same minute & price) to show distinct institutional levels
+        const map = new Map();
+        filtered.forEach(item => {
+            const key = `${item.time.substring(0, 5)}_${Number(item.price).toFixed(2)}_${item.side}`;
+            if (!map.has(key) || item.qty > map.get(key).qty) {
+                map.set(key, item);
+            }
+        });
+        const arr = Array.from(map.values());
+        arr.sort((a, b) => b.qty - a.qty);
+        return arr.slice(0, 10);
+    }
+
+    function recordTradedVolumePrint(side, price, qty, timeStr = null) {
+        const parsedQty = parseInt(qty);
+        const parsedPrice = parseFloat(price);
+        // Ignore retail noise ticks (< 500 qty) to preserve institutional integrity
+        if (!parsedQty || parsedQty < 500 || !parsedPrice || parsedPrice <= 0) return;
+
+        const time = timeStr || new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const isAsk = side === 'ASK' || side === 'BUY';
+        const normSide = isAsk ? 'ASK' : 'BID';
+
+        const newItem = {
+            time: time,
+            price: parsedPrice,
+            qty: parsedQty,
+            side: normSide
+        };
+
+        const workingDate = "{{ $workingDate }}";
+        if (isAsk) {
+            state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, [newItem]);
+            if (state.topTradedVolume.allAsk.length > 500) {
+                state.topTradedVolume.allAsk = pruneTradesKeepHighest(state.topTradedVolume.allAsk, 300, state.topTradedVolume.sessionAnchorAsk);
+            }
+            try {
+                localStorage.setItem(`order_flow_all_ask_${workingDate}`, JSON.stringify(state.topTradedVolume.allAsk));
+            } catch (e) {}
+        } else {
+            state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, [newItem]);
+            if (state.topTradedVolume.allBid.length > 500) {
+                state.topTradedVolume.allBid = pruneTradesKeepHighest(state.topTradedVolume.allBid, 300, state.topTradedVolume.sessionAnchorBid);
+            }
+            try {
+                localStorage.setItem(`order_flow_all_bid_${workingDate}`, JSON.stringify(state.topTradedVolume.allBid));
+            } catch (e) {}
+        }
+
+        renderTopTradedVolumeUI();
+    }
+    window.recordTradedVolumePrint = recordTradedVolumePrint;
+
+    function renderTopTradedVolumeUI() {
+        const skipTime = state.topTradedVolume.skipTime || '09:30';
+        const askList = getFilteredTopTraded(state.topTradedVolume.allAsk, skipTime);
+        const bidList = getFilteredTopTraded(state.topTradedVolume.allBid, skipTime);
+
+        const maxAsk = askList.length > 0 ? askList[0].qty : 0;
+        const maxBid = bidList.length > 0 ? bidList[0].qty : 0;
+        const sessionMax = Math.max(maxAsk, maxBid, 1);
+
+        // Peak badges in summary strip
+        const peakAskEl = document.getElementById('top-traded-peak-ask');
+        const peakBidEl = document.getElementById('top-traded-peak-bid');
+        const biasPillEl = document.getElementById('top-traded-bias-pill');
+
+        if (peakAskEl) {
+            if (askList.length > 0) {
+                peakAskEl.innerHTML = `${askList[0].qty.toLocaleString()} <span class="text-slate-400 font-sans text-[8.5px]">@ ₹${askList[0].price.toFixed(2)} (${askList[0].time})</span>`;
+            } else {
+                peakAskEl.textContent = '--';
+            }
+        }
+        if (peakBidEl) {
+            if (bidList.length > 0) {
+                peakBidEl.innerHTML = `${bidList[0].qty.toLocaleString()} <span class="text-slate-400 font-sans text-[8.5px]">@ ₹${bidList[0].price.toFixed(2)} (${bidList[0].time})</span>`;
+            } else {
+                peakBidEl.textContent = '--';
+            }
+        }
+
+        if (biasPillEl) {
+            const totalAsk = askList.reduce((sum, x) => sum + x.qty, 0);
+            const totalBid = bidList.reduce((sum, x) => sum + x.qty, 0);
+            if (totalAsk > totalBid * 1.25) {
+                biasPillEl.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                biasPillEl.textContent = '🟢 BUYERS DOMINANT';
+            } else if (totalBid > totalAsk * 1.25) {
+                biasPillEl.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                biasPillEl.textContent = '🔴 SELLERS DOMINANT';
+            } else {
+                biasPillEl.className = 'px-1.5 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400 border border-slate-800';
+                biasPillEl.textContent = '⚖️ BALANCED TAPE';
+            }
+        }
+
+        // Render Ask list
+        const askContainer = document.getElementById('list-top-traded-ask');
+        if (askContainer) {
+            if (askList.length === 0) {
+                askContainer.innerHTML = `<div class="text-slate-500 text-[10px] py-3 text-center italic">No Ask prints after ${skipTime}...</div>`;
+            } else {
+                askContainer.innerHTML = askList.map((item, idx) => {
+                    const pct = Math.min(100, Math.max(12, Math.round((item.qty / sessionMax) * 100)));
+                    return `
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-emerald-500/15 pointer-events-none transition-all duration-300" style="width: ${pct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-bold ${idx < 3 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
+                                <span class="text-slate-300 font-mono text-[9.5px]">${item.time}</span>
+                            </div>
+                            <div class="flex items-center gap-2 z-10 shrink-0">
+                                <span class="text-slate-400 font-mono text-[9.5px]">₹${item.price.toFixed(2)}</span>
+                                <span class="font-black text-emerald-300 font-mono text-[10.5px] text-right min-w-[55px]">${item.qty.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Bid list
+        const bidContainer = document.getElementById('list-top-traded-bid');
+        if (bidContainer) {
+            if (bidList.length === 0) {
+                bidContainer.innerHTML = `<div class="text-slate-500 text-[10px] py-3 text-center italic">No Bid prints after ${skipTime}...</div>`;
+            } else {
+                bidContainer.innerHTML = bidList.map((item, idx) => {
+                    const pct = Math.min(100, Math.max(12, Math.round((item.qty / sessionMax) * 100)));
+                    return `
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-rose-500/15 pointer-events-none transition-all duration-300" style="width: ${pct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-bold ${idx < 3 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
+                                <span class="text-slate-300 font-mono text-[9.5px]">${item.time}</span>
+                            </div>
+                            <div class="flex items-center gap-2 z-10 shrink-0">
+                                <span class="text-slate-400 font-mono text-[9.5px]">₹${item.price.toFixed(2)}</span>
+                                <span class="font-black text-rose-300 font-mono text-[10.5px] text-right min-w-[55px]">${item.qty.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+    }
+
+    function switchTopTradedView(view) {
+        state.topTradedVolume.activeView = view;
+        const btnBoth = document.getElementById('btn-top-traded-both');
+        const btnAsk = document.getElementById('btn-top-traded-ask');
+        const btnBid = document.getElementById('btn-top-traded-bid');
+        const colAsk = document.getElementById('col-top-traded-ask');
+        const colBid = document.getElementById('col-top-traded-bid');
+        const grid = document.getElementById('top-traded-grid');
+
+        if (btnBoth) btnBoth.className = view === 'both' ? 'px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer' : 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
+        if (btnAsk) btnAsk.className = view === 'ask' ? 'px-2 py-0.5 rounded bg-emerald-600 text-white transition cursor-pointer' : 'px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer';
+        if (btnBid) btnBid.className = view === 'bid' ? 'px-2 py-0.5 rounded bg-rose-600 text-white transition cursor-pointer' : 'px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer';
+
+        if (view === 'both') {
+            if (colAsk) colAsk.classList.remove('hidden', 'sm:col-span-2');
+            if (colBid) colBid.classList.remove('hidden', 'sm:col-span-2');
+            if (grid) grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono';
+        } else if (view === 'ask') {
+            if (colAsk) {
+                colAsk.classList.remove('hidden');
+                colAsk.classList.add('sm:col-span-2');
+            }
+            if (colBid) colBid.classList.add('hidden');
+            if (grid) grid.className = 'grid grid-cols-1 gap-2 text-xs font-mono';
+        } else if (view === 'bid') {
+            if (colAsk) colAsk.classList.add('hidden');
+            if (colBid) {
+                colBid.classList.remove('hidden');
+                colBid.classList.add('sm:col-span-2');
+            }
+            if (grid) grid.className = 'grid grid-cols-1 gap-2 text-xs font-mono';
+        }
+    }
+    window.switchTopTradedView = switchTopTradedView;
+
+    function toggleTopTradedCard() {
+        const coll = document.getElementById('top-traded-collapsible');
+        const icon = document.getElementById('top-traded-toggle-icon');
+        if (!coll) return;
+        const isHidden = coll.classList.contains('hidden');
+        if (isHidden) {
+            coll.classList.remove('hidden');
+            if (icon) icon.textContent = '▲';
+        } else {
+            coll.classList.add('hidden');
+            if (icon) icon.textContent = '▼';
+        }
+    }
+    window.toggleTopTradedCard = toggleTopTradedCard;
 
     // ── 3. MINI-TAB SWITCHER ──
     window.switchMiniTab = function(tabName) {
@@ -3019,12 +3596,18 @@
                 recordAlertEvent({
                     type: 'STACK_BUY',
                     side: 'BUY',
+                    price: bidStack.lowP,
+                    quantity: bidStack.totalQty,
                     title: `Bullish Stack (${bidStack.count} Levels)`,
                     details: `${bidStack.totalQty.toLocaleString()} Qty at ₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}`,
                     guidance: '⚡ Direction: GO LONG / BUY CALL'
                 });
 
-                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                const confBullMet = alertSettings.strictConfluence 
+                    ? !!(state.confluenceState?.meetsStrictBull) 
+                    : (!alertSettings.enableConfluence || ((state.confluenceState?.bullPillarsCount || 0) >= Math.min(2, state.confluenceState?.activePillarsCount || 4)));
+
+                if (confBullMet && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
                     logOpportunityCall({
                         signalType: 'BUY_STACK',
                         action: 'BUY (LIQUIDITY STACK)',
@@ -3035,7 +3618,8 @@
                         optEstEntry: 140,
                         optEstSl: 118,
                         optEstTgt: 185,
-                        confluence: 75,
+                        confluence: state.confluenceState?.totalConfluence || 75,
+                        alignedPillars: state.confluenceState?.bullPillarsCount || 1,
                         rationale: `🌊 Bullish Stack: ${bidStack.count} Consecutive Levels (${bidStack.totalQty.toLocaleString()} Qty)`
                     });
                 }
@@ -3073,12 +3657,18 @@
                 recordAlertEvent({
                     type: 'STACK_SELL',
                     side: 'SELL',
+                    price: askStack.highP,
+                    quantity: askStack.totalQty,
                     title: `Bearish Stack (${askStack.count} Levels)`,
                     details: `${askStack.totalQty.toLocaleString()} Qty at ₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}`,
                     guidance: '⚡ Direction: GO SHORT / BUY PUT'
                 });
 
-                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                const confBearMet = alertSettings.strictConfluence 
+                    ? !!(state.confluenceState?.meetsStrictBear) 
+                    : (!alertSettings.enableConfluence || ((state.confluenceState?.bearPillarsCount || 0) >= Math.min(2, state.confluenceState?.activePillarsCount || 4)));
+
+                if (confBearMet && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
                     logOpportunityCall({
                         signalType: 'SELL_STACK',
                         action: 'SELL (LIQUIDITY STACK)',
@@ -3089,7 +3679,8 @@
                         optEstEntry: 140,
                         optEstSl: 118,
                         optEstTgt: 185,
-                        confluence: 25,
+                        confluence: state.confluenceState?.totalConfluence || 25,
+                        alignedPillars: state.confluenceState?.bearPillarsCount || 1,
                         rationale: `🌊 Bearish Stack: ${askStack.count} Consecutive Levels (${askStack.totalQty.toLocaleString()} Qty)`
                     });
                 }
@@ -3127,12 +3718,19 @@
                 recordAlertEvent({
                     type: 'BLOCK_BUY',
                     side: 'BUY',
+                    price: heavyBidBlock.price,
+                    quantity: heavyBidBlock.qty,
+                    level: heavyBidBlock.level,
                     title: `Heavy Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty`,
                     details: `₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`,
                     guidance: '🛡️ Strong Support Wall / Accumulation'
                 });
 
-                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                const confBullMet = alertSettings.strictConfluence 
+                    ? !!(state.confluenceState?.meetsStrictBull) 
+                    : (!alertSettings.enableConfluence || ((state.confluenceState?.bullPillarsCount || 0) >= Math.min(2, state.confluenceState?.activePillarsCount || 4)));
+
+                if (confBullMet && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
                     logOpportunityCall({
                         signalType: 'BUY_BLOCK',
                         action: 'BUY (SUPPORT WALL)',
@@ -3143,7 +3741,8 @@
                         optEstEntry: 135,
                         optEstSl: 115,
                         optEstTgt: 175,
-                        confluence: 70,
+                        confluence: state.confluenceState?.totalConfluence || 70,
+                        alignedPillars: state.confluenceState?.bullPillarsCount || 1,
                         rationale: `⚡ Institutional Bid Block: ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)} (Level ${heavyBidBlock.level})`
                     });
                 }
@@ -3181,12 +3780,19 @@
                 recordAlertEvent({
                     type: 'BLOCK_SELL',
                     side: 'SELL',
+                    price: heavyAskBlock.price,
+                    quantity: heavyAskBlock.qty,
+                    level: heavyAskBlock.level,
                     title: `Heavy Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty`,
                     details: `₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`,
                     guidance: '🚧 Strong Resistance Wall / Supply'
                 });
 
-                if (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick) {
+                const confBearMet = alertSettings.strictConfluence 
+                    ? !!(state.confluenceState?.meetsStrictBear) 
+                    : (!alertSettings.enableConfluence || ((state.confluenceState?.bearPillarsCount || 0) >= Math.min(2, state.confluenceState?.activePillarsCount || 4)));
+
+                if (confBearMet && (alertSettings.autoLog || zeroClickSettings.autoLog || zeroClickSettings.forwardToZeroClick)) {
                     logOpportunityCall({
                         signalType: 'SELL_BLOCK',
                         action: 'SELL (RESISTANCE WALL)',
@@ -3197,7 +3803,8 @@
                         optEstEntry: 135,
                         optEstSl: 115,
                         optEstTgt: 175,
-                        confluence: 30,
+                        confluence: state.confluenceState?.totalConfluence || 30,
+                        alignedPillars: state.confluenceState?.bearPillarsCount || 1,
                         rationale: `⚡ Institutional Ask Block: ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)} (Level ${heavyAskBlock.level})`
                     });
                 }
@@ -3399,20 +4006,160 @@
             timestamp: Date.now(),
             time: new Date().toLocaleTimeString('en-IN', { hour12: false }),
             type: event.type,
-            side: event.side,
+            side: event.side || 'BUY',
             title: event.title,
             details: event.details,
             sound: getSoundProfileLabel(alertSettings.soundProfile || 'crystal'),
-            guidance: event.guidance || ''
+            guidance: event.guidance || '',
+            price: event.price || (state.depthData ? state.depthData.ltp : {{ $spotPrice }}),
+            quantity: event.quantity || 0,
+            level: event.level || null,
+            confluence: event.confluence || null,
+            instrument: event.instrument || (state.selectedTargetContract ? state.selectedTargetContract.name : 'NIFTY')
         };
 
         state.recentAlertEvents.unshift(alertItem);
-        if (state.recentAlertEvents.length > 50) {
+        if (state.recentAlertEvents.length > 100) {
             state.recentAlertEvents.pop();
         }
 
         renderAlertFeedUI();
+
+        // Feed into Session Volume Footprint (Top Traded Qty)
+        let alertQty = parseInt(event.quantity) || 0;
+        if (alertQty <= 0 && event.title) {
+            const m = String(event.title).match(/(\d+[\d,]*)\s*Qty/i);
+            if (m) alertQty = parseInt(m[1].replace(/,/g, ''));
+        }
+        if (alertQty <= 0 && event.details) {
+            const m = String(event.details).match(/(\d+[\d,]*)\s*Qty/i);
+            if (m) alertQty = parseInt(m[1].replace(/,/g, ''));
+        }
+        if (alertQty >= 500 && alertItem.price > 0) {
+            const isAsk = ['SELL', 'ASK'].includes(String(alertItem.side || '').toUpperCase())
+                || String(alertItem.type || '').includes('SELL')
+                || String(alertItem.type || '').includes('ASK')
+                || String(alertItem.title || '').toUpperCase().includes('ASK');
+            recordTradedVolumePrint(isAsk ? 'ASK' : 'BID', alertItem.price, alertQty, alertItem.time);
+        }
+
+        // 💾 Persist Alert Event to Backend Database
+        persistAlertToBackend(alertItem);
     }
+
+    async function persistAlertToBackend(item) {
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const payload = {
+                mode: state.feedMode || 'live',
+                symbol: state.symbol || 'NIFTY',
+                instrument: item.instrument || 'NIFTY',
+                alert_type: item.type,
+                side: item.side,
+                price: item.price,
+                quantity: item.quantity || null,
+                level: item.level || null,
+                confluence_score: item.confluence || null,
+                title: item.title,
+                details: item.details,
+                guidance: item.guidance,
+                sound: item.sound
+            };
+
+            const resp = await fetch('{{ route('api.order-flow.log-alert') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                const res = await resp.json();
+                if (res.data && res.data.id) {
+                    item.id = res.data.id;
+                }
+            }
+        } catch(e) {
+            console.warn('Failed to persist alert event to database:', e);
+        }
+    }
+
+    window.loadPersistedAlerts = async function() {
+        try {
+            const resp = await fetch(`{{ route('api.order-flow.alert-logs') }}?date={{ $workingDate }}&mode=${state.feedMode}`);
+            if (!resp.ok) return;
+            const res = await resp.json();
+            if (res.success && Array.isArray(res.alerts) && res.alerts.length > 0) {
+                const mapped = res.alerts.map(a => ({
+                    id: a.id,
+                    timestamp: new Date(a.created_at || (a.trade_date + 'T' + a.alert_time)).getTime(),
+                    time: a.alert_time,
+                    type: a.alert_type,
+                    side: a.side,
+                    price: parseFloat(a.price) || 0,
+                    quantity: parseInt(a.quantity) || 0,
+                    level: a.level,
+                    title: a.title,
+                    details: a.details,
+                    sound: a.sound || getSoundProfileLabel(alertSettings.soundProfile || 'crystal'),
+                    guidance: a.guidance || ''
+                }));
+
+                const mapIds = new Set(mapped.map(m => m.id));
+                const fresh = (state.recentAlertEvents || []).filter(item => !mapIds.has(item.id));
+                state.recentAlertEvents = [...fresh, ...mapped].slice(0, 100);
+                renderAlertFeedUI();
+
+                // Sync session trades from backend database into topTradedVolume
+                const incomingAsk = [];
+                const incomingBid = [];
+                res.alerts.forEach(a => {
+                    let qty = parseInt(a.quantity) || 0;
+                    if (qty <= 0 && a.title) {
+                        const m = String(a.title).match(/(\d+[\d,]*)\s*Qty/i);
+                        if (m) qty = parseInt(m[1].replace(/,/g, ''));
+                    }
+                    if (qty <= 0 && a.details) {
+                        const m = String(a.details).match(/(\d+[\d,]*)\s*Qty/i);
+                        if (m) qty = parseInt(m[1].replace(/,/g, ''));
+                    }
+                    if (qty <= 0) return;
+                    const price = parseFloat(a.price) || 0;
+                    if (price <= 0) return;
+
+                    const isAsk = ['SELL', 'ASK'].includes(String(a.side || '').toUpperCase())
+                        || String(a.alert_type || '').includes('SELL')
+                        || String(a.alert_type || '').includes('ASK')
+                        || String(a.title || '').toUpperCase().includes('ASK');
+
+                    const item = {
+                        time: a.alert_time,
+                        price: price,
+                        qty: qty,
+                        side: isAsk ? 'ASK' : 'BID'
+                    };
+                    if (isAsk) incomingAsk.push(item);
+                    else incomingBid.push(item);
+                });
+
+                if (incomingAsk.length > 0 || incomingBid.length > 0) {
+                    if (incomingAsk.length > 0) {
+                        state.topTradedVolume.sessionAnchorAsk = mergeSessionTrades(state.topTradedVolume.sessionAnchorAsk || [], incomingAsk);
+                        state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, incomingAsk);
+                    }
+                    if (incomingBid.length > 0) {
+                        state.topTradedVolume.sessionAnchorBid = mergeSessionTrades(state.topTradedVolume.sessionAnchorBid || [], incomingBid);
+                        state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, incomingBid);
+                    }
+                    renderTopTradedVolumeUI();
+                }
+            }
+        } catch(e) {
+            console.warn('Failed loading persisted alerts:', e);
+        }
+    };
 
     function renderAlertFeedUI() {
         const countBadge = document.getElementById('badge-alert-count');
@@ -3439,34 +4186,58 @@
         }
 
         let html = '';
-        state.recentAlertEvents.forEach(a => {
+        state.expandedAlertIds = state.expandedAlertIds || new Set();
+
+        state.recentAlertEvents.forEach((a, idx) => {
             const isBuy = (a.side === 'BUY');
             const isBlock = a.type.includes('BLOCK');
             const isStack = a.type.includes('STACK');
             const badgeBg = isBlock ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : (isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40');
             const badgeIcon = isBlock ? '⚡ BLOCK' : (isStack ? '🌊 STACK' : (isBuy ? '🚀 BUY' : '🩸 SELL'));
+            const alertKey = a.id ? `alert-${a.id}` : `alert-idx-${idx}`;
+            const isExpanded = state.expandedAlertIds.has(alertKey);
 
             html += `
-            <div class="p-1.5 rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] space-y-1">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5 font-mono">
-                        <span class="text-slate-400 text-[9px]">${a.time}</span>
+            <div class="rounded-lg bg-slate-950 border ${isBuy ? 'border-emerald-800/40' : 'border-rose-800/40'} text-[10px] overflow-hidden transition">
+                <div onclick="toggleAlertFeedItem('${alertKey}')" class="flex items-center justify-between p-1.5 cursor-pointer hover:bg-slate-900/60 transition gap-1.5">
+                    <div class="flex items-center gap-1.5 font-mono flex-wrap">
+                        <span class="text-slate-400 text-[9px] font-bold">${a.time}</span>
                         <span class="px-1 py-0.2 rounded font-black text-[8px] uppercase ${badgeBg}">
                             ${badgeIcon}
                         </span>
-                        <span class="font-bold text-white text-[10.5px] truncate max-w-[130px]">${a.title}</span>
+                        <span class="font-bold text-white text-[10px] truncate max-w-[140px] sm:max-w-[200px]">${a.title}</span>
                     </div>
-                    <span class="text-[8.5px] text-amber-400 font-mono bg-slate-900 px-1 py-0.2 rounded border border-slate-800">${a.sound}</span>
+                    <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+                        <span class="font-bold text-[9px] ${isBuy ? 'text-emerald-400' : 'text-rose-400'} hidden sm:inline-block">${a.guidance}</span>
+                        <span class="text-[8px] text-amber-400 font-mono bg-slate-900 px-1 py-0.2 rounded border border-slate-800">${a.sound}</span>
+                        <span id="chevron-${alertKey}" class="text-slate-400 text-[8px]">${isExpanded ? '▲' : '▼'}</span>
+                    </div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] text-slate-300 pt-0.5 border-t border-slate-900">
+                <div id="body-${alertKey}" class="${isExpanded ? '' : 'hidden '}px-2 py-1 bg-slate-900/50 border-t border-slate-900 text-[9px] text-slate-300 flex items-center justify-between gap-1">
                     <span class="text-slate-400 font-mono">${a.details}</span>
-                    <span class="font-bold ${isBuy ? 'text-emerald-400' : 'text-rose-400'}">${a.guidance}</span>
+                    <span class="font-bold ${isBuy ? 'text-emerald-400' : 'text-rose-400'} sm:hidden">${a.guidance}</span>
                 </div>
             </div>
             `;
         });
         container.innerHTML = html;
     }
+
+    window.toggleAlertFeedItem = function(key) {
+        const body = document.getElementById(`body-${key}`);
+        const chevron = document.getElementById(`chevron-${key}`);
+        if (!body) return;
+        state.expandedAlertIds = state.expandedAlertIds || new Set();
+        if (body.classList.contains('hidden')) {
+            body.classList.remove('hidden');
+            if (chevron) chevron.textContent = '▲';
+            state.expandedAlertIds.add(key);
+        } else {
+            body.classList.add('hidden');
+            if (chevron) chevron.textContent = '▼';
+            state.expandedAlertIds.delete(key);
+        }
+    };
 
     window.clearLiveAlertHistory = function() {
         state.recentAlertEvents = [];
@@ -3889,6 +4660,7 @@
         let isAskHit = false;
         let isBidHit = false;
         const tm = state.tapeMechanics;
+        const timeStr = new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
         if (deltaV > 0) {
             if (ltp >= bestAsk) {
@@ -3898,6 +4670,7 @@
                 tm.bidHits = Math.max(0, (tm.bidHits || 0) - 1);
                 tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.82 + deltaV;
                 tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.82;
+                if (deltaV >= 500) recordTradedVolumePrint('ASK', ltp, deltaV, timeStr);
             } else if (ltp <= bestBid) {
                 tickDelta = -deltaV; // Aggressive Seller hitting Bid (Hitting the Bid)
                 isBidHit = true;
@@ -3905,14 +4678,17 @@
                 tm.askHits = Math.max(0, (tm.askHits || 0) - 1);
                 tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.82 + deltaV;
                 tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.82;
+                if (deltaV >= 500) recordTradedVolumePrint('BID', ltp, deltaV, timeStr);
             } else {
                 const drift = state.depthData.microPrice - state.depthData.midPrice;
                 if (drift > 0.02) {
                     tickDelta = Math.round(deltaV * 0.7);
                     tm.recentAskVolume = (tm.recentAskVolume || 0) * 0.85 + (deltaV * 0.7);
+                    if (tickDelta >= 500) recordTradedVolumePrint('ASK', ltp, tickDelta, timeStr);
                 } else if (drift < -0.02) {
                     tickDelta = -Math.round(deltaV * 0.7);
                     tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.85 + (deltaV * 0.7);
+                    if (Math.abs(tickDelta) >= 500) recordTradedVolumePrint('BID', ltp, Math.abs(tickDelta), timeStr);
                 } else {
                     tickDelta = Math.round((Math.random() - 0.5) * deltaV * 0.25);
                 }
@@ -3925,7 +4701,6 @@
         state.cvd.sessionLow = Math.min(state.cvd.sessionLow, state.cvd.current);
 
         const nowTs = Date.now();
-        const timeStr = new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
         state.cvd.history.push({
             time: timeStr,
@@ -4544,8 +5319,22 @@
         const isP4Bull = (d.obi30 >= reqObi || d.bidStack != null || (d.vpoc?.price > 0 && d.ltp >= d.vpoc.price && d.obi30 > 5) || state.cvd?.divergence === 'BULLISH' || (state.bookSlope?.asymmetry === 'BULLISH' && state.bookSlope?.ratio >= 1.35));
         const isP4Bear = (d.obi30 <= -reqObi || d.askStack != null || (d.vpoc?.price > 0 && d.ltp <= d.vpoc.price && d.obi30 < -5) || state.cvd?.divergence === 'BEARISH' || (state.bookSlope?.asymmetry === 'BEARISH' && state.bookSlope?.ratio <= 0.74));
 
-        const bullPillarsCount = (isP1Bull ? 1 : 0) + (isP2Bull ? 1 : 0) + (isP3Bull ? 1 : 0) + (isP4Bull ? 1 : 0);
-        const bearPillarsCount = (isP1Bear ? 1 : 0) + (isP2Bear ? 1 : 0) + (isP3Bear ? 1 : 0) + (isP4Bear ? 1 : 0);
+        // Active pillars filtering based on user toggles
+        const p1Active = alertSettings.enablePillar1 !== false;
+        const p2Active = alertSettings.enablePillar2 !== false;
+        const p3Active = alertSettings.enablePillar3 !== false;
+        const p4Active = alertSettings.enablePillar4 !== false;
+        const activePillarsCount = (p1Active ? 1 : 0) + (p2Active ? 1 : 0) + (p3Active ? 1 : 0) + (p4Active ? 1 : 0);
+
+        const bullPillarsCount = (p1Active && isP1Bull ? 1 : 0) + 
+                                 (p2Active && isP2Bull ? 1 : 0) + 
+                                 (p3Active && isP3Bull ? 1 : 0) + 
+                                 (p4Active && isP4Bull ? 1 : 0);
+
+        const bearPillarsCount = (p1Active && isP1Bear ? 1 : 0) + 
+                                 (p2Active && isP2Bear ? 1 : 0) + 
+                                 (p3Active && isP3Bear ? 1 : 0) + 
+                                 (p4Active && isP4Bear ? 1 : 0);
 
         // Update 4-Pillar Real-Time UI Boxes (50 Stock | Opt Flow | Trend OI | 30 D Book)
         updatePillarStatusBoxes(isP1Bull, isP1Bear, isP2Bull, isP2Bear, isP3Bull, isP3Bear, isP4Bull, isP4Bear);
@@ -4612,33 +5401,52 @@
             }
         }
 
-        // Strict 4/4 Filter Check
+        // Strict Filter Check (Requires 100% of currently enabled active pillars)
         const strictMode = !!alertSettings.strictConfluence;
-        const meetsStrictBull = (bullPillarsCount === 4);
-        const meetsStrictBear = (bearPillarsCount === 4);
+        const meetsStrictBull = (activePillarsCount > 0 && bullPillarsCount === activePillarsCount);
+        const meetsStrictBear = (activePillarsCount > 0 && bearPillarsCount === activePillarsCount);
+        const reqMinPillars = Math.max(1, Math.min(3, activePillarsCount));
 
         // Nifty 50 Anchor Directional Lock:
-        // Must have an active 80%+ Anchor OR current candle must reach >= 80% in BOTH weight & stocks!
         let isBuyQualified = false;
         let isSellQualified = false;
 
-        if (activeAnchor && activeAnchor.direction === 'BEARISH') {
-            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3 && isP1Bear));
+        if (p1Active && activeAnchor && activeAnchor.direction === 'BEARISH') {
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= reqMinPillars && isP1Bear));
             isBuyQualified = false;
-        } else if (activeAnchor && activeAnchor.direction === 'BULLISH') {
-            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3 && isP1Bull));
+        } else if (p1Active && activeAnchor && activeAnchor.direction === 'BULLISH') {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= reqMinPillars && isP1Bull));
             isSellQualified = false;
-        } else if (isP1Bull) {
-            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= 3));
+        } else if (p1Active && isP1Bull) {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= reqMinPillars));
             isSellQualified = false;
-        } else if (isP1Bear) {
-            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= 3));
+        } else if (p1Active && isP1Bear) {
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= reqMinPillars));
             isBuyQualified = false;
+        } else if (!p1Active && activePillarsCount > 0) {
+            isBuyQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBull : (bullPillarsCount >= reqMinPillars));
+            isSellQualified = alertSettings.enableConfluence && (strictMode ? meetsStrictBear : (bearPillarsCount >= reqMinPillars));
         } else {
-            // Stand aside when neither 80% stock anchor nor current 80% candle exists
+            // Stand aside when neither anchor nor active requirements met
             isBuyQualified = false;
             isSellQualified = false;
         }
+
+        // Cache live confluence status globally
+        state.confluenceState = {
+            isBuyQualified,
+            isSellQualified,
+            meetsStrictBull,
+            meetsStrictBear,
+            bullPillarsCount,
+            bearPillarsCount,
+            activePillarsCount,
+            totalConfluence,
+            p1Active,
+            p2Active,
+            p3Active,
+            p4Active
+        };
 
         if (alertSettings.enableAbsorption && isUnifiedSell && d.heavyBidBlock && d.heavyBidBlock.level <= 3) {
             // Unified is Bearish, but resting buy wall is holding the line
@@ -4681,12 +5489,12 @@
         } else if (isBuyQualified) {
             if (sigText) sigText.textContent = '🚀 HIGH CONFIDENCE BUY / LONG';
             if (sigPill) {
-                sigPill.textContent = strictMode ? '🎯 4/4 FULL CONFLUENCE' : 'STRONG BUY';
+                sigPill.textContent = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} FULL CONFLUENCE` : 'STRONG BUY';
                 sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950';
             }
             if (sigIcon) sigIcon.textContent = '🔥';
             if (heroBadge) {
-                heroBadge.textContent = strictMode ? '🎯 4/4 CONFLUENCE' : 'STRONG BUY';
+                heroBadge.textContent = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} CONFLUENCE` : 'STRONG BUY';
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
             }
 
@@ -4702,7 +5510,7 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
+                const confTag = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} Confirmed · ` : '';
                 const anchorDesc = activeAnchor ? `⚓ NIFTY 50 ${activeAnchor.candleTime} Upside (${activeAnchor.weight}% Green) · ` : (unified?.has_call ? `Unified ${unified.candle_time} BUY (${unified.breadth_weight}% Green) · ` : '');
                 const domDesc = d.bidStack ? `${d.bidStack.count}L Stack` : (d.heavyBidBlock ? `${d.heavyBidBlock.qty.toLocaleString()} Wall` : `OBI +${d.obi30}%`);
                 tradeRationale.textContent = `${confTag}${anchorDesc}${domDesc} · Upside active`;
@@ -4718,7 +5526,7 @@
                 recordAlertEvent({
                     type: 'STRATEGY_BUY',
                     side: 'BUY',
-                    title: strictMode ? '🎯 4/4 Full Confluence BUY Setup' : 'High-Confidence BUY Setup',
+                    title: strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} Full Confluence BUY Setup` : 'High-Confidence BUY Setup',
                     details: `${totalConfluence}% Confluence (${instLabel})`,
                     guidance: '⚡ Direction: GO LONG / BUY CALL'
                 });
@@ -4727,12 +5535,12 @@
         } else if (isSellQualified) {
             if (sigText) sigText.textContent = '🩸 HIGH CONFIDENCE SELL / SHORT';
             if (sigPill) {
-                sigPill.textContent = strictMode ? '🎯 4/4 FULL CONFLUENCE' : 'STRONG SELL';
+                sigPill.textContent = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} FULL CONFLUENCE` : 'STRONG SELL';
                 sigPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-rose-500 to-amber-500 text-white';
             }
             if (sigIcon) sigIcon.textContent = '🩸';
             if (heroBadge) {
-                heroBadge.textContent = strictMode ? '🎯 4/4 CONFLUENCE' : 'STRONG SELL';
+                heroBadge.textContent = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} CONFLUENCE` : 'STRONG SELL';
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
             }
 
@@ -4748,7 +5556,7 @@
             if (tradeSl) tradeSl.textContent = `₹${slPrice}`;
             if (tradeTarget) tradeTarget.textContent = `₹${targetPrice}`;
             if (tradeRationale) {
-                const confTag = strictMode ? '🎯 4/4 Confirmed · ' : '';
+                const confTag = strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} Confirmed · ` : '';
                 const anchorDesc = activeAnchor ? `⚓ NIFTY 50 ${activeAnchor.candleTime} Downside (${activeAnchor.weight}% Red) · ` : (unified?.has_call ? `Unified ${unified.candle_time} SELL (${unified.breadth_weight}% Red) · ` : '');
                 const domDesc = d.askStack ? `${d.askStack.count}L Stack` : (d.heavyAskBlock ? `${d.heavyAskBlock.qty.toLocaleString()} Wall` : `OBI ${d.obi30}%`);
                 tradeRationale.textContent = `${confTag}${anchorDesc}${domDesc} · Downside active`;
@@ -4764,7 +5572,7 @@
                 recordAlertEvent({
                     type: 'STRATEGY_SELL',
                     side: 'SELL',
-                    title: strictMode ? '🎯 4/4 Full Confluence SELL Setup' : 'High-Confidence SELL Setup',
+                    title: strictMode ? `🎯 ${activePillarsCount}/${activePillarsCount} Full Confluence SELL Setup` : 'High-Confidence SELL Setup',
                     details: `${totalConfluence}% Confluence (${instLabel})`,
                     guidance: '⚡ Direction: GO SHORT / BUY PUT'
                 });
@@ -4785,7 +5593,7 @@
             }
             if (sigIcon) sigIcon.textContent = strictMode ? '🎯' : '⚖️';
             if (heroBadge) {
-                heroBadge.textContent = strictMode ? `STRICT 4/4 (${Math.max(bullPillarsCount, bearPillarsCount)}/4)` : (!alertSettings.enableConfluence ? 'ALERTS OFF' : 'NEUTRAL CHOP');
+                heroBadge.textContent = strictMode ? `STRICT (${Math.max(bullPillarsCount, bearPillarsCount)}/${activePillarsCount})` : (!alertSettings.enableConfluence ? 'ALERTS OFF' : 'NEUTRAL CHOP');
                 heroBadge.className = 'px-1 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400';
             }
 
@@ -4798,11 +5606,11 @@
                     tradeRationale.textContent = 'Confluence alerts paused in settings';
                 } else if (strictMode) {
                     const missing = [];
-                    if (!isP1Bull && !isP1Bear) missing.push('Breadth');
-                    if (!isP2Bull && !isP2Bear) missing.push('OI PCR');
-                    if (!isP3Bull && !isP3Bear) missing.push('Quant POP');
-                    if (!isP4Bull && !isP4Bear) missing.push('30D Book');
-                    tradeRationale.textContent = `Strict 4/4 filter active · Pending alignment: ${missing.join(', ') || 'Mixed divergence'} · Stand aside`;
+                    if (p1Active && !isP1Bull && !isP1Bear) missing.push('Breadth');
+                    if (p2Active && !isP2Bull && !isP2Bear) missing.push('Options Flow');
+                    if (p3Active && !isP3Bull && !isP3Bear) missing.push('Trending OI');
+                    if (p4Active && !isP4Bull && !isP4Bear) missing.push('30D Book');
+                    tradeRationale.textContent = `Strict ${activePillarsCount}/${activePillarsCount} filter active · Pending alignment: ${missing.join(', ') || 'Mixed divergence'} · Stand aside`;
                 } else {
                     tradeRationale.textContent = `Order book balanced (OBI: ${d.obi30}%) · Stand aside`;
                 }
@@ -4950,6 +5758,17 @@
     async function logOpportunityCall(tradeSetup) {
         if (!alertSettings.autoLog && !zeroClickSettings.autoLog && !zeroClickSettings.forwardToZeroClick) return;
         if (state.feedMode === 'live' && !isMarketHours()) return;
+
+        // Strict Confluence Guard: If strict confluence is active, reject any signal not 100% aligned with active pillars!
+        if (alertSettings.strictConfluence) {
+            const isBuyCheck = tradeSetup.action.includes('CALL') || tradeSetup.action.includes('BUY') || (tradeSetup.signalType && tradeSetup.signalType.includes('BUY')) || (tradeSetup.action.includes('SELL PUT'));
+            const isQual = isBuyCheck ? state.confluenceState?.meetsStrictBull : state.confluenceState?.meetsStrictBear;
+            if (isQual === false) {
+                console.log('⛔ [Strict Confluence Filter] Rejected trade setup not meeting full active confluence:', tradeSetup.action);
+                return;
+            }
+        }
+
         const now = Date.now();
         if (now - state.lastSignalLogTime < 15000) return; // 15s debounce between calls
         state.lastSignalLogTime = now;
@@ -5310,23 +6129,24 @@
             const dSig = factors?.dom_depth?.signal || (l.obi_pct > 10 ? 'BULLISH' : (l.obi_pct < -10 ? 'BEARISH' : 'NEUTRAL'));
 
             const engines = [
-                { label: '🏢 Stocks', sig: bSig },
-                { label: '📊 Options', sig: oSig },
-                { label: '📈 Trending OI', sig: qSig },
-                { label: '🌊 30-Depth Book', sig: dSig }
+                { label: '🏢 Stocks', sig: bSig, active: alertSettings.enablePillar1 !== false },
+                { label: '📊 Options', sig: oSig, active: alertSettings.enablePillar2 !== false },
+                { label: '📈 Trending OI', sig: qSig, active: alertSettings.enablePillar3 !== false },
+                { label: '🌊 30-Depth Book', sig: dSig, active: alertSettings.enablePillar4 !== false }
             ];
 
+            const activeCount = engines.filter(e => e.active).length || 4;
             let alignedCount = 0;
             engines.forEach(e => {
-                if (e.sig === targetDir) alignedCount++;
+                if (e.active && e.sig === targetDir) alignedCount++;
             });
 
-            if (alignedCount === 4) {
-                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse">🎯 4/4 FULL CONFLUENCE</span>`;
-            } else if (alignedCount === 3) {
-                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">⚡ 3/4 ALIGNMENT</span>`;
+            if (alignedCount === activeCount && activeCount > 0) {
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-black bg-emerald-500/30 text-emerald-300 border border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse">🎯 ${activeCount}/${activeCount} FULL CONFLUENCE</span>`;
+            } else if (alignedCount >= Math.max(1, activeCount - 1)) {
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">⚡ ${alignedCount}/${activeCount} ALIGNMENT</span>`;
             } else {
-                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-mono text-slate-400 bg-slate-900 border border-slate-800">${alignedCount}/4 Align</span>`;
+                alignmentBadge = `<span class="px-2 py-0.5 rounded text-[9.5px] font-mono text-slate-400 bg-slate-900 border border-slate-800">${alignedCount}/${activeCount} Align</span>`;
             }
 
             // Extract exact values for the 4 pillars
@@ -5368,33 +6188,39 @@
                 ? `${factors.dom_depth.obi > 0 ? '+' : ''}${factors.dom_depth.obi}% OBI`
                 : (l.obi_pct !== undefined && l.obi_pct !== null ? `${l.obi_pct > 0 ? '+' : ''}${l.obi_pct}% OBI` : (isBuy ? '+14.6% OBI' : '-16.2% OBI'));
 
-            const getPillarSigBadge = (sig) => {
+            const getPillarSigBadge = (sig, isActive) => {
+                if (!isActive) return '<span class="text-slate-600 font-bold text-[9px]">OFF</span>';
                 if (sig === 'BULLISH') return '<span class="text-emerald-400 font-black text-[9.5px]">▲ BULL</span>';
                 if (sig === 'BEARISH') return '<span class="text-rose-400 font-black text-[9.5px]">▼ BEAR</span>';
                 return '<span class="text-slate-400 font-bold text-[9.5px]">— NEUT</span>';
             };
 
+            const p1On = alertSettings.enablePillar1 !== false;
+            const p2On = alertSettings.enablePillar2 !== false;
+            const p3On = alertSettings.enablePillar3 !== false;
+            const p4On = alertSettings.enablePillar4 !== false;
+
             factorGridHtml = `
             <div class="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-slate-900/90 text-xs font-mono">
-                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5 ${p1On ? '' : 'opacity-40'}">
                     <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🏢 NIFTY 50</span>
                     <div class="font-mono font-black text-amber-200 text-[10px] truncate leading-tight">${bVal}</div>
-                    <div>${getPillarSigBadge(bSig)}</div>
+                    <div>${getPillarSigBadge(bSig, p1On)}</div>
                 </div>
-                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5 ${p2On ? '' : 'opacity-40'}">
                     <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📊 Opt Flow</span>
                     <div class="font-mono font-black text-cyan-300 text-[10px] truncate leading-tight">${oVal}</div>
-                    <div>${getPillarSigBadge(oSig)}</div>
+                    <div>${getPillarSigBadge(oSig, p2On)}</div>
                 </div>
-                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5 ${p3On ? '' : 'opacity-40'}">
                     <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">📈 Trend OI</span>
                     <div class="font-mono font-black text-indigo-300 text-[10px] truncate leading-tight">${qVal}</div>
-                    <div>${getPillarSigBadge(qSig)}</div>
+                    <div>${getPillarSigBadge(qSig, p3On)}</div>
                 </div>
-                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5">
+                <div class="p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center space-y-0.5 ${p4On ? '' : 'opacity-40'}">
                     <span class="text-slate-400 block text-[9px] font-bold font-sans truncate">🌊 30D Book</span>
                     <div class="font-mono font-black text-amber-300 text-[10px] truncate leading-tight">${dVal}</div>
-                    <div>${getPillarSigBadge(dSig)}</div>
+                    <div>${getPillarSigBadge(dSig, p4On)}</div>
                 </div>
             </div>
             `;
@@ -5410,56 +6236,109 @@
                 `;
             }
 
+            const isCardExpanded = state.expandedJournalCardIds && state.expandedJournalCardIds.has(l.id);
+
             html += `
-            <div class="p-2.5 rounded-xl bg-slate-950 border ${cardHighlightClass} text-xs space-y-2 shadow-lg transition duration-200">
-                <div class="flex items-center justify-between gap-1 flex-wrap">
+            <div id="journal-card-${l.id}" class="rounded-xl bg-slate-950 border ${cardHighlightClass} text-xs shadow-lg transition duration-200 overflow-hidden">
+                {{-- Single Row Header: Default Always Visible (1 Compact Row) --}}
+                <div onclick="toggleJournalCard(${l.id})" class="flex items-center justify-between gap-1.5 p-2 px-2.5 cursor-pointer hover:bg-slate-900/60 transition select-none flex-wrap sm:flex-nowrap">
                     <div class="flex items-center gap-1.5 font-mono flex-wrap">
-                        <span class="text-slate-400 text-[10.5px]">${l.signal_time}</span>
-                        <span class="px-2 py-0.5 rounded font-black text-[9.5px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                        <span class="text-slate-400 text-[10px] font-bold shrink-0">${l.signal_time}</span>
+                        <span class="px-1.5 py-0.2 rounded font-black text-[9px] ${isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
                             ${actionBadgeText}
                         </span>
                         ${styleBadge}
                         ${dispatchedPill}
-                        <span class="font-black text-white text-xs sm:text-[13px] truncate max-w-[150px]">${l.instrument}</span>
+                        <span class="font-black text-white text-xs truncate max-w-[130px] sm:max-w-[170px]">${l.instrument}</span>
+                        ${l.opt_strike ? `<span class="text-amber-300 font-mono font-bold text-[9.5px] hidden sm:inline-block">⚡ ${l.opt_strike} ${l.opt_type}</span>` : ''}
                     </div>
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1.5 shrink-0 ml-auto">
                         ${alignmentBadge}
                         ${webhookBadge}
                         ${statusBadge}
+                        <button type="button" class="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-white hover:bg-slate-800 transition text-[9px]" title="Toggle Details">
+                            <span id="journal-chevron-${l.id}">${isCardExpanded ? '▲' : '▼'}</span>
+                        </button>
                     </div>
                 </div>
 
-                ${optContractSnippet}
+                {{-- Collapsible Details Body (DEFAULT TO HIDE) --}}
+                <div id="journal-body-${l.id}" class="${isCardExpanded ? '' : 'hidden '}p-2.5 pt-0 space-y-2 border-t border-slate-900/90 text-xs">
+                    ${optContractSnippet}
 
-                <div class="text-[10.5px] text-amber-300/95 font-sans leading-tight">${l.trigger_reason || l.action}</div>
-                
-                <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1.5 border-t border-slate-900 flex-wrap gap-1.5">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
-                        <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
-                        <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
-                        <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
+                    <div class="text-[10.5px] text-amber-300/95 font-sans leading-tight pt-1">${l.trigger_reason || l.action}</div>
+                    
+                    <div class="flex items-center justify-between text-[10.5px] text-slate-300 font-mono pt-1.5 border-t border-slate-900 flex-wrap gap-1.5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span>Entry: <strong class="text-white">₹${l.entry_price}</strong></span>
+                            <span class="text-rose-400 font-semibold">SL: ₹${l.stop_loss}</span>
+                            <span class="text-emerald-400 font-semibold">TGT: ₹${l.target_price}</span>
+                            <span class="text-amber-300 font-bold bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">${l.confluence_score}% Conf</span>
+                        </div>
+                        <div>
+                            ${isSentTo0Click 
+                                ? `<button type="button" onclick="event.stopPropagation(); confirmAndDispatchJournalItem(${l.id}, this)" class="px-2 py-0.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[9.5px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs" title="Already sent to 0Click API. Click to re-dispatch this trade to broker">
+                                     <span>⚡ Re-send API</span>
+                                   </button>`
+                                : `<button type="button" onclick="event.stopPropagation(); confirmAndDispatchJournalItem(${l.id}, this)" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[9.5px] font-bold shadow-md hover:shadow-purple-500/30 transition flex items-center gap-1 cursor-pointer active:scale-95" title="Click to review and safely send this trade to Broker / 0Click API">
+                                     <span class="text-amber-300 font-black">⚡</span>
+                                     <span>Send to 0Click</span>
+                                   </button>`
+                            }
+                        </div>
                     </div>
-                    <div>
-                        ${isSentTo0Click 
-                            ? `<button type="button" onclick="confirmAndDispatchJournalItem(${l.id}, this)" class="px-2 py-0.5 rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-500/60 text-purple-200 text-[9.5px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs" title="Already sent to 0Click API. Click to re-dispatch this trade to broker">
-                                 <span>⚡ Re-send API</span>
-                               </button>`
-                            : `<button type="button" onclick="confirmAndDispatchJournalItem(${l.id}, this)" class="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[9.5px] font-bold shadow-md hover:shadow-purple-500/30 transition flex items-center gap-1 cursor-pointer active:scale-95" title="Click to review and safely send this trade to Broker / 0Click API">
-                                 <span class="text-amber-300 font-black">⚡</span>
-                                 <span>Send to 0Click</span>
-                               </button>`
-                        }
-                    </div>
+
+                    ${factorGridHtml}
                 </div>
-
-                ${factorGridHtml}
             </div>
             `;
         });
 
         container.innerHTML = html;
     }
+
+    state.expandedJournalCardIds = state.expandedJournalCardIds || new Set();
+
+    window.toggleJournalCard = function(id) {
+        const body = document.getElementById(`journal-body-${id}`);
+        const chevron = document.getElementById(`journal-chevron-${id}`);
+        if (!body) return;
+        state.expandedJournalCardIds = state.expandedJournalCardIds || new Set();
+        if (body.classList.contains('hidden')) {
+            body.classList.remove('hidden');
+            if (chevron) chevron.textContent = '▲';
+            state.expandedJournalCardIds.add(id);
+        } else {
+            body.classList.add('hidden');
+            if (chevron) chevron.textContent = '▼';
+            state.expandedJournalCardIds.delete(id);
+        }
+    };
+
+    window.toggleAllJournalCards = function() {
+        const bodies = document.querySelectorAll('[id^="journal-body-"]');
+        if (!bodies.length) return;
+        const anyHidden = Array.from(bodies).some(b => b.classList.contains('hidden'));
+        state.expandedJournalCardIds = state.expandedJournalCardIds || new Set();
+        bodies.forEach(b => {
+            const idStr = b.id.replace('journal-body-', '');
+            const id = parseInt(idStr, 10);
+            const chevron = document.getElementById(`journal-chevron-${id}`);
+            if (anyHidden) {
+                b.classList.remove('hidden');
+                if (chevron) chevron.textContent = '▲';
+                state.expandedJournalCardIds.add(id);
+            } else {
+                b.classList.add('hidden');
+                if (chevron) chevron.textContent = '▼';
+                state.expandedJournalCardIds.delete(id);
+            }
+        });
+        const label = document.getElementById('label-toggle-all-journal');
+        if (label) {
+            label.textContent = anyHidden ? '▲ Collapse All' : '▼ Expand All';
+        }
+    };
 
     window.confirmAndDispatchJournalItem = function(logId, btnEl) {
         if (!logId) return;
@@ -5775,6 +6654,9 @@
             connectWebSocket();
         }
         refreshSignalLogs();
+        if (typeof window.loadPersistedAlerts === 'function') {
+            window.loadPersistedAlerts();
+        }
     };
 
     function updateSpotUI(spot) {
@@ -5786,8 +6668,14 @@
     document.addEventListener('DOMContentLoaded', async () => {
         loadAlertSettings();
         refreshSignalLogs();
+        if (typeof window.loadPersistedAlerts === 'function') {
+            window.loadPersistedAlerts();
+        }
         if (typeof initRecCollapsibleState === 'function') {
             initRecCollapsibleState();
+        }
+        if (typeof initTopTradedVolume === 'function') {
+            initTopTradedVolume();
         }
 
         const btnLive = document.getElementById('btn-mode-live');
@@ -5843,6 +6731,13 @@
         // Auto-sync Unified Monitor strategy signals every 15s
         window.refreshStrategySignals();
         setInterval(window.refreshStrategySignals, 15000);
+
+        // Auto-sync logged alerts & session trades from database every 20s
+        setInterval(() => {
+            if (typeof window.loadPersistedAlerts === 'function') {
+                window.loadPersistedAlerts();
+            }
+        }, 20000);
     });
 
     window.refreshStrategySignals = async function() {
@@ -5858,6 +6753,347 @@
         } catch (e) {
             console.error('Failed refreshing signals:', e);
         }
+    };
+
+    // ── 17. CUMULATIVE EOD REPORT MODAL CONTROLLERS ──
+    let _modalReportCache = null;
+
+    window.openCumulativeReportModal = function(targetDate) {
+        const modal = document.getElementById('modal-cumulative-report');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+
+        const dateInput = document.getElementById('modal-report-date-input');
+        const selectedDate = targetDate || (dateInput ? dateInput.value : '{{ $workingDate }}');
+        if (dateInput) dateInput.value = selectedDate;
+
+        const fullBtn = document.getElementById('btn-modal-report-fullscreen');
+        if (fullBtn) fullBtn.href = `{{ route('order-flow-depth.report') }}?date=${selectedDate}`;
+
+        fetchModalCumulativeReport(selectedDate);
+    };
+
+    window.closeCumulativeReportModal = function() {
+        const modal = document.getElementById('modal-cumulative-report');
+        if (modal) modal.classList.add('hidden');
+    };
+
+    window.fetchModalCumulativeReport = async function(date) {
+        const container = document.getElementById('modal-report-content');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-slate-400 space-y-2">
+                <span class="text-3xl animate-spin">⚡</span>
+                <p class="text-xs font-mono font-bold text-amber-300">Computing EOD institutional synthesis for ${date}...</p>
+                <p class="text-[10px] text-slate-500">Synthesizing Depth Alerts, Journal Setups, Value Area &amp; S/R Pivots</p>
+            </div>
+        `;
+
+        const fullBtn = document.getElementById('btn-modal-report-fullscreen');
+        if (fullBtn) fullBtn.href = `{{ route('order-flow-depth.report') }}?date=${date}`;
+
+        try {
+            const resp = await fetch(`{{ route('api.order-flow.cumulative-report') }}?date=${date}&mode=${state.feedMode}&symbol=NIFTY`);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const res = await resp.json();
+            if (res.success && res.report) {
+                _modalReportCache = res.report;
+                renderModalReportUI(res.report);
+            } else {
+                container.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs font-bold">Failed to generate report for ${date}.</div>`;
+            }
+        } catch(e) {
+            container.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs font-bold">Error loading cumulative report: ${e.message}</div>`;
+        }
+    };
+
+    function renderModalReportUI(r) {
+        const container = document.getElementById('modal-report-content');
+        if (!container) return;
+
+        const dom = r.dominance_matrix;
+        const j = r.journal_summary;
+        const a = r.alerts_summary;
+        const rng = r.range_summary;
+        const tb = r.tomorrow_playbook;
+
+        const bullPct = dom.bull_score_pct;
+        const bearPct = dom.bear_score_pct;
+
+        let levelsHtml = '';
+        tb.levels.forEach(lvl => {
+            const isRes = (lvl.type === 'RESISTANCE');
+            const isSup = (lvl.type === 'SUPPORT');
+            const bgClass = isRes ? 'bg-rose-950/20 border-rose-500/30 text-rose-200' : (isSup ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200' : 'bg-amber-950/30 border-amber-500/50 text-amber-200');
+            const badgeClass = isRes ? 'bg-rose-500 text-white' : (isSup ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-slate-950');
+
+            levelsHtml += `
+                <div class="p-2 rounded-lg border flex items-center justify-between text-xs ${bgClass}">
+                    <div class="flex items-center gap-2">
+                        <span class="px-1.5 py-0.2 rounded font-mono font-black text-[10px] ${badgeClass}">${lvl.code}</span>
+                        <div>
+                            <span class="font-bold text-white text-[11px] block leading-tight">${lvl.level_name}</span>
+                            <span class="text-[9.5px] text-slate-400 block leading-tight">${lvl.description}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-mono text-xs font-black text-white">₹${parseFloat(lvl.price).toFixed(2)}</span>
+                        <span class="text-[8.5px] uppercase font-bold text-amber-400 block">${lvl.strength}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9.5px] uppercase font-black tracking-wider text-slate-400">WHO DOMINATED</span>
+                        <span class="px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${dom.dominant_side === 'BULLS' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                            ${dom.archetype_tag}
+                        </span>
+                    </div>
+                    <p class="text-xs font-black text-white leading-tight">${dom.who.verdict}</p>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden flex mt-1.5">
+                        <div class="bg-emerald-500 h-full" style="width: ${bullPct}%"></div>
+                        <div class="bg-rose-500 h-full" style="width: ${bearPct}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] font-mono text-slate-400 pt-0.5">
+                        <span class="text-emerald-400 font-bold">${bullPct}% Bull</span>
+                        <span class="text-rose-400 font-bold">${bearPct}% Bear</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <span class="text-[9.5px] uppercase font-black tracking-wider text-slate-400">VALUE AREA POC</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-lg font-black text-amber-300 font-mono">${dom.range.poc}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">Shelf: <b class="text-white font-mono">${rng.dominant_shelf}</b></p>
+                    <p class="text-[9.5px] text-slate-400">Range: <b class="text-amber-300 font-mono">${rng.day_range_pts} pts</b></p>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <span class="text-[9.5px] uppercase font-black tracking-wider text-slate-400">JOURNAL SCORECARD</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-lg font-black ${j.net_pnl_pts >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono">${j.net_pnl_pts >= 0 ? '+' : ''}${j.net_pnl_pts} pts</span>
+                    </div>
+                    <p class="text-[10px] text-emerald-400 font-bold">${j.win_rate_pct}% Win Rate (${j.target_hit} Hit / ${j.stopped_out} Stopped)</p>
+                    <p class="text-[9.5px] text-slate-400">${j.total_signals} total trade setups</p>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-amber-500/40 space-y-1">
+                    <span class="text-[9.5px] uppercase font-black tracking-wider text-amber-300">TOMORROW ANCHOR</span>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-lg font-black text-amber-300 font-mono">₹${Math.round(tb.central_pivot).toLocaleString()}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-300 font-bold">Central Balance Pivot</p>
+                    <p class="text-[9.5px] text-slate-400">Bullish above · Bearish below</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                
+                <div class="space-y-3">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span class="text-[10px] uppercase font-bold text-indigo-300">🏛️ MICROSTRUCTURE SYNTHESIS</span>
+                        <p class="text-[11px] text-slate-300 leading-snug">${dom.who.description}</p>
+                        <div class="pt-1.5 border-t border-slate-800 text-[10.5px] space-y-1">
+                            <p><b class="text-slate-400">When:</b> Peak at ${dom.when.peak_window} · Opening: <span class="font-bold text-white">${dom.when.opening_verdict}</span></p>
+                            <p><b class="text-slate-400">Which:</b> Magnet: <span class="text-indigo-300 font-bold">${dom.which.magnet_strike}</span></p>
+                            <p><b class="text-slate-400">Ceiling:</b> <span class="text-rose-300 font-bold">${dom.which.resistance_strike}</span> · Floor: <span class="text-emerald-300 font-bold">${dom.which.support_strike}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span class="text-[10px] uppercase font-bold text-amber-300">🎯 TOMORROW'S TRADE BLUEPRINT</span>
+                        
+                        <div class="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-[11px] space-y-1">
+                            <span class="font-black text-emerald-400 block">${tb.trade_plans.bull_plan.title}</span>
+                            <p class="text-slate-300"><b class="text-slate-400">Trigger:</b> ${tb.trade_plans.bull_plan.trigger}</p>
+                            <p class="text-emerald-300 font-mono"><b class="text-slate-400 font-sans">Targets:</b> ${tb.trade_plans.bull_plan.target_1} · ${tb.trade_plans.bull_plan.target_2}</p>
+                        </div>
+
+                        <div class="p-2 rounded-lg bg-rose-950/20 border border-rose-500/30 text-[11px] space-y-1">
+                            <span class="font-black text-rose-400 block">${tb.trade_plans.bear_plan.title}</span>
+                            <p class="text-slate-300"><b class="text-slate-400">Trigger:</b> ${tb.trade_plans.bear_plan.trigger}</p>
+                            <p class="text-rose-300 font-mono"><b class="text-slate-400 font-sans">Targets:</b> ${tb.trade_plans.bear_plan.target_1} · ${tb.trade_plans.bear_plan.target_2}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] uppercase font-bold text-amber-300">📐 TOMORROW QUANT S/R MATRIX</span>
+                        <span class="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">NIFTY SPOT</span>
+                    </div>
+                    <div class="space-y-1.5">
+                        ${levelsHtml}
+                    </div>
+                </div>
+
+            </div>
+
+            {{-- MODAL SECTION: TOP 20 HEAVY BLOCKS --}}
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 mt-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[9.5px] uppercase font-black text-amber-300">🏛️ TOP 20 HEAVY ORDER FLOW BLOCKS</span>
+                            <span class="text-[9px] font-mono text-slate-400">(${r.heavy_blocks ? r.heavy_blocks.total_count : 0} detected)</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400">Institutional order book walls, absorption, and high-volume tape prints.</p>
+                    </div>
+                    <div class="flex items-center gap-1 flex-wrap">
+                        <button type="button" onclick="setModalBlockFilter('core', this)" class="modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white border border-indigo-400/30">
+                            ⭐ Core Hours (09:30-15:15)
+                        </button>
+                        <button type="button" onclick="setModalBlockFilter('all', this)" class="modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-white border border-slate-800">
+                            All Hours
+                        </button>
+                        <button type="button" onclick="setModalBlockFilter('opening', this)" class="modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-white border border-slate-800">
+                            Opening (09:15-09:30)
+                        </button>
+                        <button type="button" onclick="setModalBlockFilter('closing', this)" class="modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-white border border-slate-800">
+                            Closing (15:15-15:30)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded border border-slate-800/80 custom-scrollbar max-h-64">
+                    <table class="w-full text-left text-[11px] whitespace-nowrap">
+                        <thead class="bg-slate-900/90 text-slate-400 uppercase font-black text-[9px] tracking-wider sticky top-0 border-b border-slate-800">
+                            <tr>
+                                <th class="py-1.5 px-2 text-center">#</th>
+                                <th class="py-1.5 px-2">Time</th>
+                                <th class="py-1.5 px-2">Strike</th>
+                                <th class="py-1.5 px-2 text-center">Side</th>
+                                <th class="py-1.5 px-2 text-right">Wall / Block Qty</th>
+                                <th class="py-1.5 px-2 text-right">Spot Ref</th>
+                                <th class="py-1.5 px-2 text-right">VPOC / CVD</th>
+                                <th class="py-1.5 px-2">OI / Details</th>
+                                <th class="py-1.5 px-2 text-center">Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-heavy-blocks-tbody" class="divide-y divide-slate-800/50 bg-slate-950 font-mono text-[10.5px]">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        renderModalBlocksTable();
+    }
+
+    window._activeModalBlockFilter = 'core';
+
+    window.setModalBlockFilter = function(filterType, btnEl) {
+        window._activeModalBlockFilter = filterType;
+        document.querySelectorAll('.modal-block-time-btn').forEach(b => {
+            b.className = 'modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-white border border-slate-800';
+        });
+        if (btnEl) {
+            btnEl.className = 'modal-block-time-btn px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white border border-indigo-400/30';
+        }
+        renderModalBlocksTable();
+    };
+
+    window.renderModalBlocksTable = function() {
+        if (!_modalReportCache || !_modalReportCache.heavy_blocks) return;
+        const allBlocks = _modalReportCache.heavy_blocks.all || [];
+        const tbody = document.getElementById('modal-heavy-blocks-tbody');
+        if (!tbody) return;
+
+        let filtered = allBlocks.slice();
+        if (window._activeModalBlockFilter === 'core') {
+            filtered = filtered.filter(b => b.is_core_hours);
+        } else if (window._activeModalBlockFilter === 'opening') {
+            filtered = filtered.filter(b => b.is_opening);
+        } else if (window._activeModalBlockFilter === 'closing') {
+            filtered = filtered.filter(b => b.is_closing);
+        }
+
+        filtered.sort((a, b) => b.wall_qty - a.wall_qty);
+        const top20 = filtered.slice(0, 20);
+
+        if (top20.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="py-4 text-center text-slate-500 font-sans text-xs">No blocks found for this window.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        top20.forEach((b, idx) => {
+            const isBid = (b.side === 'BID');
+            const sideBadge = isBid 
+                ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300">🟢 BID</span>'
+                : '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500/20 text-rose-300">🔴 ASK</span>';
+
+            let outcomeBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300">Active</span>';
+            if (b.outcome === 'DEFENDED') {
+                outcomeBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-300">🎯 Defended</span>';
+            } else if (b.outcome === 'SWEPT') {
+                outcomeBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300">💥 Swept</span>';
+            }
+
+            html += `
+                <tr class="hover:bg-slate-900/60 transition">
+                    <td class="py-1.5 px-2 text-center text-slate-400 font-bold">${idx + 1}</td>
+                    <td class="py-1.5 px-2 text-white font-bold whitespace-nowrap">${b.time}</td>
+                    <td class="py-1.5 px-2 text-amber-300 font-bold">${b.strike}</td>
+                    <td class="py-1.5 px-2 text-center">${sideBadge}</td>
+                    <td class="py-1.5 px-2 text-right font-black text-amber-300">${b.wall_qty.toLocaleString()} <span class="text-[8.5px] text-slate-400 font-normal">qty</span></td>
+                    <td class="py-1.5 px-2 text-right text-slate-200">₹${parseFloat(b.spot_price).toFixed(1)}</td>
+                    <td class="py-1.5 px-2 text-right">
+                        <span class="text-slate-300 block">${b.vpoc_volume ? (Math.round(b.vpoc_volume/1000) + 'k vol') : '—'}</span>
+                        <span class="text-[9px] ${b.cvd > 0 ? 'text-emerald-400' : (b.cvd < 0 ? 'text-rose-400' : 'text-slate-500')} block">
+                            ${b.cvd !== null && b.cvd !== undefined ? ((b.cvd > 0 ? '+' : '') + Math.round(b.cvd/1000) + 'k CVD') : '—'}
+                        </span>
+                    </td>
+                    <td class="py-1.5 px-2 font-sans text-[10px] text-slate-300 max-w-xs truncate" title="${b.oi_details || ''}">
+                        ${b.oi_details || '—'}
+                    </td>
+                    <td class="py-1.5 px-2 text-center font-sans">${outcomeBadge}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    };
+
+    window.copyModalDeskBrief = function() {
+        if (!_modalReportCache) {
+            alert('Report not loaded yet.');
+            return;
+        }
+        const r = _modalReportCache;
+        const text = `🏛️ **NIFTY EOD CUMULATIVE INSTITUTIONAL REPORT (${r.meta.trade_date})**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 **WHO DOMINATED:** ${r.dominance_matrix.who.verdict} (Bulls: ${r.dominance_matrix.bull_score_pct}% | Bears: ${r.dominance_matrix.bear_score_pct}%)
+🎯 **ARCHETYPE:** ${r.dominance_matrix.archetype}
+⏱️ **PEAK WINDOW:** ${r.dominance_matrix.when.peak_window}
+📍 **POC (POINT OF CONTROL):** ${r.dominance_matrix.range.poc}
+📏 **VALUE AREA SHELF:** ${r.range_summary.dominant_shelf}
+📖 **JOURNAL WIN RATE:** ${r.journal_summary.win_rate_pct}% (Net PnL: ${r.journal_summary.net_pnl_pts} Pts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📐 **TOMORROW'S KEY QUANT LEVELS:**
+• R3: ₹${r.tomorrow_playbook.levels[0].price}
+• R2: ₹${r.tomorrow_playbook.levels[1].price}
+• R1: ₹${r.tomorrow_playbook.levels[2].price}
+⚡ **CENTRAL PIVOT: ₹${r.tomorrow_playbook.central_pivot}**
+• S1: ₹${r.tomorrow_playbook.levels[4].price}
+• S2: ₹${r.tomorrow_playbook.levels[5].price}
+• S3: ₹${r.tomorrow_playbook.levels[6].price}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 **PLAN A (BULLISH):** Above ₹${Math.round(r.tomorrow_playbook.central_pivot)} targets ₹${Math.round(r.tomorrow_playbook.levels[1].price)}.
+🩸 **PLAN B (BEARISH):** Below ₹${Math.round(r.tomorrow_playbook.central_pivot)} targets ₹${Math.round(r.tomorrow_playbook.levels[5].price)}.`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Institutional Desk Brief copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy desk brief:', text);
+        });
     };
 
 })();

@@ -6,7 +6,7 @@
     // Route group active helpers
     $isMonitorsActive = request()->routeIs([
         'nifty.unified.*', 'nifty.weightage.*', 'options.breadth.*',
-        'trending-oi.*', 'live.strike.chart', 'delta.neutral', 'order-flow-depth.*'
+        'trending-oi.*', 'live.strike.chart', 'delta.neutral', 'order-flow-depth.*', 'gamma-blast.*'
     ]);
 
     $isAnalyticsActive = request()->routeIs([
@@ -128,6 +128,12 @@
                                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition {{ request()->routeIs('delta.neutral') ? 'bg-teal-50 text-teal-800 font-semibold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900' }}">
                                         <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
                                         <span class="truncate">Delta Neutral Corridor</span>
+                                    </a>
+
+                                    <a href="{{ route('gamma-blast.index') }}"
+                                       class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition {{ request()->routeIs('gamma-blast.*') ? 'bg-fuchsia-50 text-fuchsia-800 font-semibold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-fuchsia-500"></span>
+                                        <span class="truncate">⚡ Gamma Blast Radar</span>
                                     </a>
                                 </div>
                             </div>
@@ -455,6 +461,14 @@
                         <circle cx="12" cy="12" r="2"/>
                     </svg>
                     <span class="whitespace-nowrap font-medium">30-Depth</span>
+                </a>
+
+                <!-- 2.5 Gamma Blast Scalping Radar Direct Pill -->
+                <a href="{{ route('gamma-blast.index') }}"
+                   class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('gamma-blast.*') ? 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-500 font-bold ring-1 ring-fuchsia-400' : 'bg-white hover:bg-fuchsia-50 text-fuchsia-700 border-slate-200 hover:border-fuchsia-300' }}"
+                   title="Institutional Gamma Exposure (GEX) & Scalping Blast Radar">
+                    <span class="text-xs">⚡</span>
+                    <span class="whitespace-nowrap font-medium">Gamma Blast</span>
                 </a>
 
                 <!-- 3. Live Trade Direct Pill -->
