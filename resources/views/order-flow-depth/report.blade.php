@@ -258,30 +258,36 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div class="bg-slate-950 p-3 rounded-xl border border-emerald-500/30 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="font-bold text-emerald-400">🟢 BUY SIDE FLOW (DEMAND)</span>
-                            <span class="font-mono font-black text-emerald-300">{{ $report['alerts_summary']['buy_pct'] }}%</span>
+                            <span class="font-bold text-emerald-400">🟢 BUY SIDE FLOW (DEMAND &amp; ABSORPTION)</span>
+                            <span class="font-mono font-black text-emerald-300">{{ $report['alerts_summary']['absorption_bull_pct'] ?? $report['alerts_summary']['buy_pct'] }}%</span>
                         </div>
                         <p class="text-slate-300 text-[11px] leading-relaxed">
-                            {{ $report['alerts_summary']['buy_count'] }} Buy alerts logged · {{ number_format($report['alerts_summary']['bid_liquidity_qty']) }} total resting bid quantity.
+                            {{ $report['alerts_summary']['buy_count'] }} Resting Bid alerts · {{ number_format($report['alerts_summary']['bid_liquidity_qty']) }} bid quantity.
+                            @if(isset($report['alerts_summary']['swept_ask_count']) && $report['alerts_summary']['swept_ask_count'] > 0)
+                                <span class="text-emerald-400 font-semibold block mt-0.5">⚡ Buyers conquered &amp; swept {{ $report['alerts_summary']['swept_ask_count'] }} overhead ask blocks to the upside.</span>
+                            @endif
                         </p>
-                        <div class="flex items-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800">
-                            <span>Stacks: <b class="text-white font-mono">{{ $report['alerts_summary']['stack_buy_count'] }}</b></span>
-                            <span>Blocks: <b class="text-white font-mono">{{ $report['alerts_summary']['block_buy_count'] }}</b></span>
+                        <div class="flex items-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex-wrap">
+                            <span>Defended Bids: <b class="text-emerald-300 font-mono">{{ $report['alerts_summary']['defended_bid_count'] ?? 0 }}</b></span>
+                            <span>Swept Asks: <b class="text-emerald-300 font-mono">{{ $report['alerts_summary']['swept_ask_count'] ?? 0 }}</b></span>
                             <span>Strategy: <b class="text-white font-mono">{{ $report['alerts_summary']['strategy_buy_count'] }}</b></span>
                         </div>
                     </div>
 
                     <div class="bg-slate-950 p-3 rounded-xl border border-rose-500/30 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="font-bold text-rose-400">🔴 SELL SIDE FLOW (SUPPLY)</span>
-                            <span class="font-mono font-black text-rose-300">{{ $report['alerts_summary']['sell_pct'] }}%</span>
+                            <span class="font-bold text-rose-400">🔴 SELL SIDE FLOW (SUPPLY &amp; OVERHEAD)</span>
+                            <span class="font-mono font-black text-rose-300">{{ $report['alerts_summary']['absorption_bear_pct'] ?? $report['alerts_summary']['sell_pct'] }}%</span>
                         </div>
                         <p class="text-slate-300 text-[11px] leading-relaxed">
-                            {{ $report['alerts_summary']['sell_count'] }} Sell alerts logged · {{ number_format($report['alerts_summary']['ask_liquidity_qty']) }} total resting ask quantity.
+                            {{ $report['alerts_summary']['sell_count'] }} Resting Ask alerts logged · {{ number_format($report['alerts_summary']['ask_liquidity_qty']) }} total resting ask quantity.
+                            @if(isset($report['alerts_summary']['defended_ask_count']))
+                                <span class="text-slate-400 block mt-0.5">{{ $report['alerts_summary']['defended_ask_count'] }} active overhead ask walls defended above close.</span>
+                            @endif
                         </p>
-                        <div class="flex items-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800">
-                            <span>Stacks: <b class="text-white font-mono">{{ $report['alerts_summary']['stack_sell_count'] }}</b></span>
-                            <span>Blocks: <b class="text-white font-mono">{{ $report['alerts_summary']['block_sell_count'] }}</b></span>
+                        <div class="flex items-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex-wrap">
+                            <span>Active Supply: <b class="text-rose-300 font-mono">{{ $report['alerts_summary']['defended_ask_count'] ?? 0 }}</b></span>
+                            <span>Broken Bids: <b class="text-rose-300 font-mono">{{ $report['alerts_summary']['swept_bid_count'] ?? 0 }}</b></span>
                             <span>Strategy: <b class="text-white font-mono">{{ $report['alerts_summary']['strategy_sell_count'] }}</b></span>
                         </div>
                     </div>

@@ -45,7 +45,7 @@ class OrderFlowCumulativeReportService
         }
         $alerts = $alertsQuery->orderBy('alert_time')->get();
 
-        $alertsAnalysis = $this->analyzeAlerts($alerts, $openPrice, $highPrice, $lowPrice);
+        $alertsAnalysis = $this->analyzeAlerts($alerts, $openPrice, $highPrice, $lowPrice, $closePrice);
 
         $journalAnalysis = $this->analyzeJournal($journalLogs);
 
@@ -108,38 +108,44 @@ class OrderFlowCumulativeReportService
     {
         $dailyTrend = $this->resolveDailyTrend($date, $symbol);
 
-        // Priority 1: Check Live Spot prices recorded directly in the Journal logs for today
+        // Priority 1: Check Weightage 5m candles cache for full real session OHLC (09:15 - 15:30)
+        $weightageData = Cache::store('file')->get("nifty_weightage_data_{$date}");
+        $niftyCandles = $weightageData['candles'] ?? $weightageData['nifty_candles'] ?? null;
+
         $firstSpot = $journalLogs->first()?->spot_price ? (float)$journalLogs->first()->spot_price : null;
         $lastSpot  = $journalLogs->last()?->spot_price ? (float)$journalLogs->last()->spot_price : null;
         $maxSpot   = $journalLogs->max('spot_price') ? (float)$journalLogs->max('spot_price') : null;
         $minSpot   = $journalLogs->min('spot_price') ? (float)$journalLogs->min('spot_price') : null;
 
-        if ($firstSpot && $lastSpot && $firstSpot > 0 && $lastSpot > 0) {
+        if (!empty($niftyCandles)) {
+            $open  = (float) $niftyCandles[0]['open'];
+            $close = (float) end($niftyCandles)['close'];
+            $high  = (float) max(array_column($niftyCandles, 'high'));
+            $low   = (float) min(array_column($niftyCandles, 'low'));
+        } elseif ($dailyTrend && !empty($dailyTrend->current_day_index_open) && !empty($dailyTrend->index_close)) {
+            // Priority 2: Daily trend EOD record
+            $open  = (float) $dailyTrend->current_day_index_open;
+            $close = (float) $dailyTrend->index_close;
+            $high  = (float) ($dailyTrend->index_high ?? max($open, $close));
+            $low   = (float) ($dailyTrend->index_low ?? min($open, $close));
+        } elseif (Schema::hasTable('option_chains') && ($liveSpot = DB::table('option_chains')->where('trading_symbol', $symbol)->where('underlying_spot_price', '>', 0)->value('underlying_spot_price'))) {
+            // Priority 3: Live option chain spot
+            $close = (float) $liveSpot;
+            $open  = (float) ($dailyTrend->current_day_index_open ?? $close);
+            $high  = (float) max($open, $close) + 20.0;
+            $low   = (float) min($open, $close) - 20.0;
+        } elseif ($firstSpot && $lastSpot && $firstSpot > 0 && $lastSpot > 0) {
+            // Priority 4: Fallback to Journal spot logs
             $open  = $firstSpot;
             $close = $lastSpot;
             $high  = (float) max($maxSpot, max($open, $close));
             $low   = (float) min($minSpot, min($open, $close));
         } else {
-            // Priority 2: Check Weightage 5m candles cache if available
-            $weightageData = Cache::store('file')->get("nifty_weightage_data_{$date}");
-            $niftyCandles = $weightageData['candles'] ?? $weightageData['nifty_candles'] ?? null;
-            if (!empty($niftyCandles)) {
-                $open  = (float) $niftyCandles[0]['open'];
-                $close = (float) end($niftyCandles)['close'];
-                $high  = (float) max(array_column($niftyCandles, 'high'));
-                $low   = (float) min(array_column($niftyCandles, 'low'));
-            } elseif (Schema::hasTable('option_chains') && ($liveSpot = DB::table('option_chains')->where('trading_symbol', $symbol)->where('underlying_spot_price', '>', 0)->value('underlying_spot_price'))) {
-                $close = (float) $liveSpot;
-                $open  = (float) ($dailyTrend->current_day_index_open ?? $close);
-                $high  = (float) max($open, $close) + 20.0;
-                $low   = (float) min($open, $close) - 20.0;
-            } else {
-                // Priority 4: Fallback to daily trend record
-                $open  = (float) ($dailyTrend->current_day_index_open ?? 24500.0);
-                $close = (float) ($dailyTrend->index_close ?? $open);
-                $high  = (float) ($dailyTrend->index_high ?? max($open, $close));
-                $low   = (float) ($dailyTrend->index_low ?? min($open, $close));
-            }
+            // Priority 5: Fallback to daily trend record
+            $open  = (float) ($dailyTrend->current_day_index_open ?? 24500.0);
+            $close = (float) ($dailyTrend->index_close ?? $open);
+            $high  = (float) ($dailyTrend->index_high ?? max($open, $close));
+            $low   = (float) ($dailyTrend->index_low ?? min($open, $close));
         }
 
         if ($high <= $low) {
@@ -194,7 +200,7 @@ class OrderFlowCumulativeReportService
     /**
      * Analyze all order flow alerts triggered during the day.
      */
-    protected function analyzeAlerts(Collection $alerts, float $open, float $high, float $low): array
+    protected function analyzeAlerts(Collection $alerts, float $open, float $high, float $low, float $close = 0.0): array
     {
         $total = $alerts->count();
         $buyAlerts  = $alerts->where('side', 'BUY');
@@ -214,6 +220,45 @@ class OrderFlowCumulativeReportService
         // Institutional Liquidity Committed (Quantities from Blocks & Stacks)
         $bidLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_BUY', 'STACK_BUY'])->sum('quantity');
         $askLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_SELL', 'STACK_SELL'])->sum('quantity');
+
+        // Microstructure Liquidity Absorption & Structural Wall Outcomes (Swept vs Defended)
+        $sweptAskCount    = 0;
+        $defendedAskCount = 0;
+        $defendedBidCount = 0;
+        $sweptBidCount    = 0;
+        $bullAlertEvents  = 0;
+        $bearAlertEvents  = 0;
+
+        foreach ($alerts as $a) {
+            $price = (float) $a->price;
+            if ($a->alert_type === 'BLOCK_SELL' || $a->alert_type === 'STACK_SELL') {
+                if ($close > 0 && $close >= $price) {
+                    $sweptAskCount++;
+                    $bullAlertEvents++;
+                } else {
+                    $defendedAskCount++;
+                    $bearAlertEvents++;
+                }
+            } elseif ($a->alert_type === 'BLOCK_BUY' || $a->alert_type === 'STACK_BUY') {
+                if ($close > 0 && $close >= $price) {
+                    $defendedBidCount++;
+                    $bullAlertEvents++;
+                } else {
+                    $sweptBidCount++;
+                    $bearAlertEvents++;
+                }
+            } else {
+                if ($a->side === 'BUY') {
+                    $bullAlertEvents++;
+                } else {
+                    $bearAlertEvents++;
+                }
+            }
+        }
+
+        $totalAbsorptionEvents = $bullAlertEvents + $bearAlertEvents;
+        $absorptionBullPct = $totalAbsorptionEvents > 0 ? round(($bullAlertEvents / $totalAbsorptionEvents) * 100, 1) : 50.0;
+        $absorptionBearPct = round(100.0 - $absorptionBullPct, 1);
 
         // Significant Institutional Resting Walls (Prices where heavy blocks appeared)
         $bidWalls = $alerts->where('alert_type', 'BLOCK_BUY')
@@ -298,15 +343,30 @@ class OrderFlowCumulativeReportService
         $turningPoints = $alerts->filter(fn($a) => in_array($a->alert_type, ['BLOCK_BUY', 'BLOCK_SELL', 'STRATEGY_BUY', 'STRATEGY_SELL']))
             ->sortByDesc(fn($a) => ($a->quantity ?: 0) + ($a->confluence_score ?: 0) * 100)
             ->take(8)
-            ->map(fn($a) => [
-                'time'        => $a->alert_time,
-                'type'        => $a->alert_type,
-                'side'        => $a->side,
-                'price'       => (float) $a->price,
-                'qty'         => (int) $a->quantity,
-                'title'       => $a->title,
-                'significance'=> $a->side === 'BUY' ? 'Institutional Demand Wall Defended' : 'Institutional Supply Wall Capped',
-            ])
+            ->map(function ($a) use ($close) {
+                $p = (float) $a->price;
+                $isBuy = ($a->side === 'BUY');
+                if ($a->alert_type === 'BLOCK_SELL' || $a->alert_type === 'STACK_SELL') {
+                    $significance = ($close > 0 && $close >= $p)
+                        ? 'Institutional Ask Wall Swept / Conquered'
+                        : 'Institutional Supply Wall Capped';
+                } elseif ($a->alert_type === 'BLOCK_BUY' || $a->alert_type === 'STACK_BUY') {
+                    $significance = ($close > 0 && $close >= $p)
+                        ? 'Institutional Demand Wall Defended'
+                        : 'Institutional Demand Wall Broken / Swept';
+                } else {
+                    $significance = $isBuy ? 'Bullish Strategy Trigger' : 'Bearish Strategy Trigger';
+                }
+                return [
+                    'time'        => $a->alert_time,
+                    'type'        => $a->alert_type,
+                    'side'        => $a->side,
+                    'price'       => $p,
+                    'qty'         => (int) $a->quantity,
+                    'title'       => $a->title,
+                    'significance'=> $significance,
+                ];
+            })
             ->values();
 
         $buyPct = $total > 0 ? round(($buyCount / $total) * 100, 1) : 50.0;
@@ -318,6 +378,12 @@ class OrderFlowCumulativeReportService
             'sell_count'         => $sellCount,
             'buy_pct'            => $buyPct,
             'sell_pct'           => $sellPct,
+            'absorption_bull_pct'=> $absorptionBullPct,
+            'absorption_bear_pct'=> $absorptionBearPct,
+            'swept_ask_count'    => $sweptAskCount,
+            'defended_ask_count' => $defendedAskCount,
+            'defended_bid_count' => $defendedBidCount,
+            'swept_bid_count'    => $sweptBidCount,
             'stack_buy_count'    => $stackBuyCount,
             'stack_sell_count'   => $stackSellCount,
             'block_buy_count'    => $blockBuyCount,
@@ -510,14 +576,15 @@ class OrderFlowCumulativeReportService
         $compositePriceScore = round(($priceTrendScore * 0.55) + ($closeLocationScore * 0.45), 1);
 
         // 2. Order Flow Conquest & Microstructure Liquidity Sweep (40% weight)
-        // Auction mechanics: When resistance walls are stopped out, buyers conquered and absorbed the sellers.
-        $conquestScore = $journal['conquest_bull_pct'] ?? 50.0;
-        if ($alerts['total_alerts'] > 0) {
-            $alertScore = $alerts['buy_pct'];
-            $orderFlowScore = round(($conquestScore * 0.70) + ($alertScore * 0.30), 1);
-        } else {
-            $orderFlowScore = $conquestScore;
-        }
+        // Auction mechanics: Liquidity absorption (swept ask walls & defended bid floors) vs trade journal conquest
+        $absorptionScore = $alerts['absorption_bull_pct'] ?? ($alerts['buy_pct'] ?? 50.0);
+        $conquestScore   = $journal['conquest_bull_pct'] ?? 50.0;
+        $journalCount    = $journal['total_signals'] ?? 0;
+
+        // Dynamic weighting: if journal has fewer than 6 trades, alert absorption dominates
+        $journalWeight = min(0.35, $journalCount * 0.07);
+        $alertWeight   = 1.0 - $journalWeight;
+        $orderFlowScore = round(($absorptionScore * $alertWeight) + ($conquestScore * $journalWeight), 1);
 
         // 3. Value Area Migration & Capital Capture (20% weight)
         $valueAreaScore = 50.0;
@@ -526,8 +593,11 @@ class OrderFlowCumulativeReportService
         } else {
             $valueAreaScore -= 25.0; // Value accepted lower
         }
-        if ($journal['net_pnl_pts'] > 0) {
+        if ($close >= $range['poc_price']) {
             $valueAreaScore = min(100.0, $valueAreaScore + 15.0);
+        }
+        if ($journal['net_pnl_pts'] > 0) {
+            $valueAreaScore = min(100.0, $valueAreaScore + 10.0);
         }
 
         $compositeBullScore = round(
