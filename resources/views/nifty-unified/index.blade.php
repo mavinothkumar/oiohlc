@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
     <!-- Chart.js 4.4 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Protobuf JS -->
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
     <!-- Flatpickr (Calendar Date Picker) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -774,6 +776,18 @@
                         <h3 class="text-xs font-bold text-white flex items-center gap-1">
                             📈 Trending OI &amp; Sentiment
                         </h3>
+
+                        {{-- ⚡ Stream Mode Toggle (Live Stream vs 5 Min) --}}
+                        <div class="flex items-center bg-slate-900/90 p-0.5 rounded border border-slate-700/80 text-[8.5px] font-bold select-none">
+                            <button type="button" id="toi-mode-live" onclick="setToiStreamMode('live')" class="px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer bg-emerald-600 text-white shadow-xs" title="Live Webstream via Upstox WebSocket (Real-time OI ticks)">
+                                <span id="toi-stream-dot" class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                <span id="toi-stream-label">⚡ Live Stream</span>
+                            </button>
+                            <button type="button" id="toi-mode-5m" onclick="setToiStreamMode('5m')" class="px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer text-slate-400 hover:text-white" title="5-Minute Sampled Candles &amp; Polling">
+                                <span>⏱ 5 Min</span>
+                            </button>
+                        </div>
+
                         <div id="toi-diff-badge-container" class="flex items-center gap-1 hidden flex-wrap">
                             <span id="toi-pe-val" class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-rose-950/60 border border-rose-500/40 text-rose-300 cursor-help shadow-xs" title="Put OI (Change)">
                                 PE: --
@@ -1857,6 +1871,365 @@
         if (ceEl) ceEl.title = `[${timeLabel}] Call OI Change: ${ceInLakh}L (${fmt(ceVal)})`;
     }
     window.updateTrendingOiDiffBadge = updateTrendingOiDiffBadge;
+
+    // ── TRENDING OI REAL-TIME WEBSOCKET STREAMING ENGINE ──
+    let toiStreamMode = localStorage.getItem('nifty_unified_toi_stream_mode') || 'live';
+    let toiProtobufRoot = null;
+    let toiWs = null;
+    let toiWsConnecting = false;
+    let toiStreamConfig = null;
+    let toiTickCount = 0;
+    let toiLastTickTime = null;
+
+    async function initToiProtobuf() {
+        if (toiProtobufRoot) return;
+        try {
+            toiProtobufRoot = await protobuf.load('/MarketDataFeed_v3.proto');
+            console.log('Trending OI Protobuf loaded successfully.');
+        } catch (e) {
+            console.error('Failed to load MarketDataFeed_v3.proto for Trending OI:', e);
+        }
+    }
+
+    function setToiStreamMode(mode) {
+        toiStreamMode = mode;
+        try {
+            localStorage.setItem('nifty_unified_toi_stream_mode', mode);
+        } catch(e) {}
+
+        updateToiStreamToggleUI();
+
+        if (mode === 'live') {
+            connectToiWebSocket();
+        } else {
+            disconnectToiWebSocket();
+            reloadTrendingOiWithInterval(5);
+        }
+    }
+    window.setToiStreamMode = setToiStreamMode;
+
+    function updateToiStreamToggleUI() {
+        const btnLive = document.getElementById('toi-mode-live');
+        const btn5m = document.getElementById('toi-mode-5m');
+        const dot = document.getElementById('toi-stream-dot');
+        const label = document.getElementById('toi-stream-label');
+
+        if (toiStreamMode === 'live') {
+            if (btnLive) {
+                btnLive.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer bg-emerald-600 text-white shadow-xs';
+            }
+            if (btn5m) {
+                btn5m.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer text-slate-400 hover:text-white';
+            }
+            if (dot) {
+                dot.classList.remove('hidden');
+                dot.className = (toiWs && toiWs.readyState === WebSocket.OPEN) 
+                    ? 'w-1.5 h-1.5 rounded-full bg-white animate-pulse'
+                    : 'w-1.5 h-1.5 rounded-full bg-amber-400';
+            }
+            if (label) {
+                label.textContent = (toiTickCount > 0) ? `⚡ Live (${toiTickCount})` : '⚡ Live Stream';
+            }
+        } else {
+            if (btnLive) {
+                btnLive.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer text-slate-400 hover:text-white';
+            }
+            if (btn5m) {
+                btn5m.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer bg-blue-600 text-white shadow-xs';
+            }
+            if (dot) dot.classList.add('hidden');
+            if (label) label.textContent = '⚡ Live Stream';
+        }
+    }
+    window.updateToiStreamToggleUI = updateToiStreamToggleUI;
+
+    async function connectToiWebSocket() {
+        if (toiStreamMode !== 'live') return;
+        if (toiWsConnecting) return;
+        toiWsConnecting = true;
+
+        await initToiProtobuf();
+
+        try {
+            const res = await fetch('/api/trending-oi/ws-url').then(r => r.json());
+            const wsUrl = res.authorizedRedirectUri || res.data?.authorizedRedirectUri;
+            if (!wsUrl) throw new Error('Authorized WebSocket URI not returned');
+
+            if (toiWs) {
+                toiWs.onclose = null;
+                toiWs.close();
+            }
+
+            toiWs = new WebSocket(wsUrl);
+            toiWs.binaryType = 'arraybuffer';
+
+            toiWs.onopen = () => {
+                toiWsConnecting = false;
+                console.log('Trending OI WebSocket connected.');
+                updateToiStreamToggleUI();
+                subscribeToiInstruments();
+            };
+
+            toiWs.onclose = (e) => {
+                toiWsConnecting = false;
+                console.warn('Trending OI WebSocket closed, retrying in 5s...', e);
+                updateToiStreamToggleUI();
+                if (toiStreamMode === 'live') {
+                    setTimeout(connectToiWebSocket, 5000);
+                }
+            };
+
+            toiWs.onerror = (err) => {
+                toiWsConnecting = false;
+                console.error('Trending OI WebSocket error:', err);
+            };
+
+            toiWs.onmessage = (event) => {
+                if (typeof event.data === 'string') return;
+                handleToiProtobufFeed(event.data);
+            };
+
+        } catch (err) {
+            toiWsConnecting = false;
+            console.error('Error connecting Trending OI WebSocket:', err);
+            updateToiStreamToggleUI();
+            if (toiStreamMode === 'live') {
+                setTimeout(connectToiWebSocket, 6000);
+            }
+        }
+    }
+
+    function disconnectToiWebSocket() {
+        if (toiWs) {
+            toiWs.onclose = null;
+            toiWs.close();
+            toiWs = null;
+        }
+        toiWsConnecting = false;
+        updateToiStreamToggleUI();
+    }
+
+    function subscribeToiInstruments() {
+        if (!toiWs || toiWs.readyState !== WebSocket.OPEN) return;
+        if (!toiStreamConfig || !toiStreamConfig.subscription_keys || toiStreamConfig.subscription_keys.length === 0) return;
+
+        const subMessage = {
+            guid: 'toi_live_' + Date.now(),
+            method: 'sub',
+            data: {
+                mode: 'full',
+                instrumentKeys: toiStreamConfig.subscription_keys
+            }
+        };
+        toiWs.send(new TextEncoder().encode(JSON.stringify(subMessage)));
+        console.log(`Subscribed ${toiStreamConfig.subscription_keys.length} instruments for Trending OI live stream.`);
+    }
+
+    function handleToiProtobufFeed(buffer) {
+        if (!toiProtobufRoot || !toiStreamConfig) return;
+
+        try {
+            const arr = new Uint8Array(buffer);
+            if (arr.length > 0 && arr[0] === 123) return; // JSON text ping
+
+            const FeedResponse = toiProtobufRoot.lookupType('com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse');
+            const message = FeedResponse.decode(arr);
+            const obj = FeedResponse.toObject(message, { enums: String, bytes: String });
+
+            if (!obj || !obj.feeds) return;
+
+            let oiUpdated = false;
+            const strikeKeys = toiStreamConfig.strike_keys || {};
+            const uKey = toiStreamConfig.underlying_key;
+
+            for (const [key, feed] of Object.entries(obj.feeds)) {
+                let feedOi = null;
+                let feedLtp = null;
+
+                if (feed.fullFeed && feed.fullFeed.marketFF) {
+                    const mFF = feed.fullFeed.marketFF;
+                    feedOi = mFF.oi;
+                    if (mFF.ltpc) feedLtp = mFF.ltpc.ltp;
+                } else if (feed.firstLevelWithGreeks) {
+                    feedOi = feed.firstLevelWithGreeks.oi;
+                    if (feed.firstLevelWithGreeks.ltpc) feedLtp = feed.firstLevelWithGreeks.ltpc.ltp;
+                } else if (feed.ltpc) {
+                    feedLtp = feed.ltpc.ltp;
+                }
+
+                // Spot index update
+                if (key === uKey && feedLtp) {
+                    if (toiStreamConfig.latest_totals) {
+                        toiStreamConfig.latest_totals.spot = feedLtp;
+                    }
+                    const spotEl = document.getElementById('spot-price-display');
+                    if (spotEl) spotEl.textContent = Number(feedLtp).toFixed(2);
+                    oiUpdated = true;
+                }
+
+                // Option strike update
+                if (strikeKeys[key]) {
+                    const sk = strikeKeys[key];
+                    if (feedOi !== null && feedOi !== undefined && feedOi > 0) {
+                        sk.oi = feedOi;
+                        oiUpdated = true;
+                    }
+                    if (feedLtp !== null && feedLtp !== undefined && feedLtp > 0) {
+                        sk.ltp = feedLtp;
+                    }
+                }
+            }
+
+            if (oiUpdated) {
+                toiTickCount++;
+                toiLastTickTime = Date.now();
+                updateToiStreamLiveValues();
+            }
+
+        } catch (e) {
+            console.warn('Trending OI protobuf decode error:', e);
+        }
+    }
+
+    function updateToiStreamLiveValues() {
+        if (!toiStreamConfig || !toiStreamConfig.strike_keys || !toiChartInstance) return;
+
+        const strikeKeys = toiStreamConfig.strike_keys;
+        const baseTotals = toiStreamConfig.base_totals || { ce_oi: 0, pe_oi: 0 };
+
+        let totalCeOi = 0;
+        let totalPeOi = 0;
+
+        for (const k in strikeKeys) {
+            const item = strikeKeys[k];
+            if (item.type === 'CE') {
+                totalCeOi += Number(item.oi || 0);
+            } else if (item.type === 'PE') {
+                totalPeOi += Number(item.oi || 0);
+            }
+        }
+
+        const liveCallOiChg = totalCeOi - baseTotals.ce_oi;
+        const livePutOiChg = totalPeOi - baseTotals.pe_oi;
+        const liveSentiment = livePutOiChg - liveCallOiChg;
+        const liveSpot = toiStreamConfig.latest_totals?.spot || 0;
+
+        // Update Chart data on active candle
+        const chart = toiChartInstance.data;
+        if (chart && chart.labels && chart.labels.length > 0) {
+            const now = new Date();
+            const curTimeStr = now.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            const lastIdx = chart.labels.length - 1;
+            const lastLabel = chart.labels[lastIdx];
+
+            let targetIdx = lastIdx;
+            const lastParts = String(lastLabel || '').split(':');
+            const lastMins = (parseInt(lastParts[0], 10) || 0) * 60 + (parseInt(lastParts[1], 10) || 0);
+            const curMins = now.getHours() * 60 + now.getMinutes();
+
+            const bucketThreshold = (toiStreamMode === '5m') ? 5 : 1;
+            if (curMins > lastMins && (curMins - lastMins) >= bucketThreshold) {
+                chart.labels.push(curTimeStr);
+                chart.datasets[0].data.push(liveCallOiChg);
+                chart.datasets[1].data.push(livePutOiChg);
+                chart.datasets[2].data.push(liveSentiment);
+                chart.datasets[3].data.push(liveSpot);
+                targetIdx = chart.labels.length - 1;
+            } else {
+                chart.datasets[0].data[lastIdx] = liveCallOiChg;
+                chart.datasets[1].data[lastIdx] = livePutOiChg;
+                chart.datasets[2].data[lastIdx] = liveSentiment;
+                if (liveSpot > 0) chart.datasets[3].data[lastIdx] = liveSpot;
+            }
+
+            // Keep trendingOiData.chart in sync
+            if (trendingOiData && trendingOiData.chart) {
+                trendingOiData.chart.labels = chart.labels;
+                trendingOiData.chart.call_oi = chart.datasets[0].data;
+                trendingOiData.chart.put_oi = chart.datasets[1].data;
+                trendingOiData.chart.sentiment = chart.datasets[2].data;
+                trendingOiData.chart.spot = chart.datasets[3].data;
+            }
+
+            toiChartInstance.update('none');
+
+            // Update header badges
+            updateTrendingOiDiffBadge(targetIdx);
+
+            // Update OI Buildup horizontal bar chart
+            updateLiveStrikeBuildup();
+
+            // Update label count in toggle
+            const lbl = document.getElementById('toi-stream-label');
+            if (lbl && toiStreamMode === 'live') {
+                lbl.textContent = `⚡ Live (${toiTickCount})`;
+            }
+        }
+    }
+
+    function updateLiveStrikeBuildup() {
+        if (!buildupChartInstance || !toiStreamConfig || !toiStreamConfig.strike_keys) return;
+        if (activeBuildupTf !== '5m') return;
+
+        const strikeKeys = toiStreamConfig.strike_keys;
+        const liveItems = [];
+
+        for (const k in strikeKeys) {
+            const item = strikeKeys[k];
+            const diffOi = Number(item.oi || 0) - Number(item.prev_oi || item.base_oi || 0);
+            const diffLakh = (diffOi / 100000).toFixed(1);
+            const absDiffLakh = Math.abs(diffOi / 100000);
+
+            let barColor = '#dc2626';
+            if (item.type === 'CE') {
+                barColor = diffOi >= 0 ? '#dc2626' : '#1e3a8a';
+            } else {
+                barColor = diffOi >= 0 ? '#16a34a' : '#eab308';
+            }
+
+            liveItems.push({
+                strike: item.strike,
+                option_type: item.type,
+                label: `${item.strike} ${item.type}`,
+                diff_oi: diffOi,
+                diff_oi_val_lakh: absDiffLakh,
+                diff_oi_lakh: (diffOi >= 0 ? '+' : '') + diffLakh + ' L',
+                bar_color: barColor
+            });
+        }
+
+        liveItems.sort((a, b) => b.diff_oi_val_lakh - a.diff_oi_val_lakh);
+        const top8 = liveItems.slice(0, 8);
+        if (top8.length === 0) return;
+
+        buildupChartInstance.data.labels = top8.map(x => x.label);
+        buildupChartInstance.data.datasets[0].data = top8.map(x => x.diff_oi_val_lakh);
+        buildupChartInstance.data.datasets[0].backgroundColor = top8.map(x => x.bar_color);
+        buildupChartInstance.data.datasets[0].formattedLabels = top8.map(x => x.diff_oi_lakh);
+        buildupChartInstance.update('none');
+    }
+
+    async function reloadTrendingOiWithInterval(interval = 5) {
+        try {
+            document.getElementById('toi-chart-loading')?.classList.remove('hidden');
+            let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
+            if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
+                resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
+            }
+            if (resToi && !resToi.error) {
+                trendingOiData = resToi;
+                if (resToi.stream_config) {
+                    toiStreamConfig = resToi.stream_config;
+                }
+                renderTrendingOiRows();
+                buildMasterTimeline();
+            }
+        } catch(e) {
+            console.error('Error reloading Trending OI:', e);
+        } finally {
+            document.getElementById('toi-chart-loading')?.classList.add('hidden');
+        }
+    }
 
     function updateQuantLevelsUI(playbook) {
         if (!playbook || !playbook.levels || !Array.isArray(playbook.levels)) return;
@@ -3197,14 +3570,21 @@
         // 2. Fetch Trending OI independently & render immediately upon arrival
         const pTrendingOi = (async () => {
             try {
-                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=5&lookback=auto&skip_open=0`).then(r => r.json());
+                const reqInterval = (toiStreamMode === '5m') ? 5 : 1;
+                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
                 if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
-                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=5&lookback=auto&skip_open=0`).then(r => r.json());
+                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
                 }
                 if (resToi && !resToi.error) {
                     trendingOiData = resToi;
+                    if (resToi.stream_config) {
+                        toiStreamConfig = resToi.stream_config;
+                    }
                     renderTrendingOiRows();
                     buildMasterTimeline();
+                    if (toiStreamMode === 'live') {
+                        connectToiWebSocket();
+                    }
                 }
             } catch (e) {
                 console.error('Error fetching Trending OI:', e);
@@ -5183,6 +5563,7 @@
         applyCockpitFontScale(currentCockpitFontScale);
         applyTimerVisibility();
         updateToiLegendUI();
+        updateToiStreamToggleUI();
         initLightweightCharts();
         setupControls();
         syncAlarmToolbarUI();

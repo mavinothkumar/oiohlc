@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class TrendingOiController extends Controller
 {
@@ -461,6 +463,72 @@ class TrendingOiController extends Controller
             ->where('underlying', $underlying)
             ->count();
 
+        // Build live streaming configuration for selected strikes
+        $streamKeys = [$underlying];
+        $strikeKeysMap = [];
+
+        // Latest rows for selected strikes
+        $streamRows = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->where('captured_at', $latestTimestamp)
+            ->whereIn('strike_price', $selectedStrikes)
+            ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp']);
+
+        // First timestamp (09:15 base) for selected strikes
+        $firstTimestamp = reset($timestamps);
+        $baseRowsMap = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->where('captured_at', $firstTimestamp)
+            ->whereIn('strike_price', $selectedStrikes)
+            ->get(['strike_price', 'option_type', 'instrument_key', 'oi'])
+            ->keyBy(fn($r) => "{$r->strike_price}_{$r->option_type}");
+
+        // Previous candle timestamp for 5m buildup baseline
+        $prevTimestamp = count($timestamps) > 1 ? $timestamps[count($timestamps) - 2] : $firstTimestamp;
+        $prevRowsMap = DB::table($table)
+            ->where('underlying_key', $underlying)
+            ->where('expiry', $expiry)
+            ->where('captured_at', $prevTimestamp)
+            ->whereIn('strike_price', $selectedStrikes)
+            ->get(['strike_price', 'option_type', 'instrument_key', 'oi'])
+            ->keyBy(fn($r) => "{$r->strike_price}_{$r->option_type}");
+
+        foreach ($streamRows as $sr) {
+            if (!empty($sr->instrument_key)) {
+                $streamKeys[] = $sr->instrument_key;
+                $k = "{$sr->strike_price}_{$sr->option_type}";
+                $baseOi = (int) ($baseRowsMap[$k]->oi ?? $sr->oi ?? 0);
+                $prevOi = (int) ($prevRowsMap[$k]->oi ?? $sr->oi ?? 0);
+                $strikeKeysMap[$sr->instrument_key] = [
+                    'strike'   => (int) $sr->strike_price,
+                    'type'     => $sr->option_type,
+                    'base_oi'  => $baseOi,
+                    'prev_oi'  => $prevOi,
+                    'oi'       => (int) ($sr->oi ?? 0),
+                    'ltp'      => (float) ($sr->ltp ?? 0),
+                ];
+            }
+        }
+        $streamKeys = array_values(array_unique($streamKeys));
+
+        $streamConfig = [
+            'underlying_key'    => $underlying,
+            'subscription_keys' => $streamKeys,
+            'strike_keys'       => $strikeKeysMap,
+            'base_totals'       => [
+                'ce_oi' => (int) $baseCeOi,
+                'pe_oi' => (int) $basePeOi,
+                'spot'  => (float) $baseSpot,
+            ],
+            'latest_totals'     => [
+                'ce_oi' => (int) $curCeOi,
+                'pe_oi' => (int) $curPeOi,
+                'spot'  => (float) $spotVal,
+            ]
+        ];
+
         return response()->json([
             'rows'                   => $tableRows,
             'chart'                  => [
@@ -481,6 +549,7 @@ class TrendingOiController extends Controller
             'strike_buildup_5m'      => $strikeBuildup['5m'] ?? null,
             'buildup_matrix'         => $buildupMatrix,
             'skip_open'              => $skipOpen,
+            'stream_config'          => $streamConfig,
         ]);
     }
 
@@ -2031,5 +2100,47 @@ class TrendingOiController extends Controller
                 ];
             }),
         ]);
+    }
+
+    /**
+     * Get Upstox Market Data Feed V3 Authorized WebSocket URL for Trending OI live streaming.
+     */
+    public function getWsUrl(): JsonResponse
+    {
+        $token = config('services.upstox.analytics_token');
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Upstox access token not configured in services.upstox.analytics_token'
+            ], 400);
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Accept'        => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+            ])->timeout(8)->get('https://api.upstox.com/v3/feed/market-data-feed/authorize');
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $uri = $data['data']['authorizedRedirectUri'] ?? $data['authorizedRedirectUri'] ?? null;
+                return response()->json([
+                    'success'               => true,
+                    'authorizedRedirectUri' => $uri,
+                    'data'                  => $data,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Upstox Auth Error: ' . $response->body(),
+                'status'  => $response->status(),
+            ], $response->status());
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Exception connecting to Upstox API: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

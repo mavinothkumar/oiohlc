@@ -10,15 +10,7 @@ class TriggerOptionChainOnFiveMin
 {
     public function handle(OhlcOneMinCollected $event): void
     {
-        info('Event TriggerOptionChainOnFiveMin start' . now()->toTimeString());
-        $minute = (int) now()->format('i');
-
-        if ($minute % 5 !== 0) {
-            info('Event TriggerOptionChainOnFiveMin returned ' . $minute . ' - ' . now()->toTimeString());
-            return;
-        }
-        info('Event TriggerOptionChainOnFiveMin dispatch start' . now()->toTimeString());
+        // Dispatch option chain collection for fine-grained 1-minute and 5-minute tracking
         dispatch(new FetchOptionChainJob($event->symbol, $event->timestamp));
-        info('Event TriggerOptionChainOnFiveMin dispatch end' . now()->toTimeString());
     }
 }
