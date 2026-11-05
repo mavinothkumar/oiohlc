@@ -825,8 +825,8 @@
                             <span id="toi-bottom-diff-hero" class="text-2xl sm:text-3xl font-black font-mono tracking-tight leading-none text-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,0.35)]">
                                 +0.0 L
                             </span>
-                            <span id="toi-bottom-diff-raw" class="text-[9.5px] font-mono text-slate-400">
-                                (+0)
+                            <span id="toi-bottom-diff-pct" class="text-xs sm:text-sm font-black font-mono tracking-tight px-1.5 py-0.5 rounded border transition-colors cursor-help shadow-xs bg-slate-900 border-slate-700 text-slate-400" title="% Difference between CE and PE">
+                                (0.0%)
                             </span>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1873,7 +1873,7 @@
             : 0;
 
         const diffHero = document.getElementById('toi-bottom-diff-hero');
-        const diffRaw = document.getElementById('toi-bottom-diff-raw');
+        const diffPctEl = document.getElementById('toi-bottom-diff-pct') || document.getElementById('toi-bottom-diff-raw');
         const dirPill = document.getElementById('toi-bottom-direction-pill');
         const timeEl = document.getElementById('toi-bottom-time');
         const peValEl = document.getElementById('toi-bottom-pe-val');
@@ -1890,16 +1890,31 @@
         const ceInLakh = (ceVal / 100000).toFixed(1);
         const sign = diff > 0 ? '+' : '';
 
+        // % Difference between CE and PE
+        // Symmetric margin of dominance relative to the dominant strike pool:
+        const maxOi = Math.max(Math.abs(peVal), Math.abs(ceVal));
+        const diffPctVal = maxOi > 0 ? ((diff / maxOi) * 100) : 0;
+        const diffPctSign = diffPctVal > 0 ? '+' : '';
+        const diffPctStr = `${diffPctSign}${diffPctVal.toFixed(1)}%`;
+
+        // Total activity skew % (strength)
+        const totalOi = Math.abs(peVal) + Math.abs(ceVal);
+        const skewPctVal = totalOi > 0 ? ((diff / totalOi) * 100) : 0;
+        const skewPctSign = skewPctVal > 0 ? '+' : '';
+        const skewPctStr = `${skewPctSign}${skewPctVal.toFixed(1)}%`;
+
         // Direction & conviction calculation
         const absDiff = Math.abs(diff);
         let dirText = '◆ NEUTRAL CHOP';
         let dirClass = 'bg-slate-900 border-slate-700 text-slate-300';
         let heroColorClass = 'text-slate-300';
+        let pctBadgeClass = 'bg-slate-900 border-slate-700 text-slate-400';
         let biasText = 'Balanced';
 
         if (diff > 0) {
             // PE > CE: Bullish (Put writing dominates -> support / long momentum)
             heroColorClass = 'text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.4)]';
+            pctBadgeClass = 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.2)]';
             if (absDiff >= 7500000 || (ceVal > 0 && peVal / ceVal >= 1.6)) {
                 dirText = '▲ STRONG BULL';
                 dirClass = 'bg-emerald-500/25 border-emerald-500/80 text-emerald-200 font-extrabold ring-1 ring-emerald-500/50';
@@ -1916,6 +1931,7 @@
         } else if (diff < 0) {
             // CE > PE: Bearish (Call writing dominates -> resistance / short momentum)
             heroColorClass = 'text-rose-400 drop-shadow-[0_0_14px_rgba(251,113,133,0.4)]';
+            pctBadgeClass = 'bg-rose-950/80 border-rose-500/50 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.2)]';
             if (absDiff >= 7500000 || (peVal > 0 && ceVal / peVal >= 1.6)) {
                 dirText = '▼ STRONG BEAR';
                 dirClass = 'bg-rose-500/25 border-rose-500/80 text-rose-200 font-extrabold ring-1 ring-rose-500/50';
@@ -1937,9 +1953,12 @@
         if (diffHero) {
             diffHero.textContent = `${sign}${diffInLakh} L`;
             diffHero.className = `text-2xl sm:text-3xl font-black font-mono tracking-tight leading-none ${heroColorClass}`;
+            diffHero.title = `[${timeLabel}] Net OI Diff: ${sign}${fmt(diff)} contracts (${diffPctStr}) | Put OI: ${peInLakh}L vs Call OI: ${ceInLakh}L`;
         }
-        if (diffRaw) {
-            diffRaw.textContent = `(${sign}${fmt(diff)} net)`;
+        if (diffPctEl) {
+            diffPctEl.textContent = `(${diffPctStr})`;
+            diffPctEl.className = `text-xs sm:text-sm font-black font-mono tracking-tight px-1.5 py-0.5 rounded border transition-all cursor-help shadow-xs ${pctBadgeClass}`;
+            diffPctEl.title = `[${timeLabel}] % Difference: ${diffPctStr} vs dominant side (${sign}${fmt(diff)} net contracts) | Total OI Skew: ${skewPctStr} | Put: ${peInLakh}L vs Call: ${ceInLakh}L`;
         }
         if (dirPill) {
             dirPill.textContent = dirText;
