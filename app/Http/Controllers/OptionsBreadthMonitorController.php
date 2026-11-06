@@ -139,19 +139,43 @@ class OptionsBreadthMonitorController extends Controller
 
         $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
             // 2. Fetch Strikes and determine ATM strike
-        $strikes = DB::table($table)
-            ->where('trading_symbol', $symbol)
-            ->where('expiry', $selectedExpiry)
-            ->where('captured_at', '>=', $startTs)
-            ->where('captured_at', '<=', $endTs)
-            ->distinct()
-            ->orderBy('strike_price')
-            ->pluck('strike_price');
-
-        if ($strikes->isEmpty()) {
-            $altTable = ($table === 'option_chains') ? 'option_chains_history' : 'option_chains';
-            $altStrikes = DB::table($altTable)
+            $indexHint = ($table === 'option_chains') ? ' USE INDEX (option_chains_captured_at_index)' : '';
+            $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
+                ->where('captured_at', '>=', $startTs)
+                ->where('captured_at', '<=', $endTs)
                 ->where('trading_symbol', $symbol)
+                ->where('expiry', $selectedExpiry)
+                ->orderByDesc('captured_at')
+                ->value('captured_at');
+
+            $strikes = collect([]);
+            if ($latestCap) {
+                $strikes = DB::table(DB::raw("{$table}{$indexHint}"))
+                    ->where('captured_at', $latestCap)
+                    ->where('trading_symbol', $symbol)
+                    ->where('expiry', $selectedExpiry)
+                    ->distinct()
+                    ->orderBy('strike_price')
+                    ->pluck('strike_price');
+            }
+
+            if ($strikes->isEmpty()) {
+                $strikes = DB::table(DB::raw("{$table}{$indexHint}"))
+                    ->where('captured_at', '>=', $startTs)
+                    ->where('captured_at', '<=', $endTs)
+                    ->where('trading_symbol', $symbol)
+                    ->where('expiry', $selectedExpiry)
+                    ->distinct()
+                    ->orderBy('strike_price')
+                    ->pluck('strike_price');
+            }
+
+            if ($strikes->isEmpty()) {
+                $altTable = ($table === 'option_chains') ? 'option_chains_history' : 'option_chains';
+                $altStrikes = DB::table($altTable)
+                    ->where('captured_at', '>=', $startTs)
+                    ->where('captured_at', '<=', $endTs)
+                    ->where('trading_symbol', $symbol)
                 ->where('expiry', $selectedExpiry)
                 ->where('captured_at', '>=', $startTs)
                 ->where('captured_at', '<=', $endTs)
@@ -257,15 +281,27 @@ class OptionsBreadthMonitorController extends Controller
         }
 
         // Detect ATM strike
-        $spotPrice = DB::table($table)
-            ->where('trading_symbol', $symbol)
-            ->where('expiry', $selectedExpiry)
-            ->where('captured_at', '>=', $startTs)
-            ->where('captured_at', '<=', $endTs)
-            ->whereNotNull('underlying_spot_price')
-            ->where('underlying_spot_price', '>', 0)
-            ->orderBy('captured_at')
-            ->value('underlying_spot_price');
+        $spotPrice = null;
+        if (!empty($latestCap)) {
+            $spotPrice = DB::table(DB::raw("{$table}{$indexHint}"))
+                ->where('captured_at', $latestCap)
+                ->where('trading_symbol', $symbol)
+                ->where('expiry', $selectedExpiry)
+                ->whereNotNull('underlying_spot_price')
+                ->where('underlying_spot_price', '>', 0)
+                ->value('underlying_spot_price');
+        }
+        if (!$spotPrice) {
+            $spotPrice = DB::table(DB::raw("{$table}{$indexHint}"))
+                ->where('captured_at', '>=', $startTs)
+                ->where('captured_at', '<=', $endTs)
+                ->where('trading_symbol', $symbol)
+                ->where('expiry', $selectedExpiry)
+                ->whereNotNull('underlying_spot_price')
+                ->where('underlying_spot_price', '>', 0)
+                ->orderByDesc('captured_at')
+                ->value('underlying_spot_price');
+        }
 
         $atmStrike = 24000;
         if ($strikes->isNotEmpty()) {
@@ -379,17 +415,31 @@ class OptionsBreadthMonitorController extends Controller
      */
     protected function fetchIndexCandles(string $date, string $symbol, string $table, string $expiry, int $baseStrike): array
     {
+        $nowKolkata = Carbon::now('Asia/Kolkata');
+        $isToday = ($date === $nowKolkata->toDateString());
+        $curTimeStr = $nowKolkata->format('H:i');
+        $isWeekday = !in_array($nowKolkata->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
+        $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
+        $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
+
+        // 1. Primary: Use NiftyWeightageMonitorController's battle-tested real candle loader for 100% chart synchronization
+        try {
+            $nwCtrl = app(\App\Http\Controllers\NiftyWeightageMonitorController::class);
+            $candles = $nwCtrl->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
+            if (!empty($candles)) {
+                return $candles;
+            }
+        } catch (\Throwable $e) {
+            // fallback to direct table query
+        }
+
         $candles = [];
         $seen = [];
 
         if (Schema::hasTable('ohlc_5m_quotes')) {
             $dbCandles = DB::table('ohlc_5m_quotes')
-                ->where(function($q) use ($symbol) {
-                    $q->where('instrument_key', 'like', "%{$symbol}%")
-                      ->orWhere('trading_symbol', $symbol)
-                      ->orWhere('trading_symbol', 'Nifty 50');
-                })
                 ->where('instrument_type', 'INDEX')
+                ->whereIn('trading_symbol', ['Nifty 50', 'NIFTY'])
                 ->where('ts_at', '>=', "{$date} 09:00:00")
                 ->where('ts_at', '<=', "{$date} 15:35:00")
                 ->orderBy('ts_at')
@@ -548,13 +598,14 @@ class OptionsBreadthMonitorController extends Controller
         $initialSpot = 23000
     ): array {
         // Query CE & PE options records combined in a single indexed query
-        $optRows = DB::table($table)
+        $indexHint = ($table === 'option_chains') ? ' USE INDEX (option_chains_captured_at_index)' : '';
+        $optRows = DB::table(DB::raw("{$table}{$indexHint}"))
+            ->where('captured_at', '>=', $startTs)
+            ->where('captured_at', '<=', $endTs)
             ->where('trading_symbol', $symbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $targetStrikes)
             ->whereIn('option_type', ['CE', 'PE'])
-            ->where('captured_at', '>=', $startTs)
-            ->where('captured_at', '<=', $endTs)
             ->orderBy('captured_at')
             ->select('option_type', 'captured_at', 'strike_price', 'ltp', 'vega', 'delta', 'gamma', 'theta', 'iv', 'oi', 'volume', 'underlying_spot_price')
             ->get();
