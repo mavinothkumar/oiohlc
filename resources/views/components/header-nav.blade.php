@@ -440,6 +440,17 @@
             <!-- RIGHT: High-Priority Direct Pills + Market Clock + Actions -->
             <div class="flex items-center gap-2.5">
 
+                <!-- 0. Daily Cron Status Direct Pill -->
+                <a href="{{ route('home') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('home') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 font-bold ring-1 ring-indigo-200 shadow-2xs' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   title="Daily Pre-Market Cron &amp; System Operations Status">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="whitespace-nowrap font-medium">Cron Status</span>
+                </a>
+
                 <!-- 1. Unified Cockpit (Flagship Direct Action Pill) -->
                 <a href="{{ route('nifty.unified.monitor') }}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs {{ request()->routeIs('nifty.unified.monitor') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-white' }}"
@@ -532,13 +543,17 @@
         <div class="space-y-3">
             
             <!-- Quick Pills in Mobile -->
-            <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-100">
+            <div class="grid grid-cols-3 gap-2 pb-2 border-b border-slate-100">
+                <a href="{{ route('home') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                    Cron Status
+                </a>
                 <a href="{{ route('nifty.unified.monitor') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">
                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                    Unified Cockpit
+                    Unified
                 </a>
                 <a href="{{ route('order-flow-depth.index') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-semibold">
-                    30-Depth Radar
+                    30-Depth
                 </a>
             </div>
 

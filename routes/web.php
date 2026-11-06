@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MidPointController;
 use App\Http\Controllers\TradingViewController;
 
-Route::get( '/', function () {
-    return view( 'welcome' );
-} )->name( 'home' );
+Route::get( '/', [ \App\Http\Controllers\HomeController::class, 'index' ] )->name( 'home' );
+Route::post( '/cron/run', [ \App\Http\Controllers\HomeController::class, 'runCommand' ] )->name( 'cron.run' );
+Route::get( '/api/cron/status', [ \App\Http\Controllers\HomeController::class, 'getStatusApi' ] )->name( 'api.cron.status' );
+Route::get( '/api/cron/log', [ \App\Http\Controllers\HomeController::class, 'getLog' ] )->name( 'api.cron.log' );
 
 Route::get( '/111', function () {
     return  '';

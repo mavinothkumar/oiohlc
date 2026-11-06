@@ -392,6 +392,12 @@
                                     <span>📐 S/R Levels:</span>
                                     <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
+                                <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle Stock Breadth Markers: Breach Only (≥80%) / Every 5M Candle / OFF">
+                                    <span>🏷️ Stock Status:</span>
+                                    <span id="w-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -569,6 +575,12 @@
                                     title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on this chart">
                                     <span>📐 S/R Levels:</span>
                                     <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+                                </button>
+                                <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle Options Flow Markers: Breach Only (≥70%) / Every 5M Candle / OFF">
+                                    <span>🏷️ Flow Status:</span>
+                                    <span id="o-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
@@ -1711,6 +1723,7 @@
         stocksDownThreshold: 80,
         stocksTriggerBy: 'both', // 'both' (Count & Weight), 'either', 'count', 'weight'
         stocksShowMarkers: true,
+        stocksMarkerMode: 'breach', // 'breach' (≥80% only), 'all' (every candle status), 'off'
         stocksSound: 'bull_horn',
 
         // 2. NIFTY 50 Options Breadth Alert
@@ -1718,6 +1731,7 @@
         optionsUpThreshold: 70,
         optionsDownThreshold: 70,
         optionsShowMarkers: true,
+        optionsMarkerMode: 'breach', // 'breach' (≥70% only), 'all' (every candle status), 'off'
         optionsSound: 'pulse',
         optionsBasketMode: 'dynamic', // 'dynamic' (auto-floating ATM ±5 strikes) or 'fixed' (9:15 AM anchor)
 
@@ -2007,11 +2021,13 @@
         updateToiStreamToggleUI();
 
         if (mode === 'live') {
-            connectToiWebSocket();
             reloadTrendingOiWithInterval(1);
         } else {
-            disconnectToiWebSocket();
             reloadTrendingOiWithInterval(5);
+        }
+        const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+        if (typeof selectedDate !== 'undefined' && selectedDate === todayStr) {
+            connectToiWebSocket();
         }
     }
     window.setToiStreamMode = setToiStreamMode;
@@ -2045,15 +2061,24 @@
             if (btn5m) {
                 btn5m.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer bg-blue-600 text-white shadow-xs';
             }
-            if (dot) dot.classList.add('hidden');
-            if (label) label.textContent = '⚡ Live Stream';
+            if (dot) {
+                dot.classList.remove('hidden');
+                dot.className = (toiWs && toiWs.readyState === WebSocket.OPEN)
+                    ? 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'
+                    : 'w-1.5 h-1.5 rounded-full bg-amber-400';
+            }
+            if (label) {
+                label.textContent = (toiTickCount > 0) ? `5M (${toiTickCount})` : '5M Stream';
+            }
         }
     }
     window.updateToiStreamToggleUI = updateToiStreamToggleUI;
 
     async function connectToiWebSocket() {
-        if (toiStreamMode !== 'live') return;
+        const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+        if (typeof selectedDate !== 'undefined' && selectedDate !== todayStr) return;
         if (toiWsConnecting) return;
+        if (toiWs && (toiWs.readyState === WebSocket.OPEN || toiWs.readyState === WebSocket.CONNECTING)) return;
         toiWsConnecting = true;
 
         await initToiProtobuf();
@@ -2082,7 +2107,8 @@
                 toiWsConnecting = false;
                 console.warn('Trending OI WebSocket closed, retrying in 5s...', e);
                 updateToiStreamToggleUI();
-                if (toiStreamMode === 'live') {
+                const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+                if (typeof selectedDate !== 'undefined' && selectedDate === todayStr) {
                     setTimeout(connectToiWebSocket, 5000);
                 }
             };
@@ -2101,7 +2127,8 @@
             toiWsConnecting = false;
             console.error('Error connecting Trending OI WebSocket:', err);
             updateToiStreamToggleUI();
-            if (toiStreamMode === 'live') {
+            const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+            if (typeof selectedDate !== 'undefined' && selectedDate === todayStr) {
                 setTimeout(connectToiWebSocket, 6000);
             }
         }
@@ -2158,6 +2185,11 @@
                     const mFF = feed.fullFeed.marketFF;
                     feedOi = mFF.oi;
                     if (mFF.ltpc) feedLtp = mFF.ltpc.ltp;
+                } else if (feed.fullFeed && feed.fullFeed.indexFF) {
+                    const iFF = feed.fullFeed.indexFF;
+                    if (iFF.ltpc) feedLtp = iFF.ltpc.ltp;
+                } else if (feed.indexFF) {
+                    if (feed.indexFF.ltpc) feedLtp = feed.indexFF.ltpc.ltp;
                 } else if (feed.firstLevelWithGreeks) {
                     feedOi = feed.firstLevelWithGreeks.oi;
                     if (feed.firstLevelWithGreeks.ltpc) feedLtp = feed.firstLevelWithGreeks.ltpc.ltp;
@@ -2166,13 +2198,15 @@
                 }
 
                 // Spot index update
-                if (key === uKey && feedLtp) {
+                const isSpot = (key === uKey || key === 'NSE_INDEX|Nifty 50' || key.includes('Nifty 50') || key.includes('NIFTY 50'));
+                if (isSpot && feedLtp) {
                     if (toiStreamConfig.latest_totals) {
                         toiStreamConfig.latest_totals.spot = feedLtp;
                     }
                     const spotEl = document.getElementById('spot-price-display');
                     if (spotEl) spotEl.textContent = Number(feedLtp).toFixed(2);
                     oiUpdated = true;
+                    updateLiveCandleFromTick(feedLtp);
                 }
 
                 // Option strike update
@@ -2395,6 +2429,217 @@
             }
         }
     }
+
+    // ── LIVE STREAM CANDLE ENGINE & MARKER DENSITY CONTROLS ──
+    function updateLiveCandleFromTick(feedLtp) {
+        if (!feedLtp || isNaN(feedLtp) || feedLtp <= 0) return;
+        const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+        if (typeof selectedDate !== 'undefined' && selectedDate !== todayStr) return;
+
+        const ltp = Number(feedLtp);
+
+        // Update Spot % Change relative to first candle open
+        const firstOpen = Number(weightageData?.candles?.[0]?.open || 0);
+        if (firstOpen > 0) {
+            const diff = ltp - firstOpen;
+            const pct = (diff / firstOpen) * 100;
+            const sign = diff >= 0 ? '+' : '';
+            const chgEl = document.getElementById('spot-change-display');
+            if (chgEl) {
+                chgEl.textContent = `(${sign}${diff.toFixed(2)} / ${sign}${pct.toFixed(2)}%)`;
+                chgEl.className = diff >= 0 ? 'font-semibold text-emerald-400 text-[10px]' : 'font-semibold text-rose-400 text-[10px]';
+            }
+        }
+
+        const nowSec = Math.floor(Date.now() / 1000);
+
+        // 1. Live stream forming 5m candle on Weightage chart
+        if (wCandleSeries && weightageData && weightageData.candles && weightageData.candles.length > 0) {
+            const raw = weightageData.candles;
+            let lastCandle = raw[raw.length - 1];
+            if (lastCandle) {
+                const candleTime = Number(lastCandle.time || lastCandle.timestamp);
+
+                // If interval rolled over into a new 5-minute bucket
+                if (candleTime > 0 && nowSec >= candleTime + 300) {
+                    const newCandleTime = candleTime + Math.floor((nowSec - candleTime) / 300) * 300;
+                    const d = new Date(newCandleTime * 1000);
+                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+
+                    const newCandle = {
+                        ts_at: d.toISOString(),
+                        time_str: timeStr,
+                        time: newCandleTime,
+                        timestamp: newCandleTime,
+                        open: ltp,
+                        high: ltp,
+                        low: ltp,
+                        close: ltp,
+                        volume: 0,
+                        move_pts: 0,
+                        move_pct: 0
+                    };
+                    raw.push(newCandle);
+                    if (!timestampsList.includes(timeStr)) {
+                        timestampsList.push(timeStr);
+                        const slider = document.getElementById('master-slider');
+                        if (slider) slider.max = timestampsList.length - 1;
+                        const wSlider = document.getElementById('w-slider');
+                        if (wSlider) wSlider.max = timestampsList.length - 1;
+                        const oSlider = document.getElementById('o-slider');
+                        if (oSlider) oSlider.max = timestampsList.length - 1;
+                    }
+                    lastCandle = newCandle;
+                }
+
+                lastCandle.high = Math.max(Number(lastCandle.high || ltp), ltp);
+                lastCandle.low = Math.min(Number(lastCandle.low || ltp), ltp);
+                lastCandle.close = ltp;
+                lastCandle.move_pts = Number((lastCandle.close - lastCandle.open).toFixed(2));
+                lastCandle.move_pct = Number(((lastCandle.move_pts / lastCandle.open) * 100).toFixed(2));
+
+                const liveBar = {
+                    time: Number(lastCandle.time || lastCandle.timestamp),
+                    open: Number(lastCandle.open),
+                    high: Number(lastCandle.high),
+                    low: Number(lastCandle.low),
+                    close: Number(lastCandle.close),
+                };
+                wCandleSeries.update(liveBar);
+
+                if (activeCandleIndex >= timestampsList.length - 1) {
+                    const closeEl = document.getElementById('w-chart-close');
+                    const chgEl = document.getElementById('w-chart-chg');
+                    if (closeEl) closeEl.textContent = ltp.toFixed(2);
+                    if (chgEl) {
+                        const sign = lastCandle.move_pts >= 0 ? '+' : '';
+                        chgEl.textContent = `${sign}${lastCandle.move_pts.toFixed(2)} (${sign}${lastCandle.move_pct.toFixed(2)}%)`;
+                        chgEl.className = lastCandle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                    }
+                }
+            }
+        }
+
+        // 2. Live stream forming 5m candle on Options Breadth chart
+        if (oCandleSeries && breadthData && breadthData.nifty_candles && breadthData.nifty_candles.length > 0) {
+            const raw = breadthData.nifty_candles;
+            let lastCandle = raw[raw.length - 1];
+            if (lastCandle) {
+                const candleTime = Number(lastCandle.time || lastCandle.timestamp);
+
+                if (candleTime > 0 && nowSec >= candleTime + 300) {
+                    const newCandleTime = candleTime + Math.floor((nowSec - candleTime) / 300) * 300;
+                    const d = new Date(newCandleTime * 1000);
+                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+
+                    const newCandle = {
+                        ts_at: d.toISOString(),
+                        time_str: timeStr,
+                        time: newCandleTime,
+                        timestamp: newCandleTime,
+                        open: ltp,
+                        high: ltp,
+                        low: ltp,
+                        close: ltp,
+                        volume: 0,
+                        move_pts: 0,
+                        move_pct: 0
+                    };
+                    raw.push(newCandle);
+                    lastCandle = newCandle;
+                }
+
+                lastCandle.high = Math.max(Number(lastCandle.high || ltp), ltp);
+                lastCandle.low = Math.min(Number(lastCandle.low || ltp), ltp);
+                lastCandle.close = ltp;
+                lastCandle.move_pts = Number((lastCandle.close - lastCandle.open).toFixed(2));
+                lastCandle.move_pct = Number(((lastCandle.move_pts / lastCandle.open) * 100).toFixed(2));
+
+                const liveBar = {
+                    time: Number(lastCandle.time || lastCandle.timestamp),
+                    open: Number(lastCandle.open),
+                    high: Number(lastCandle.high),
+                    low: Number(lastCandle.low),
+                    close: Number(lastCandle.close),
+                };
+                oCandleSeries.update(liveBar);
+
+                if (activeCandleIndex >= timestampsList.length - 1) {
+                    const closeEl = document.getElementById('o-chart-close');
+                    const moveEl = document.getElementById('o-chart-move');
+                    if (closeEl) closeEl.textContent = ltp.toFixed(2);
+                    if (moveEl) {
+                        const sign = lastCandle.move_pts >= 0 ? '+' : '';
+                        moveEl.textContent = `${sign}${lastCandle.move_pts.toFixed(2)} (${sign}${lastCandle.move_pct.toFixed(2)}%)`;
+                        moveEl.className = lastCandle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                    }
+                }
+            }
+        }
+    }
+
+    function cycleStocksMarkerMode() {
+        const current = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
+        let next = 'all';
+        if (current === 'breach') next = 'all';
+        else if (current === 'all') next = 'off';
+        else next = 'breach';
+
+        alarmSettings.stocksMarkerMode = next;
+        alarmSettings.stocksShowMarkers = (next !== 'off');
+        saveAlarmSettings();
+        updateMarkerButtonsUI();
+        renderWeightageColumn();
+    }
+    window.cycleStocksMarkerMode = cycleStocksMarkerMode;
+
+    function cycleOptionsMarkerMode() {
+        const current = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
+        let next = 'all';
+        if (current === 'breach') next = 'all';
+        else if (current === 'all') next = 'off';
+        else next = 'breach';
+
+        alarmSettings.optionsMarkerMode = next;
+        alarmSettings.optionsShowMarkers = (next !== 'off');
+        saveAlarmSettings();
+        updateMarkerButtonsUI();
+        renderOptionsBreadthColumn();
+    }
+    window.cycleOptionsMarkerMode = cycleOptionsMarkerMode;
+
+    function updateMarkerButtonsUI() {
+        const sBadge = document.getElementById('w-marker-status-badge');
+        const sMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
+        if (sBadge) {
+            if (sMode === 'all') {
+                sBadge.textContent = 'EVERY 5M';
+                sBadge.className = 'font-mono text-emerald-300 font-extrabold';
+            } else if (sMode === 'breach') {
+                sBadge.textContent = 'BREACH';
+                sBadge.className = 'font-mono text-cyan-300 font-extrabold';
+            } else {
+                sBadge.textContent = 'OFF';
+                sBadge.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        }
+
+        const oBadge = document.getElementById('o-marker-status-badge');
+        const oMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
+        if (oBadge) {
+            if (oMode === 'all') {
+                oBadge.textContent = 'EVERY 5M';
+                oBadge.className = 'font-mono text-emerald-300 font-extrabold';
+            } else if (oMode === 'breach') {
+                oBadge.textContent = 'BREACH';
+                oBadge.className = 'font-mono text-cyan-300 font-extrabold';
+            } else {
+                oBadge.textContent = 'OFF';
+                oBadge.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        }
+    }
+    window.updateMarkerButtonsUI = updateMarkerButtonsUI;
 
     async function reloadTrendingOiWithInterval(interval = 5) {
         try {
@@ -3643,8 +3888,15 @@
             wChart.subscribeClick(param => {
                 const raw = weightageData?.candles || weightageData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
-                const idx = raw.findIndex(c => (c.time || c.timestamp) === param.time);
-                if (idx !== -1) syncActiveCandleIndex(idx);
+                const pTime = Number(param.time);
+                const candle = raw.find(c => Number(c.time || c.timestamp) === pTime);
+                if (candle && candle.time_str) {
+                    const idx = timestampsList.indexOf(candle.time_str);
+                    if (idx !== -1) syncActiveCandleIndex(idx);
+                } else {
+                    const idx = raw.findIndex(c => Number(c.time || c.timestamp) === pTime);
+                    if (idx !== -1) syncActiveCandleIndex(idx);
+                }
             });
         }
 
@@ -3671,8 +3923,15 @@
             oChart.subscribeClick(param => {
                 const raw = breadthData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
-                const idx = raw.findIndex(c => (c.time || c.timestamp) === param.time);
-                if (idx !== -1) syncActiveCandleIndex(idx);
+                const pTime = Number(param.time);
+                const candle = raw.find(c => Number(c.time || c.timestamp) === pTime);
+                if (candle && candle.time_str) {
+                    const idx = timestampsList.indexOf(candle.time_str);
+                    if (idx !== -1) syncActiveCandleIndex(idx);
+                } else {
+                    const idx = raw.findIndex(c => Number(c.time || c.timestamp) === pTime);
+                    if (idx !== -1) syncActiveCandleIndex(idx);
+                }
             });
         }
 
@@ -3776,8 +4035,10 @@
                     }
                     renderTrendingOiRows();
                     buildMasterTimeline();
-                    if (toiStreamMode === 'live') {
+                    if (selectedDate === todayStr) {
                         connectToiWebSocket();
+                    } else {
+                        disconnectToiWebSocket();
                     }
                 }
             } catch (e) {
@@ -3888,7 +4149,8 @@
         if (wCandleSeries && chartCandles.length > 0) {
             wCandleSeries.setData(chartCandles);
 
-            if (!alarmSettings.stocksShowMarkers) {
+            const markerMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
+            if (markerMode === 'off') {
                 wCandleSeries.setMarkers([]);
             } else {
                 const markers = [];
@@ -3942,6 +4204,32 @@
                             text: isTrap ? `⚠️TRAP ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`,
                             size: isTrap ? 2 : 1,
                         });
+                    } else if (markerMode === 'all') {
+                        // Stock status on every candle
+                        const gw = Number(b.green_weight) || 0;
+                        const rw = Number(b.red_weight) || 0;
+                        const gcp = Number(b.green_count_pct) || 0;
+                        const rcp = Number(b.red_count_pct) || 0;
+
+                        if (gw >= rw) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#10b981',
+                                shape: 'circle',
+                                text: `${gcp}% (${gw.toFixed(0)}W)`,
+                                size: 1,
+                            });
+                        } else {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#ef4444',
+                                shape: 'circle',
+                                text: `${rcp}% (${rw.toFixed(0)}W)`,
+                                size: 1,
+                            });
+                        }
                     }
                 });
                 wCandleSeries.setMarkers(markers);
@@ -3976,7 +4264,8 @@
         if (oCandleSeries && chartCandles.length > 0) {
             oCandleSeries.setData(chartCandles);
 
-            if (!alarmSettings.optionsShowMarkers) {
+            const markerMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
+            if (markerMode === 'off') {
                 oCandleSeries.setMarkers([]);
             } else {
                 const markers = [];
@@ -3991,27 +4280,49 @@
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isCandleRed   = Number(c.close) < Number(c.open);
+                    const uw = Number(b.up_weight) || 0;
+                    const dw = Number(b.down_weight) || 0;
 
-                    if (b.up_weight >= upTh) {
+                    if (uw >= upTh) {
                         const isTrap = isCandleRed; // Red candle but smart money loaded 70%+ Calls/Bull flow (Bear Trap/Absorption)
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
                             color: isTrap ? '#06b6d4' : '#10b981',
                             shape: 'arrowUp',
-                            text: isTrap ? `⚡TRAP ${Math.round(b.up_weight)}%` : `🐂 ${Math.round(b.up_weight)}%`,
+                            text: isTrap ? `⚡TRAP ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`,
                             size: isTrap ? 2 : 1,
                         });
-                    } else if (b.down_weight >= downTh) {
+                    } else if (dw >= downTh) {
                         const isTrap = isCandleGreen; // Green candle but smart money loaded 70%+ Puts/Bear flow (Bull Trap/Fade)
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
                             color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: isTrap ? `⚠️TRAP ${Math.round(b.down_weight)}%` : `🐻 ${Math.round(b.down_weight)}%`,
+                            text: isTrap ? `⚠️TRAP ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`,
                             size: isTrap ? 2 : 1,
                         });
+                    } else if (markerMode === 'all') {
+                        if (uw >= dw) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#06b6d4',
+                                shape: 'circle',
+                                text: `${Math.round(uw)}% Bull`,
+                                size: 1,
+                            });
+                        } else {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#f43f5e',
+                                shape: 'circle',
+                                text: `${Math.round(dw)}% Bear`,
+                                size: 1,
+                            });
+                        }
                     }
                 });
                 oCandleSeries.setMarkers(markers);
@@ -4303,8 +4614,17 @@
         if (breadthData?.timestamps && breadthData.timestamps.length > 0) {
             breadthData.timestamps.forEach(t => timeSet.add(t));
         }
-        if (trendingOiData?.chart?.labels && trendingOiData.chart.labels.length > 0) {
-            trendingOiData.chart.labels.forEach(t => timeSet.add(t));
+        // Fallback only if no 5m candle data exists yet: strictly filter trendingOiData labels to 5m intervals
+        if (timeSet.size === 0 && trendingOiData?.chart?.labels && trendingOiData.chart.labels.length > 0) {
+            trendingOiData.chart.labels.forEach(t => {
+                const parts = String(t).split(':');
+                if (parts.length >= 2) {
+                    const min = parseInt(parts[1], 10);
+                    if (!isNaN(min) && min % 5 === 0) {
+                        timeSet.add(parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0'));
+                    }
+                }
+            });
         }
 
         if (timeSet.size > 0) {
@@ -4318,7 +4638,10 @@
             masterSlider.max = timestampsList.length - 1;
         }
 
-        syncActiveCandleIndex(timestampsList.length - 1);
+        const targetIdx = (activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
+            ? activeCandleIndex
+            : (timestampsList.length - 1);
+        syncActiveCandleIndex(targetIdx);
     }
 
     function syncActiveCandleIndex(index) {
@@ -4351,38 +4674,43 @@
     function syncWeightageUI(index, timeStr) {
         if (!weightageData) return;
 
-        const candle = (weightageData.candles || []).find(c => c.time_str === timeStr) || weightageData.candles?.[index] || null;
+        const candles = weightageData.candles || weightageData.nifty_candles || [];
+        const candle = (timeStr ? candles.find(c => c.time_str === timeStr) : null) || candles[index] || null;
+        const resolvedTime = candle?.time_str || timeStr;
+
         if (candle) {
             document.getElementById('w-chart-time').textContent = candle.time_str;
-            document.getElementById('w-chart-open').textContent = candle.open.toFixed(2);
-            document.getElementById('w-chart-close').textContent = candle.close.toFixed(2);
+            document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
+            document.getElementById('w-chart-close').textContent = Number(candle.close).toFixed(2);
             const chgEl = document.getElementById('w-chart-chg');
             const sign = candle.move_pts >= 0 ? '+' : '';
-            chgEl.textContent = `${sign}${candle.move_pts.toFixed(2)} (${sign}${candle.move_pct.toFixed(2)}%)`;
+            chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
             chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
         }
 
-        const b = weightageData.breadth_by_time?.[timeStr];
+        const b = (resolvedTime ? weightageData.breadth_by_time?.[resolvedTime] : null)
+               || (timeStr ? weightageData.breadth_by_time?.[timeStr] : null);
         if (b) {
-            document.getElementById('w-stat-time').textContent = `${timeStr} - 5-min candle`;
+            const displayTime = resolvedTime || timeStr || b.time || '09:15';
+            document.getElementById('w-stat-time').textContent = `${displayTime} - 5-min candle`;
             const ptsEl = document.getElementById('w-stat-pts');
             const sign = b.nifty_move_pts >= 0 ? '+' : '';
-            ptsEl.textContent = `${sign}${b.nifty_move_pts.toFixed(2)} pts (${sign}${b.nifty_move_pct.toFixed(2)}%)`;
+            ptsEl.textContent = `${sign}${Number(b.nifty_move_pts).toFixed(2)} pts (${sign}${Number(b.nifty_move_pct).toFixed(2)}%)`;
             ptsEl.className = b.nifty_move_pts >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
 
             document.getElementById('w-stat-green-pct').textContent = `${b.green_count_pct}%`;
-            document.getElementById('w-stat-green-wt').textContent = `${b.green_weight.toFixed(1)}%`;
+            document.getElementById('w-stat-green-wt').textContent = `${Number(b.green_weight).toFixed(1)}%`;
             document.getElementById('w-stat-green-cnt').textContent = b.green_count;
-            document.getElementById('w-stat-green-pts').textContent = `+${b.net_green_pts.toFixed(1)}`;
+            document.getElementById('w-stat-green-pts').textContent = `+${Number(b.net_green_pts).toFixed(1)}`;
 
             document.getElementById('w-stat-red-pct').textContent = `${b.red_count_pct}%`;
-            document.getElementById('w-stat-red-wt').textContent = `${b.red_weight.toFixed(1)}%`;
+            document.getElementById('w-stat-red-wt').textContent = `${Number(b.red_weight).toFixed(1)}%`;
             document.getElementById('w-stat-red-cnt').textContent = b.red_count;
-            document.getElementById('w-stat-red-pts').textContent = `${b.net_red_pts.toFixed(1)}`;
+            document.getElementById('w-stat-red-pts').textContent = `${Number(b.net_red_pts).toFixed(1)}`;
 
             document.getElementById('w-bar-green').style.width = `${b.green_weight}%`;
             document.getElementById('w-bar-red').style.width = `${b.red_weight}%`;
-            document.getElementById('w-stat-split').textContent = `${b.green_weight.toFixed(0)}% G / ${b.red_weight.toFixed(0)}% R`;
+            document.getElementById('w-stat-split').textContent = `${Number(b.green_weight).toFixed(0)}% G / ${Number(b.red_weight).toFixed(0)}% R`;
 
             if (b.insight) {
                 document.getElementById('w-insight-badge').innerHTML = b.insight.badge || '<span>Institutional Conviction</span>';
@@ -4424,7 +4752,7 @@
                                 <span>⚠️ STOCK BREADTH DIVERGENCE (BULL TRAP)</span>
                             </div>
                             <div class="text-[9.5px] text-amber-200/90 leading-tight mt-0.5">
-                                Candle rose (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.red_count_pct}% of stocks (${b.red_weight.toFixed(0)}% wt)</strong> are dragging down! Narrow rally / fakeout warning.
+                                Candle rose (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.red_count_pct}% of stocks (${Number(b.red_weight).toFixed(0)}% wt)</strong> are dragging down! Narrow rally / fakeout warning.
                             </div>
                         `;
                     } else if (isRed && isGreenBreach) {
@@ -4435,7 +4763,7 @@
                                 <span>⚡ STOCK BREADTH DIVERGENCE (BEAR TRAP)</span>
                             </div>
                             <div class="text-[9.5px] text-cyan-200/90 leading-tight mt-0.5">
-                                Candle dropped (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.green_count_pct}% of stocks (${b.green_weight.toFixed(0)}% wt)</strong> are advancing! Institutional absorption.
+                                Candle dropped (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.green_count_pct}% of stocks (${Number(b.green_weight).toFixed(0)}% wt)</strong> are advancing! Institutional absorption.
                             </div>
                         `;
                     } else {
@@ -4444,7 +4772,7 @@
                 }
             }
 
-            document.getElementById('w-movers-time').textContent = timeStr;
+            document.getElementById('w-movers-time').textContent = displayTime;
             const driversEl = document.getElementById('w-top-drivers');
             const draggersEl = document.getElementById('w-top-draggers');
 
@@ -4477,20 +4805,25 @@
     function syncOptionsBreadthUI(index, timeStr) {
         if (!breadthData) return;
 
-        const candle = (breadthData.nifty_candles || []).find(c => c.time_str === timeStr) || breadthData.nifty_candles?.[index] || null;
+        const candles = breadthData.nifty_candles || [];
+        const candle = (timeStr ? candles.find(c => c.time_str === timeStr) : null) || candles[index] || null;
+        const resolvedTime = candle?.time_str || timeStr;
+
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
-            document.getElementById('o-chart-open').textContent = candle.open.toFixed(2);
-            document.getElementById('o-chart-close').textContent = candle.close.toFixed(2);
+            document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
+            document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
             const moveEl = document.getElementById('o-chart-move');
             const sign = candle.move_pts >= 0 ? '+' : '';
-            moveEl.textContent = `${sign}${candle.move_pts.toFixed(2)} (${sign}${candle.move_pct.toFixed(2)}%)`;
+            moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
             moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
         }
 
-        const b = breadthData.breadth_by_time?.[timeStr];
+        const b = (resolvedTime ? breadthData.breadth_by_time?.[resolvedTime] : null)
+               || (timeStr ? breadthData.breadth_by_time?.[timeStr] : null);
         if (b) {
-            document.getElementById('o-stat-time').textContent = `${timeStr} - 5-min candle`;
+            const displayTime = resolvedTime || timeStr || b.time_str || '09:15';
+            document.getElementById('o-stat-time').textContent = `${displayTime} - 5-min candle`;
             const impEl = document.getElementById('o-stat-impulse');
             const sign = b.net_points >= 0 ? '+' : '';
             impEl.textContent = `${sign}${Number(b.net_points).toFixed(2)} pts`;
@@ -5632,6 +5965,7 @@
         localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings));
         localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
         updateOverallAndTriggerStats(activeCandleIndex);
+        updateMarkerButtonsUI();
     }
 
     function syncAlarmToolbarUI() {
@@ -5761,6 +6095,7 @@
         initLightweightCharts();
         setupControls();
         syncAlarmToolbarUI();
+        updateMarkerButtonsUI();
         fetchAlertLogs(false);
         loadAllData();
         setupAutoRefresh();
