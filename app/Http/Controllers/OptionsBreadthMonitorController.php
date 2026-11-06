@@ -88,25 +88,25 @@ class OptionsBreadthMonitorController extends Controller
                     ->value('expiry_date');
             }
 
-            // For past dates or fallback: resolve from option_chains_history directly for this date
-            if (!$selectedExpiry && Schema::hasTable('option_chains_history')) {
-                $selectedExpiry = DB::table('option_chains_history')
-                    ->where('trading_symbol', $symbol)
-                    ->where('captured_at', '>=', "{$date} 09:00:00")
-                    ->where('captured_at', '<=', "{$date} 15:35:00")
-                    ->where('expiry', '>=', $date)
-                    ->orderBy('expiry')
-                    ->value('expiry');
-            }
-
-            // Fallback: check expired_expiries
-            if (!$selectedExpiry && Schema::hasTable('expired_expiries')) {
+            // For past dates: check expired_expiries first (<1ms, indexed)
+            if (!$selectedExpiry && !$isToday && Schema::hasTable('expired_expiries')) {
                 $selectedExpiry = DB::table('expired_expiries')
                     ->where('underlying_symbol', $symbol)
                     ->where('instrument_type', 'OPT')
                     ->where('expiry_date', '>=', $date)
                     ->orderBy('expiry_date')
                     ->value('expiry_date');
+            }
+
+            // For past dates or fallback: resolve from option_chains_history directly using captured_at index (<100ms)
+            if (!$selectedExpiry && Schema::hasTable('option_chains_history')) {
+                $selectedExpiry = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
+                    ->where('trading_symbol', $symbol)
+                    ->where('captured_at', '>=', "{$date} 09:00:00")
+                    ->where('captured_at', '<=', "{$date} 15:35:00")
+                    ->where('expiry', '>=', $date)
+                    ->orderBy('expiry')
+                    ->value('expiry');
             }
 
             // Fallback: check nse_expiries upcoming
@@ -139,7 +139,7 @@ class OptionsBreadthMonitorController extends Controller
 
         $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
             // 2. Fetch Strikes and determine ATM strike
-            $indexHint = ($table === 'option_chains') ? ' USE INDEX (option_chains_captured_at_index)' : '';
+            $indexHint = ' USE INDEX (option_chains_captured_at_index)';
             $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
                 ->where('captured_at', '>=', $startTs)
                 ->where('captured_at', '<=', $endTs)
@@ -172,86 +172,84 @@ class OptionsBreadthMonitorController extends Controller
 
             if ($strikes->isEmpty()) {
                 $altTable = ($table === 'option_chains') ? 'option_chains_history' : 'option_chains';
-                $altStrikes = DB::table($altTable)
+                $altStrikes = DB::table(DB::raw("{$altTable}{$indexHint}"))
                     ->where('captured_at', '>=', $startTs)
                     ->where('captured_at', '<=', $endTs)
                     ->where('trading_symbol', $symbol)
-                ->where('expiry', $selectedExpiry)
-                ->where('captured_at', '>=', $startTs)
-                ->where('captured_at', '<=', $endTs)
-                ->distinct()
-                ->orderBy('strike_price')
-                ->pluck('strike_price');
+                    ->where('expiry', $selectedExpiry)
+                    ->distinct()
+                    ->orderBy('strike_price')
+                    ->pluck('strike_price');
 
-            if ($altStrikes->isNotEmpty()) {
-                $table = $altTable;
-                $strikes = $altStrikes;
+                if ($altStrikes->isNotEmpty()) {
+                    $table = $altTable;
+                    $strikes = $altStrikes;
+                }
             }
-        }
 
-        // If strikes are still empty, the selectedExpiry might be mismatched (e.g. November expiry requested on a June date).
-        // Auto-recover by resolving the true active expiry for this date.
-        if ($strikes->isEmpty()) {
-            foreach ([$table, 'option_chains_history', 'option_chains'] as $candidateTable) {
-                if (!Schema::hasTable($candidateTable)) continue;
-                $realExpiry = DB::table($candidateTable)
-                    ->where('trading_symbol', $symbol)
-                    ->where('captured_at', '>=', $startTs)
-                    ->where('captured_at', '<=', $endTs)
-                    ->where('expiry', '>=', $date)
-                    ->orderBy('expiry')
-                    ->value('expiry');
-
-                if ($realExpiry) {
-                    $recoveredStrikes = DB::table($candidateTable)
+            // If strikes are still empty, the selectedExpiry might be mismatched (e.g. November expiry requested on a June date).
+            // Auto-recover by resolving the true active expiry for this date.
+            if ($strikes->isEmpty()) {
+                foreach ([$table, 'option_chains_history', 'option_chains'] as $candidateTable) {
+                    if (!Schema::hasTable($candidateTable)) continue;
+                    $realExpiry = DB::table(DB::raw("{$candidateTable}{$indexHint}"))
                         ->where('trading_symbol', $symbol)
-                        ->where('expiry', $realExpiry)
                         ->where('captured_at', '>=', $startTs)
                         ->where('captured_at', '<=', $endTs)
-                        ->distinct()
-                        ->orderBy('strike_price')
-                        ->pluck('strike_price');
+                        ->where('expiry', '>=', $date)
+                        ->orderBy('expiry')
+                        ->value('expiry');
 
-                    if ($recoveredStrikes->isNotEmpty()) {
-                        $table = $candidateTable;
-                        $selectedExpiry = $realExpiry;
-                        $strikes = $recoveredStrikes;
-                        break;
+                    if ($realExpiry) {
+                        $recoveredStrikes = DB::table(DB::raw("{$candidateTable}{$indexHint}"))
+                            ->where('trading_symbol', $symbol)
+                            ->where('expiry', $realExpiry)
+                            ->where('captured_at', '>=', $startTs)
+                            ->where('captured_at', '<=', $endTs)
+                            ->distinct()
+                            ->orderBy('strike_price')
+                            ->pluck('strike_price');
+
+                        if ($recoveredStrikes->isNotEmpty()) {
+                            $table = $candidateTable;
+                            $selectedExpiry = $realExpiry;
+                            $strikes = $recoveredStrikes;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        // Auto-migration on demand: If this historical date has no option contracts in option_chains_history,
-        // automatically migrate this single date from expired_ohlc on-the-fly!
-        if ($strikes->isEmpty() && !$isToday && Schema::hasTable('expired_ohlc')) {
-            try {
-                \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
+            // Auto-migration on demand: If this historical date has no option contracts in option_chains_history,
+            // automatically migrate this single date from expired_ohlc on-the-fly!
+            if ($strikes->isEmpty() && !$isToday && Schema::hasTable('expired_ohlc')) {
+                try {
+                    \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
 
-                $table = 'option_chains_history';
-                $realExpiry = DB::table($table)
-                    ->where('trading_symbol', $symbol)
-                    ->where('captured_at', '>=', $startTs)
-                    ->where('captured_at', '<=', $endTs)
-                    ->where('expiry', '>=', $date)
-                    ->orderBy('expiry')
-                    ->value('expiry');
-
-                if ($realExpiry) {
-                    $selectedExpiry = $realExpiry;
-                    $strikes = DB::table($table)
+                    $table = 'option_chains_history';
+                    $realExpiry = DB::table(DB::raw("{$table}{$indexHint}"))
                         ->where('trading_symbol', $symbol)
-                        ->where('expiry', $selectedExpiry)
                         ->where('captured_at', '>=', $startTs)
                         ->where('captured_at', '<=', $endTs)
-                        ->distinct()
-                        ->orderBy('strike_price')
-                        ->pluck('strike_price');
+                        ->where('expiry', '>=', $date)
+                        ->orderBy('expiry')
+                        ->value('expiry');
+
+                    if ($realExpiry) {
+                        $selectedExpiry = $realExpiry;
+                        $strikes = DB::table(DB::raw("{$table}{$indexHint}"))
+                            ->where('trading_symbol', $symbol)
+                            ->where('expiry', $selectedExpiry)
+                            ->where('captured_at', '>=', $startTs)
+                            ->where('captured_at', '<=', $endTs)
+                            ->distinct()
+                            ->orderBy('strike_price')
+                            ->pluck('strike_price');
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore and proceed to defensive return
                 }
-            } catch (\Throwable $e) {
-                // Ignore and proceed to defensive return
             }
-        }
 
         // Defensive check: If date still has no option contracts in database
         if ($strikes->isEmpty()) {
@@ -529,7 +527,7 @@ class OptionsBreadthMonitorController extends Controller
 
         // Fallback: Generate candles from option chain spot prices or Synthetic Future
         if (empty($candles)) {
-            $spotRows = DB::table($table)
+            $spotRows = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
                 ->where('trading_symbol', $symbol)
                 ->where('expiry', $expiry)
                 ->where('captured_at', '>=', "{$date} 09:15:00")

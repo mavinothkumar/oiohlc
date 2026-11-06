@@ -94,7 +94,7 @@ class TrendingOiController extends Controller
 
         $isToday = ($date === today()->toDateString());
         $table = $isToday ? 'option_chains' : 'option_chains_history';
-        $indexHint = ($table === 'option_chains') ? ' USE INDEX (option_chains_captured_at_index)' : '';
+        $indexHint = ' USE INDEX (option_chains_captured_at_index)';
         $endTime = $request->input('end_time');
         $skipOpen = filter_var($request->input('skip_open', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -113,7 +113,7 @@ class TrendingOiController extends Controller
             // Auto-migration on demand: If this historical date has no records in option_chains_history,
             // automatically migrate this single date from expired_ohlc on-the-fly!
             if (!$isToday && Schema::hasTable('expired_ohlc')) {
-                $hasHistorical = DB::table('option_chains_history')
+                $hasHistorical = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -151,7 +151,7 @@ class TrendingOiController extends Controller
 
             // Auto-recover if a mismatched expiry was provided
             if (empty($timestamps)) {
-                $realExpiry = DB::table($table)
+                $realExpiry = DB::table(DB::raw("{$table}{$indexHint}"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1052,7 +1052,7 @@ class TrendingOiController extends Controller
 
         // For historical dates: check option_chains_history if expired_expiries was empty
         if (!$isToday && $expiries->isEmpty() && Schema::hasTable('option_chains_history')) {
-            $expiries = DB::table('option_chains_history')
+            $expiries = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
                 ->where('trading_symbol', 'NIFTY')
                 ->where('captured_at', '>=', "{$date} 09:00:00")
                 ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1079,11 +1079,11 @@ class TrendingOiController extends Controller
                 ->pluck('expiry_date');
         }
 
-        // Fallback: Check table using indexed trading_symbol + captured_at range
+        // Fallback: Check table using indexed captured_at range
         if ($expiries->isEmpty()) {
             $table = $isToday ? 'option_chains' : 'option_chains_history';
             if (Schema::hasTable($table)) {
-                $expiries = DB::table($table)
+                $expiries = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1123,7 +1123,7 @@ class TrendingOiController extends Controller
 
         $table = $isToday ? 'option_chains' : 'option_chains_history';
 
-        $strikes = DB::table($table)
+        $strikes = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
             ->where('trading_symbol', 'NIFTY')
             ->where('expiry', $expiry)
             ->where('captured_at', '>=', "{$date} 00:00:00")
