@@ -5006,16 +5006,6 @@
         }
     }
 
-        const oSlider = document.getElementById('o-slider');
-        if (oSlider && rawCandles.length > 0) {
-            oSlider.max = rawCandles.length - 1;
-            const startLbl = document.getElementById('o-slider-start');
-            const endLbl = document.getElementById('o-slider-end');
-            if (startLbl) startLbl.textContent = rawCandles[0].time_str;
-            if (endLbl) endLbl.textContent = rawCandles[rawCandles.length - 1].time_str;
-        }
-    }
-
     // ── 8. Render Column 2 (Right 25%): 3 Rows ────────────────────────────────────
     function renderTrendingOiRows() {
         if (!trendingOiData || trendingOiData.error) return;
