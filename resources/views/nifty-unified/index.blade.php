@@ -398,6 +398,28 @@
                                     <span>🏷️ Stock Status:</span>
                                     <span id="w-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
+                                <button type="button" id="w-st-toggle-btn" onclick="cycleSuperTrendMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle SuperTrend: OFF / ST(10,3) / ST(10,2)">
+                                    <span>⚡ ST:</span>
+                                    <span id="w-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
+                                </button>
+                                <button type="button" id="w-fib-toggle-btn" onclick="cycleFibMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle Fibonacci: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
+                                    <span>📐 FIB:</span>
+                                    <span id="w-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
+                                </button>
+                                <button type="button" id="w-hline-toggle-btn" onclick="toggleHLineTool()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Draw Horizontal Support/Resistance Line (Click anywhere on chart)">
+                                    <span>➖ Line</span>
+                                </button>
+                                <button type="button" onclick="clearAllManualDrawings()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
+                                    title="Clear all custom drawn lines & reset">
+                                    <span>🗑️</span>
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -411,6 +433,33 @@
 
                         <!-- Candlestick Canvas -->
                         <div id="w-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
+                            <!-- Floating TradingView Style Dock Toolbar -->
+                            <div class="tv-dock absolute left-2 top-2 z-20 flex flex-col items-center bg-[#151924]/90 backdrop-blur-md border border-gray-700/80 rounded shadow-2xl p-0.5 gap-1 select-none">
+                                <button type="button" onclick="setActiveTvTool('pointer')" id="w-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+                                </button>
+                                <button type="button" onclick="toggleHLineTool()" id="w-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18"/></svg>
+                                </button>
+                                <button type="button" onclick="cycleFibMode()" id="w-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
+                                    Fib
+                                </button>
+                                <button type="button" onclick="cycleSuperTrendMode()" id="w-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
+                                    ST
+                                </button>
+                                <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
+                                <button type="button" onclick="clearAllManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+
+                            <!-- Interactive Tool Action Notification Hint -->
+                            <div id="w-tv-hint" class="hidden absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse">
+                                <span>💡</span>
+                                <span id="w-tv-hint-text">Click price on chart</span>
+                                <button type="button" onclick="setActiveTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
+                            </div>
+
                             <div id="w-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                                 <div class="relative w-8 h-8">
                                     <div class="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
@@ -582,6 +631,28 @@
                                     <span>🏷️ Flow Status:</span>
                                     <span id="o-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
+                                <button type="button" id="o-st-toggle-btn" onclick="cycleSuperTrendMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle SuperTrend: OFF / ST(10,3) / ST(10,2)">
+                                    <span>⚡ ST:</span>
+                                    <span id="o-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
+                                </button>
+                                <button type="button" id="o-fib-toggle-btn" onclick="cycleFibMode()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Cycle Fibonacci: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
+                                    <span>📐 FIB:</span>
+                                    <span id="o-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
+                                </button>
+                                <button type="button" id="o-hline-toggle-btn" onclick="toggleHLineTool()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Draw Horizontal Support/Resistance Line (Click anywhere on chart)">
+                                    <span>➖ Line</span>
+                                </button>
+                                <button type="button" onclick="clearAllManualDrawings()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
+                                    title="Clear all custom drawn lines & reset">
+                                    <span>🗑️</span>
+                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="o-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -595,6 +666,33 @@
 
                         <!-- Candlestick Canvas -->
                         <div id="o-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
+                            <!-- Floating TradingView Style Dock Toolbar -->
+                            <div class="tv-dock absolute left-2 top-2 z-20 flex flex-col items-center bg-[#151924]/90 backdrop-blur-md border border-gray-700/80 rounded shadow-2xl p-0.5 gap-1 select-none">
+                                <button type="button" onclick="setActiveTvTool('pointer')" id="o-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+                                </button>
+                                <button type="button" onclick="toggleHLineTool()" id="o-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18"/></svg>
+                                </button>
+                                <button type="button" onclick="cycleFibMode()" id="o-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
+                                    Fib
+                                </button>
+                                <button type="button" onclick="cycleSuperTrendMode()" id="o-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
+                                    ST
+                                </button>
+                                <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
+                                <button type="button" onclick="clearAllManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+
+                            <!-- Interactive Tool Action Notification Hint -->
+                            <div id="o-tv-hint" class="hidden absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse">
+                                <span>💡</span>
+                                <span id="o-tv-hint-text">Click price on chart</span>
+                                <button type="button" onclick="setActiveTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
+                            </div>
+
                             <div id="o-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                                 <div class="relative w-8 h-8">
                                     <div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -1757,10 +1855,30 @@
     // Chart instances
     let wChart = null;
     let wCandleSeries = null;
+    let wStBullSeries = null;
+    let wStBearSeries = null;
     let oChart = null;
     let oCandleSeries = null;
+    let oStBullSeries = null;
+    let oStBearSeries = null;
     let toiChartInstance = null;
     let buildupChartInstance = null;
+
+    // TradingView Style Overlay Settings & Price Lines
+    let wFibPriceLines = [];
+    let oFibPriceLines = [];
+    let wManualPriceLines = [];
+    let oManualPriceLines = [];
+    let tvSettings = {
+        superTrend: localStorage.getItem('nifty_unified_st_mode') || 'off', // 'off', '10_3', '10_2'
+        fibMode: localStorage.getItem('nifty_unified_fib_mode') || 'off', // 'off', 'auto', 'manual'
+        manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_manual_fib') || 'null'),
+        manualHLines: JSON.parse(localStorage.getItem('nifty_unified_manual_hlines') || '[]'),
+    };
+    let activeTvTool = 'pointer'; // 'pointer', 'hline', 'fib_manual'
+    let manualFibClickStep = 0;
+    let manualFibTempP1 = null;
+    window._unifiedAllCandles = [];
 
     // Quant S/R Lines Data & Instances
     let quantPlaybookData = @json($quantPlaybook ?? null);
@@ -2589,6 +2707,7 @@
         alarmSettings.stocksShowMarkers = (next !== 'off');
         saveAlarmSettings();
         updateMarkerButtonsUI();
+        updateTvToolsUI();
         renderWeightageColumn();
     }
     window.cycleStocksMarkerMode = cycleStocksMarkerMode;
@@ -2604,6 +2723,7 @@
         alarmSettings.optionsShowMarkers = (next !== 'off');
         saveAlarmSettings();
         updateMarkerButtonsUI();
+        updateTvToolsUI();
         renderOptionsBreadthColumn();
     }
     window.cycleOptionsMarkerMode = cycleOptionsMarkerMode;
@@ -2640,6 +2760,422 @@
         }
     }
     window.updateMarkerButtonsUI = updateMarkerButtonsUI;
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // TRADINGVIEW TOOLS: SUPERTREND, FIBONACCI RETRACEMENT & MANUAL HORIZONTAL LINES
+    // ══════════════════════════════════════════════════════════════════════════════
+    function cycleSuperTrendMode() {
+        let cur = tvSettings.superTrend;
+        let next = 'off';
+        if (cur === 'off') next = '10_3';
+        else if (cur === '10_3') next = '10_2';
+        else next = 'off';
+
+        tvSettings.superTrend = next;
+        try {
+            localStorage.setItem('nifty_unified_st_mode', next);
+        } catch(e){}
+        updateTvToolsUI();
+        renderSuperTrendOverlays();
+    }
+    window.cycleSuperTrendMode = cycleSuperTrendMode;
+
+    function cycleFibMode() {
+        let cur = tvSettings.fibMode;
+        let next = 'off';
+        if (cur === 'off') next = 'auto';
+        else if (cur === 'auto') next = 'manual';
+        else next = 'off';
+
+        tvSettings.fibMode = next;
+        try {
+            localStorage.setItem('nifty_unified_fib_mode', next);
+        } catch(e){}
+        if (next === 'manual') {
+            manualFibClickStep = 1;
+            manualFibTempP1 = null;
+            setActiveTvTool('fib_manual');
+        } else {
+            setActiveTvTool('pointer');
+        }
+        updateTvToolsUI();
+        renderFibonacciOverlays();
+    }
+    window.cycleFibMode = cycleFibMode;
+
+    function toggleHLineTool() {
+        if (activeTvTool === 'hline') {
+            setActiveTvTool('pointer');
+        } else {
+            setActiveTvTool('hline');
+        }
+    }
+    window.toggleHLineTool = toggleHLineTool;
+
+    function setActiveTvTool(tool) {
+        activeTvTool = tool;
+        updateTvToolsUI();
+    }
+    window.setActiveTvTool = setActiveTvTool;
+
+    function handleManualFibClick(price) {
+        if (manualFibClickStep === 1) {
+            manualFibTempP1 = price;
+            manualFibClickStep = 2;
+            updateTvHint(`Point 1: ₹${price.toFixed(1)}. Now click Point 2 on chart...`);
+        } else if (manualFibClickStep === 2) {
+            tvSettings.manualFibPoints = { p1: manualFibTempP1, p2: price };
+            try {
+                localStorage.setItem('nifty_unified_manual_fib', JSON.stringify(tvSettings.manualFibPoints));
+            } catch(e){}
+            manualFibClickStep = 0;
+            manualFibTempP1 = null;
+            setActiveTvTool('pointer');
+            renderFibonacciOverlays();
+        }
+    }
+
+    function addManualHLine(price) {
+        if (!tvSettings.manualHLines) tvSettings.manualHLines = [];
+        tvSettings.manualHLines.push(price);
+        try {
+            localStorage.setItem('nifty_unified_manual_hlines', JSON.stringify(tvSettings.manualHLines));
+        } catch(e){}
+        renderManualHLines();
+    }
+
+    function clearAllManualDrawings() {
+        tvSettings.manualHLines = [];
+        tvSettings.manualFibPoints = null;
+        try {
+            localStorage.removeItem('nifty_unified_manual_hlines');
+            localStorage.removeItem('nifty_unified_manual_fib');
+        } catch(e){}
+        clearManualHLines();
+        if (tvSettings.fibMode === 'manual') {
+            tvSettings.fibMode = 'off';
+            localStorage.setItem('nifty_unified_fib_mode', 'off');
+        }
+        clearFibPriceLines();
+        setActiveTvTool('pointer');
+        updateTvToolsUI();
+    }
+    window.clearAllManualDrawings = clearAllManualDrawings;
+
+    function updateTvHint(customText = null) {
+        const wHint = document.getElementById('w-tv-hint');
+        const oHint = document.getElementById('o-tv-hint');
+        const wText = document.getElementById('w-tv-hint-text');
+        const oText = document.getElementById('o-tv-hint-text');
+
+        let isVisible = false;
+        let text = '';
+
+        if (activeTvTool === 'hline') {
+            isVisible = true;
+            text = 'Click any price on the chart to place Horizontal Support/Resistance';
+        } else if (activeTvTool === 'fib_manual') {
+            isVisible = true;
+            text = customText || 'Click Swing Point 1 (High/Low) on the chart...';
+        }
+
+        if (wHint) {
+            wHint.className = isVisible ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
+            if (wText && isVisible) wText.textContent = text;
+        }
+        if (oHint) {
+            oHint.className = isVisible ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
+            if (oText && isVisible) oText.textContent = text;
+        }
+    }
+
+    function updateTvToolsUI() {
+        // 1. SuperTrend Badges
+        const stBadges = [document.getElementById('w-st-status-badge'), document.getElementById('o-st-status-badge')];
+        stBadges.forEach(b => {
+            if (!b) return;
+            if (tvSettings.superTrend === '10_3') {
+                b.textContent = '10, 3';
+                b.className = 'font-mono text-emerald-400 font-extrabold';
+            } else if (tvSettings.superTrend === '10_2') {
+                b.textContent = '10, 2';
+                b.className = 'font-mono text-cyan-300 font-extrabold';
+            } else {
+                b.textContent = 'OFF';
+                b.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        });
+
+        // 2. Fibonacci Badges
+        const fibBadges = [document.getElementById('w-fib-status-badge'), document.getElementById('o-fib-status-badge')];
+        fibBadges.forEach(b => {
+            if (!b) return;
+            if (tvSettings.fibMode === 'auto') {
+                b.textContent = 'AUTO';
+                b.className = 'font-mono text-violet-300 font-extrabold';
+            } else if (tvSettings.fibMode === 'manual') {
+                b.textContent = 'MANUAL';
+                b.className = 'font-mono text-amber-300 font-extrabold';
+            } else {
+                b.textContent = 'OFF';
+                b.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        });
+
+        // 3. Floating Toolbar active styles
+        const toolClasses = {
+            active: 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer',
+            inactive: 'tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer',
+        };
+
+        ['w', 'o'].forEach(prefix => {
+            const btnPointer = document.getElementById(`${prefix}-tv-pointer`);
+            const btnHline = document.getElementById(`${prefix}-tv-hline`);
+            const btnFib = document.getElementById(`${prefix}-tv-fib`);
+            const btnSt = document.getElementById(`${prefix}-tv-st`);
+
+            if (btnPointer) btnPointer.className = (activeTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
+            if (btnHline) btnHline.className = (activeTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
+            if (btnFib) btnFib.className = (activeTvTool === 'fib_manual' || tvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+            if (btnSt) btnSt.className = (tvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+        });
+
+        updateTvHint();
+    }
+    window.updateTvToolsUI = updateTvToolsUI;
+
+    // ── SuperTrend Calculation (Wilder RMA ATR + Bands) ──
+    function calculateSuperTrend(candles, period = 10, multiplier = 3) {
+        if (!candles || candles.length < period) return { bull: [], bear: [], flips: [] };
+
+        const tr = [];
+        for (let i = 0; i < candles.length; i++) {
+            const c = candles[i];
+            if (i === 0) {
+                tr.push(c.high - c.low);
+            } else {
+                const prev = candles[i - 1];
+                tr.push(Math.max(c.high - c.low, Math.abs(c.high - prev.close), Math.abs(c.low - prev.close)));
+            }
+        }
+
+        const atr = [];
+        let sumTr = 0;
+        for (let i = 0; i < period; i++) sumTr += tr[i];
+        let prevAtr = sumTr / period;
+        atr[period - 1] = prevAtr;
+        for (let i = period; i < candles.length; i++) {
+            prevAtr = (prevAtr * (period - 1) + tr[i]) / period;
+            atr[i] = prevAtr;
+        }
+
+        const bull = [];
+        const bear = [];
+        const flips = [];
+
+        let prevUpper = 0, prevLower = 0, prevTrend = 1;
+
+        for (let i = 0; i < candles.length; i++) {
+            const c = candles[i];
+            const t = Number(c.time || c.timestamp);
+            if (i < period - 1) continue;
+
+            const curAtr = atr[i];
+            const hl2 = (c.high + c.low) / 2;
+            const basicUpper = hl2 + (multiplier * curAtr);
+            const basicLower = hl2 - (multiplier * curAtr);
+
+            let upper = basicUpper;
+            let lower = basicLower;
+
+            if (i > 0) {
+                const prevC = candles[i - 1];
+                if (prevC.close <= prevUpper) {
+                    upper = Math.min(basicUpper, prevUpper);
+                }
+                if (prevC.close >= prevLower) {
+                    lower = Math.max(basicLower, prevLower);
+                }
+            }
+
+            let trend = prevTrend;
+            if (c.close > prevUpper) {
+                trend = 1;
+            } else if (c.close < prevLower) {
+                trend = -1;
+            }
+
+            if (trend !== prevTrend && i > period) {
+                flips.push({
+                    time: t,
+                    position: trend === 1 ? 'belowBar' : 'aboveBar',
+                    color: trend === 1 ? '#10b981' : '#ef4444',
+                    shape: trend === 1 ? 'arrowUp' : 'arrowDown',
+                    text: trend === 1 ? `BUY ST(${period},${multiplier})` : `SELL ST(${period},${multiplier})`,
+                });
+            }
+
+            const val = Number(((trend === 1) ? lower : upper).toFixed(2));
+            if (trend === 1) {
+                bull.push({ time: t, value: val });
+            } else {
+                bear.push({ time: t, value: val });
+            }
+
+            prevUpper = upper;
+            prevLower = lower;
+            prevTrend = trend;
+        }
+
+        return { bull, bear, flips };
+    }
+
+    function renderSuperTrendOverlays() {
+        if (!wStBullSeries || !wStBearSeries || !oStBullSeries || !oStBearSeries) return;
+
+        const mode = tvSettings.superTrend;
+        if (mode === 'off') {
+            wStBullSeries.setData([]);
+            wStBearSeries.setData([]);
+            oStBullSeries.setData([]);
+            oStBearSeries.setData([]);
+            return;
+        }
+
+        const mult = (mode === '10_2') ? 2 : 3;
+        const allCandles = window._unifiedAllCandles || [];
+        if (allCandles.length < 10) return;
+
+        const st = calculateSuperTrend(allCandles, 10, mult);
+        wStBullSeries.setData(st.bull);
+        wStBearSeries.setData(st.bear);
+        oStBullSeries.setData(st.bull);
+        oStBearSeries.setData(st.bear);
+    }
+
+    // ── Fibonacci Retracement Rendering ──
+    function clearFibPriceLines() {
+        if (wCandleSeries && wFibPriceLines.length > 0) {
+            wFibPriceLines.forEach(pl => {
+                try { wCandleSeries.removePriceLine(pl); } catch(e){}
+            });
+            wFibPriceLines = [];
+        }
+        if (oCandleSeries && oFibPriceLines.length > 0) {
+            oFibPriceLines.forEach(pl => {
+                try { oCandleSeries.removePriceLine(pl); } catch(e){}
+            });
+            oFibPriceLines = [];
+        }
+    }
+
+    function renderFibonacciOverlays() {
+        clearFibPriceLines();
+        const mode = tvSettings.fibMode;
+        if (mode === 'off') return;
+
+        let high = 0, low = 0;
+
+        if (mode === 'auto') {
+            const raw = weightageData?.candles || weightageData?.nifty_candles || [];
+            if (!raw || raw.length === 0) return;
+            high = Math.max(...raw.map(c => Number(c.high)));
+            low = Math.min(...raw.map(c => Number(c.low)));
+        } else if (mode === 'manual') {
+            if (!tvSettings.manualFibPoints || !tvSettings.manualFibPoints.p1 || !tvSettings.manualFibPoints.p2) return;
+            high = Math.max(tvSettings.manualFibPoints.p1, tvSettings.manualFibPoints.p2);
+            low = Math.min(tvSettings.manualFibPoints.p1, tvSettings.manualFibPoints.p2);
+        }
+
+        if (high <= 0 || low <= 0 || high <= low) return;
+        const range = high - low;
+
+        const fibLevels = [
+            { ratio: 1.0,   label: 'Fib 1.0 (High)',       color: '#f43f5e', lineStyle: 0 },
+            { ratio: 0.786, label: 'Fib 0.786',            color: '#38bdf8', lineStyle: 2 },
+            { ratio: 0.618, label: 'Fib 0.618 (Golden)',   color: '#f59e0b', lineStyle: 1 },
+            { ratio: 0.500, label: 'Fib 0.500 (Mid)',      color: '#06b6d4', lineStyle: 0 },
+            { ratio: 0.382, label: 'Fib 0.382',            color: '#a855f7', lineStyle: 2 },
+            { ratio: 0.0,   label: 'Fib 0.0 (Low)',        color: '#10b981', lineStyle: 0 },
+        ];
+
+        fibLevels.forEach(lvl => {
+            const price = Number((low + range * lvl.ratio).toFixed(2));
+            if (wCandleSeries) {
+                const pl = wCandleSeries.createPriceLine({
+                    price: price,
+                    color: lvl.color,
+                    lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
+                    lineStyle: lvl.lineStyle,
+                    axisLabelVisible: true,
+                    title: `${lvl.label} ${price.toFixed(1)}`,
+                });
+                wFibPriceLines.push(pl);
+            }
+            if (oCandleSeries) {
+                const pl = oCandleSeries.createPriceLine({
+                    price: price,
+                    color: lvl.color,
+                    lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
+                    lineStyle: lvl.lineStyle,
+                    axisLabelVisible: true,
+                    title: `${lvl.label} ${price.toFixed(1)}`,
+                });
+                oFibPriceLines.push(pl);
+            }
+        });
+    }
+
+    // ── Manual Horizontal Support/Resistance Lines ──
+    function clearManualHLines() {
+        if (wCandleSeries && wManualPriceLines.length > 0) {
+            wManualPriceLines.forEach(pl => {
+                try { wCandleSeries.removePriceLine(pl); } catch(e){}
+            });
+            wManualPriceLines = [];
+        }
+        if (oCandleSeries && oManualPriceLines.length > 0) {
+            oManualPriceLines.forEach(pl => {
+                try { oCandleSeries.removePriceLine(pl); } catch(e){}
+            });
+            oManualPriceLines = [];
+        }
+    }
+
+    function renderManualHLines() {
+        clearManualHLines();
+        const lines = tvSettings.manualHLines || [];
+        lines.forEach((price) => {
+            if (wCandleSeries) {
+                const pl = wCandleSeries.createPriceLine({
+                    price: price,
+                    color: '#38bdf8',
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: `H-Line ${price.toFixed(1)}`,
+                });
+                wManualPriceLines.push(pl);
+            }
+            if (oCandleSeries) {
+                const pl = oCandleSeries.createPriceLine({
+                    price: price,
+                    color: '#38bdf8',
+                    lineWidth: 1,
+                    lineStyle: LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: `H-Line ${price.toFixed(1)}`,
+                });
+                oManualPriceLines.push(pl);
+            }
+        });
+    }
+
+    function renderAllChartOverlays() {
+        renderSuperTrendOverlays();
+        renderFibonacciOverlays();
+        renderManualHLines();
+    }
 
     async function reloadTrendingOiWithInterval(interval = 5) {
         try {
@@ -3885,7 +4421,43 @@
                 wickDownColor: '#ef4444',
             });
 
+            // SuperTrend Line Series (Green Bull Support & Red Bear Resistance)
+            wStBullSeries = wChart.addLineSeries({
+                color: '#10b981',
+                lineWidth: 2,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            wStBearSeries = wChart.addLineSeries({
+                color: '#ef4444',
+                lineWidth: 2,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+
             wChart.subscribeClick(param => {
+                if (activeTvTool === 'hline') {
+                    if (param && param.point) {
+                        const price = wCandleSeries.coordinateToPrice(param.point.y);
+                        if (price && !isNaN(price)) {
+                            addManualHLine(Math.round(price * 10) / 10);
+                            setActiveTvTool('pointer');
+                        }
+                    }
+                    return;
+                }
+                if (activeTvTool === 'fib_manual') {
+                    if (param && param.point) {
+                        const price = wCandleSeries.coordinateToPrice(param.point.y);
+                        if (price && !isNaN(price)) {
+                            handleManualFibClick(Math.round(price * 10) / 10);
+                        }
+                    }
+                    return;
+                }
+
                 const raw = weightageData?.candles || weightageData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
                 const pTime = Number(param.time);
@@ -3920,7 +4492,43 @@
                 wickDownColor: '#ef4444',
             });
 
+            // SuperTrend Line Series (Green Bull Support & Red Bear Resistance)
+            oStBullSeries = oChart.addLineSeries({
+                color: '#10b981',
+                lineWidth: 2,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            oStBearSeries = oChart.addLineSeries({
+                color: '#ef4444',
+                lineWidth: 2,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+
             oChart.subscribeClick(param => {
+                if (activeTvTool === 'hline') {
+                    if (param && param.point) {
+                        const price = oCandleSeries.coordinateToPrice(param.point.y);
+                        if (price && !isNaN(price)) {
+                            addManualHLine(Math.round(price * 10) / 10);
+                            setActiveTvTool('pointer');
+                        }
+                    }
+                    return;
+                }
+                if (activeTvTool === 'fib_manual') {
+                    if (param && param.point) {
+                        const price = oCandleSeries.coordinateToPrice(param.point.y);
+                        if (price && !isNaN(price)) {
+                            handleManualFibClick(Math.round(price * 10) / 10);
+                        }
+                    }
+                    return;
+                }
+
                 const raw = breadthData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
                 const pTime = Number(param.time);
@@ -3944,6 +4552,8 @@
 
         updateQuantLinesButtonUI();
         drawQuantPriceLines();
+        updateTvToolsUI();
+        renderAllChartOverlays();
     }
 
     // ── 5. Unified Data Fetcher ───────────────────────────────────────────────────
@@ -4110,24 +4720,27 @@
         }
     }
 
-    // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View ─────────────────
-    function adjustChartTimeScale(chart, candleCount) {
-        if (!chart || candleCount <= 0) return;
-        if (candleCount < 65) {
-            try {
-                chart.timeScale().applyOptions({
-                    barSpacing: 10,
-                    minBarSpacing: 3,
-                    rightOffset: Math.max(10, 75 - candleCount),
-                });
-                chart.timeScale().setVisibleLogicalRange({
-                    from: -2,
-                    to: Math.max(75, candleCount + 10),
-                });
-            } catch (e) {
-                chart.timeScale().fitContent();
-            }
-        } else {
+    // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View & Day Anchoring ──
+    function adjustChartTimeScale(chart, todayCandles) {
+        if (!chart || !todayCandles || todayCandles.length === 0) return;
+        try {
+            const firstToday = Number(todayCandles[0].time || todayCandles[0].timestamp);
+            const lastToday = Number(todayCandles[todayCandles.length - 1].time || todayCandles[todayCandles.length - 1].timestamp);
+            const rightPadding = 300 * Math.max(8, 75 - todayCandles.length);
+
+            chart.timeScale().applyOptions({
+                barSpacing: 10,
+                minBarSpacing: 3,
+                rightOffset: Math.max(8, 75 - todayCandles.length),
+            });
+
+            // Anchor Today's 09:15 candle to the left edge of the visible chart!
+            // When user drags right (pans left), yesterday's candles smoothly appear!
+            chart.timeScale().setVisibleRange({
+                from: firstToday,
+                to: lastToday + rightPadding,
+            });
+        } catch (e) {
             chart.timeScale().fitContent();
         }
     }
@@ -4138,28 +4751,54 @@
         if (!rawCandles || rawCandles.length === 0) return;
         if (!weightageData.candles) weightageData.candles = rawCandles;
 
-        const chartCandles = rawCandles.map(c => ({
-            time: c.time || c.timestamp,
+        const todayCandles = rawCandles.map(c => ({
+            time: Number(c.time || c.timestamp),
             open: Number(c.open),
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
         })).filter(c => c.time && !isNaN(c.time));
 
-        if (wCandleSeries && chartCandles.length > 0) {
-            wCandleSeries.setData(chartCandles);
+        const firstTodayTime = todayCandles[0]?.time || 0;
+
+        // Preload Yesterday's candles (if available) before Today's open
+        const yesterdayRaw = weightageData?.yesterday_candles || [];
+        const yesterdayCandles = yesterdayRaw.map(c => ({
+            time: Number(c.time || c.timestamp),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+        })).filter(c => c.time && !isNaN(c.time) && (firstTodayTime === 0 || c.time < firstTodayTime));
+
+        const allCandles = [...yesterdayCandles, ...todayCandles];
+        window._unifiedAllCandles = allCandles;
+
+        if (wCandleSeries && allCandles.length > 0) {
+            wCandleSeries.setData(allCandles);
 
             const markerMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
-            if (markerMode === 'off') {
-                wCandleSeries.setMarkers([]);
-            } else {
-                const markers = [];
+            const markers = [];
+
+            // Add Day Open separator tag if yesterday candles exist
+            if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
+                markers.push({
+                    time: todayCandles[0].time,
+                    position: 'aboveBar',
+                    color: '#38bdf8',
+                    shape: 'arrowDown',
+                    text: 'TODAY',
+                    size: 1,
+                });
+            }
+
+            if (markerMode !== 'off') {
                 const upTh = alarmSettings.stocksUpThreshold || 80;
                 const downTh = alarmSettings.stocksDownThreshold || 80;
                 const trig = alarmSettings.stocksTriggerBy || 'both';
 
                 rawCandles.forEach(c => {
-                    const candleTime = c.time || c.timestamp;
+                    const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
                     const b = weightageData.breadth_by_time?.[c.time_str];
                     if (!b) return;
@@ -4232,10 +4871,11 @@
                         }
                     }
                 });
-                wCandleSeries.setMarkers(markers);
             }
-            if (wChart) adjustChartTimeScale(wChart, chartCandles.length);
+            wCandleSeries.setMarkers(markers);
+            if (wChart) adjustChartTimeScale(wChart, todayCandles);
             drawQuantPriceLines();
+            renderAllChartOverlays();
         }
 
         const wSlider = document.getElementById('w-slider');
@@ -4253,27 +4893,51 @@
         const rawCandles = breadthData?.nifty_candles;
         if (!rawCandles || rawCandles.length === 0) return;
 
-        const chartCandles = rawCandles.map(c => ({
-            time: c.time || c.timestamp,
+        const todayCandles = rawCandles.map(c => ({
+            time: Number(c.time || c.timestamp),
             open: Number(c.open),
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
         })).filter(c => c.time && !isNaN(c.time));
 
-        if (oCandleSeries && chartCandles.length > 0) {
-            oCandleSeries.setData(chartCandles);
+        const firstTodayTime = todayCandles[0]?.time || 0;
+
+        // Preload Yesterday's candles (if available) before Today's open
+        const yesterdayRaw = breadthData?.yesterday_candles || weightageData?.yesterday_candles || [];
+        const yesterdayCandles = yesterdayRaw.map(c => ({
+            time: Number(c.time || c.timestamp),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+        })).filter(c => c.time && !isNaN(c.time) && (firstTodayTime === 0 || c.time < firstTodayTime));
+
+        const allCandles = [...yesterdayCandles, ...todayCandles];
+
+        if (oCandleSeries && allCandles.length > 0) {
+            oCandleSeries.setData(allCandles);
 
             const markerMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
-            if (markerMode === 'off') {
-                oCandleSeries.setMarkers([]);
-            } else {
-                const markers = [];
+            const markers = [];
+
+            if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
+                markers.push({
+                    time: todayCandles[0].time,
+                    position: 'aboveBar',
+                    color: '#818cf8',
+                    shape: 'arrowDown',
+                    text: 'TODAY',
+                    size: 1,
+                });
+            }
+
+            if (markerMode !== 'off') {
                 const upTh = alarmSettings.optionsUpThreshold || 70;
                 const downTh = alarmSettings.optionsDownThreshold || 70;
 
                 rawCandles.forEach(c => {
-                    const candleTime = c.time || c.timestamp;
+                    const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
                     const b = breadthData.breadth_by_time?.[c.time_str];
                     if (!b) return;
@@ -4325,11 +4989,22 @@
                         }
                     }
                 });
-                oCandleSeries.setMarkers(markers);
             }
-            if (oChart) adjustChartTimeScale(oChart, chartCandles.length);
+            oCandleSeries.setMarkers(markers);
+            if (oChart) adjustChartTimeScale(oChart, todayCandles);
             drawQuantPriceLines();
+            renderAllChartOverlays();
         }
+
+        const oSlider = document.getElementById('o-slider');
+        if (oSlider && rawCandles.length > 0) {
+            oSlider.max = rawCandles.length - 1;
+            const startLbl = document.getElementById('o-slider-start');
+            const endLbl = document.getElementById('o-slider-end');
+            if (startLbl) startLbl.textContent = rawCandles[0].time_str;
+            if (endLbl) endLbl.textContent = rawCandles[rawCandles.length - 1].time_str;
+        }
+    }
 
         const oSlider = document.getElementById('o-slider');
         if (oSlider && rawCandles.length > 0) {
@@ -5966,6 +6641,7 @@
         localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
         updateOverallAndTriggerStats(activeCandleIndex);
         updateMarkerButtonsUI();
+        updateTvToolsUI();
     }
 
     function syncAlarmToolbarUI() {
@@ -6096,6 +6772,7 @@
         setupControls();
         syncAlarmToolbarUI();
         updateMarkerButtonsUI();
+        updateTvToolsUI();
         fetchAlertLogs(false);
         loadAllData();
         setupAutoRefresh();

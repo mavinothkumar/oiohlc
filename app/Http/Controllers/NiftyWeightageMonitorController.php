@@ -158,206 +158,12 @@ class NiftyWeightageMonitorController extends Controller
             $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];
 
-            // 1. Fetch real NIFTY 5m candles from database if present
-            $dbCandles = DB::table('ohlc_5m_quotes')
-                ->where(function($q) {
-                    $q->where('instrument_key', 'like', '%Nifty 50%')
-                      ->orWhere('trading_symbol', 'Nifty 50')
-                      ->orWhere('trading_symbol', 'NIFTY');
-                })
-                ->where('instrument_type', 'INDEX')
-                ->where('ts_at', '>=', "{$date} 00:00:00")
-                ->where('ts_at', '<=', "{$date} 23:59:59")
-                ->orderBy('ts_at')
-                ->get();
+            // 1. Fetch real NIFTY 5m candles for today/selected date
+            $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
 
-            // If past date has no 5m candles in DB, attempt on-demand sync from Upstox
-            if ($dbCandles->isEmpty() && !$isToday) {
-                try {
-                    Artisan::call('ohlc:sync-nifty50', ['--date' => $date]);
-                    $dbCandles = DB::table('ohlc_5m_quotes')
-                        ->where(function($q) {
-                            $q->where('instrument_key', 'like', '%Nifty 50%')
-                              ->orWhere('trading_symbol', 'Nifty 50')
-                              ->orWhere('trading_symbol', 'NIFTY');
-                        })
-                        ->where('instrument_type', 'INDEX')
-                        ->where('ts_at', '>=', "{$date} 00:00:00")
-                        ->where('ts_at', '<=', "{$date} 23:59:59")
-                        ->orderBy('ts_at')
-                        ->get();
-                } catch (\Throwable $e) {
-                    // Ignore and proceed to fallback
-                }
-            }
-
-        $niftyCandles = [];
-        $seenTimes = [];
-
-        if ($dbCandles->count() >= 1) {
-            foreach ($dbCandles as $c) {
-                $ts = Carbon::parse($c->ts_at, 'Asia/Kolkata');
-                $timeStr = $ts->format('H:i');
-                if ($timeStr < '09:15' || $timeStr > '15:25' || isset($seenTimes[$timeStr])) {
-                    continue;
-                }
-
-                // If today on weekday, never take candles that have not occurred yet
-                if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) {
-                    continue;
-                }
-
-                $seenTimes[$timeStr] = true;
-
-                $open  = round((float)$c->open, 2);
-                $high  = round((float)$c->high, 2);
-                $low   = round((float)$c->low, 2);
-                $close = round((float)$c->close, 2);
-                $vol   = (int)$c->volume;
-
-                $niftyCandles[] = [
-                    'ts_at'     => $c->ts_at,
-                    'time_str'  => $timeStr,
-                    'timestamp' => Carbon::parse($c->ts_at, 'UTC')->timestamp,
-                    'open'      => $open,
-                    'high'      => $high,
-                    'low'       => $low,
-                    'close'     => $close,
-                    'volume'    => $vol,
-                    'move_pts'  => round($close - $open, 2),
-                    'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
-                    'color'     => $close >= $open ? 'green' : 'red',
-                ];
-            }
-        }
-
-        // 1b. If ohlc_5m_quotes has no rows, build 5m candles from 1-min ohlc_quotes!
-        if (empty($niftyCandles)) {
-            $oneMinQuotes = DB::table('ohlc_quotes')
-                ->where(function($q) {
-                    $q->where('instrument_key', 'like', '%Nifty 50%')
-                      ->orWhere('trading_symbol', 'Nifty 50')
-                      ->orWhere('trading_symbol', 'NIFTY');
-                })
-                ->where('instrument_type', 'INDEX')
-                ->where('ts_at', '>=', "{$date} 00:00:00")
-                ->where('ts_at', '<=', "{$date} 23:59:59")
-                ->orderBy('ts_at')
-                ->get();
-
-            if ($oneMinQuotes->isNotEmpty()) {
-                $fiveMinGroups = [];
-                foreach ($oneMinQuotes as $row) {
-                    $ts = Carbon::parse($row->ts_at, 'Asia/Kolkata');
-                    $timeStr = $ts->format('H:i');
-                    if ($timeStr < '09:15' || $timeStr > '15:25') continue;
-                    if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) continue;
-
-                    $minute = (int)$ts->format('i');
-                    $bucketMinute = $minute - ($minute % 5);
-                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
-                    $fiveMinGroups[$bucketTimeStr][] = $row;
-                }
-
-                foreach ($fiveMinGroups as $bucketTimeStr => $group) {
-                    if (isset($seenTimes[$bucketTimeStr])) continue;
-                    $seenTimes[$bucketTimeStr] = true;
-
-                    $firstRow = $group[0];
-                    $lastRow  = end($group);
-                    $open  = round((float)$firstRow->open, 2);
-                    $close = round((float)$lastRow->close, 2);
-                    $high  = round((float)collect($group)->max('high'), 2);
-                    $low   = round((float)collect($group)->min('low'), 2);
-                    $vol   = (int)collect($group)->sum('volume');
-
-                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
-
-                    $niftyCandles[] = [
-                        'ts_at'     => $cTs->toDateTimeString(),
-                        'time_str'  => $bucketTimeStr,
-                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
-                        'open'      => $open,
-                        'high'      => $high,
-                        'low'       => $low,
-                        'close'     => $close,
-                        'volume'    => $vol,
-                        'move_pts'  => round($close - $open, 2),
-                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
-                        'color'     => $close >= $open ? 'green' : 'red',
-                    ];
-                }
-            }
-        }
-
-        // 1c. If still empty, fall back to option_chains live spot prices
-        if (empty($niftyCandles)) {
-            $spotRows = DB::table('option_chains')
-                ->where('trading_symbol', 'NIFTY')
-                ->where('captured_at', '>=', "{$date} 09:15:00")
-                ->where('captured_at', '<=', "{$date} 15:30:00")
-                ->whereNotNull('underlying_spot_price')
-                ->where('underlying_spot_price', '>', 0)
-                ->orderBy('captured_at')
-                ->select('captured_at', 'underlying_spot_price')
-                ->get()
-                ->groupBy(fn($r) => Carbon::parse($r->captured_at)->format('H:i'));
-
-            if ($spotRows->isNotEmpty()) {
-                $fiveMinGroups = [];
-                foreach ($spotRows as $minuteStr => $group) {
-                    $ts = Carbon::parse("{$date} {$minuteStr}:00", 'Asia/Kolkata');
-                    $minute = (int)$ts->format('i');
-                    $bucketMinute = $minute - ($minute % 5);
-                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
-                    $fiveMinGroups[$bucketTimeStr][] = $group;
-                }
-
-                $prevClose = null;
-                foreach ($fiveMinGroups as $bucketTimeStr => $minuteGroups) {
-                    if (isset($seenTimes[$bucketTimeStr])) continue;
-                    $seenTimes[$bucketTimeStr] = true;
-
-                    $allSpots = [];
-                    foreach ($minuteGroups as $grp) {
-                        foreach ($grp as $row) {
-                            $allSpots[] = (float)$row->underlying_spot_price;
-                        }
-                    }
-
-                    if (empty($allSpots)) continue;
-
-                    $first = $allSpots[0];
-                    $last  = end($allSpots);
-                    $open  = $prevClose ?: $first;
-                    $close = $last;
-                    $high  = max(max($allSpots), $open, $close);
-                    $low   = min(min($allSpots), $open, $close);
-                    $prevClose = $close;
-
-                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
-
-                    $niftyCandles[] = [
-                        'ts_at'     => $cTs->toDateTimeString(),
-                        'time_str'  => $bucketTimeStr,
-                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
-                        'open'      => round($open, 2),
-                        'high'      => round($high, 2),
-                        'low'       => round($low, 2),
-                        'close'     => round($close, 2),
-                        'volume'    => 0,
-                        'move_pts'  => round($close - $open, 2),
-                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
-                        'color'     => $close >= $open ? 'green' : 'red',
-                    ];
-                }
-            }
-        }
-
-        // If today or selected date has no DB rows yet, generate a realistic market session
-        if (empty($niftyCandles)) {
-            $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
-        }
+            // Fetch previous session candles for seamless history pan & SuperTrend burn-in
+            $prevTradingDate = $this->getPreviousTradingDate($date);
+            $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false);
 
         // 2. Synthesize all 50 constituent stocks' 5-minute candles perfectly coordinated with Nifty
         $stockData = $this->generateConstituentsMatrix($niftyCandles, $date, $constituents);
@@ -392,6 +198,8 @@ class NiftyWeightageMonitorController extends Controller
                 'latest_time'        => $latestCandle ? $latestCandle['time_str'] : '09:15',
                 'latest_price'       => $latestCandle ? $latestCandle['close'] : 0,
                 'nifty_candles'      => $niftyCandles,
+                'yesterday_date'     => $prevTradingDate,
+                'yesterday_candles'  => $yesterdayCandles,
                 'lw_chart_candles'   => $lwChartCandles,
                 'timestamps'         => $timestamps,
                 'rebalancing_period' => $periodInfo['period_name'],
@@ -1262,5 +1070,242 @@ class NiftyWeightageMonitorController extends Controller
                 'latency_ms'  => $latencyMs,
             ];
         }
+    }
+
+    /**
+     * Resolve the previous trading date for preloading history.
+     */
+    public function getPreviousTradingDate(string $date): string
+    {
+        $prev = DB::table('nse_working_days')
+            ->where('working_date', '<', $date)
+            ->orderByDesc('working_date')
+            ->value('working_date');
+
+        if ($prev) {
+            return (string) $prev;
+        }
+
+        $prev = DB::table('ohlc_5m_quotes')
+            ->where('ts_at', '<', "{$date} 00:00:00")
+            ->orderByDesc('ts_at')
+            ->value('ts_at');
+
+        if ($prev) {
+            return Carbon::parse($prev, 'Asia/Kolkata')->toDateString();
+        }
+
+        $c = Carbon::parse($date)->subDay();
+        while ($c->isWeekend()) {
+            $c->subDay();
+        }
+        return $c->toDateString();
+    }
+
+    /**
+     * Load 5m candles for a target date with tiered fallbacks.
+     */
+    public function loadCandlesForDate(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30', bool $isWeekday = true, bool $isPreMarket = false): array
+    {
+        // 1. Fetch real NIFTY 5m candles from database if present
+        $dbCandles = DB::table('ohlc_5m_quotes')
+            ->where(function($q) {
+                $q->where('instrument_key', 'like', '%Nifty 50%')
+                  ->orWhere('trading_symbol', 'Nifty 50')
+                  ->orWhere('trading_symbol', 'NIFTY');
+            })
+            ->where('instrument_type', 'INDEX')
+            ->where('ts_at', '>=', "{$date} 00:00:00")
+            ->where('ts_at', '<=', "{$date} 23:59:59")
+            ->orderBy('ts_at')
+            ->get();
+
+        // If past date has no 5m candles in DB, attempt on-demand sync from Upstox
+        if ($dbCandles->isEmpty() && !$isToday) {
+            try {
+                Artisan::call('ohlc:sync-nifty50', ['--date' => $date]);
+                $dbCandles = DB::table('ohlc_5m_quotes')
+                    ->where(function($q) {
+                        $q->where('instrument_key', 'like', '%Nifty 50%')
+                          ->orWhere('trading_symbol', 'Nifty 50')
+                          ->orWhere('trading_symbol', 'NIFTY');
+                    })
+                    ->where('instrument_type', 'INDEX')
+                    ->where('ts_at', '>=', "{$date} 00:00:00")
+                    ->where('ts_at', '<=', "{$date} 23:59:59")
+                    ->orderBy('ts_at')
+                    ->get();
+            } catch (\Throwable $e) {
+                // Ignore and proceed to fallback
+            }
+        }
+
+        $niftyCandles = [];
+        $seenTimes = [];
+
+        if ($dbCandles->count() >= 1) {
+            foreach ($dbCandles as $c) {
+                $ts = Carbon::parse($c->ts_at, 'Asia/Kolkata');
+                $timeStr = $ts->format('H:i');
+                if ($timeStr < '09:15' || $timeStr > '15:25' || isset($seenTimes[$timeStr])) {
+                    continue;
+                }
+
+                if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) {
+                    continue;
+                }
+
+                $seenTimes[$timeStr] = true;
+
+                $open  = round((float)$c->open, 2);
+                $high  = round((float)$c->high, 2);
+                $low   = round((float)$c->low, 2);
+                $close = round((float)$c->close, 2);
+                $vol   = (int)$c->volume;
+
+                $niftyCandles[] = [
+                    'ts_at'     => $c->ts_at,
+                    'time_str'  => $timeStr,
+                    'timestamp' => Carbon::parse($c->ts_at, 'UTC')->timestamp,
+                    'open'      => $open,
+                    'high'      => $high,
+                    'low'       => $low,
+                    'close'     => $close,
+                    'volume'    => $vol,
+                    'move_pts'  => round($close - $open, 2),
+                    'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                    'color'     => $close >= $open ? 'green' : 'red',
+                ];
+            }
+        }
+
+        // 1b. If ohlc_5m_quotes has no rows, build 5m candles from 1-min ohlc_quotes!
+        if (empty($niftyCandles)) {
+            $oneMinQuotes = DB::table('ohlc_quotes')
+                ->where(function($q) {
+                    $q->where('instrument_key', 'like', '%Nifty 50%')
+                      ->orWhere('trading_symbol', 'Nifty 50')
+                      ->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('instrument_type', 'INDEX')
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
+                ->orderBy('ts_at')
+                ->get();
+
+            if ($oneMinQuotes->isNotEmpty()) {
+                $fiveMinGroups = [];
+                foreach ($oneMinQuotes as $row) {
+                    $ts = Carbon::parse($row->ts_at, 'Asia/Kolkata');
+                    $timeStr = $ts->format('H:i');
+                    if ($timeStr < '09:15' || $timeStr > '15:25') continue;
+                    if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) continue;
+
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $fiveMinGroups[$bucketTimeStr][] = $row;
+                }
+
+                foreach ($fiveMinGroups as $bucketTimeStr => $group) {
+                    if (isset($seenTimes[$bucketTimeStr])) continue;
+                    $seenTimes[$bucketTimeStr] = true;
+
+                    $firstRow = $group[0];
+                    $lastRow  = end($group);
+                    $open  = round((float)$firstRow->open, 2);
+                    $close = round((float)$lastRow->close, 2);
+                    $high  = round((float)collect($group)->max('high'), 2);
+                    $low   = round((float)collect($group)->min('low'), 2);
+                    $vol   = (int)collect($group)->sum('volume');
+
+                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
+
+                    $niftyCandles[] = [
+                        'ts_at'     => $cTs->toDateTimeString(),
+                        'time_str'  => $bucketTimeStr,
+                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                        'open'      => $open,
+                        'high'      => $high,
+                        'low'       => $low,
+                        'close'     => $close,
+                        'volume'    => $vol,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+            }
+        }
+
+        // 1c. If still empty, fall back to option_chains live spot prices
+        if (empty($niftyCandles)) {
+            $spotRows = DB::table('option_chains')
+                ->where('trading_symbol', 'NIFTY')
+                ->where('captured_at', '>=', "{$date} 09:15:00")
+                ->where('captured_at', '<=', "{$date} 15:30:00")
+                ->whereNotNull('underlying_spot_price')
+                ->where('underlying_spot_price', '>', 0)
+                ->orderBy('captured_at')
+                ->select('captured_at', 'underlying_spot_price')
+                ->get()
+                ->groupBy(fn($r) => Carbon::parse($r->captured_at)->format('H:i'));
+
+            if ($spotRows->isNotEmpty()) {
+                $fiveMinGroups = [];
+                foreach ($spotRows as $minuteStr => $group) {
+                    $ts = Carbon::parse("{$date} {$minuteStr}:00", 'Asia/Kolkata');
+                    $minute = (int)$ts->format('i');
+                    $bucketMinute = $minute - ($minute % 5);
+                    $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
+                    $fiveMinGroups[$bucketTimeStr][] = $group;
+                }
+
+                $prevClose = null;
+                foreach ($fiveMinGroups as $bucketTimeStr => $minuteGroups) {
+                    if (isset($seenTimes[$bucketTimeStr])) continue;
+                    $seenTimes[$bucketTimeStr] = true;
+
+                    $allSpots = [];
+                    foreach ($minuteGroups as $grp) {
+                        foreach ($grp as $row) {
+                            $allSpots[] = (float)$row->underlying_spot_price;
+                        }
+                    }
+
+                    if (empty($allSpots)) continue;
+
+                    $first = $allSpots[0];
+                    $last  = end($allSpots);
+                    $open  = $prevClose ?: $first;
+                    $close = $last;
+                    $high  = max(max($allSpots), $open, $close);
+                    $low   = min(min($allSpots), $open, $close);
+                    $prevClose = $close;
+
+                    $cTs = Carbon::parse("{$date} {$bucketTimeStr}:00", 'Asia/Kolkata');
+
+                    $niftyCandles[] = [
+                        'ts_at'     => $cTs->toDateTimeString(),
+                        'time_str'  => $bucketTimeStr,
+                        'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                        'open'      => round($open, 2),
+                        'high'      => round($high, 2),
+                        'low'       => round($low, 2),
+                        'close'     => round($close, 2),
+                        'volume'    => 0,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+            }
+        }
+
+        if (empty($niftyCandles)) {
+            $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
+        }
+
+        return $niftyCandles;
     }
 }

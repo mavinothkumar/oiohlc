@@ -320,6 +320,20 @@ class OptionsBreadthMonitorController extends Controller
             $spotPrice ?: 23000
         );
 
+        // Fetch previous trading date candles for seamless history pan & SuperTrend burn-in
+        $prevTradingDate = DB::table('nse_working_days')
+            ->where('working_date', '<', $date)
+            ->orderByDesc('working_date')
+            ->value('working_date');
+        if (!$prevTradingDate) {
+            $prevTs = DB::table('ohlc_5m_quotes')
+                ->where('ts_at', '<', "{$date} 00:00:00")
+                ->orderByDesc('ts_at')
+                ->value('ts_at');
+            $prevTradingDate = $prevTs ? Carbon::parse($prevTs, 'Asia/Kolkata')->toDateString() : Carbon::parse($date)->subDay()->toDateString();
+        }
+        $yesterdayCandles = $this->fetchIndexCandles($prevTradingDate, $symbol, $table, $selectedExpiry, $spotPrice ?: 23000);
+
         $lwChartCandles = array_map(function($c) {
             return [
                 'time'  => $c['timestamp'],
@@ -336,6 +350,8 @@ class OptionsBreadthMonitorController extends Controller
                 'success'          => true,
                 'date'             => $date,
                 'expiry'           => $selectedExpiry,
+                'yesterday_date'   => $prevTradingDate,
+                'yesterday_candles'=> $yesterdayCandles,
                 'center_strike'    => $centerStrike,
                 'atm_strike'       => $atmStrike,
                 'basket_mode'      => $basketMode,
