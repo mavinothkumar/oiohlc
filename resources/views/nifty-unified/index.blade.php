@@ -6026,11 +6026,20 @@
                     selectedExpiry = matchedExp;
 
                     if (expSelect) {
-                        expSelect.innerHTML = expRes.expiries.map(exp => `
-                            <option value="${exp}" ${exp === selectedExpiry ? 'selected' : ''} class="bg-[#131722] text-white">
-                                ${exp}
-                            </option>
-                        `).join('');
+                        expSelect.innerHTML = expRes.expiries.map(exp => {
+                            let label = exp;
+                            try {
+                                const parts = exp.split('-');
+                                if (parts.length === 3) {
+                                    const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                    const mIdx = parseInt(parts[1], 10) - 1;
+                                    label = `${parts[2]}-${mNames[mIdx] || parts[1]}`;
+                                }
+                            } catch(err){}
+                            return `<option value="${exp}" ${exp === selectedExpiry ? 'selected' : ''} class="bg-[#131722] text-white">
+                                ${label}
+                            </option>`;
+                        }).join('');
                         expSelect.value = selectedExpiry;
                     }
                 }
