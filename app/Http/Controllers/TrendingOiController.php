@@ -463,36 +463,60 @@ class TrendingOiController extends Controller
             ->where('underlying', $underlying)
             ->count();
 
-        // Build live streaming configuration for selected strikes
+        // Build live streaming configuration for selected strikes and active buildup strikes
         $streamKeys = [$underlying];
         $strikeKeysMap = [];
 
-        // Latest rows for selected strikes
+        // Combine $selectedStrikes (ATM for Trending OI line chart) with top active strikes
+        $streamStrikes = (array) $selectedStrikes;
+        if (!empty($strikeBuildup)) {
+            foreach (['5m', '15m', '30m', 'today'] as $tf) {
+                if (!empty($strikeBuildup[$tf]['top_items'])) {
+                    foreach ($strikeBuildup[$tf]['top_items'] as $item) {
+                        $streamStrikes[] = (int) $item['strike'];
+                    }
+                }
+            }
+        }
+        if (!empty($allStrikes)) {
+            $atmIdx = array_search($atmStrike, $allStrikes);
+            if ($atmIdx !== false) {
+                $startSlice = max(0, $atmIdx - 15);
+                $wideStrikes = array_slice($allStrikes, $startSlice, 31);
+                $streamStrikes = array_merge($streamStrikes, $wideStrikes);
+            }
+        }
+        $streamStrikes = array_values(array_unique(array_filter($streamStrikes)));
+
+        // Latest rows for stream strikes
         $streamRows = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
             ->where('captured_at', $latestTimestamp)
-            ->whereIn('strike_price', $selectedStrikes)
+            ->whereIn('strike_price', $streamStrikes)
             ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp']);
 
-        // First timestamp (09:15 base) for selected strikes
+        // First timestamp (09:15 base) for stream strikes
         $firstTimestamp = reset($timestamps);
         $baseRowsMap = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
             ->where('captured_at', $firstTimestamp)
-            ->whereIn('strike_price', $selectedStrikes)
-            ->get(['strike_price', 'option_type', 'instrument_key', 'oi'])
+            ->whereIn('strike_price', $streamStrikes)
+            ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp'])
             ->keyBy(fn($r) => "{$r->strike_price}_{$r->option_type}");
 
-        // Previous candle timestamp for 5m buildup baseline
-        $prevTimestamp = count($timestamps) > 1 ? $timestamps[count($timestamps) - 2] : $firstTimestamp;
+        // Previous 5m candle timestamp for 5m buildup baseline (matching calculateMultiTimeframeBuildup)
+        $carbonLatest = Carbon::parse($latestTimestamp);
+        $ts5m = $this->findClosestTimestamp($carbonLatest->copy()->subMinutes(5), $timestamps);
+        $prev5mTimestamp = $ts5m ?: (count($timestamps) > 1 ? $timestamps[count($timestamps) - 2] : $firstTimestamp);
+
         $prevRowsMap = DB::table($table)
             ->where('underlying_key', $underlying)
             ->where('expiry', $expiry)
-            ->where('captured_at', $prevTimestamp)
-            ->whereIn('strike_price', $selectedStrikes)
-            ->get(['strike_price', 'option_type', 'instrument_key', 'oi'])
+            ->where('captured_at', $prev5mTimestamp)
+            ->whereIn('strike_price', $streamStrikes)
+            ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp'])
             ->keyBy(fn($r) => "{$r->strike_price}_{$r->option_type}");
 
         foreach ($streamRows as $sr) {
@@ -500,14 +524,21 @@ class TrendingOiController extends Controller
                 $streamKeys[] = $sr->instrument_key;
                 $k = "{$sr->strike_price}_{$sr->option_type}";
                 $baseOi = (int) ($baseRowsMap[$k]->oi ?? $sr->oi ?? 0);
+                $baseLtp = (float) ($baseRowsMap[$k]->ltp ?? $sr->ltp ?? 0);
                 $prevOi = (int) ($prevRowsMap[$k]->oi ?? $sr->oi ?? 0);
+                $prevLtp = (float) ($prevRowsMap[$k]->ltp ?? $sr->ltp ?? 0);
+                $isSelected = in_array((int) $sr->strike_price, $selectedStrikes, true);
+
                 $strikeKeysMap[$sr->instrument_key] = [
-                    'strike'   => (int) $sr->strike_price,
-                    'type'     => $sr->option_type,
-                    'base_oi'  => $baseOi,
-                    'prev_oi'  => $prevOi,
-                    'oi'       => (int) ($sr->oi ?? 0),
-                    'ltp'      => (float) ($sr->ltp ?? 0),
+                    'strike'      => (int) $sr->strike_price,
+                    'type'        => $sr->option_type,
+                    'is_selected' => $isSelected,
+                    'base_oi'     => $baseOi,
+                    'base_ltp'    => $baseLtp,
+                    'prev_oi'     => $prevOi,
+                    'prev_ltp'    => $prevLtp,
+                    'oi'          => (int) ($sr->oi ?? 0),
+                    'ltp'         => (float) ($sr->ltp ?? 0),
                 ];
             }
         }

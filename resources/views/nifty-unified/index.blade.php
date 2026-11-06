@@ -2210,6 +2210,8 @@
 
         for (const k in strikeKeys) {
             const item = strikeKeys[k];
+            // Only aggregate ATM strikes that are selected for the Trending OI line chart
+            if (item.is_selected !== undefined && !item.is_selected) continue;
             if (item.type === 'CE') {
                 totalCeOi += Number(item.oi || 0);
             } else if (item.type === 'PE') {
@@ -2243,6 +2245,14 @@
                 chart.datasets[2].data.push(liveSentiment);
                 chart.datasets[3].data.push(liveSpot);
                 targetIdx = chart.labels.length - 1;
+
+                // When a new 5-minute candle pushes onto the chart, roll forward baseline
+                if (bucketThreshold === 5) {
+                    for (const k in strikeKeys) {
+                        strikeKeys[k].prev_oi = strikeKeys[k].oi;
+                        strikeKeys[k].prev_ltp = strikeKeys[k].ltp;
+                    }
+                }
             } else {
                 chart.datasets[0].data[lastIdx] = liveCallOiChg;
                 chart.datasets[1].data[lastIdx] = livePutOiChg;
@@ -2282,28 +2292,72 @@
         const strikeKeys = toiStreamConfig.strike_keys;
         const liveItems = [];
 
+        let totalCeChg = 0;
+        let totalPeChg = 0;
+
         for (const k in strikeKeys) {
             const item = strikeKeys[k];
-            const diffOi = Number(item.oi || 0) - Number(item.prev_oi || item.base_oi || 0);
-            const diffLakh = (diffOi / 100000).toFixed(1);
-            const absDiffLakh = Math.abs(diffOi / 100000);
+            const prevOi = Number(item.prev_oi !== undefined ? item.prev_oi : (item.base_oi || 0));
+            const prevLtp = Number(item.prev_ltp !== undefined ? item.prev_ltp : (item.ltp || 0));
+            const curOi = Number(item.oi || 0);
+            const curLtp = Number(item.ltp || 0);
 
-            let barColor = '#dc2626';
+            const diffOi = curOi - prevOi;
+            const diffLtp = Number((curLtp - prevLtp).toFixed(2));
+            const absDiffLakh = Math.abs(diffOi / 100000);
+            const diffLakh = (diffOi / 100000).toFixed(1);
+
             if (item.type === 'CE') {
-                barColor = diffOi >= 0 ? '#dc2626' : '#1e3a8a';
+                totalCeChg += diffOi;
             } else {
-                barColor = diffOi >= 0 ? '#16a34a' : '#eab308';
+                totalPeChg += diffOi;
             }
 
-            liveItems.push({
-                strike: item.strike,
-                option_type: item.type,
-                label: `${item.strike} ${item.type}`,
-                diff_oi: diffOi,
-                diff_oi_val_lakh: absDiffLakh,
-                diff_oi_lakh: (diffOi >= 0 ? '+' : '') + diffLakh + ' L',
-                bar_color: barColor
-            });
+            // Buildup classification & color mapping matching backend:
+            // SB - Red (#dc2626)
+            // SC - Navy Blue (#1e3a8a)
+            // LB - Green (#16a34a)
+            // LU - Yellow (#eab308)
+            let bType = 'N';
+            let bName = 'Neutral';
+            let barColor = '#6b7280';
+
+            if (diffOi > 0 && diffLtp >= 0) {
+                bType = 'LB';
+                bName = 'Long Buildup';
+                barColor = '#16a34a'; // Green
+            } else if (diffOi > 0 && diffLtp < 0) {
+                bType = 'SB';
+                bName = 'Short Buildup';
+                barColor = '#dc2626'; // Red
+            } else if (diffOi < 0 && diffLtp <= 0) {
+                bType = 'LU';
+                bName = 'Long Unwinding';
+                barColor = '#eab308'; // Yellow
+            } else if (diffOi < 0 && diffLtp > 0) {
+                bType = 'SC';
+                bName = 'Short Covering';
+                barColor = '#1e3a8a'; // Navy Blue
+            } else {
+                bType = diffOi >= 0 ? 'SB' : 'LU';
+                bName = diffOi >= 0 ? 'Short Buildup' : 'Long Unwinding';
+                barColor = diffOi >= 0 ? '#dc2626' : '#eab308';
+            }
+
+            if (diffOi !== 0) {
+                liveItems.push({
+                    strike: item.strike,
+                    option_type: item.type,
+                    label: `${item.strike} ${item.type}`,
+                    buildup_type: bType,
+                    buildup_name: bName,
+                    diff_oi: diffOi,
+                    diff_oi_val_lakh: Number(absDiffLakh.toFixed(2)),
+                    diff_oi_lakh: (diffOi >= 0 ? '+' : '') + diffLakh + ' L',
+                    diff_ltp: (diffLtp >= 0 ? '+' : '') + diffLtp,
+                    bar_color: barColor
+                });
+            }
         }
 
         liveItems.sort((a, b) => b.diff_oi_val_lakh - a.diff_oi_val_lakh);
@@ -2314,7 +2368,32 @@
         buildupChartInstance.data.datasets[0].data = top8.map(x => x.diff_oi_val_lakh);
         buildupChartInstance.data.datasets[0].backgroundColor = top8.map(x => x.bar_color);
         buildupChartInstance.data.datasets[0].formattedLabels = top8.map(x => x.diff_oi_lakh);
+        buildupChartInstance.data.datasets[0].itemsMeta = top8;
         buildupChartInstance.update('none');
+
+        // Update footer net totals
+        const ceNetEl = document.getElementById('bld-ce-net');
+        const peNetEl = document.getElementById('bld-pe-net');
+        const domEl = document.getElementById('bld-dominant');
+        if (ceNetEl) {
+            const ceLakh = (totalCeChg / 100000).toFixed(1);
+            ceNetEl.textContent = `${totalCeChg >= 0 ? '+' : ''}${ceLakh} L`;
+            ceNetEl.className = totalCeChg >= 0 ? 'font-mono font-bold text-rose-400' : 'font-mono font-bold text-sky-400';
+        }
+        if (peNetEl) {
+            const peLakh = (totalPeChg / 100000).toFixed(1);
+            peNetEl.textContent = `${totalPeChg >= 0 ? '+' : ''}${peLakh} L`;
+            peNetEl.className = totalPeChg >= 0 ? 'font-mono font-bold text-emerald-400' : 'font-mono font-bold text-amber-400';
+        }
+        if (domEl) {
+            if (totalCeChg > totalPeChg * 1.35) {
+                domEl.textContent = 'Call Writing / CE Buildup Dominant (Ceiling Resistance)';
+            } else if (totalPeChg > totalCeChg * 1.35) {
+                domEl.textContent = 'Put Writing / PE Buildup Dominant (Floor Support)';
+            } else {
+                domEl.textContent = 'Dual Flow (Rangebound Momentum)';
+            }
+        }
     }
 
     async function reloadTrendingOiWithInterval(interval = 5) {
@@ -3679,6 +3758,11 @@
 
         // 2. Fetch Trending OI independently & render immediately upon arrival
         const pTrendingOi = (async () => {
+            // When in Live Stream mode during periodic background countdown sync (isSilent === true),
+            // skip reloading Trending OI and OI Buildup so the live WebSocket stream remains in continuous sync without interruption!
+            if (isSilent && toiStreamMode === 'live') {
+                return;
+            }
             try {
                 const reqInterval = (toiStreamMode === '5m') ? 5 : 1;
                 let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
