@@ -13,7 +13,8 @@
         'nifty.matrix.*', 'strategy.premium.*', 'strategy.multi.*',
         'matching.*', 'strike.matcher', 'options-analytics.*', 'straddle.*',
         'option-chain-view', 'combined.premium.*', 'vega.analysis', 'greek.analysis',
-        'multi.strike.*', 'option-chain.analysis', 'fii-dii.*'
+        'multi.strike.*', 'option-chain.analysis', 'fii-dii.*', 'expiry.oi.volume.*',
+        'live.straddle.*'
     ]);
 
     $isStrategiesActive = request()->routeIs([
@@ -218,6 +219,20 @@
                                         <a href="{{ route('option-chain.analysis') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
                                             <span class="font-medium">Option Chain Deep Analysis</span>
                                             <span class="text-[10px] text-slate-400 group-hover/item:text-indigo-500">Buildup</span>
+                                        </a>
+                                        <a href="{{ route('expiry.oi.volume.analysis') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
+                                            <span class="font-medium">Expiry Day-over-Day Dynamics</span>
+                                            <span class="text-[9px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-1 py-0.2 rounded">Radar</span>
+                                        </a>
+                                        <a href="{{ route('live.straddle.radar') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-rose-600 hover:bg-rose-50/50 transition">
+                                            <span class="font-semibold flex items-center gap-1.5">
+                                                <span class="relative flex h-2 w-2">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                </span>
+                                                Live Straddle Radar
+                                            </span>
+                                            <span class="text-[9px] font-bold uppercase tracking-wider text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200">Alert 🔔</span>
                                         </a>
                                         <a href="{{ route('vega.analysis') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
                                             <span class="font-medium">Vega Clue Monitor</span>
@@ -440,15 +455,14 @@
             <!-- RIGHT: High-Priority Direct Pills + Market Clock + Actions -->
             <div class="flex items-center gap-2.5">
 
-                <!-- 0. Daily Cron Status Direct Pill -->
-                <a href="{{ route('home') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('home') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 font-bold ring-1 ring-indigo-200 shadow-2xs' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
-                   title="Daily Pre-Market Cron &amp; System Operations Status">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span class="whitespace-nowrap font-medium">Cron Status</span>
+                <!-- 0. Option Expiry Dynamics Direct Pill (Replaced Cron Status) -->
+                <a href="{{ route('expiry.oi.volume.analysis') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('expiry.oi.volume.analysis') ? 'bg-indigo-600 text-white font-bold shadow-xs ring-1 ring-indigo-400' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   title="Option Expiry Day-over-Day OI, Volume &amp; Straddle Dynamics">
+                    <svg class="w-3.5 h-3.5 {{ request()->routeIs('expiry.oi.volume.analysis') ? 'text-white' : 'text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    <span class="whitespace-nowrap font-medium">Expiry Dynamics</span>
                 </a>
 
                 <!-- 1. Unified Cockpit (Flagship Direct Action Pill) -->
@@ -544,9 +558,11 @@
             
             <!-- Quick Pills in Mobile -->
             <div class="grid grid-cols-3 gap-2 pb-2 border-b border-slate-100">
-                <a href="{{ route('home') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
-                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                    Cron Status
+                <a href="{{ route('expiry.oi.volume.analysis') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Expiry Radar
                 </a>
                 <a href="{{ route('nifty.unified.monitor') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">
                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -599,6 +615,8 @@
                     <a href="{{ route('straddle.chart') }}" class="block py-1 text-slate-700 hover:text-indigo-600">📊 Straddle Chart &amp; VWAP</a>
                     <a href="{{ route('option-chain-view') }}" class="block py-1 text-slate-700 hover:text-indigo-600">📋 Option Chain View</a>
                     <a href="{{ route('option-chain.analysis') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Option Chain Deep Analysis</a>
+                    <a href="{{ route('expiry.oi.volume.analysis') }}" class="block py-1 text-slate-700 hover:text-indigo-600">⚡ Expiry Day-over-Day Dynamics</a>
+                    <a href="{{ route('live.straddle.radar') }}" class="block py-1 text-rose-600 hover:text-rose-700 font-semibold">🔴 Live Straddle Radar (Spike Alarm)</a>
                     <a href="{{ route('vega.analysis') }}" class="block py-1 text-slate-700 hover:text-indigo-600">🎯 Vega Clue Monitor</a>
                     <a href="{{ route('greek.analysis') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Greek Analysis &amp; Multi-Strike</a>
                     <a href="{{ route('combined.premium.analysis') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Combined Premium Analysis</a>

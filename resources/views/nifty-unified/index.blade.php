@@ -2569,7 +2569,10 @@
             }
         }
 
-        const nowSec = Math.floor(Date.now() / 1000);
+        // Shift nowSec by +19800 seconds (5.5 hrs) to align with backend's IST-as-UTC timestamp coordinates
+        const IST_OFFSET_SEC = 19800;
+        const nowSec = Math.floor(Date.now() / 1000) + IST_OFFSET_SEC;
+        const currentBucketTime = nowSec - (nowSec % 300);
 
         // 1. Live stream forming 5m candle on Weightage chart
         if (wCandleSeries && weightageData && weightageData.candles && weightageData.candles.length > 0) {
@@ -2579,16 +2582,15 @@
                 const candleTime = Number(lastCandle.time || lastCandle.timestamp);
 
                 // If interval rolled over into a new 5-minute bucket
-                if (candleTime > 0 && nowSec >= candleTime + 300) {
-                    const newCandleTime = candleTime + Math.floor((nowSec - candleTime) / 300) * 300;
-                    const d = new Date(newCandleTime * 1000);
-                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+                if (candleTime > 0 && currentBucketTime > candleTime) {
+                    const d = new Date(currentBucketTime * 1000);
+                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 
                     const newCandle = {
-                        ts_at: d.toISOString(),
+                        ts_at: d.toISOString().replace('T', ' ').substring(0, 19),
                         time_str: timeStr,
-                        time: newCandleTime,
-                        timestamp: newCandleTime,
+                        time: currentBucketTime,
+                        timestamp: currentBucketTime,
                         open: ltp,
                         high: ltp,
                         low: ltp,
@@ -2598,14 +2600,39 @@
                         move_pct: 0
                     };
                     raw.push(newCandle);
+
+                    // Carry forward previous breadth stats for seamless continuity
+                    if (weightageData.breadth_by_time && !weightageData.breadth_by_time[timeStr]) {
+                        const prevTime = raw[raw.length - 2]?.time_str;
+                        if (prevTime && weightageData.breadth_by_time[prevTime]) {
+                            weightageData.breadth_by_time[timeStr] = {
+                                ...weightageData.breadth_by_time[prevTime],
+                                time: timeStr,
+                                nifty_move_pts: 0
+                            };
+                        }
+                    }
+
                     if (!timestampsList.includes(timeStr)) {
                         timestampsList.push(timeStr);
                         const slider = document.getElementById('master-slider');
-                        if (slider) slider.max = timestampsList.length - 1;
+                        if (slider) {
+                            slider.max = timestampsList.length - 1;
+                            if (activeCandleIndex >= timestampsList.length - 2) {
+                                slider.value = timestampsList.length - 1;
+                                activeCandleIndex = timestampsList.length - 1;
+                            }
+                        }
                         const wSlider = document.getElementById('w-slider');
-                        if (wSlider) wSlider.max = timestampsList.length - 1;
+                        if (wSlider) {
+                            wSlider.max = timestampsList.length - 1;
+                            if (activeCandleIndex >= timestampsList.length - 2) wSlider.value = timestampsList.length - 1;
+                        }
                         const oSlider = document.getElementById('o-slider');
-                        if (oSlider) oSlider.max = timestampsList.length - 1;
+                        if (oSlider) {
+                            oSlider.max = timestampsList.length - 1;
+                            if (activeCandleIndex >= timestampsList.length - 2) oSlider.value = timestampsList.length - 1;
+                        }
                     }
                     lastCandle = newCandle;
                 }
@@ -2645,16 +2672,15 @@
             if (lastCandle) {
                 const candleTime = Number(lastCandle.time || lastCandle.timestamp);
 
-                if (candleTime > 0 && nowSec >= candleTime + 300) {
-                    const newCandleTime = candleTime + Math.floor((nowSec - candleTime) / 300) * 300;
-                    const d = new Date(newCandleTime * 1000);
-                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+                if (candleTime > 0 && currentBucketTime > candleTime) {
+                    const d = new Date(currentBucketTime * 1000);
+                    const timeStr = d.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 
                     const newCandle = {
-                        ts_at: d.toISOString(),
+                        ts_at: d.toISOString().replace('T', ' ').substring(0, 19),
                         time_str: timeStr,
-                        time: newCandleTime,
-                        timestamp: newCandleTime,
+                        time: currentBucketTime,
+                        timestamp: currentBucketTime,
                         open: ltp,
                         high: ltp,
                         low: ltp,
@@ -2664,6 +2690,18 @@
                         move_pct: 0
                     };
                     raw.push(newCandle);
+
+                    if (breadthData.breadth_by_time && !breadthData.breadth_by_time[timeStr]) {
+                        const prevTime = raw[raw.length - 2]?.time_str;
+                        if (prevTime && breadthData.breadth_by_time[prevTime]) {
+                            breadthData.breadth_by_time[timeStr] = {
+                                ...breadthData.breadth_by_time[prevTime],
+                                time_str: timeStr,
+                                net_points: 0
+                            };
+                        }
+                    }
+
                     lastCandle = newCandle;
                 }
 
@@ -3458,7 +3496,8 @@
                 });
                 break;
             }
-            case 'bear_drop': {
+            case 'bear_drop':
+            case 'bear_growl': {
                 // 6. Bear Drop Klaxon (Descending Warning)
                 [783.99, 622.25, 523.25].forEach((freq, i) => {
                     const osc = ctx.createOscillator();
@@ -3534,6 +3573,22 @@
                 gain.connect(masterGain);
                 osc.start(now);
                 osc.stop(now + 0.45);
+                break;
+            }
+            default: {
+                // Defensive fallback tone if an unmapped sound name is passed
+                [783.99, 622.25, 523.25].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.12));
+                    gain.gain.setValueAtTime(0.35, now + (i * 0.12));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.12) + 0.38);
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now + (i * 0.12));
+                    osc.stop(now + (i * 0.12) + 0.38);
+                });
                 break;
             }
         }
@@ -6244,7 +6299,7 @@
                 weight: 92.8,
                 pts: 42.15,
                 oStat: '20% Bull / 80% Bear',
-                sound: 'bull_horn',
+                sound: alarmSettings.stocksSound || 'bull_horn',
                 volume: alarmSettings.volume || 1.0,
                 isConfluence: false,
                 confluenceState: 'DIVERGENCE',
@@ -6275,7 +6330,7 @@
                 weight: 90.1,
                 pts: -27.55,
                 oStat: '88% Bear Flow',
-                sound: 'bear_growl',
+                sound: alarmSettings.confluenceSound || 'bear_drop',
                 volume: alarmSettings.volume || 1.0,
                 isConfluence: true,
                 confluenceState: 'CONFLUENCE',
@@ -6676,6 +6731,8 @@
 
         const isFixed = !isNaN(parseInt(mode, 10)) && mode !== 'candle_5m' && mode !== 'stock_1m';
         let fixedRemaining = isFixed ? (parseInt(mode, 10) || 60) : 0;
+        let lastCandleSyncBucket = -1;
+        let lastStockSyncBucket = -1;
 
         const tick = () => {
             const now = new Date();
@@ -6696,9 +6753,12 @@
                 const targetTimeStr = targetDate.toTimeString().split(' ')[0];
                 tooltip = `Next 5m Candle Sync: ${targetTimeStr} (5m close + 8s buffer)`;
 
-                // When exactly at boundary (target second)
-                if (remaining === 300) {
+                const curBucketIdx = Math.floor((currentMinutes * 60 + currentSeconds - bufferSec) / 300);
+                if (lastCandleSyncBucket !== -1 && curBucketIdx !== lastCandleSyncBucket) {
+                    lastCandleSyncBucket = curBucketIdx;
                     loadAllData(true);
+                } else if (lastCandleSyncBucket === -1) {
+                    lastCandleSyncBucket = curBucketIdx;
                 }
             } else if (mode === 'stock_1m') {
                 const bufferSec = 5; // 5s backend buffer
@@ -6709,8 +6769,12 @@
                 const targetTimeStr = targetDate.toTimeString().split(' ')[0];
                 tooltip = `Next 1m Stock Sync: ${targetTimeStr} (1m close + 5s buffer)`;
 
-                if (remaining === 60) {
+                const curMinIdx = Math.floor((Math.floor(now.getTime() / 1000) - bufferSec) / 60);
+                if (lastStockSyncBucket !== -1 && curMinIdx !== lastStockSyncBucket) {
+                    lastStockSyncBucket = curMinIdx;
                     loadAllData(true);
+                } else if (lastStockSyncBucket === -1) {
+                    lastStockSyncBucket = curMinIdx;
                 }
             } else {
                 // Fixed seconds mode

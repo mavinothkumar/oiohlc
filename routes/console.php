@@ -47,6 +47,13 @@ Schedule::command('indices:collect-daily-ohlc') // php artisan indices:collect-d
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/working-days.log'));
 
+Schedule::command('indices:collect-daily-ohlc') // Collect evening EOD OHLC right after market close
+        ->weekdays()
+        ->dailyAt('15:45')
+        ->timezone('Asia/Kolkata')
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/working-days.log'));
+
 Schedule::command('trend:populate-daily') // php artisan trend:populate-daily
         ->dailyAt('09:09')
         ->timezone('Asia/Kolkata')

@@ -78,7 +78,7 @@ class NiftyUnifiedMonitorController extends Controller
         // For past dates, load actual historical expiries
         if ($selectedDate < $todayStr) {
             if (Schema::hasTable('option_chains_history')) {
-                $pastExpiries = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
+                $pastExpiries = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$selectedDate} 09:00:00")
                     ->where('captured_at', '<=', "{$selectedDate} 15:35:00")

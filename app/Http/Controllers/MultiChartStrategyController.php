@@ -322,7 +322,7 @@ class MultiChartStrategyController extends Controller
 
         $isMysql    = DB::connection()->getDriverName() === 'mysql';
         $fromClause = ($isMysql && $table === 'option_chains_history')
-            ? DB::raw("`{$table}` USE INDEX (option_chains_captured_at_index)")
+            ? DB::raw("`{$table}` USE INDEX (idx_och_sym_exp_cap)")
             : $table;
 
         $query = DB::table($fromClause)

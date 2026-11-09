@@ -5,132 +5,148 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Pool;
 use Carbon\Carbon;
 
 class CollectOhlcForIndices extends Command
 {
-    protected $signature = 'indices:collect-daily-ohlc';
+    protected $signature = 'indices:collect-daily-ohlc {--date= : The date to collect OHLC for (defaults to today if after 15:30 or previous working day)}';
     protected $description = 'Collect daily OHLC for all instruments of NIFTY, BANKNIFTY, and SENSEX options';
+
     public $index_instruments = [
-        //'BSE_INDEX|BANKEX',
-        //'BSE_INDEX|SENSEX',
         'NSE_INDEX|Nifty 50',
-        //'NSE_INDEX|Nifty Bank',
-        // 'NSE_INDEX|Nifty Fin Service',
     ];
-    //public $indices = ['NIFTY', 'BANKNIFTY', 'SENSEX']; //, 'FINNIFTY'
-    public $indices = ['NIFTY']; //, 'FINNIFTY', 'BANKNIFTY', 'SENSEX'
+    public $indices = ['NIFTY'];
     public $quoteDate;
     public $workingDay;
     public $currentDay;
 
     public function handle()
     {
-        $this->quoteDate  = Carbon::now()->toDateString();
-        $this->workingDay = DB::table('nse_working_days')->where('previous', 1)->first();
         $this->currentDay = DB::table('nse_working_days')->where('current', 1)->first();
-        if ( ! $this->workingDay) {
-            $this->error("No previous working day found!");
+        $this->workingDay = DB::table('nse_working_days')->where('previous', 1)->first();
 
-            return;
+        // Determine target date to collect
+        $targetDate = $this->option('date');
+        if (!$targetDate) {
+            $now = Carbon::now('Asia/Kolkata');
+            // If evening after market close (>= 15:30), default to current working day (today)
+            if ($now->format('H:i') >= '15:30' && $this->currentDay) {
+                $targetDate = $this->currentDay->working_date;
+            } elseif ($this->workingDay) {
+                $targetDate = $this->workingDay->working_date;
+            } else {
+                $targetDate = Carbon::yesterday()->toDateString();
+            }
         }
 
+        // Determine the previous trading date relative to targetDate
+        $prevWorkingDate = DB::table('nse_working_days')
+            ->where('working_date', '<', $targetDate)
+            ->orderByDesc('working_date')
+            ->value('working_date');
+
+        if (!$prevWorkingDate) {
+            $prevWorkingDate = Carbon::parse($targetDate)->subDay()->toDateString();
+        }
+
+        $this->info("Collecting Daily OHLC for Target Date: {$targetDate} (Window from: {$prevWorkingDate})");
+
+        // 1. Fetch spot index instruments
         $index_instruments = DB::table('instruments')
-                               ->whereIn('instrument_key', $this->index_instruments)
-                               ->get()->toArray();
+            ->whereIn('instrument_key', $this->index_instruments)
+            ->get();
 
+        $this->updateInstruments($index_instruments, '', $targetDate, $prevWorkingDate);
 
-        $this->update($index_instruments);
-
-
+        // 2. Fetch options for indices
         foreach ($this->indices as $index) {
-            // 1. Get current expiry for the instrument
             $expiries = DB::table('nse_expiries')
-                          ->where('instrument_type', 'OPT')
-                          ->where('trading_symbol', $index)
-                          ->where(function ($q) {
-                              $q->where('is_current', 1)
-                                ->orWhere('is_next', 1);
-                          })
-                          ->get();
+                ->where('instrument_type', 'OPT')
+                ->where('trading_symbol', $index)
+                ->where(function ($q) {
+                    $q->where('is_current', 1)
+                      ->orWhere('is_next', 1);
+                })
+                ->get();
 
             foreach ($expiries as $expiryRecord) {
-
                 $instruments = DB::table('instruments')
-                                 ->where('underlying_symbol', $index)
-                                 ->where('expiry', $expiryRecord->expiry)
-                                 ->get()
-                                 ->toArray();
+                    ->where('underlying_symbol', $index)
+                    ->where('expiry', $expiryRecord->expiry)
+                    ->get();
 
                 $this->info(
-                    "Processing {$index} expiry {$expiryRecord->expiry}" .
-                    ($expiryRecord->is_current ? ' (Current)' : ' (Next)')
+                    "Processing {$index} expiry {$expiryRecord->expiry_date} (" .
+                    ($expiryRecord->is_current ? 'Current' : 'Next') . ") with {$instruments->count()} instruments..."
                 );
 
-                $this->update($instruments, $index);
+                $this->updateInstruments($instruments, $index, $targetDate, $prevWorkingDate);
             }
         }
+
+        $this->info("Complete! Stored daily OHLC for date: {$targetDate}");
     }
 
-    private function update($instruments, $index = '')
+    private function updateInstruments($instruments, $index = '', $targetDate, $prevDate)
     {
-        foreach ($instruments as $instrument) {
-            $instrumentKey = $instrument->instrument_key;
-            $apiDate       = $this->workingDay->working_date;
-            $fromDate      = $apiDate;
-            $toDate        = $this->currentDay->working_date;//Carbon::parse($apiDate)->addDay()->format('Y-m-d');
+        $apiToken = config('services.upstox.analytics_token');
+        if (empty($apiToken)) {
+            $apiToken = config('services.upstox.access_token');
+        }
 
-            // Correct API endpoint as per documentation/reference
-            $apiUrl   = "https://api.upstox.com/v3/historical-candle/{$instrumentKey}/days/1/{$fromDate}/{$fromDate}";
-            $apiToken = config('services.upstox.analytics_token'); // Store/update this in config/services.php
+        $chunks = $instruments->chunk(20);
+        $totalSaved = 0;
 
-            $response = Http::withToken($apiToken)->get($apiUrl);
+        foreach ($chunks as $chunk) {
+            $responses = Http::pool(function (Pool $pool) use ($chunk, $apiToken, $targetDate, $prevDate) {
+                foreach ($chunk as $inst) {
+                    $url = "https://api.upstox.com/v3/historical-candle/{$inst->instrument_key}/days/1/{$targetDate}/{$prevDate}";
+                    $pool->as($inst->instrument_key)->withToken($apiToken)->timeout(15)->get($url);
+                }
+            });
 
+            $instKeyMap = $chunk->keyBy('instrument_key');
 
-            if ($response->failed()) {
-                $this->error("API failed for $index ({$instrumentKey})".$response->body());
-                continue;
-            }
-
-            $result = $response->json();
-
-
-            // Defensive: Support both 'data' wrapping and direct 'candles'
-            $candles = [];
-            if ( ! empty($result['data']['candles'])) {
-                $candles = $result['data']['candles'];
-            } elseif ( ! empty($result['candles'])) {
-                $candles = $result['candles'];
-            }
-
-            foreach ($candles as $candle) {
-                // Expected candle array: [datetime, open, high, low, close, volume, open_interest]
-                if (count($candle) < 7) {
-                   info('Data missing for '.$instrumentKey);
+            foreach ($responses as $key => $res) {
+                if (!$res->ok()) {
                     continue;
                 }
 
-                $expiryTimestamp = $instrument->expiry ?? null;
-                $expiryDate      = null;
+                $candles = $res->json('data.candles') ?? [];
+                if (empty($candles)) {
+                    continue;
+                }
 
+                // The first candle (index 0) is the latest one
+                $candle = $candles[0];
+                if (count($candle) < 7) {
+                    continue;
+                }
+
+                $inst = $instKeyMap->get($key);
+                if (!$inst) {
+                    continue;
+                }
+
+                $expiryTimestamp = $inst->expiry ?? null;
+                $expiryDate = null;
                 if ($expiryTimestamp) {
-                    // If expiry is a millisecond timestamp, convert it to seconds first
                     if (is_numeric($expiryTimestamp) && strlen((string) $expiryTimestamp) > 10) {
                         $expiryDate = date('Y-m-d', $expiryTimestamp / 1000);
                     } else {
-                        // If it is already a date string or timestamp in seconds
                         $expiryDate = date('Y-m-d', strtotime($expiryTimestamp));
                     }
                 }
 
                 DB::table('daily_ohlc_quotes')->updateOrInsert(
                     [
-                        'symbol_name'    => empty($index) ? $instrument->trading_symbol : $index,
-                        'instrument_key' => $instrumentKey,
+                        'symbol_name'    => empty($index) ? ($inst->trading_symbol ?? 'NIFTY') : $index,
+                        'instrument_key' => $inst->instrument_key,
                         'expiry'         => $expiryDate ?? null,
-                        'strike'         => $instrument->strike_price ?? null,
-                        'option_type'    => $instrument->instrument_type ?? null,
-                        'quote_date'     => Carbon::parse($candle[0])->toDateString(),
+                        'strike'         => $inst->strike_price ?? null,
+                        'option_type'    => $inst->instrument_type ?? null,
+                        'quote_date'     => $targetDate,
                     ],
                     [
                         'expiry_date'   => $expiryDate ?? null,
@@ -144,10 +160,10 @@ class CollectOhlcForIndices extends Command
                         'created_at'    => now(),
                     ]
                 );
-                $expiry = $expiry ?? null;
-                $this->info("Inserted/Updated OHLC for $index, {$instrumentKey}, expiry $expiryDate, date ".$fromDate);
+                $totalSaved++;
             }
         }
 
+        $this->info("Saved {$totalSaved} quotes for {$index} on date {$targetDate}");
     }
 }

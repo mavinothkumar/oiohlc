@@ -364,5 +364,17 @@ Route::get('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\Nif
 Route::post('/api/nifty-weightage-monitor/alert-logs/{id}/dispatch', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'dispatchAlertLog'])->name('api.nifty.weightage.monitor.alert-logs.dispatch');
 Route::delete('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'clearAlertLogs'])->name('api.nifty.weightage.monitor.alert-logs.clear');
 
+// Option Expiry Day-over-Day Dynamics & OI/Volume Radar
+Route::get('/expiry-oi-volume-analysis', [\App\Http\Controllers\ExpiryOiVolumeAnalysisController::class, 'index'])->name('expiry.oi.volume.analysis');
+Route::get('/expiry-day-dynamics', [\App\Http\Controllers\ExpiryOiVolumeAnalysisController::class, 'index']);
+Route::get('/api/expiry-oi-volume-analysis/data', [\App\Http\Controllers\ExpiryOiVolumeAnalysisController::class, 'getData'])->name('api.expiry.oi.volume.analysis.data');
+Route::get('/api/expiry-oi-volume-analysis/strike-history', [\App\Http\Controllers\ExpiryOiVolumeAnalysisController::class, 'getStrikeHistory'])->name('api.expiry.oi.volume.analysis.strike-history');
+
+// Live Straddle Decay & Expansion Radar (Live Stream Spikes & Continuous Alarm)
+Route::get('/live-straddle-radar', [\App\Http\Controllers\LiveStraddleRadarController::class, 'index'])->name('live.straddle.radar');
+Route::get('/api/live-straddle-radar/data', [\App\Http\Controllers\LiveStraddleRadarController::class, 'getData'])->name('api.live.straddle.radar.data');
+Route::get('/api/live-straddle-radar/ws-url', [\App\Http\Controllers\LiveStraddleRadarController::class, 'getWsUrl'])->name('api.live.straddle.radar.ws-url');
+
+
 
 

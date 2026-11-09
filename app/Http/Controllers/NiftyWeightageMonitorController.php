@@ -1306,6 +1306,65 @@ class NiftyWeightageMonitorController extends Controller
             $niftyCandles = $this->generateRealisticNiftyCandles($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
         }
 
+        // 1d. If during live market hours today and the active 5-min bucket is missing from $niftyCandles,
+        // synthesize the live forming candle so backend HTTP responses always include the active 5m candle!
+        if ($isToday && $isMarketHours && !empty($niftyCandles)) {
+            $latestCandle = end($niftyCandles);
+            $nowK = Carbon::now('Asia/Kolkata');
+            $curMin = (int)$nowK->format('i');
+            $curBucketMin = $curMin - ($curMin % 5);
+            $curBucketTimeStr = $nowK->format('H') . ':' . str_pad((string)$curBucketMin, 2, '0', STR_PAD_LEFT);
+
+            if ($curBucketTimeStr >= '09:15' && $curBucketTimeStr <= '15:25' && $latestCandle['time_str'] !== $curBucketTimeStr) {
+                // Get latest spot price from option_chains or ohlc_quotes
+                $latestSpot = DB::table('option_chains')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('captured_at', '>=', "{$date} 09:15:00")
+                    ->whereNotNull('underlying_spot_price')
+                    ->where('underlying_spot_price', '>', 0)
+                    ->orderBy('captured_at', 'desc')
+                    ->value('underlying_spot_price');
+
+                if (!$latestSpot) {
+                    $latestSpot = DB::table('ohlc_quotes')
+                        ->where(function($q) {
+                            $q->where('instrument_key', 'like', '%Nifty 50%')
+                              ->orWhere('trading_symbol', 'Nifty 50')
+                              ->orWhere('trading_symbol', 'NIFTY');
+                        })
+                        ->where('instrument_type', 'INDEX')
+                        ->where('ts_at', '>=', "{$date} 09:15:00")
+                        ->orderBy('ts_at', 'desc')
+                        ->value('close');
+                }
+
+                if (!$latestSpot) {
+                    $latestSpot = $latestCandle['close'];
+                }
+
+                $cTs = Carbon::parse("{$date} {$curBucketTimeStr}:00", 'Asia/Kolkata');
+                $open = (float)$latestCandle['close'];
+                $close = (float)$latestSpot;
+                $high = max($open, $close);
+                $low = min($open, $close);
+
+                $niftyCandles[] = [
+                    'ts_at'     => $cTs->toDateTimeString(),
+                    'time_str'  => $curBucketTimeStr,
+                    'timestamp' => Carbon::parse($cTs->toDateTimeString(), 'UTC')->timestamp,
+                    'open'      => round($open, 2),
+                    'high'      => round($high, 2),
+                    'low'       => round($low, 2),
+                    'close'     => round($close, 2),
+                    'volume'    => 0,
+                    'move_pts'  => round($close - $open, 2),
+                    'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                    'color'     => $close >= $open ? 'green' : 'red',
+                    'is_forming'=> true,
+                ];
+            }
+        }
+
         return $niftyCandles;
     }
 }

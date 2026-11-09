@@ -98,9 +98,9 @@ class OptionsBreadthMonitorController extends Controller
                     ->value('expiry_date');
             }
 
-            // For past dates or fallback: resolve from option_chains_history directly using captured_at index (<100ms)
+            // For past dates or fallback: resolve from option_chains_history directly using composite index (<100ms)
             if (!$selectedExpiry && Schema::hasTable('option_chains_history')) {
-                $selectedExpiry = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
+                $selectedExpiry = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
                     ->where('trading_symbol', $symbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -139,7 +139,7 @@ class OptionsBreadthMonitorController extends Controller
 
         $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
             // 2. Fetch Strikes and determine ATM strike
-            $indexHint = ' USE INDEX (option_chains_captured_at_index)';
+            $indexHint = $this->getOptimalIndexHint($table);
             $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
                 ->where('captured_at', '>=', $startTs)
                 ->where('captured_at', '<=', $endTs)
@@ -172,7 +172,8 @@ class OptionsBreadthMonitorController extends Controller
 
             if ($strikes->isEmpty()) {
                 $altTable = ($table === 'option_chains') ? 'option_chains_history' : 'option_chains';
-                $altStrikes = DB::table(DB::raw("{$altTable}{$indexHint}"))
+                $altHint = $this->getOptimalIndexHint($altTable);
+                $altStrikes = DB::table(DB::raw("{$altTable}{$altHint}"))
                     ->where('captured_at', '>=', $startTs)
                     ->where('captured_at', '<=', $endTs)
                     ->where('trading_symbol', $symbol)
@@ -183,6 +184,7 @@ class OptionsBreadthMonitorController extends Controller
 
                 if ($altStrikes->isNotEmpty()) {
                     $table = $altTable;
+                    $indexHint = $altHint;
                     $strikes = $altStrikes;
                 }
             }
@@ -192,7 +194,8 @@ class OptionsBreadthMonitorController extends Controller
             if ($strikes->isEmpty()) {
                 foreach ([$table, 'option_chains_history', 'option_chains'] as $candidateTable) {
                     if (!Schema::hasTable($candidateTable)) continue;
-                    $realExpiry = DB::table(DB::raw("{$candidateTable}{$indexHint}"))
+                    $candidateHint = $this->getOptimalIndexHint($candidateTable);
+                    $realExpiry = DB::table(DB::raw("{$candidateTable}{$candidateHint}"))
                         ->where('trading_symbol', $symbol)
                         ->where('captured_at', '>=', $startTs)
                         ->where('captured_at', '<=', $endTs)
@@ -201,7 +204,7 @@ class OptionsBreadthMonitorController extends Controller
                         ->value('expiry');
 
                     if ($realExpiry) {
-                        $recoveredStrikes = DB::table(DB::raw("{$candidateTable}{$indexHint}"))
+                        $recoveredStrikes = DB::table(DB::raw("{$candidateTable}{$candidateHint}"))
                             ->where('trading_symbol', $symbol)
                             ->where('expiry', $realExpiry)
                             ->where('captured_at', '>=', $startTs)
@@ -212,6 +215,7 @@ class OptionsBreadthMonitorController extends Controller
 
                         if ($recoveredStrikes->isNotEmpty()) {
                             $table = $candidateTable;
+                            $indexHint = $candidateHint;
                             $selectedExpiry = $realExpiry;
                             $strikes = $recoveredStrikes;
                             break;
@@ -227,6 +231,7 @@ class OptionsBreadthMonitorController extends Controller
                     \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
 
                     $table = 'option_chains_history';
+                    $indexHint = $this->getOptimalIndexHint($table);
                     $realExpiry = DB::table(DB::raw("{$table}{$indexHint}"))
                         ->where('trading_symbol', $symbol)
                         ->where('captured_at', '>=', $startTs)
@@ -527,7 +532,8 @@ class OptionsBreadthMonitorController extends Controller
 
         // Fallback: Generate candles from option chain spot prices or Synthetic Future
         if (empty($candles)) {
-            $spotRows = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
+            $fallbackHint = $this->getOptimalIndexHint($table);
+            $spotRows = DB::table(DB::raw("{$table}{$fallbackHint}"))
                 ->where('trading_symbol', $symbol)
                 ->where('expiry', $expiry)
                 ->where('captured_at', '>=', "{$date} 09:15:00")
@@ -596,7 +602,7 @@ class OptionsBreadthMonitorController extends Controller
         $initialSpot = 23000
     ): array {
         // Query CE & PE options records combined in a single indexed query
-        $indexHint = ($table === 'option_chains') ? ' USE INDEX (option_chains_captured_at_index)' : '';
+        $indexHint = $this->getOptimalIndexHint($table);
         $optRows = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', '>=', $startTs)
             ->where('captured_at', '<=', $endTs)
@@ -956,5 +962,20 @@ class OptionsBreadthMonitorController extends Controller
                 'candles_count' => count($timestamps),
             ],
         ];
+    }
+
+    /**
+     * Get the optimal composite index hint for option chains queries.
+     * Prevents full table scan timeout issues when querying options breadth.
+     */
+    protected function getOptimalIndexHint(string $table): string
+    {
+        if ($table === 'option_chains') {
+            return ' USE INDEX (idx_oc_sym_exp_cap)';
+        }
+        if ($table === 'option_chains_history') {
+            return ' USE INDEX (idx_och_sym_exp_cap)';
+        }
+        return '';
     }
 }

@@ -94,7 +94,7 @@ class TrendingOiController extends Controller
 
         $isToday = ($date === today()->toDateString());
         $table = $isToday ? 'option_chains' : 'option_chains_history';
-        $indexHint = ' USE INDEX (option_chains_captured_at_index)';
+        $indexHint = $this->getOptimalIndexHint($table);
         $endTime = $request->input('end_time');
         $skipOpen = filter_var($request->input('skip_open', false), FILTER_VALIDATE_BOOLEAN);
 
@@ -113,7 +113,7 @@ class TrendingOiController extends Controller
             // Auto-migration on demand: If this historical date has no records in option_chains_history,
             // automatically migrate this single date from expired_ohlc on-the-fly!
             if (!$isToday && Schema::hasTable('expired_ohlc')) {
-                $hasHistorical = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
+                $hasHistorical = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1052,7 +1052,7 @@ class TrendingOiController extends Controller
 
         // For historical dates: check option_chains_history if expired_expiries was empty
         if (!$isToday && $expiries->isEmpty() && Schema::hasTable('option_chains_history')) {
-            $expiries = DB::table(DB::raw("option_chains_history USE INDEX (option_chains_captured_at_index)"))
+            $expiries = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
                 ->where('trading_symbol', 'NIFTY')
                 ->where('captured_at', '>=', "{$date} 09:00:00")
                 ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1083,7 +1083,8 @@ class TrendingOiController extends Controller
         if ($expiries->isEmpty()) {
             $table = $isToday ? 'option_chains' : 'option_chains_history';
             if (Schema::hasTable($table)) {
-                $expiries = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
+                $optHint = $this->getOptimalIndexHint($table);
+                $expiries = DB::table(DB::raw("{$table}{$optHint}"))
                     ->where('trading_symbol', 'NIFTY')
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
@@ -1122,8 +1123,9 @@ class TrendingOiController extends Controller
         $isToday    = ($date === today()->toDateString());
 
         $table = $isToday ? 'option_chains' : 'option_chains_history';
+        $optHint = $this->getOptimalIndexHint($table);
 
-        $strikes = DB::table(DB::raw("{$table} USE INDEX (option_chains_captured_at_index)"))
+        $strikes = DB::table(DB::raw("{$table}{$optHint}"))
             ->where('trading_symbol', 'NIFTY')
             ->where('expiry', $expiry)
             ->where('captured_at', '>=', "{$date} 00:00:00")
@@ -1410,8 +1412,9 @@ class TrendingOiController extends Controller
 
         // Query all required timestamps in one single query
         $neededTimestamps = array_unique(array_filter([$ts5m, $ts15m, $ts30m, $tsToday, $latestTimestamp]));
-        $rows = DB::table($table)
-            ->where('underlying_key', $underlying)
+        $hint = $this->getOptimalIndexHint($table);
+        $rows = DB::table(DB::raw("{$table}{$hint}"))
+            ->where('trading_symbol', 'NIFTY')
             ->where('expiry', $expiry)
             ->whereIn('captured_at', $neededTimestamps)
             ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);
@@ -1620,8 +1623,9 @@ class TrendingOiController extends Controller
         }
 
         // 2. Fetch all strike data for the 5-minute timestamps
-        $rows = DB::table($table)
-            ->where('underlying_key', $underlying)
+        $hint = $this->getOptimalIndexHint($table);
+        $rows = DB::table(DB::raw("{$table}{$hint}"))
+            ->where('trading_symbol', 'NIFTY')
             ->where('expiry', $expiry)
             ->whereIn('captured_at', $ts5mList)
             ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);
@@ -2219,5 +2223,20 @@ class TrendingOiController extends Controller
                 'error'   => 'Exception connecting to Upstox API: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get the optimal composite index hint for option chains queries.
+     * Prevents full table scan timeout issues when querying Trending OI.
+     */
+    protected function getOptimalIndexHint(string $table): string
+    {
+        if ($table === 'option_chains') {
+            return ' USE INDEX (idx_oc_sym_exp_cap)';
+        }
+        if ($table === 'option_chains_history') {
+            return ' USE INDEX (idx_och_sym_exp_cap)';
+        }
+        return '';
     }
 }
