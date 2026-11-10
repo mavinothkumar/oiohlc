@@ -42,7 +42,7 @@
         @yield('content')
     </div>
 </main>
-@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis', 'nifty.unified', 'order-flow', 'order.flow', 'expiry.oi.volume.analysis', 'live.straddle.radar']))
+@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis', 'nifty.unified', 'order-flow', 'order.flow', 'expiry.oi.volume.analysis', 'live.straddle.radar', 'gamma-blast']))
 {{--    @if(!request()->has('nr'))--}}
 <script>
     ( function () {

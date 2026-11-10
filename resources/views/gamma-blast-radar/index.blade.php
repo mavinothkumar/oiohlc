@@ -85,10 +85,10 @@
 @endpush
 
 @section('content')
-<div class="space-y-3 w-full max-w-[1920px] mx-auto pb-8">
+<div class="space-y-3 w-full px-1 sm:px-3 pb-8">
 
     {{-- ════════════════════════════════════════════════════════════════════════════ --}}
-    {{-- TOP COMMAND BAR: DATE, EXPIRY, SPOT TICKER, AUTO-REFRESH & LAST SYNC TIME    --}}
+    {{-- TOP COMMAND BAR: DATE, EXPIRY, SPOT TICKER, ALARM STATUS, AUDIO & CONTROLS  --}}
     {{-- ════════════════════════════════════════════════════════════════════════════ --}}
     <div class="cockpit-card p-2 sm:p-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-lg border-fuchsia-950/60">
         <!-- Left: Title & Symbol -->
@@ -109,6 +109,12 @@
                 <span class="text-fuchsia-400 mr-1.5">INDEX:</span>
                 <span>{{ $symbol }}</span>
             </div>
+
+            <!-- Playbook Toggle Button -->
+            <button type="button" id="btn-toggle-playbook" class="flex items-center gap-1 bg-[#131a2b] hover:bg-slate-800 border border-indigo-700/60 text-indigo-300 hover:text-white rounded px-2 py-0.5 text-xs font-bold transition cursor-pointer shadow-xs" title="Toggle Decision Playbook & Trading Strategy Guide">
+                <span>📖</span>
+                <span class="hidden md:inline">Decision Guide</span>
+            </button>
         </div>
 
         <!-- Middle: Date & Expiry Controls -->
@@ -136,13 +142,25 @@
             </div>
         </div>
 
-        <!-- Right: Spot Ticker, Sync Controls, Last Sync Time & Reload -->
+        <!-- Right: Spot Ticker, Alarm Settings, Auto-Refresh & Reload -->
         <div class="flex items-center gap-2 flex-wrap">
             <!-- Spot Price Pill -->
             <div class="flex items-center bg-[#131a2b] border border-slate-700/80 rounded px-2.5 py-0.5 text-xs font-mono">
                 <span class="text-slate-400 text-[10px] mr-1.5 font-bold uppercase">SPOT:</span>
                 <span id="spot-price-val" class="text-white font-extrabold text-sm tracking-tight">₹{{ number_format($gexData['spot'] ?? 0, 2) }}</span>
             </div>
+
+            <!-- Audio Alarm Settings Pill Button -->
+            <button type="button" id="btn-open-alarm-settings" class="flex items-center bg-[#131a2b] hover:bg-slate-800 border border-slate-700/80 rounded px-2.5 py-1 text-xs gap-1.5 transition cursor-pointer shadow-xs" title="Configure Gamma Blast Sound & Alert Triggers">
+                <span id="alarm-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+                <span id="alarm-status-text" class="text-slate-200 font-bold text-[11px]">Alarm: ACTIVE</span>
+                <span class="text-slate-400 text-[10px]">⚙️</span>
+            </button>
+
+            <!-- Quick Test Alarm Sound Button -->
+            <button type="button" id="btn-test-quick-alarm" class="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded text-amber-300 text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-xs" title="Test 3-second alarm sound">
+                <span>⚡ Test Alarm</span>
+            </button>
 
             <!-- Auto-Refresh Selector -->
             <div class="flex items-center bg-[#131a2b] border border-slate-700/80 rounded px-1.5 py-0.5 text-xs gap-1" title="Real-time Auto-Refresh Interval">
@@ -173,6 +191,98 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
             </button>
+        </div>
+    </div>
+
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    {{-- LIVE ACTIVE ALARM BANNER (Appears immediately when condition triggers)        --}}
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    <div id="gamma-alarm-banner" class="hidden p-3 rounded-lg bg-rose-950/90 border-2 border-rose-500 text-white shadow-2xl flex items-center justify-between gap-3 animate-pulse transition">
+        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+            <span class="text-2xl animate-bounce">🚨</span>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-rose-600 text-white tracking-wider">GAMMA BLAST ALERT ACTIVE</span>
+                    <span id="alarm-banner-time" class="text-[11px] font-mono text-rose-200"></span>
+                </div>
+                <div id="alarm-banner-message" class="text-xs sm:text-sm font-bold text-white mt-0.5 truncate font-mono">
+                    High Probability Gamma Squeeze Triggered!
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="btn-banner-silence" class="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold font-mono transition cursor-pointer flex items-center gap-1 shadow">
+                <span>🔕 Silence Alarm (ESC)</span>
+            </button>
+            <button type="button" id="btn-banner-settings" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition cursor-pointer" title="Alarm Settings">
+                ⚙️
+            </button>
+        </div>
+    </div>
+
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    {{-- COLLAPSIBLE INSTITUTIONAL TRADING PLAYBOOK & DECISION GUIDE                  --}}
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    <div id="decision-guide-card" class="cockpit-card p-3 sm:p-4 border-indigo-900/50 shadow-xl transition-all">
+        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="p-1 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs">📖</span>
+                <div>
+                    <h2 class="text-xs sm:text-sm font-extrabold text-white tracking-wide">HOW TO READ THIS PAGE & MAKE THE RIGHT TRADING DECISIONS</h2>
+                    <p class="text-[10px] text-slate-400 font-sans">Institutional Market Maker Gamma Playbook for Scalping & Expiry Days</p>
+                </div>
+            </div>
+            <button type="button" id="btn-close-playbook" class="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-slate-800 transition cursor-pointer">
+                ✕ Collapse
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-xs leading-relaxed">
+            <!-- Pillar 1: GEX Regimes -->
+            <div class="p-3 rounded-lg bg-[#101626] border border-slate-800">
+                <div class="flex items-center gap-1.5 text-emerald-400 font-bold mb-1.5">
+                    <span>1. Net GEX Regimes</span>
+                </div>
+                <div class="space-y-1.5 text-slate-300 text-[11px]">
+                    <p><strong class="text-emerald-400">+GEX Regime:</strong> Market Makers are long gamma. They buy dips and sell rallies $\rightarrow$ <em>Volatility is compressed</em>. Market stays rangebound. <span class="text-emerald-300 font-semibold">Action: Fade edges, sell straddles/strangles.</span></p>
+                    <p><strong class="text-rose-400">-GEX Regime:</strong> Market Makers are short gamma. They are forced to sell selloffs and buy surges $\rightarrow$ <em>Volatility explodes</em>. <span class="text-rose-300 font-semibold">Action: Buy naked calls/puts, ride momentum breakouts.</span></p>
+                </div>
+            </div>
+
+            <!-- Pillar 2: Zero-Gamma Flip -->
+            <div class="p-3 rounded-lg bg-[#101626] border border-slate-800">
+                <div class="flex items-center gap-1.5 text-amber-400 font-bold mb-1.5">
+                    <span>2. Zero-Gamma Flip Trigger</span>
+                </div>
+                <div class="space-y-1.5 text-slate-300 text-[11px]">
+                    <p>The exact price level where market gamma switches between positive and negative ("Line in the Sand").</p>
+                    <p><strong class="text-emerald-400">Spot &gt; Flip:</strong> Calm, mean-reverting environment. Breakouts often fail.</p>
+                    <p><strong class="text-rose-400">Spot &lt; Flip:</strong> Danger zone! Dealer hedging triggers aggressive cascades and fast intraday directional moves.</p>
+                </div>
+            </div>
+
+            <!-- Pillar 3: Call & Put Walls -->
+            <div class="p-3 rounded-lg bg-[#101626] border border-slate-800">
+                <div class="flex items-center gap-1.5 text-sky-400 font-bold mb-1.5">
+                    <span>3. Call & Put Gamma Walls</span>
+                </div>
+                <div class="space-y-1.5 text-slate-300 text-[11px]">
+                    <p><strong class="text-rose-400">Call Wall:</strong> Strike with highest call open interest & gamma. Heavy resistance. <span class="text-slate-300">First test usually rejects; breach triggers massive Call short-squeeze.</span></p>
+                    <p><strong class="text-emerald-400">Put Wall:</strong> Strike with highest put open interest. Heavy floor. <span class="text-slate-300">Prime zone for intraday reversal bounce; breakdown causes violent long liquidation.</span></p>
+                </div>
+            </div>
+
+            <!-- Pillar 4: Gamma Blast Scalps -->
+            <div class="p-3 rounded-lg bg-[#101626] border border-slate-800">
+                <div class="flex items-center gap-1.5 text-fuchsia-400 font-bold mb-1.5">
+                    <span>4. Gamma Blast Pop (≥75%)</span>
+                </div>
+                <div class="space-y-1.5 text-slate-300 text-[11px]">
+                    <p>Pinpoints strikes where trapped OI + high gamma concentration forces automated dealer buying/selling.</p>
+                    <p><strong class="text-fuchsia-300">When Alarm Fires:</strong> Check the Active Blast Card below. If trigger condition is met, buy the highlighted option.</p>
+                    <p class="font-mono text-[10px] text-fuchsia-200">Target: +55% | Stop-Loss: -30%.</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -542,6 +652,222 @@
             </table>
         </div>
     </div>
+
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    {{-- AUDIO ALARM CONFIGURATION SETTINGS MODAL                                     --}}
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    <div id="alarm-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs hidden">
+        <div class="cockpit-card w-full max-w-xl border-fuchsia-600/50 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            <!-- Modal Header -->
+            <div class="p-3.5 sm:p-4 border-b border-slate-800 bg-[#101626] flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-fuchsia-600 text-white flex items-center justify-center shadow-xs">
+                        <span class="text-base">🔔</span>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-sm text-white tracking-wide">Gamma Blast Audio Alert Configuration</h3>
+                        <p class="text-[10px] text-slate-400">Pure Web Audio synthesizer • Instant trigger on live market conditions</p>
+                    </div>
+                </div>
+                <button type="button" id="btn-close-alarm-modal" class="text-slate-400 hover:text-white p-1 rounded-md transition cursor-pointer text-sm font-bold">✕</button>
+            </div>
+
+            <!-- Modal Scrollable Body -->
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto custom-scrollbar text-xs">
+                
+                <!-- 1. Master Alarm Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[#101626] border border-slate-800">
+                    <div>
+                        <span class="font-bold text-white block">Master Audio Alerts</span>
+                        <span class="text-[11px] text-slate-400 block mt-0.5">Sound continuous or single-burst alarm when chosen conditions fire</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="cfg-alarm-enabled" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fuchsia-600"></div>
+                    </label>
+                </div>
+
+                <!-- 2. Trigger Conditions Selection -->
+                <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                        <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Trigger Conditions (When To Ring Alarm)</label>
+                        <span class="text-[10px] text-slate-400">Select any or all</span>
+                    </div>
+
+                    <!-- Trigger A: High Blast Readiness Score -->
+                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1">
+                            <input type="checkbox" id="cfg-blast-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                            <div>
+                                <span class="font-bold text-slate-200">⚡ High Blast Readiness Score</span>
+                                <span class="text-[10px] text-slate-400 block">Strike setup triggers explosive delta hedging</span>
+                            </div>
+                        </label>
+                        <select id="cfg-min-blast-score" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
+                            <option value="65">Score ≥ 65%</option>
+                            <option value="70">Score ≥ 70%</option>
+                            <option value="75" selected>Score ≥ 75%</option>
+                            <option value="80">Score ≥ 80% (High Conviction)</option>
+                            <option value="85">Score ≥ 85% (Extreme)</option>
+                        </select>
+                    </div>
+
+                    <!-- Trigger B: Zero-Gamma Flip Proximity / Breach -->
+                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1">
+                            <input type="checkbox" id="cfg-flip-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                            <div>
+                                <span class="font-bold text-slate-200">🎯 Zero-Gamma Flip Point Test</span>
+                                <span class="text-[10px] text-slate-400 block">Spot tests volatility trigger boundary</span>
+                            </div>
+                        </label>
+                        <select id="cfg-flip-proximity" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
+                            <option value="15">Within 15 pts</option>
+                            <option value="25" selected>Within 25 pts</option>
+                            <option value="50">Within 50 pts</option>
+                        </select>
+                    </div>
+
+                    <!-- Trigger C: Call Wall / Put Wall Test -->
+                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1">
+                            <input type="checkbox" id="cfg-wall-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                            <div>
+                                <span class="font-bold text-slate-200">🧱 Call Wall / Put Wall Test</span>
+                                <span class="text-[10px] text-slate-400 block">Spot approaches ceiling squeeze or floor bounce zone</span>
+                            </div>
+                        </label>
+                        <select id="cfg-wall-proximity" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
+                            <option value="15">Within 15 pts</option>
+                            <option value="25" selected>Within 25 pts</option>
+                            <option value="40">Within 40 pts</option>
+                        </select>
+                    </div>
+
+                    <!-- Trigger D: Regime Shift into -GEX -->
+                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
+                        <label class="flex items-center gap-2 cursor-pointer flex-1">
+                            <input type="checkbox" id="cfg-neg-gex-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                            <div>
+                                <span class="font-bold text-slate-200">⚠️ Negative Gamma (-GEX) Regime</span>
+                                <span class="text-[10px] text-slate-400 block">Alert immediately if Market Makers flip to Short Gamma</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Audio Tone Selector -->
+                <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-2.5">
+                    <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Audio Tone</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="tone-options-container">
+                        <!-- Siren -->
+                        <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500" data-tone="siren">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="alarm-tone" value="siren" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200 block text-xs">🚨 Emergency Siren</span>
+                                    <span class="text-[9.5px] text-slate-500 font-sans">Dual-frequency warble</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-preview-tone px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition" data-tone="siren">
+                                Play ▶
+                            </button>
+                        </div>
+
+                        <!-- Cyber Pulse -->
+                        <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500" data-tone="pulse">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="alarm-tone" value="pulse" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200 block text-xs">⚡ Cyber Pulse</span>
+                                    <span class="text-[9.5px] text-slate-500 font-sans">Fast digital chirp</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-preview-tone px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition" data-tone="pulse">
+                                Play ▶
+                            </button>
+                        </div>
+
+                        <!-- Chime -->
+                        <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500" data-tone="chime">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="alarm-tone" value="chime" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200 block text-xs">🔔 Harmonic Chime</span>
+                                    <span class="text-[9.5px] text-slate-500 font-sans">Twin musical chime</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-preview-tone px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition" data-tone="chime">
+                                Play ▶
+                            </button>
+                        </div>
+
+                        <!-- Sonar -->
+                        <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500" data-tone="sonar">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="alarm-tone" value="sonar" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200 block text-xs">📡 Tactical Sonar</span>
+                                    <span class="text-[9.5px] text-slate-500 font-sans">Submarine pulse</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-preview-tone px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition" data-tone="sonar">
+                                Play ▶
+                            </button>
+                        </div>
+
+                        <!-- Rapid Beep -->
+                        <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500 sm:col-span-2" data-tone="beep">
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="alarm-tone" value="beep" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200 block text-xs">⏰ Urgent Rapid Beep</span>
+                                    <span class="text-[9.5px] text-slate-500 font-sans">Triple high-frequency bursts</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-preview-tone px-2 py-0.5 rounded text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono transition" data-tone="beep">
+                                Play ▶
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Playback Mode & Volume -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Playback Mode -->
+                    <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-1.5">
+                        <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Duration</label>
+                        <select id="cfg-continuous-mode" class="w-full bg-[#131a2b] text-slate-200 border border-slate-700 rounded p-1.5 text-xs font-semibold focus:outline-none cursor-pointer">
+                            <option value="true">Continuous (Rings until dismissed / ESC)</option>
+                            <option value="false">Single Burst (Rings 3 times then stops)</option>
+                        </select>
+                    </div>
+
+                    <!-- Volume Slider -->
+                    <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between font-bold text-white text-[11px] uppercase tracking-wider text-fuchsia-400">
+                            <span>Alarm Volume</span>
+                            <span id="cfg-volume-label" class="font-mono text-amber-300">70%</span>
+                        </div>
+                        <input type="range" id="cfg-alarm-volume" min="0.1" max="1" step="0.05" value="0.7" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3.5 bg-[#101626] border-t border-slate-800 flex items-center justify-between gap-2">
+                <button type="button" id="btn-test-modal-alarm" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 transition cursor-pointer">
+                    <span>⚡ Test Continuous Alarm (3s)</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btn-save-alarm-settings" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-fuchsia-600 hover:bg-fuchsia-500 text-white transition cursor-pointer shadow">
+                        Save &amp; Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -564,13 +890,88 @@
     let countdownRemaining = 30;
     let timerInterval = null;
 
+    // ── Alarm Settings State & Persistence ───────────────────────────────────────
+    const DEFAULT_ALARM_SETTINGS = {
+        enabled: true,
+        continuous: true,
+        tone: 'siren',
+        volume: 0.7,
+        blastScoreEnabled: true,
+        minBlastScore: 75,
+        flipEnabled: true,
+        flipProximityPts: 25,
+        wallEnabled: true,
+        wallProximityPts: 25,
+        negGexEnabled: false,
+    };
+
+    let alarmSettings = { ...DEFAULT_ALARM_SETTINGS };
+    let isAlarmRinging = false;
+    let alarmLoopInterval = null;
+    let testTimeoutId = null;
+    let audioCtx = null;
+
+    function loadAlarmSettings() {
+        try {
+            const saved = localStorage.getItem('gamma_blast_alarm_settings');
+            if (saved) {
+                alarmSettings = { ...DEFAULT_ALARM_SETTINGS, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.warn('Failed to load gamma blast alarm settings:', e);
+        }
+        updateAlarmStatusPill();
+    }
+
+    function saveAlarmSettings() {
+        try {
+            localStorage.setItem('gamma_blast_alarm_settings', JSON.stringify(alarmSettings));
+        } catch (e) {
+            console.warn('Failed to save gamma blast alarm settings:', e);
+        }
+        updateAlarmStatusPill();
+    }
+
+    function updateAlarmStatusPill() {
+        const dot = document.getElementById('alarm-status-dot');
+        const text = document.getElementById('alarm-status-text');
+        if (alarmSettings.enabled) {
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 live-dot';
+            if (text) text.textContent = 'Alarm: ACTIVE';
+        } else {
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+            if (text) text.textContent = 'Alarm: MUTED';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        loadAlarmSettings();
+        initPlaybookState();
         initDatePicker();
         initCharts();
         renderCharts(currentGexData);
         filterLadder('atm');
         initSlider();
         startAutoRefreshTimer();
+        initAlarmUiHandlers();
+
+        // Run initial evaluation
+        if (currentGexData) {
+            evaluateGammaAlarms(currentGexData);
+        }
+
+        // Global Unlock Audio Context on first click anywhere
+        document.addEventListener('click', () => {
+            getAudioContext();
+        }, { once: true });
+
+        // Global ESC key to silence alarm or close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                silenceAlarm();
+                closeAlarmModal();
+            }
+        });
 
         // Event listeners
         document.getElementById('expiry-select')?.addEventListener('change', (e) => {
@@ -755,6 +1156,9 @@
                 if (maxLbl) maxLbl.textContent = availableTimes[availableTimes.length - 1];
             }
         }
+
+        // Evaluate live alarm triggers
+        evaluateGammaAlarms(data);
     }
 
     // ── 4. Render Active Gamma Blast Cards ────────────────────────────────────────
@@ -1115,6 +1519,401 @@
                 fetchGexData();
             }
         }, 1000);
+    }
+
+    // ── 10. Playbook Card Collapsible Initialization ──────────────────────────────
+    function initPlaybookState() {
+        const isHidden = localStorage.getItem('gamma_blast_playbook_hidden') === 'true';
+        const card = document.getElementById('decision-guide-card');
+        if (card && isHidden) {
+            card.classList.add('hidden');
+        }
+
+        document.getElementById('btn-toggle-playbook')?.addEventListener('click', () => {
+            if (!card) return;
+            card.classList.toggle('hidden');
+            localStorage.setItem('gamma_blast_playbook_hidden', card.classList.contains('hidden'));
+        });
+
+        document.getElementById('btn-close-playbook')?.addEventListener('click', () => {
+            if (!card) return;
+            card.classList.add('hidden');
+            localStorage.setItem('gamma_blast_playbook_hidden', 'true');
+        });
+    }
+
+    // ── 11. Web Audio API Synthesizer (Pure JS, Zero MP3 Downloads) ──────────────
+    function getAudioContext() {
+        if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                audioCtx = new AudioContextClass();
+            }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        return audioCtx;
+    }
+
+    function playTone(toneName, customVol = null) {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const vol = customVol !== null ? customVol : (alarmSettings.volume ?? 0.7);
+
+        const masterGain = ctx.createGain();
+        masterGain.gain.setValueAtTime(vol, now);
+        masterGain.connect(ctx.destination);
+
+        switch(toneName) {
+            case 'siren': {
+                // Emergency rising-falling frequency warble
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(650, now);
+                osc.frequency.linearRampToValueAtTime(950, now + 0.25);
+                osc.frequency.linearRampToValueAtTime(650, now + 0.5);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.55);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.55);
+                break;
+            }
+            case 'pulse': {
+                // Fast cyber alert chirp
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.35);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.36);
+                break;
+            }
+            case 'chime': {
+                // Twin musical harmonic bell
+                [880, 1318.5].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.12));
+
+                    gain.gain.setValueAtTime(0, now + (i * 0.12));
+                    gain.gain.linearRampToValueAtTime(0.4, now + (i * 0.12) + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.12) + 0.8);
+
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now + (i * 0.12));
+                    osc.stop(now + (i * 0.12) + 0.85);
+                });
+                break;
+            }
+            case 'sonar': {
+                // Tactical submarine sonar pulse
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1046.5, now);
+
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start(now);
+                osc.stop(now + 0.92);
+                break;
+            }
+            case 'beep': {
+                // Rapid triple alert beeps
+                [0, 0.14, 0.28].forEach((delay) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now + delay);
+
+                    gain.gain.setValueAtTime(0.4, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
+
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.11);
+                });
+                break;
+            }
+        }
+    }
+
+    // ── 12. Alarm Trigger & Silence Loop Controller ──────────────────────────────
+    function triggerAlarm(message) {
+        if (!alarmSettings.enabled) return;
+
+        const banner = document.getElementById('gamma-alarm-banner');
+        const msgEl = document.getElementById('alarm-banner-message');
+        const timeEl = document.getElementById('alarm-banner-time');
+
+        if (msgEl) msgEl.textContent = message;
+        if (timeEl) {
+            const d = new Date();
+            timeEl.textContent = d.toLocaleTimeString('en-IN');
+        }
+        if (banner) banner.classList.remove('hidden');
+
+        if (isAlarmRinging) return;
+        isAlarmRinging = true;
+
+        // Play initial audio tone
+        playTone(alarmSettings.tone);
+
+        if (alarmSettings.continuous) {
+            alarmLoopInterval = setInterval(() => {
+                if (isAlarmRinging) {
+                    playTone(alarmSettings.tone);
+                }
+            }, 1100);
+        } else {
+            let count = 1;
+            alarmLoopInterval = setInterval(() => {
+                count++;
+                if (count <= 3 && isAlarmRinging) {
+                    playTone(alarmSettings.tone);
+                } else {
+                    clearInterval(alarmLoopInterval);
+                    alarmLoopInterval = null;
+                    isAlarmRinging = false;
+                }
+            }, 1100);
+        }
+    }
+
+    function silenceAlarm() {
+        isAlarmRinging = false;
+        if (alarmLoopInterval) {
+            clearInterval(alarmLoopInterval);
+            alarmLoopInterval = null;
+        }
+        if (testTimeoutId) {
+            clearTimeout(testTimeoutId);
+            testTimeoutId = null;
+        }
+        const banner = document.getElementById('gamma-alarm-banner');
+        if (banner) banner.classList.add('hidden');
+    }
+
+    function testAlarmSound(durationSeconds = 3) {
+        silenceAlarm();
+        triggerAlarm(`⚡ TEST ALARM: ${alarmSettings.tone.toUpperCase()} tone preview at ${Math.round(alarmSettings.volume * 100)}% volume`);
+        testTimeoutId = setTimeout(() => {
+            silenceAlarm();
+        }, durationSeconds * 1000);
+    }
+
+    // ── 13. Evaluate Alarm Trigger Conditions Against Live GEX Payload ───────────
+    function evaluateGammaAlarms(data) {
+        if (!data || !data.summary || !alarmSettings.enabled) return;
+
+        const spot = parseFloat(data.spot || 0);
+        const summary = data.summary || {};
+        const flip = parseFloat(summary.zero_gamma_flip || spot);
+        const callWall = parseFloat(summary.call_wall?.strike || 0);
+        const putWall = parseFloat(summary.put_wall?.strike || 0);
+        const regime = summary.regime || 'NEUTRAL';
+        const setups = data.top_blast_setups || [];
+
+        let reasons = [];
+
+        // Condition A: High Blast Readiness Score
+        if (alarmSettings.blastScoreEnabled && setups.length > 0) {
+            const top = setups[0];
+            if (top && top.score >= (alarmSettings.minBlastScore || 75)) {
+                reasons.push(`${top.option} Blast Squeeze Score: ${top.score}% (${top.direction}) — ${top.trigger}`);
+            }
+        }
+
+        // Condition B: Zero-Gamma Flip Proximity / Test
+        if (alarmSettings.flipEnabled) {
+            const diffFlip = Math.abs(spot - flip);
+            if (diffFlip <= (alarmSettings.flipProximityPts || 25)) {
+                reasons.push(`Spot ₹${spot.toFixed(1)} testing Zero-Flip boundary ₹${flip.toFixed(1)} (dist: ${diffFlip.toFixed(1)} pts)`);
+            }
+        }
+
+        // Condition C: Wall Proximity / Test
+        if (alarmSettings.wallEnabled) {
+            if (callWall > 0 && Math.abs(spot - callWall) <= (alarmSettings.wallProximityPts || 25)) {
+                reasons.push(`Spot ₹${spot.toFixed(1)} testing Call Wall ₹${callWall} (Ceiling Squeeze Alert)`);
+            } else if (putWall > 0 && Math.abs(spot - putWall) <= (alarmSettings.wallProximityPts || 25)) {
+                reasons.push(`Spot ₹${spot.toFixed(1)} testing Put Wall ₹${putWall} (Floor Demand Alert)`);
+            }
+        }
+
+        // Condition D: Regime Shift into Negative Gamma
+        if (alarmSettings.negGexEnabled && regime === 'NEGATIVE_GAMMA') {
+            reasons.push(`Negative Gamma (-GEX) Regime Active (${summary.total_net_gex_cr} Cr) — Volatility Expansion`);
+        }
+
+        if (reasons.length > 0) {
+            triggerAlarm(reasons.join(' | '));
+        }
+    }
+
+    // ── 14. Alarm Settings Modal UI Handlers ──────────────────────────────────────
+    function initAlarmUiHandlers() {
+        const modal = document.getElementById('alarm-settings-modal');
+
+        // Open Modal
+        document.getElementById('btn-open-alarm-settings')?.addEventListener('click', () => {
+            populateModalFromSettings();
+            if (modal) modal.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-banner-settings')?.addEventListener('click', () => {
+            populateModalFromSettings();
+            if (modal) modal.classList.remove('hidden');
+        });
+
+        // Close Modal
+        document.getElementById('btn-close-alarm-modal')?.addEventListener('click', () => {
+            closeAlarmModal();
+        });
+
+        // Banner silence
+        document.getElementById('btn-banner-silence')?.addEventListener('click', () => {
+            silenceAlarm();
+        });
+
+        // Quick test buttons
+        document.getElementById('btn-test-quick-alarm')?.addEventListener('click', () => {
+            testAlarmSound(3);
+        });
+
+        document.getElementById('btn-test-modal-alarm')?.addEventListener('click', () => {
+            testAlarmSound(3);
+        });
+
+        // Tone preview buttons
+        document.querySelectorAll('.btn-preview-tone').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tone = btn.getAttribute('data-tone');
+                playTone(tone);
+            });
+        });
+
+        // Tone card click to select radio
+        document.querySelectorAll('.tone-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const tone = card.getAttribute('data-tone');
+                const radio = card.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+                highlightSelectedToneCard(tone);
+            });
+        });
+
+        // Volume range slider
+        const volInput = document.getElementById('cfg-alarm-volume');
+        const volLabel = document.getElementById('cfg-volume-label');
+        if (volInput && volLabel) {
+            volInput.addEventListener('input', (e) => {
+                volLabel.textContent = `${Math.round(e.target.value * 100)}%`;
+            });
+        }
+
+        // Save button
+        document.getElementById('btn-save-alarm-settings')?.addEventListener('click', () => {
+            saveModalToSettings();
+            saveAlarmSettings();
+            closeAlarmModal();
+        });
+    }
+
+    function closeAlarmModal() {
+        const modal = document.getElementById('alarm-settings-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function populateModalFromSettings() {
+        const enabledEl = document.getElementById('cfg-alarm-enabled');
+        if (enabledEl) enabledEl.checked = !!alarmSettings.enabled;
+
+        const blastEnabledEl = document.getElementById('cfg-blast-enabled');
+        if (blastEnabledEl) blastEnabledEl.checked = !!alarmSettings.blastScoreEnabled;
+
+        const minScoreEl = document.getElementById('cfg-min-blast-score');
+        if (minScoreEl) minScoreEl.value = String(alarmSettings.minBlastScore || 75);
+
+        const flipEnabledEl = document.getElementById('cfg-flip-enabled');
+        if (flipEnabledEl) flipEnabledEl.checked = !!alarmSettings.flipEnabled;
+
+        const flipProxEl = document.getElementById('cfg-flip-proximity');
+        if (flipProxEl) flipProxEl.value = String(alarmSettings.flipProximityPts || 25);
+
+        const wallEnabledEl = document.getElementById('cfg-wall-enabled');
+        if (wallEnabledEl) wallEnabledEl.checked = !!alarmSettings.wallEnabled;
+
+        const wallProxEl = document.getElementById('cfg-wall-proximity');
+        if (wallProxEl) wallProxEl.value = String(alarmSettings.wallProximityPts || 25);
+
+        const negGexEl = document.getElementById('cfg-neg-gex-enabled');
+        if (negGexEl) negGexEl.checked = !!alarmSettings.negGexEnabled;
+
+        const contEl = document.getElementById('cfg-continuous-mode');
+        if (contEl) contEl.value = alarmSettings.continuous ? 'true' : 'false';
+
+        const volEl = document.getElementById('cfg-alarm-volume');
+        const volLabel = document.getElementById('cfg-volume-label');
+        if (volEl) volEl.value = alarmSettings.volume ?? 0.7;
+        if (volLabel) volLabel.textContent = `${Math.round((alarmSettings.volume ?? 0.7) * 100)}%`;
+
+        // Radio tone
+        const radio = document.querySelector(`input[name="alarm-tone"][value="${alarmSettings.tone}"]`);
+        if (radio) radio.checked = true;
+        highlightSelectedToneCard(alarmSettings.tone);
+    }
+
+    function highlightSelectedToneCard(selectedTone) {
+        document.querySelectorAll('.tone-card').forEach(card => {
+            const tone = card.getAttribute('data-tone');
+            if (tone === selectedTone) {
+                card.classList.add('border-fuchsia-500', 'bg-fuchsia-950/20');
+                card.classList.remove('border-slate-700', 'bg-[#0b0e17]');
+            } else {
+                card.classList.remove('border-fuchsia-500', 'bg-fuchsia-950/20');
+                card.classList.add('border-slate-700', 'bg-[#0b0e17]');
+            }
+        });
+    }
+
+    function saveModalToSettings() {
+        alarmSettings.enabled = document.getElementById('cfg-alarm-enabled')?.checked ?? true;
+        alarmSettings.blastScoreEnabled = document.getElementById('cfg-blast-enabled')?.checked ?? true;
+        alarmSettings.minBlastScore = parseInt(document.getElementById('cfg-min-blast-score')?.value || 75);
+        alarmSettings.flipEnabled = document.getElementById('cfg-flip-enabled')?.checked ?? true;
+        alarmSettings.flipProximityPts = parseFloat(document.getElementById('cfg-flip-proximity')?.value || 25);
+        alarmSettings.wallEnabled = document.getElementById('cfg-wall-enabled')?.checked ?? true;
+        alarmSettings.wallProximityPts = parseFloat(document.getElementById('cfg-wall-proximity')?.value || 25);
+        alarmSettings.negGexEnabled = document.getElementById('cfg-neg-gex-enabled')?.checked ?? false;
+        alarmSettings.continuous = document.getElementById('cfg-continuous-mode')?.value === 'true';
+        alarmSettings.volume = parseFloat(document.getElementById('cfg-alarm-volume')?.value || 0.7);
+
+        const checkedTone = document.querySelector('input[name="alarm-tone"]:checked');
+        if (checkedTone) {
+            alarmSettings.tone = checkedTone.value;
+        }
     }
 </script>
 @endpush
