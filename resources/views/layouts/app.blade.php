@@ -42,7 +42,7 @@
         @yield('content')
     </div>
 </main>
-@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis', 'nifty.unified', 'order-flow', 'order.flow']))
+@if(!Str::startsWith($routeName, ['test.', 'trading.', 'live.strike.chart', 'straddle.chart', 'delta.neutral', 'matching.', 'strike.', 'nifty.matrix', 'nifty.weightage', 'options.breadth', 'vega.analysis', 'nifty.unified', 'order-flow', 'order.flow', 'expiry.oi.volume.analysis', 'live.straddle.radar']))
 {{--    @if(!request()->has('nr'))--}}
 <script>
     ( function () {
@@ -96,10 +96,10 @@
 @endif
 <script>
     window.toggleGlobalZenMode = function(forceState = null) {
-        const isZen = forceState !== null 
+        const isZen = forceState !== null
             ? document.body.classList.toggle('zen-mode', forceState)
             : document.body.classList.toggle('zen-mode');
-        
+
         try {
             sessionStorage.setItem('zen_mode', isZen ? '1' : '0');
         } catch (e) {}
