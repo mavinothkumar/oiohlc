@@ -36,9 +36,9 @@
         <div class="flex items-center justify-between h-14">
             
             <!-- LEFT: Brand & Quick Core -->
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3 xl:gap-6 shrink-0">
                 <!-- Brand / Logo -->
-                <a href="{{ route('home') }}" class="flex items-center gap-2.5 group focus:outline-none">
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5 group focus:outline-none shrink-0">
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-900 to-indigo-950 flex items-center justify-center shadow-xs border border-slate-800 group-hover:border-indigo-500 transition-colors">
                         <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -46,24 +46,24 @@
                         </svg>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-base font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">OI OHLC</span>
+                        <span class="text-base font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors whitespace-nowrap">OI OHLC</span>
                         <span class="text-[9px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">PRO</span>
                     </div>
                 </a>
 
                 <!-- Desktop Mega-Menu Nav Links -->
-                <div class="hidden lg:flex items-center space-x-1">
+                <div class="hidden lg:flex items-center space-x-0.5 xl:space-x-1 shrink-0">
 
                     <!-- 1. MONITORS & COCKPITS -->
                     <div class="relative group">
                         <button type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isMonitorsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5 {{ $isMonitorsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                class="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isMonitorsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                            <svg class="w-3.5 h-3.5 shrink-0 {{ $isMonitorsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect width="20" height="14" x="2" y="3" rx="2"/>
                                 <line x1="8" x2="16" y1="21" y2="21"/>
                                 <line x1="12" x2="12" y1="17" y2="21"/>
                             </svg>
-                            <span>Monitors</span>
+                            <span class="whitespace-nowrap">Monitors</span>
                             <svg class="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -144,12 +144,12 @@
                     <!-- 2. ANALYTICS & MATRICES -->
                     <div class="relative group">
                         <button type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isAnalyticsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5 {{ $isAnalyticsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                class="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isAnalyticsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                            <svg class="w-3.5 h-3.5 shrink-0 {{ $isAnalyticsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 3v18h18"/>
                                 <path d="m19 9-5 5-4-4-3 3"/>
                             </svg>
-                            <span>Analytics &amp; Matrices</span>
+                            <span class="whitespace-nowrap">Analytics &amp; Matrices</span>
                             <svg class="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -260,8 +260,8 @@
                     <!-- 3. STRATEGIES & EXECUTION -->
                     <div class="relative group">
                         <button type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isStrategiesActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5 {{ $isStrategiesActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                class="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isStrategiesActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                            <svg class="w-3.5 h-3.5 shrink-0 {{ $isStrategiesActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
                                 <path d="m4.93 4.93 4.24 4.24"/>
                                 <path d="m14.83 9.17 4.24-4.24"/>
@@ -269,7 +269,7 @@
                                 <path d="m9.17 14.83-4.24 4.24"/>
                                 <circle cx="12" cy="12" r="4"/>
                             </svg>
-                            <span>Strategies &amp; Trade</span>
+                            <span class="whitespace-nowrap">Strategies &amp; Trade</span>
                             <svg class="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -361,11 +361,11 @@
                     <!-- 4. TOOLS & OI DYNAMICS -->
                     <div class="relative group">
                         <button type="button"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isToolsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
-                            <svg class="w-3.5 h-3.5 {{ $isToolsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                class="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus:outline-none {{ $isToolsActive ? 'text-indigo-600 bg-indigo-50/80 font-semibold' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                            <svg class="w-3.5 h-3.5 shrink-0 {{ $isToolsActive ? 'text-indigo-600' : 'text-slate-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
                             </svg>
-                            <span>Tools &amp; OI</span>
+                            <span class="whitespace-nowrap">Tools &amp; OI</span>
                             <svg class="w-3 h-3 text-slate-400 group-hover:text-slate-600 transition-transform group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                             </svg>
@@ -452,70 +452,70 @@
                 </div>
             </div>
 
-            <!-- RIGHT: High-Priority Direct Pills + Market Clock + Actions -->
-            <div class="flex items-center gap-2.5">
+            <!-- RIGHT: High-Priority Direct Action Pills & Market Clock -->
+            <div class="flex items-center gap-1.5 xl:gap-2 shrink-0">
 
-                <!-- 0. Option Expiry Dynamics Direct Pill (Replaced Cron Status) -->
+                <!-- 0. Option Expiry Dynamics Direct Pill -->
                 <a href="{{ route('expiry.oi.volume.analysis') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('expiry.oi.volume.analysis') ? 'bg-indigo-600 text-white font-bold shadow-xs ring-1 ring-indigo-400' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('expiry.oi.volume.analysis') ? 'bg-indigo-600 text-white shadow-xs border-indigo-600' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
                    title="Option Expiry Day-over-Day OI, Volume &amp; Straddle Dynamics">
-                    <svg class="w-3.5 h-3.5 {{ request()->routeIs('expiry.oi.volume.analysis') ? 'text-white' : 'text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <svg class="w-3.5 h-3.5 shrink-0 {{ request()->routeIs('expiry.oi.volume.analysis') ? 'text-white' : 'text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    <span class="whitespace-nowrap font-medium">Expiry Dynamics</span>
+                    <span class="whitespace-nowrap">Expiry Dynamics</span>
                 </a>
 
                 <!-- 0.5. Live Straddle Radar Direct Pill -->
                 <a href="{{ route('live.straddle.radar') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('live.straddle.*') ? 'bg-rose-600 text-white font-bold shadow-xs ring-1 ring-rose-400' : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300' }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('live.straddle.*') ? 'bg-rose-600 text-white shadow-xs border-rose-600' : 'bg-white hover:bg-rose-50 text-rose-700 border-slate-200 hover:border-rose-300' }}"
                    title="Live Straddle Decay &amp; Spike Alert Radar">
-                    <span class="relative flex h-2 w-2">
+                    <span class="relative flex h-2 w-2 shrink-0">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-400' }} opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-500' }}"></span>
                     </span>
-                    <span class="whitespace-nowrap font-medium">Straddle Radar</span>
-                    <span class="text-[9px] font-black uppercase tracking-wider {{ request()->routeIs('live.straddle.*') ? 'text-rose-900 bg-white/90' : 'text-rose-700 bg-rose-100' }} px-1 py-0.2 rounded border {{ request()->routeIs('live.straddle.*') ? 'border-white/50' : 'border-rose-200' }}">Live 🔔</span>
+                    <span class="whitespace-nowrap">Straddle Radar</span>
+                    <span class="text-[10px]">🔔</span>
                 </a>
 
                 <!-- 1. Unified Cockpit (Flagship Direct Action Pill) -->
                 <a href="{{ route('nifty.unified.monitor') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs {{ request()->routeIs('nifty.unified.monitor') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-white' }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.unified.monitor') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-white' }}"
                    title="NIFTY 50 3-in-1 Unified Cockpit (Weightage, Breadth &amp; OI)">
-                    <span class="relative flex h-2 w-2">
+                    <span class="relative flex h-2 w-2 shrink-0">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
                     </span>
-                    <span class="whitespace-nowrap font-medium">Unified Cockpit</span>
+                    <span class="whitespace-nowrap">Unified Cockpit</span>
                 </a>
 
                 <!-- 2. 30-Depth Radar Direct Pill -->
                 <a href="{{ route('order-flow-depth.index') }}"
-                   class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('order-flow-depth.*') ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold ring-1 ring-amber-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   class="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('order-flow-depth.*') ? 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
                    title="30-Depth Order Flow Confluence Radar">
-                    <svg class="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-3.5 h-3.5 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <circle cx="12" cy="12" r="6"/>
                         <circle cx="12" cy="12" r="2"/>
                     </svg>
-                    <span class="whitespace-nowrap font-medium">30-Depth</span>
+                    <span class="whitespace-nowrap">30-Depth</span>
                 </a>
 
                 <!-- 2.5 Gamma Blast Scalping Radar Direct Pill -->
                 <a href="{{ route('gamma-blast.index') }}"
-                   class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('gamma-blast.*') ? 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-500 font-bold ring-1 ring-fuchsia-400' : 'bg-white hover:bg-fuchsia-50 text-fuchsia-700 border-slate-200 hover:border-fuchsia-300' }}"
+                   class="hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('gamma-blast.*') ? 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-500 ring-1 ring-fuchsia-400' : 'bg-white hover:bg-fuchsia-50 text-fuchsia-700 border-slate-200 hover:border-fuchsia-300' }}"
                    title="Institutional Gamma Exposure (GEX) & Scalping Blast Radar">
                     <span class="text-xs">⚡</span>
-                    <span class="whitespace-nowrap font-medium">Gamma Blast</span>
+                    <span class="whitespace-nowrap">Gamma Blast</span>
                 </a>
 
                 <!-- 3. Live Trade Direct Pill -->
                 <a href="{{ route('trading-journal.index') }}"
-                   class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('trading-journal.*') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 font-semibold ring-1 ring-indigo-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   class="hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('trading-journal.*') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 ring-1 ring-indigo-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
                    title="Strategy Live Trade &amp; Journal">
-                    <svg class="w-3.5 h-3.5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
-                    <span class="whitespace-nowrap font-medium">Live Trade</span>
+                    <span class="whitespace-nowrap">Live Trade</span>
                 </a>
 
                 <div class="hidden xl:block h-4 w-px bg-slate-200"></div>
