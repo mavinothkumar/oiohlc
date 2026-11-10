@@ -465,6 +465,18 @@
                     <span class="whitespace-nowrap font-medium">Expiry Dynamics</span>
                 </a>
 
+                <!-- 0.5. Live Straddle Radar Direct Pill -->
+                <a href="{{ route('live.straddle.radar') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition border {{ request()->routeIs('live.straddle.*') ? 'bg-rose-600 text-white font-bold shadow-xs ring-1 ring-rose-400' : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300' }}"
+                   title="Live Straddle Decay &amp; Spike Alert Radar">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-400' }} opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-500' }}"></span>
+                    </span>
+                    <span class="whitespace-nowrap font-medium">Straddle Radar</span>
+                    <span class="text-[9px] font-black uppercase tracking-wider {{ request()->routeIs('live.straddle.*') ? 'text-rose-900 bg-white/90' : 'text-rose-700 bg-rose-100' }} px-1 py-0.2 rounded border {{ request()->routeIs('live.straddle.*') ? 'border-white/50' : 'border-rose-200' }}">Live 🔔</span>
+                </a>
+
                 <!-- 1. Unified Cockpit (Flagship Direct Action Pill) -->
                 <a href="{{ route('nifty.unified.monitor') }}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs {{ request()->routeIs('nifty.unified.monitor') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-white' }}"
@@ -557,7 +569,11 @@
         <div class="space-y-3">
             
             <!-- Quick Pills in Mobile -->
-            <div class="grid grid-cols-3 gap-2 pb-2 border-b border-slate-100">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2 border-b border-slate-100">
+                <a href="{{ route('live.straddle.radar') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold shadow-xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                    Straddle Radar 🔔
+                </a>
                 <a href="{{ route('expiry.oi.volume.analysis') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
