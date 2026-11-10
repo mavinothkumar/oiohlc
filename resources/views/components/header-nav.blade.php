@@ -32,7 +32,7 @@
 
 <!-- Main Enterprise Navigation Bar -->
 <nav class="w-full bg-white select-none relative border-b border-slate-200 shadow-2xs">
-    <div class="max-w-[1780px] mx-auto px-3 sm:px-4 lg:px-6">
+    <div class="w-full px-3 sm:px-4 lg:px-6">
         <div class="flex items-center justify-between h-14 gap-3">
             
             <!-- LEFT: Brand & Unified "All Modules" Directory -->

@@ -55,7 +55,7 @@
 @endpush
 
 @section('content')
-<div class="max-w-[1850px] mx-auto px-2 sm:px-4 pb-16 font-sans antialiased text-slate-800"
+<div class="w-full px-2 sm:px-4 pb-16 font-sans antialiased text-slate-800"
      x-data="liveStraddleRadarApp()">
 
     <!-- ════════════════════════════════════════════════════════════════════════
