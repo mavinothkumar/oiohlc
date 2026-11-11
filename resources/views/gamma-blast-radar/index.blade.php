@@ -204,6 +204,7 @@
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-rose-600 text-white tracking-wider">GAMMA BLAST ALERT ACTIVE</span>
                     <span id="alarm-banner-time" class="text-[11px] font-mono text-rose-200"></span>
+                    <span id="alarm-autohide-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono text-amber-300 bg-amber-950/80 border border-amber-500/50 hidden">Auto-hiding in <span id="alarm-autohide-countdown">10</span>s</span>
                 </div>
                 <div id="alarm-banner-message" class="text-xs sm:text-sm font-bold text-white mt-0.5 truncate font-mono">
                     High Probability Gamma Squeeze Triggered!
@@ -216,6 +217,9 @@
             </button>
             <button type="button" id="btn-banner-settings" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition cursor-pointer" title="Alarm Settings">
                 ⚙️
+            </button>
+            <button type="button" id="btn-banner-close" class="p-1 text-slate-400 hover:text-white rounded transition cursor-pointer text-sm font-bold" title="Dismiss Notification">
+                ✕
             </button>
         </div>
     </div>
@@ -1050,8 +1054,27 @@
                         </div>
                         <select id="cfg-continuous-mode" class="w-full bg-[#131a2b] text-slate-200 border border-slate-700 rounded p-1.5 text-xs font-semibold focus:outline-none cursor-pointer">
                             <option value="true">Continuous (Rings until dismissed / ESC)</option>
-                            <option value="false">Single Burst (Rings 3 times then stops)</option>
+                            <option value="false">Single Burst (Rings 3 times &amp; auto-hides banner)</option>
                         </select>
+
+                        <!-- Single Burst Auto-Hide Duration Container -->
+                        <div id="single-burst-autohide-container" class="pt-2 border-t border-slate-800/80 hidden">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase font-bold text-slate-400">Banner Auto-Hide:</span>
+                                <div class="relative flex items-center">
+                                    <input type="number" id="cfg-autohide-seconds" min="3" max="60" step="1" value="10"
+                                           class="w-20 pl-2 pr-6 py-0.5 bg-[#131a2b] text-amber-300 font-mono font-bold text-xs rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none text-right" title="Seconds before notification banner auto-hides in Single Burst mode">
+                                    <span class="absolute right-2 text-[10px] font-mono text-slate-400 font-bold">s</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                <span class="text-[10px] text-slate-500 mr-0.5">Presets:</span>
+                                <button type="button" class="preset-btn px-1.5 py-0.2 rounded text-[9.5px] font-mono bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-autohide-seconds" data-value="5">5s</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.2 rounded text-[9.5px] font-mono bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-autohide-seconds" data-value="10">10s (Def)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.2 rounded text-[9.5px] font-mono bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-autohide-seconds" data-value="15">15s</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.2 rounded text-[9.5px] font-mono bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-autohide-seconds" data-value="30">30s</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Volume Slider -->
@@ -1125,6 +1148,7 @@
         wallProximityPts: 25,
         negGexEnabled: false,
         cooldownMinutes: 3,
+        autoHideSeconds: 10,
     };
 
     let alarmSettings = { ...DEFAULT_ALARM_SETTINGS };
@@ -1134,6 +1158,8 @@
     let audioCtx = null;
     let lastAlarmTriggeredAt = 0;
     let lastAlarmReasonsKey = '';
+    let bannerAutoHideTimeout = null;
+    let bannerCountdownInterval = null;
 
     function loadAlarmSettings() {
         try {
@@ -1894,18 +1920,61 @@
     }
 
     // ── 12. Alarm Trigger & Silence Loop Controller ──────────────────────────────
+    function clearBannerTimers() {
+        if (bannerAutoHideTimeout) {
+            clearTimeout(bannerAutoHideTimeout);
+            bannerAutoHideTimeout = null;
+        }
+        if (bannerCountdownInterval) {
+            clearInterval(bannerCountdownInterval);
+            bannerCountdownInterval = null;
+        }
+    }
+
     function triggerAlarm(message) {
         if (!alarmSettings.enabled) return;
+
+        clearBannerTimers();
 
         const banner = document.getElementById('gamma-alarm-banner');
         const msgEl = document.getElementById('alarm-banner-message');
         const timeEl = document.getElementById('alarm-banner-time');
+        const autoHideBadge = document.getElementById('alarm-autohide-badge');
+        const countdownEl = document.getElementById('alarm-autohide-countdown');
 
         if (msgEl) msgEl.textContent = message;
         if (timeEl) {
             const d = new Date();
             timeEl.textContent = d.toLocaleTimeString('en-IN');
         }
+
+        if (alarmSettings.continuous) {
+            if (autoHideBadge) autoHideBadge.classList.add('hidden');
+        } else {
+            // Single Burst Mode: Auto-hide notification banner after configured seconds (default: 10s)
+            const autoHideSecs = parseInt(alarmSettings.autoHideSeconds || 10);
+            let remainingSecs = autoHideSecs;
+
+            if (autoHideBadge && countdownEl) {
+                countdownEl.textContent = remainingSecs;
+                autoHideBadge.classList.remove('hidden');
+
+                bannerCountdownInterval = setInterval(() => {
+                    remainingSecs--;
+                    if (remainingSecs > 0) {
+                        countdownEl.textContent = remainingSecs;
+                    } else {
+                        clearInterval(bannerCountdownInterval);
+                        bannerCountdownInterval = null;
+                    }
+                }, 1000);
+            }
+
+            bannerAutoHideTimeout = setTimeout(() => {
+                silenceAlarm();
+            }, autoHideSecs * 1000);
+        }
+
         if (banner) banner.classList.remove('hidden');
 
         if (isAlarmRinging) return;
@@ -1937,6 +2006,7 @@
 
     function silenceAlarm() {
         isAlarmRinging = false;
+        clearBannerTimers();
         if (alarmLoopInterval) {
             clearInterval(alarmLoopInterval);
             alarmLoopInterval = null;
@@ -2375,9 +2445,23 @@
             closeAlarmModal();
         });
 
-        // Banner silence
+        // Banner silence & dismiss
         document.getElementById('btn-banner-silence')?.addEventListener('click', () => {
             silenceAlarm();
+        });
+
+        document.getElementById('btn-banner-close')?.addEventListener('click', () => {
+            silenceAlarm();
+        });
+
+        // Continuous mode change handler to toggle auto-hide settings container
+        document.getElementById('cfg-continuous-mode')?.addEventListener('change', (e) => {
+            const isContinuous = e.target.value === 'true';
+            const container = document.getElementById('single-burst-autohide-container');
+            if (container) {
+                if (isContinuous) container.classList.add('hidden');
+                else container.classList.remove('hidden');
+            }
         });
 
         // Quick test buttons
@@ -2420,7 +2504,7 @@
         });
 
         // Highlight preset buttons when inputs change
-        ['cfg-min-blast-score', 'cfg-flip-proximity', 'cfg-wall-proximity', 'cfg-cooldown-mins'].forEach(id => {
+        ['cfg-min-blast-score', 'cfg-flip-proximity', 'cfg-wall-proximity', 'cfg-cooldown-mins', 'cfg-autohide-seconds'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', () => {
                 highlightActivePresets();
             });
@@ -2514,6 +2598,15 @@
         const contEl = document.getElementById('cfg-continuous-mode');
         if (contEl) contEl.value = alarmSettings.continuous ? 'true' : 'false';
 
+        const autoHideEl = document.getElementById('cfg-autohide-seconds');
+        if (autoHideEl) autoHideEl.value = Number(alarmSettings.autoHideSeconds ?? DEFAULT_ALARM_SETTINGS.autoHideSeconds);
+
+        const autohideContainer = document.getElementById('single-burst-autohide-container');
+        if (autohideContainer) {
+            if (alarmSettings.continuous) autohideContainer.classList.add('hidden');
+            else autohideContainer.classList.remove('hidden');
+        }
+
         const volEl = document.getElementById('cfg-alarm-volume');
         const volLabel = document.getElementById('cfg-volume-label');
         if (volEl) volEl.value = alarmSettings.volume ?? DEFAULT_ALARM_SETTINGS.volume;
@@ -2563,6 +2656,10 @@
         alarmSettings.cooldownMinutes = isNaN(cooldownVal) ? DEFAULT_ALARM_SETTINGS.cooldownMinutes : Math.max(0, cooldownVal);
 
         alarmSettings.continuous = document.getElementById('cfg-continuous-mode')?.value === 'true';
+
+        const autoHideVal = parseInt(document.getElementById('cfg-autohide-seconds')?.value);
+        alarmSettings.autoHideSeconds = isNaN(autoHideVal) ? DEFAULT_ALARM_SETTINGS.autoHideSeconds : Math.max(3, autoHideVal);
+
         alarmSettings.volume = parseFloat(document.getElementById('cfg-alarm-volume')?.value || 0.7);
 
         const checkedTone = document.querySelector('input[name="alarm-tone"]:checked');
