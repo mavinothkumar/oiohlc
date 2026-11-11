@@ -675,11 +675,17 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 flex-wrap">
                 <div class="flex items-center gap-1.5 bg-[#101626] border border-slate-800 px-2 py-1 rounded text-[10px] font-mono text-slate-300">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
                     <span>Live Audit: ACTIVE</span>
                 </div>
+                <button type="button" id="btn-export-alerts-csv" class="px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-white rounded border border-emerald-600/50 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer shadow-xs" title="Export logged alerts to CSV spreadsheet">
+                    <span>📥 Export CSV</span>
+                </button>
+                <button type="button" id="btn-export-alerts-json" class="px-2 py-1 bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 hover:text-white rounded border border-sky-600/50 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer shadow-xs" title="Export logged alerts to JSON data file">
+                    <span>{ } Export JSON</span>
+                </button>
                 <button type="button" id="btn-refresh-alert-logs" class="px-2 py-1 bg-[#131a2b] hover:bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer" title="Refresh logged alerts table">
                     <span>🔄 Refresh</span>
                 </button>
@@ -1123,6 +1129,7 @@
     let selectedSymbol = "{{ $symbol }}";
     let availableTimes = @json($gexData['available_times'] ?? []);
     let activeLadderFilter = 'atm';
+    let currentAlertLogs = @json($initialAlertLogs ?? []);
 
     // Chart instances
     let profileChart = null;
@@ -1248,6 +1255,14 @@
         });
 
         // Alert table action buttons
+        document.getElementById('btn-export-alerts-csv')?.addEventListener('click', () => {
+            exportAlertsCsv();
+        });
+
+        document.getElementById('btn-export-alerts-json')?.addEventListener('click', () => {
+            exportAlertsJson();
+        });
+
         document.getElementById('btn-refresh-alert-logs')?.addEventListener('click', () => {
             fetchAlertLogs();
         });
@@ -2301,6 +2316,11 @@
 
         tbody.insertBefore(tr, tbody.firstChild);
 
+        if (log) {
+            if (!currentAlertLogs) currentAlertLogs = [];
+            currentAlertLogs.unshift(log);
+        }
+
         // Update badge count
         const countBadge = document.getElementById('alert-logs-count-badge');
         if (countBadge) {
@@ -2326,8 +2346,10 @@
         const countBadge = document.getElementById('alert-logs-count-badge');
         if (!tbody) return;
 
+        currentAlertLogs = logs || [];
+
         if (countBadge) {
-            countBadge.textContent = `${logs.length} Alerts Logged`;
+            countBadge.textContent = `${currentAlertLogs.length} Alerts Logged`;
         }
 
         if (!logs || logs.length === 0) {
@@ -2408,11 +2430,141 @@
             });
             const data = await resp.json();
             if (data.success) {
+                currentAlertLogs = [];
                 renderAlertLogs([]);
             }
         } catch (e) {
             console.error('Failed to clear gamma blast alert logs:', e);
         }
+    }
+
+    async function exportAlertsCsv() {
+        let logs = currentAlertLogs;
+        if (!logs || logs.length === 0) {
+            try {
+                const resp = await fetch(`/api/gamma-blast/alerts?date=${selectedDate}&symbol=${selectedSymbol}&limit=1000`);
+                const data = await resp.json();
+                if (data.success && data.logs && data.logs.length > 0) {
+                    logs = data.logs;
+                    currentAlertLogs = logs;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        if (!logs || logs.length === 0) {
+            alert('No alert logs available to export for ' + selectedDate);
+            return;
+        }
+
+        const headers = [
+            'ID',
+            'Trade Date',
+            'Alert Time (IST)',
+            'Symbol',
+            'Expiry',
+            'Alert Type',
+            'Title / Strike',
+            'Option Type',
+            'Direction',
+            'Blast Score (%)',
+            'Distance (pts)',
+            'Spot at Trigger',
+            'Trigger Condition',
+            'Zero-Gamma Flip',
+            'Call Wall',
+            'Put Wall',
+            'Net GEX (Cr)',
+            'Regime',
+            'Message'
+        ];
+
+        const rows = [headers.map(escapeCsv).join(',')];
+
+        logs.forEach(log => {
+            rows.push([
+                escapeCsv(log.id || ''),
+                escapeCsv(log.trade_date || selectedDate),
+                escapeCsv(log.alert_time || ''),
+                escapeCsv(log.symbol || selectedSymbol),
+                escapeCsv(log.expiry || selectedExpiry),
+                escapeCsv(log.alert_type || ''),
+                escapeCsv(log.title || ''),
+                escapeCsv(log.option_type || ''),
+                escapeCsv(log.direction || ''),
+                escapeCsv(log.score !== null && log.score !== undefined ? Number(log.score).toFixed(1) : ''),
+                escapeCsv(log.distance_pts !== null && log.distance_pts !== undefined ? Number(log.distance_pts).toFixed(1) : ''),
+                escapeCsv(log.spot_price !== null && log.spot_price !== undefined ? Number(log.spot_price).toFixed(2) : ''),
+                escapeCsv(log.trigger_condition || ''),
+                escapeCsv(log.zero_gamma_flip !== null && log.zero_gamma_flip !== undefined ? Number(log.zero_gamma_flip).toFixed(2) : ''),
+                escapeCsv(log.call_wall !== null && log.call_wall !== undefined ? Number(log.call_wall).toFixed(2) : ''),
+                escapeCsv(log.put_wall !== null && log.put_wall !== undefined ? Number(log.put_wall).toFixed(2) : ''),
+                escapeCsv(log.net_gex_cr !== null && log.net_gex_cr !== undefined ? Number(log.net_gex_cr).toFixed(2) : ''),
+                escapeCsv(log.regime || ''),
+                escapeCsv(log.message || '')
+            ].join(','));
+        });
+
+        const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gamma_blast_alerts_${selectedSymbol}_${selectedDate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function exportAlertsJson() {
+        let logs = currentAlertLogs;
+        if (!logs || logs.length === 0) {
+            try {
+                const resp = await fetch(`/api/gamma-blast/alerts?date=${selectedDate}&symbol=${selectedSymbol}&limit=1000`);
+                const data = await resp.json();
+                if (data.success && data.logs && data.logs.length > 0) {
+                    logs = data.logs;
+                    currentAlertLogs = logs;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        if (!logs || logs.length === 0) {
+            alert('No alert logs available to export for ' + selectedDate);
+            return;
+        }
+
+        const exportData = {
+            export_title: 'Gamma Blast Trigger Audit & Market Movement Log',
+            symbol: selectedSymbol,
+            trade_date: selectedDate,
+            expiry: selectedExpiry,
+            exported_at: (new Date()).toISOString(),
+            total_alerts: logs.length,
+            alerts: logs
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gamma_blast_alerts_${selectedSymbol}_${selectedDate}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function escapeCsv(val) {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
     }
 
     function escapeHtml(str) {
