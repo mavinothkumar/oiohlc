@@ -2209,7 +2209,8 @@
         }
 
         if (reasons.length > 0) {
-            const currentReasonsKey = reasons.slice().sort().join(' | ');
+            // Stable semantic key (e.g. BLAST_SQUEEZE:25400:CE) so floating percentages/points don't defeat cooldown
+            const currentReasonsKey = alertItems.map(item => `${item.alert_type}:${item.strike || ''}:${item.option_type || ''}`).sort().join(' | ') || reasons.slice().sort().join(' | ');
             const now = Date.now();
             const cooldownMins = parseFloat(alarmSettings.cooldownMinutes ?? DEFAULT_ALARM_SETTINGS.cooldownMinutes);
             const cooldownMs = (isNaN(cooldownMins) ? 3 : cooldownMins) * 60 * 1000;
