@@ -654,6 +654,126 @@
     </div>
 
     {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    {{-- GAMMA BLAST ALERT AUDIT & MARKET MOVEMENT LOG TABLE                           --}}
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
+    <div class="cockpit-card p-3 shadow-lg overflow-hidden border-rose-900/30">
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 live-dot"></span>
+                <div>
+                    <h3 class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>🚨 GAMMA BLAST TRIGGER AUDIT &amp; MARKET MOVEMENT LOG</span>
+                        <span id="alert-logs-count-badge" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                            {{ count($initialAlertLogs ?? []) }} Alerts Logged
+                        </span>
+                    </h3>
+                    <p class="text-[10px] text-slate-400">Database recorded triggers based on your configured thresholds • Inspect timing vs subsequent spot price movement</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 bg-[#101626] border border-slate-800 px-2 py-1 rounded text-[10px] font-mono text-slate-300">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
+                    <span>Live Audit: ACTIVE</span>
+                </div>
+                <button type="button" id="btn-refresh-alert-logs" class="px-2 py-1 bg-[#131a2b] hover:bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer" title="Refresh logged alerts table">
+                    <span>🔄 Refresh</span>
+                </button>
+                <button type="button" id="btn-clear-alert-logs" class="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white rounded border border-rose-800/50 text-xs font-bold font-mono transition flex items-center gap-1 cursor-pointer" title="Clear logs for selected date">
+                    <span>🗑️ Clear</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar max-h-[380px]">
+            <table class="w-full text-left font-mono text-[11px] border-collapse">
+                <thead class="sticky top-0 bg-[#101626] border-b border-slate-700 text-slate-400 text-[10px] uppercase tracking-wider z-10">
+                    <tr>
+                        <th class="py-2 px-2 text-center whitespace-nowrap">Time</th>
+                        <th class="py-2 px-2 text-left whitespace-nowrap">Alert Type</th>
+                        <th class="py-2 px-2 text-left whitespace-nowrap">Strike / Target</th>
+                        <th class="py-2 px-2 text-center whitespace-nowrap">Bias</th>
+                        <th class="py-2 px-2 text-center whitespace-nowrap">Score / Dist</th>
+                        <th class="py-2 px-2 text-right whitespace-nowrap">Spot at Trigger</th>
+                        <th class="py-2 px-2 text-left whitespace-nowrap">Trigger Condition</th>
+                        <th class="py-2 px-2 text-center whitespace-nowrap">Market Regime</th>
+                        <th class="py-2 px-2 text-left min-w-[240px]">Alert Details</th>
+                    </tr>
+                </thead>
+                <tbody id="alert-logs-tbody" class="divide-y divide-slate-800/60">
+                    @forelse($initialAlertLogs ?? [] as $log)
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="py-1.5 px-2 text-center font-bold text-sky-300 whitespace-nowrap">
+                                {{ $log->alert_time }}
+                            </td>
+                            <td class="py-1.5 px-2 whitespace-nowrap">
+                                @if($log->alert_type === 'BLAST_SQUEEZE')
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40">⚡ Blast Squeeze</span>
+                                @elseif($log->alert_type === 'ZERO_FLIP_TEST')
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">🎯 Zero-Flip Test</span>
+                                @elseif($log->alert_type === 'CALL_WALL_TEST')
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🧱 Call Wall Test</span>
+                                @elseif($log->alert_type === 'PUT_WALL_TEST')
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🧱 Put Wall Test</span>
+                                @elseif($log->alert_type === 'NEGATIVE_GEX_REGIME')
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">⚠️ -GEX Shift</span>
+                                @else
+                                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-700 text-slate-300">{{ $log->alert_type }}</span>
+                                @endif
+                            </td>
+                            <td class="py-1.5 px-2 font-bold text-white whitespace-nowrap">
+                                {{ $log->title }}
+                            </td>
+                            <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                                @if($log->direction === 'BULLISH')
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">BULLISH</span>
+                                @elseif($log->direction === 'BEARISH')
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">BEARISH</span>
+                                @else
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">NEUTRAL</span>
+                                @endif
+                            </td>
+                            <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                                @if($log->score)
+                                    <span class="font-bold text-amber-300">{{ $log->score }}%</span>
+                                @elseif($log->distance_pts !== null)
+                                    <span class="text-slate-300">{{ $log->distance_pts }} pts</span>
+                                @else
+                                    <span class="text-slate-500">—</span>
+                                @endif
+                            </td>
+                            <td class="py-1.5 px-2 text-right font-bold text-white whitespace-nowrap">
+                                ₹{{ number_format($log->spot_price, 2) }}
+                            </td>
+                            <td class="py-1.5 px-2 text-slate-300 text-[10.5px] whitespace-nowrap">
+                                {{ $log->trigger_condition ?? '—' }}
+                            </td>
+                            <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                                @if($log->regime === 'POSITIVE_GAMMA')
+                                    <span class="text-[9.5px] text-emerald-400 font-bold">+GEX</span>
+                                @elseif($log->regime === 'NEGATIVE_GAMMA')
+                                    <span class="text-[9.5px] text-rose-400 font-bold">-GEX</span>
+                                @else
+                                    <span class="text-[9.5px] text-amber-400 font-bold">BALANCED</span>
+                                @endif
+                            </td>
+                            <td class="py-1.5 px-2 text-slate-300 text-[10.5px]">
+                                {{ $log->message }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr id="alert-logs-empty">
+                            <td colspan="9" class="text-center py-6 text-slate-500 font-mono text-xs">
+                                No alerts triggered yet for selected session. Alerts will be recorded automatically when trigger conditions are met.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- ════════════════════════════════════════════════════════════════════════════ --}}
     {{-- AUDIO ALARM CONFIGURATION SETTINGS MODAL                                     --}}
     {{-- ════════════════════════════════════════════════════════════════════════════ --}}
     <div id="alarm-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs hidden">
@@ -1100,6 +1220,15 @@
                 fetchGexData(null);
             }
         });
+
+        // Alert table action buttons
+        document.getElementById('btn-refresh-alert-logs')?.addEventListener('click', () => {
+            fetchAlertLogs();
+        });
+
+        document.getElementById('btn-clear-alert-logs')?.addEventListener('click', () => {
+            clearAlertLogs();
+        });
     });
 
     // ── 1. Date Picker Initialization ─────────────────────────────────────────────
@@ -1147,9 +1276,11 @@
                 }
             }
             fetchGexData();
+            fetchAlertLogs();
         } catch (e) {
             console.error('Error fetching expiries for date:', e);
             fetchGexData();
+            fetchAlertLogs();
         }
     }
 
@@ -1841,6 +1972,7 @@
         const setups = data.top_blast_setups || [];
 
         let reasons = [];
+        let alertItems = [];
 
         // Condition A: High Blast Readiness Score
         if (alarmSettings.blastScoreEnabled && setups.length > 0) {
@@ -1852,7 +1984,31 @@
             if (candidates.length > 0) {
                 const top = candidates[0];
                 if (top && top.score >= minScore) {
-                    reasons.push(`${top.option} Blast Squeeze Score: ${top.score}% (${top.direction}) — ${top.trigger}`);
+                    const msg = `${top.option} Blast Squeeze Score: ${top.score}% (${top.direction}) — ${top.trigger}`;
+                    reasons.push(msg);
+                    alertItems.push({
+                        trade_date: selectedDate,
+                        alert_time: (new Date()).toLocaleTimeString('en-GB'),
+                        symbol: selectedSymbol,
+                        expiry: selectedExpiry,
+                        spot_price: spot,
+                        alert_type: 'BLAST_SQUEEZE',
+                        title: `${top.option} Gamma Blast`,
+                        strike: top.strike,
+                        option_type: (top.option && top.option.includes('CE')) ? 'CE' : 'PE',
+                        direction: top.direction,
+                        score: top.score,
+                        distance_pts: Math.abs(spot - parseFloat(top.strike || spot)),
+                        trigger_condition: top.trigger,
+                        zero_gamma_flip: flip,
+                        call_wall: callWall,
+                        put_wall: putWall,
+                        net_gex_cr: summary.total_net_gex_cr,
+                        regime: regime,
+                        message: msg,
+                        settings_snapshot: alarmSettings,
+                        meta: top,
+                    });
                 }
             }
         }
@@ -1862,7 +2018,28 @@
             const diffFlip = Math.abs(spot - flip);
             const flipProx = parseFloat(alarmSettings.flipProximityPts ?? DEFAULT_ALARM_SETTINGS.flipProximityPts);
             if (diffFlip <= flipProx) {
-                reasons.push(`Spot ₹${spot.toFixed(1)} testing Zero-Flip boundary ₹${flip.toFixed(1)} (dist: ${diffFlip.toFixed(1)} pts)`);
+                const msg = `Spot ₹${spot.toFixed(1)} testing Zero-Flip boundary ₹${flip.toFixed(1)} (dist: ${diffFlip.toFixed(1)} pts)`;
+                reasons.push(msg);
+                alertItems.push({
+                    trade_date: selectedDate,
+                    alert_time: (new Date()).toLocaleTimeString('en-GB'),
+                    symbol: selectedSymbol,
+                    expiry: selectedExpiry,
+                    spot_price: spot,
+                    alert_type: 'ZERO_FLIP_TEST',
+                    title: `Zero-Gamma Flip Boundary Test`,
+                    strike: flip,
+                    direction: spot >= flip ? 'BULLISH' : 'BEARISH',
+                    distance_pts: diffFlip,
+                    trigger_condition: `Testing Zero-Flip ₹${flip.toFixed(1)} (dist: ${diffFlip.toFixed(1)} pts)`,
+                    zero_gamma_flip: flip,
+                    call_wall: callWall,
+                    put_wall: putWall,
+                    net_gex_cr: summary.total_net_gex_cr,
+                    regime: regime,
+                    message: msg,
+                    settings_snapshot: alarmSettings,
+                });
             }
         }
 
@@ -1870,15 +2047,80 @@
         if (alarmSettings.wallEnabled) {
             const wallProx = parseFloat(alarmSettings.wallProximityPts ?? DEFAULT_ALARM_SETTINGS.wallProximityPts);
             if (callWall > 0 && Math.abs(spot - callWall) <= wallProx) {
-                reasons.push(`Spot ₹${spot.toFixed(1)} testing Call Wall ₹${callWall} (Ceiling Squeeze Alert)`);
+                const distWall = Math.abs(spot - callWall);
+                const msg = `Spot ₹${spot.toFixed(1)} testing Call Wall ₹${callWall} (Ceiling Squeeze Alert)`;
+                reasons.push(msg);
+                alertItems.push({
+                    trade_date: selectedDate,
+                    alert_time: (new Date()).toLocaleTimeString('en-GB'),
+                    symbol: selectedSymbol,
+                    expiry: selectedExpiry,
+                    spot_price: spot,
+                    alert_type: 'CALL_WALL_TEST',
+                    title: `Call Wall Ceiling Test (₹${callWall})`,
+                    strike: callWall,
+                    option_type: 'CE',
+                    direction: 'BULLISH',
+                    distance_pts: distWall,
+                    trigger_condition: `Spot testing Call Wall ceiling ₹${callWall}`,
+                    zero_gamma_flip: flip,
+                    call_wall: callWall,
+                    put_wall: putWall,
+                    net_gex_cr: summary.total_net_gex_cr,
+                    regime: regime,
+                    message: msg,
+                    settings_snapshot: alarmSettings,
+                });
             } else if (putWall > 0 && Math.abs(spot - putWall) <= wallProx) {
-                reasons.push(`Spot ₹${spot.toFixed(1)} testing Put Wall ₹${putWall} (Floor Demand Alert)`);
+                const distWall = Math.abs(spot - putWall);
+                const msg = `Spot ₹${spot.toFixed(1)} testing Put Wall ₹${putWall} (Floor Demand Alert)`;
+                reasons.push(msg);
+                alertItems.push({
+                    trade_date: selectedDate,
+                    alert_time: (new Date()).toLocaleTimeString('en-GB'),
+                    symbol: selectedSymbol,
+                    expiry: selectedExpiry,
+                    spot_price: spot,
+                    alert_type: 'PUT_WALL_TEST',
+                    title: `Put Wall Floor Demand Test (₹${putWall})`,
+                    strike: putWall,
+                    option_type: 'PE',
+                    direction: 'BEARISH',
+                    distance_pts: distWall,
+                    trigger_condition: `Spot testing Put Wall floor ₹${putWall}`,
+                    zero_gamma_flip: flip,
+                    call_wall: callWall,
+                    put_wall: putWall,
+                    net_gex_cr: summary.total_net_gex_cr,
+                    regime: regime,
+                    message: msg,
+                    settings_snapshot: alarmSettings,
+                });
             }
         }
 
         // Condition D: Regime Shift into Negative Gamma
         if (alarmSettings.negGexEnabled && regime === 'NEGATIVE_GAMMA') {
-            reasons.push(`Negative Gamma (-GEX) Regime Active (${summary.total_net_gex_cr} Cr) — Volatility Expansion`);
+            const msg = `Negative Gamma (-GEX) Regime Active (${summary.total_net_gex_cr} Cr) — Volatility Expansion`;
+            reasons.push(msg);
+            alertItems.push({
+                trade_date: selectedDate,
+                alert_time: (new Date()).toLocaleTimeString('en-GB'),
+                symbol: selectedSymbol,
+                expiry: selectedExpiry,
+                spot_price: spot,
+                alert_type: 'NEGATIVE_GEX_REGIME',
+                title: `Negative Gamma (-GEX) Regime Shift`,
+                direction: 'BEARISH',
+                trigger_condition: `Net GEX flipped negative (${summary.total_net_gex_cr} Cr)`,
+                zero_gamma_flip: flip,
+                call_wall: callWall,
+                put_wall: putWall,
+                net_gex_cr: summary.total_net_gex_cr,
+                regime: regime,
+                message: msg,
+                settings_snapshot: alarmSettings,
+            });
         }
 
         if (reasons.length > 0) {
@@ -1895,6 +2137,9 @@
                 lastAlarmTriggeredAt = now;
                 lastAlarmReasonsKey = currentReasonsKey;
                 triggerAlarm(reasons.join(' | '));
+                
+                // Persist each triggered alert to server database & update audit table
+                alertItems.forEach(item => logAlertToServer(item));
             } else {
                 // Keep banner text current if banner is open without re-sounding audio loop
                 const banner = document.getElementById('gamma-alarm-banner');
@@ -1908,7 +2153,209 @@
         }
     }
 
-    // ── 14. Alarm Settings Modal UI Handlers ──────────────────────────────────────
+    // ── 14. Server Database Alert Logging & Table Management ─────────────────────
+    async function logAlertToServer(payload) {
+        try {
+            const resp = await fetch('/api/gamma-blast/alerts/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (data.success && data.logged && data.log) {
+                prependAlertLogRow(data.log);
+            }
+        } catch (e) {
+            console.error('Failed to log gamma blast alert:', e);
+        }
+    }
+
+    function prependAlertLogRow(log) {
+        const tbody = document.getElementById('alert-logs-tbody');
+        if (!tbody) return;
+
+        const emptyRow = document.getElementById('alert-logs-empty');
+        if (emptyRow) emptyRow.remove();
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition bg-fuchsia-950/20';
+
+        let typeBadge = `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-700 text-slate-300">${log.alert_type}</span>`;
+        if (log.alert_type === 'BLAST_SQUEEZE') {
+            typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40">⚡ Blast Squeeze</span>';
+        } else if (log.alert_type === 'ZERO_FLIP_TEST') {
+            typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">🎯 Zero-Flip Test</span>';
+        } else if (log.alert_type === 'CALL_WALL_TEST') {
+            typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🧱 Call Wall Test</span>';
+        } else if (log.alert_type === 'PUT_WALL_TEST') {
+            typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🧱 Put Wall Test</span>';
+        } else if (log.alert_type === 'NEGATIVE_GEX_REGIME') {
+            typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">⚠️ -GEX Shift</span>';
+        }
+
+        let biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">NEUTRAL</span>';
+        if (log.direction === 'BULLISH') {
+            biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">BULLISH</span>';
+        } else if (log.direction === 'BEARISH') {
+            biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">BEARISH</span>';
+        }
+
+        let scoreDist = '—';
+        if (log.score) {
+            scoreDist = `<span class="font-bold text-amber-300">${Number(log.score).toFixed(1)}%</span>`;
+        } else if (log.distance_pts !== null && log.distance_pts !== undefined) {
+            scoreDist = `<span class="text-slate-300">${Number(log.distance_pts).toFixed(1)} pts</span>`;
+        }
+
+        let regimeBadge = '<span class="text-[9.5px] text-amber-400 font-bold">BALANCED</span>';
+        if (log.regime === 'POSITIVE_GAMMA') {
+            regimeBadge = '<span class="text-[9.5px] text-emerald-400 font-bold">+GEX</span>';
+        } else if (log.regime === 'NEGATIVE_GAMMA') {
+            regimeBadge = '<span class="text-[9.5px] text-rose-400 font-bold">-GEX</span>';
+        }
+
+        tr.innerHTML = `
+            <td class="py-1.5 px-2 text-center font-bold text-sky-300 whitespace-nowrap">${log.alert_time}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap">${typeBadge}</td>
+            <td class="py-1.5 px-2 font-bold text-white whitespace-nowrap">${escapeHtml(log.title)}</td>
+            <td class="py-1.5 px-2 text-center whitespace-nowrap">${biasBadge}</td>
+            <td class="py-1.5 px-2 text-center whitespace-nowrap">${scoreDist}</td>
+            <td class="py-1.5 px-2 text-right font-bold text-white whitespace-nowrap">₹${Number(log.spot_price).toFixed(2)}</td>
+            <td class="py-1.5 px-2 text-slate-300 text-[10.5px] whitespace-nowrap">${escapeHtml(log.trigger_condition || '—')}</td>
+            <td class="py-1.5 px-2 text-center whitespace-nowrap">${regimeBadge}</td>
+            <td class="py-1.5 px-2 text-slate-300 text-[10.5px]">${escapeHtml(log.message)}</td>
+        `;
+
+        tbody.insertBefore(tr, tbody.firstChild);
+
+        // Update badge count
+        const countBadge = document.getElementById('alert-logs-count-badge');
+        if (countBadge) {
+            const currentCount = tbody.querySelectorAll('tr:not(#alert-logs-empty)').length;
+            countBadge.textContent = `${currentCount} Alerts Logged`;
+        }
+    }
+
+    async function fetchAlertLogs() {
+        try {
+            const resp = await fetch(`/api/gamma-blast/alerts?date=${selectedDate}&symbol=${selectedSymbol}`);
+            const data = await resp.json();
+            if (data.success) {
+                renderAlertLogs(data.logs || []);
+            }
+        } catch (e) {
+            console.error('Failed to fetch gamma blast alert logs:', e);
+        }
+    }
+
+    function renderAlertLogs(logs) {
+        const tbody = document.getElementById('alert-logs-tbody');
+        const countBadge = document.getElementById('alert-logs-count-badge');
+        if (!tbody) return;
+
+        if (countBadge) {
+            countBadge.textContent = `${logs.length} Alerts Logged`;
+        }
+
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = `
+                <tr id="alert-logs-empty">
+                    <td colspan="9" class="text-center py-6 text-slate-500 font-mono text-xs">
+                        No alerts triggered yet for selected session. Alerts will be recorded automatically when trigger conditions are met.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-800/40 transition';
+
+            let typeBadge = `<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-700 text-slate-300">${log.alert_type}</span>`;
+            if (log.alert_type === 'BLAST_SQUEEZE') {
+                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40">⚡ Blast Squeeze</span>';
+            } else if (log.alert_type === 'ZERO_FLIP_TEST') {
+                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">🎯 Zero-Flip Test</span>';
+            } else if (log.alert_type === 'CALL_WALL_TEST') {
+                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">🧱 Call Wall Test</span>';
+            } else if (log.alert_type === 'PUT_WALL_TEST') {
+                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🧱 Put Wall Test</span>';
+            } else if (log.alert_type === 'NEGATIVE_GEX_REGIME') {
+                typeBadge = '<span class="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">⚠️ -GEX Shift</span>';
+            }
+
+            let biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">NEUTRAL</span>';
+            if (log.direction === 'BULLISH') {
+                biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">BULLISH</span>';
+            } else if (log.direction === 'BEARISH') {
+                biasBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">BEARISH</span>';
+            }
+
+            let scoreDist = '—';
+            if (log.score) {
+                scoreDist = `<span class="font-bold text-amber-300">${Number(log.score).toFixed(1)}%</span>`;
+            } else if (log.distance_pts !== null && log.distance_pts !== undefined) {
+                scoreDist = `<span class="text-slate-300">${Number(log.distance_pts).toFixed(1)} pts</span>`;
+            }
+
+            let regimeBadge = '<span class="text-[9.5px] text-amber-400 font-bold">BALANCED</span>';
+            if (log.regime === 'POSITIVE_GAMMA') {
+                regimeBadge = '<span class="text-[9.5px] text-emerald-400 font-bold">+GEX</span>';
+            } else if (log.regime === 'NEGATIVE_GAMMA') {
+                regimeBadge = '<span class="text-[9.5px] text-rose-400 font-bold">-GEX</span>';
+            }
+
+            tr.innerHTML = `
+                <td class="py-1.5 px-2 text-center font-bold text-sky-300 whitespace-nowrap">${log.alert_time}</td>
+                <td class="py-1.5 px-2 whitespace-nowrap">${typeBadge}</td>
+                <td class="py-1.5 px-2 font-bold text-white whitespace-nowrap">${escapeHtml(log.title)}</td>
+                <td class="py-1.5 px-2 text-center whitespace-nowrap">${biasBadge}</td>
+                <td class="py-1.5 px-2 text-center whitespace-nowrap">${scoreDist}</td>
+                <td class="py-1.5 px-2 text-right font-bold text-white whitespace-nowrap">₹${Number(log.spot_price).toFixed(2)}</td>
+                <td class="py-1.5 px-2 text-slate-300 text-[10.5px] whitespace-nowrap">${escapeHtml(log.trigger_condition || '—')}</td>
+                <td class="py-1.5 px-2 text-center whitespace-nowrap">${regimeBadge}</td>
+                <td class="py-1.5 px-2 text-slate-300 text-[10.5px]">${escapeHtml(log.message)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function clearAlertLogs() {
+        if (!confirm(`Are you sure you want to clear all logged alerts for ${selectedDate}?`)) {
+            return;
+        }
+        try {
+            const resp = await fetch(`/api/gamma-blast/alerts?date=${selectedDate}&symbol=${selectedSymbol}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await resp.json();
+            if (data.success) {
+                renderAlertLogs([]);
+            }
+        } catch (e) {
+            console.error('Failed to clear gamma blast alert logs:', e);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // ── 15. Alarm Settings Modal UI Handlers ──────────────────────────────────────
     function initAlarmUiHandlers() {
         const modal = document.getElementById('alarm-settings-modal');
 

@@ -356,6 +356,9 @@ Route::get('/gamma-exposure', [\App\Http\Controllers\GammaBlastRadarController::
 Route::get('/gamma-blast', [\App\Http\Controllers\GammaBlastRadarController::class, 'index']);
 Route::get('/api/gamma-blast/data', [\App\Http\Controllers\GammaBlastRadarController::class, 'getData'])->name('api.gamma-blast.data');
 Route::get('/api/gamma-blast/expiries', [\App\Http\Controllers\GammaBlastRadarController::class, 'getExpiries'])->name('api.gamma-blast.expiries');
+Route::post('/api/gamma-blast/alerts/log', [\App\Http\Controllers\GammaBlastRadarController::class, 'logAlert'])->name('api.gamma-blast.alerts.log');
+Route::get('/api/gamma-blast/alerts', [\App\Http\Controllers\GammaBlastRadarController::class, 'getAlertLogs'])->name('api.gamma-blast.alerts');
+Route::delete('/api/gamma-blast/alerts', [\App\Http\Controllers\GammaBlastRadarController::class, 'clearAlertLogs'])->name('api.gamma-blast.alerts.clear');
 
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
