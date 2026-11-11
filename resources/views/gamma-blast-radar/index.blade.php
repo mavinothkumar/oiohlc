@@ -678,7 +678,10 @@
                 <!-- 1. Master Alarm Toggle -->
                 <div class="flex items-center justify-between p-3 rounded-lg bg-[#101626] border border-slate-800">
                     <div>
-                        <span class="font-bold text-white block">Master Audio Alerts</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white block">Master Audio Alerts</span>
+                            <span class="px-1.5 py-0.2 rounded text-[9.5px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60">Default: Enabled</span>
+                        </div>
                         <span class="text-[11px] text-slate-400 block mt-0.5">Sound continuous or single-burst alarm when chosen conditions fire</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -691,61 +694,113 @@
                 <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
                         <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Trigger Conditions (When To Ring Alarm)</label>
-                        <span class="text-[10px] text-slate-400">Select any or all</span>
+                        <span class="text-[10px] text-slate-400">Custom values &amp; strict presets to prevent frequent alarms</span>
                     </div>
 
                     <!-- Trigger A: High Blast Readiness Score -->
-                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
-                        <label class="flex items-center gap-2 cursor-pointer flex-1">
-                            <input type="checkbox" id="cfg-blast-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
-                            <div>
-                                <span class="font-bold text-slate-200">⚡ High Blast Readiness Score</span>
-                                <span class="text-[10px] text-slate-400 block">Strike setup triggers explosive delta hedging</span>
+                    <div class="p-2.5 rounded bg-[#0b0e17] border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer flex-1">
+                                <input type="checkbox" id="cfg-blast-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200">⚡ High Blast Readiness Score</span>
+                                    <span class="text-[10px] text-slate-400 block">Strike setup triggers explosive delta hedging</span>
+                                </div>
+                            </label>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 shrink-0" title="Factory Default Value">Default: ≥ 75%</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-800/70 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Min Score:</span>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-2 text-[11px] font-mono text-slate-500 font-bold">≥</span>
+                                    <input type="number" id="cfg-min-blast-score" min="1" max="100" step="1" value="75"
+                                           class="w-24 pl-5 pr-6 py-1 bg-[#131a2b] text-amber-300 font-mono font-bold text-xs rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none text-right" title="Enter custom blast readiness score percentage">
+                                    <span class="absolute right-2 text-[10px] font-mono text-slate-400 font-bold">%</span>
+                                </div>
                             </div>
-                        </label>
-                        <select id="cfg-min-blast-score" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
-                            <option value="65">Score ≥ 65%</option>
-                            <option value="70">Score ≥ 70%</option>
-                            <option value="75" selected>Score ≥ 75%</option>
-                            <option value="80">Score ≥ 80% (High Conviction)</option>
-                            <option value="85">Score ≥ 85% (Extreme)</option>
-                        </select>
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-[10px] text-slate-500 mr-0.5">Presets:</span>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-min-blast-score" data-value="75">75% (Def)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-min-blast-score" data-value="80">80%</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer" data-target="cfg-min-blast-score" data-value="85">85% (Strict)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 transition cursor-pointer" data-target="cfg-min-blast-score" data-value="90">90% (Extreme)</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-0.5">
+                            <label class="flex items-center gap-1.5 text-[10.5px] text-slate-400 hover:text-slate-200 cursor-pointer select-none">
+                                <input type="checkbox" id="cfg-blast-atm-only" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <span>Strict Strike Filter: Only alert for Near-ATM strikes (±200 pts), ignore far OTM</span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Trigger B: Zero-Gamma Flip Proximity / Breach -->
-                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
-                        <label class="flex items-center gap-2 cursor-pointer flex-1">
-                            <input type="checkbox" id="cfg-flip-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
-                            <div>
-                                <span class="font-bold text-slate-200">🎯 Zero-Gamma Flip Point Test</span>
-                                <span class="text-[10px] text-slate-400 block">Spot tests volatility trigger boundary</span>
+                    <div class="p-2.5 rounded bg-[#0b0e17] border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer flex-1">
+                                <input type="checkbox" id="cfg-flip-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200">🎯 Zero-Gamma Flip Point Test</span>
+                                    <span class="text-[10px] text-slate-400 block">Spot tests volatility trigger boundary</span>
+                                </div>
+                            </label>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 shrink-0" title="Factory Default Value">Default: ≤ 25 pts</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-800/70 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proximity:</span>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-2 text-[11px] font-mono text-slate-500 font-bold">≤</span>
+                                    <input type="number" id="cfg-flip-proximity" min="1" max="500" step="1" value="25"
+                                           class="w-24 pl-5 pr-8 py-1 bg-[#131a2b] text-amber-300 font-mono font-bold text-xs rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none text-right" title="Enter custom proximity points to Zero-Gamma Flip">
+                                    <span class="absolute right-2 text-[10px] font-mono text-slate-400 font-bold">pts</span>
+                                </div>
                             </div>
-                        </label>
-                        <select id="cfg-flip-proximity" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
-                            <option value="15">Within 15 pts</option>
-                            <option value="25" selected>Within 25 pts</option>
-                            <option value="50">Within 50 pts</option>
-                        </select>
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-[10px] text-slate-500 mr-0.5">Presets:</span>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 transition cursor-pointer" data-target="cfg-flip-proximity" data-value="5">5 pts (Ultra-Strict)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer" data-target="cfg-flip-proximity" data-value="10">10 pts (Strict)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-flip-proximity" data-value="25">25 pts (Def)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-flip-proximity" data-value="50">50 pts</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Trigger C: Call Wall / Put Wall Test -->
-                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
-                        <label class="flex items-center gap-2 cursor-pointer flex-1">
-                            <input type="checkbox" id="cfg-wall-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
-                            <div>
-                                <span class="font-bold text-slate-200">🧱 Call Wall / Put Wall Test</span>
-                                <span class="text-[10px] text-slate-400 block">Spot approaches ceiling squeeze or floor bounce zone</span>
+                    <div class="p-2.5 rounded bg-[#0b0e17] border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer flex-1">
+                                <input type="checkbox" id="cfg-wall-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
+                                <div>
+                                    <span class="font-bold text-slate-200">🧱 Call Wall / Put Wall Test</span>
+                                    <span class="text-[10px] text-slate-400 block">Spot approaches ceiling squeeze or floor bounce zone</span>
+                                </div>
+                            </label>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 shrink-0" title="Factory Default Value">Default: ≤ 25 pts</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-800/70 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proximity:</span>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-2 text-[11px] font-mono text-slate-500 font-bold">≤</span>
+                                    <input type="number" id="cfg-wall-proximity" min="1" max="500" step="1" value="25"
+                                           class="w-24 pl-5 pr-8 py-1 bg-[#131a2b] text-amber-300 font-mono font-bold text-xs rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none text-right" title="Enter custom proximity points to Call Wall or Put Wall">
+                                    <span class="absolute right-2 text-[10px] font-mono text-slate-400 font-bold">pts</span>
+                                </div>
                             </div>
-                        </label>
-                        <select id="cfg-wall-proximity" class="bg-[#131a2b] text-amber-300 border border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold focus:outline-none cursor-pointer">
-                            <option value="15">Within 15 pts</option>
-                            <option value="25" selected>Within 25 pts</option>
-                            <option value="40">Within 40 pts</option>
-                        </select>
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-[10px] text-slate-500 mr-0.5">Presets:</span>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 transition cursor-pointer" data-target="cfg-wall-proximity" data-value="5">5 pts (Ultra-Strict)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer" data-target="cfg-wall-proximity" data-value="10">10 pts (Strict)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-wall-proximity" data-value="25">25 pts (Def)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-wall-proximity" data-value="40">40 pts</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Trigger D: Regime Shift into -GEX -->
-                    <div class="flex items-center justify-between gap-2 p-2 rounded bg-[#0b0e17] border border-slate-800">
+                    <div class="p-2.5 rounded bg-[#0b0e17] border border-slate-800 flex items-center justify-between gap-2">
                         <label class="flex items-center gap-2 cursor-pointer flex-1">
                             <input type="checkbox" id="cfg-neg-gex-enabled" class="rounded border-slate-700 text-fuchsia-600 focus:ring-0 cursor-pointer">
                             <div>
@@ -753,19 +808,52 @@
                                 <span class="text-[10px] text-slate-400 block">Alert immediately if Market Makers flip to Short Gamma</span>
                             </div>
                         </label>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 shrink-0">Default: Off</span>
+                    </div>
+
+                    <!-- Trigger E: Alert Repeat Cooldown -->
+                    <div class="p-2.5 rounded bg-[#0b0e17] border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <span class="font-bold text-slate-200">⏳ Alert Repeat Cooldown</span>
+                                <span class="text-[10px] text-slate-400 block">Suppress repeated sirens while market hovers in trigger zone</span>
+                            </div>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 shrink-0">Default: 3 mins</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-800/70 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cooldown:</span>
+                                <div class="relative flex items-center">
+                                    <input type="number" id="cfg-cooldown-mins" min="0" max="60" step="1" value="3"
+                                           class="w-20 pl-2 pr-10 py-1 bg-[#131a2b] text-amber-300 font-mono font-bold text-xs rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none text-right" title="Minutes between recurring alerts for the same condition">
+                                    <span class="absolute right-2 text-[10px] font-mono text-slate-400 font-bold">mins</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-[10px] text-slate-500 mr-0.5">Presets:</span>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-cooldown-mins" data-value="0">0 (Every Tick)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-cooldown-mins" data-value="1">1 min</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition cursor-pointer" data-target="cfg-cooldown-mins" data-value="3">3 mins (Def)</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer" data-target="cfg-cooldown-mins" data-value="5">5 mins</button>
+                                <button type="button" class="preset-btn px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition cursor-pointer" data-target="cfg-cooldown-mins" data-value="10">10 mins</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 3. Audio Tone Selector -->
                 <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-2.5">
-                    <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Audio Tone</label>
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Audio Tone</label>
+                        <span class="px-1.5 py-0.2 rounded text-[9.5px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60">Default: Emergency Siren</span>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="tone-options-container">
                         <!-- Siren -->
                         <div class="tone-card p-2.5 rounded-lg border border-slate-700 bg-[#0b0e17] flex items-center justify-between cursor-pointer transition hover:border-slate-500" data-tone="siren">
                             <div class="flex items-center gap-2">
                                 <input type="radio" name="alarm-tone" value="siren" class="text-fuchsia-600 focus:ring-0 cursor-pointer">
                                 <div>
-                                    <span class="font-bold text-slate-200 block text-xs">🚨 Emergency Siren</span>
+                                    <span class="font-bold text-slate-200 block text-xs">🚨 Emergency Siren <span class="text-[9.5px] text-fuchsia-400 font-normal">(Default)</span></span>
                                     <span class="text-[9.5px] text-slate-500 font-sans">Dual-frequency warble</span>
                                 </div>
                             </div>
@@ -836,7 +924,10 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <!-- Playback Mode -->
                     <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-1.5">
-                        <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Duration</label>
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-white block uppercase text-[11px] tracking-wider text-fuchsia-400">Alarm Duration</label>
+                            <span class="px-1.5 py-0.2 rounded text-[9.5px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60">Default: Continuous</span>
+                        </div>
                         <select id="cfg-continuous-mode" class="w-full bg-[#131a2b] text-slate-200 border border-slate-700 rounded p-1.5 text-xs font-semibold focus:outline-none cursor-pointer">
                             <option value="true">Continuous (Rings until dismissed / ESC)</option>
                             <option value="false">Single Burst (Rings 3 times then stops)</option>
@@ -846,7 +937,10 @@
                     <!-- Volume Slider -->
                     <div class="p-3 rounded-lg bg-[#101626] border border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between font-bold text-white text-[11px] uppercase tracking-wider text-fuchsia-400">
-                            <span>Alarm Volume</span>
+                            <div class="flex items-center gap-2">
+                                <span>Alarm Volume</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9.5px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 font-normal">Default: 70%</span>
+                            </div>
                             <span id="cfg-volume-label" class="font-mono text-amber-300">70%</span>
                         </div>
                         <input type="range" id="cfg-alarm-volume" min="0.1" max="1" step="0.05" value="0.7" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
@@ -856,11 +950,17 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="p-3.5 bg-[#101626] border-t border-slate-800 flex items-center justify-between gap-2">
-                <button type="button" id="btn-test-modal-alarm" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 transition cursor-pointer">
-                    <span>⚡ Test Continuous Alarm (3s)</span>
-                </button>
+            <div class="p-3.5 bg-[#101626] border-t border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
                 <div class="flex items-center gap-2">
+                    <button type="button" id="btn-test-modal-alarm" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 transition cursor-pointer">
+                        <span>⚡ Test Alarm (3s)</span>
+                    </button>
+                    <button type="button" id="btn-reset-alarm-defaults" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center gap-1.5 transition cursor-pointer" title="Reset all thresholds and sound settings to recommended defaults">
+                        <span>↺ Reset to Defaults</span>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="alarm-reset-msg" class="text-xs text-emerald-400 font-bold hidden flex items-center gap-1">✓ Reset to defaults</span>
                     <button type="button" id="btn-save-alarm-settings" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-fuchsia-600 hover:bg-fuchsia-500 text-white transition cursor-pointer shadow">
                         Save &amp; Close
                     </button>
@@ -898,11 +998,13 @@
         volume: 0.7,
         blastScoreEnabled: true,
         minBlastScore: 75,
+        blastAtmOnly: false,
         flipEnabled: true,
         flipProximityPts: 25,
         wallEnabled: true,
         wallProximityPts: 25,
         negGexEnabled: false,
+        cooldownMinutes: 3,
     };
 
     let alarmSettings = { ...DEFAULT_ALARM_SETTINGS };
@@ -910,6 +1012,8 @@
     let alarmLoopInterval = null;
     let testTimeoutId = null;
     let audioCtx = null;
+    let lastAlarmTriggeredAt = 0;
+    let lastAlarmReasonsKey = '';
 
     function loadAlarmSettings() {
         try {
@@ -1712,6 +1816,8 @@
         }
         const banner = document.getElementById('gamma-alarm-banner');
         if (banner) banner.classList.add('hidden');
+        // Engaging cooldown upon silence avoids re-ringing on next auto-refresh
+        lastAlarmTriggeredAt = Date.now();
     }
 
     function testAlarmSound(durationSeconds = 3) {
@@ -1738,25 +1844,34 @@
 
         // Condition A: High Blast Readiness Score
         if (alarmSettings.blastScoreEnabled && setups.length > 0) {
-            const top = setups[0];
-            if (top && top.score >= (alarmSettings.minBlastScore || 75)) {
-                reasons.push(`${top.option} Blast Squeeze Score: ${top.score}% (${top.direction}) — ${top.trigger}`);
+            const minScore = parseFloat(alarmSettings.minBlastScore ?? DEFAULT_ALARM_SETTINGS.minBlastScore);
+            const candidates = alarmSettings.blastAtmOnly
+                ? setups.filter(s => Math.abs(parseFloat(s.strike) - spot) <= 200)
+                : setups;
+
+            if (candidates.length > 0) {
+                const top = candidates[0];
+                if (top && top.score >= minScore) {
+                    reasons.push(`${top.option} Blast Squeeze Score: ${top.score}% (${top.direction}) — ${top.trigger}`);
+                }
             }
         }
 
         // Condition B: Zero-Gamma Flip Proximity / Test
         if (alarmSettings.flipEnabled) {
             const diffFlip = Math.abs(spot - flip);
-            if (diffFlip <= (alarmSettings.flipProximityPts || 25)) {
+            const flipProx = parseFloat(alarmSettings.flipProximityPts ?? DEFAULT_ALARM_SETTINGS.flipProximityPts);
+            if (diffFlip <= flipProx) {
                 reasons.push(`Spot ₹${spot.toFixed(1)} testing Zero-Flip boundary ₹${flip.toFixed(1)} (dist: ${diffFlip.toFixed(1)} pts)`);
             }
         }
 
         // Condition C: Wall Proximity / Test
         if (alarmSettings.wallEnabled) {
-            if (callWall > 0 && Math.abs(spot - callWall) <= (alarmSettings.wallProximityPts || 25)) {
+            const wallProx = parseFloat(alarmSettings.wallProximityPts ?? DEFAULT_ALARM_SETTINGS.wallProximityPts);
+            if (callWall > 0 && Math.abs(spot - callWall) <= wallProx) {
                 reasons.push(`Spot ₹${spot.toFixed(1)} testing Call Wall ₹${callWall} (Ceiling Squeeze Alert)`);
-            } else if (putWall > 0 && Math.abs(spot - putWall) <= (alarmSettings.wallProximityPts || 25)) {
+            } else if (putWall > 0 && Math.abs(spot - putWall) <= wallProx) {
                 reasons.push(`Spot ₹${spot.toFixed(1)} testing Put Wall ₹${putWall} (Floor Demand Alert)`);
             }
         }
@@ -1767,7 +1882,29 @@
         }
 
         if (reasons.length > 0) {
-            triggerAlarm(reasons.join(' | '));
+            const currentReasonsKey = reasons.slice().sort().join(' | ');
+            const now = Date.now();
+            const cooldownMins = parseFloat(alarmSettings.cooldownMinutes ?? DEFAULT_ALARM_SETTINGS.cooldownMinutes);
+            const cooldownMs = (isNaN(cooldownMins) ? 3 : cooldownMins) * 60 * 1000;
+
+            const isUnderCooldown = cooldownMs > 0 &&
+                (now - lastAlarmTriggeredAt < cooldownMs) &&
+                (currentReasonsKey === lastAlarmReasonsKey);
+
+            if (!isUnderCooldown) {
+                lastAlarmTriggeredAt = now;
+                lastAlarmReasonsKey = currentReasonsKey;
+                triggerAlarm(reasons.join(' | '));
+            } else {
+                // Keep banner text current if banner is open without re-sounding audio loop
+                const banner = document.getElementById('gamma-alarm-banner');
+                if (banner && !banner.classList.contains('hidden')) {
+                    const msgEl = document.getElementById('alarm-banner-message');
+                    if (msgEl) msgEl.textContent = reasons.join(' | ');
+                }
+            }
+        } else {
+            lastAlarmReasonsKey = '';
         }
     }
 
@@ -1803,6 +1940,43 @@
 
         document.getElementById('btn-test-modal-alarm')?.addEventListener('click', () => {
             testAlarmSound(3);
+        });
+
+        // Reset to Defaults
+        document.getElementById('btn-reset-alarm-defaults')?.addEventListener('click', () => {
+            alarmSettings = { ...DEFAULT_ALARM_SETTINGS };
+            populateModalFromSettings();
+            saveAlarmSettings();
+
+            const msgEl = document.getElementById('alarm-reset-msg');
+            if (msgEl) {
+                msgEl.classList.remove('hidden');
+                setTimeout(() => {
+                    msgEl.classList.add('hidden');
+                }, 2500);
+            }
+        });
+
+        // Preset button quick-fill handlers
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = btn.getAttribute('data-target');
+                const val = btn.getAttribute('data-value');
+                const input = document.getElementById(targetId);
+                if (input) {
+                    input.value = val;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    highlightActivePresets();
+                }
+            });
+        });
+
+        // Highlight preset buttons when inputs change
+        ['cfg-min-blast-score', 'cfg-flip-proximity', 'cfg-wall-proximity', 'cfg-cooldown-mins'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', () => {
+                highlightActivePresets();
+            });
         });
 
         // Tone preview buttons
@@ -1841,6 +2015,19 @@
         });
     }
 
+    function highlightActivePresets() {
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            const targetId = btn.getAttribute('data-target');
+            const val = btn.getAttribute('data-value');
+            const input = document.getElementById(targetId);
+            if (input && String(input.value).trim() === String(val).trim()) {
+                btn.classList.add('ring-1', 'ring-fuchsia-400', 'font-bold');
+            } else {
+                btn.classList.remove('ring-1', 'ring-fuchsia-400');
+            }
+        });
+    }
+
     function closeAlarmModal() {
         const modal = document.getElementById('alarm-settings-modal');
         if (modal) modal.classList.add('hidden');
@@ -1854,35 +2041,43 @@
         if (blastEnabledEl) blastEnabledEl.checked = !!alarmSettings.blastScoreEnabled;
 
         const minScoreEl = document.getElementById('cfg-min-blast-score');
-        if (minScoreEl) minScoreEl.value = String(alarmSettings.minBlastScore || 75);
+        if (minScoreEl) minScoreEl.value = Number(alarmSettings.minBlastScore ?? DEFAULT_ALARM_SETTINGS.minBlastScore);
+
+        const blastAtmOnlyEl = document.getElementById('cfg-blast-atm-only');
+        if (blastAtmOnlyEl) blastAtmOnlyEl.checked = !!alarmSettings.blastAtmOnly;
 
         const flipEnabledEl = document.getElementById('cfg-flip-enabled');
         if (flipEnabledEl) flipEnabledEl.checked = !!alarmSettings.flipEnabled;
 
         const flipProxEl = document.getElementById('cfg-flip-proximity');
-        if (flipProxEl) flipProxEl.value = String(alarmSettings.flipProximityPts || 25);
+        if (flipProxEl) flipProxEl.value = Number(alarmSettings.flipProximityPts ?? DEFAULT_ALARM_SETTINGS.flipProximityPts);
 
         const wallEnabledEl = document.getElementById('cfg-wall-enabled');
         if (wallEnabledEl) wallEnabledEl.checked = !!alarmSettings.wallEnabled;
 
         const wallProxEl = document.getElementById('cfg-wall-proximity');
-        if (wallProxEl) wallProxEl.value = String(alarmSettings.wallProximityPts || 25);
+        if (wallProxEl) wallProxEl.value = Number(alarmSettings.wallProximityPts ?? DEFAULT_ALARM_SETTINGS.wallProximityPts);
 
         const negGexEl = document.getElementById('cfg-neg-gex-enabled');
         if (negGexEl) negGexEl.checked = !!alarmSettings.negGexEnabled;
+
+        const cooldownEl = document.getElementById('cfg-cooldown-mins');
+        if (cooldownEl) cooldownEl.value = Number(alarmSettings.cooldownMinutes ?? DEFAULT_ALARM_SETTINGS.cooldownMinutes);
 
         const contEl = document.getElementById('cfg-continuous-mode');
         if (contEl) contEl.value = alarmSettings.continuous ? 'true' : 'false';
 
         const volEl = document.getElementById('cfg-alarm-volume');
         const volLabel = document.getElementById('cfg-volume-label');
-        if (volEl) volEl.value = alarmSettings.volume ?? 0.7;
-        if (volLabel) volLabel.textContent = `${Math.round((alarmSettings.volume ?? 0.7) * 100)}%`;
+        if (volEl) volEl.value = alarmSettings.volume ?? DEFAULT_ALARM_SETTINGS.volume;
+        if (volLabel) volLabel.textContent = `${Math.round((alarmSettings.volume ?? DEFAULT_ALARM_SETTINGS.volume) * 100)}%`;
 
         // Radio tone
-        const radio = document.querySelector(`input[name="alarm-tone"][value="${alarmSettings.tone}"]`);
+        const toneToSelect = alarmSettings.tone || DEFAULT_ALARM_SETTINGS.tone;
+        const radio = document.querySelector(`input[name="alarm-tone"][value="${toneToSelect}"]`);
         if (radio) radio.checked = true;
-        highlightSelectedToneCard(alarmSettings.tone);
+        highlightSelectedToneCard(toneToSelect);
+        highlightActivePresets();
     }
 
     function highlightSelectedToneCard(selectedTone) {
@@ -1901,12 +2096,25 @@
     function saveModalToSettings() {
         alarmSettings.enabled = document.getElementById('cfg-alarm-enabled')?.checked ?? true;
         alarmSettings.blastScoreEnabled = document.getElementById('cfg-blast-enabled')?.checked ?? true;
-        alarmSettings.minBlastScore = parseInt(document.getElementById('cfg-min-blast-score')?.value || 75);
+
+        const minScoreVal = parseFloat(document.getElementById('cfg-min-blast-score')?.value);
+        alarmSettings.minBlastScore = isNaN(minScoreVal) ? DEFAULT_ALARM_SETTINGS.minBlastScore : Math.min(100, Math.max(1, minScoreVal));
+
+        alarmSettings.blastAtmOnly = document.getElementById('cfg-blast-atm-only')?.checked ?? false;
+
         alarmSettings.flipEnabled = document.getElementById('cfg-flip-enabled')?.checked ?? true;
-        alarmSettings.flipProximityPts = parseFloat(document.getElementById('cfg-flip-proximity')?.value || 25);
+        const flipProxVal = parseFloat(document.getElementById('cfg-flip-proximity')?.value);
+        alarmSettings.flipProximityPts = isNaN(flipProxVal) ? DEFAULT_ALARM_SETTINGS.flipProximityPts : Math.max(1, flipProxVal);
+
         alarmSettings.wallEnabled = document.getElementById('cfg-wall-enabled')?.checked ?? true;
-        alarmSettings.wallProximityPts = parseFloat(document.getElementById('cfg-wall-proximity')?.value || 25);
+        const wallProxVal = parseFloat(document.getElementById('cfg-wall-proximity')?.value);
+        alarmSettings.wallProximityPts = isNaN(wallProxVal) ? DEFAULT_ALARM_SETTINGS.wallProximityPts : Math.max(1, wallProxVal);
+
         alarmSettings.negGexEnabled = document.getElementById('cfg-neg-gex-enabled')?.checked ?? false;
+
+        const cooldownVal = parseFloat(document.getElementById('cfg-cooldown-mins')?.value);
+        alarmSettings.cooldownMinutes = isNaN(cooldownVal) ? DEFAULT_ALARM_SETTINGS.cooldownMinutes : Math.max(0, cooldownVal);
+
         alarmSettings.continuous = document.getElementById('cfg-continuous-mode')?.value === 'true';
         alarmSettings.volume = parseFloat(document.getElementById('cfg-alarm-volume')?.value || 0.7);
 

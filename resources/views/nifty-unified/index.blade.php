@@ -201,6 +201,25 @@
                 </select>
             </div>
 
+            <!-- Dynamic Candle Style Selector (Regular vs Heikin Ashi) -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Candlestick Style (Keyboard Shortcut: H)">
+                <span class="text-gray-400 text-[10px] font-bold">Type:</span>
+                <select id="candle-style-select" onchange="setCandleStyle(this.value)" class="bg-transparent text-emerald-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Regular Candlestick / Heikin Ashi (Shortcut: H)">
+                    <option value="candle" class="bg-[#131722] text-white">🕯️ Candle</option>
+                    <option value="heikin_ashi" class="bg-[#131722] text-white">📊 Heikin Ashi</option>
+                </select>
+            </div>
+
+            <!-- Master Signals Mode Selector (Breach / Every 5M / Off) -->
+            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Signals on Chart Candles (Breach Only / Every Candle / Off)">
+                <span class="text-gray-400 text-[10px] font-bold">Signals:</span>
+                <select id="signals-mode-select" onchange="setGlobalSignalsMode(this.value)" class="bg-transparent text-cyan-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Chart Signals (Breach / All / Off)">
+                    <option value="breach" class="bg-[#131722] text-white">🎯 Breach Only</option>
+                    <option value="all" class="bg-[#131722] text-white">🏷️ Every 5M</option>
+                    <option value="off" class="bg-[#131722] text-white">🚫 Off</option>
+                </select>
+            </div>
+
             <!-- Dynamic Font Size / Cockpit Scale Selector -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Adjust Font Size / Scale for Your Monitor">
                 <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">
@@ -384,40 +403,46 @@
                         <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                <span class="text-xs font-bold text-white tracking-wide">NIFTY 50 (5m Candles)</span>
+                                <span id="w-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY 50 (5m Candles)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Stock Weightage Breadth</span>
-                                <button type="button" onclick="toggleQuantPriceLines()" 
+                                <button type="button" id="w-candle-style-btn" onclick="toggleWeightageCandleStyle()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Toggle Candle Style: Regular Candlestick / Heikin Ashi (Row 1)">
+                                    <span id="w-candle-style-icon">🕯️</span>
+                                    <span id="w-candle-style-badge" class="font-mono text-emerald-400 font-extrabold">CANDLE</span>
+                                </button>
+                                <button type="button" onclick="toggleWeightageQuantLines()" 
                                     class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-blue-950/80 border-blue-500/50 text-blue-300 hover:bg-blue-900 cursor-pointer"
-                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on this chart">
+                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Weightage chart">
                                     <span>📐 S/R Levels:</span>
                                     <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Stock Breadth Markers: Breach Only (≥80%) / Every 5M Candle / OFF">
-                                    <span>🏷️ Stock Status:</span>
+                                    title="Cycle Signals on Weightage Chart: Breach Only (≥80%) / Every 5M Candle / OFF">
+                                    <span>🎯 Signals:</span>
                                     <span id="w-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
-                                <button type="button" id="w-st-toggle-btn" onclick="cycleSuperTrendMode()"
+                                <button type="button" id="w-st-toggle-btn" onclick="cycleWeightageSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle SuperTrend: OFF / ST(10,3) / ST(10,2)">
+                                    title="Cycle SuperTrend on Weightage Chart: OFF / ST(10,3) / ST(10,2)">
                                     <span>⚡ ST:</span>
                                     <span id="w-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
                                 </button>
-                                <button type="button" id="w-fib-toggle-btn" onclick="cycleFibMode()"
+                                <button type="button" id="w-fib-toggle-btn" onclick="cycleWeightageFibMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Fibonacci: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
+                                    title="Cycle Fibonacci on Weightage Chart: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
                                     <span>📐 FIB:</span>
                                     <span id="w-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
                                 </button>
-                                <button type="button" id="w-hline-toggle-btn" onclick="toggleHLineTool()"
+                                <button type="button" id="w-hline-toggle-btn" onclick="toggleWeightageHLineTool()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Draw Horizontal Support/Resistance Line (Click anywhere on chart)">
+                                    title="Draw Horizontal Support/Resistance Line on Weightage Chart (Click price on chart)">
                                     <span>➖ Line</span>
                                 </button>
-                                <button type="button" onclick="clearAllManualDrawings()"
+                                <button type="button" onclick="clearWeightageManualDrawings()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
-                                    title="Clear all custom drawn lines & reset">
+                                    title="Clear custom drawn lines on Weightage Chart">
                                     <span>🗑️</span>
                                 </button>
                             </div>
@@ -435,20 +460,20 @@
                         <div id="w-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
                             <!-- Floating TradingView Style Dock Toolbar -->
                             <div class="tv-dock absolute left-2 top-2 z-20 flex flex-col items-center bg-[#151924]/90 backdrop-blur-md border border-gray-700/80 rounded shadow-2xl p-0.5 gap-1 select-none">
-                                <button type="button" onclick="setActiveTvTool('pointer')" id="w-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
+                                <button type="button" onclick="setActiveWeightageTvTool('pointer')" id="w-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
                                 </button>
-                                <button type="button" onclick="toggleHLineTool()" id="w-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
+                                <button type="button" onclick="toggleWeightageHLineTool()" id="w-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18"/></svg>
                                 </button>
-                                <button type="button" onclick="cycleFibMode()" id="w-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
+                                <button type="button" onclick="cycleWeightageFibMode()" id="w-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
                                     Fib
                                 </button>
-                                <button type="button" onclick="cycleSuperTrendMode()" id="w-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
+                                <button type="button" onclick="cycleWeightageSuperTrendMode()" id="w-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
                                     ST
                                 </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
-                                <button type="button" onclick="clearAllManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings">
+                                <button type="button" onclick="clearWeightageManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Weightage Chart">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
@@ -457,7 +482,7 @@
                             <div id="w-tv-hint" class="hidden absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse">
                                 <span>💡</span>
                                 <span id="w-tv-hint-text">Click price on chart</span>
-                                <button type="button" onclick="setActiveTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
+                                <button type="button" onclick="setActiveWeightageTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
                             </div>
 
                             <div id="w-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
@@ -617,40 +642,46 @@
                         <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                                <span class="text-xs font-bold text-white tracking-wide">NIFTY (5m Candles &amp; Parity)</span>
+                                <span id="o-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY (5m Candles &amp; Parity)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Options Flow Parity</span>
-                                <button id="btn-toggle-quant-lines" type="button" onclick="toggleQuantPriceLines()" 
+                                <button type="button" id="o-candle-style-btn" onclick="toggleOptionsCandleStyle()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
+                                    title="Toggle Candle Style: Regular Candlestick / Heikin Ashi (Row 2)">
+                                    <span id="o-candle-style-icon">🕯️</span>
+                                    <span id="o-candle-style-badge" class="font-mono text-emerald-400 font-extrabold">CANDLE</span>
+                                </button>
+                                <button id="btn-toggle-quant-lines" type="button" onclick="toggleOptionsQuantLines()" 
                                     class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-indigo-950/80 border-indigo-500/50 text-indigo-300 hover:bg-indigo-900 cursor-pointer"
-                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on this chart">
+                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Options chart">
                                     <span>📐 S/R Levels:</span>
                                     <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Options Flow Markers: Breach Only (≥70%) / Every 5M Candle / OFF">
-                                    <span>🏷️ Flow Status:</span>
+                                    title="Cycle Signals on Options Chart: Breach Only (≥70%) / Every 5M Candle / OFF">
+                                    <span>🎯 Signals:</span>
                                     <span id="o-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
-                                <button type="button" id="o-st-toggle-btn" onclick="cycleSuperTrendMode()"
+                                <button type="button" id="o-st-toggle-btn" onclick="cycleOptionsSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle SuperTrend: OFF / ST(10,3) / ST(10,2)">
+                                    title="Cycle SuperTrend on Options Chart: OFF / ST(10,3) / ST(10,2)">
                                     <span>⚡ ST:</span>
                                     <span id="o-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
                                 </button>
-                                <button type="button" id="o-fib-toggle-btn" onclick="cycleFibMode()"
+                                <button type="button" id="o-fib-toggle-btn" onclick="cycleOptionsFibMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Fibonacci: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
+                                    title="Cycle Fibonacci on Options Chart: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
                                     <span>📐 FIB:</span>
                                     <span id="o-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
                                 </button>
-                                <button type="button" id="o-hline-toggle-btn" onclick="toggleHLineTool()"
+                                <button type="button" id="o-hline-toggle-btn" onclick="toggleOptionsHLineTool()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Draw Horizontal Support/Resistance Line (Click anywhere on chart)">
+                                    title="Draw Horizontal Support/Resistance Line on Options Chart (Click price on chart)">
                                     <span>➖ Line</span>
                                 </button>
-                                <button type="button" onclick="clearAllManualDrawings()"
+                                <button type="button" onclick="clearOptionsManualDrawings()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
-                                    title="Clear all custom drawn lines & reset">
+                                    title="Clear custom drawn lines on Options Chart">
                                     <span>🗑️</span>
                                 </button>
                             </div>
@@ -668,20 +699,20 @@
                         <div id="o-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
                             <!-- Floating TradingView Style Dock Toolbar -->
                             <div class="tv-dock absolute left-2 top-2 z-20 flex flex-col items-center bg-[#151924]/90 backdrop-blur-md border border-gray-700/80 rounded shadow-2xl p-0.5 gap-1 select-none">
-                                <button type="button" onclick="setActiveTvTool('pointer')" id="o-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
+                                <button type="button" onclick="setActiveOptionsTvTool('pointer')" id="o-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
                                 </button>
-                                <button type="button" onclick="toggleHLineTool()" id="o-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
+                                <button type="button" onclick="toggleOptionsHLineTool()" id="o-tv-hline" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Draw Horizontal Support/Resistance Line (Click price on chart)">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18"/></svg>
                                 </button>
-                                <button type="button" onclick="cycleFibMode()" id="o-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
+                                <button type="button" onclick="cycleOptionsFibMode()" id="o-tv-fib" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="Fibonacci Retracement (Auto / Manual / Off)">
                                     Fib
                                 </button>
-                                <button type="button" onclick="cycleSuperTrendMode()" id="o-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
+                                <button type="button" onclick="cycleOptionsSuperTrendMode()" id="o-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
                                     ST
                                 </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
-                                <button type="button" onclick="clearAllManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings">
+                                <button type="button" onclick="clearOptionsManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Options Chart">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
@@ -690,7 +721,7 @@
                             <div id="o-tv-hint" class="hidden absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse">
                                 <span>💡</span>
                                 <span id="o-tv-hint-text">Click price on chart</span>
-                                <button type="button" onclick="setActiveTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
+                                <button type="button" onclick="setActiveOptionsTvTool('pointer')" class="ml-1 text-slate-400 hover:text-white font-bold cursor-pointer">✕</button>
                             </div>
 
                             <div id="o-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
@@ -1869,46 +1900,96 @@
     let oFibPriceLines = [];
     let wManualPriceLines = [];
     let oManualPriceLines = [];
-    let tvSettings = {
-        superTrend: localStorage.getItem('nifty_unified_st_mode') || 'off', // 'off', '10_3', '10_2'
-        fibMode: localStorage.getItem('nifty_unified_fib_mode') || 'off', // 'off', 'auto', 'manual'
-        manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_manual_fib') || 'null'),
-        manualHLines: JSON.parse(localStorage.getItem('nifty_unified_manual_hlines') || '[]'),
-    };
-    let activeTvTool = 'pointer'; // 'pointer', 'hline', 'fib_manual'
-    let manualFibClickStep = 0;
-    let manualFibTempP1 = null;
-    window._unifiedAllCandles = [];
 
-    // Quant S/R Lines Data & Instances
+    // Decoupled TradingView Dock & Overlay Settings per chart
+    let wTvSettings = {
+        superTrend: localStorage.getItem('nifty_unified_w_st_mode') || 'off', // 'off', '10_3', '10_2'
+        fibMode: localStorage.getItem('nifty_unified_w_fib_mode') || 'off', // 'off', 'auto', 'manual'
+        manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_w_manual_fib') || 'null'),
+        manualHLines: JSON.parse(localStorage.getItem('nifty_unified_w_manual_hlines') || '[]'),
+    };
+    let oTvSettings = {
+        superTrend: localStorage.getItem('nifty_unified_o_st_mode') || 'off', // 'off', '10_3', '10_2'
+        fibMode: localStorage.getItem('nifty_unified_o_fib_mode') || 'off', // 'off', 'auto', 'manual'
+        manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_o_manual_fib') || 'null'),
+        manualHLines: JSON.parse(localStorage.getItem('nifty_unified_o_manual_hlines') || '[]'),
+    };
+
+    let wActiveTvTool = 'pointer'; // 'pointer', 'hline', 'fib_manual'
+    let oActiveTvTool = 'pointer'; // 'pointer', 'hline', 'fib_manual'
+    let wManualFibClickStep = 0;
+    let wManualFibTempP1 = null;
+    let oManualFibClickStep = 0;
+    let oManualFibTempP1 = null;
+
+    // Decoupled Candle Style per chart (regular 'candle' vs 'heikin_ashi')
+    let wCandleStyle = localStorage.getItem('nifty_unified_w_candle_style') || 'candle';
+    let oCandleStyle = localStorage.getItem('nifty_unified_o_candle_style') || 'candle';
+
+    window._unifiedAllCandles = [];
+    window._unifiedHaCandles = [];
+    window._unifiedOptionsCandles = [];
+    window._unifiedOptionsHaCandles = [];
+    window._wCandleMarkers = [];
+    window._oCandleMarkers = [];
+
+    // Decoupled Quant S/R Lines Data & Instances per chart
     let quantPlaybookData = @json($quantPlaybook ?? null);
-    let showQuantLines = localStorage.getItem('nifty_unified_show_quant_lines') !== 'false'; // default true
+    let wShowQuantLines = localStorage.getItem('nifty_unified_w_quant_lines') !== 'false'; // default true
+    let oShowQuantLines = localStorage.getItem('nifty_unified_o_quant_lines') !== 'false'; // default true
     let quantPriceLinesOptions = [];
     let quantPriceLinesWeightage = [];
 
     function updateQuantLinesButtonUI() {
         const badgeO = document.getElementById('quant-lines-status-badge');
         if (badgeO) {
-            badgeO.textContent = showQuantLines ? 'ON' : 'OFF';
-            badgeO.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+            badgeO.textContent = oShowQuantLines ? 'ON' : 'OFF';
+            badgeO.className = oShowQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
         }
         const badgeW = document.getElementById('w-quant-lines-status-badge');
         if (badgeW) {
-            badgeW.textContent = showQuantLines ? 'ON' : 'OFF';
-            badgeW.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+            badgeW.textContent = wShowQuantLines ? 'ON' : 'OFF';
+            badgeW.className = wShowQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
         }
         const badgeStrip = document.getElementById('strip-quant-lines-status-badge');
         if (badgeStrip) {
-            badgeStrip.textContent = showQuantLines ? 'ON' : 'OFF';
-            badgeStrip.className = showQuantLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+            const anyOn = (wShowQuantLines || oShowQuantLines);
+            badgeStrip.textContent = anyOn ? 'ON' : 'OFF';
+            badgeStrip.className = anyOn ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
         }
     }
 
-    function toggleQuantPriceLines() {
-        showQuantLines = !showQuantLines;
-        localStorage.setItem('nifty_unified_show_quant_lines', showQuantLines ? 'true' : 'false');
+    function toggleWeightageQuantLines() {
+        wShowQuantLines = !wShowQuantLines;
+        try {
+            localStorage.setItem('nifty_unified_w_quant_lines', wShowQuantLines ? 'true' : 'false');
+        } catch(e){}
         updateQuantLinesButtonUI();
-        drawQuantPriceLines();
+        drawWeightageQuantLines();
+    }
+    window.toggleWeightageQuantLines = toggleWeightageQuantLines;
+
+    function toggleOptionsQuantLines() {
+        oShowQuantLines = !oShowQuantLines;
+        try {
+            localStorage.setItem('nifty_unified_o_quant_lines', oShowQuantLines ? 'true' : 'false');
+        } catch(e){}
+        updateQuantLinesButtonUI();
+        drawOptionsQuantLines();
+    }
+    window.toggleOptionsQuantLines = toggleOptionsQuantLines;
+
+    function toggleQuantPriceLines() {
+        const next = !(wShowQuantLines || oShowQuantLines);
+        wShowQuantLines = next;
+        oShowQuantLines = next;
+        try {
+            localStorage.setItem('nifty_unified_w_quant_lines', next ? 'true' : 'false');
+            localStorage.setItem('nifty_unified_o_quant_lines', next ? 'true' : 'false');
+        } catch(e){}
+        updateQuantLinesButtonUI();
+        drawWeightageQuantLines();
+        drawOptionsQuantLines();
     }
     window.toggleQuantPriceLines = toggleQuantPriceLines;
 
@@ -2650,7 +2731,24 @@
                     low: Number(lastCandle.low),
                     close: Number(lastCandle.close),
                 };
-                wCandleSeries.update(liveBar);
+
+                if (wCandleStyle === 'heikin_ashi') {
+                    if (window._unifiedAllCandles && window._unifiedAllCandles.length > 0) {
+                        window._unifiedHaCandles = calculateHeikinAshi(window._unifiedAllCandles);
+                        const lastHa = window._unifiedHaCandles[window._unifiedHaCandles.length - 1];
+                        if (lastHa) {
+                            wCandleSeries.update({
+                                time: lastHa.time,
+                                open: lastHa.open,
+                                high: lastHa.high,
+                                low: lastHa.low,
+                                close: lastHa.close
+                            });
+                        }
+                    }
+                } else {
+                    wCandleSeries.update(liveBar);
+                }
 
                 if (activeCandleIndex >= timestampsList.length - 1) {
                     const closeEl = document.getElementById('w-chart-close');
@@ -2718,7 +2816,24 @@
                     low: Number(lastCandle.low),
                     close: Number(lastCandle.close),
                 };
-                oCandleSeries.update(liveBar);
+
+                if (oCandleStyle === 'heikin_ashi') {
+                    if (window._unifiedOptionsCandles && window._unifiedOptionsCandles.length > 0) {
+                        window._unifiedOptionsHaCandles = calculateHeikinAshi(window._unifiedOptionsCandles);
+                        const lastHa = window._unifiedOptionsHaCandles[window._unifiedOptionsHaCandles.length - 1];
+                        if (lastHa) {
+                            oCandleSeries.update({
+                                time: lastHa.time,
+                                open: lastHa.open,
+                                high: lastHa.high,
+                                low: lastHa.low,
+                                close: lastHa.close
+                            });
+                        }
+                    }
+                } else {
+                    oCandleSeries.update(liveBar);
+                }
 
                 if (activeCandleIndex >= timestampsList.length - 1) {
                     const closeEl = document.getElementById('o-chart-close');
@@ -2734,9 +2849,172 @@
         }
     }
 
+    // ── Heikin Ashi Calculation Engine ───────────────────────────────────────────
+    function calculateHeikinAshi(candles) {
+        if (!candles || candles.length === 0) return [];
+        const haCandles = [];
+        let prevHa = null;
+
+        for (let i = 0; i < candles.length; i++) {
+            const c = candles[i];
+            const open = Number(c.open);
+            const high = Number(c.high);
+            const low = Number(c.low);
+            const close = Number(c.close);
+
+            const haClose = (open + high + low + close) / 4;
+            let haOpen;
+            if (i === 0 || !prevHa) {
+                haOpen = (open + close) / 2;
+            } else {
+                haOpen = (prevHa.open + prevHa.close) / 2;
+            }
+
+            const haHigh = Math.max(high, haOpen, haClose);
+            const haLow = Math.min(low, haOpen, haClose);
+
+            const haCandle = {
+                time: Number(c.time || c.timestamp),
+                open: Math.round(haOpen * 100) / 100,
+                high: Math.round(haHigh * 100) / 100,
+                low: Math.round(haLow * 100) / 100,
+                close: Math.round(haClose * 100) / 100,
+                time_str: c.time_str,
+                real_open: open,
+                real_high: high,
+                real_low: low,
+                real_close: close,
+            };
+
+            haCandles.push(haCandle);
+            prevHa = haCandle;
+        }
+
+        return haCandles;
+    }
+    window.calculateHeikinAshi = calculateHeikinAshi;
+
+    function updateCandleStyleUI() {
+        const isWHa = wCandleStyle === 'heikin_ashi';
+        const isOHa = oCandleStyle === 'heikin_ashi';
+
+        // 1. Top select
+        const sel = document.getElementById('candle-style-select');
+        if (sel) {
+            if (isWHa && isOHa) sel.value = 'heikin_ashi';
+            else if (!isWHa && !isOHa) sel.value = 'candle';
+        }
+
+        // 2. Row 1 Button & Title
+        const wBadge = document.getElementById('w-candle-style-badge');
+        const wIcon = document.getElementById('w-candle-style-icon');
+        const wTitle = document.getElementById('w-chart-title');
+        if (wBadge) {
+            wBadge.textContent = isWHa ? 'HEIKIN ASHI' : 'CANDLE';
+            wBadge.className = isWHa ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-emerald-400 font-extrabold';
+        }
+        if (wIcon) wIcon.textContent = isWHa ? '📊' : '🕯️';
+        if (wTitle) {
+            wTitle.innerHTML = isWHa 
+                ? 'NIFTY 50 (5m Heikin Ashi) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>'
+                : 'NIFTY 50 (5m Candles)';
+        }
+
+        // 3. Row 2 Button & Title
+        const oBadge = document.getElementById('o-candle-style-badge');
+        const oIcon = document.getElementById('o-candle-style-icon');
+        const oTitle = document.getElementById('o-chart-title');
+        if (oBadge) {
+            oBadge.textContent = isOHa ? 'HEIKIN ASHI' : 'CANDLE';
+            oBadge.className = isOHa ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-emerald-400 font-extrabold';
+        }
+        if (oIcon) oIcon.textContent = isOHa ? '📊' : '🕯️';
+        if (oTitle) {
+            oTitle.innerHTML = isOHa 
+                ? 'NIFTY (5m Heikin Ashi &amp; Parity) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>'
+                : 'NIFTY (5m Candles &amp; Parity)';
+        }
+    }
+    window.updateCandleStyleUI = updateCandleStyleUI;
+
+    function setWeightageCandleStyle(style) {
+        wCandleStyle = (style === 'heikin_ashi') ? 'heikin_ashi' : 'candle';
+        try {
+            localStorage.setItem('nifty_unified_w_candle_style', wCandleStyle);
+        } catch(e) {}
+        updateCandleStyleUI();
+        renderWeightageColumn();
+        renderWeightageSuperTrend();
+        if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
+            syncWeightageUI(activeCandleIndex, timestampsList[activeCandleIndex]);
+        }
+    }
+    window.setWeightageCandleStyle = setWeightageCandleStyle;
+
+    function toggleWeightageCandleStyle() {
+        const next = (wCandleStyle === 'candle') ? 'heikin_ashi' : 'candle';
+        setWeightageCandleStyle(next);
+    }
+    window.toggleWeightageCandleStyle = toggleWeightageCandleStyle;
+
+    function setOptionsCandleStyle(style) {
+        oCandleStyle = (style === 'heikin_ashi') ? 'heikin_ashi' : 'candle';
+        try {
+            localStorage.setItem('nifty_unified_o_candle_style', oCandleStyle);
+        } catch(e) {}
+        updateCandleStyleUI();
+        renderOptionsBreadthColumn();
+        renderOptionsSuperTrend();
+        if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
+            syncOptionsBreadthUI(activeCandleIndex, timestampsList[activeCandleIndex]);
+        }
+    }
+    window.setOptionsCandleStyle = setOptionsCandleStyle;
+
+    function toggleOptionsCandleStyle() {
+        const next = (oCandleStyle === 'candle') ? 'heikin_ashi' : 'candle';
+        setOptionsCandleStyle(next);
+    }
+    window.toggleOptionsCandleStyle = toggleOptionsCandleStyle;
+
+    // Master / Backward Compatibility toggle
+    function setCandleStyle(style) {
+        setWeightageCandleStyle(style);
+        setOptionsCandleStyle(style);
+    }
+    window.setCandleStyle = setCandleStyle;
+
+    function toggleCandleStyle() {
+        const next = (wCandleStyle === 'candle' || oCandleStyle === 'candle') ? 'heikin_ashi' : 'candle';
+        setCandleStyle(next);
+    }
+    window.toggleCandleStyle = toggleCandleStyle;
+
+    function refreshCandleSeriesData() {
+        renderWeightageColumn();
+        renderOptionsBreadthColumn();
+        drawWeightageQuantLines();
+        drawOptionsQuantLines();
+        renderAllChartOverlays();
+    }
+    window.refreshCandleSeriesData = refreshCandleSeriesData;
+
+    function setGlobalSignalsMode(mode) {
+        alarmSettings.stocksMarkerMode = mode;
+        alarmSettings.stocksShowMarkers = (mode !== 'off');
+        alarmSettings.optionsMarkerMode = mode;
+        alarmSettings.optionsShowMarkers = (mode !== 'off');
+        saveAlarmSettings();
+        updateMarkerButtonsUI();
+        updateTvToolsUI();
+        renderWeightageColumn();
+        renderOptionsBreadthColumn();
+    }
+    window.setGlobalSignalsMode = setGlobalSignalsMode;
+
     function cycleStocksMarkerMode() {
         const current = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
-        let next = 'all';
+        let next = 'breach';
         if (current === 'breach') next = 'all';
         else if (current === 'all') next = 'off';
         else next = 'breach';
@@ -2745,14 +3023,13 @@
         alarmSettings.stocksShowMarkers = (next !== 'off');
         saveAlarmSettings();
         updateMarkerButtonsUI();
-        updateTvToolsUI();
         renderWeightageColumn();
     }
     window.cycleStocksMarkerMode = cycleStocksMarkerMode;
 
     function cycleOptionsMarkerMode() {
         const current = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
-        let next = 'all';
+        let next = 'breach';
         if (current === 'breach') next = 'all';
         else if (current === 'all') next = 'off';
         else next = 'breach';
@@ -2761,14 +3038,19 @@
         alarmSettings.optionsShowMarkers = (next !== 'off');
         saveAlarmSettings();
         updateMarkerButtonsUI();
-        updateTvToolsUI();
         renderOptionsBreadthColumn();
     }
     window.cycleOptionsMarkerMode = cycleOptionsMarkerMode;
 
     function updateMarkerButtonsUI() {
-        const sBadge = document.getElementById('w-marker-status-badge');
+        const topSelect = document.getElementById('signals-mode-select');
         const sMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
+        const oMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
+        if (topSelect) {
+            if (sMode === oMode) topSelect.value = sMode;
+        }
+
+        const sBadge = document.getElementById('w-marker-status-badge');
         if (sBadge) {
             if (sMode === 'all') {
                 sBadge.textContent = 'EVERY 5M';
@@ -2783,7 +3065,6 @@
         }
 
         const oBadge = document.getElementById('o-marker-status-badge');
-        const oMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
         if (oBadge) {
             if (oMode === 'all') {
                 oBadge.textContent = 'EVERY 5M';
@@ -2802,163 +3083,337 @@
     // ══════════════════════════════════════════════════════════════════════════════
     // TRADINGVIEW TOOLS: SUPERTREND, FIBONACCI RETRACEMENT & MANUAL HORIZONTAL LINES
     // ══════════════════════════════════════════════════════════════════════════════
-    function cycleSuperTrendMode() {
-        let cur = tvSettings.superTrend;
+    function cycleWeightageSuperTrendMode() {
+        let cur = wTvSettings.superTrend;
         let next = 'off';
         if (cur === 'off') next = '10_3';
         else if (cur === '10_3') next = '10_2';
         else next = 'off';
 
-        tvSettings.superTrend = next;
+        wTvSettings.superTrend = next;
         try {
-            localStorage.setItem('nifty_unified_st_mode', next);
+            localStorage.setItem('nifty_unified_w_st_mode', next);
         } catch(e){}
         updateTvToolsUI();
-        renderSuperTrendOverlays();
+        renderWeightageSuperTrend();
+    }
+    window.cycleWeightageSuperTrendMode = cycleWeightageSuperTrendMode;
+
+    function cycleOptionsSuperTrendMode() {
+        let cur = oTvSettings.superTrend;
+        let next = 'off';
+        if (cur === 'off') next = '10_3';
+        else if (cur === '10_3') next = '10_2';
+        else next = 'off';
+
+        oTvSettings.superTrend = next;
+        try {
+            localStorage.setItem('nifty_unified_o_st_mode', next);
+        } catch(e){}
+        updateTvToolsUI();
+        renderOptionsSuperTrend();
+    }
+    window.cycleOptionsSuperTrendMode = cycleOptionsSuperTrendMode;
+
+    function cycleSuperTrendMode() {
+        cycleWeightageSuperTrendMode();
+        cycleOptionsSuperTrendMode();
     }
     window.cycleSuperTrendMode = cycleSuperTrendMode;
 
-    function cycleFibMode() {
-        let cur = tvSettings.fibMode;
+    function cycleWeightageFibMode() {
+        let cur = wTvSettings.fibMode;
         let next = 'off';
         if (cur === 'off') next = 'auto';
         else if (cur === 'auto') next = 'manual';
         else next = 'off';
 
-        tvSettings.fibMode = next;
+        wTvSettings.fibMode = next;
         try {
-            localStorage.setItem('nifty_unified_fib_mode', next);
+            localStorage.setItem('nifty_unified_w_fib_mode', next);
         } catch(e){}
         if (next === 'manual') {
-            manualFibClickStep = 1;
-            manualFibTempP1 = null;
-            setActiveTvTool('fib_manual');
+            wManualFibClickStep = 1;
+            wManualFibTempP1 = null;
+            setActiveWeightageTvTool('fib_manual');
         } else {
-            setActiveTvTool('pointer');
+            setActiveWeightageTvTool('pointer');
         }
         updateTvToolsUI();
-        renderFibonacciOverlays();
+        renderWeightageFibonacci();
+    }
+    window.cycleWeightageFibMode = cycleWeightageFibMode;
+
+    function cycleOptionsFibMode() {
+        let cur = oTvSettings.fibMode;
+        let next = 'off';
+        if (cur === 'off') next = 'auto';
+        else if (cur === 'auto') next = 'manual';
+        else next = 'off';
+
+        oTvSettings.fibMode = next;
+        try {
+            localStorage.setItem('nifty_unified_o_fib_mode', next);
+        } catch(e){}
+        if (next === 'manual') {
+            oManualFibClickStep = 1;
+            oManualFibTempP1 = null;
+            setActiveOptionsTvTool('fib_manual');
+        } else {
+            setActiveOptionsTvTool('pointer');
+        }
+        updateTvToolsUI();
+        renderOptionsFibonacci();
+    }
+    window.cycleOptionsFibMode = cycleOptionsFibMode;
+
+    function cycleFibMode() {
+        cycleWeightageFibMode();
+        cycleOptionsFibMode();
     }
     window.cycleFibMode = cycleFibMode;
 
-    function toggleHLineTool() {
-        if (activeTvTool === 'hline') {
-            setActiveTvTool('pointer');
+    function toggleWeightageHLineTool() {
+        if (wActiveTvTool === 'hline') {
+            setActiveWeightageTvTool('pointer');
         } else {
-            setActiveTvTool('hline');
+            setActiveWeightageTvTool('hline');
         }
+    }
+    window.toggleWeightageHLineTool = toggleWeightageHLineTool;
+
+    function toggleOptionsHLineTool() {
+        if (oActiveTvTool === 'hline') {
+            setActiveOptionsTvTool('pointer');
+        } else {
+            setActiveOptionsTvTool('hline');
+        }
+    }
+    window.toggleOptionsHLineTool = toggleOptionsHLineTool;
+
+    function toggleHLineTool() {
+        toggleWeightageHLineTool();
+        toggleOptionsHLineTool();
     }
     window.toggleHLineTool = toggleHLineTool;
 
-    function setActiveTvTool(tool) {
-        activeTvTool = tool;
+    function setActiveWeightageTvTool(tool) {
+        wActiveTvTool = tool;
         updateTvToolsUI();
+    }
+    window.setActiveWeightageTvTool = setActiveWeightageTvTool;
+
+    function setActiveOptionsTvTool(tool) {
+        oActiveTvTool = tool;
+        updateTvToolsUI();
+    }
+    window.setActiveOptionsTvTool = setActiveOptionsTvTool;
+
+    function setActiveTvTool(tool) {
+        setActiveWeightageTvTool(tool);
+        setActiveOptionsTvTool(tool);
     }
     window.setActiveTvTool = setActiveTvTool;
 
-    function handleManualFibClick(price) {
-        if (manualFibClickStep === 1) {
-            manualFibTempP1 = price;
-            manualFibClickStep = 2;
-            updateTvHint(`Point 1: ₹${price.toFixed(1)}. Now click Point 2 on chart...`);
-        } else if (manualFibClickStep === 2) {
-            tvSettings.manualFibPoints = { p1: manualFibTempP1, p2: price };
+    function handleWeightageManualFibClick(price) {
+        if (wManualFibClickStep === 1) {
+            wManualFibTempP1 = price;
+            wManualFibClickStep = 2;
+            updateTvHint(`Point 1: ₹${price.toFixed(1)}. Now click Point 2 on Weightage chart...`, 'w');
+        } else if (wManualFibClickStep === 2) {
+            wTvSettings.manualFibPoints = { p1: wManualFibTempP1, p2: price };
             try {
-                localStorage.setItem('nifty_unified_manual_fib', JSON.stringify(tvSettings.manualFibPoints));
+                localStorage.setItem('nifty_unified_w_manual_fib', JSON.stringify(wTvSettings.manualFibPoints));
             } catch(e){}
-            manualFibClickStep = 0;
-            manualFibTempP1 = null;
-            setActiveTvTool('pointer');
-            renderFibonacciOverlays();
+            wManualFibClickStep = 0;
+            wManualFibTempP1 = null;
+            setActiveWeightageTvTool('pointer');
+            renderWeightageFibonacci();
         }
     }
+
+    function handleOptionsManualFibClick(price) {
+        if (oManualFibClickStep === 1) {
+            oManualFibTempP1 = price;
+            oManualFibClickStep = 2;
+            updateTvHint(`Point 1: ₹${price.toFixed(1)}. Now click Point 2 on Options chart...`, 'o');
+        } else if (oManualFibClickStep === 2) {
+            oTvSettings.manualFibPoints = { p1: oManualFibTempP1, p2: price };
+            try {
+                localStorage.setItem('nifty_unified_o_manual_fib', JSON.stringify(oTvSettings.manualFibPoints));
+            } catch(e){}
+            oManualFibClickStep = 0;
+            oManualFibTempP1 = null;
+            setActiveOptionsTvTool('pointer');
+            renderOptionsFibonacci();
+        }
+    }
+
+    function handleManualFibClick(price) {
+        handleWeightageManualFibClick(price);
+        handleOptionsManualFibClick(price);
+    }
+
+    function addWeightageManualHLine(price) {
+        if (!wTvSettings.manualHLines) wTvSettings.manualHLines = [];
+        wTvSettings.manualHLines.push(price);
+        try {
+            localStorage.setItem('nifty_unified_w_manual_hlines', JSON.stringify(wTvSettings.manualHLines));
+        } catch(e){}
+        renderWeightageManualHLines();
+    }
+    window.addWeightageManualHLine = addWeightageManualHLine;
+
+    function addOptionsManualHLine(price) {
+        if (!oTvSettings.manualHLines) oTvSettings.manualHLines = [];
+        oTvSettings.manualHLines.push(price);
+        try {
+            localStorage.setItem('nifty_unified_o_manual_hlines', JSON.stringify(oTvSettings.manualHLines));
+        } catch(e){}
+        renderOptionsManualHLines();
+    }
+    window.addOptionsManualHLine = addOptionsManualHLine;
 
     function addManualHLine(price) {
-        if (!tvSettings.manualHLines) tvSettings.manualHLines = [];
-        tvSettings.manualHLines.push(price);
-        try {
-            localStorage.setItem('nifty_unified_manual_hlines', JSON.stringify(tvSettings.manualHLines));
-        } catch(e){}
-        renderManualHLines();
+        addWeightageManualHLine(price);
+        addOptionsManualHLine(price);
     }
 
-    function clearAllManualDrawings() {
-        tvSettings.manualHLines = [];
-        tvSettings.manualFibPoints = null;
+    function clearWeightageManualDrawings() {
+        wTvSettings.manualHLines = [];
+        wTvSettings.manualFibPoints = null;
         try {
-            localStorage.removeItem('nifty_unified_manual_hlines');
-            localStorage.removeItem('nifty_unified_manual_fib');
+            localStorage.removeItem('nifty_unified_w_manual_hlines');
+            localStorage.removeItem('nifty_unified_w_manual_fib');
         } catch(e){}
-        clearManualHLines();
-        if (tvSettings.fibMode === 'manual') {
-            tvSettings.fibMode = 'off';
-            localStorage.setItem('nifty_unified_fib_mode', 'off');
+        clearWeightageManualHLines();
+        if (wTvSettings.fibMode === 'manual') {
+            wTvSettings.fibMode = 'off';
+            localStorage.setItem('nifty_unified_w_fib_mode', 'off');
         }
-        clearFibPriceLines();
-        setActiveTvTool('pointer');
+        clearWeightageFibPriceLines();
+        setActiveWeightageTvTool('pointer');
         updateTvToolsUI();
+    }
+    window.clearWeightageManualDrawings = clearWeightageManualDrawings;
+
+    function clearOptionsManualDrawings() {
+        oTvSettings.manualHLines = [];
+        oTvSettings.manualFibPoints = null;
+        try {
+            localStorage.removeItem('nifty_unified_o_manual_hlines');
+            localStorage.removeItem('nifty_unified_o_manual_fib');
+        } catch(e){}
+        clearOptionsManualHLines();
+        if (oTvSettings.fibMode === 'manual') {
+            oTvSettings.fibMode = 'off';
+            localStorage.setItem('nifty_unified_o_fib_mode', 'off');
+        }
+        clearOptionsFibPriceLines();
+        setActiveOptionsTvTool('pointer');
+        updateTvToolsUI();
+    }
+    window.clearOptionsManualDrawings = clearOptionsManualDrawings;
+
+    function clearAllManualDrawings() {
+        clearWeightageManualDrawings();
+        clearOptionsManualDrawings();
     }
     window.clearAllManualDrawings = clearAllManualDrawings;
 
-    function updateTvHint(customText = null) {
+    function updateTvHint(customText = null, targetChart = null) {
         const wHint = document.getElementById('w-tv-hint');
         const oHint = document.getElementById('o-tv-hint');
         const wText = document.getElementById('w-tv-hint-text');
         const oText = document.getElementById('o-tv-hint-text');
 
-        let isVisible = false;
-        let text = '';
-
-        if (activeTvTool === 'hline') {
-            isVisible = true;
-            text = 'Click any price on the chart to place Horizontal Support/Resistance';
-        } else if (activeTvTool === 'fib_manual') {
-            isVisible = true;
-            text = customText || 'Click Swing Point 1 (High/Low) on the chart...';
-        }
-
         if (wHint) {
-            wHint.className = isVisible ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
-            if (wText && isVisible) wText.textContent = text;
+            let isWVis = false;
+            let tW = '';
+            if (wActiveTvTool === 'hline') {
+                isWVis = true;
+                tW = 'Click any price on Weightage chart to place Horizontal Support/Resistance';
+            } else if (wActiveTvTool === 'fib_manual') {
+                isWVis = true;
+                tW = (targetChart === 'w' && customText) ? customText : 'Click Swing Point 1 (High/Low) on Weightage chart...';
+            }
+            wHint.className = isWVis ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
+            if (wText && isWVis) wText.textContent = tW;
         }
+
         if (oHint) {
-            oHint.className = isVisible ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
-            if (oText && isVisible) oText.textContent = text;
+            let isOVis = false;
+            let tO = '';
+            if (oActiveTvTool === 'hline') {
+                isOVis = true;
+                tO = 'Click any price on Options chart to place Horizontal Support/Resistance';
+            } else if (oActiveTvTool === 'fib_manual') {
+                isOVis = true;
+                tO = (targetChart === 'o' && customText) ? customText : 'Click Swing Point 1 (High/Low) on Options chart...';
+            }
+            oHint.className = isOVis ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
+            if (oText && isOVis) oText.textContent = tO;
         }
     }
 
     function updateTvToolsUI() {
         // 1. SuperTrend Badges
-        const stBadges = [document.getElementById('w-st-status-badge'), document.getElementById('o-st-status-badge')];
-        stBadges.forEach(b => {
-            if (!b) return;
-            if (tvSettings.superTrend === '10_3') {
-                b.textContent = '10, 3';
-                b.className = 'font-mono text-emerald-400 font-extrabold';
-            } else if (tvSettings.superTrend === '10_2') {
-                b.textContent = '10, 2';
-                b.className = 'font-mono text-cyan-300 font-extrabold';
+        const wStBadge = document.getElementById('w-st-status-badge');
+        if (wStBadge) {
+            if (wTvSettings.superTrend === '10_3') {
+                wStBadge.textContent = '10, 3';
+                wStBadge.className = 'font-mono text-emerald-400 font-extrabold';
+            } else if (wTvSettings.superTrend === '10_2') {
+                wStBadge.textContent = '10, 2';
+                wStBadge.className = 'font-mono text-cyan-300 font-extrabold';
             } else {
-                b.textContent = 'OFF';
-                b.className = 'font-mono text-gray-500 font-extrabold';
+                wStBadge.textContent = 'OFF';
+                wStBadge.className = 'font-mono text-gray-500 font-extrabold';
             }
-        });
+        }
+
+        const oStBadge = document.getElementById('o-st-status-badge');
+        if (oStBadge) {
+            if (oTvSettings.superTrend === '10_3') {
+                oStBadge.textContent = '10, 3';
+                oStBadge.className = 'font-mono text-emerald-400 font-extrabold';
+            } else if (oTvSettings.superTrend === '10_2') {
+                oStBadge.textContent = '10, 2';
+                oStBadge.className = 'font-mono text-cyan-300 font-extrabold';
+            } else {
+                oStBadge.textContent = 'OFF';
+                oStBadge.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        }
 
         // 2. Fibonacci Badges
-        const fibBadges = [document.getElementById('w-fib-status-badge'), document.getElementById('o-fib-status-badge')];
-        fibBadges.forEach(b => {
-            if (!b) return;
-            if (tvSettings.fibMode === 'auto') {
-                b.textContent = 'AUTO';
-                b.className = 'font-mono text-violet-300 font-extrabold';
-            } else if (tvSettings.fibMode === 'manual') {
-                b.textContent = 'MANUAL';
-                b.className = 'font-mono text-amber-300 font-extrabold';
+        const wFibBadge = document.getElementById('w-fib-status-badge');
+        if (wFibBadge) {
+            if (wTvSettings.fibMode === 'auto') {
+                wFibBadge.textContent = 'AUTO';
+                wFibBadge.className = 'font-mono text-violet-300 font-extrabold';
+            } else if (wTvSettings.fibMode === 'manual') {
+                wFibBadge.textContent = 'MANUAL';
+                wFibBadge.className = 'font-mono text-amber-300 font-extrabold';
             } else {
-                b.textContent = 'OFF';
-                b.className = 'font-mono text-gray-500 font-extrabold';
+                wFibBadge.textContent = 'OFF';
+                wFibBadge.className = 'font-mono text-gray-500 font-extrabold';
             }
-        });
+        }
+
+        const oFibBadge = document.getElementById('o-fib-status-badge');
+        if (oFibBadge) {
+            if (oTvSettings.fibMode === 'auto') {
+                oFibBadge.textContent = 'AUTO';
+                oFibBadge.className = 'font-mono text-violet-300 font-extrabold';
+            } else if (oTvSettings.fibMode === 'manual') {
+                oFibBadge.textContent = 'MANUAL';
+                oFibBadge.className = 'font-mono text-amber-300 font-extrabold';
+            } else {
+                oFibBadge.textContent = 'OFF';
+                oFibBadge.className = 'font-mono text-gray-500 font-extrabold';
+            }
+        }
 
         // 3. Floating Toolbar active styles
         const toolClasses = {
@@ -2966,17 +3421,27 @@
             inactive: 'tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer',
         };
 
-        ['w', 'o'].forEach(prefix => {
-            const btnPointer = document.getElementById(`${prefix}-tv-pointer`);
-            const btnHline = document.getElementById(`${prefix}-tv-hline`);
-            const btnFib = document.getElementById(`${prefix}-tv-fib`);
-            const btnSt = document.getElementById(`${prefix}-tv-st`);
+        // Row 1 dock
+        const wBtnPointer = document.getElementById('w-tv-pointer');
+        const wBtnHline = document.getElementById('w-tv-hline');
+        const wBtnFib = document.getElementById('w-tv-fib');
+        const wBtnSt = document.getElementById('w-tv-st');
 
-            if (btnPointer) btnPointer.className = (activeTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
-            if (btnHline) btnHline.className = (activeTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
-            if (btnFib) btnFib.className = (activeTvTool === 'fib_manual' || tvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
-            if (btnSt) btnSt.className = (tvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
-        });
+        if (wBtnPointer) wBtnPointer.className = (wActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
+        if (wBtnHline) wBtnHline.className = (wActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
+        if (wBtnFib) wBtnFib.className = (wActiveTvTool === 'fib_manual' || wTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+        if (wBtnSt) wBtnSt.className = (wTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+
+        // Row 2 dock
+        const oBtnPointer = document.getElementById('o-tv-pointer');
+        const oBtnHline = document.getElementById('o-tv-hline');
+        const oBtnFib = document.getElementById('o-tv-fib');
+        const oBtnSt = document.getElementById('o-tv-st');
+
+        if (oBtnPointer) oBtnPointer.className = (oActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
+        if (oBtnHline) oBtnHline.className = (oActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
+        if (oBtnFib) oBtnFib.className = (oActiveTvTool === 'fib_manual' || oTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+        if (oBtnSt) oBtnSt.className = (oTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
 
         updateTvHint();
     }
@@ -3068,37 +3533,69 @@
         return { bull, bear, flips };
     }
 
-    function renderSuperTrendOverlays() {
-        if (!wStBullSeries || !wStBearSeries || !oStBullSeries || !oStBearSeries) return;
-
-        const mode = tvSettings.superTrend;
+    function renderWeightageSuperTrend() {
+        if (!wStBullSeries || !wStBearSeries) return;
+        const mode = wTvSettings.superTrend;
         if (mode === 'off') {
             wStBullSeries.setData([]);
             wStBearSeries.setData([]);
-            oStBullSeries.setData([]);
-            oStBearSeries.setData([]);
             return;
         }
-
         const mult = (mode === '10_2') ? 2 : 3;
-        const allCandles = window._unifiedAllCandles || [];
+        const allCandles = (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0)
+            ? window._unifiedHaCandles
+            : (window._unifiedAllCandles || []);
         if (allCandles.length < 10) return;
 
         const st = calculateSuperTrend(allCandles, 10, mult);
         wStBullSeries.setData(st.bull);
         wStBearSeries.setData(st.bear);
+    }
+
+    function renderOptionsSuperTrend() {
+        if (!oStBullSeries || !oStBearSeries) return;
+        const mode = oTvSettings.superTrend;
+        if (mode === 'off') {
+            oStBullSeries.setData([]);
+            oStBearSeries.setData([]);
+            return;
+        }
+        const mult = (mode === '10_2') ? 2 : 3;
+        const allCandles = (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0)
+            ? window._unifiedOptionsHaCandles
+            : (window._unifiedOptionsCandles || []);
+        if (allCandles.length < 10) return;
+
+        const st = calculateSuperTrend(allCandles, 10, mult);
         oStBullSeries.setData(st.bull);
         oStBearSeries.setData(st.bear);
     }
 
+    function renderSuperTrendOverlays() {
+        renderWeightageSuperTrend();
+        renderOptionsSuperTrend();
+    }
+
     // ── Fibonacci Retracement Rendering ──
-    function clearFibPriceLines() {
+    const FIB_RATIOS = [
+        { ratio: 1.0,   label: 'Fib 1.0 (High)',       color: '#f43f5e', lineStyle: 0 },
+        { ratio: 0.786, label: 'Fib 0.786',            color: '#38bdf8', lineStyle: 2 },
+        { ratio: 0.618, label: 'Fib 0.618 (Golden)',   color: '#f59e0b', lineStyle: 1 },
+        { ratio: 0.500, label: 'Fib 0.500 (Mid)',      color: '#06b6d4', lineStyle: 0 },
+        { ratio: 0.382, label: 'Fib 0.382',            color: '#a855f7', lineStyle: 2 },
+        { ratio: 0.0,   label: 'Fib 0.0 (Low)',        color: '#10b981', lineStyle: 0 },
+    ];
+
+    function clearWeightageFibPriceLines() {
         if (wCandleSeries && wFibPriceLines.length > 0) {
             wFibPriceLines.forEach(pl => {
                 try { wCandleSeries.removePriceLine(pl); } catch(e){}
             });
             wFibPriceLines = [];
         }
+    }
+
+    function clearOptionsFibPriceLines() {
         if (oCandleSeries && oFibPriceLines.length > 0) {
             oFibPriceLines.forEach(pl => {
                 try { oCandleSeries.removePriceLine(pl); } catch(e){}
@@ -3107,71 +3604,95 @@
         }
     }
 
-    function renderFibonacciOverlays() {
-        clearFibPriceLines();
-        const mode = tvSettings.fibMode;
-        if (mode === 'off') return;
+    function clearFibPriceLines() {
+        clearWeightageFibPriceLines();
+        clearOptionsFibPriceLines();
+    }
+
+    function renderWeightageFibonacci() {
+        clearWeightageFibPriceLines();
+        const mode = wTvSettings.fibMode;
+        if (mode === 'off' || !wCandleSeries) return;
 
         let high = 0, low = 0;
-
         if (mode === 'auto') {
             const raw = weightageData?.candles || weightageData?.nifty_candles || [];
             if (!raw || raw.length === 0) return;
             high = Math.max(...raw.map(c => Number(c.high)));
             low = Math.min(...raw.map(c => Number(c.low)));
         } else if (mode === 'manual') {
-            if (!tvSettings.manualFibPoints || !tvSettings.manualFibPoints.p1 || !tvSettings.manualFibPoints.p2) return;
-            high = Math.max(tvSettings.manualFibPoints.p1, tvSettings.manualFibPoints.p2);
-            low = Math.min(tvSettings.manualFibPoints.p1, tvSettings.manualFibPoints.p2);
+            if (!wTvSettings.manualFibPoints || !wTvSettings.manualFibPoints.p1 || !wTvSettings.manualFibPoints.p2) return;
+            high = Math.max(wTvSettings.manualFibPoints.p1, wTvSettings.manualFibPoints.p2);
+            low = Math.min(wTvSettings.manualFibPoints.p1, wTvSettings.manualFibPoints.p2);
         }
 
         if (high <= 0 || low <= 0 || high <= low) return;
         const range = high - low;
 
-        const fibLevels = [
-            { ratio: 1.0,   label: 'Fib 1.0 (High)',       color: '#f43f5e', lineStyle: 0 },
-            { ratio: 0.786, label: 'Fib 0.786',            color: '#38bdf8', lineStyle: 2 },
-            { ratio: 0.618, label: 'Fib 0.618 (Golden)',   color: '#f59e0b', lineStyle: 1 },
-            { ratio: 0.500, label: 'Fib 0.500 (Mid)',      color: '#06b6d4', lineStyle: 0 },
-            { ratio: 0.382, label: 'Fib 0.382',            color: '#a855f7', lineStyle: 2 },
-            { ratio: 0.0,   label: 'Fib 0.0 (Low)',        color: '#10b981', lineStyle: 0 },
-        ];
-
-        fibLevels.forEach(lvl => {
+        FIB_RATIOS.forEach(lvl => {
             const price = Number((low + range * lvl.ratio).toFixed(2));
-            if (wCandleSeries) {
-                const pl = wCandleSeries.createPriceLine({
-                    price: price,
-                    color: lvl.color,
-                    lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
-                    lineStyle: lvl.lineStyle,
-                    axisLabelVisible: true,
-                    title: `${lvl.label} ${price.toFixed(1)}`,
-                });
-                wFibPriceLines.push(pl);
-            }
-            if (oCandleSeries) {
-                const pl = oCandleSeries.createPriceLine({
-                    price: price,
-                    color: lvl.color,
-                    lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
-                    lineStyle: lvl.lineStyle,
-                    axisLabelVisible: true,
-                    title: `${lvl.label} ${price.toFixed(1)}`,
-                });
-                oFibPriceLines.push(pl);
-            }
+            const pl = wCandleSeries.createPriceLine({
+                price: price,
+                color: lvl.color,
+                lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
+                lineStyle: lvl.lineStyle,
+                axisLabelVisible: true,
+                title: `${lvl.label} ${price.toFixed(1)}`,
+            });
+            wFibPriceLines.push(pl);
         });
     }
 
+    function renderOptionsFibonacci() {
+        clearOptionsFibPriceLines();
+        const mode = oTvSettings.fibMode;
+        if (mode === 'off' || !oCandleSeries) return;
+
+        let high = 0, low = 0;
+        if (mode === 'auto') {
+            const raw = breadthData?.nifty_candles || [];
+            if (!raw || raw.length === 0) return;
+            high = Math.max(...raw.map(c => Number(c.high)));
+            low = Math.min(...raw.map(c => Number(c.low)));
+        } else if (mode === 'manual') {
+            if (!oTvSettings.manualFibPoints || !oTvSettings.manualFibPoints.p1 || !oTvSettings.manualFibPoints.p2) return;
+            high = Math.max(oTvSettings.manualFibPoints.p1, oTvSettings.manualFibPoints.p2);
+            low = Math.min(oTvSettings.manualFibPoints.p1, oTvSettings.manualFibPoints.p2);
+        }
+
+        if (high <= 0 || low <= 0 || high <= low) return;
+        const range = high - low;
+
+        FIB_RATIOS.forEach(lvl => {
+            const price = Number((low + range * lvl.ratio).toFixed(2));
+            const pl = oCandleSeries.createPriceLine({
+                price: price,
+                color: lvl.color,
+                lineWidth: (lvl.ratio === 0.618 || lvl.ratio === 0.5) ? 2 : 1,
+                lineStyle: lvl.lineStyle,
+                axisLabelVisible: true,
+                title: `${lvl.label} ${price.toFixed(1)}`,
+            });
+            oFibPriceLines.push(pl);
+        });
+    }
+
+    function renderFibonacciOverlays() {
+        renderWeightageFibonacci();
+        renderOptionsFibonacci();
+    }
+
     // ── Manual Horizontal Support/Resistance Lines ──
-    function clearManualHLines() {
+    function clearWeightageManualHLines() {
         if (wCandleSeries && wManualPriceLines.length > 0) {
             wManualPriceLines.forEach(pl => {
                 try { wCandleSeries.removePriceLine(pl); } catch(e){}
             });
             wManualPriceLines = [];
         }
+    }
+
+    function clearOptionsManualHLines() {
         if (oCandleSeries && oManualPriceLines.length > 0) {
             oManualPriceLines.forEach(pl => {
                 try { oCandleSeries.removePriceLine(pl); } catch(e){}
@@ -3180,39 +3701,65 @@
         }
     }
 
-    function renderManualHLines() {
-        clearManualHLines();
-        const lines = tvSettings.manualHLines || [];
+    function clearManualHLines() {
+        clearWeightageManualHLines();
+        clearOptionsManualHLines();
+    }
+
+    function renderWeightageManualHLines() {
+        clearWeightageManualHLines();
+        if (!wCandleSeries) return;
+        const lines = wTvSettings.manualHLines || [];
         lines.forEach((price) => {
-            if (wCandleSeries) {
-                const pl = wCandleSeries.createPriceLine({
-                    price: price,
-                    color: '#38bdf8',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
-                    axisLabelVisible: true,
-                    title: `H-Line ${price.toFixed(1)}`,
-                });
-                wManualPriceLines.push(pl);
-            }
-            if (oCandleSeries) {
-                const pl = oCandleSeries.createPriceLine({
-                    price: price,
-                    color: '#38bdf8',
-                    lineWidth: 1,
-                    lineStyle: LightweightCharts.LineStyle.Dashed,
-                    axisLabelVisible: true,
-                    title: `H-Line ${price.toFixed(1)}`,
-                });
-                oManualPriceLines.push(pl);
-            }
+            const pl = wCandleSeries.createPriceLine({
+                price: price,
+                color: '#38bdf8',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: `H-Line ${price.toFixed(1)}`,
+            });
+            wManualPriceLines.push(pl);
         });
     }
 
+    function renderOptionsManualHLines() {
+        clearOptionsManualHLines();
+        if (!oCandleSeries) return;
+        const lines = oTvSettings.manualHLines || [];
+        lines.forEach((price) => {
+            const pl = oCandleSeries.createPriceLine({
+                price: price,
+                color: '#38bdf8',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: `H-Line ${price.toFixed(1)}`,
+            });
+            oManualPriceLines.push(pl);
+        });
+    }
+
+    function renderManualHLines() {
+        renderWeightageManualHLines();
+        renderOptionsManualHLines();
+    }
+
+    function renderWeightageOverlays() {
+        renderWeightageSuperTrend();
+        renderWeightageFibonacci();
+        renderWeightageManualHLines();
+    }
+
+    function renderOptionsOverlays() {
+        renderOptionsSuperTrend();
+        renderOptionsFibonacci();
+        renderOptionsManualHLines();
+    }
+
     function renderAllChartOverlays() {
-        renderSuperTrendOverlays();
-        renderFibonacciOverlays();
-        renderManualHLines();
+        renderWeightageOverlays();
+        renderOptionsOverlays();
     }
 
     async function reloadTrendingOiWithInterval(interval = 5) {
@@ -3301,88 +3848,44 @@
     }
     window.updateQuantLevelsUI = updateQuantLevelsUI;
 
-    function drawQuantPriceLines() {
-        clearQuantPriceLines();
-        if (!showQuantLines || !quantPlaybookData || !quantPlaybookData.levels) return;
+    function getQuantLevelConfig(code, price) {
+        let color = '#f59e0b';
+        let lineWidth = 1;
+        let lineStyle = 2; // Dashed
 
-        quantPlaybookData.levels.forEach(lvl => {
-            const price = parseFloat(lvl.price);
-            if (!price || isNaN(price)) return;
+        if (code === 'R3') {
+            color = '#ef4444';
+            lineStyle = 2;
+        } else if (code === 'R2') {
+            color = '#f87171';
+            lineStyle = 2;
+        } else if (code === 'R1') {
+            color = '#fca5a5';
+            lineStyle = 3; // Dotted
+        } else if (code === 'PIVOT') {
+            color = '#f59e0b';
+            lineWidth = 2;
+            lineStyle = 0; // Solid
+        } else if (code === 'S1') {
+            color = '#6ee7b7';
+            lineStyle = 3; // Dotted
+        } else if (code === 'S2') {
+            color = '#34d399';
+            lineStyle = 2;
+        } else if (code === 'S3') {
+            color = '#10b981';
+            lineStyle = 2;
+        }
 
-            let color = '#f59e0b';
-            let lineWidth = 1;
-            let lineStyle = 2; // Dashed
-
-            if (lvl.code === 'R3') {
-                color = '#ef4444';
-                lineStyle = 2;
-            } else if (lvl.code === 'R2') {
-                color = '#f87171';
-                lineStyle = 2;
-            } else if (lvl.code === 'R1') {
-                color = '#fca5a5';
-                lineStyle = 3; // Dotted
-            } else if (lvl.code === 'PIVOT') {
-                color = '#f59e0b';
-                lineWidth = 2;
-                lineStyle = 0; // Solid
-            } else if (lvl.code === 'S1') {
-                color = '#6ee7b7';
-                lineStyle = 3; // Dotted
-            } else if (lvl.code === 'S2') {
-                color = '#34d399';
-                lineStyle = 2;
-            } else if (lvl.code === 'S3') {
-                color = '#10b981';
-                lineStyle = 2;
-            }
-
-            const title = `${lvl.code}: ₹${Math.round(price).toLocaleString()}`;
-
-            // Draw on Row 2 (Options Breadth Chart)
-            if (oCandleSeries) {
-                try {
-                    const line = oCandleSeries.createPriceLine({
-                        price: price,
-                        color: color,
-                        lineWidth: lineWidth,
-                        lineStyle: lineStyle,
-                        axisLabelVisible: true,
-                        title: title,
-                    });
-                    quantPriceLinesOptions.push(line);
-                } catch (e) {
-                    console.warn('Could not draw price line on Options chart for', lvl.code, e);
-                }
-            }
-
-            // Also draw on Row 1 (Weightage Chart)
-            if (wCandleSeries) {
-                try {
-                    const line = wCandleSeries.createPriceLine({
-                        price: price,
-                        color: color,
-                        lineWidth: lineWidth,
-                        lineStyle: lineStyle,
-                        axisLabelVisible: true,
-                        title: title,
-                    });
-                    quantPriceLinesWeightage.push(line);
-                } catch (e) {
-                    console.warn('Could not draw price line on Weightage chart for', lvl.code, e);
-                }
-            }
-        });
+        return {
+            color,
+            lineWidth,
+            lineStyle,
+            title: `${code}: ₹${Math.round(price).toLocaleString()}`,
+        };
     }
 
-    function clearQuantPriceLines() {
-        if (oCandleSeries && quantPriceLinesOptions.length > 0) {
-            quantPriceLinesOptions.forEach(line => {
-                try { oCandleSeries.removePriceLine(line); } catch (e) {}
-            });
-        }
-        quantPriceLinesOptions = [];
-
+    function clearWeightageQuantLines() {
         if (wCandleSeries && quantPriceLinesWeightage.length > 0) {
             quantPriceLinesWeightage.forEach(line => {
                 try { wCandleSeries.removePriceLine(line); } catch (e) {}
@@ -3390,6 +3893,79 @@
         }
         quantPriceLinesWeightage = [];
     }
+    window.clearWeightageQuantLines = clearWeightageQuantLines;
+
+    function drawWeightageQuantLines() {
+        clearWeightageQuantLines();
+        if (!wShowQuantLines || !quantPlaybookData || !quantPlaybookData.levels || !wCandleSeries) return;
+
+        quantPlaybookData.levels.forEach(lvl => {
+            const price = parseFloat(lvl.price);
+            if (!price || isNaN(price)) return;
+            const cfg = getQuantLevelConfig(lvl.code, price);
+            try {
+                const line = wCandleSeries.createPriceLine({
+                    price: price,
+                    color: cfg.color,
+                    lineWidth: cfg.lineWidth,
+                    lineStyle: cfg.lineStyle,
+                    axisLabelVisible: true,
+                    title: cfg.title,
+                });
+                quantPriceLinesWeightage.push(line);
+            } catch (e) {
+                console.warn('Could not draw price line on Weightage chart for', lvl.code, e);
+            }
+        });
+    }
+    window.drawWeightageQuantLines = drawWeightageQuantLines;
+
+    function clearOptionsQuantLines() {
+        if (oCandleSeries && quantPriceLinesOptions.length > 0) {
+            quantPriceLinesOptions.forEach(line => {
+                try { oCandleSeries.removePriceLine(line); } catch (e) {}
+            });
+        }
+        quantPriceLinesOptions = [];
+    }
+    window.clearOptionsQuantLines = clearOptionsQuantLines;
+
+    function drawOptionsQuantLines() {
+        clearOptionsQuantLines();
+        if (!oShowQuantLines || !quantPlaybookData || !quantPlaybookData.levels || !oCandleSeries) return;
+
+        quantPlaybookData.levels.forEach(lvl => {
+            const price = parseFloat(lvl.price);
+            if (!price || isNaN(price)) return;
+            const cfg = getQuantLevelConfig(lvl.code, price);
+            try {
+                const line = oCandleSeries.createPriceLine({
+                    price: price,
+                    color: cfg.color,
+                    lineWidth: cfg.lineWidth,
+                    lineStyle: cfg.lineStyle,
+                    axisLabelVisible: true,
+                    title: cfg.title,
+                });
+                quantPriceLinesOptions.push(line);
+            } catch (e) {
+                console.warn('Could not draw price line on Options chart for', lvl.code, e);
+            }
+        });
+    }
+    window.drawOptionsQuantLines = drawOptionsQuantLines;
+
+    function drawQuantPriceLines() {
+        drawWeightageQuantLines();
+        drawOptionsQuantLines();
+    }
+    window.drawQuantPriceLines = drawQuantPriceLines;
+
+    function clearQuantPriceLines() {
+        clearWeightageQuantLines();
+        clearOptionsQuantLines();
+    }
+    window.clearQuantPriceLines = clearQuantPriceLines;
 
     function fmt(val) {
         if (val === null || val === undefined || isNaN(val)) return '0';
@@ -4460,7 +5036,13 @@
         const wContainer = document.getElementById('w-chart-container');
         if (wContainer) {
             wContainer.style.height = `${currentChartHeight}px`;
-            wContainer.innerHTML = '';
+            if (wChart) {
+                try { wChart.remove(); } catch(e){}
+                wChart = null;
+            } else {
+                const oldLightweight = wContainer.querySelectorAll('.tv-lightweight-charts');
+                oldLightweight.forEach(c => c.remove());
+            }
             wChart = LightweightCharts.createChart(wContainer, {
                 ...chartOptions,
                 width: wContainer.clientWidth,
@@ -4493,21 +5075,21 @@
             });
 
             wChart.subscribeClick(param => {
-                if (activeTvTool === 'hline') {
+                if (wActiveTvTool === 'hline') {
                     if (param && param.point) {
                         const price = wCandleSeries.coordinateToPrice(param.point.y);
                         if (price && !isNaN(price)) {
-                            addManualHLine(Math.round(price * 10) / 10);
-                            setActiveTvTool('pointer');
+                            addWeightageManualHLine(Math.round(price * 10) / 10);
+                            setActiveWeightageTvTool('pointer');
                         }
                     }
                     return;
                 }
-                if (activeTvTool === 'fib_manual') {
+                if (wActiveTvTool === 'fib_manual') {
                     if (param && param.point) {
                         const price = wCandleSeries.coordinateToPrice(param.point.y);
                         if (price && !isNaN(price)) {
-                            handleManualFibClick(Math.round(price * 10) / 10);
+                            handleWeightageManualFibClick(Math.round(price * 10) / 10);
                         }
                     }
                     return;
@@ -4531,7 +5113,13 @@
         const oContainer = document.getElementById('o-chart-container');
         if (oContainer) {
             oContainer.style.height = `${currentChartHeight}px`;
-            oContainer.innerHTML = '';
+            if (oChart) {
+                try { oChart.remove(); } catch(e){}
+                oChart = null;
+            } else {
+                const oldLightweight = oContainer.querySelectorAll('.tv-lightweight-charts');
+                oldLightweight.forEach(c => c.remove());
+            }
             oChart = LightweightCharts.createChart(oContainer, {
                 ...chartOptions,
                 width: oContainer.clientWidth,
@@ -4564,21 +5152,21 @@
             });
 
             oChart.subscribeClick(param => {
-                if (activeTvTool === 'hline') {
+                if (oActiveTvTool === 'hline') {
                     if (param && param.point) {
                         const price = oCandleSeries.coordinateToPrice(param.point.y);
                         if (price && !isNaN(price)) {
-                            addManualHLine(Math.round(price * 10) / 10);
-                            setActiveTvTool('pointer');
+                            addOptionsManualHLine(Math.round(price * 10) / 10);
+                            setActiveOptionsTvTool('pointer');
                         }
                     }
                     return;
                 }
-                if (activeTvTool === 'fib_manual') {
+                if (oActiveTvTool === 'fib_manual') {
                     if (param && param.point) {
                         const price = oCandleSeries.coordinateToPrice(param.point.y);
                         if (price && !isNaN(price)) {
-                            handleManualFibClick(Math.round(price * 10) / 10);
+                            handleOptionsManualFibClick(Math.round(price * 10) / 10);
                         }
                     }
                     return;
@@ -4608,6 +5196,7 @@
         updateQuantLinesButtonUI();
         drawQuantPriceLines();
         updateTvToolsUI();
+        updateCandleStyleUI();
         renderAllChartOverlays();
     }
 
@@ -4748,6 +5337,8 @@
 
         try {
             await Promise.allSettled([pBreadth, pTrendingOi, pWeightage, pQuant]);
+            renderWeightageColumn();
+            renderOptionsBreadthColumn();
             applyChartHeight(currentChartHeight);
             if (timestampsList && timestampsList.length > 0) {
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
@@ -4776,28 +5367,35 @@
     }
 
     // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View & Day Anchoring ──
-    function adjustChartTimeScale(chart, todayCandles) {
+    function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = []) {
         if (!chart || !todayCandles || todayCandles.length === 0) return;
-        try {
-            const firstToday = Number(todayCandles[0].time || todayCandles[0].timestamp);
-            const lastToday = Number(todayCandles[todayCandles.length - 1].time || todayCandles[todayCandles.length - 1].timestamp);
-            const rightPadding = 300 * Math.max(8, 75 - todayCandles.length);
+        const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
+        const tCount = todayCandles.length;
+        const sessionBars = 75; // Full 09:15-15:30 trading session (75 5-min candles)
 
-            chart.timeScale().applyOptions({
-                barSpacing: 10,
-                minBarSpacing: 3,
-                rightOffset: Math.max(8, 75 - todayCandles.length),
-            });
+        const applyRange = () => {
+            try {
+                chart.timeScale().applyOptions({
+                    minBarSpacing: 3,
+                    fixLeftEdge: false,
+                    fixRightEdge: false,
+                });
 
-            // Anchor Today's 09:15 candle to the left edge of the visible chart!
-            // When user drags right (pans left), yesterday's candles smoothly appear!
-            chart.timeScale().setVisibleRange({
-                from: firstToday,
-                to: lastToday + rightPadding,
-            });
-        } catch (e) {
-            chart.timeScale().fitContent();
-        }
+                // Anchor Today's 09:15 open candle (at logical index yCount) to the left side
+                const fromIndex = yCount > 0 ? yCount - 1 : -0.5;
+                // Always display a full trading day window (75 bars minimum) so candles never stretch or zoom
+                const toIndex = fromIndex + Math.max(sessionBars, tCount + 5);
+
+                chart.timeScale().setVisibleLogicalRange({
+                    from: fromIndex,
+                    to: toIndex,
+                });
+            } catch (e) {
+                console.warn('adjustChartTimeScale warning:', e);
+            }
+        };
+
+        requestAnimationFrame(applyRange);
     }
 
     // ── 6. Render Weightage Row ───────────────────────────────────────────────────
@@ -4828,109 +5426,166 @@
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
         window._unifiedAllCandles = allCandles;
+        window._unifiedHaCandles = calculateHeikinAshi(allCandles);
 
-        if (wCandleSeries && allCandles.length > 0) {
-            wCandleSeries.setData(allCandles);
+        const displayCandles = (wCandleStyle === 'heikin_ashi') ? window._unifiedHaCandles : allCandles;
+
+        if (wCandleSeries && displayCandles.length > 0) {
+            wCandleSeries.setData(displayCandles);
 
             const markerMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
             const markers = [];
 
-            // Add Day Open separator tag if yesterday candles exist
-            if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
-                markers.push({
-                    time: todayCandles[0].time,
-                    position: 'aboveBar',
-                    color: '#38bdf8',
-                    shape: 'arrowDown',
-                    text: 'TODAY',
-                    size: 1,
-                });
-            }
-
             if (markerMode !== 'off') {
-                const upTh = alarmSettings.stocksUpThreshold || 80;
-                const downTh = alarmSettings.stocksDownThreshold || 80;
-                const trig = alarmSettings.stocksTriggerBy || 'both';
+                const sUpTh = alarmSettings.stocksUpThreshold || 80;
+                const sDownTh = alarmSettings.stocksDownThreshold || 80;
+                const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
-                rawCandles.forEach(c => {
+                const oUpTh = alarmSettings.optionsUpThreshold || 70;
+                const oDownTh = alarmSettings.optionsDownThreshold || 70;
+
+                rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
                     const b = weightageData.breadth_by_time?.[c.time_str];
-                    if (!b) return;
+                    const ob = breadthData?.breadth_by_time?.[c.time_str];
+                    if (!b && !ob) return;
 
-                    let isGreenBreach = false;
-                    let isRedBreach = false;
+                    let sBull = false, sBear = false;
+                    if (b) {
+                        if (sTrig === 'both') {
+                            sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
+                        } else if (sTrig === 'either') {
+                            sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
+                        } else if (sTrig === 'count') {
+                            sBull = (b.green_count_pct >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh);
+                        } else if (sTrig === 'weight') {
+                            sBull = (b.green_weight >= sUpTh);
+                            sBear = (b.red_weight >= sDownTh);
+                        }
+                    }
 
-                    if (trig === 'both') {
-                        isGreenBreach = (b.green_count_pct >= upTh && b.green_weight >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh && b.red_weight >= downTh);
-                    } else if (trig === 'either') {
-                        isGreenBreach = (b.green_count_pct >= upTh || b.green_weight >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh || b.red_weight >= downTh);
-                    } else if (trig === 'count') {
-                        isGreenBreach = (b.green_count_pct >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh);
-                    } else if (trig === 'weight') {
-                        isGreenBreach = (b.green_weight >= upTh);
-                        isRedBreach   = (b.red_weight >= downTh);
+                    let oBull = false, oBear = false;
+                    let uw = 0, dw = 0;
+                    if (ob) {
+                        uw = Number(ob.up_weight) || 0;
+                        dw = Number(ob.down_weight) || 0;
+                        oBull = (uw >= oUpTh);
+                        oBear = (dw >= oDownTh);
                     }
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isCandleRed   = Number(c.close) < Number(c.open);
+                    const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
+                    const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    if (isGreenBreach) {
-                        const isTrap = isCandleRed; // Red candle but stock breadth is heavily Green (Bear Trap/Absorption)
+                    if ((sBull && oBull) || (sBear && oBear)) {
+                        const isBull = (sBull && oBull);
+                        markers.push({
+                            time: candleTime,
+                            position: isBull ? 'belowBar' : 'aboveBar',
+                            color: isBull ? '#10b981' : '#ef4444',
+                            shape: isBull ? 'arrowUp' : 'arrowDown',
+                            text: isBull ? `🔥 BUY CONF${openTag}` : `🔥 SELL CONF${openTag}`,
+                            size: 2,
+                        });
+                    } else if (sBull) {
+                        const isTrap = isCandleRed;
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
                             color: isTrap ? '#06b6d4' : '#10b981',
                             shape: 'arrowUp',
-                            text: isTrap ? `⚡TRAP ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`,
+                            text: (isTrap ? `⚡TRAP ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`) + openTag,
                             size: isTrap ? 2 : 1,
                         });
-                    } else if (isRedBreach) {
-                        const isTrap = isCandleGreen; // Green candle but stock breadth is heavily Red (Bull Trap/Fade)
+                    } else if (sBear) {
+                        const isTrap = isCandleGreen;
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
                             color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: isTrap ? `⚠️TRAP ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`,
+                            text: (isTrap ? `⚠️TRAP ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`) + openTag,
                             size: isTrap ? 2 : 1,
                         });
+                    } else if (oBull) {
+                        const isTrap = isCandleRed;
+                        markers.push({
+                            time: candleTime,
+                            position: 'belowBar',
+                            color: isTrap ? '#06b6d4' : '#10b981',
+                            shape: 'arrowUp',
+                            text: (isTrap ? `⚡OPT TRAP ${Math.round(uw)}%` : `🐂 OPT ${Math.round(uw)}%`) + openTag,
+                            size: 1,
+                        });
+                    } else if (oBear) {
+                        const isTrap = isCandleGreen;
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: isTrap ? '#f59e0b' : '#ef4444',
+                            shape: 'arrowDown',
+                            text: (isTrap ? `⚠️OPT TRAP ${Math.round(dw)}%` : `🐻 OPT ${Math.round(dw)}%`) + openTag,
+                            size: 1,
+                        });
                     } else if (markerMode === 'all') {
-                        // Stock status on every candle
-                        const gw = Number(b.green_weight) || 0;
-                        const rw = Number(b.red_weight) || 0;
-                        const gcp = Number(b.green_count_pct) || 0;
-                        const rcp = Number(b.red_count_pct) || 0;
-
-                        if (gw >= rw) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'belowBar',
-                                color: '#10b981',
-                                shape: 'circle',
-                                text: `${gcp}% (${gw.toFixed(0)}W)`,
-                                size: 1,
-                            });
-                        } else {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#ef4444',
-                                shape: 'circle',
-                                text: `${rcp}% (${rw.toFixed(0)}W)`,
-                                size: 1,
-                            });
+                        if (b) {
+                            const gw = Number(b.green_weight) || 0;
+                            const rw = Number(b.red_weight) || 0;
+                            const gcp = Number(b.green_count_pct) || 0;
+                            const rcp = Number(b.red_count_pct) || 0;
+                            if (gw >= rw) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: 'belowBar',
+                                    color: '#10b981',
+                                    shape: 'circle',
+                                    text: `${gcp}% (${gw.toFixed(0)}W)${openTag}`,
+                                    size: 1,
+                                });
+                            } else {
+                                markers.push({
+                                    time: candleTime,
+                                    position: 'aboveBar',
+                                    color: '#ef4444',
+                                    shape: 'circle',
+                                    text: `${rcp}% (${rw.toFixed(0)}W)${openTag}`,
+                                    size: 1,
+                                });
+                            }
                         }
+                    } else if (isOpenCandle) {
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: '#38bdf8',
+                            shape: 'arrowDown',
+                            text: 'TODAY',
+                            size: 1,
+                        });
                     }
                 });
+            } else {
+                if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
+                    markers.push({
+                        time: todayCandles[0].time,
+                        position: 'aboveBar',
+                        color: '#38bdf8',
+                        shape: 'arrowDown',
+                        text: 'TODAY',
+                        size: 1,
+                    });
+                }
             }
+            window._wCandleMarkers = markers;
             wCandleSeries.setMarkers(markers);
-            if (wChart) adjustChartTimeScale(wChart, todayCandles);
-            drawQuantPriceLines();
-            renderAllChartOverlays();
+            if (wChart) adjustChartTimeScale(wChart, todayCandles, yesterdayCandles);
+            drawWeightageQuantLines();
+            renderWeightageOverlays();
         }
 
         const wSlider = document.getElementById('w-slider');
@@ -4969,86 +5624,173 @@
         })).filter(c => c.time && !isNaN(c.time) && (firstTodayTime === 0 || c.time < firstTodayTime));
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
+        window._unifiedOptionsCandles = allCandles;
+        window._unifiedOptionsHaCandles = calculateHeikinAshi(allCandles);
 
-        if (oCandleSeries && allCandles.length > 0) {
-            oCandleSeries.setData(allCandles);
+        const displayCandles = (oCandleStyle === 'heikin_ashi') ? window._unifiedOptionsHaCandles : allCandles;
+
+        if (oCandleSeries && displayCandles.length > 0) {
+            oCandleSeries.setData(displayCandles);
 
             const markerMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
             const markers = [];
 
-            if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
-                markers.push({
-                    time: todayCandles[0].time,
-                    position: 'aboveBar',
-                    color: '#818cf8',
-                    shape: 'arrowDown',
-                    text: 'TODAY',
-                    size: 1,
-                });
-            }
-
             if (markerMode !== 'off') {
-                const upTh = alarmSettings.optionsUpThreshold || 70;
-                const downTh = alarmSettings.optionsDownThreshold || 70;
+                const sUpTh = alarmSettings.stocksUpThreshold || 80;
+                const sDownTh = alarmSettings.stocksDownThreshold || 80;
+                const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
-                rawCandles.forEach(c => {
+                const oUpTh = alarmSettings.optionsUpThreshold || 70;
+                const oDownTh = alarmSettings.optionsDownThreshold || 70;
+
+                rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
-                    const b = breadthData.breadth_by_time?.[c.time_str];
-                    if (!b) return;
+
+                    const ob = breadthData.breadth_by_time?.[c.time_str];
+                    const b = weightageData?.breadth_by_time?.[c.time_str];
+                    if (!ob && !b) return;
+
+                    let oBull = false, oBear = false;
+                    let uw = 0, dw = 0;
+                    if (ob) {
+                        uw = Number(ob.up_weight) || 0;
+                        dw = Number(ob.down_weight) || 0;
+                        oBull = (uw >= oUpTh);
+                        oBear = (dw >= oDownTh);
+                    }
+
+                    let sBull = false, sBear = false;
+                    if (b) {
+                        if (sTrig === 'both') {
+                            sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
+                        } else if (sTrig === 'either') {
+                            sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
+                        } else if (sTrig === 'count') {
+                            sBull = (b.green_count_pct >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh);
+                        } else if (sTrig === 'weight') {
+                            sBull = (b.green_weight >= sUpTh);
+                            sBear = (b.red_weight >= sDownTh);
+                        }
+                    }
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isCandleRed   = Number(c.close) < Number(c.open);
-                    const uw = Number(b.up_weight) || 0;
-                    const dw = Number(b.down_weight) || 0;
+                    const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
+                    const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    if (uw >= upTh) {
-                        const isTrap = isCandleRed; // Red candle but smart money loaded 70%+ Calls/Bull flow (Bear Trap/Absorption)
+                    // 1. 🔥 CONFLUENCE (Both Options Flow & Stock Breadth Agree)
+                    if ((sBull && oBull) || (sBear && oBear)) {
+                        const isBull = (sBull && oBull);
+                        markers.push({
+                            time: candleTime,
+                            position: isBull ? 'belowBar' : 'aboveBar',
+                            color: isBull ? '#10b981' : '#ef4444',
+                            shape: isBull ? 'arrowUp' : 'arrowDown',
+                            text: isBull ? `🔥 BUY CONF${openTag}` : `🔥 SELL CONF${openTag}`,
+                            size: 2,
+                        });
+                    }
+                    // 2. OPTIONS FLOW BREACH
+                    else if (oBull) {
+                        const isTrap = isCandleRed;
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
                             color: isTrap ? '#06b6d4' : '#10b981',
                             shape: 'arrowUp',
-                            text: isTrap ? `⚡TRAP ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`,
+                            text: (isTrap ? `⚡TRAP ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`) + openTag,
                             size: isTrap ? 2 : 1,
                         });
-                    } else if (dw >= downTh) {
-                        const isTrap = isCandleGreen; // Green candle but smart money loaded 70%+ Puts/Bear flow (Bull Trap/Fade)
+                    } else if (oBear) {
+                        const isTrap = isCandleGreen;
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
                             color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: isTrap ? `⚠️TRAP ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`,
+                            text: (isTrap ? `⚠️TRAP ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`) + openTag,
                             size: isTrap ? 2 : 1,
                         });
-                    } else if (markerMode === 'all') {
-                        if (uw >= dw) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'belowBar',
-                                color: '#06b6d4',
-                                shape: 'circle',
-                                text: `${Math.round(uw)}% Bull`,
-                                size: 1,
-                            });
-                        } else {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#f43f5e',
-                                shape: 'circle',
-                                text: `${Math.round(dw)}% Bear`,
-                                size: 1,
-                            });
+                    }
+                    // 3. STOCK BREADTH BREACH (Cross-Signal on Chart 2!)
+                    else if (sBull) {
+                        const isTrap = isCandleRed;
+                        markers.push({
+                            time: candleTime,
+                            position: 'belowBar',
+                            color: isTrap ? '#06b6d4' : '#10b981',
+                            shape: 'arrowUp',
+                            text: (isTrap ? `⚡STK TRAP ${b.green_count_pct}%` : `🐂 STK ${b.green_count_pct}%`) + openTag,
+                            size: 1,
+                        });
+                    } else if (sBear) {
+                        const isTrap = isCandleGreen;
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: isTrap ? '#f59e0b' : '#ef4444',
+                            shape: 'arrowDown',
+                            text: (isTrap ? `⚠️STK TRAP ${b.red_count_pct}%` : `🐻 STK ${b.red_count_pct}%`) + openTag,
+                            size: 1,
+                        });
+                    }
+                    // 4. EVERY 5M STATUS
+                    else if (markerMode === 'all') {
+                        if (ob) {
+                            if (uw >= dw) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: 'belowBar',
+                                    color: '#06b6d4',
+                                    shape: 'circle',
+                                    text: `${Math.round(uw)}% Bull${openTag}`,
+                                    size: 1,
+                                });
+                            } else {
+                                markers.push({
+                                    time: candleTime,
+                                    position: 'aboveBar',
+                                    color: '#f43f5e',
+                                    shape: 'circle',
+                                    text: `${Math.round(dw)}% Bear${openTag}`,
+                                    size: 1,
+                                });
+                            }
                         }
                     }
+                    // 5. If no signal on 09:15 open candle, place the clean TODAY marker
+                    else if (isOpenCandle) {
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: '#818cf8',
+                            shape: 'arrowDown',
+                            text: 'TODAY',
+                            size: 1,
+                        });
+                    }
                 });
+            } else {
+                if (yesterdayCandles.length > 0 && todayCandles.length > 0) {
+                    markers.push({
+                        time: todayCandles[0].time,
+                        position: 'aboveBar',
+                        color: '#818cf8',
+                        shape: 'arrowDown',
+                        text: 'TODAY',
+                        size: 1,
+                    });
+                }
             }
+            window._oCandleMarkers = markers;
             oCandleSeries.setMarkers(markers);
-            if (oChart) adjustChartTimeScale(oChart, todayCandles);
-            drawQuantPriceLines();
-            renderAllChartOverlays();
+            if (oChart) adjustChartTimeScale(oChart, todayCandles, yesterdayCandles);
+            drawOptionsQuantLines();
+            renderOptionsOverlays();
         }
 
         const oSlider = document.getElementById('o-slider');
@@ -5400,12 +6142,33 @@
 
         if (candle) {
             document.getElementById('w-chart-time').textContent = candle.time_str;
-            document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
-            document.getElementById('w-chart-close').textContent = Number(candle.close).toFixed(2);
-            const chgEl = document.getElementById('w-chart-chg');
-            const sign = candle.move_pts >= 0 ? '+' : '';
-            chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
-            chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+            if (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0) {
+                const haCandle = window._unifiedHaCandles.find(c => c.time_str === candle.time_str || Number(c.time) === Number(candle.time || candle.timestamp));
+                if (haCandle) {
+                    document.getElementById('w-chart-open').textContent = haCandle.open.toFixed(2);
+                    document.getElementById('w-chart-close').textContent = haCandle.close.toFixed(2);
+                    const chgEl = document.getElementById('w-chart-chg');
+                    const haMove = haCandle.close - haCandle.open;
+                    const haMovePct = haCandle.open > 0 ? (haMove / haCandle.open) * 100 : 0;
+                    const sign = haMove >= 0 ? '+' : '';
+                    chgEl.textContent = `${sign}${haMove.toFixed(2)} (${sign}${haMovePct.toFixed(2)}%) [HA]`;
+                    chgEl.className = haMove >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                } else {
+                    document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
+                    document.getElementById('w-chart-close').textContent = Number(candle.close).toFixed(2);
+                    const chgEl = document.getElementById('w-chart-chg');
+                    const sign = candle.move_pts >= 0 ? '+' : '';
+                    chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
+                    chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                }
+            } else {
+                document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
+                document.getElementById('w-chart-close').textContent = Number(candle.close).toFixed(2);
+                const chgEl = document.getElementById('w-chart-chg');
+                const sign = candle.move_pts >= 0 ? '+' : '';
+                chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
+                chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+            }
         }
 
         const b = (resolvedTime ? weightageData.breadth_by_time?.[resolvedTime] : null)
@@ -5531,12 +6294,33 @@
 
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
-            document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
-            document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
-            const moveEl = document.getElementById('o-chart-move');
-            const sign = candle.move_pts >= 0 ? '+' : '';
-            moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
-            moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+            if (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0) {
+                const haCandle = window._unifiedOptionsHaCandles.find(c => c.time_str === candle.time_str || Number(c.time) === Number(candle.time || candle.timestamp));
+                if (haCandle) {
+                    document.getElementById('o-chart-open').textContent = haCandle.open.toFixed(2);
+                    document.getElementById('o-chart-close').textContent = haCandle.close.toFixed(2);
+                    const moveEl = document.getElementById('o-chart-move');
+                    const haMove = haCandle.close - haCandle.open;
+                    const haMovePct = haCandle.open > 0 ? (haMove / haCandle.open) * 100 : 0;
+                    const sign = haMove >= 0 ? '+' : '';
+                    moveEl.textContent = `${sign}${haMove.toFixed(2)} (${sign}${haMovePct.toFixed(2)}%) [HA]`;
+                    moveEl.className = haMove >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                } else {
+                    document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
+                    document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
+                    const moveEl = document.getElementById('o-chart-move');
+                    const sign = candle.move_pts >= 0 ? '+' : '';
+                    moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
+                    moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                }
+            } else {
+                document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
+                document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
+                const moveEl = document.getElementById('o-chart-move');
+                const sign = candle.move_pts >= 0 ? '+' : '';
+                moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
+                moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+            }
         }
 
         const b = (resolvedTime ? breadthData.breadth_by_time?.[resolvedTime] : null)
@@ -6040,6 +6824,24 @@
             });
         }
 
+        // Candle Style Dropdown (Regular vs Heikin Ashi)
+        const candleStyleSelect = document.getElementById('candle-style-select');
+        if (candleStyleSelect) {
+            candleStyleSelect.value = (wCandleStyle === oCandleStyle) ? wCandleStyle : 'candle';
+            candleStyleSelect.addEventListener('change', (e) => {
+                setCandleStyle(e.target.value);
+            });
+        }
+
+        // Signals Mode Dropdown (Breach / Every 5M / Off)
+        const signalsModeSelect = document.getElementById('signals-mode-select');
+        if (signalsModeSelect) {
+            signalsModeSelect.value = alarmSettings.stocksMarkerMode || 'breach';
+            signalsModeSelect.addEventListener('change', (e) => {
+                setGlobalSignalsMode(e.target.value);
+            });
+        }
+
         // Font Size / Cockpit Scale Dropdown (User Requested)
         const fontScaleSelect = document.getElementById('cockpit-font-scale-select');
         if (fontScaleSelect) {
@@ -6208,6 +7010,9 @@
             } else if (e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
                 playBtn?.click();
+            } else if (e.key === 'h' || e.key === 'H') {
+                e.preventDefault();
+                toggleCandleStyle();
             } else if (e.key === 'Escape') {
                 dismissAlarm();
             }
@@ -6836,6 +7641,7 @@
         syncAlarmToolbarUI();
         updateMarkerButtonsUI();
         updateTvToolsUI();
+        updateCandleStyleUI();
         fetchAlertLogs(false);
         loadAllData();
         setupAutoRefresh();
