@@ -85,7 +85,7 @@ class TrendingOiController extends Controller
         $expiry     = $request->input('expiry');
         $date       = $request->input('date', today()->toDateString());
         $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
-        $interval   = (int) $request->input('interval', 5); // 1, 3, 5, 15
+        $interval   = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', 5)); // 1, 3, 5, 15, 30, 60, 375
         $customStrikes = $request->input('strikes'); // optional comma separated or array
 
         if (!$expiry) {
@@ -94,6 +94,26 @@ class TrendingOiController extends Controller
 
         $isToday = ($date === today()->toDateString());
         $table = $isToday ? 'option_chains' : 'option_chains_history';
+
+        // Auto fallback: if past date is not yet archived and still in option_chains, query option_chains
+        if ($table === 'option_chains_history') {
+            $hasInHistory = DB::table('option_chains_history')
+                ->where('trading_symbol', 'NIFTY')
+                ->where('captured_at', '>=', "{$date} 09:00:00")
+                ->where('captured_at', '<=', "{$date} 15:35:00")
+                ->exists();
+            if (!$hasInHistory) {
+                $hasInLive = DB::table('option_chains')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('captured_at', '>=', "{$date} 09:00:00")
+                    ->where('captured_at', '<=', "{$date} 15:35:00")
+                    ->exists();
+                if ($hasInLive) {
+                    $table = 'option_chains';
+                }
+            }
+        }
+
         $indexHint = $this->getOptimalIndexHint($table);
         $endTime = $request->input('end_time');
         $skipOpen = filter_var($request->input('skip_open', false), FILTER_VALIDATE_BOOLEAN);
@@ -232,13 +252,26 @@ class TrendingOiController extends Controller
 
         // Filter timestamps according to selected interval (if interval > 1, sample appropriately)
         $sampledTimestamps = [];
-        $lastMinute = -1;
-        foreach ($timestamps as $ts) {
-            $carbon = Carbon::parse($ts);
-            $minute = (int) $carbon->format('i');
-            if ($interval <= 1 || ($minute % $interval === 0 && $minute !== $lastMinute) || $ts === end($timestamps) || $ts === reset($timestamps)) {
-                $sampledTimestamps[] = $ts;
-                $lastMinute = $minute;
+        $marketStartMin = 9 * 60 + 15;
+        $lastBucket = -1;
+
+        if ($interval <= 1) {
+            $sampledTimestamps = $timestamps;
+        } elseif ($interval >= 375) {
+            // 1 Day: take open and close
+            $sampledTimestamps = [reset($timestamps), end($timestamps)];
+            $sampledTimestamps = array_values(array_unique($sampledTimestamps));
+        } else {
+            foreach ($timestamps as $ts) {
+                $carbon = Carbon::parse($ts);
+                $totalMin = ((int)$carbon->format('H') * 60) + (int)$carbon->format('i');
+                $diff = $totalMin - $marketStartMin;
+                if ($diff < 0) continue;
+                $bucket = (int) floor($diff / $interval);
+                if ($bucket !== $lastBucket || $ts === reset($timestamps) || $ts === end($timestamps)) {
+                    $sampledTimestamps[] = $ts;
+                    $lastBucket = $bucket;
+                }
             }
         }
         if (empty($sampledTimestamps)) {
@@ -263,10 +296,19 @@ class TrendingOiController extends Controller
                 'close_price'
             ]);
 
-        // Group rows by captured_at
+        // Group rows by captured_at (with strike-level deduplication to prevent spikes if duplicate rows exist)
         $grouped = [];
+        $seenStrikes = [];
         foreach ($dataRows as $r) {
             $ts = $r->captured_at;
+            $type = $r->option_type;
+            $strike = (string) $r->strike_price;
+            $dedupKey = "{$ts}_{$type}_{$strike}";
+            if (isset($seenStrikes[$dedupKey])) {
+                continue;
+            }
+            $seenStrikes[$dedupKey] = true;
+
             if (!isset($grouped[$ts])) {
                 $grouped[$ts] = [
                     'captured_at' => $ts,
@@ -275,7 +317,6 @@ class TrendingOiController extends Controller
                     'PE'          => ['oi' => 0, 'ltp' => 0],
                 ];
             }
-            $type = $r->option_type;
             if (isset($grouped[$ts][$type])) {
                 $grouped[$ts][$type]['oi']  += (int) ($r->oi ?? 0);
                 $grouped[$ts][$type]['ltp'] += (float) ($r->ltp ?? 0);

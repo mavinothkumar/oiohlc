@@ -768,6 +768,8 @@
                                     <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🎯 Defended</span>
                                 @elseif($b['outcome'] === 'SWEPT')
                                     <span class="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">💥 Swept / Broken</span>
+                                @elseif($b['outcome'] === 'EXECUTED')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">⚡ Tape Sweep</span>
                                 @else
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">⏳ Active</span>
                                 @endif

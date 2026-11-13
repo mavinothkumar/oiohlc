@@ -11,6 +11,8 @@ use App\Http\Controllers\TradingViewController;
 
 Route::get( '/', [ \App\Http\Controllers\HomeController::class, 'index' ] )->name( 'home' );
 Route::post( '/cron/run', [ \App\Http\Controllers\HomeController::class, 'runCommand' ] )->name( 'cron.run' );
+Route::post( '/cron/clear-locks', [ \App\Http\Controllers\HomeController::class, 'clearLocks' ] )->name( 'cron.clear-locks' );
+Route::post( '/cron/clear-locks-and-refill', [ \App\Http\Controllers\HomeController::class, 'clearLocksAndRefill' ] )->name( 'cron.clear-locks-and-refill' );
 Route::get( '/api/cron/status', [ \App\Http\Controllers\HomeController::class, 'getStatusApi' ] )->name( 'api.cron.status' );
 Route::get( '/api/cron/log', [ \App\Http\Controllers\HomeController::class, 'getLog' ] )->name( 'api.cron.log' );
 
@@ -47,6 +49,8 @@ Route::get( '/api/order-flow/alert-logs', [ \App\Http\Controllers\OrderFlowStrat
 Route::get( '/api/order-flow/cumulative-report', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getCumulativeReportApi' ] )->name( 'api.order-flow.cumulative-report' );
 Route::post( '/api/order-flow/test-webhook', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'testWebhook' ] )->name( 'api.order-flow.test-webhook' );
 Route::post( '/api/order-flow/dispatch-log/{id}', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'dispatchLogToWebhook' ] )->name( 'api.order-flow.dispatch-log' );
+Route::post( '/api/order-flow/save-traded-volume', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'saveTradedVolume' ] )->name( 'api.order-flow.save-traded-volume' );
+Route::get( '/api/order-flow/top-traded-volume', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getTopTradedVolume' ] )->name( 'api.order-flow.top-traded-volume' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity
@@ -346,6 +350,10 @@ Route::get('/api/nifty-matrix-chart/ws-url', [\App\Http\Controllers\NiftyMatrixC
 Route::get('/nifty-unified-monitor', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index'])->name('nifty.unified.monitor');
 Route::get('/nifty-cockpit', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
 Route::get('/nifty-market-command', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'index']);
+
+// Multi-Timeframe Unified Monitor (1m, 3m, 5m, 15m, 30m, 60m, 1D)
+Route::get('/nifty-multi-timeframe-monitor', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index'])->name('nifty.multi.timeframe.monitor');
+Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index']);
 Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');

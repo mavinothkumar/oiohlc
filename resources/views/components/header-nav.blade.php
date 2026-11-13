@@ -324,6 +324,14 @@
                     <span class="whitespace-nowrap">Unified Cockpit</span>
                 </a>
 
+                <!-- Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D) -->
+                <a href="{{ route('nifty.multi.timeframe.monitor') }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.multi.timeframe.monitor') ? 'bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-cyan-300' }}"
+                   title="NIFTY 50 Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D)">
+                    <span class="text-xs">⏱️</span>
+                    <span class="whitespace-nowrap">Multi-TF (1m-1D)</span>
+                </a>
+
                 <!-- 2. Live Straddle Decay & Expansion Radar (Audio Spike Alarm) -->
                 <a href="{{ route('live.straddle.radar') }}"
                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border {{ request()->routeIs('live.straddle.*') ? 'bg-rose-600 text-white shadow-xs border-rose-600 ring-2 ring-rose-300 ring-offset-1' : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300' }}"

@@ -105,10 +105,21 @@ class FetchOptionChainData extends Command {
                 }
 
                 if (!empty($records)) {
-                    foreach ( array_chunk( $records, 500 ) as $chunk ) {
-                        DB::table( 'option_chains' )->insert( $chunk );
+                    // Prevent duplicate snapshot insertion if a concurrent or retrying job already captured this minute
+                    $alreadyStored = DB::table('option_chains')
+                        ->where('trading_symbol', $inst['symbol'])
+                        ->where('expiry', $expiry)
+                        ->where('captured_at', $now)
+                        ->exists();
+
+                    if (!$alreadyStored) {
+                        foreach ( array_chunk( $records, 500 ) as $chunk ) {
+                            DB::table( 'option_chains' )->insert( $chunk );
+                        }
+                        Log::info( "Stored " . count($records) . " records for {$inst['symbol']} ({$expiryType} expiry: {$expiry})" );
+                    } else {
+                        Log::warning( "Skipped duplicate option chain insert for {$inst['symbol']} ({$expiryType} expiry: {$expiry}) at {$now}" );
                     }
-                    Log::info( "Stored " . count($records) . " records for {$inst['symbol']} ({$expiryType} expiry: {$expiry})" );
                 }
             }
         }

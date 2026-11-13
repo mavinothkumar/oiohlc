@@ -74,7 +74,7 @@ Schedule::command('ohlc:collect-1min') // php artisan ohlc:collect-1min
         ->everyMinute()
         ->between('9:15', '15:35')
         ->timezone('Asia/Kolkata')
-        ->withoutOverlapping()
+        ->withoutOverlapping(3)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/ohlc-1min.log'));
 
@@ -82,7 +82,7 @@ Schedule::command('ohlc:sync-nifty50-stocks') // Sync full 1m intraday candles f
         ->everyFiveMinutes()
         ->between('9:16', '15:30')
         ->timezone('Asia/Kolkata')
-        ->withoutOverlapping()
+        ->withoutOverlapping(10)
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/nifty50-stocks-sync.log'));
 

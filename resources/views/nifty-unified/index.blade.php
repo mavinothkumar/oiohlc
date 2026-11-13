@@ -316,7 +316,7 @@
         $lvlS3 = $quantPlaybook['levels'][6]['price'] ?? null;
         $hasQuant = !empty($quantPlaybook) && !empty($quantPlaybook['levels']);
     @endphp
-    <div id="quant-strip-container" class="{{ $hasQuant ? '' : 'hidden ' }}cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar border-indigo-900/40 bg-[#0d121f] text-[11px] font-mono shrink-0">
+    <div id="quant-strip-container" class="cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar border-indigo-900/40 bg-[#0d121f] text-[11px] font-mono shrink-0">
         <div class="flex items-center gap-1.5 shrink-0">
             <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 tracking-wider">
                 📐 QUANT LEVELS (SPOT)
@@ -352,6 +352,17 @@
             <div class="flex items-center gap-1 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/40" title="Central Equilibrium / POC Anchor (Bullish above · Bearish below)">
                 <span class="text-amber-400 font-black text-[10px]">PIVOT:</span>
                 <span id="quant-val-pivot" class="text-amber-300 font-black">{{ $lvlP ? '₹' . number_format($lvlP, 2) : '--' }}</span>
+            </div>
+            <span class="text-slate-700">|</span>
+
+            <!-- Candle Close Remaining Time Countdown Badge (5M Candles) -->
+            <div id="candle-timer-container" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 shadow-md shrink-0 cursor-default" title="Time remaining until the active 5m candle closes">
+                <span class="flex h-2 w-2 relative shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <span id="candle-timer-tf-label" class="text-amber-400 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">5M CLOSE:</span>
+                <span id="candle-timer-countdown" class="font-mono font-black text-amber-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow">--:--</span>
             </div>
             <span class="text-slate-700">|</span>
 
@@ -405,6 +416,16 @@
                                 <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                                 <span id="w-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY 50 (5m Candles)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Stock Weightage Breadth</span>
+                                <!-- Chart 1 Dedicated Timeframe Selector -->
+                                <div class="flex items-center bg-[#151924] border border-sky-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" id="w-tf-group" title="Nifty 50 Stocks Timeframe">
+                                    <button type="button" onclick="setChart1Timeframe('1m')" data-wtf="1m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1m</button>
+                                    <button type="button" onclick="setChart1Timeframe('3m')" data-wtf="3m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">3m</button>
+                                    <button type="button" onclick="setChart1Timeframe('5m')" data-wtf="5m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">5m</button>
+                                    <button type="button" onclick="setChart1Timeframe('15m')" data-wtf="15m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">15m</button>
+                                    <button type="button" onclick="setChart1Timeframe('30m')" data-wtf="30m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">30m</button>
+                                    <button type="button" onclick="setChart1Timeframe('1h')" data-wtf="1h" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
+                                    <button type="button" onclick="setChart1Timeframe('1D')" data-wtf="1D" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
+                                </div>
                                 <button type="button" id="w-candle-style-btn" onclick="toggleWeightageCandleStyle()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Toggle Candle Style: Regular Candlestick / Heikin Ashi (Row 1)">
@@ -422,6 +443,12 @@
                                     title="Cycle Signals on Weightage Chart: Breach Only (≥80%) / Every 5M Candle / OFF">
                                     <span>🎯 Signals:</span>
                                     <span id="w-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
+                                </button>
+                                <button type="button" id="w-ha-wick-filter-btn" onclick="toggleStocksHaWickFilter()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/60 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer"
+                                    title="Heikin Ashi Single-Wick Entry Filter: STRICT (Entry only on zero opposite wick; both wicks ignored) / OFF (All breaches)">
+                                    <span>🎯 HA Wick:</span>
+                                    <span id="w-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
                                 </button>
                                 <button type="button" id="w-st-toggle-btn" onclick="cycleWeightageSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -644,6 +671,16 @@
                                 <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                                 <span id="o-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY (5m Candles &amp; Parity)</span>
                                 <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Options Flow Parity</span>
+                                <!-- Chart 2 Dedicated Timeframe Selector -->
+                                <div class="flex items-center bg-[#151924] border border-purple-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" id="o-tf-group" title="Options Flow Parity Timeframe">
+                                    <button type="button" onclick="setChart2Timeframe('1m')" data-otf="1m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1m</button>
+                                    <button type="button" onclick="setChart2Timeframe('3m')" data-otf="3m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">3m</button>
+                                    <button type="button" onclick="setChart2Timeframe('5m')" data-otf="5m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">5m</button>
+                                    <button type="button" onclick="setChart2Timeframe('15m')" data-otf="15m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">15m</button>
+                                    <button type="button" onclick="setChart2Timeframe('30m')" data-otf="30m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">30m</button>
+                                    <button type="button" onclick="setChart2Timeframe('1h')" data-otf="1h" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
+                                    <button type="button" onclick="setChart2Timeframe('1D')" data-otf="1D" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
+                                </div>
                                 <button type="button" id="o-candle-style-btn" onclick="toggleOptionsCandleStyle()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Toggle Candle Style: Regular Candlestick / Heikin Ashi (Row 2)">
@@ -661,6 +698,12 @@
                                     title="Cycle Signals on Options Chart: Breach Only (≥70%) / Every 5M Candle / OFF">
                                     <span>🎯 Signals:</span>
                                     <span id="o-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
+                                </button>
+                                <button type="button" id="o-ha-wick-filter-btn" onclick="toggleOptionsHaWickFilter()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/60 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer"
+                                    title="Heikin Ashi Single-Wick Entry Filter: STRICT (Entry only on zero opposite wick; both wicks ignored) / OFF (All breaches)">
+                                    <span>🎯 HA Wick:</span>
+                                    <span id="o-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
                                 </button>
                                 <button type="button" id="o-st-toggle-btn" onclick="cycleOptionsSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -1231,6 +1274,21 @@
                     </label>
                 </div>
 
+                <!-- Heikin Ashi Single-Wick Entry Filter -->
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-indigo-950/30 border border-indigo-700/50 text-xs">
+                    <div>
+                        <span class="font-bold text-emerald-300 flex items-center gap-1.5">
+                            <span>🎯 Stocks Heikin Ashi Single-Wick Filter</span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">HIGH CONVICTION</span>
+                        </span>
+                        <span class="text-[10px] text-gray-300 block mt-0.5">Alert &amp; mark ONLY when candle has NO opposite wick (Flat Top for Sell, Flat Bottom for Buy). Ignore candles with wicks on both sides.</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                        <input type="checkbox" id="stocks-ha-wick-filter-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
                 <!-- Stocks Dedicated Alarm Sound -->
                 <div class="p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1.5 text-xs">
                     <div class="flex items-center justify-between">
@@ -1320,6 +1378,21 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="options-show-markers-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <!-- Options Heikin Ashi Single-Wick Entry Filter -->
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-purple-950/30 border border-purple-700/50 text-xs">
+                    <div>
+                        <span class="font-bold text-purple-300 flex items-center gap-1.5">
+                            <span>🎯 Options Heikin Ashi Single-Wick Filter</span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">HIGH CONVICTION</span>
+                        </span>
+                        <span class="text-[10px] text-gray-300 block mt-0.5">Alert &amp; mark ONLY when candle has NO opposite wick (Flat Top for Sell, Flat Bottom for Buy). Ignore candles with wicks on both sides.</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                        <input type="checkbox" id="options-ha-wick-filter-toggle" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                     </label>
                 </div>
@@ -1791,6 +1864,67 @@
     // ── Application State ──────────────────────────────────────────────────────────
     let selectedDate = "{{ $selectedDate }}";
     let selectedExpiry = "{{ $selectedExpiry }}";
+
+    const TF_MINUTES_MAP = {
+        '1m': 1,
+        '3m': 3,
+        '5m': 5,
+        '15m': 15,
+        '30m': 30,
+        '60m': 60,
+        '1h': 60,
+        '1D': 375
+    };
+
+    function getTfMinutes(tf) {
+        return TF_MINUTES_MAP[tf] || 5;
+    }
+
+    // Independent Timeframes for Chart 1 (Stocks) and Chart 2 (Options)
+    let wTimeframe = localStorage.getItem('nifty_unified_w_tf') || '5m';
+    let oTimeframe = localStorage.getItem('nifty_unified_o_tf') || '15m';
+
+    function setChart1Timeframe(tf) {
+        if (wTimeframe === tf) return;
+        wTimeframe = tf;
+        try { localStorage.setItem('nifty_unified_w_tf', tf); } catch(e){}
+        updateTimeframeButtonsUI();
+        reloadChart1Weightage();
+    }
+    window.setChart1Timeframe = setChart1Timeframe;
+
+    function setChart2Timeframe(tf) {
+        if (oTimeframe === tf) return;
+        oTimeframe = tf;
+        try { localStorage.setItem('nifty_unified_o_tf', tf); } catch(e){}
+        updateTimeframeButtonsUI();
+        reloadChart2Options();
+    }
+    window.setChart2Timeframe = setChart2Timeframe;
+
+    function updateTimeframeButtonsUI() {
+        document.querySelectorAll('.w-tf-btn').forEach(btn => {
+            const tf = btn.getAttribute('data-wtf');
+            if (tf === wTimeframe) {
+                btn.className = 'w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-sky-600 text-white shadow-xs';
+            } else {
+                btn.className = 'w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+            }
+        });
+
+        document.querySelectorAll('.o-tf-btn').forEach(btn => {
+            const tf = btn.getAttribute('data-otf');
+            if (tf === oTimeframe) {
+                btn.className = 'o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-purple-600 text-white shadow-xs';
+            } else {
+                btn.className = 'o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+            }
+        });
+
+        updateCandleStyleUI();
+    }
+    window.updateTimeframeButtonsUI = updateTimeframeButtonsUI;
+
     let activeCandleIndex = 0;
     let timestampsList = [];
     let isPlaying = false;
@@ -1866,7 +2000,10 @@
 
         // 3. High-Probability Confluence Alert (Combined)
         confluenceEnabled: true,
-        confluenceSound: 'siren'
+        confluenceSound: 'siren',
+        // 4. Heikin Ashi Single-Wick Entry Filter
+        stocksHaWickFilter: true,
+        optionsHaWickFilter: true
     };
 
     let alarmSettings = { ...defaultAlarmSettings };
@@ -2894,6 +3031,90 @@
     }
     window.calculateHeikinAshi = calculateHeikinAshi;
 
+    /**
+     * Analyzes Heikin Ashi candle wick structure for high-conviction entries:
+     * - Bullish Entry: Green candle with Flat Bottom (Zero Lower Wick: Open == Low)
+     * - Bearish Entry: Red candle with Flat Top (Zero Upper Wick: Open == High)
+     * - Indecision / Pause: Wicks on BOTH sides (should be ignored)
+     */
+    function getCandleHaWickAnalysis(candleTime, isOptionsChart = false) {
+        const haList = isOptionsChart ? (window._unifiedOptionsHaCandles || []) : (window._unifiedHaCandles || []);
+        if (!haList || haList.length === 0) return null;
+
+        const ha = haList.find(h => Number(h.time) === Number(candleTime));
+        if (!ha) return null;
+
+        const isHaBull = ha.close >= ha.open;
+        const bodyTop = Math.max(ha.open, ha.close);
+        const bodyBottom = Math.min(ha.open, ha.close);
+
+        const topWick = Number((ha.high - bodyTop).toFixed(2));
+        const bottomWick = Number((bodyBottom - ha.low).toFixed(2));
+
+        // Tolerance of 0.15 points (handles floating point precision on index prices)
+        const hasTopWick = topWick > 0.15;
+        const hasBottomWick = bottomWick > 0.15;
+        const hasBothWicks = hasTopWick && hasBottomWick;
+
+        // Clean Bull entry: green Heikin Ashi candle with FLAT BOTTOM (open == low, no lower wick)
+        const isCleanBullEntry = isHaBull && !hasBottomWick;
+
+        // Clean Bear entry: red Heikin Ashi candle with FLAT TOP (open == high, no upper wick)
+        const isCleanBearEntry = !isHaBull && !hasTopWick;
+
+        return {
+            ha,
+            isHaBull,
+            topWick,
+            bottomWick,
+            hasTopWick,
+            hasBottomWick,
+            hasBothWicks,
+            isCleanBullEntry,
+            isCleanBearEntry
+        };
+    }
+    window.getCandleHaWickAnalysis = getCandleHaWickAnalysis;
+
+    function toggleStocksHaWickFilter() {
+        alarmSettings.stocksHaWickFilter = (alarmSettings.stocksHaWickFilter === false);
+        saveAlarmSettings();
+        updateHaWickFilterUI();
+        renderWeightageColumn();
+    }
+    window.toggleStocksHaWickFilter = toggleStocksHaWickFilter;
+
+    function toggleOptionsHaWickFilter() {
+        alarmSettings.optionsHaWickFilter = (alarmSettings.optionsHaWickFilter === false);
+        saveAlarmSettings();
+        updateHaWickFilterUI();
+        renderOptionsBreadthColumn();
+    }
+    window.toggleOptionsHaWickFilter = toggleOptionsHaWickFilter;
+
+    function updateHaWickFilterUI() {
+        const isStocksStrict = (alarmSettings.stocksHaWickFilter !== false);
+        const isOptionsStrict = (alarmSettings.optionsHaWickFilter !== false);
+
+        const badgeW = document.getElementById('w-ha-wick-filter-badge');
+        if (badgeW) {
+            badgeW.textContent = isStocksStrict ? 'STRICT' : 'OFF';
+            badgeW.className = isStocksStrict ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+        }
+        const badgeO = document.getElementById('o-ha-wick-filter-badge');
+        if (badgeO) {
+            badgeO.textContent = isOptionsStrict ? 'STRICT' : 'OFF';
+            badgeO.className = isOptionsStrict ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
+        }
+
+        const toggleS = document.getElementById('stocks-ha-wick-filter-toggle');
+        if (toggleS) toggleS.checked = isStocksStrict;
+
+        const toggleO = document.getElementById('options-ha-wick-filter-toggle');
+        if (toggleO) toggleO.checked = isOptionsStrict;
+    }
+    window.updateHaWickFilterUI = updateHaWickFilterUI;
+
     function updateCandleStyleUI() {
         const isWHa = wCandleStyle === 'heikin_ashi';
         const isOHa = oCandleStyle === 'heikin_ashi';
@@ -2916,8 +3137,8 @@
         if (wIcon) wIcon.textContent = isWHa ? '📊' : '🕯️';
         if (wTitle) {
             wTitle.innerHTML = isWHa 
-                ? 'NIFTY 50 (5m Heikin Ashi) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>'
-                : 'NIFTY 50 (5m Candles)';
+                ? `NIFTY 50 (${wTimeframe} Heikin Ashi) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
+                : `NIFTY 50 (${wTimeframe} Candles)`;
         }
 
         // 3. Row 2 Button & Title
@@ -2931,8 +3152,8 @@
         if (oIcon) oIcon.textContent = isOHa ? '📊' : '🕯️';
         if (oTitle) {
             oTitle.innerHTML = isOHa 
-                ? 'NIFTY (5m Heikin Ashi &amp; Parity) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>'
-                : 'NIFTY (5m Candles &amp; Parity)';
+                ? `NIFTY (${oTimeframe} Heikin Ashi &amp; Parity) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
+                : `NIFTY (${oTimeframe} Candles &amp; Parity)`;
         }
     }
     window.updateCandleStyleUI = updateCandleStyleUI;
@@ -3043,6 +3264,7 @@
     window.cycleOptionsMarkerMode = cycleOptionsMarkerMode;
 
     function updateMarkerButtonsUI() {
+        updateHaWickFilterUI();
         const topSelect = document.getElementById('signals-mode-select');
         const sMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
         const oMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
@@ -4548,6 +4770,10 @@
         const triggerCandle = weightageData?.candles?.find(c => (c.time_str === timeStr || c.time === timeStr))
             || weightageData?.candles?.[activeCandleIndex];
 
+        const candleTime = triggerCandle ? Number(triggerCandle.time || triggerCandle.timestamp) : null;
+        const wHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, false) : null;
+        const oHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, true) : null;
+
         // 1. COMBINED HIGH-PROBABILITY CONFLUENCE (Both Weightage and Options Agree in Same Direction!)
         if (alarmSettings.confluenceEnabled && ((wBull && oBull) || (wBear && oBear))) {
             const isBull = (wBull && oBull);
@@ -4576,8 +4802,17 @@
             return;
         }
 
-        // 2. Individual Nifty 50 Stocks Breadth Alert
+        // 2. Individual Nifty 50 Stocks Breadth Alert (Independent Chart 1 Settings)
         if (alarmSettings.stocksAlertEnabled && (wBull || wBear)) {
+            const useStocksHaFilter = (alarmSettings.stocksHaWickFilter !== false);
+            if (useStocksHaFilter && wHaAnalysis) {
+                if (wBear && (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry)) {
+                    return; // Ignore indecision candles on Stock chart
+                }
+                if (wBull && (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry)) {
+                    return; // Ignore indecision candles on Stock chart
+                }
+            }
             const isBull = wBull;
             let confState = 'NEUTRAL';
             let confText = '';
@@ -4621,8 +4856,17 @@
             return;
         }
 
-        // 3. Individual Nifty Options Breadth Alert
+        // 3. Individual Nifty Options Breadth Alert (Independent Chart 2 Settings)
         if (alarmSettings.optionsAlertEnabled && (oBull || oBear)) {
+            const useOptionsHaFilter = (alarmSettings.optionsHaWickFilter !== false);
+            if (useOptionsHaFilter && oHaAnalysis) {
+                if (oBear && (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry)) {
+                    return; // Ignore indecision candles on Options chart
+                }
+                if (oBull && (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry)) {
+                    return; // Ignore indecision candles on Options chart
+                }
+            }
             const isBull = oBull;
             let confState = 'NEUTRAL';
             let confText = '';
@@ -5023,6 +5267,8 @@
                 secondsVisible: false,
                 barSpacing: 10,
                 minBarSpacing: 3,
+                fixLeftEdge: false,
+                fixRightEdge: false,
             },
             rightPriceScale: {
                 borderColor: '#374151',
@@ -5200,6 +5446,66 @@
         renderAllChartOverlays();
     }
 
+    // ── 5. Independent Chart Data Fetchers ─────────────────────────────────────────
+    async function reloadChart1Weightage(isSilent = false) {
+        if (!isSilent) document.getElementById('w-chart-loading')?.classList.remove('hidden');
+        const minutes = getTfMinutes(wTimeframe);
+        try {
+            const res = await fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`);
+            const data = await res.json();
+            if (data && !data.error) {
+                weightageData = data;
+                if (!weightageData.candles && weightageData.nifty_candles) {
+                    weightageData.candles = weightageData.nifty_candles;
+                }
+                if (weightageData.candles) {
+                    weightageData.candles.forEach(c => {
+                        if (!c.time && c.timestamp) c.time = c.timestamp;
+                    });
+                }
+                renderWeightageColumn();
+                buildMasterTimeline();
+                updateCandleStyleUI();
+            }
+        } catch (e) {
+            console.error('Error reloading Weightage:', e);
+        } finally {
+            document.getElementById('w-chart-loading')?.classList.add('hidden');
+        }
+    }
+    window.reloadChart1Weightage = reloadChart1Weightage;
+
+    async function reloadChart2Options(isSilent = false) {
+        if (!isSilent) document.getElementById('o-chart-loading')?.classList.remove('hidden');
+        const minutes = getTfMinutes(oTimeframe);
+        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+        try {
+            const res = await fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`);
+            const data = await res.json();
+            if (data && data.success !== false && !data.error) {
+                breadthData = data;
+                if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
+                    selectedExpiry = breadthData.expiry;
+                    const expSelect = document.getElementById('expiry-select');
+                    if (expSelect) expSelect.value = selectedExpiry;
+                }
+                if (breadthData.nifty_candles) {
+                    breadthData.nifty_candles.forEach(c => {
+                        if (!c.time && c.timestamp) c.time = c.timestamp;
+                    });
+                }
+                renderOptionsBreadthColumn();
+                buildMasterTimeline();
+                updateCandleStyleUI();
+            }
+        } catch (e) {
+            console.error('Error reloading Options:', e);
+        } finally {
+            document.getElementById('o-chart-loading')?.classList.add('hidden');
+        }
+    }
+    window.reloadChart2Options = reloadChart2Options;
+
     // ── 5. Unified Data Fetcher ───────────────────────────────────────────────────
     function showChartLoaders(dateStr = selectedDate) {
         const wLoader = document.getElementById('w-chart-loading');
@@ -5235,7 +5541,7 @@
 
         // 1. Fetch Options Breadth independently & render immediately upon arrival
         const bMode = alarmSettings.optionsBasketMode || 'dynamic';
-        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&_t=${Date.now()}`)
+        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${getTfMinutes(oTimeframe)}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && data.success !== false && !data.error) {
@@ -5303,7 +5609,7 @@
         })();
 
         // 3. Fetch Nifty Weightage independently & render immediately upon arrival
-        const pWeightage = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&_t=${Date.now()}`)
+        const pWeightage = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${getTfMinutes(wTimeframe)}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
@@ -5367,11 +5673,12 @@
     }
 
     // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View & Day Anchoring ──
-    function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = []) {
+    function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = [], tf = '5m') {
         if (!chart || !todayCandles || todayCandles.length === 0) return;
         const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
         const tCount = todayCandles.length;
-        const sessionBars = 75; // Full 09:15-15:30 trading session (75 5-min candles)
+        const tfBarsMap = { '1m': 375, '3m': 125, '5m': 75, '15m': 25, '30m': 13, '60m': 7, '1h': 7, '1D': 1 };
+        const sessionBars = tfBarsMap[tf] || 75;
 
         const applyRange = () => {
             try {
@@ -5381,10 +5688,12 @@
                     fixRightEdge: false,
                 });
 
-                // Anchor Today's 09:15 open candle (at logical index yCount) to the left side
-                const fromIndex = yCount > 0 ? yCount - 1 : -0.5;
-                // Always display a full trading day window (75 bars minimum) so candles never stretch or zoom
-                const toIndex = fromIndex + Math.max(sessionBars, tCount + 5);
+                // Anchor Today's 09:15 open candle (at logical index yCount) with at least 10 candle widths of spacing to the right of the left edge
+                // This ensures the left floating tool dock does not override or overlap the start of the day candles and alert badges
+                const leftOffsetBars = 10;
+                const fromIndex = (yCount > 0 ? yCount : 0) - leftOffsetBars;
+                // Always display a full trading day window plus the left margin so candles never stretch or zoom
+                const toIndex = fromIndex + Math.max(sessionBars + leftOffsetBars, tCount + leftOffsetBars + 5);
 
                 chart.timeScale().setVisibleLogicalRange({
                     from: fromIndex,
@@ -5441,40 +5750,25 @@
                 const sDownTh = alarmSettings.stocksDownThreshold || 80;
                 const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
-                const oUpTh = alarmSettings.optionsUpThreshold || 70;
-                const oDownTh = alarmSettings.optionsDownThreshold || 70;
-
                 rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
                     const b = weightageData.breadth_by_time?.[c.time_str];
-                    const ob = breadthData?.breadth_by_time?.[c.time_str];
-                    if (!b && !ob) return;
+                    if (!b) return;
 
                     let sBull = false, sBear = false;
-                    if (b) {
-                        if (sTrig === 'both') {
-                            sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
-                        } else if (sTrig === 'either') {
-                            sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
-                        } else if (sTrig === 'count') {
-                            sBull = (b.green_count_pct >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh);
-                        } else if (sTrig === 'weight') {
-                            sBull = (b.green_weight >= sUpTh);
-                            sBear = (b.red_weight >= sDownTh);
-                        }
-                    }
-
-                    let oBull = false, oBear = false;
-                    let uw = 0, dw = 0;
-                    if (ob) {
-                        uw = Number(ob.up_weight) || 0;
-                        dw = Number(ob.down_weight) || 0;
-                        oBull = (uw >= oUpTh);
-                        oBear = (dw >= oDownTh);
+                    if (sTrig === 'both') {
+                        sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
+                        sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
+                    } else if (sTrig === 'either') {
+                        sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
+                        sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
+                    } else if (sTrig === 'count') {
+                        sBull = (b.green_count_pct >= sUpTh);
+                        sBear = (b.red_count_pct >= sDownTh);
+                    } else if (sTrig === 'weight') {
+                        sBull = (b.green_weight >= sUpTh);
+                        sBear = (b.red_weight >= sDownTh);
                     }
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
@@ -5482,81 +5776,67 @@
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    if ((sBull && oBull) || (sBear && oBear)) {
-                        const isBull = (sBull && oBull);
+                    // Stock Alert Only (Chart 1) with Heikin Ashi Wick Filter
+                    const haAnalysis = getCandleHaWickAnalysis(candleTime, false);
+                    const useHaFilter = (alarmSettings.stocksHaWickFilter !== false);
+
+                    if (sBull) {
+                        // Strict Heikin Ashi Filter: Ignore if both wicks exist or if not clean bull entry (has lower wick)
+                        if (useHaFilter && haAnalysis) {
+                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBullEntry) {
+                                return; // Ignore indecision candles with wicks on both sides
+                            }
+                        }
+                        const isTrap = isCandleRed;
+                        const labelText = isTrap ? `⚡TRAP ${b.green_count_pct}%` : (useHaFilter ? `🎯 ENTRY ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`);
                         markers.push({
                             time: candleTime,
-                            position: isBull ? 'belowBar' : 'aboveBar',
-                            color: isBull ? '#10b981' : '#ef4444',
-                            shape: isBull ? 'arrowUp' : 'arrowDown',
-                            text: isBull ? `🔥 BUY CONF${openTag}` : `🔥 SELL CONF${openTag}`,
+                            position: 'belowBar',
+                            color: isTrap ? '#06b6d4' : '#10b981',
+                            shape: 'arrowUp',
+                            text: labelText + openTag,
                             size: 2,
                         });
-                    } else if (sBull) {
-                        const isTrap = isCandleRed;
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
-                            shape: 'arrowUp',
-                            text: (isTrap ? `⚡TRAP ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`) + openTag,
-                            size: isTrap ? 2 : 1,
-                        });
                     } else if (sBear) {
+                        // Strict Heikin Ashi Filter: Ignore if both wicks exist or if not clean bear entry (has upper wick)
+                        if (useHaFilter && haAnalysis) {
+                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBearEntry) {
+                                return; // Ignore indecision candles with wicks on both sides
+                            }
+                        }
                         const isTrap = isCandleGreen;
+                        const labelText = isTrap ? `⚠️TRAP ${b.red_count_pct}%` : (useHaFilter ? `🎯 ENTRY ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`);
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
                             color: isTrap ? '#f59e0b' : '#ef4444',
                             shape: 'arrowDown',
-                            text: (isTrap ? `⚠️TRAP ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`) + openTag,
-                            size: isTrap ? 2 : 1,
-                        });
-                    } else if (oBull) {
-                        const isTrap = isCandleRed;
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
-                            shape: 'arrowUp',
-                            text: (isTrap ? `⚡OPT TRAP ${Math.round(uw)}%` : `🐂 OPT ${Math.round(uw)}%`) + openTag,
-                            size: 1,
-                        });
-                    } else if (oBear) {
-                        const isTrap = isCandleGreen;
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: isTrap ? '#f59e0b' : '#ef4444',
-                            shape: 'arrowDown',
-                            text: (isTrap ? `⚠️OPT TRAP ${Math.round(dw)}%` : `🐻 OPT ${Math.round(dw)}%`) + openTag,
-                            size: 1,
+                            text: labelText + openTag,
+                            size: 2,
                         });
                     } else if (markerMode === 'all') {
-                        if (b) {
-                            const gw = Number(b.green_weight) || 0;
-                            const rw = Number(b.red_weight) || 0;
-                            const gcp = Number(b.green_count_pct) || 0;
-                            const rcp = Number(b.red_count_pct) || 0;
-                            if (gw >= rw) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: 'belowBar',
-                                    color: '#10b981',
-                                    shape: 'circle',
-                                    text: `${gcp}% (${gw.toFixed(0)}W)${openTag}`,
-                                    size: 1,
-                                });
-                            } else {
-                                markers.push({
-                                    time: candleTime,
-                                    position: 'aboveBar',
-                                    color: '#ef4444',
-                                    shape: 'circle',
-                                    text: `${rcp}% (${rw.toFixed(0)}W)${openTag}`,
-                                    size: 1,
-                                });
-                            }
+                        const gw = Number(b.green_weight) || 0;
+                        const rw = Number(b.red_weight) || 0;
+                        const gcp = Number(b.green_count_pct) || 0;
+                        const rcp = Number(b.red_count_pct) || 0;
+                        if (gw >= rw) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#10b981',
+                                shape: 'circle',
+                                text: `${gcp}% (${gw.toFixed(0)}W)${openTag}`,
+                                size: 1,
+                            });
+                        } else {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#ef4444',
+                                shape: 'circle',
+                                text: `${rcp}% (${rw.toFixed(0)}W)${openTag}`,
+                                size: 1,
+                            });
                         }
                     } else if (isOpenCandle) {
                         markers.push({
@@ -5583,7 +5863,7 @@
             }
             window._wCandleMarkers = markers;
             wCandleSeries.setMarkers(markers);
-            if (wChart) adjustChartTimeScale(wChart, todayCandles, yesterdayCandles);
+            if (wChart) adjustChartTimeScale(wChart, todayCandles, yesterdayCandles, wTimeframe);
             drawWeightageQuantLines();
             renderWeightageOverlays();
         }
@@ -5636,10 +5916,6 @@
             const markers = [];
 
             if (markerMode !== 'off') {
-                const sUpTh = alarmSettings.stocksUpThreshold || 80;
-                const sDownTh = alarmSettings.stocksDownThreshold || 80;
-                const sTrig = alarmSettings.stocksTriggerBy || 'both';
-
                 const oUpTh = alarmSettings.optionsUpThreshold || 70;
                 const oDownTh = alarmSettings.optionsDownThreshold || 70;
 
@@ -5648,122 +5924,75 @@
                     if (!candleTime) return;
 
                     const ob = breadthData.breadth_by_time?.[c.time_str];
-                    const b = weightageData?.breadth_by_time?.[c.time_str];
-                    if (!ob && !b) return;
+                    if (!ob) return;
 
-                    let oBull = false, oBear = false;
-                    let uw = 0, dw = 0;
-                    if (ob) {
-                        uw = Number(ob.up_weight) || 0;
-                        dw = Number(ob.down_weight) || 0;
-                        oBull = (uw >= oUpTh);
-                        oBear = (dw >= oDownTh);
-                    }
-
-                    let sBull = false, sBear = false;
-                    if (b) {
-                        if (sTrig === 'both') {
-                            sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
-                        } else if (sTrig === 'either') {
-                            sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
-                        } else if (sTrig === 'count') {
-                            sBull = (b.green_count_pct >= sUpTh);
-                            sBear = (b.red_count_pct >= sDownTh);
-                        } else if (sTrig === 'weight') {
-                            sBull = (b.green_weight >= sUpTh);
-                            sBear = (b.red_weight >= sDownTh);
-                        }
-                    }
+                    const uw = Number(ob.up_weight) || 0;
+                    const dw = Number(ob.down_weight) || 0;
+                    const oBull = (uw >= oUpTh);
+                    const oBear = (dw >= oDownTh);
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isCandleRed   = Number(c.close) < Number(c.open);
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    // 1. 🔥 CONFLUENCE (Both Options Flow & Stock Breadth Agree)
-                    if ((sBull && oBull) || (sBear && oBear)) {
-                        const isBull = (sBull && oBull);
-                        markers.push({
-                            time: candleTime,
-                            position: isBull ? 'belowBar' : 'aboveBar',
-                            color: isBull ? '#10b981' : '#ef4444',
-                            shape: isBull ? 'arrowUp' : 'arrowDown',
-                            text: isBull ? `🔥 BUY CONF${openTag}` : `🔥 SELL CONF${openTag}`,
-                            size: 2,
-                        });
-                    }
-                    // 2. OPTIONS FLOW BREACH
-                    else if (oBull) {
-                        const isTrap = isCandleRed;
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
-                            shape: 'arrowUp',
-                            text: (isTrap ? `⚡TRAP ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`) + openTag,
-                            size: isTrap ? 2 : 1,
-                        });
-                    } else if (oBear) {
-                        const isTrap = isCandleGreen;
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: isTrap ? '#f59e0b' : '#ef4444',
-                            shape: 'arrowDown',
-                            text: (isTrap ? `⚠️TRAP ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`) + openTag,
-                            size: isTrap ? 2 : 1,
-                        });
-                    }
-                    // 3. STOCK BREADTH BREACH (Cross-Signal on Chart 2!)
-                    else if (sBull) {
-                        const isTrap = isCandleRed;
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
-                            shape: 'arrowUp',
-                            text: (isTrap ? `⚡STK TRAP ${b.green_count_pct}%` : `🐂 STK ${b.green_count_pct}%`) + openTag,
-                            size: 1,
-                        });
-                    } else if (sBear) {
-                        const isTrap = isCandleGreen;
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: isTrap ? '#f59e0b' : '#ef4444',
-                            shape: 'arrowDown',
-                            text: (isTrap ? `⚠️STK TRAP ${b.red_count_pct}%` : `🐻 STK ${b.red_count_pct}%`) + openTag,
-                            size: 1,
-                        });
-                    }
-                    // 4. EVERY 5M STATUS
-                    else if (markerMode === 'all') {
-                        if (ob) {
-                            if (uw >= dw) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: 'belowBar',
-                                    color: '#06b6d4',
-                                    shape: 'circle',
-                                    text: `${Math.round(uw)}% Bull${openTag}`,
-                                    size: 1,
-                                });
-                            } else {
-                                markers.push({
-                                    time: candleTime,
-                                    position: 'aboveBar',
-                                    color: '#f43f5e',
-                                    shape: 'circle',
-                                    text: `${Math.round(dw)}% Bear${openTag}`,
-                                    size: 1,
-                                });
+                    // Option Alert Only (Chart 2) with Heikin Ashi Wick Filter
+                    const haAnalysis = getCandleHaWickAnalysis(candleTime, true);
+                    const useHaFilter = (alarmSettings.optionsHaWickFilter !== false);
+
+                    if (oBull) {
+                        if (useHaFilter && haAnalysis) {
+                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBullEntry) {
+                                return; // Ignore indecision candles with wicks on both sides
                             }
                         }
-                    }
-                    // 5. If no signal on 09:15 open candle, place the clean TODAY marker
-                    else if (isOpenCandle) {
+                        const isTrap = isCandleRed;
+                        const labelText = isTrap ? `⚡TRAP ${Math.round(uw)}%` : (useHaFilter ? `🎯 ENTRY ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`);
+                        markers.push({
+                            time: candleTime,
+                            position: 'belowBar',
+                            color: isTrap ? '#06b6d4' : '#10b981',
+                            shape: 'arrowUp',
+                            text: labelText + openTag,
+                            size: 2,
+                        });
+                    } else if (oBear) {
+                        if (useHaFilter && haAnalysis) {
+                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBearEntry) {
+                                return; // Ignore indecision candles with wicks on both sides
+                            }
+                        }
+                        const isTrap = isCandleGreen;
+                        const labelText = isTrap ? `⚠️TRAP ${Math.round(dw)}%` : (useHaFilter ? `🎯 ENTRY ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`);
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: isTrap ? '#f59e0b' : '#ef4444',
+                            shape: 'arrowDown',
+                            text: labelText + openTag,
+                            size: 2,
+                        });
+                    } else if (markerMode === 'all') {
+                        if (uw >= dw) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#06b6d4',
+                                shape: 'circle',
+                                text: `${Math.round(uw)}% Bull${openTag}`,
+                                size: 1,
+                            });
+                        } else {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#f43f5e',
+                                shape: 'circle',
+                                text: `${Math.round(dw)}% Bear${openTag}`,
+                                size: 1,
+                            });
+                        }
+                    } else if (isOpenCandle) {
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
@@ -5788,7 +6017,7 @@
             }
             window._oCandleMarkers = markers;
             oCandleSeries.setMarkers(markers);
-            if (oChart) adjustChartTimeScale(oChart, todayCandles, yesterdayCandles);
+            if (oChart) adjustChartTimeScale(oChart, todayCandles, yesterdayCandles, oTimeframe);
             drawOptionsQuantLines();
             renderOptionsOverlays();
         }
@@ -6133,15 +6362,40 @@
         updateDriverDiagnosis(timeStr);
     }
 
+    /**
+     * Finds the candle matching or containing timeStr across different timeframes.
+     * E.g. When Chart 1 is on 5m (11:25) and Chart 2 is on 15m (11:15-11:30), smoothly resolves to 11:15.
+     */
+    function findCandleForTime(candles, timeStr) {
+        if (!candles || candles.length === 0) return null;
+        if (!timeStr) return candles[candles.length - 1];
+        const exact = candles.find(c => c.time_str === timeStr);
+        if (exact) return exact;
+
+        let candidate = null;
+        for (const c of candles) {
+            if (c.time_str <= timeStr) {
+                candidate = c;
+            } else {
+                break;
+            }
+        }
+        return candidate || candles[0];
+    }
+    window.findCandleForTime = findCandleForTime;
+
     function syncWeightageUI(index, timeStr) {
         if (!weightageData) return;
 
         const candles = weightageData.candles || weightageData.nifty_candles || [];
-        const candle = (timeStr ? candles.find(c => c.time_str === timeStr) : null) || candles[index] || null;
+        const candle = (timeStr ? findCandleForTime(candles, timeStr) : null) || candles[index] || null;
         const resolvedTime = candle?.time_str || timeStr;
 
         if (candle) {
             document.getElementById('w-chart-time').textContent = candle.time_str;
+            const wTfSuffix = (wTimeframe === '1D') ? '1-Day candle' : `${wTimeframe} candle`;
+            const wStatTimeEl = document.getElementById('w-stat-time');
+            if (wStatTimeEl) wStatTimeEl.textContent = `${candle.time_str} - ${wTfSuffix}`;
             if (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0) {
                 const haCandle = window._unifiedHaCandles.find(c => c.time_str === candle.time_str || Number(c.time) === Number(candle.time || candle.timestamp));
                 if (haCandle) {
@@ -6289,7 +6543,7 @@
         if (!breadthData) return;
 
         const candles = breadthData.nifty_candles || [];
-        const candle = (timeStr ? candles.find(c => c.time_str === timeStr) : null) || candles[index] || null;
+        const candle = (timeStr ? findCandleForTime(candles, timeStr) : null) || candles[index] || null;
         const resolvedTime = candle?.time_str || timeStr;
 
         if (candle) {
@@ -6327,7 +6581,7 @@
                || (timeStr ? breadthData.breadth_by_time?.[timeStr] : null);
         if (b) {
             const displayTime = resolvedTime || timeStr || b.time_str || '09:15';
-            document.getElementById('o-stat-time').textContent = `${displayTime} - 5-min candle`;
+            const tfSuffix = (oTimeframe === '1D') ? '1-Day candle' : `${oTimeframe} candle`; document.getElementById('o-stat-time').textContent = `${displayTime} - ${tfSuffix}`;
             const impEl = document.getElementById('o-stat-impulse');
             const sign = b.net_points >= 0 ? '+' : '';
             impEl.textContent = `${sign}${Number(b.net_points).toFixed(2)} pts`;
@@ -7329,6 +7583,10 @@
             // 3. Confluence settings
             alarmSettings.confluenceEnabled = document.getElementById('cfg-confluence-enabled').checked;
             alarmSettings.confluenceSound = document.getElementById('confluence-sound-select').value;
+            const haToggleS = document.getElementById('stocks-ha-wick-filter-toggle');
+            if (haToggleS) alarmSettings.stocksHaWickFilter = haToggleS.checked;
+            const haToggleO = document.getElementById('options-ha-wick-filter-toggle');
+            if (haToggleO) alarmSettings.optionsHaWickFilter = haToggleO.checked;
 
             // Save 0Click settings
             zeroClickSettings.autoLog = document.getElementById('zc-auto-log-toggle').checked;
@@ -7396,7 +7654,12 @@
         const sRad = document.querySelector(`input[name="stocks-trigger-by"][value="${alarmSettings.stocksTriggerBy || 'both'}"]`);
         if (sRad) sRad.checked = true;
 
-        const sMarkers = document.getElementById('stocks-show-markers-toggle');
+        
+        const haToggleS = document.getElementById('stocks-ha-wick-filter-toggle');
+        if (haToggleS) haToggleS.checked = (alarmSettings.stocksHaWickFilter !== false);
+        const haToggleO = document.getElementById('options-ha-wick-filter-toggle');
+        if (haToggleO) haToggleO.checked = (alarmSettings.optionsHaWickFilter !== false);
+const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (sMarkers) sMarkers.checked = alarmSettings.stocksShowMarkers !== false;
 
         const sSnd = document.getElementById('stocks-sound-select');
@@ -7630,10 +7893,114 @@
         }
     }
 
+    // ── Active Candle Close Countdown Timer (Prominent Big String near PIVOT) ──
+    let candleCloseTimerId = null;
+
+    function updateCandleCloseCountdown() {
+        const countdownEl = document.getElementById('candle-timer-countdown');
+        const labelEl = document.getElementById('candle-timer-tf-label');
+        if (!countdownEl) return;
+
+        const tfMinutes = 5;
+        const tfKey = '5m';
+
+        if (labelEl && labelEl.textContent !== '5M CLOSE:') {
+            labelEl.textContent = '5M CLOSE:';
+        }
+
+        const now = new Date();
+        const istParts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).formatToParts(now);
+
+        const getPart = (type) => istParts.find(p => p.type === type)?.value;
+        const istYear = getPart('year');
+        const istMonth = getPart('month');
+        const istDay = getPart('day');
+        const todayIstStr = `${istYear}-${istMonth}-${istDay}`;
+
+        const hours = (parseInt(getPart('hour'), 10) || 0) % 24;
+        const minutes = parseInt(getPart('minute'), 10) || 0;
+        const seconds = parseInt(getPart('second'), 10) || 0;
+        const currentSecsOfDay = hours * 3600 + minutes * 60 + seconds;
+
+        const marketOpenSecs = 9 * 3600 + 15 * 60; // 09:15:00 = 33300
+        const marketCloseSecs = 15 * 3600 + 30 * 60; // 15:30:00 = 55800
+
+        // If viewing a historical date other than today:
+        if (typeof selectedDate !== 'undefined' && selectedDate && selectedDate !== todayIstStr) {
+            countdownEl.textContent = 'CLOSED';
+            countdownEl.className = 'font-mono font-black text-slate-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
+            if (countdownEl.parentElement) {
+                countdownEl.parentElement.title = `Viewing historical session (${selectedDate}). Candle closed.`;
+            }
+            return;
+        }
+
+        // Pre-market (before 09:15:00 IST)
+        if (currentSecsOfDay < marketOpenSecs) {
+            const remPre = marketOpenSecs - currentSecsOfDay;
+            const m = Math.floor(remPre / 60);
+            const s = remPre % 60;
+            const text = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            countdownEl.textContent = text;
+            countdownEl.className = 'font-mono font-black text-sky-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
+            if (countdownEl.parentElement) {
+                countdownEl.parentElement.title = `Pre-market: Session opens at 09:15:00 IST (${text} remaining)`;
+            }
+            return;
+        }
+
+        // Post-market (after 15:30:00 IST)
+        if (currentSecsOfDay >= marketCloseSecs) {
+            countdownEl.textContent = 'CLOSED';
+            countdownEl.className = 'font-mono font-black text-slate-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
+            if (countdownEl.parentElement) {
+                countdownEl.parentElement.title = `Market session ended at 15:30:00 IST.`;
+            }
+            return;
+        }
+
+        // Live Market Hours (09:15 to 15:30)
+        const durationSecs = tfMinutes * 60;
+        const elapsedSinceOpen = currentSecsOfDay - marketOpenSecs;
+        let remSecs = durationSecs - (elapsedSinceOpen % durationSecs);
+        if (remSecs === 0) remSecs = durationSecs;
+
+        const m = Math.floor(remSecs / 60);
+        const s = remSecs % 60;
+        const formattedText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+        countdownEl.textContent = formattedText;
+        if (remSecs <= 30 && remSecs > 0) {
+            countdownEl.className = 'font-mono font-black text-rose-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow animate-pulse';
+        } else {
+            countdownEl.className = 'font-mono font-black text-amber-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
+        }
+
+        if (countdownEl.parentElement) {
+            countdownEl.parentElement.title = `Active 5M Candle closes in ${formattedText} (Wall-clock IST)`;
+        }
+    }
+
+    function setupCandleCloseCountdown() {
+        if (candleCloseTimerId) clearInterval(candleCloseTimerId);
+        updateCandleCloseCountdown();
+        candleCloseTimerId = setInterval(updateCandleCloseCountdown, 1000);
+    }
+
     // ── App Bootstrapper ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         applyCockpitFontScale(currentCockpitFontScale);
         applyTimerVisibility();
+        setupCandleCloseCountdown();
         updateToiLegendUI();
         updateToiStreamToggleUI();
         initLightweightCharts();

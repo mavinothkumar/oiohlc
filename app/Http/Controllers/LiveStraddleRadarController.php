@@ -115,7 +115,15 @@ class LiveStraddleRadarController extends Controller
         $currentExpiryMeta = $expiries->firstWhere('expiry_date', $selectedExpiry) ?? $expiries->first();
         $selectedExpiry = $currentExpiryMeta['expiry_date'];
 
-        // 3. Fetch all trading dates for this expiry in ascending order
+        // 3. Resolve Current Working Date (Today) and Previous Working Date (Yesterday)
+        $currentWorkingDate = DB::table('nse_working_days')->where('current', 1)->value('working_date')
+            ?? Carbon::today('Asia/Kolkata')->toDateString();
+
+        $previousWorkingDate = DB::table('nse_working_days')->where('previous', 1)->value('working_date')
+            ?? DB::table('nse_working_days')->where('working_date', '<', $currentWorkingDate)->orderByDesc('working_date')->value('working_date')
+            ?? Carbon::parse($currentWorkingDate)->subDay()->toDateString();
+
+        // 4. Fetch all trading dates for this expiry in ascending order
         $tradingDates = DB::table('daily_ohlc_quotes')
             ->where('symbol_name', $symbol)
             ->where('expiry_date', $selectedExpiry)
@@ -129,9 +137,22 @@ class LiveStraddleRadarController extends Controller
             return $this->emptyResponse('No trading records for this expiry.', $symbol, $symbols, $expiries);
         }
 
-        // 4. Latest date (Today / current session) and Yesterday (Previous Close baseline)
-        $latestDate = end($tradingDates);
-        $prevDate = count($tradingDates) > 1 ? $tradingDates[count($tradingDates) - 2] : null;
+        // Today is the live session
+        $latestDate = $currentWorkingDate;
+
+        // Historical closed sessions (all days strictly prior to today's live session)
+        if (in_array($currentWorkingDate, $tradingDates)) {
+            $historicalDates = array_values(array_filter($tradingDates, fn($d) => $d < $currentWorkingDate));
+        } else {
+            $historicalDates = $tradingDates;
+        }
+
+        // Yesterday baseline is the most recent closed session
+        $prevDate = !empty($historicalDates) ? end($historicalDates) : $previousWorkingDate;
+        if (empty($historicalDates)) {
+            $historicalDates = [$tradingDates[0]];
+            $prevDate = $tradingDates[0];
+        }
 
         // 5. Fetch Spot Index Close
         $spotRow = DB::table('daily_trend')
@@ -186,13 +207,6 @@ class LiveStraddleRadarController extends Controller
         $allSubscribedKeys = array_values(array_unique($allSubscribedKeys));
 
         // Format historical date headers (all days up to yesterday)
-        // If only 1 day exists, historical column is that day
-        $historicalDates = $tradingDates;
-        // If latest day is being streamed, yesterday is the last historical column
-        if ($prevDate !== null) {
-            $historicalDates = array_slice($tradingDates, 0, count($tradingDates) - 1);
-        }
-
         $dayHeaders = [];
         foreach ($historicalDates as $idx => $date) {
             $isYesterday = ($date === $prevDate);
@@ -202,6 +216,30 @@ class LiveStraddleRadarController extends Controller
                 'formatted' => Carbon::parse($date)->format('d M'),
                 'is_yesterday' => $isYesterday,
             ];
+        }
+
+        // Optional pre-seed from today's latest 5-minute snapshot (composite index hit ~18ms)
+        $liveSnapshots = [];
+        try {
+            $latestSnapshotTs = DB::table('ohlc_live_snapshots')
+                ->where('underlying_symbol', $symbol)
+                ->where('expiry_date', $selectedExpiry)
+                ->max('timestamp');
+
+            if ($latestSnapshotTs) {
+                $liveRows = DB::table('ohlc_live_snapshots')
+                    ->where('underlying_symbol', $symbol)
+                    ->where('expiry_date', $selectedExpiry)
+                    ->where('timestamp', $latestSnapshotTs)
+                    ->select('strike', 'instrument_type', 'close')
+                    ->get();
+
+                foreach ($liveRows as $lr) {
+                    $liveSnapshots[((int)$lr->strike) . '_' . strtoupper($lr->instrument_type)] = (float)$lr->close;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Gracefully ignore snapshot lookup errors
         }
 
         // 8. Build Strike-by-Strike Corridor Records
@@ -244,8 +282,8 @@ class LiveStraddleRadarController extends Controller
             // Current Session (Seed for Live stream before ticks arrive)
             $currCe = $grouped[$k][$latestDate]['CE'] ?? null;
             $currPe = $grouped[$k][$latestDate]['PE'] ?? null;
-            $currCeLtp = $currCe ? (float)$currCe->close : ($prevCeClose ?? 0);
-            $currPeLtp = $currPe ? (float)$currPe->close : ($prevPeClose ?? 0);
+            $currCeLtp = ($currCe && $currCe->close > 0) ? (float)$currCe->close : ($liveSnapshots[$k . '_CE'] ?? $prevCeClose ?? 0);
+            $currPeLtp = ($currPe && $currPe->close > 0) ? (float)$currPe->close : ($liveSnapshots[$k . '_PE'] ?? $prevPeClose ?? 0);
             $liveStraddle = round($currCeLtp + $currPeLtp, 2);
 
             // Diff vs Yesterday Close

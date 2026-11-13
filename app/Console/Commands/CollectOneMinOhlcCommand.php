@@ -272,11 +272,13 @@ class  CollectOneMinOhlcCommand extends Command {
             return;
         }
 
-        DB::table( 'ohlc_quotes' )->upsert(
-            $rows,
-            [ 'instrument_key', 'ts' ],
-            [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
-        );
+        retry( 3, function () use ( $rows ) {
+            DB::table( 'ohlc_quotes' )->upsert(
+                $rows,
+                [ 'instrument_key', 'ts' ],
+                [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
+            );
+        }, 200 );
 
         info( 'Event Firing start' . now()->toTimeString() );
         event( new \App\Events\OhlcOneMinCollected(
@@ -367,11 +369,13 @@ class  CollectOneMinOhlcCommand extends Command {
                     }
 
                     if ( ! empty( $indexRows ) ) {
-                        DB::table( 'ohlc_quotes' )->upsert(
-                            $indexRows,
-                            [ 'instrument_key', 'ts' ],
-                            [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
-                        );
+                        retry( 3, function () use ( $indexRows ) {
+                            DB::table( 'ohlc_quotes' )->upsert(
+                                $indexRows,
+                                [ 'instrument_key', 'ts' ],
+                                [ 'open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at' ]
+                            );
+                        }, 200 );
                     }
                 }
             }

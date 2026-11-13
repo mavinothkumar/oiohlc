@@ -126,18 +126,21 @@ class OptionsBreadthMonitorController extends Controller
         $startTs = "{$date} 09:00:00";
         $endTs   = "{$date} 15:35:00";
 
+        // Multi-timeframe interval support: 1, 3, 5, 15, 30, 60, 375 (1D)
+        $interval = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', $request->input('timeframe', 5)));
+
         // Cache TTL: For today, keep cache short (15s during market, 30s outside market)
-        // so live/incoming 5-min candles are never blocked. For past dates, cache for 1 day.
+        // so live/incoming candles are never blocked. For past dates, cache for 1 day.
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $reqStrike = $request->input('strike', 'auto');
         $basketMode = $request->input('basket_mode', 'dynamic'); // 'dynamic' (auto-floating ATM) or 'fixed'
-        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}";
+        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}_{$interval}";
 
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode, $interval) {
             // 2. Fetch Strikes and determine ATM strike
             $indexHint = $this->getOptimalIndexHint($table);
             $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
@@ -258,11 +261,13 @@ class OptionsBreadthMonitorController extends Controller
 
         // Defensive check: If date still has no option contracts in database
         if ($strikes->isEmpty()) {
-            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, 24000);
+            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, 24000, $interval);
             return [
                 'success'          => false,
                 'error'            => "No option strikes found for {$symbol} on {$date}. Please run migration for this date or select an available date.",
                 'date'             => $date,
+                'interval'         => $interval,
+                'interval_label'   => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
                 'expiry'           => $selectedExpiry,
                 'center_strike'    => 24000,
                 'atm_strike'       => 24000,
@@ -338,8 +343,8 @@ class OptionsBreadthMonitorController extends Controller
             $queryStrikes = $targetStrikes;
         }
 
-        // 3. Fetch Index 5m Candlestick Data
-        $niftyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $centerStrike);
+        // 3. Fetch Index Candlestick Data for target interval
+        $niftyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $centerStrike, $interval);
 
         // 4. Fetch Options Snapshot Records for Target Strikes
         $optionsData = $this->buildOptionsBreadthData(
@@ -371,7 +376,7 @@ class OptionsBreadthMonitorController extends Controller
                 ->value('ts_at');
             $prevTradingDate = $prevTs ? Carbon::parse($prevTs, 'Asia/Kolkata')->toDateString() : Carbon::parse($date)->subDay()->toDateString();
         }
-        $yesterdayCandles = $this->fetchIndexCandles($prevTradingDate, $symbol, $table, $selectedExpiry, $spotPrice ?: 23000);
+        $yesterdayCandles = $this->fetchIndexCandles($prevTradingDate, $symbol, $table, $selectedExpiry, $spotPrice ?: 23000, $interval);
 
         $lwChartCandles = array_map(function($c) {
             return [
@@ -388,6 +393,8 @@ class OptionsBreadthMonitorController extends Controller
             return [
                 'success'          => true,
                 'date'             => $date,
+                'interval'         => $interval,
+                'interval_label'   => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
                 'expiry'           => $selectedExpiry,
                 'yesterday_date'   => $prevTradingDate,
                 'yesterday_candles'=> $yesterdayCandles,
@@ -414,9 +421,9 @@ class OptionsBreadthMonitorController extends Controller
     }
 
     /**
-     * Fetch Index 5m Candlestick Data (Uses ohlc_5m_quotes or synthesized from options spot/synth)
+     * Fetch Index Candlestick Data across any timeframe interval.
      */
-    protected function fetchIndexCandles(string $date, string $symbol, string $table, string $expiry, int $baseStrike): array
+    protected function fetchIndexCandles(string $date, string $symbol, string $table, string $expiry, int $baseStrike, int $interval = 5): array
     {
         $nowKolkata = Carbon::now('Asia/Kolkata');
         $isToday = ($date === $nowKolkata->toDateString());
@@ -428,7 +435,7 @@ class OptionsBreadthMonitorController extends Controller
         // 1. Primary: Use NiftyWeightageMonitorController's battle-tested real candle loader for 100% chart synchronization
         try {
             $nwCtrl = app(\App\Http\Controllers\NiftyWeightageMonitorController::class);
-            $candles = $nwCtrl->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
+            $candles = $nwCtrl->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
             if (!empty($candles)) {
                 return $candles;
             }
@@ -758,6 +765,21 @@ class OptionsBreadthMonitorController extends Controller
             foreach ($activeBasket as $stk) {
                 $c = $ceGrid[$stk][$timeStr] ?? null;
                 $p = $peGrid[$stk][$timeStr] ?? null;
+
+                // For multi-timeframe intervals (15m, 30m, 60m, 1D), match nearest snapshot <= timeStr
+                if (!$c && !empty($ceGrid[$stk])) {
+                    foreach ($ceGrid[$stk] as $t => $row) {
+                        if ($t <= $timeStr) { $c = $row; } else { break; }
+                    }
+                    if (!$c) { $c = reset($ceGrid[$stk]); }
+                }
+                if (!$p && !empty($peGrid[$stk])) {
+                    foreach ($peGrid[$stk] as $t => $row) {
+                        if ($t <= $timeStr) { $p = $row; } else { break; }
+                    }
+                    if (!$p) { $p = reset($peGrid[$stk]); }
+                }
+
                 $wt = $wtPerStrike;
 
                 $cPrice = $c ? (float)$c->ltp : ($prevCandleLtpCe[$stk] ?? 0);

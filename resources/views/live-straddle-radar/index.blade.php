@@ -347,18 +347,22 @@
 
                         <!-- 3. LIVE TODAY (Real-Time Streamed Columns) -->
                         <th class="py-3 px-3 text-right bg-rose-50/60 border-l-2 border-rose-300 text-rose-900 font-black min-w-[110px]">
-                            Live CE LTP
+                            <div>Live CE LTP</div>
+                            <div class="text-[10px] font-medium text-rose-700 font-sans mt-0.5">Today ({{ \Carbon\Carbon::parse($latest_date)->format('d M') }})</div>
                         </th>
                         <th class="py-3 px-3 text-right bg-emerald-50/60 border-r border-slate-200 text-emerald-900 font-black min-w-[110px]">
-                            Live PE LTP
+                            <div>Live PE LTP</div>
+                            <div class="text-[10px] font-medium text-emerald-700 font-sans mt-0.5">Today ({{ \Carbon\Carbon::parse($latest_date)->format('d M') }})</div>
                         </th>
                         <th class="py-3 px-3 text-right bg-indigo-50/80 border-r-2 border-indigo-300 text-indigo-950 font-black min-w-[140px]">
-                            Live Straddle (CE+PE)
+                            <div>Live Straddle (CE+PE)</div>
+                            <div class="text-[10px] font-medium text-indigo-700 font-sans mt-0.5">Today ({{ \Carbon\Carbon::parse($latest_date)->format('d M') }})</div>
                         </th>
 
                         <!-- 4. Difference Column (Live Straddle vs Yesterday Close) -->
                         <th class="py-3 px-3 text-center bg-slate-50 border-r border-slate-200 text-slate-900 font-black min-w-[160px]">
-                            Δ vs Yesterday Close
+                            <div>Δ vs Yesterday Close</div>
+                            <div class="text-[10px] font-medium text-slate-500 font-sans mt-0.5">vs {{ \Carbon\Carbon::parse($prev_date)->format('d M') }} Base</div>
                         </th>
 
                         <!-- 5. Opportunity Status -->
@@ -408,7 +412,7 @@
                             <!-- 2. Historical Available Days Columns (Fixed EOD Close Values) -->
                             @foreach($row['historical_days'] as $hIdx => $hDay)
                                 @php
-                                    $isYesterdayCol = ($hIdx === count($row['historical_days']) - 1);
+                                    $isYesterdayCol = ($hDay['quote_date'] === $prev_date);
                                 @endphp
                                 <td class="py-2.5 px-3 border-r border-slate-100 whitespace-nowrap text-right {{ $isYesterdayCol ? 'bg-amber-50/30 border-l-2 border-amber-200' : '' }}">
                                     @if($hDay['straddle'] !== null)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OrderFlowAlertLog;
 use App\Models\OrderFlowSignalLog;
+use App\Models\OrderFlowTradedVolume;
 use App\Models\ZeroClickAlertLog;
 use App\Services\OrderFlow\OrderFlowCumulativeReportService;
 use App\Services\Quant\HighProbabilityEngine;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class OrderFlowStrategyController extends Controller
@@ -118,14 +120,47 @@ class OrderFlowStrategyController extends Controller
         // 6. Pre-calculate Strategy Confluence Signals for Initial Load
         $strategySignals = $this->computeStrategyConfluenceSignals($symbol, $workingDate, $selectedExpiry, $atmStrike, $spotPrice);
 
-        // 7. Highest Traded Ask & Bid Quantities so far today (From 09:15 onwards)
+        // 7. Highest Traded Ask & Bid Quantities (From 09:15 onwards, stored in order_flow_traded_volumes)
         $sessionAskRecords = [];
         $sessionBidRecords = [];
+
+        // Primary source: Dedicated Traded Volumes Table
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $tvRecords = OrderFlowTradedVolume::forDate($workingDate)
+                ->forSymbol($symbol)
+                ->orderBy('trade_time', 'asc')
+                ->get(['trade_time', 'price', 'quantity', 'side']);
+
+            foreach ($tvRecords as $r) {
+                $item = [
+                    'time'  => (string) $r->trade_time,
+                    'price' => (float) $r->price,
+                    'qty'   => (int) $r->quantity,
+                    'side'  => (string) $r->side,
+                ];
+                if ($r->side === 'ASK') {
+                    $sessionAskRecords[] = $item;
+                } else {
+                    $sessionBidRecords[] = $item;
+                }
+            }
+        }
+
+        // Secondary / fallback source: OrderFlowAlertLog (for historical blocks and alerts)
         if (Schema::hasTable('order_flow_alert_logs')) {
             $allTodayAlerts = OrderFlowAlertLog::where('trade_date', $workingDate)
                 ->where('symbol', $symbol)
                 ->orderBy('alert_time', 'asc')
                 ->get(['alert_time', 'price', 'quantity', 'side', 'alert_type', 'title', 'details']);
+
+            $existingAskKeys = [];
+            foreach ($sessionAskRecords as $a) {
+                $existingAskKeys[substr($a['time'], 0, 5) . '_' . number_format($a['price'], 2)] = true;
+            }
+            $existingBidKeys = [];
+            foreach ($sessionBidRecords as $b) {
+                $existingBidKeys[substr($b['time'], 0, 5) . '_' . number_format($b['price'], 2)] = true;
+            }
 
             foreach ($allTodayAlerts as $r) {
                 $qty = (int) $r->quantity;
@@ -146,6 +181,8 @@ class OrderFlowStrategyController extends Controller
                     || str_contains((string) $r->alert_type, 'ASK')
                     || str_contains(strtoupper((string) $r->title), 'ASK');
 
+                $minKey = substr($timeStr, 0, 5) . '_' . number_format($price, 2);
+
                 $item = [
                     'time'  => $timeStr,
                     'price' => $price,
@@ -154,16 +191,62 @@ class OrderFlowStrategyController extends Controller
                 ];
 
                 if ($isAsk) {
-                    $sessionAskRecords[] = $item;
+                    if (!isset($existingAskKeys[$minKey])) {
+                        $sessionAskRecords[] = $item;
+                        $existingAskKeys[$minKey] = true;
+                    }
                 } else {
-                    $sessionBidRecords[] = $item;
+                    if (!isset($existingBidKeys[$minKey])) {
+                        $sessionBidRecords[] = $item;
+                        $existingBidKeys[$minKey] = true;
+                    }
                 }
             }
+        }
+
+        // 8. Resolve Previous Trading Day and its Top 5 Ask and Bid Traded Volumes
+        $prevDayRow = null;
+        if (Schema::hasTable('nse_working_days')) {
+            $prevDayRow = DB::table('nse_working_days')
+                ->where('working_date', '<', $workingDate)
+                ->orderByDesc('working_date')
+                ->first();
+        }
+        $prevTradingDate = $prevDayRow ? $prevDayRow->working_date : Carbon::parse($workingDate)->subDay()->toDateString();
+
+        $prevTopAsk = [];
+        $prevTopBid = [];
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $dedupTop = function($query, $limit = 5) {
+                $raw = $query->orderByDesc('quantity')->take($limit * 4)->get();
+                $seen = [];
+                $res = [];
+                foreach ($raw as $r) {
+                    $key = number_format($r->price, 2);
+                    if (!isset($seen[$key])) {
+                        $seen[$key] = true;
+                        $res[] = [
+                            'time'  => (string) $r->trade_time,
+                            'price' => (float) $r->price,
+                            'qty'   => (int) $r->quantity,
+                            'side'  => (string) $r->side,
+                        ];
+                        if (count($res) >= $limit) break;
+                    }
+                }
+                return $res;
+            };
+
+            $prevTopAsk = $dedupTop(OrderFlowTradedVolume::forDate($prevTradingDate)->forSymbol($symbol)->ask());
+            $prevTopBid = $dedupTop(OrderFlowTradedVolume::forDate($prevTradingDate)->forSymbol($symbol)->bid());
         }
 
         return view('order-flow-depth.index', [
             'symbol'            => $symbol,
             'workingDate'       => $workingDate,
+            'prevTradingDate'   => $prevTradingDate,
+            'prevTopAsk'        => $prevTopAsk,
+            'prevTopBid'        => $prevTopBid,
             'expiries'          => $expiries,
             'selectedExpiry'    => $selectedExpiry,
             'indexKey'          => $indexKey,
@@ -893,6 +976,142 @@ class OrderFlowStrategyController extends Controller
                 'blocks_count' => $blocksCount,
             ],
             'alerts'  => $alerts,
+        ]);
+    }
+
+    /**
+     * Persist batch of Highest Traded Volume Prints (both ASK and BID) to the database.
+     */
+    public function saveTradedVolume(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trade_date'     => 'required|date',
+            'symbol'         => 'nullable|string|max:50',
+            'trades'         => 'required|array',
+            'trades.*.time'  => 'required|string',
+            'trades.*.price' => 'required|numeric',
+            'trades.*.qty'   => 'required|integer|min:1',
+            'trades.*.side'  => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $tradeDate = Carbon::parse($request->input('trade_date'))->toDateString();
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $trades = $request->input('trades', []);
+        $instrument = $request->input('instrument');
+        $source = $request->input('source', 'LIVE_TICK');
+
+        $savedCount = 0;
+        foreach ($trades as $t) {
+            $rawSide = strtoupper(trim($t['side'] ?? 'ASK'));
+            $side = in_array($rawSide, ['BID', 'SELL']) ? 'BID' : 'ASK';
+            $price = round((float) $t['price'], 2);
+            $qty = (int) $t['qty'];
+            $time = trim((string) $t['time']);
+
+            if ($qty < 500 || $price <= 0 || empty($time)) {
+                continue;
+            }
+
+            // Format time as HH:mm:ss if HH:mm
+            if (strlen($time) === 5) {
+                $time .= ':00';
+            }
+
+            OrderFlowTradedVolume::updateOrInsert(
+                [
+                    'trade_date' => $tradeDate,
+                    'symbol'     => $symbol,
+                    'side'       => $side,
+                    'trade_time' => $time,
+                    'price'      => $price,
+                ],
+                [
+                    'quantity'   => DB::raw("GREATEST(COALESCE(quantity, 0), {$qty})"),
+                    'instrument' => $instrument,
+                    'source'     => $source,
+                    'updated_at' => now(),
+                    'created_at' => DB::raw("COALESCE(created_at, NOW())"),
+                ]
+            );
+            $savedCount++;
+        }
+
+        return response()->json([
+            'success'     => true,
+            'saved_count' => $savedCount,
+            'message'     => "Successfully persisted {$savedCount} traded volume prints to database.",
+        ]);
+    }
+
+    /**
+     * Retrieve Top Traded Volume prints (both ASK and BID) for any given date & symbol.
+     * Useful for backtesting and historical review.
+     */
+    public function getTopTradedVolume(Request $request): JsonResponse
+    {
+        $tradeDate = $request->filled('date')
+            ? Carbon::parse($request->input('date'))->toDateString()
+            : Carbon::today('Asia/Kolkata')->toDateString();
+
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $skipTime = $request->input('skip', '09:30'); // Skip opening minutes e.g. 09:30
+        $limit = (int) $request->input('limit', 10);
+        $minQty = (int) $request->input('min_qty', 500);
+
+        $cutoff = strlen($skipTime) === 5 ? ($skipTime . ':59') : $skipTime;
+
+        $baseQuery = OrderFlowTradedVolume::forDate($tradeDate)
+            ->forSymbol($symbol)
+            ->where('quantity', '>=', $minQty);
+
+        if ($skipTime && $skipTime !== 'none' && $skipTime !== '09:15') {
+            $baseQuery->where('trade_time', '>', $cutoff);
+        }
+
+        $askQuery = (clone $baseQuery)->ask()->orderByDesc('quantity')->take($limit * 3)->get();
+        $bidQuery = (clone $baseQuery)->bid()->orderByDesc('quantity')->take($limit * 3)->get();
+
+        // Deduplicate by same minute + price to get unique institutional levels
+        $dedup = function ($collection) use ($limit) {
+            $seen = [];
+            $result = [];
+            foreach ($collection as $item) {
+                $minKey = substr($item->trade_time, 0, 5) . '_' . number_format($item->price, 2);
+                if (!isset($seen[$minKey])) {
+                    $seen[$minKey] = true;
+                    $result[] = [
+                        'time'  => $item->trade_time,
+                        'price' => (float) $item->price,
+                        'qty'   => (int) $item->quantity,
+                        'side'  => $item->side,
+                    ];
+                    if (count($result) >= $limit) break;
+                }
+            }
+            return $result;
+        };
+
+        $topAsk = $dedup($askQuery);
+        $topBid = $dedup($bidQuery);
+
+        return response()->json([
+            'success'    => true,
+            'date'       => $tradeDate,
+            'symbol'     => $symbol,
+            'skip_time'  => $skipTime,
+            'top_ask'    => $topAsk,
+            'top_bid'    => $topBid,
+            'peak_ask'   => $topAsk[0] ?? null,
+            'peak_bid'   => $topBid[0] ?? null,
+            'total_ask_volume' => array_sum(array_column($topAsk, 'qty')),
+            'total_bid_volume' => array_sum(array_column($topBid, 'qty')),
         ]);
     }
 

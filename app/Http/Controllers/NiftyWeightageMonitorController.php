@@ -144,29 +144,32 @@ class NiftyWeightageMonitorController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
+        // Multi-timeframe interval support: 1, 3, 5, 15, 30, 60, 375 (1D)
+        $interval = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', $request->input('timeframe', 5)));
+
         // Cache TTL: For today, keep cache short (15s during market, 30s outside market)
-        // so live/incoming 5-min candles are never blocked. For past dates, cache for 1 day.
+        // so live/incoming candles are never blocked. For past dates, cache for 1 day.
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
-        $cacheKey = "nifty_weightage_data_{$date}";
+        $cacheKey = "nifty_weightage_data_{$date}_{$interval}";
 
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval) {
             // Dynamic constituent configuration for this specific date
             $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];
 
-            // 1. Fetch real NIFTY 5m candles for today/selected date
-            $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket);
+            // 1. Fetch real NIFTY candles for today/selected date
+            $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
 
             // Fetch previous session candles for seamless history pan & SuperTrend burn-in
             $prevTradingDate = $this->getPreviousTradingDate($date);
-            $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false);
+            $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
 
-        // 2. Synthesize all 50 constituent stocks' 5-minute candles perfectly coordinated with Nifty
-        $stockData = $this->generateConstituentsMatrix($niftyCandles, $date, $constituents);
+            // 2. Synthesize all 50 constituent stocks' candles perfectly coordinated with Nifty
+            $stockData = $this->generateConstituentsMatrix($niftyCandles, $date, $constituents, $interval);
 
         // 3. Compute Candle-level Breadth Aggregations
         $breadthByTime = $stockData['breadth_by_time'];
@@ -190,6 +193,8 @@ class NiftyWeightageMonitorController extends Controller
             return [
                 'success'            => true,
                 'date'               => $date,
+                'interval'           => $interval,
+                'interval_label'     => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
                 'is_today'           => $isToday,
                 'is_live'            => $isMarketHours,
                 'is_pre_market'      => $isPreMarket,
@@ -215,11 +220,11 @@ class NiftyWeightageMonitorController extends Controller
     }
 
     /**
-     * Generate 5-minute candle matrix for all 50 constituents.
+     * Generate candle matrix for all 50 constituents across any timeframe interval.
      * Uses 100% REAL individual stock tick data bottom-up from ohlc_5m_quotes or ohlc_quotes when available,
      * with graceful top-down beta model fallback for older historical dates without stock quotes.
      */
-    protected function generateConstituentsMatrix(array $niftyCandles, string $date, array $constituents): array
+    protected function generateConstituentsMatrix(array $niftyCandles, string $date, array $constituents, int $interval = 5): array
     {
         $timestamps = [];
         $breadthByTime = [];
@@ -229,32 +234,10 @@ class NiftyWeightageMonitorController extends Controller
         $dateSeed = crc32($date);
         mt_srand($dateSeed);
 
-        // 1. Check if real 5-min quotes already exist in ohlc_5m_quotes for this date
-        $db5mQuotes = DB::table('ohlc_5m_quotes')
-            ->where('instrument_type', 'EQ')
-            ->where('ts_at', '>=', "{$date} 00:00:00")
-            ->where('ts_at', '<=', "{$date} 23:59:59")
-            ->orderBy('ts_at')
-            ->get()
-            ->groupBy('trading_symbol');
-
         $stock5mBuckets = [];
 
-        if ($db5mQuotes->count() >= 30) {
-            foreach ($db5mQuotes as $sym => $quotes) {
-                foreach ($quotes as $q) {
-                    $timeStr = Carbon::parse($q->ts_at, 'Asia/Kolkata')->format('H:i');
-                    $stock5mBuckets[$sym][$timeStr] = [
-                        'open'   => (float)$q->open,
-                        'high'   => (float)$q->high,
-                        'low'    => (float)$q->low,
-                        'close'  => (float)$q->close,
-                        'volume' => (int)$q->volume,
-                    ];
-                }
-            }
-        } else {
-            // Check 1-min quotes in ohlc_quotes as fallback for today
+        if ($interval < 5) {
+            // For 1m and 3m intervals, query 1-minute real equity quotes
             $realEqQuotes = DB::table('ohlc_quotes')
                 ->where('instrument_type', 'EQ')
                 ->where('ts_at', '>=', "{$date} 00:00:00")
@@ -264,24 +247,83 @@ class NiftyWeightageMonitorController extends Controller
                 ->groupBy('trading_symbol');
 
             if ($realEqQuotes->count() >= 30) {
-                foreach ($realEqQuotes as $sym => $quotes) {
-                    $groups = [];
-                    foreach ($quotes as $q) {
-                        $ts = Carbon::parse($q->ts_at, 'Asia/Kolkata');
-                        $minute = (int)$ts->format('i');
-                        $bucketMinute = $minute - ($minute % 5);
-                        $bucketTimeStr = $ts->format('H') . ':' . str_pad($bucketMinute, 2, '0', STR_PAD_LEFT);
-                        $groups[$bucketTimeStr][] = $q;
+                if ($interval === 1) {
+                    foreach ($realEqQuotes as $sym => $quotes) {
+                        foreach ($quotes as $q) {
+                            $timeStr = Carbon::parse($q->ts_at, 'Asia/Kolkata')->format('H:i');
+                            $stock5mBuckets[$sym][$timeStr] = [
+                                'open'   => (float)$q->open,
+                                'high'   => (float)$q->high,
+                                'low'    => (float)$q->low,
+                                'close'  => (float)$q->close,
+                                'volume' => (int)$q->volume,
+                            ];
+                        }
                     }
-                    foreach ($groups as $bTime => $g) {
-                        $stock5mBuckets[$sym][$bTime] = [
-                            'open'   => (float)$g[0]->open,
-                            'high'   => (float)collect($g)->max('high'),
-                            'low'    => (float)collect($g)->min('low'),
-                            'close'  => (float)end($g)->close,
-                            'volume' => (int)collect($g)->sum('volume'),
+                } else {
+                    $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($realEqQuotes->toArray(), $interval);
+                }
+            }
+        } elseif ($interval === 5) {
+            // Standard 5-min quotes
+            $db5mQuotes = DB::table('ohlc_5m_quotes')
+                ->where('instrument_type', 'EQ')
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
+                ->orderBy('ts_at')
+                ->get()
+                ->groupBy('trading_symbol');
+
+            if ($db5mQuotes->count() >= 30) {
+                foreach ($db5mQuotes as $sym => $quotes) {
+                    foreach ($quotes as $q) {
+                        $timeStr = Carbon::parse($q->ts_at, 'Asia/Kolkata')->format('H:i');
+                        $stock5mBuckets[$sym][$timeStr] = [
+                            'open'   => (float)$q->open,
+                            'high'   => (float)$q->high,
+                            'low'    => (float)$q->low,
+                            'close'  => (float)$q->close,
+                            'volume' => (int)$q->volume,
                         ];
                     }
+                }
+            } else {
+                // Check 1-min quotes in ohlc_quotes as fallback
+                $realEqQuotes = DB::table('ohlc_quotes')
+                    ->where('instrument_type', 'EQ')
+                    ->where('ts_at', '>=', "{$date} 00:00:00")
+                    ->where('ts_at', '<=', "{$date} 23:59:59")
+                    ->orderBy('ts_at')
+                    ->get()
+                    ->groupBy('trading_symbol');
+
+                if ($realEqQuotes->count() >= 30) {
+                    $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($realEqQuotes->toArray(), 5);
+                }
+            }
+        } else {
+            // Higher intervals: 15m, 30m, 60m, 375 (1D)
+            $db5mQuotes = DB::table('ohlc_5m_quotes')
+                ->where('instrument_type', 'EQ')
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
+                ->orderBy('ts_at')
+                ->get()
+                ->groupBy('trading_symbol');
+
+            if ($db5mQuotes->count() >= 30) {
+                $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($db5mQuotes->toArray(), $interval);
+            } else {
+                $realEqQuotes = DB::table('ohlc_quotes')
+                    ->where('instrument_type', 'EQ')
+                    ->where('ts_at', '>=', "{$date} 00:00:00")
+                    ->where('ts_at', '<=', "{$date} 23:59:59")
+                    ->orderBy('ts_at')
+                    ->get()
+                    ->groupBy('trading_symbol');
+
+                if ($realEqQuotes->count() >= 30) {
+                    $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($realEqQuotes->toArray(), $interval);
                 }
             }
         }
@@ -1103,10 +1145,64 @@ class NiftyWeightageMonitorController extends Controller
     }
 
     /**
-     * Load 5m candles for a target date with tiered fallbacks.
+     * Load candles for a target date with tiered fallbacks across any timeframe interval.
      */
-    public function loadCandlesForDate(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30', bool $isWeekday = true, bool $isPreMarket = false): array
+    public function loadCandlesForDate(string $date, bool $isToday = false, bool $isMarketHours = false, string $curTimeStr = '15:30', bool $isWeekday = true, bool $isPreMarket = false, int $interval = 5): array
     {
+        // For 1m and 3m intervals, check 1-minute atomic quotes first
+        if ($interval < 5) {
+            $oneMinQuotes = DB::table('ohlc_quotes')
+                ->where(function($q) {
+                    $q->where('instrument_key', 'like', '%Nifty 50%')
+                      ->orWhere('trading_symbol', 'Nifty 50')
+                      ->orWhere('trading_symbol', 'NIFTY');
+                })
+                ->where('instrument_type', 'INDEX')
+                ->where('ts_at', '>=', "{$date} 00:00:00")
+                ->where('ts_at', '<=', "{$date} 23:59:59")
+                ->orderBy('ts_at')
+                ->get();
+
+            if ($oneMinQuotes->isNotEmpty()) {
+                $raw1m = [];
+                $seen1m = [];
+                foreach ($oneMinQuotes as $row) {
+                    $ts = Carbon::parse($row->ts_at, 'Asia/Kolkata');
+                    $timeStr = $ts->format('H:i');
+                    if ($timeStr < '09:15' || $timeStr > '15:29' || isset($seen1m[$timeStr])) continue;
+                    if ($isToday && $isWeekday && $curTimeStr <= '15:30' && $timeStr > $curTimeStr) continue;
+                    $seen1m[$timeStr] = true;
+
+                    $open  = round((float)$row->open, 2);
+                    $high  = round((float)$row->high, 2);
+                    $low   = round((float)$row->low, 2);
+                    $close = round((float)$row->close, 2);
+                    $vol   = (int)$row->volume;
+
+                    $raw1m[] = [
+                        'ts_at'     => $row->ts_at,
+                        'time_str'  => $timeStr,
+                        'timestamp' => Carbon::parse($row->ts_at, 'UTC')->timestamp,
+                        'open'      => $open,
+                        'high'      => $high,
+                        'low'       => $low,
+                        'close'     => $close,
+                        'volume'    => $vol,
+                        'move_pts'  => round($close - $open, 2),
+                        'move_pct'  => $open > 0 ? round((($close - $open) / $open) * 100, 3) : 0,
+                        'color'     => $close >= $open ? 'green' : 'red',
+                    ];
+                }
+
+                if ($interval === 1 && !empty($raw1m)) {
+                    return $raw1m;
+                }
+                if ($interval === 3 && !empty($raw1m)) {
+                    return \App\Services\TimeframeResampler::resampleCandles($raw1m, 3, $date);
+                }
+            }
+        }
+
         // 1. Fetch real NIFTY 5m candles from database if present
         $dbCandles = DB::table('ohlc_5m_quotes')
             ->where(function($q) {
@@ -1363,6 +1459,10 @@ class NiftyWeightageMonitorController extends Controller
                     'is_forming'=> true,
                 ];
             }
+        }
+
+        if ($interval > 5 && !empty($niftyCandles)) {
+            return \App\Services\TimeframeResampler::resampleCandles($niftyCandles, $interval, $date);
         }
 
         return $niftyCandles;

@@ -214,12 +214,14 @@ class OrderFlowCumulativeReportService
         $stackSellCount = $alerts->where('alert_type', 'STACK_SELL')->count();
         $blockBuyCount  = $alerts->where('alert_type', 'BLOCK_BUY')->count();
         $blockSellCount = $alerts->where('alert_type', 'BLOCK_SELL')->count();
+        $marketBuyCount  = $alerts->where('alert_type', 'MARKET_BUY')->count();
+        $marketSellCount = $alerts->where('alert_type', 'MARKET_SELL')->count();
         $strategyBuy    = $alerts->where('alert_type', 'STRATEGY_BUY')->count();
         $strategySell   = $alerts->where('alert_type', 'STRATEGY_SELL')->count();
 
-        // Institutional Liquidity Committed (Quantities from Blocks & Stacks)
-        $bidLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_BUY', 'STACK_BUY'])->sum('quantity');
-        $askLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_SELL', 'STACK_SELL'])->sum('quantity');
+        // Institutional Liquidity Committed (Quantities from Blocks, Stacks & Market Sweeps)
+        $bidLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_BUY', 'STACK_BUY', 'MARKET_BUY'])->sum('quantity');
+        $askLiquidityQty = (int) $alerts->whereIn('alert_type', ['BLOCK_SELL', 'STACK_SELL', 'MARKET_SELL'])->sum('quantity');
 
         // Microstructure Liquidity Absorption & Structural Wall Outcomes (Swept vs Defended)
         $sweptAskCount    = 0;
@@ -917,7 +919,11 @@ class OrderFlowCumulativeReportService
                 elseif ($isMidday) $sessionTag = 'MIDDAY';
 
                 $strike = (int)(round($alt->price / 50) * 50);
-                $side = $alt->side ?: (str_contains($alt->alert_type, 'BID') ? 'BID' : 'ASK');
+                $isMarketOrder = str_contains((string)$alt->alert_type, 'MARKET');
+                $isBuy = in_array(strtoupper((string) $alt->side), ['BUY', 'BID']) || str_contains($alt->alert_type, 'BUY') || str_contains($alt->alert_type, 'BID');
+                $side = $isBuy ? 'BID' : 'ASK';
+                $outcome = $isMarketOrder ? 'EXECUTED' : 'DEFENDED';
+                $outcomeDesc = $isMarketOrder ? 'Market Sweep (Executed)' : 'Defended (Resting Wall)';
 
                 $blocks[] = [
                     'id'            => 'alt_' . $alt->id,
@@ -934,10 +940,10 @@ class OrderFlowCumulativeReportService
                     'vpoc_volume'   => 0,
                     'cvd'           => null,
                     'pcr'           => null,
-                    'oi_details'    => $alt->message ?: 'Resting Liquidity Wall Alert',
+                    'oi_details'    => $alt->details ?: ($alt->message ?: ($isMarketOrder ? 'Aggressive Market Order Sweep' : 'Resting Liquidity Wall Alert')),
                     'status'        => 'ACTIVE',
-                    'outcome'       => 'DEFENDED',
-                    'outcome_desc'  => 'Defended (Resting Wall)',
+                    'outcome'       => $outcome,
+                    'outcome_desc'  => $outcomeDesc,
                     'is_opening'    => $isOpening,
                     'is_closing'    => $isClosing,
                     'is_core_hours' => $isCoreHours,

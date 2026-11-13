@@ -243,6 +243,7 @@
                     <div class="flex items-center gap-1 text-[10px] shrink-0">
                         <span id="legend-block-tag" class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black text-[9px] whitespace-nowrap" title="Heavy Institutional Block Wall">⚡ Block</span>
                         <span id="legend-stack-tag" class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 font-black text-[9px] whitespace-nowrap" title="Consecutive Liquidity Order Stack">🌊 Stack</span>
+                        <span id="legend-market-tag" class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black text-[9px] whitespace-nowrap" title="Heavy Aggressive Market Order Sweep">💥 Trade</span>
                         <span id="dom-header-vpoc" class="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-400 font-mono font-black text-[9.5px] whitespace-nowrap shadow-xs" title="Session Executed Volume Point of Control (Absorption Support / Trap)">
                             🎯 VPOC: --
                         </span>
@@ -452,9 +453,10 @@
                         <span class="text-base text-amber-400">🌊</span>
                         <div>
                             <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Session Volume Footprint</span>
-                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5">
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
                                 <span>HIGHEST TRADED QTY</span>
                                 <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">TOP 10</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40" title="Every trade print >= 500 Qty is automatically persisted to MySQL database for historical backtesting">💾 DB PERSISTED</span>
                             </h2>
                         </div>
                     </div>
@@ -719,6 +721,88 @@
                     <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
                         MONITORING
                     </span>
+                </div>
+            </div>
+
+            {{-- 0B. Previous Day Institutional Anchors (Top 5 Ask & Bid Traded Volumes vs Live Stream Price) --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5" id="pd-anchors-card">
+                {{-- Card Header --}}
+                <div class="flex items-center justify-between flex-wrap gap-1.5 pb-2 border-b border-slate-800/80">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-amber-400 text-sm">⚓</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Institutional Memory</span>
+                            <h3 class="text-xs font-black text-white leading-tight flex items-center gap-1.5">
+                                <span>PREV DAY TOP 5 ANCHORS</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30" id="pd-anchors-date-badge" title="Reference Previous Trading Day">{{ \Carbon\Carbon::parse($prevTradingDate ?? now())->format('d-M') }}</span>
+                            </h3>
+                        </div>
+                    </div>
+
+                    {{-- Controls: View Filter & Collapse Toggle --}}
+                    <div class="flex items-center gap-1">
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
+                            <button type="button" onclick="switchPdAnchorsView('both')" id="btn-pd-view-both" class="px-1.5 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Show Both Ask & Bid Anchors">Both</button>
+                            <button type="button" onclick="switchPdAnchorsView('ask')" id="btn-pd-view-ask" class="px-1.5 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 5 Ask Anchors (Institutional Demand)">Ask</button>
+                            <button type="button" onclick="switchPdAnchorsView('bid')" id="btn-pd-view-bid" class="px-1.5 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 5 Bid Anchors (Institutional Supply)">Bid</button>
+                        </div>
+                        <button type="button" onclick="togglePdAnchorsCard()" id="btn-toggle-pd-anchors" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Hide / Show Previous Day Anchors">
+                            <span id="pd-anchors-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Collapsible Content Body --}}
+                <div id="pd-anchors-body" class="space-y-2 transition-all duration-200">
+                    {{-- Live Proximity Summary Bar --}}
+                    <div class="flex items-center justify-between text-[9.5px] font-mono px-2 py-1 rounded-lg bg-slate-950 border border-slate-800/90 gap-1.5">
+                        <div class="flex items-center gap-1 truncate">
+                            <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">LTP:</span>
+                            <span id="pd-live-ltp-display" class="font-bold text-cyan-300">₹--</span>
+                        </div>
+                        <div class="flex items-center gap-1 truncate" title="Nearest Prev Day Institutional Volume Cluster">
+                            <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">Nearest:</span>
+                            <span id="pd-nearest-anchor-text" class="font-bold text-amber-300 truncate max-w-[120px]">Calculating...</span>
+                        </div>
+                        <span id="pd-regime-status-badge" class="px-1.5 py-0.2 rounded font-black text-[8px] bg-slate-900 text-slate-400 border border-slate-800 shrink-0">SCANNING</span>
+                    </div>
+
+                    {{-- Two Sub-Panels: Top 5 Ask (Demand) & Top 5 Bid (Supply) --}}
+                    <div id="pd-anchors-grid" class="space-y-2 text-xs font-mono">
+                        
+                        {{-- 1. Top 5 ASK Anchors (Institutional Buying / Demand Zones) --}}
+                        <div id="pd-col-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 space-y-1">
+                            <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>TOP 5 PREV ASK (BUY CLUSTERS)</span>
+                                </span>
+                                <span class="text-[8.5px] text-slate-500 font-sans">LTP vs Level</span>
+                            </div>
+
+                            {{-- Rows Container --}}
+                            <div class="space-y-1" id="pd-list-ask">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Prev Day Ask prints...</div>
+                            </div>
+                        </div>
+
+                        {{-- 2. Top 5 BID Anchors (Institutional Selling / Supply Zones) --}}
+                        <div id="pd-col-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 space-y-1">
+                            <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-rose-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>TOP 5 PREV BID (SELL CLUSTERS)</span>
+                                </span>
+                                <span class="text-[8.5px] text-slate-500 font-sans">LTP vs Level</span>
+                            </div>
+
+                            {{-- Rows Container --}}
+                            <div class="space-y-1" id="pd-list-bid">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Prev Day Bid prints...</div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 
@@ -1162,6 +1246,35 @@
                     </div>
                 </div>
 
+                {{-- Category 2B: Aggressive Market Order (Tape Sweep) Alert --}}
+                <div class="bg-slate-950 p-3 rounded-xl border border-emerald-900/60 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
+                            <span>💥 Aggressive Market Order (Tape Sweep)</span>
+                            <span class="text-[10px] text-emerald-400 font-normal">(Trade Qty ≥ X)</span>
+                        </label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="cfg-enable-market-order" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-slate-400">
+                        Captures aggressive executed market orders (lifting the ask offer or hitting the bid) that equal or exceed your threshold.
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="cfg-market-order-qty" min="100" step="100" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-bold font-mono focus:outline-none focus:border-emerald-400" value="2000" placeholder="e.g. 2000">
+                        <span class="text-[11px] text-slate-400 font-bold">Qty</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase">Presets:</span>
+                        <button type="button" onclick="setMarketOrderPreset(500)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">500</button>
+                        <button type="button" onclick="setMarketOrderPreset(1000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">1,000</button>
+                        <button type="button" onclick="setMarketOrderPreset(2000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">2,000</button>
+                        <button type="button" onclick="setMarketOrderPreset(3500)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">3,500</button>
+                        <button type="button" onclick="setMarketOrderPreset(5000)" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-800">5,000</button>
+                    </div>
+                </div>
+
                 {{-- Category 3: Continuous / Consecutive Stack Alert (Directional Rush) --}}
                 <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                     <div class="flex items-center justify-between">
@@ -1211,10 +1324,14 @@
                     </div>
 
                     {{-- Individual Audio Toggles by Category --}}
-                    <div class="pt-2 border-t border-slate-900 grid grid-cols-2 gap-2">
+                    <div class="pt-2 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 cursor-pointer">
                             <input type="checkbox" id="cfg-sound-stack" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer" checked>
                             <span class="text-[10px] font-bold text-slate-300">Blocks &amp; Stacks</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 cursor-pointer">
+                            <input type="checkbox" id="cfg-sound-market" class="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer" checked>
+                            <span class="text-[10px] font-bold text-slate-300">Market Orders</span>
                         </label>
                         <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 cursor-pointer">
                             <input type="checkbox" id="cfg-sound-strategy" class="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0 cursor-pointer" checked>
@@ -1683,10 +1800,13 @@
         enableStack: true,           // Consecutive stack detection
         stackMinConsecutive: 3,      // N continuous levels
         stackMinQty: 1500,           // Min qty on each level
+        enableMarketOrder: true,     // Aggressive market order (tape sweep) alert toggle
+        marketOrderThreshold: 2000,  // Executed trade Qty >= X
         enableConfluence: true,      // Confluence Alignment Scorecard alerts
         enableAbsorption: true,      // Absorption wall warnings
         soundEnabled: true,          // Master sound toggle
         soundStack: true,            // Sound for blocks & stacks
+        soundMarket: true,           // Sound for aggressive market orders
         soundStrategy: true,         // Sound for confluence strategy setups
         soundProfile: 'crystal',     // 'crystal', 'radar', 'laser', 'marimba', 'tactical'
         autoLog: true,               // Auto-log opportunities to Journal
@@ -2128,6 +2248,19 @@
                 ? 'px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-black border border-cyan-500/40 whitespace-nowrap text-[9px]'
                 : 'px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 font-bold border border-slate-800 line-through whitespace-nowrap text-[9px]';
         }
+        const marketTag = document.getElementById('legend-market-tag');
+        if (marketTag) {
+            const threshK = alertSettings.marketOrderThreshold >= 1000 ? `${Math.round(alertSettings.marketOrderThreshold / 1000)}k` : alertSettings.marketOrderThreshold;
+            marketTag.textContent = alertSettings.enableMarketOrder 
+                ? `💥 Trade (≥${threshK})`
+                : `💥 Trade (OFF)`;
+            marketTag.title = alertSettings.enableMarketOrder
+                ? `Heavy Aggressive Market Order Alert (≥${alertSettings.marketOrderThreshold.toLocaleString()} Qty)`
+                : `Market Order Alerts Disabled`;
+            marketTag.className = alertSettings.enableMarketOrder
+                ? 'px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black border border-emerald-500/40 whitespace-nowrap text-[9px]'
+                : 'px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 font-bold border border-slate-800 line-through whitespace-nowrap text-[9px]';
+        }
     }
 
     function loadAlertSettings() {
@@ -2151,10 +2284,13 @@
         const enableStack = document.getElementById('cfg-enable-stack');
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
+        const enableMarket = document.getElementById('cfg-enable-market-order');
+        const marketInput = document.getElementById('cfg-market-order-qty');
         const enableConf = document.getElementById('cfg-enable-confluence');
         const enableAbs = document.getElementById('cfg-enable-absorption');
         const soundMaster = document.getElementById('cfg-sound-master');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundMarket = document.getElementById('cfg-sound-market');
         const soundStrategy = document.getElementById('cfg-sound-strategy');
         const soundProfile = document.getElementById('cfg-sound-profile');
         const autoLogInput = document.getElementById('cfg-autolog-journal');
@@ -2164,10 +2300,13 @@
         if (enableStack) enableStack.checked = alertSettings.enableStack !== false;
         if (stackCount) stackCount.value = alertSettings.stackMinConsecutive;
         if (stackQty) stackQty.value = alertSettings.stackMinQty;
+        if (enableMarket) enableMarket.checked = alertSettings.enableMarketOrder !== false;
+        if (marketInput) marketInput.value = alertSettings.marketOrderThreshold ?? 2000;
         if (enableConf) enableConf.checked = alertSettings.enableConfluence !== false;
         if (enableAbs) enableAbs.checked = alertSettings.enableAbsorption !== false;
         if (soundMaster) soundMaster.checked = alertSettings.soundEnabled !== false;
         if (soundStack) soundStack.checked = alertSettings.soundStack !== false;
+        if (soundMarket) soundMarket.checked = alertSettings.soundMarket !== false;
         if (soundStrategy) soundStrategy.checked = alertSettings.soundStrategy !== false;
         if (soundProfile) soundProfile.value = alertSettings.soundProfile || 'crystal';
         if (autoLogInput) autoLogInput.checked = alertSettings.autoLog !== false;
@@ -2298,6 +2437,11 @@
         if (input) input.value = qty;
     };
 
+    window.setMarketOrderPreset = function(qty) {
+        const input = document.getElementById('cfg-market-order-qty');
+        if (input) input.value = qty;
+    };
+
     window.setPillarPreset = function(presetName) {
         const strictEl = document.getElementById('cfg-strict-confluence');
         const p1Enabled = document.getElementById('cfg-pillar1-enabled');
@@ -2354,10 +2498,13 @@
         alertSettings.enableStack = true;
         alertSettings.stackMinConsecutive = 3;
         alertSettings.stackMinQty = 1500;
+        alertSettings.enableMarketOrder = true;
+        alertSettings.marketOrderThreshold = 2000;
         alertSettings.enableConfluence = true;
         alertSettings.enableAbsorption = true;
         alertSettings.soundEnabled = true;
         alertSettings.soundStack = true;
+        alertSettings.soundMarket = true;
         alertSettings.soundStrategy = true;
         alertSettings.soundProfile = 'crystal';
         alertSettings.autoLog = true;
@@ -2399,10 +2546,13 @@
         const enableStack = document.getElementById('cfg-enable-stack');
         const stackCount = document.getElementById('cfg-stack-count');
         const stackQty = document.getElementById('cfg-stack-qty');
+        const enableMarket = document.getElementById('cfg-enable-market-order');
+        const marketInput = document.getElementById('cfg-market-order-qty');
         const enableConf = document.getElementById('cfg-enable-confluence');
         const enableAbs = document.getElementById('cfg-enable-absorption');
         const soundMaster = document.getElementById('cfg-sound-master');
         const soundStack = document.getElementById('cfg-sound-stack');
+        const soundMarket = document.getElementById('cfg-sound-market');
         const soundStrategy = document.getElementById('cfg-sound-strategy');
         const soundProfile = document.getElementById('cfg-sound-profile');
         const autoLogInput = document.getElementById('cfg-autolog-journal');
@@ -2412,10 +2562,13 @@
         alertSettings.enableStack = !!(enableStack?.checked);
         alertSettings.stackMinConsecutive = Math.max(2, parseInt(stackCount?.value || 3));
         alertSettings.stackMinQty = Math.max(100, parseInt(stackQty?.value || 1500));
+        alertSettings.enableMarketOrder = !!(enableMarket?.checked);
+        alertSettings.marketOrderThreshold = Math.max(100, parseInt(marketInput?.value || 2000));
         alertSettings.enableConfluence = !!(enableConf?.checked);
         alertSettings.enableAbsorption = !!(enableAbs?.checked);
         alertSettings.soundEnabled = !!(soundMaster?.checked);
         alertSettings.soundStack = !!(soundStack?.checked);
+        alertSettings.soundMarket = !!(soundMarket?.checked);
         alertSettings.soundStrategy = !!(soundStrategy?.checked);
         alertSettings.soundProfile = soundProfile?.value || 'crystal';
         alertSettings.autoLog = !!(autoLogInput?.checked);
@@ -2588,6 +2741,8 @@
         lastAlertTime: 0,
         lastStackAlertTime: 0,
         lastSignalLogTime: 0,
+        activeMarketOrderAlert: null,
+        lastLoggedMarketAlertKey: '',
         activeLoggedSignals: [],
         currentOptionTrade: null,
         wallPersistence: {},
@@ -2678,6 +2833,15 @@
             skipTime: localStorage.getItem('order_flow_skip_open_time') || 'none',
             activeView: 'both', // 'both', 'ask', 'bid'
             isCollapsed: false,
+        },
+
+        // Previous Day Institutional Anchors (Top 5 Ask & Bid Traded Volumes vs Live Stream Price)
+        pdAnchors: {
+            prevDate: "{{ $prevTradingDate }}",
+            topAsk: @json($prevTopAsk ?? []),
+            topBid: @json($prevTopBid ?? []),
+            activeView: 'both', // 'both', 'ask', 'bid'
+            isCollapsed: localStorage.getItem('order_flow_pd_anchors_collapsed') === 'true',
         }
     };
 
@@ -2716,6 +2880,13 @@
         }
         if (state.topTradedVolume.sessionAnchorBid && state.topTradedVolume.sessionAnchorBid.length > 0) {
             state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, state.topTradedVolume.sessionAnchorBid);
+        }
+
+        // Flush any initial localStorage cached trades into database to ensure complete sync
+        if (state.topTradedVolume.allAsk.length > 0 || state.topTradedVolume.allBid.length > 0) {
+            setTimeout(() => {
+                syncBatchTradedVolumesToDb([...state.topTradedVolume.allAsk, ...state.topTradedVolume.allBid]);
+            }, 2500);
         }
 
         renderTopTradedVolumeUI();
@@ -2853,9 +3024,92 @@
             } catch (e) {}
         }
 
+        // 💾 Persist Trade Print to MySQL Database for Historical Backtesting
+        queueTradedVolumeForDbSync(newItem);
+
         renderTopTradedVolumeUI();
     }
     window.recordTradedVolumePrint = recordTradedVolumePrint;
+
+    // ── DATABASE PERSISTENCE FOR HIGHEST TRADED VOLUME FOOTPRINT ──
+    let pendingTradedVolumeSync = [];
+    let tradedVolumeSyncTimer = null;
+    let isTradedVolumeSyncing = false;
+
+    function queueTradedVolumeForDbSync(item) {
+        if (!item || item.qty < 500) return;
+        pendingTradedVolumeSync.push(item);
+
+        if (pendingTradedVolumeSync.length >= 10) {
+            flushTradedVolumeSync();
+        } else if (!tradedVolumeSyncTimer) {
+            tradedVolumeSyncTimer = setTimeout(flushTradedVolumeSync, 4000);
+        }
+    }
+
+    async function flushTradedVolumeSync() {
+        if (tradedVolumeSyncTimer) {
+            clearTimeout(tradedVolumeSyncTimer);
+            tradedVolumeSyncTimer = null;
+        }
+
+        if (pendingTradedVolumeSync.length === 0 || isTradedVolumeSyncing) return;
+
+        const batch = [...pendingTradedVolumeSync];
+        pendingTradedVolumeSync = [];
+        await syncBatchTradedVolumesToDb(batch);
+    }
+
+    async function syncBatchTradedVolumesToDb(trades) {
+        if (!Array.isArray(trades) || trades.length === 0) return;
+        isTradedVolumeSyncing = true;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const payload = {
+                trade_date: "{{ $workingDate }}",
+                symbol: state.symbol || 'NIFTY',
+                instrument: state.depthData?.symbol || null,
+                source: state.feedMode === 'sim' ? 'SIMULATOR' : 'LIVE_TICK',
+                trades: trades.slice(0, 100)
+            };
+
+            const resp = await fetch('{{ route('api.order-flow.save-traded-volume') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                console.warn('Backend responded with error saving traded volume batch:', resp.status);
+            }
+        } catch (e) {
+            console.warn('Error syncing traded volume prints to DB:', e);
+        } finally {
+            isTradedVolumeSyncing = false;
+        }
+    }
+
+    // Flush any pending prints before page unload
+    window.addEventListener('beforeunload', () => {
+        if (pendingTradedVolumeSync.length > 0) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+            const payload = JSON.stringify({
+                trade_date: "{{ $workingDate }}",
+                symbol: state.symbol || 'NIFTY',
+                instrument: state.depthData?.symbol || null,
+                source: state.feedMode === 'sim' ? 'SIMULATOR' : 'LIVE_TICK',
+                trades: pendingTradedVolumeSync
+            });
+            try {
+                navigator.sendBeacon('{{ route('api.order-flow.save-traded-volume') }}', new Blob([payload], { type: 'application/json' }));
+            } catch (e) {}
+        }
+    });
 
     function renderTopTradedVolumeUI() {
         const skipTime = state.topTradedVolume.skipTime || '09:30';
@@ -3001,6 +3255,224 @@
         }
     }
     window.toggleTopTradedCard = toggleTopTradedCard;
+
+    // ── 2B. PREVIOUS DAY INSTITUTIONAL ANCHORS (TOP 5 ASK & BID VS LIVE STREAM PRICE) ──
+    function initPdAnchors() {
+        applyPdAnchorsCollapseUI();
+        applyPdAnchorsViewUI();
+        const initialLtp = state.depthData.ltp || {{ (float) ($spotPrice ?? 0) }};
+        renderPdAnchorsUI(initialLtp);
+    }
+    window.initPdAnchors = initPdAnchors;
+
+    function togglePdAnchorsCard() {
+        state.pdAnchors.isCollapsed = !state.pdAnchors.isCollapsed;
+        try {
+            localStorage.setItem('order_flow_pd_anchors_collapsed', state.pdAnchors.isCollapsed ? 'true' : 'false');
+        } catch(e) {}
+        applyPdAnchorsCollapseUI();
+    }
+    window.togglePdAnchorsCard = togglePdAnchorsCard;
+
+    function applyPdAnchorsCollapseUI() {
+        const body = document.getElementById('pd-anchors-body');
+        const icon = document.getElementById('pd-anchors-toggle-icon');
+        if (!body) return;
+        if (state.pdAnchors.isCollapsed) {
+            body.classList.add('hidden');
+            if (icon) icon.textContent = '▼';
+        } else {
+            body.classList.remove('hidden');
+            if (icon) icon.textContent = '▲';
+        }
+    }
+
+    function switchPdAnchorsView(view) {
+        state.pdAnchors.activeView = view;
+        applyPdAnchorsViewUI();
+    }
+    window.switchPdAnchorsView = switchPdAnchorsView;
+
+    function applyPdAnchorsViewUI() {
+        const view = state.pdAnchors.activeView || 'both';
+        const colAsk = document.getElementById('pd-col-ask');
+        const colBid = document.getElementById('pd-col-bid');
+        const btnBoth = document.getElementById('btn-pd-view-both');
+        const btnAsk = document.getElementById('btn-pd-view-ask');
+        const btnBid = document.getElementById('btn-pd-view-bid');
+
+        if (colAsk && colBid) {
+            if (view === 'ask') {
+                colAsk.classList.remove('hidden');
+                colBid.classList.add('hidden');
+            } else if (view === 'bid') {
+                colAsk.classList.add('hidden');
+                colBid.classList.remove('hidden');
+            } else {
+                colAsk.classList.remove('hidden');
+                colBid.classList.remove('hidden');
+            }
+        }
+
+        const activeClass = 'px-1.5 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer';
+        const inactiveAskClass = 'px-1.5 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer';
+        const inactiveBidClass = 'px-1.5 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer';
+        const inactiveBothClass = 'px-1.5 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
+
+        if (btnBoth) btnBoth.className = view === 'both' ? activeClass : inactiveBothClass;
+        if (btnAsk) btnAsk.className = view === 'ask' ? activeClass : inactiveAskClass;
+        if (btnBid) btnBid.className = view === 'bid' ? activeClass : inactiveBidClass;
+    }
+
+    function renderPdAnchorsUI(forcedLtp = null) {
+        const ltp = forcedLtp !== null ? forcedLtp : (state.depthData.ltp || 0);
+        const ltpEl = document.getElementById('pd-live-ltp-display');
+        if (ltpEl) {
+            ltpEl.textContent = ltp > 0 ? `₹${ltp.toFixed(2)}` : '₹--';
+        }
+
+        const askList = state.pdAnchors.topAsk || [];
+        const bidList = state.pdAnchors.topBid || [];
+
+        const allQtys = [...askList.map(x => x.qty), ...bidList.map(x => x.qty)];
+        const maxSessionQty = Math.max(...allQtys, 1);
+
+        let nearestItem = null;
+        let minAbsDiff = Infinity;
+        let askAboveCount = 0;
+        let bidAboveCount = 0;
+
+        // 1. Render Top 5 Ask (Demand Anchors)
+        const askContainer = document.getElementById('pd-list-ask');
+        if (askContainer) {
+            if (askList.length === 0) {
+                askContainer.innerHTML = `<div class="text-slate-500 text-[9.5px] py-2 text-center italic">No Prev Day Ask volume recorded</div>`;
+            } else {
+                askContainer.innerHTML = askList.map((item, idx) => {
+                    const price = parseFloat(item.price);
+                    const qty = parseInt(item.qty);
+                    const diff = ltp > 0 ? (ltp - price) : 0;
+                    const absDiff = Math.abs(diff);
+
+                    if (absDiff < minAbsDiff && ltp > 0) {
+                        minAbsDiff = absDiff;
+                        nearestItem = { side: 'Ask', rank: idx + 1, price: price, diff: diff };
+                    }
+                    if (diff > 0) askAboveCount++;
+
+                    const fillPct = Math.min(100, Math.max(15, Math.round((qty / maxSessionQty) * 100)));
+
+                    let diffBadgeHtml = '';
+                    if (ltp <= 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                    } else if (absDiff <= 3.5) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                    } else if (diff > 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Holding Above Demand (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                    } else {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Demand (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                    }
+
+                    return `
+                        <div class="flex items-center justify-between text-[9.5px] px-2 py-1 rounded bg-slate-900/90 border border-slate-800/80 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-emerald-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-black ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-200' : 'text-slate-400'} w-3.5">#${idx + 1}</span>
+                                <span class="text-slate-400 font-mono text-[8.5px]">${item.time}</span>
+                            </div>
+                            <div class="flex items-center gap-2 z-10 shrink-0">
+                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${price.toFixed(2)}</span>
+                                <span class="font-black text-emerald-300 font-mono text-[9.5px]">${qty.toLocaleString()}</span>
+                            </div>
+                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[70px] justify-end">
+                                ${diffBadgeHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 2. Render Top 5 Bid (Supply Anchors)
+        const bidContainer = document.getElementById('pd-list-bid');
+        if (bidContainer) {
+            if (bidList.length === 0) {
+                bidContainer.innerHTML = `<div class="text-slate-500 text-[9.5px] py-2 text-center italic">No Prev Day Bid volume recorded</div>`;
+            } else {
+                bidContainer.innerHTML = bidList.map((item, idx) => {
+                    const price = parseFloat(item.price);
+                    const qty = parseInt(item.qty);
+                    const diff = ltp > 0 ? (ltp - price) : 0;
+                    const absDiff = Math.abs(diff);
+
+                    if (absDiff < minAbsDiff && ltp > 0) {
+                        minAbsDiff = absDiff;
+                        nearestItem = { side: 'Bid', rank: idx + 1, price: price, diff: diff };
+                    }
+                    if (diff > 0) bidAboveCount++;
+
+                    const fillPct = Math.min(100, Math.max(15, Math.round((qty / maxSessionQty) * 100)));
+
+                    let diffBadgeHtml = '';
+                    if (ltp <= 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                    } else if (absDiff <= 3.5) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                    } else if (diff > 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Reclaimed Supply (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                    } else {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Supply (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                    }
+
+                    return `
+                        <div class="flex items-center justify-between text-[9.5px] px-2 py-1 rounded bg-slate-900/90 border border-slate-800/80 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-rose-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-black ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-200' : 'text-slate-400'} w-3.5">#${idx + 1}</span>
+                                <span class="text-slate-400 font-mono text-[8.5px]">${item.time}</span>
+                            </div>
+                            <div class="flex items-center gap-2 z-10 shrink-0">
+                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${price.toFixed(2)}</span>
+                                <span class="font-black text-rose-300 font-mono text-[9.5px]">${qty.toLocaleString()}</span>
+                            </div>
+                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[70px] justify-end">
+                                ${diffBadgeHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 3. Update Nearest Anchor in Header Summary
+        const nearestEl = document.getElementById('pd-nearest-anchor-text');
+        if (nearestEl) {
+            if (nearestItem) {
+                const sign = nearestItem.diff >= 0 ? '+' : '';
+                nearestEl.innerHTML = `<span class="${nearestItem.side === 'Ask' ? 'text-emerald-300' : 'text-rose-300'}">#${nearestItem.rank} ${nearestItem.side}</span> <span class="text-slate-400 font-sans text-[8px]">(₹${nearestItem.price.toFixed(0)})</span> <span class="${nearestItem.diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${sign}${nearestItem.diff.toFixed(1)} pts</span>`;
+            } else {
+                nearestEl.textContent = '--';
+            }
+        }
+
+        // 4. Update Regime Status Badge
+        const regimeEl = document.getElementById('pd-regime-status-badge');
+        if (regimeEl && ltp > 0) {
+            const totalAnchors = askList.length + bidList.length;
+            const totalAbove = askAboveCount + bidAboveCount;
+            if (totalAnchors > 0 && totalAbove === totalAnchors) {
+                regimeEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0';
+                regimeEl.textContent = '🚀 ABOVE ALL ANCHORS';
+            } else if (totalAnchors > 0 && totalAbove === 0) {
+                regimeEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0';
+                regimeEl.textContent = '📉 BELOW ALL ANCHORS';
+            } else {
+                regimeEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0';
+                regimeEl.textContent = `🎯 VALUE CORRIDOR (${totalAbove}/${totalAnchors} HELD)`;
+            }
+        }
+    }
+    window.renderPdAnchorsUI = renderPdAnchorsUI;
 
     // ── 3. MINI-TAB SWITCHER ──
     window.switchMiniTab = function(tabName) {
@@ -3528,6 +4000,9 @@
         const allowedAskStack = alertSettings.enableStack ? askStack : null;
         const allowedBidBlock = alertSettings.enableBlock ? heavyBidBlock : null;
         const allowedAskBlock = alertSettings.enableBlock ? heavyAskBlock : null;
+        const activeMarketOrder = (alertSettings.enableMarketOrder && state.activeMarketOrderAlert && state.activeMarketOrderAlert.expiresAt > Date.now()) 
+            ? state.activeMarketOrderAlert 
+            : null;
 
         // Priority 1: Multi-level continuous stacks
         if (allowedBidStack && (!allowedAskStack || allowedBidStack.totalQty >= allowedAskStack.totalQty)) {
@@ -3536,8 +4011,12 @@
         } else if (allowedAskStack) {
             alertType = 'STACK_SELL';
             alertKey = `STACK_SELL_${allowedAskStack.lowP}_${allowedAskStack.highP}_${allowedAskStack.totalQty}`;
+        } else if (activeMarketOrder) {
+            // Priority 2: Immediate Aggressive Market Order Sweep (Tape Print)
+            alertType = activeMarketOrder.type;
+            alertKey = `MARKET_${activeMarketOrder.side}_${activeMarketOrder.price}_${activeMarketOrder.qty}_${activeMarketOrder.time}`;
         } else if (allowedBidBlock && (!allowedAskBlock || allowedBidBlock.qty >= allowedAskBlock.qty)) {
-            // Priority 2: Single level heavy institutional block (Qty >= alertSettings.singleThreshold)
+            // Priority 3: Single level heavy institutional block (Qty >= alertSettings.singleThreshold)
             alertType = 'BLOCK_BUY';
             alertKey = `BLOCK_BUY_${allowedBidBlock.price}_${allowedBidBlock.qty}`;
         } else if (allowedAskBlock) {
@@ -3809,6 +4288,58 @@
                     });
                 }
             }
+        } else if (alertType === 'MARKET_BUY') {
+            const mo = activeMarketOrder || state.activeMarketOrderAlert;
+            banner.className = 'bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 border-2 border-emerald-400/90 rounded-xl p-2.5 shadow-xl shadow-emerald-500/20 text-white space-y-1.5 transition-all duration-300';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">💥</span>
+                        <span class="px-1.5 py-0.2 rounded bg-emerald-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                            MARKET BUY SWEEP
+                        </span>
+                    </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight">
+                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty Executed @ ₹${mo ? mo.price.toFixed(2) : '--'}
+                    </p>
+                    <span class="text-[9px] text-slate-300 font-mono">Aggressive Buyer Lifting Offer (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                        ⚡ DIRECTION: BULLISH MOMENTUM
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Tape Sweep)</span>
+                </div>
+            `;
+        } else if (alertType === 'MARKET_SELL') {
+            const mo = activeMarketOrder || state.activeMarketOrderAlert;
+            banner.className = 'bg-gradient-to-br from-rose-950 via-pink-950 to-slate-950 border-2 border-rose-400/90 rounded-xl p-2.5 shadow-xl shadow-rose-500/20 text-white space-y-1.5 transition-all duration-300';
+            banner.innerHTML = `
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm">🩸</span>
+                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                            MARKET SELL DUMP
+                        </span>
+                    </div>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                </div>
+                <div>
+                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
+                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty Executed @ ₹${mo ? mo.price.toFixed(2) : '--'}
+                    </p>
+                    <span class="text-[9px] text-slate-300 font-mono">Aggressive Seller Hitting Bid (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
+                </div>
+                <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
+                        ⚡ DIRECTION: BEARISH MOMENTUM
+                    </span>
+                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Tape Dump)</span>
+                </div>
+            `;
         } else {
             renderAlertPlaceholder();
         }
@@ -4652,6 +5183,9 @@
         renderCvdUI();
         renderBookSlopeUI();
         renderTapeMechanicsCapsule();
+        if (typeof renderPdAnchorsUI === 'function') {
+            renderPdAnchorsUI(d.ltp);
+        }
     }
 
     // ── CUMULATIVE VOLUME DELTA (CVD) & DIVERGENCE DETECTION ──
@@ -4687,10 +5221,52 @@
                     if (tickDelta >= 500) recordTradedVolumePrint('ASK', ltp, tickDelta, timeStr);
                 } else if (drift < -0.02) {
                     tickDelta = -Math.round(deltaV * 0.7);
+                    isBidHit = true;
                     tm.recentBidVolume = (tm.recentBidVolume || 0) * 0.85 + (deltaV * 0.7);
                     if (Math.abs(tickDelta) >= 500) recordTradedVolumePrint('BID', ltp, Math.abs(tickDelta), timeStr);
                 } else {
                     tickDelta = Math.round((Math.random() - 0.5) * deltaV * 0.25);
+                }
+            }
+
+            // ── CHECK HEAVY AGGRESSIVE MARKET ORDER ALERT (TAPE SWEEP) ──
+            const mThresh = parseInt(alertSettings.marketOrderThreshold || 2000);
+            if (alertSettings.enableMarketOrder && deltaV >= mThresh && deltaV < 2500000) {
+                const moSide = (isAskHit || tickDelta > 0) ? 'BUY' : 'SELL';
+                const moType = moSide === 'BUY' ? 'MARKET_BUY' : 'MARKET_SELL';
+                const moKey = `MARKET_${moSide}_${ltp.toFixed(2)}_${deltaV}_${timeStr}`;
+
+                if (state.lastLoggedMarketAlertKey !== moKey) {
+                    state.lastLoggedMarketAlertKey = moKey;
+
+                    state.activeMarketOrderAlert = {
+                        type: moType,
+                        side: moSide,
+                        price: ltp,
+                        qty: deltaV,
+                        time: timeStr,
+                        expiresAt: Date.now() + 8000
+                    };
+
+                    if (state.soundEnabled && alertSettings.soundEnabled && alertSettings.soundMarket !== false) {
+                        playSynthesizedAlert(alertSettings.soundProfile || 'crystal', moSide);
+                    }
+
+                    recordAlertEvent({
+                        type: moType,
+                        side: moSide,
+                        price: ltp,
+                        quantity: deltaV,
+                        title: moSide === 'BUY'
+                            ? `💥 Heavy Market Buy: ${deltaV.toLocaleString()} Qty`
+                            : `💥 Heavy Market Sell: ${deltaV.toLocaleString()} Qty`,
+                        details: moSide === 'BUY'
+                            ? `₹${ltp.toFixed(2)} (Aggressive Buyer Lifting Offer)`
+                            : `₹${ltp.toFixed(2)} (Aggressive Seller Hitting Bid)`,
+                        guidance: moSide === 'BUY'
+                            ? '⚡ Direction: BULLISH TAPE SWEEP'
+                            : '🩸 Direction: BEARISH TAPE SWEEP'
+                    });
                 }
             }
         }
@@ -6572,7 +7148,11 @@
 
         state.simInterval = setInterval(() => {
             tickCount++;
-            simVtt += Math.floor(60 + Math.random() * 240);
+            if (tickCount % 12 === 0) {
+                simVtt += Math.max(2200, (alertSettings.marketOrderThreshold || 2000) + 250);
+            } else {
+                simVtt += Math.floor(60 + Math.random() * 240);
+            }
             basePrice += (Math.random() - 0.48) * 0.4 * trendBias;
             basePrice = Math.max(10, parseFloat(basePrice.toFixed(2)));
 
@@ -6676,6 +7256,9 @@
         }
         if (typeof initTopTradedVolume === 'function') {
             initTopTradedVolume();
+        }
+        if (typeof initPdAnchors === 'function') {
+            initPdAnchors();
         }
 
         const btnLive = document.getElementById('btn-mode-live');

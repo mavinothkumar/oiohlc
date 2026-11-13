@@ -37,6 +37,63 @@
         </div>
     @endif
 
+    <!-- STUCK SCHEDULE MUTEX ALERT BANNER -->
+    @if(!empty($stuckLocks))
+        <div class="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="p-2.5 rounded-xl bg-amber-500/20 text-amber-700 shrink-0 mt-0.5">
+                    <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base">
+                            Active Scheduler Lock Detected (Commands May Be Blocked)
+                        </h3>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-200 text-amber-900 uppercase">
+                            {{ count($stuckLocks) }} {{ \Illuminate\Support\Str::plural('Lock', count($stuckLocks)) }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                        A previous scheduled run exited without releasing its lock. Laravel's scheduler will skip these commands until the lock expires or is cleared.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        @foreach($stuckLocks as $lock)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-white border border-amber-300 text-slate-800 shadow-2xs">
+                                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                <span class="font-bold text-indigo-700">{{ $lock['command'] }}</span>
+                                <span class="text-slate-400">|</span>
+                                <span class="text-[11px] text-slate-500">Expires in {{ gmdate('H:i:s', $lock['expires_in_seconds']) }}</span>
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+                <!-- Clear Locks Only -->
+                <form action="{{ route('cron.clear-locks') }}" method="POST" class="inline" onsubmit="return handleClearSubmit(this, 'Clear Locks Only', 'Clearing active locks from cache...');">
+                    @csrf
+                    <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors shadow-2xs">
+                        Clear Locks Only
+                    </button>
+                </form>
+
+                <!-- Clear & Refill All Missed -->
+                <form action="{{ route('cron.clear-locks-and-refill') }}" method="POST" class="inline" onsubmit="return handleClearSubmit(this, 'Clear Locks & Refill Missed Data', 'Clearing locks and backfilling 1m & 5m intraday candles (10-25s)...');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm transition-all transform active:scale-95">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Clear Locks & Refill Missed Data</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <!-- Top Hero Section: System Header & Market Session -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -382,9 +439,24 @@
                 </p>
             </div>
             
-            <div class="flex items-center gap-2 text-xs text-slate-500">
-                <span>Active Collector:</span>
-                <span class="font-mono font-bold text-slate-800">ohlc:collect-1min</span>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span>Active Collector:</span>
+                    <span class="font-mono font-bold text-slate-800">ohlc:collect-1min</span>
+                </div>
+
+                <!-- 1-Click Self-Healing Refill Action -->
+                <form action="{{ route('cron.clear-locks-and-refill') }}" method="POST" class="inline" onsubmit="return handleClearSubmit(this, 'Heal & Refill Missed Candles', 'Clearing any locks and backfilling 1m & 5m intraday candles...');">
+                    @csrf
+                    <button type="submit" 
+                            title="Clear any stuck locks and refill today's missed 1m/5m candles from market open"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Heal & Refill Missed Candles</span>
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -686,6 +758,38 @@
         })
         .catch(err => {
             // Fallback to normal form submit if fetch fails
+            form.submit();
+        });
+
+        return false;
+    }
+
+    // Clear Locks & Refill via AJAX
+    function handleClearSubmit(form, title, msg) {
+        showToast(title, msg);
+
+        const formData = new FormData(form);
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Success: ${title}`, data.message, true);
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast(`Failed: ${title}`, data.message || 'Error occurred.', false);
+            }
+        })
+        .catch(err => {
             form.submit();
         });
 

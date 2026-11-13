@@ -67,11 +67,13 @@ class SyncNifty50StockOhlcCommand extends Command
                     }
 
                     if (!empty($rows)) {
-                        DB::table('ohlc_quotes')->upsert(
-                            $rows,
-                            ['instrument_key', 'ts'],
-                            ['open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at']
-                        );
+                        retry(3, function () use ($rows) {
+                            DB::table('ohlc_quotes')->upsert(
+                                $rows,
+                                ['instrument_key', 'ts'],
+                                ['open', 'high', 'low', 'close', 'volume', 'last_price', 'ts_at', 'updated_at']
+                            );
+                        }, 200);
                         $totalUpserted += count($rows);
                     }
                 }

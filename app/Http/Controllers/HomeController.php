@@ -118,6 +118,90 @@ class HomeController extends Controller
     }
 
     /**
+     * Clear stale scheduler locks from cache_locks
+     */
+    public function clearLocks(Request $request)
+    {
+        try {
+            $deleted = DB::table('cache_locks')
+                ->where('key', 'like', '%schedule%')
+                ->delete();
+
+            $msg = $deleted > 0 
+                ? "Cleared {$deleted} active scheduler lock(s). Scheduler is unblocked." 
+                : "No active scheduler locks found in cache_locks.";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'deleted' => $deleted,
+                ]);
+            }
+
+            return redirect()->route('home')->with('success', $msg);
+        } catch (\Throwable $e) {
+            $msg = "Error clearing locks: " . $e->getMessage();
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 500);
+            }
+            return redirect()->route('home')->with('error', $msg);
+        }
+    }
+
+    /**
+     * Clear stale scheduler locks and refill missed 1m & 5m OHLC candles
+     */
+    public function clearLocksAndRefill(Request $request)
+    {
+        @set_time_limit(180);
+
+        try {
+            // 1. Delete stuck schedule locks
+            $deleted = DB::table('cache_locks')
+                ->where('key', 'like', '%schedule%')
+                ->delete();
+
+            $logs = [];
+            $logs[] = "Cleared {$deleted} schedule lock(s) from cache_locks.";
+
+            // 2. Run 1-min index & stock quotes fetch (and syncs index intraday series)
+            $start1 = microtime(true);
+            Artisan::call('ohlc:collect-1min');
+            $dur1 = round(microtime(true) - $start1, 2);
+            $logs[] = "ohlc:collect-1min completed in {$dur1}s: " . trim(Artisan::output());
+
+            // 3. Run full intraday 1m candle backfill for all 50 constituent stocks
+            $start2 = microtime(true);
+            Artisan::call('ohlc:sync-nifty50-stocks');
+            $dur2 = round(microtime(true) - $start2, 2);
+            $logs[] = "ohlc:sync-nifty50-stocks completed in {$dur2}s: " . trim(Artisan::output());
+
+            $output = implode("\n", $logs);
+            $msg = "Successfully cleared {$deleted} lock(s) and refilled missed 1m & 5m OHLC candles!";
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'output'  => $output,
+                ]);
+            }
+
+            return redirect()->route('home')
+                ->with('success', $msg)
+                ->with('command_output', $output);
+
+        } catch (\Throwable $e) {
+            $msg = "Error during clear & refill: " . $e->getMessage();
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 500);
+            }
+            return redirect()->route('home')->with('error', $msg);
+        }
+    }
+
+    /**
      * Fetch raw log content for inspection
      */
     public function getLog(Request $request)
@@ -654,6 +738,9 @@ class HomeController extends Controller
             ],
         ];
 
+        // Check for active/stale scheduler mutex locks
+        $stuckLocks = $this->getScheduleLocks();
+
         return [
             'now'                    => $now,
             'today'                  => $today,
@@ -664,6 +751,8 @@ class HomeController extends Controller
             'sessionColor'           => $sessionColor,
             'currentTradingDate'     => $currentTradingDate,
             'previousTradingDate'    => $previousTradingDate,
+            'stuckLocks'             => $stuckLocks,
+            'hasStuckLocks'          => !empty($stuckLocks),
             'preMarketJobs'          => $preMarketJobs,
             'intradayJobs'           => $intradayJobs,
             'preMarketCriticalTotal' => $preMarketCriticalTotal,
@@ -744,5 +833,57 @@ class HomeController extends Controller
         }
 
         return implode("\n", array_filter(array_map('trim', $tail)));
+    }
+
+    /**
+     * Inspect cache_locks table to detect any stuck schedule mutex locks
+     */
+    protected function getScheduleLocks(): array
+    {
+        try {
+            $locks = DB::table('cache_locks')
+                ->where('key', 'like', '%schedule%')
+                ->get();
+
+            if ($locks->isEmpty()) {
+                return [];
+            }
+
+            // Map schedule events to commands using mutex names
+            $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
+            $eventMap = [];
+            foreach ($schedule->events() as $event) {
+                $cmd = $event->command;
+                if (preg_match('/artisan"?\s+([a-zA-Z0-9\:\-_]+)/', $cmd, $matches)) {
+                    $cmd = $matches[1];
+                }
+                $eventMap[$event->mutexName()] = $cmd;
+            }
+
+            $result = [];
+            $now = time();
+            foreach ($locks as $lock) {
+                $matchedCommand = null;
+                foreach ($eventMap as $mutexName => $cmd) {
+                    if (str_contains($lock->key, $mutexName)) {
+                        $matchedCommand = $cmd;
+                        break;
+                    }
+                }
+
+                $result[] = [
+                    'key'                => $lock->key,
+                    'owner'              => $lock->owner,
+                    'expiration'         => $lock->expiration,
+                    'expires_in_seconds' => max(0, $lock->expiration - $now),
+                    'expires_at_human'   => date('d M Y, h:i:s A', $lock->expiration),
+                    'command'            => $matchedCommand ?: 'Scheduled Task',
+                ];
+            }
+
+            return $result;
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 }
