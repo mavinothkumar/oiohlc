@@ -424,11 +424,10 @@
                     
                     <!-- Left: 75% Candlestick Chart -->
                     <div class="lg:col-span-9 flex flex-col">
-                        <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                            <div class="flex items-center gap-1.5 flex-wrap">
+                        <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-gray-800 flex-nowrap overflow-hidden">
+                            <div class="flex items-center gap-1 flex-nowrap shrink-0 overflow-x-auto scrollbar-none">
                                 <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                <span id="w-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY 50 ({{ $selectedTimeframe }} Candles)</span>
-                                <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Stock Weightage Breadth</span>
+                                <span id="w-chart-title" class="text-xs font-bold text-white tracking-wide shrink-0 whitespace-nowrap">NIFTY 50</span>
                                 <!-- Chart 1 Dedicated Timeframe Selector -->
                                 <div class="flex items-center bg-[#151924] border border-sky-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" id="w-tf-group" title="Nifty 50 Stocks Timeframe">
                                     <button type="button" onclick="setChart1Timeframe('1m')" data-wtf="1m" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1m</button>
@@ -448,19 +447,19 @@
                                 <button type="button" onclick="toggleWeightageQuantLines()" 
                                     class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-blue-950/80 border-blue-500/50 text-blue-300 hover:bg-blue-900 cursor-pointer"
                                     title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Weightage chart">
-                                    <span>📐 S/R Levels:</span>
+                                    <span>📐 S/R:</span>
                                     <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Cycle Signals on Weightage Chart: Breach Only (≥80%) / Every 5M Candle / OFF">
-                                    <span>🎯 Signals:</span>
+                                    <span>🎯 Sig:</span>
                                     <span id="w-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
                                 <button type="button" id="w-ha-wick-filter-btn" onclick="toggleStocksHaWickFilter()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/60 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer"
                                     title="Heikin Ashi Single-Wick Entry Filter: STRICT (Entry only on zero opposite wick; both wicks ignored) / OFF (All breaches)">
-                                    <span>🎯 HA Wick:</span>
+                                    <span>🎯 Wick:</span>
                                     <span id="w-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
                                 </button>
                                 <button type="button" id="w-stk-signal-btn" onclick="toggleChart1StocksSignal()"
@@ -476,7 +475,7 @@
                                     <span id="w-opt-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
                                 </button>
                             </div>
-                            <div class="flex items-center gap-2 text-[10.5px]">
+                            <div class="flex items-center gap-1.5 text-[10px] shrink-0 whitespace-nowrap ml-2">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
                                 <div class="flex items-center gap-1.5 text-[10px] font-mono">
                                     <span class="text-gray-400">O: <span id="w-chart-open" class="text-gray-200">-</span></span>
@@ -669,11 +668,10 @@
                     
                     <!-- Left: 75% Candlestick & Parity Chart -->
                     <div class="lg:col-span-9 flex flex-col">
-                        <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
-                            <div class="flex items-center gap-1.5 flex-wrap">
+                        <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-gray-800 flex-nowrap overflow-hidden">
+                            <div class="flex items-center gap-1 flex-nowrap shrink-0 overflow-x-auto scrollbar-none">
                                 <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                                <span id="o-chart-title" class="text-xs font-bold text-white tracking-wide">NIFTY ({{ $selectedTimeframe }} Candles &amp; Parity)</span>
-                                <span class="text-[10px] text-gray-400 hidden sm:inline">&bull; Options Flow Parity</span>
+                                <span id="o-chart-title" class="text-xs font-bold text-white tracking-wide shrink-0 whitespace-nowrap">OPTIONS</span>
                                 <!-- Chart 2 Dedicated Timeframe Selector -->
                                 <div class="flex items-center bg-[#151924] border border-purple-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" id="o-tf-group" title="Options Flow Parity Timeframe">
                                     <button type="button" onclick="setChart2Timeframe('1m')" data-otf="1m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1m</button>
@@ -693,19 +691,19 @@
                                 <button id="btn-toggle-quant-lines" type="button" onclick="toggleOptionsQuantLines()" 
                                     class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-indigo-950/80 border-indigo-500/50 text-indigo-300 hover:bg-indigo-900 cursor-pointer"
                                     title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Options chart">
-                                    <span>📐 S/R Levels:</span>
+                                    <span>📐 S/R:</span>
                                     <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Cycle Signals on Options Chart: Breach Only (≥70%) / Every 5M Candle / OFF">
-                                    <span>🎯 Signals:</span>
+                                    <span>🎯 Sig:</span>
                                     <span id="o-marker-status-badge" class="font-mono text-cyan-300 font-extrabold">BREACH</span>
                                 </button>
                                 <button type="button" id="o-ha-wick-filter-btn" onclick="toggleOptionsHaWickFilter()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/60 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer"
                                     title="Heikin Ashi Single-Wick Entry Filter: STRICT (Entry only on zero opposite wick; both wicks ignored) / OFF (All breaches)">
-                                    <span>🎯 HA Wick:</span>
+                                    <span>🎯 Wick:</span>
                                     <span id="o-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
                                 </button>
                                 <button type="button" id="o-stk-signal-btn" onclick="toggleChart2StocksSignal()"
@@ -721,7 +719,7 @@
                                     <span id="o-opt-signal-badge" class="font-mono text-purple-400 font-extrabold">ON</span>
                                 </button>
                             </div>
-                            <div class="flex items-center gap-2 text-[10.5px]">
+                            <div class="flex items-center gap-1.5 text-[10px] shrink-0 whitespace-nowrap ml-2">
                                 <span class="text-gray-400">Selected: <strong id="o-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
                                 <div class="flex items-center gap-1.5 text-[10px] font-mono">
                                     <span class="text-gray-400">O: <span id="o-chart-open" class="text-gray-200">-</span></span>
@@ -949,7 +947,7 @@
             <!-- ── ROW 1: TRENDING OI & SENTIMENT CHART (ALIGNED WITH ROW 1 WEIGHTAGE) ── -->
             <div class="cockpit-card p-2 flex flex-col border-rose-900/40 shadow-md">
                 <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800 gap-1 flex-wrap">
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                    <div class="flex items-center gap-1 flex-nowrap shrink-0 overflow-x-auto scrollbar-none">
                         <h3 class="text-xs font-bold text-white flex items-center gap-1">
                             📈 Trending OI &amp; Sentiment
                         </h3>
@@ -1079,7 +1077,7 @@
 
             <!-- ── ROW 2: OI BUILDUP (HORIZONTAL BAR CHART - ALIGNED WITH ROW 2 OPTIONS) ── -->
             <div class="cockpit-card p-2 flex flex-col border-amber-900/40 shadow-md">
-                <div class="flex items-center justify-between pb-1 mb-1 border-b border-gray-800">
+                <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-gray-800 flex-nowrap overflow-hidden">
                     <div class="flex items-center gap-1.5">
                         <h3 class="text-xs font-bold text-white flex items-center gap-1">🔥 OI Buildup</h3>
                         <span id="bld-window-badge" class="text-[9px] bg-slate-800 text-sky-300 font-mono font-bold px-1.5 py-0.2 rounded border border-gray-700">
@@ -3293,10 +3291,14 @@
             wBadge.className = isWHa ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-emerald-400 font-extrabold';
         }
         if (wIcon) wIcon.textContent = isWHa ? '📊' : '🕯️';
+        if (wBadge) {
+            wBadge.textContent = isWHa ? 'HA' : 'CANDLE';
+            wBadge.className = isWHa ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-emerald-400 font-extrabold';
+        }
         if (wTitle) {
             wTitle.innerHTML = isWHa 
-                ? `NIFTY 50 (${wTimeframe} Heikin Ashi) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
-                : `NIFTY 50 (${wTimeframe} Candles)`;
+                ? `NIFTY 50 <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
+                : `NIFTY 50`;
         }
 
         // 3. Row 2 Button & Title
@@ -3304,14 +3306,14 @@
         const oIcon = document.getElementById('o-candle-style-icon');
         const oTitle = document.getElementById('o-chart-title');
         if (oBadge) {
-            oBadge.textContent = isOHa ? 'HEIKIN ASHI' : 'CANDLE';
+            oBadge.textContent = isOHa ? 'HA' : 'CANDLE';
             oBadge.className = isOHa ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-emerald-400 font-extrabold';
         }
         if (oIcon) oIcon.textContent = isOHa ? '📊' : '🕯️';
         if (oTitle) {
             oTitle.innerHTML = isOHa 
-                ? `NIFTY (${oTimeframe} Heikin Ashi &amp; Parity) <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
-                : `NIFTY (${oTimeframe} Candles &amp; Parity)`;
+                ? `OPTIONS <span class="ml-1 px-1 py-0.2 text-[9px] font-mono bg-purple-950/90 border border-purple-500/60 text-purple-300 rounded font-bold">HA</span>`
+                : `OPTIONS`;
         }
     }
     window.updateCandleStyleUI = updateCandleStyleUI;
