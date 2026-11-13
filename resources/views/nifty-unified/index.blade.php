@@ -450,6 +450,18 @@
                                     <span>🎯 HA Wick:</span>
                                     <span id="w-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
                                 </button>
+                                <button type="button" id="w-stk-signal-btn" onclick="toggleChart1StocksSignal()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-blue-950/70 border-blue-500/50 text-blue-300 hover:bg-blue-900"
+                                    title="Toggle Nifty 50 Stock Alerts on Chart 1: ON (Display stock breach & entries) / OFF">
+                                    <span>📊 STK:</span>
+                                    <span id="w-stk-signal-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+                                </button>
+                                <button type="button" id="w-opt-signal-btn" onclick="toggleChart1OptionsSignal()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white"
+                                    title="Toggle Option Flow Alerts on Chart 1: ON (Display option parity alerts here too) / OFF">
+                                    <span>⚡ OPT:</span>
+                                    <span id="w-opt-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
+                                </button>
                                 <button type="button" id="w-st-toggle-btn" onclick="cycleWeightageSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Cycle SuperTrend on Weightage Chart: OFF / ST(10,3) / ST(10,2)">
@@ -704,6 +716,18 @@
                                     title="Heikin Ashi Single-Wick Entry Filter: STRICT (Entry only on zero opposite wick; both wicks ignored) / OFF (All breaches)">
                                     <span>🎯 HA Wick:</span>
                                     <span id="o-ha-wick-filter-badge" class="font-mono text-emerald-400 font-extrabold">STRICT</span>
+                                </button>
+                                <button type="button" id="o-stk-signal-btn" onclick="toggleChart2StocksSignal()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white"
+                                    title="Toggle Nifty 50 Stock Alerts on Chart 2: ON (Display stock alerts here too) / OFF">
+                                    <span>📊 STK:</span>
+                                    <span id="o-stk-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
+                                </button>
+                                <button type="button" id="o-opt-signal-btn" onclick="toggleChart2OptionsSignal()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-purple-950/70 border-purple-500/50 text-purple-300 hover:bg-purple-900"
+                                    title="Toggle Option Flow Alerts on Chart 2: ON (Display option parity alerts) / OFF">
+                                    <span>⚡ OPT:</span>
+                                    <span id="o-opt-signal-badge" class="font-mono text-purple-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="o-st-toggle-btn" onclick="cycleOptionsSuperTrendMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -1274,6 +1298,25 @@
                     </label>
                 </div>
 
+                <!-- Chart 1 Alerts Visibility (STK vs OPT) -->
+                <div class="p-2.5 rounded-lg bg-blue-950/20 border border-blue-900/40 space-y-2 text-xs">
+                    <span class="font-bold text-blue-300 block">Top Chart (Chart 1) Signal Display:</span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-gray-200">Show Nifty 50 Stock Alerts (📊 STK)</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modal-c1-show-stocks-toggle" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-gray-200">Show Option Flow Alerts (⚡ OPT)</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modal-c1-show-options-toggle" class="sr-only peer">
+                            <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Heikin Ashi Single-Wick Entry Filter -->
                 <div class="flex items-center justify-between p-2.5 rounded-lg bg-indigo-950/30 border border-indigo-700/50 text-xs">
                     <div>
@@ -1380,6 +1423,25 @@
                         <input type="checkbox" id="options-show-markers-toggle" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                     </label>
+                </div>
+
+                <!-- Chart 2 Alerts Visibility (OPT vs STK) -->
+                <div class="p-2.5 rounded-lg bg-purple-950/20 border border-purple-900/40 space-y-2 text-xs">
+                    <span class="font-bold text-purple-300 block">Bottom Chart (Chart 2) Signal Display:</span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-gray-200">Show Option Flow Alerts (⚡ OPT)</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modal-c2-show-options-toggle" class="sr-only peer" checked>
+                            <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] text-gray-200">Show Nifty 50 Stock Alerts (📊 STK)</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modal-c2-show-stocks-toggle" class="sr-only peer">
+                            <div class="w-8 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Options Heikin Ashi Single-Wick Entry Filter -->
@@ -2003,7 +2065,11 @@
         confluenceSound: 'siren',
         // 4. Heikin Ashi Single-Wick Entry Filter
         stocksHaWickFilter: true,
-        optionsHaWickFilter: true
+        optionsHaWickFilter: true,
+        chart1ShowStocks: true,
+        chart1ShowOptions: false,
+        chart2ShowStocks: false,
+        chart2ShowOptions: true
     };
 
     let alarmSettings = { ...defaultAlarmSettings };
@@ -3075,6 +3141,96 @@
         };
     }
     window.getCandleHaWickAnalysis = getCandleHaWickAnalysis;
+
+    function toggleChart1StocksSignal() {
+        alarmSettings.chart1ShowStocks = (alarmSettings.chart1ShowStocks === false);
+        saveAlarmSettings();
+        updateChartSignalButtonsUI();
+        renderWeightageColumn();
+    }
+    window.toggleChart1StocksSignal = toggleChart1StocksSignal;
+
+    function toggleChart1OptionsSignal() {
+        alarmSettings.chart1ShowOptions = !alarmSettings.chart1ShowOptions;
+        saveAlarmSettings();
+        updateChartSignalButtonsUI();
+        renderWeightageColumn();
+    }
+    window.toggleChart1OptionsSignal = toggleChart1OptionsSignal;
+
+    function toggleChart2StocksSignal() {
+        alarmSettings.chart2ShowStocks = !alarmSettings.chart2ShowStocks;
+        saveAlarmSettings();
+        updateChartSignalButtonsUI();
+        renderOptionsBreadthColumn();
+    }
+    window.toggleChart2StocksSignal = toggleChart2StocksSignal;
+
+    function toggleChart2OptionsSignal() {
+        alarmSettings.chart2ShowOptions = (alarmSettings.chart2ShowOptions === false);
+        saveAlarmSettings();
+        updateChartSignalButtonsUI();
+        renderOptionsBreadthColumn();
+    }
+    window.toggleChart2OptionsSignal = toggleChart2OptionsSignal;
+
+    function updateChartSignalButtonsUI() {
+        const c1Stk = (alarmSettings.chart1ShowStocks !== false);
+        const c1Opt = (alarmSettings.chart1ShowOptions === true);
+        const c2Stk = (alarmSettings.chart2ShowStocks === true);
+        const c2Opt = (alarmSettings.chart2ShowOptions !== false);
+
+        // Chart 1 buttons
+        const b1Stk = document.getElementById('w-stk-signal-badge');
+        const btn1Stk = document.getElementById('w-stk-signal-btn');
+        if (b1Stk) {
+            b1Stk.textContent = c1Stk ? 'ON' : 'OFF';
+            b1Stk.className = c1Stk ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-gray-500 font-bold';
+        }
+        if (btn1Stk) {
+            btn1Stk.className = c1Stk 
+                ? 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-blue-950/70 border-blue-500/50 text-blue-300 hover:bg-blue-900'
+                : 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white';
+        }
+
+        const b1Opt = document.getElementById('w-opt-signal-badge');
+        const btn1Opt = document.getElementById('w-opt-signal-btn');
+        if (b1Opt) {
+            b1Opt.textContent = c1Opt ? 'ON' : 'OFF';
+            b1Opt.className = c1Opt ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-gray-500 font-bold';
+        }
+        if (btn1Opt) {
+            btn1Opt.className = c1Opt 
+                ? 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-purple-950/70 border-purple-500/50 text-purple-300 hover:bg-purple-900'
+                : 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white';
+        }
+
+        // Chart 2 buttons
+        const b2Stk = document.getElementById('o-stk-signal-badge');
+        const btn2Stk = document.getElementById('o-stk-signal-btn');
+        if (b2Stk) {
+            b2Stk.textContent = c2Stk ? 'ON' : 'OFF';
+            b2Stk.className = c2Stk ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-gray-500 font-bold';
+        }
+        if (btn2Stk) {
+            btn2Stk.className = c2Stk 
+                ? 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-blue-950/70 border-blue-500/50 text-blue-300 hover:bg-blue-900'
+                : 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white';
+        }
+
+        const b2Opt = document.getElementById('o-opt-signal-badge');
+        const btn2Opt = document.getElementById('o-opt-signal-btn');
+        if (b2Opt) {
+            b2Opt.textContent = c2Opt ? 'ON' : 'OFF';
+            b2Opt.className = c2Opt ? 'font-mono text-purple-400 font-extrabold' : 'font-mono text-gray-500 font-bold';
+        }
+        if (btn2Opt) {
+            btn2Opt.className = c2Opt 
+                ? 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-purple-950/70 border-purple-500/50 text-purple-300 hover:bg-purple-900'
+                : 'ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white';
+        }
+    }
+    window.updateChartSignalButtonsUI = updateChartSignalButtonsUI;
 
     function toggleStocksHaWickFilter() {
         alarmSettings.stocksHaWickFilter = (alarmSettings.stocksHaWickFilter === false);
@@ -5745,100 +5901,151 @@
             const markerMode = alarmSettings.stocksMarkerMode || (alarmSettings.stocksShowMarkers ? 'breach' : 'off');
             const markers = [];
 
-            if (markerMode !== 'off') {
+            const showStocks = (alarmSettings.chart1ShowStocks !== false);
+            const showOptions = (alarmSettings.chart1ShowOptions === true);
+
+            if (markerMode !== 'off' && (showStocks || showOptions)) {
                 const sUpTh = alarmSettings.stocksUpThreshold || 80;
                 const sDownTh = alarmSettings.stocksDownThreshold || 80;
                 const sTrig = alarmSettings.stocksTriggerBy || 'both';
+
+                const oUpTh = alarmSettings.optionsUpThreshold || 70;
+                const oDownTh = alarmSettings.optionsDownThreshold || 70;
 
                 rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
                     const b = weightageData.breadth_by_time?.[c.time_str];
-                    if (!b) return;
+
+                    let oB = null;
+                    if (showOptions && breadthData) {
+                        oB = breadthData.breadth_by_time?.[c.time_str];
+                        if (!oB && breadthData.nifty_candles) {
+                            const oCandle = (typeof findCandleForTime === 'function') ? findCandleForTime(breadthData.nifty_candles, c.time_str) : null;
+                            if (oCandle && oCandle.time_str) {
+                                oB = breadthData.breadth_by_time?.[oCandle.time_str];
+                            }
+                        }
+                    }
 
                     let sBull = false, sBear = false;
-                    if (sTrig === 'both') {
-                        sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
-                        sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
-                    } else if (sTrig === 'either') {
-                        sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
-                        sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
-                    } else if (sTrig === 'count') {
-                        sBull = (b.green_count_pct >= sUpTh);
-                        sBear = (b.red_count_pct >= sDownTh);
-                    } else if (sTrig === 'weight') {
-                        sBull = (b.green_weight >= sUpTh);
-                        sBear = (b.red_weight >= sDownTh);
+                    if (showStocks && b) {
+                        if (sTrig === 'both') {
+                            sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
+                        } else if (sTrig === 'either') {
+                            sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
+                        } else if (sTrig === 'count') {
+                            sBull = (b.green_count_pct >= sUpTh);
+                            sBear = (b.red_count_pct >= sDownTh);
+                        } else if (sTrig === 'weight') {
+                            sBull = (b.green_weight >= sUpTh);
+                            sBear = (b.red_weight >= sDownTh);
+                        }
+                    }
+
+                    let oBull = false, oBear = false;
+                    let oUw = 0, oDw = 0;
+                    if (showOptions && oB) {
+                        oUw = Number(oB.up_weight || 0);
+                        oDw = Number(oB.down_weight || 0);
+                        oBull = (oUw >= oUpTh);
+                        oBear = (oDw >= oDownTh);
                     }
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
-                    const isCandleRed   = Number(c.close) < Number(c.open);
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    // Stock Alert Only (Chart 1) with Heikin Ashi Wick Filter
-                    const haAnalysis = getCandleHaWickAnalysis(candleTime, false);
-                    const useHaFilter = (alarmSettings.stocksHaWickFilter !== false);
+                    const wHaAnalysis = getCandleHaWickAnalysis(candleTime, false);
+                    const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
 
-                    if (sBull) {
-                        // Strict Heikin Ashi Filter: Ignore if both wicks exist or if not clean bull entry (has lower wick)
-                        if (useHaFilter && haAnalysis) {
-                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBullEntry) {
-                                return; // Ignore indecision candles with wicks on both sides
-                            }
-                        }
-                        const isTrap = isCandleRed;
-                        const labelText = isTrap ? `⚡TRAP ${b.green_count_pct}%` : (useHaFilter ? `🎯 ENTRY ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`);
+                    const oHaAnalysis = showOptions ? getCandleHaWickAnalysis(candleTime, true) : null;
+                    const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
+
+                    let validStockBull = sBull;
+                    let validStockBear = sBear;
+                    if (useStocksHa && wHaAnalysis) {
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) validStockBull = false;
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) validStockBear = false;
+                    }
+
+                    let validOptBull = oBull;
+                    let validOptBear = oBear;
+                    if (useOptionsHa && oHaAnalysis) {
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) validOptBull = false;
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) validOptBear = false;
+                    }
+
+                    // 1. High-Probability Confluence (if both enabled on this chart)
+                    if (validStockBull && validOptBull) {
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
+                            color: '#10b981',
                             shape: 'arrowUp',
-                            text: labelText + openTag,
+                            text: `🔥 CONFLUENCE ${b.green_count_pct}%` + openTag,
                             size: 2,
                         });
-                    } else if (sBear) {
-                        // Strict Heikin Ashi Filter: Ignore if both wicks exist or if not clean bear entry (has upper wick)
-                        if (useHaFilter && haAnalysis) {
-                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBearEntry) {
-                                return; // Ignore indecision candles with wicks on both sides
-                            }
-                        }
-                        const isTrap = isCandleGreen;
-                        const labelText = isTrap ? `⚠️TRAP ${b.red_count_pct}%` : (useHaFilter ? `🎯 ENTRY ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`);
+                    } else if (validStockBear && validOptBear) {
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
-                            color: isTrap ? '#f59e0b' : '#ef4444',
+                            color: '#ef4444',
                             shape: 'arrowDown',
-                            text: labelText + openTag,
+                            text: `🔥 CONFLUENCE ${b.red_count_pct}%` + openTag,
                             size: 2,
                         });
-                    } else if (markerMode === 'all') {
-                        const gw = Number(b.green_weight) || 0;
-                        const rw = Number(b.red_weight) || 0;
-                        const gcp = Number(b.green_count_pct) || 0;
-                        const rcp = Number(b.red_count_pct) || 0;
-                        if (gw >= rw) {
+                    } else {
+                        // 2. Individual Stock Alert
+                        if (validStockBull) {
+                            const isTrap = !isCandleGreen;
+                            const labelText = isTrap ? `⚡TRAP ${b.green_count_pct}%` : (useStocksHa ? `🎯 ENTRY ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`);
                             markers.push({
                                 time: candleTime,
                                 position: 'belowBar',
-                                color: '#10b981',
-                                shape: 'circle',
-                                text: `${gcp}% (${gw.toFixed(0)}W)${openTag}`,
-                                size: 1,
+                                color: isTrap ? '#06b6d4' : '#10b981',
+                                shape: 'arrowUp',
+                                text: labelText + openTag,
+                                size: 2,
                             });
-                        } else {
+                        } else if (validStockBear) {
+                            const isTrap = isCandleGreen;
+                            const labelText = isTrap ? `⚠️TRAP ${b.red_count_pct}%` : (useStocksHa ? `🎯 ENTRY ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`);
                             markers.push({
                                 time: candleTime,
                                 position: 'aboveBar',
-                                color: '#ef4444',
-                                shape: 'circle',
-                                text: `${rcp}% (${rw.toFixed(0)}W)${openTag}`,
-                                size: 1,
+                                color: isTrap ? '#f59e0b' : '#ef4444',
+                                shape: 'arrowDown',
+                                text: labelText + openTag,
+                                size: 2,
                             });
                         }
-                    } else if (isOpenCandle) {
+
+                        // 3. Individual Option Alert (when user enabled on Chart 1)
+                        if (validOptBull) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#a855f7',
+                                shape: 'arrowUp',
+                                text: `⚡ OPT ${Math.round(oUw)}%` + openTag,
+                                size: 2,
+                            });
+                        } else if (validOptBear) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#ec4899',
+                                shape: 'arrowDown',
+                                text: `⚡ OPT ${Math.round(oDw)}%` + openTag,
+                                size: 2,
+                            });
+                        }
+                    }
+
+                    if (!validStockBull && !validStockBear && !validOptBull && !validOptBear && isOpenCandle) {
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
@@ -5915,84 +6122,152 @@
             const markerMode = alarmSettings.optionsMarkerMode || (alarmSettings.optionsShowMarkers ? 'breach' : 'off');
             const markers = [];
 
-            if (markerMode !== 'off') {
+            const showOptions = (alarmSettings.chart2ShowOptions !== false);
+            const showStocks = (alarmSettings.chart2ShowStocks === true);
+
+            if (markerMode !== 'off' && (showOptions || showStocks)) {
                 const oUpTh = alarmSettings.optionsUpThreshold || 70;
                 const oDownTh = alarmSettings.optionsDownThreshold || 70;
+
+                const sUpTh = alarmSettings.stocksUpThreshold || 80;
+                const sDownTh = alarmSettings.stocksDownThreshold || 80;
+                const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
                 rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
 
                     const ob = breadthData.breadth_by_time?.[c.time_str];
-                    if (!ob) return;
 
-                    const uw = Number(ob.up_weight) || 0;
-                    const dw = Number(ob.down_weight) || 0;
-                    const oBull = (uw >= oUpTh);
-                    const oBear = (dw >= oDownTh);
+                    let sB = null;
+                    if (showStocks && weightageData) {
+                        sB = weightageData.breadth_by_time?.[c.time_str];
+                        if (!sB && weightageData.candles) {
+                            const sCandle = (typeof findCandleForTime === 'function') ? findCandleForTime(weightageData.candles, c.time_str) : null;
+                            if (sCandle && sCandle.time_str) {
+                                sB = weightageData.breadth_by_time?.[sCandle.time_str];
+                            }
+                        }
+                    }
+
+                    let oBull = false, oBear = false;
+                    let uw = 0, dw = 0;
+                    if (showOptions && ob) {
+                        uw = Number(ob.up_weight) || 0;
+                        dw = Number(ob.down_weight) || 0;
+                        oBull = (uw >= oUpTh);
+                        oBear = (dw >= oDownTh);
+                    }
+
+                    let sBull = false, sBear = false;
+                    if (showStocks && sB) {
+                        if (sTrig === 'both') {
+                            sBull = (sB.green_count_pct >= sUpTh && sB.green_weight >= sUpTh);
+                            sBear = (sB.red_count_pct >= sDownTh && sB.red_weight >= sDownTh);
+                        } else if (sTrig === 'either') {
+                            sBull = (sB.green_count_pct >= sUpTh || sB.green_weight >= sUpTh);
+                            sBear = (sB.red_count_pct >= sDownTh || sB.red_weight >= sDownTh);
+                        } else if (sTrig === 'count') {
+                            sBull = (sB.green_count_pct >= sUpTh);
+                            sBear = (sB.red_count_pct >= sDownTh);
+                        } else if (sTrig === 'weight') {
+                            sBull = (sB.green_weight >= sUpTh);
+                            sBear = (sB.red_weight >= sDownTh);
+                        }
+                    }
 
                     const isCandleGreen = Number(c.close) >= Number(c.open);
-                    const isCandleRed   = Number(c.close) < Number(c.open);
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    // Option Alert Only (Chart 2) with Heikin Ashi Wick Filter
-                    const haAnalysis = getCandleHaWickAnalysis(candleTime, true);
-                    const useHaFilter = (alarmSettings.optionsHaWickFilter !== false);
+                    const oHaAnalysis = getCandleHaWickAnalysis(candleTime, true);
+                    const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
 
-                    if (oBull) {
-                        if (useHaFilter && haAnalysis) {
-                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBullEntry) {
-                                return; // Ignore indecision candles with wicks on both sides
-                            }
-                        }
-                        const isTrap = isCandleRed;
-                        const labelText = isTrap ? `⚡TRAP ${Math.round(uw)}%` : (useHaFilter ? `🎯 ENTRY ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`);
+                    const wHaAnalysis = showStocks ? getCandleHaWickAnalysis(candleTime, false) : null;
+                    const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
+
+                    let validOptBull = oBull;
+                    let validOptBear = oBear;
+                    if (useOptionsHa && oHaAnalysis) {
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) validOptBull = false;
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) validOptBear = false;
+                    }
+
+                    let validStockBull = sBull;
+                    let validStockBear = sBear;
+                    if (useStocksHa && wHaAnalysis) {
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) validStockBull = false;
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) validStockBear = false;
+                    }
+
+                    // 1. High-Probability Confluence (if both enabled on this chart)
+                    if (validOptBull && validStockBull) {
                         markers.push({
                             time: candleTime,
                             position: 'belowBar',
-                            color: isTrap ? '#06b6d4' : '#10b981',
+                            color: '#10b981',
                             shape: 'arrowUp',
-                            text: labelText + openTag,
+                            text: `🔥 CONFLUENCE ${Math.round(uw)}%` + openTag,
                             size: 2,
                         });
-                    } else if (oBear) {
-                        if (useHaFilter && haAnalysis) {
-                            if (haAnalysis.hasBothWicks || !haAnalysis.isCleanBearEntry) {
-                                return; // Ignore indecision candles with wicks on both sides
-                            }
-                        }
-                        const isTrap = isCandleGreen;
-                        const labelText = isTrap ? `⚠️TRAP ${Math.round(dw)}%` : (useHaFilter ? `🎯 ENTRY ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`);
+                    } else if (validOptBear && validStockBear) {
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
-                            color: isTrap ? '#f59e0b' : '#ef4444',
+                            color: '#ef4444',
                             shape: 'arrowDown',
-                            text: labelText + openTag,
+                            text: `🔥 CONFLUENCE ${Math.round(dw)}%` + openTag,
                             size: 2,
                         });
-                    } else if (markerMode === 'all') {
-                        if (uw >= dw) {
+                    } else {
+                        // 2. Individual Option Alert
+                        if (validOptBull) {
+                            const isTrap = !isCandleGreen;
+                            const labelText = isTrap ? `⚡TRAP ${Math.round(uw)}%` : (useOptionsHa ? `🎯 ENTRY ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`);
                             markers.push({
                                 time: candleTime,
                                 position: 'belowBar',
-                                color: '#06b6d4',
-                                shape: 'circle',
-                                text: `${Math.round(uw)}% Bull${openTag}`,
-                                size: 1,
+                                color: isTrap ? '#06b6d4' : '#10b981',
+                                shape: 'arrowUp',
+                                text: labelText + openTag,
+                                size: 2,
                             });
-                        } else {
+                        } else if (validOptBear) {
+                            const isTrap = isCandleGreen;
+                            const labelText = isTrap ? `⚠️TRAP ${Math.round(dw)}%` : (useOptionsHa ? `🎯 ENTRY ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`);
                             markers.push({
                                 time: candleTime,
                                 position: 'aboveBar',
-                                color: '#f43f5e',
-                                shape: 'circle',
-                                text: `${Math.round(dw)}% Bear${openTag}`,
-                                size: 1,
+                                color: isTrap ? '#f59e0b' : '#ef4444',
+                                shape: 'arrowDown',
+                                text: labelText + openTag,
+                                size: 2,
                             });
                         }
-                    } else if (isOpenCandle) {
+
+                        // 3. Individual Stock Alert (when user enabled on Chart 2)
+                        if (validStockBull) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'belowBar',
+                                color: '#38bdf8',
+                                shape: 'arrowUp',
+                                text: `📊 STK ${sB.green_count_pct}%` + openTag,
+                                size: 2,
+                            });
+                        } else if (validStockBear) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#fb7185',
+                                shape: 'arrowDown',
+                                text: `📊 STK ${sB.red_count_pct}%` + openTag,
+                                size: 2,
+                            });
+                        }
+                    }
+
+                    if (!validOptBull && !validOptBear && !validStockBull && !validStockBear && isOpenCandle) {
                         markers.push({
                             time: candleTime,
                             position: 'aboveBar',
@@ -7588,6 +7863,18 @@
             const haToggleO = document.getElementById('options-ha-wick-filter-toggle');
             if (haToggleO) alarmSettings.optionsHaWickFilter = haToggleO.checked;
 
+            const c1StkToggle = document.getElementById('modal-c1-show-stocks-toggle');
+            if (c1StkToggle) alarmSettings.chart1ShowStocks = c1StkToggle.checked;
+            const c1OptToggle = document.getElementById('modal-c1-show-options-toggle');
+            if (c1OptToggle) alarmSettings.chart1ShowOptions = c1OptToggle.checked;
+
+            const c2StkToggle = document.getElementById('modal-c2-show-stocks-toggle');
+            if (c2StkToggle) alarmSettings.chart2ShowStocks = c2StkToggle.checked;
+            const c2OptToggle = document.getElementById('modal-c2-show-options-toggle');
+            if (c2OptToggle) alarmSettings.chart2ShowOptions = c2OptToggle.checked;
+
+            if (typeof updateChartSignalButtonsUI === 'function') updateChartSignalButtonsUI();
+
             // Save 0Click settings
             zeroClickSettings.autoLog = document.getElementById('zc-auto-log-toggle').checked;
             zeroClickSettings.forwardToZeroClick = document.getElementById('zc-forward-toggle').checked;
@@ -7659,6 +7946,16 @@
         if (haToggleS) haToggleS.checked = (alarmSettings.stocksHaWickFilter !== false);
         const haToggleO = document.getElementById('options-ha-wick-filter-toggle');
         if (haToggleO) haToggleO.checked = (alarmSettings.optionsHaWickFilter !== false);
+
+        const mC1Stk = document.getElementById('modal-c1-show-stocks-toggle');
+        if (mC1Stk) mC1Stk.checked = (alarmSettings.chart1ShowStocks !== false);
+        const mC1Opt = document.getElementById('modal-c1-show-options-toggle');
+        if (mC1Opt) mC1Opt.checked = (alarmSettings.chart1ShowOptions === true);
+
+        const mC2Stk = document.getElementById('modal-c2-show-stocks-toggle');
+        if (mC2Stk) mC2Stk.checked = (alarmSettings.chart2ShowStocks === true);
+        const mC2Opt = document.getElementById('modal-c2-show-options-toggle');
+        if (mC2Opt) mC2Opt.checked = (alarmSettings.chart2ShowOptions !== false);
 const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (sMarkers) sMarkers.checked = alarmSettings.stocksShowMarkers !== false;
 
