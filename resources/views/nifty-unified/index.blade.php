@@ -462,28 +462,6 @@
                                     <span>⚡ OPT:</span>
                                     <span id="w-opt-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
                                 </button>
-                                <button type="button" id="w-st-toggle-btn" onclick="cycleWeightageSuperTrendMode()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle SuperTrend on Weightage Chart: OFF / ST(10,3) / ST(10,2)">
-                                    <span>⚡ ST:</span>
-                                    <span id="w-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
-                                </button>
-                                <button type="button" id="w-fib-toggle-btn" onclick="cycleWeightageFibMode()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Fibonacci on Weightage Chart: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
-                                    <span>📐 FIB:</span>
-                                    <span id="w-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
-                                </button>
-                                <button type="button" id="w-hline-toggle-btn" onclick="toggleWeightageHLineTool()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Draw Horizontal Support/Resistance Line on Weightage Chart (Click price on chart)">
-                                    <span>➖ Line</span>
-                                </button>
-                                <button type="button" onclick="clearWeightageManualDrawings()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
-                                    title="Clear custom drawn lines on Weightage Chart">
-                                    <span>🗑️</span>
-                                </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -728,28 +706,6 @@
                                     title="Toggle Option Flow Alerts on Chart 2: ON (Display option parity alerts) / OFF">
                                     <span>⚡ OPT:</span>
                                     <span id="o-opt-signal-badge" class="font-mono text-purple-400 font-extrabold">ON</span>
-                                </button>
-                                <button type="button" id="o-st-toggle-btn" onclick="cycleOptionsSuperTrendMode()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle SuperTrend on Options Chart: OFF / ST(10,3) / ST(10,2)">
-                                    <span>⚡ ST:</span>
-                                    <span id="o-st-status-badge" class="font-mono text-amber-300 font-extrabold">OFF</span>
-                                </button>
-                                <button type="button" id="o-fib-toggle-btn" onclick="cycleOptionsFibMode()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Cycle Fibonacci on Options Chart: OFF / AUTO (Day High/Low) / MANUAL (Click 2 points)">
-                                    <span>📐 FIB:</span>
-                                    <span id="o-fib-status-badge" class="font-mono text-violet-300 font-extrabold">OFF</span>
-                                </button>
-                                <button type="button" id="o-hline-toggle-btn" onclick="toggleOptionsHLineTool()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
-                                    title="Draw Horizontal Support/Resistance Line on Options Chart (Click price on chart)">
-                                    <span>➖ Line</span>
-                                </button>
-                                <button type="button" onclick="clearOptionsManualDrawings()"
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-0.5 bg-gray-800/60 border-gray-700 text-rose-300 hover:bg-rose-950/60 cursor-pointer"
-                                    title="Clear custom drawn lines on Options Chart">
-                                    <span>🗑️</span>
                                 </button>
                             </div>
                             <div class="flex items-center gap-2 text-[10.5px]">
