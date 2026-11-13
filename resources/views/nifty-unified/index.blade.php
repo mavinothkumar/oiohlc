@@ -3057,11 +3057,12 @@
      * - Bearish Entry: Red candle with Flat Top (Zero Upper Wick: Open == High)
      * - Indecision / Pause: Wicks on BOTH sides (should be ignored)
      */
-    function getCandleHaWickAnalysis(candleTime, isOptionsChart = false) {
+    function getCandleHaWickAnalysis(candleTime, isOptionsChart = false, timeStr = null) {
         const haList = isOptionsChart ? (window._unifiedOptionsHaCandles || []) : (window._unifiedHaCandles || []);
         if (!haList || haList.length === 0) return null;
 
-        const ha = haList.find(h => Number(h.time) === Number(candleTime));
+        const numTime = Number(candleTime);
+        const ha = haList.find(h => (numTime && Number(h.time) === numTime) || (timeStr && h.time_str === timeStr));
         if (!ha) return null;
 
         const isHaBull = ha.close >= ha.open;
@@ -4885,12 +4886,21 @@
             || weightageData?.candles?.[activeCandleIndex];
 
         const candleTime = triggerCandle ? Number(triggerCandle.time || triggerCandle.timestamp) : null;
-        const wHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, false) : null;
-        const oHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, true) : null;
+        const wHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, false, timeStr) : null;
+        const oHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, true, timeStr) : null;
 
         // 1. COMBINED HIGH-PROBABILITY CONFLUENCE (Both Weightage and Options Agree in Same Direction!)
         if (alarmSettings.confluenceEnabled && ((wBull && oBull) || (wBear && oBear))) {
             const isBull = (wBull && oBull);
+            const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
+            const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
+            if (isBull) {
+                if (useStocksHa && (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry)) return;
+                if (useOptionsHa && (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry)) return;
+            } else {
+                if (useStocksHa && (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry)) return;
+                if (useOptionsHa && (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry)) return;
+            }
             alertedCandlesSet.add(timeStr);
             triggerAlarmModal({
                 type: 'CONFLUENCE',
@@ -4919,13 +4929,10 @@
         // 2. Individual Nifty 50 Stocks Breadth Alert (Independent Chart 1 Settings)
         if (alarmSettings.stocksAlertEnabled && (wBull || wBear)) {
             const useStocksHaFilter = (alarmSettings.stocksHaWickFilter !== false);
-            if (useStocksHaFilter && wHaAnalysis) {
-                if (wBear && (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry)) {
-                    return; // Ignore indecision candles on Stock chart
-                }
-                if (wBull && (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry)) {
-                    return; // Ignore indecision candles on Stock chart
-                }
+            if (useStocksHaFilter) {
+                if (!wHaAnalysis || wHaAnalysis.hasBothWicks) return;
+                if (wBear && !wHaAnalysis.isCleanBearEntry) return;
+                if (wBull && !wHaAnalysis.isCleanBullEntry) return;
             }
             const isBull = wBull;
             let confState = 'NEUTRAL';
@@ -4973,13 +4980,10 @@
         // 3. Individual Nifty Options Breadth Alert (Independent Chart 2 Settings)
         if (alarmSettings.optionsAlertEnabled && (oBull || oBear)) {
             const useOptionsHaFilter = (alarmSettings.optionsHaWickFilter !== false);
-            if (useOptionsHaFilter && oHaAnalysis) {
-                if (oBear && (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry)) {
-                    return; // Ignore indecision candles on Options chart
-                }
-                if (oBull && (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry)) {
-                    return; // Ignore indecision candles on Options chart
-                }
+            if (useOptionsHaFilter) {
+                if (!oHaAnalysis || oHaAnalysis.hasBothWicks) return;
+                if (oBear && !oHaAnalysis.isCleanBearEntry) return;
+                if (oBull && !oHaAnalysis.isCleanBullEntry) return;
             }
             const isBull = oBull;
             let confState = 'NEUTRAL';
@@ -5833,6 +5837,7 @@
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
+            time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time));
 
         const firstTodayTime = todayCandles[0]?.time || 0;
@@ -5845,6 +5850,7 @@
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
+            time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time) && (firstTodayTime === 0 || c.time < firstTodayTime));
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
@@ -5916,21 +5922,29 @@
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    const wHaAnalysis = getCandleHaWickAnalysis(candleTime, false);
+                    const wHaAnalysis = getCandleHaWickAnalysis(candleTime, false, c.time_str);
                     const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
 
-                    const oHaAnalysis = showOptions ? getCandleHaWickAnalysis(candleTime, true) : null;
+                    const oHaAnalysis = showOptions ? getCandleHaWickAnalysis(candleTime, true, c.time_str) : null;
                     const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
 
                     let validStockBull = sBull;
                     let validStockBear = sBear;
-                    if (useStocksHa && wHaAnalysis) {
-                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) validStockBull = false;
-                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) validStockBear = false;
-                    }
-
                     let validOptBull = oBull;
                     let validOptBear = oBear;
+
+                    // Chart 1 Strict Filter: Any alert placed on Chart 1 sits on Chart 1's candle.
+                    // If Wick Strict is enabled, the candle MUST NOT have an opposing wick or wicks on both sides.
+                    if (useStocksHa) {
+                        if (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) {
+                            validStockBull = false;
+                            validOptBull = false;
+                        }
+                        if (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) {
+                            validStockBear = false;
+                            validOptBear = false;
+                        }
+                    }
                     if (useOptionsHa && oHaAnalysis) {
                         if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) validOptBull = false;
                         if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) validOptBear = false;
@@ -6054,6 +6068,7 @@
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
+            time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time));
 
         const firstTodayTime = todayCandles[0]?.time || 0;
@@ -6066,6 +6081,7 @@
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
+            time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time) && (firstTodayTime === 0 || c.time < firstTodayTime));
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
@@ -6138,21 +6154,29 @@
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
-                    const oHaAnalysis = getCandleHaWickAnalysis(candleTime, true);
+                    const oHaAnalysis = getCandleHaWickAnalysis(candleTime, true, c.time_str);
                     const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
 
-                    const wHaAnalysis = showStocks ? getCandleHaWickAnalysis(candleTime, false) : null;
+                    const wHaAnalysis = showStocks ? getCandleHaWickAnalysis(candleTime, false, c.time_str) : null;
                     const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
 
                     let validOptBull = oBull;
                     let validOptBear = oBear;
-                    if (useOptionsHa && oHaAnalysis) {
-                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) validOptBull = false;
-                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) validOptBear = false;
-                    }
-
                     let validStockBull = sBull;
                     let validStockBear = sBear;
+
+                    // Chart 2 Strict Filter: Any alert placed on Chart 2 sits on Chart 2's candle.
+                    // If Wick Strict is enabled, the candle MUST NOT have an opposing wick or wicks on both sides.
+                    if (useOptionsHa) {
+                        if (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) {
+                            validOptBull = false;
+                            validStockBull = false;
+                        }
+                        if (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) {
+                            validOptBear = false;
+                            validStockBear = false;
+                        }
+                    }
                     if (useStocksHa && wHaAnalysis) {
                         if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) validStockBull = false;
                         if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) validStockBear = false;
