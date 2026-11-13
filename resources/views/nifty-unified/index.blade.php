@@ -3062,7 +3062,28 @@
         if (!haList || haList.length === 0) return null;
 
         const numTime = Number(candleTime);
-        const ha = haList.find(h => (numTime && Number(h.time) === numTime) || (timeStr && h.time_str === timeStr));
+        let ha = null;
+
+        // 1. Search backwards (from latest/today's candles to oldest) by exact timestamp
+        if (numTime && !isNaN(numTime)) {
+            for (let i = haList.length - 1; i >= 0; i--) {
+                if (Number(haList[i].time) === numTime) {
+                    ha = haList[i];
+                    break;
+                }
+            }
+        }
+
+        // 2. Fallback: Search backwards by time_str (HH:mm) so today's candle is matched, not yesterday's
+        if (!ha && timeStr) {
+            for (let i = haList.length - 1; i >= 0; i--) {
+                if (haList[i].time_str === timeStr) {
+                    ha = haList[i];
+                    break;
+                }
+            }
+        }
+
         if (!ha) return null;
 
         const isHaBull = ha.close >= ha.open;
@@ -5933,8 +5954,25 @@
                     let validOptBull = oBull;
                     let validOptBear = oBear;
 
-                    // Chart 1 Strict Filter: Any alert placed on Chart 1 sits on Chart 1's candle.
-                    // If Wick Strict is enabled, the candle MUST NOT have an opposing wick or wicks on both sides.
+                    // ── CANDLE COLOR & WICK VALIDATION FOR CHART 1 ──
+                    // 1. Determine visual candle color on Chart 1:
+                    const isRegularGreen = Number(c.close) >= Number(c.open);
+                    const isHaGreen = wHaAnalysis ? wHaAnalysis.isHaBull : isRegularGreen;
+                    const isChart1CandleGreen = (wCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
+
+                    // 2. Strict Directional Alignment:
+                    // A BUY / Bull alert can NEVER be placed on a RED candle!
+                    // A SELL / Bear alert can NEVER be placed on a GREEN candle!
+                    if (!isChart1CandleGreen) {
+                        validStockBull = false;
+                        validOptBull = false;
+                    } else {
+                        validStockBear = false;
+                        validOptBear = false;
+                    }
+
+                    // 3. Strict Wick Filter:
+                    // If Wick Strict is enabled, require zero opposite wick and NO both wicks
                     if (useStocksHa) {
                         if (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) {
                             validStockBull = false;
@@ -6165,8 +6203,25 @@
                     let validStockBull = sBull;
                     let validStockBear = sBear;
 
-                    // Chart 2 Strict Filter: Any alert placed on Chart 2 sits on Chart 2's candle.
-                    // If Wick Strict is enabled, the candle MUST NOT have an opposing wick or wicks on both sides.
+                    // ── CANDLE COLOR & WICK VALIDATION FOR CHART 2 ──
+                    // 1. Determine visual candle color on Chart 2:
+                    const isRegularGreen = Number(c.close) >= Number(c.open);
+                    const isHaGreen = oHaAnalysis ? oHaAnalysis.isHaBull : isRegularGreen;
+                    const isChart2CandleGreen = (oCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
+
+                    // 2. Strict Directional Alignment:
+                    // A BUY / Bull alert can NEVER be placed on a RED candle!
+                    // A SELL / Bear alert can NEVER be placed on a GREEN candle!
+                    if (!isChart2CandleGreen) {
+                        validOptBull = false;
+                        validStockBull = false;
+                    } else {
+                        validOptBear = false;
+                        validStockBear = false;
+                    }
+
+                    // 3. Strict Wick Filter:
+                    // If Wick Strict is enabled, require zero opposite wick and NO both wicks
                     if (useOptionsHa) {
                         if (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) {
                             validOptBull = false;
@@ -6654,7 +6709,24 @@
             const wStatTimeEl = document.getElementById('w-stat-time');
             if (wStatTimeEl) wStatTimeEl.textContent = `${candle.time_str} - ${wTfSuffix}`;
             if (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0) {
-                const haCandle = window._unifiedHaCandles.find(c => c.time_str === candle.time_str || Number(c.time) === Number(candle.time || candle.timestamp));
+                const cTime = Number(candle.time || candle.timestamp);
+                let haCandle = null;
+                if (cTime && !isNaN(cTime)) {
+                    for (let i = window._unifiedHaCandles.length - 1; i >= 0; i--) {
+                        if (Number(window._unifiedHaCandles[i].time) === cTime) {
+                            haCandle = window._unifiedHaCandles[i];
+                            break;
+                        }
+                    }
+                }
+                if (!haCandle && candle.time_str) {
+                    for (let i = window._unifiedHaCandles.length - 1; i >= 0; i--) {
+                        if (window._unifiedHaCandles[i].time_str === candle.time_str) {
+                            haCandle = window._unifiedHaCandles[i];
+                            break;
+                        }
+                    }
+                }
                 if (haCandle) {
                     document.getElementById('w-chart-open').textContent = haCandle.open.toFixed(2);
                     document.getElementById('w-chart-close').textContent = haCandle.close.toFixed(2);
@@ -6806,7 +6878,24 @@
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
             if (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0) {
-                const haCandle = window._unifiedOptionsHaCandles.find(c => c.time_str === candle.time_str || Number(c.time) === Number(candle.time || candle.timestamp));
+                const cTime = Number(candle.time || candle.timestamp);
+                let haCandle = null;
+                if (cTime && !isNaN(cTime)) {
+                    for (let i = window._unifiedOptionsHaCandles.length - 1; i >= 0; i--) {
+                        if (Number(window._unifiedOptionsHaCandles[i].time) === cTime) {
+                            haCandle = window._unifiedOptionsHaCandles[i];
+                            break;
+                        }
+                    }
+                }
+                if (!haCandle && candle.time_str) {
+                    for (let i = window._unifiedOptionsHaCandles.length - 1; i >= 0; i--) {
+                        if (window._unifiedOptionsHaCandles[i].time_str === candle.time_str) {
+                            haCandle = window._unifiedOptionsHaCandles[i];
+                            break;
+                        }
+                    }
+                }
                 if (haCandle) {
                     document.getElementById('o-chart-open').textContent = haCandle.open.toFixed(2);
                     document.getElementById('o-chart-close').textContent = haCandle.close.toFixed(2);
