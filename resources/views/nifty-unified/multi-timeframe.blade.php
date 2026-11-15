@@ -1885,6 +1885,22 @@
                     </div>
                 </div>
 
+                <!-- Ranking Criteria (Cumulative Volume vs Peak Single Block) -->
+                <div class="p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between">
+                        <label for="cfg-of-rank-by" class="text-gray-300 font-bold block">Level Ranking Criteria</label>
+                        <span class="text-[10px] text-teal-400 font-mono">Microstructure Logic</span>
+                    </div>
+                    <select id="cfg-of-rank-by" class="w-full bg-[#131722] border border-gray-700 text-white text-xs rounded px-2.5 py-1.5 focus:border-teal-500 focus:outline-none">
+                        <option value="cumulative" selected>Cumulative Clustered Volume (Total Execution Depth)</option>
+                        <option value="peak">Peak Single Order Block (Matches Order Flow Depth Top Prints, e.g. ₹25,100)</option>
+                    </select>
+                    <span class="text-[9.5px] text-gray-400 block leading-relaxed">
+                        • <strong>Cumulative</strong>: Merges all executions at price level (e.g. ₹25,175 has 400k total volume; ₹25,100 has 340k).<br>
+                        • <strong>Peak Single Order</strong>: Prioritizes levels with the single largest institutional block trade print (e.g. ₹25,100 had 27k peak print).
+                    </span>
+                </div>
+
                 <!-- 5. Live Clustered Order Flow Preview Card -->
                 <div class="p-2.5 rounded-lg bg-[#131722] border border-teal-900/60 space-y-2">
                     <div class="flex items-center justify-between text-xs">
@@ -2380,7 +2396,8 @@
         ofLevelCount: 1,                // Top N levels from Bid and Ask (default 1)
         ofLineWidth: 3,                 // Line thickness (default 3)
         ofLineStyleYesterday: 'solid',  // 'solid', 'dashed', 'dotted'
-        ofLineStyleToday: 'dashed'      // 'dashed', 'solid', 'dotted'
+        ofLineStyleToday: 'dashed',     // 'dashed', 'solid', 'dotted'
+        ofRankBy: 'cumulative'          // 'cumulative' (default) or 'peak'
     };
 
     let alarmSettings = { ...defaultAlarmSettings };
@@ -2716,8 +2733,9 @@
     async function fetchOrderFlowLevels() {
         const symbol = 'NIFTY';
         const limit = parseInt(alarmSettings.ofLevelCount || 1, 10);
+        const rankBy = alarmSettings.ofRankBy || 'cumulative';
         try {
-            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&_t=${Date.now()}`);
+            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&rank_by=${rankBy}&_t=${Date.now()}`);
             const data = await res.json();
             if (data && data.success) {
                 orderFlowLevelsData = data;
@@ -8834,6 +8852,42 @@
             const c2OptToggle = document.getElementById('modal-c2-show-options-toggle');
             if (c2OptToggle) alarmSettings.chart2ShowOptions = c2OptToggle.checked;
 
+            // 4. Quant Edge Filters (5 Toggleable Boosters)
+            const fHaSlInput = document.getElementById('cfg-filter-ha-adaptive-sl');
+            if (fHaSlInput) alarmSettings.filterHaAdaptiveSl = fHaSlInput.checked;
+            const fBVelInput = document.getElementById('cfg-filter-breadth-velocity');
+            if (fBVelInput) alarmSettings.filterBreadthVelocity = fBVelInput.checked;
+            const fHtfInput = document.getElementById('cfg-filter-htf-alignment');
+            if (fHtfInput) alarmSettings.filterHtfAlignment = fHtfInput.checked;
+            const fSrInput = document.getElementById('cfg-filter-sr-proximity');
+            if (fSrInput) alarmSettings.filterSrProximity = fSrInput.checked;
+            const fOiInput = document.getElementById('cfg-filter-oi-delta-confirmation');
+            if (fOiInput) alarmSettings.filterOiDeltaConfirmation = fOiInput.checked;
+
+            // 5. Order Flow S/R Settings
+            const ofYdToggle = document.getElementById('cfg-of-show-yesterday');
+            if (ofYdToggle) alarmSettings.ofShowYesterday = ofYdToggle.checked;
+            const ofTdToggle = document.getElementById('cfg-of-show-today');
+            if (ofTdToggle) alarmSettings.ofShowToday = ofTdToggle.checked;
+            const ofLvlInput = document.getElementById('cfg-of-level-count');
+            if (ofLvlInput) {
+                const v = parseInt(ofLvlInput.value, 10);
+                alarmSettings.ofLevelCount = (!isNaN(v) && v >= 1 && v <= 5) ? v : 1;
+            }
+            const ofWidthInput = document.getElementById('cfg-of-line-width');
+            if (ofWidthInput) {
+                const w = parseInt(ofWidthInput.value, 10);
+                alarmSettings.ofLineWidth = (!isNaN(w) && w >= 1 && w <= 4) ? w : 3;
+            }
+            const ofStyleYd = document.getElementById('cfg-of-line-style-yesterday');
+            if (ofStyleYd) alarmSettings.ofLineStyleYesterday = ofStyleYd.value;
+            const ofStyleTd = document.getElementById('cfg-of-line-style-today');
+            if (ofStyleTd) alarmSettings.ofLineStyleToday = ofStyleTd.value;
+            const ofRankBy = document.getElementById('cfg-of-rank-by');
+            if (ofRankBy) alarmSettings.ofRankBy = ofRankBy.value;
+
+            fetchOrderFlowLevels();
+
             if (typeof updateChartSignalButtonsUI === 'function') updateChartSignalButtonsUI();
 
             // Save 0Click settings
@@ -9014,6 +9068,35 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
 
         const zcTp2 = document.getElementById('zc-tp2-pts-input');
         if (zcTp2) zcTp2.value = zeroClickSettings.tp2Offset !== undefined ? zeroClickSettings.tp2Offset : 150;
+
+        // 5 Quant Edge Filters
+        const fHaSl = document.getElementById('cfg-filter-ha-adaptive-sl');
+        if (fHaSl) fHaSl.checked = (alarmSettings.filterHaAdaptiveSl !== false);
+        const fBVel = document.getElementById('cfg-filter-breadth-velocity');
+        if (fBVel) fBVel.checked = (alarmSettings.filterBreadthVelocity !== false);
+        const fHtf = document.getElementById('cfg-filter-htf-alignment');
+        if (fHtf) fHtf.checked = (alarmSettings.filterHtfAlignment !== false);
+        const fSr = document.getElementById('cfg-filter-sr-proximity');
+        if (fSr) fSr.checked = (alarmSettings.filterSrProximity !== false);
+        const fOi = document.getElementById('cfg-filter-oi-delta-confirmation');
+        if (fOi) fOi.checked = (alarmSettings.filterOiDeltaConfirmation !== false);
+
+        // Order Flow S/R Settings
+        const ofYd = document.getElementById('cfg-of-show-yesterday');
+        if (ofYd) ofYd.checked = (alarmSettings.ofShowYesterday !== false);
+        const ofTd = document.getElementById('cfg-of-show-today');
+        if (ofTd) ofTd.checked = (alarmSettings.ofShowToday !== false);
+        const ofLvl = document.getElementById('cfg-of-level-count');
+        if (ofLvl) ofLvl.value = alarmSettings.ofLevelCount || 1;
+        const ofWidth = document.getElementById('cfg-of-line-width');
+        if (ofWidth) ofWidth.value = alarmSettings.ofLineWidth || 3;
+        const ofStyleYd = document.getElementById('cfg-of-line-style-yesterday');
+        if (ofStyleYd) ofStyleYd.value = alarmSettings.ofLineStyleYesterday || 'solid';
+        const ofStyleTd = document.getElementById('cfg-of-line-style-today');
+        if (ofStyleTd) ofStyleTd.value = alarmSettings.ofLineStyleToday || 'dashed';
+        const ofRankBy = document.getElementById('cfg-of-rank-by');
+        if (ofRankBy) ofRankBy.value = alarmSettings.ofRankBy || 'cumulative';
+        renderOfLevelsPreview();
     }
 
     function saveAlarmSettings() {

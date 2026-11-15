@@ -1872,6 +1872,22 @@
                     </div>
                 </div>
 
+                <!-- Ranking Criteria (Cumulative Volume vs Peak Single Block) -->
+                <div class="p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between">
+                        <label for="cfg-of-rank-by" class="text-gray-300 font-bold block">Level Ranking Criteria</label>
+                        <span class="text-[10px] text-teal-400 font-mono">Microstructure Logic</span>
+                    </div>
+                    <select id="cfg-of-rank-by" class="w-full bg-[#131722] border border-gray-700 text-white text-xs rounded px-2.5 py-1.5 focus:border-teal-500 focus:outline-none">
+                        <option value="cumulative" selected>Cumulative Clustered Volume (Total Execution Depth)</option>
+                        <option value="peak">Peak Single Order Block (Matches Order Flow Depth Top Prints, e.g. ₹25,100)</option>
+                    </select>
+                    <span class="text-[9.5px] text-gray-400 block leading-relaxed">
+                        • <strong>Cumulative</strong>: Merges all executions at price level (e.g. ₹25,175 has 400k total volume; ₹25,100 has 340k).<br>
+                        • <strong>Peak Single Order</strong>: Prioritizes levels with the single largest institutional block trade print (e.g. ₹25,100 had 27k peak print).
+                    </span>
+                </div>
+
                 <!-- 5. Live Clustered Order Flow Preview Card -->
                 <div class="p-2.5 rounded-lg bg-[#131722] border border-teal-900/60 space-y-2">
                     <div class="flex items-center justify-between text-xs">
@@ -2367,7 +2383,8 @@
         ofLevelCount: 1,                // Top N levels from Bid and Ask (default 1)
         ofLineWidth: 3,                 // Line thickness (default 3)
         ofLineStyleYesterday: 'solid',  // 'solid', 'dashed', 'dotted'
-        ofLineStyleToday: 'dashed'      // 'dashed', 'solid', 'dotted'
+        ofLineStyleToday: 'dashed',     // 'dashed', 'solid', 'dotted'
+        ofRankBy: 'cumulative'          // 'cumulative' (default) or 'peak'
     };
 
     let alarmSettings = { ...defaultAlarmSettings };
@@ -2702,8 +2719,9 @@
     async function fetchOrderFlowLevels() {
         const symbol = 'BANKNIFTY';
         const limit = parseInt(alarmSettings.ofLevelCount || 1, 10);
+        const rankBy = alarmSettings.ofRankBy || 'cumulative';
         try {
-            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&_t=${Date.now()}`);
+            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&rank_by=${rankBy}&_t=${Date.now()}`);
             const data = await res.json();
             if (data && data.success) {
                 orderFlowLevelsData = data;
@@ -8932,6 +8950,8 @@
             if (ofStyleYd) alarmSettings.ofLineStyleYesterday = ofStyleYd.value;
             const ofStyleTd = document.getElementById('cfg-of-line-style-today');
             if (ofStyleTd) alarmSettings.ofLineStyleToday = ofStyleTd.value;
+            const ofRankBy = document.getElementById('cfg-of-rank-by');
+            if (ofRankBy) alarmSettings.ofRankBy = ofRankBy.value;
 
             fetchOrderFlowLevels();
 
@@ -9141,6 +9161,8 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (ofStyleYd) ofStyleYd.value = alarmSettings.ofLineStyleYesterday || 'solid';
         const ofStyleTd = document.getElementById('cfg-of-line-style-today');
         if (ofStyleTd) ofStyleTd.value = alarmSettings.ofLineStyleToday || 'dashed';
+        const ofRankBy = document.getElementById('cfg-of-rank-by');
+        if (ofRankBy) ofRankBy.value = alarmSettings.ofRankBy || 'cumulative';
         renderOfLevelsPreview();
     }
 

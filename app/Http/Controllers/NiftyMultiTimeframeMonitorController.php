@@ -186,6 +186,7 @@ class NiftyMultiTimeframeMonitorController extends Controller
         $symbol = strtoupper($request->input('symbol', 'NIFTY'));
         $limit = max(1, min(10, (int) $request->input('limit', 3)));
         $clusterPts = (float) $request->input('cluster', ($symbol === 'BANKNIFTY' ? 10.0 : 5.0));
+        $rankBy = strtolower($request->input('rank_by', 'cumulative')); // 'cumulative' (default) or 'peak'
 
         // 1. Resolve Reference Spot Price for Deviation Filtering
         $refPrice = 0.0;
@@ -224,16 +225,16 @@ class NiftyMultiTimeframeMonitorController extends Controller
         $ydAsks = [];
         $ydBids = [];
         if (Schema::hasTable('order_flow_traded_volumes')) {
-            $ydAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'YD RES');
-            $ydBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'YD SUP');
+            $ydAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'YD RES', $rankBy);
+            $ydBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'YD SUP', $rankBy);
         }
 
         // 4. Today Live Clustered S/R
         $tdAsks = [];
         $tdBids = [];
         if (Schema::hasTable('order_flow_traded_volumes')) {
-            $tdAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'TD RES');
-            $tdBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'TD SUP');
+            $tdAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'TD RES', $rankBy);
+            $tdBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'TD SUP', $rankBy);
         }
 
         return response()->json([
@@ -242,6 +243,7 @@ class NiftyMultiTimeframeMonitorController extends Controller
             'prev_date' => $prevDate,
             'symbol'    => $symbol,
             'ref_price' => $refPrice,
+            'rank_by'   => $rankBy,
             'yesterday' => [
                 'asks' => $ydAsks,
                 'bids' => $ydBids,
@@ -256,7 +258,7 @@ class NiftyMultiTimeframeMonitorController extends Controller
     /**
      * Volume-Weighted Clustering of Order Flow Traded Volume prints
      */
-    protected function clusterLevels($query, float $refPrice, float $clusterDistance, int $limit, string $prefix): array
+    protected function clusterLevels($query, float $refPrice, float $clusterDistance, int $limit, string $prefix, string $rankBy = 'cumulative'): array
     {
         $records = $query->get(['price', 'quantity', 'trade_time']);
         if ($records->isEmpty()) return [];
@@ -286,24 +288,35 @@ class NiftyMultiTimeframeMonitorController extends Controller
                 $totalQ = $clusters[$matched]['qty'] + $q;
                 $clusters[$matched]['price'] = round((($clusters[$matched]['price'] * $clusters[$matched]['qty']) + ($p * $q)) / $totalQ, 1);
                 $clusters[$matched]['qty'] = $totalQ;
+                $clusters[$matched]['peak_qty'] = max($clusters[$matched]['peak_qty'], $q);
                 $clusters[$matched]['count']++;
             } else {
                 $clusters[] = [
-                    'price' => round($p, 1),
-                    'qty'   => $q,
-                    'count' => 1,
-                    'time'  => $t,
+                    'price'    => round($p, 1),
+                    'qty'      => $q,
+                    'peak_qty' => $q,
+                    'count'    => 1,
+                    'time'     => $t,
                 ];
             }
         }
 
-        usort($clusters, fn($a, $b) => $b['qty'] <=> $a['qty']);
+        if ($rankBy === 'peak') {
+            usort($clusters, fn($a, $b) => $b['peak_qty'] <=> $a['peak_qty']);
+        } else {
+            usort($clusters, fn($a, $b) => $b['qty'] <=> $a['qty']);
+        }
         $sliced = array_slice($clusters, 0, $limit);
 
-        return array_map(function ($c) use ($prefix) {
+        return array_map(function ($c) use ($prefix, $rankBy) {
             $kQty = $c['qty'] >= 1000 ? round($c['qty'] / 1000, 1) . 'k' : (string) $c['qty'];
+            $kPeak = $c['peak_qty'] >= 1000 ? round($c['peak_qty'] / 1000, 1) . 'k' : (string) $c['peak_qty'];
             $fmtPrice = number_format($c['price'], ($c['price'] == round($c['price'])) ? 0 : 1);
-            $c['label'] = "{$prefix} ₹{$fmtPrice} [{$kQty}]";
+            if ($rankBy === 'peak') {
+                $c['label'] = "{$prefix} ₹{$fmtPrice} [Peak: {$kPeak}]";
+            } else {
+                $c['label'] = "{$prefix} ₹{$fmtPrice} [{$kQty}]";
+            }
             return $c;
         }, $sliced);
     }
