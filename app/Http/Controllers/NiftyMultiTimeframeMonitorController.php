@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderFlowTradedVolume;
 use App\Services\TimeframeResampler;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -173,5 +175,136 @@ class NiftyMultiTimeframeMonitorController extends Controller
             'selectedTimeframe',
             'tfMinutes'
         ));
+    }
+
+    /**
+     * Get Institutional Clustered Order Flow Support & Resistance Levels (Yesterday & Today)
+     */
+    public function getOrderFlowLevels(Request $request): JsonResponse
+    {
+        $date = $request->input('date', Carbon::today('Asia/Kolkata')->toDateString());
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $limit = max(1, min(10, (int) $request->input('limit', 3)));
+        $clusterPts = (float) $request->input('cluster', ($symbol === 'BANKNIFTY' ? 10.0 : 5.0));
+
+        // 1. Resolve Reference Spot Price for Deviation Filtering
+        $refPrice = 0.0;
+        try {
+            $instKey = ($symbol === 'BANKNIFTY') ? 'NSE_INDEX|Nifty Bank' : 'NSE_INDEX|Nifty 50';
+            $quote = DB::table('ohlc_5m_quotes')
+                ->where('instrument_key', $instKey)
+                ->where('ts_at', '>=', "{$date} 09:15:00")
+                ->where('ts_at', '<=', "{$date} 15:30:00")
+                ->orderBy('ts_at', 'asc')
+                ->first(['open', 'close']);
+            if ($quote) {
+                $refPrice = (float) ($quote->open ?: $quote->close);
+            }
+        } catch (\Throwable $e) {
+            $refPrice = ($symbol === 'BANKNIFTY') ? 57000.0 : 25000.0;
+        }
+
+        if ($refPrice <= 0) {
+            $refPrice = ($symbol === 'BANKNIFTY') ? 57000.0 : 25000.0;
+        }
+
+        // 2. Resolve Previous Trading Date
+        $prevDate = null;
+        if (Schema::hasTable('nse_working_days')) {
+            $prevDate = DB::table('nse_working_days')
+                ->where('working_date', '<', $date)
+                ->orderByDesc('working_date')
+                ->value('working_date');
+        }
+        if (!$prevDate) {
+            $prevDate = Carbon::parse($date)->subDay()->toDateString();
+        }
+
+        // 3. Yesterday Clustered S/R
+        $ydAsks = [];
+        $ydBids = [];
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $ydAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'YD RES');
+            $ydBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'YD SUP');
+        }
+
+        // 4. Today Live Clustered S/R
+        $tdAsks = [];
+        $tdBids = [];
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $tdAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'TD RES');
+            $tdBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'TD SUP');
+        }
+
+        return response()->json([
+            'success'   => true,
+            'date'      => $date,
+            'prev_date' => $prevDate,
+            'symbol'    => $symbol,
+            'ref_price' => $refPrice,
+            'yesterday' => [
+                'asks' => $ydAsks,
+                'bids' => $ydBids,
+            ],
+            'today'     => [
+                'asks' => $tdAsks,
+                'bids' => $tdBids,
+            ],
+        ]);
+    }
+
+    /**
+     * Volume-Weighted Clustering of Order Flow Traded Volume prints
+     */
+    protected function clusterLevels($query, float $refPrice, float $clusterDistance, int $limit, string $prefix): array
+    {
+        $records = $query->get(['price', 'quantity', 'trade_time']);
+        if ($records->isEmpty()) return [];
+
+        $sorted = $records->sortByDesc('quantity')->values();
+        $clusters = [];
+        $maxDeviation = (str_contains($prefix, 'BANK') || $refPrice > 40000) ? 0.05 : 0.035;
+
+        foreach ($sorted as $r) {
+            $p = (float) $r->price;
+            $q = (int) $r->quantity;
+            $t = (string) $r->trade_time;
+
+            if ($refPrice > 0 && abs($p - $refPrice) > ($refPrice * $maxDeviation)) {
+                continue;
+            }
+
+            $matched = null;
+            foreach ($clusters as $idx => $c) {
+                if (abs($c['price'] - $p) <= $clusterDistance) {
+                    $matched = $idx;
+                    break;
+                }
+            }
+
+            if ($matched !== null) {
+                $totalQ = $clusters[$matched]['qty'] + $q;
+                $clusters[$matched]['price'] = round((($clusters[$matched]['price'] * $clusters[$matched]['qty']) + ($p * $q)) / $totalQ, 1);
+                $clusters[$matched]['qty'] = $totalQ;
+                $clusters[$matched]['count']++;
+            } else {
+                $clusters[] = [
+                    'price' => round($p, 1),
+                    'qty'   => $q,
+                    'count' => 1,
+                    'time'  => $t,
+                ];
+            }
+        }
+
+        usort($clusters, fn($a, $b) => $b['qty'] <=> $a['qty']);
+        $sliced = array_slice($clusters, 0, $limit);
+
+        return array_map(function ($c) use ($prefix) {
+            $kQty = $c['qty'] >= 1000 ? round($c['qty'] / 1000, 1) . 'k' : (string) $c['qty'];
+            $fmtPrice = number_format($c['price'], ($c['price'] == round($c['price'])) ? 0 : 1);
+            $c['label'] = "{$prefix} ₹{$fmtPrice} [{$kQty}]";
+            return $c;
+        }, $sliced);
     }
 }
