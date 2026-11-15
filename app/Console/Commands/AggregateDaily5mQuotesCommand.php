@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\BankNiftyConstituentManager;
 use App\Services\NiftyConstituentManager;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -25,6 +26,10 @@ class AggregateDaily5mQuotesCommand extends Command
         $symbols = array_column($periodInfo['constituents'], 'symbol');
         $symbols[] = 'Nifty 50';
         $symbols[] = 'NIFTY';
+
+        $bankPeriodInfo = BankNiftyConstituentManager::getConstituentsForDate($date);
+        $bankSymbols = array_column($bankPeriodInfo['constituents'], 'symbol');
+        $symbols = array_values(array_unique(array_merge($symbols, $bankSymbols, ['Nifty Bank', 'BANKNIFTY'])));
 
         // Check ohlc_quotes first (during market), otherwise ohlc_quotes_history (after 15:40 archive)
         $table = 'ohlc_quotes';

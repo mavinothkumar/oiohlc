@@ -88,6 +88,9 @@ class TrendingOiController extends Controller
         $interval   = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', 5)); // 1, 3, 5, 15, 30, 60, 375
         $customStrikes = $request->input('strikes'); // optional comma separated or array
 
+        $targetSymbol = ($request->input('symbol') === 'BANKNIFTY' || str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
+        $strikeStep   = ($targetSymbol === 'BANKNIFTY') ? 100 : 50;
+
         if (!$expiry) {
             return response()->json(['error' => 'Expiry is required'], 422);
         }
@@ -98,13 +101,13 @@ class TrendingOiController extends Controller
         // Auto fallback: if past date is not yet archived and still in option_chains, query option_chains
         if ($table === 'option_chains_history') {
             $hasInHistory = DB::table('option_chains_history')
-                ->where('trading_symbol', 'NIFTY')
+                ->where('trading_symbol', $targetSymbol)
                 ->where('captured_at', '>=', "{$date} 09:00:00")
                 ->where('captured_at', '<=', "{$date} 15:35:00")
                 ->exists();
             if (!$hasInHistory) {
                 $hasInLive = DB::table('option_chains')
-                    ->where('trading_symbol', 'NIFTY')
+                    ->where('trading_symbol', $targetSymbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
                     ->exists();
@@ -129,12 +132,12 @@ class TrendingOiController extends Controller
             Cache::store('file')->forget($cacheKey);
         }
 
-        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $endTime, $skipOpen, $request, $isToday) {
+        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $endTime, $skipOpen, $request, $isToday, $targetSymbol, $strikeStep) {
             // Auto-migration on demand: If this historical date has no records in option_chains_history,
             // automatically migrate this single date from expired_ohlc on-the-fly!
             if (!$isToday && Schema::hasTable('expired_ohlc')) {
                 $hasHistorical = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
-                    ->where('trading_symbol', 'NIFTY')
+                    ->where('trading_symbol', $targetSymbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
                     ->exists();
@@ -152,7 +155,7 @@ class TrendingOiController extends Controller
             $tsQuery = DB::table(DB::raw("{$table}{$indexHint}"))
                 ->where('captured_at', '>=', "{$date} 00:00:00")
                 ->where('captured_at', '<=', "{$date} 23:59:59")
-                ->where('trading_symbol', 'NIFTY')
+                ->where('trading_symbol', $targetSymbol)
                 ->where('expiry', $expiry);
 
             if ($skipOpen) {
@@ -172,7 +175,7 @@ class TrendingOiController extends Controller
             // Auto-recover if a mismatched expiry was provided
             if (empty($timestamps)) {
                 $realExpiry = DB::table(DB::raw("{$table}{$indexHint}"))
-                    ->where('trading_symbol', 'NIFTY')
+                    ->where('trading_symbol', $targetSymbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
                     ->where('expiry', '>=', $date)
@@ -182,7 +185,7 @@ class TrendingOiController extends Controller
                 if ($realExpiry) {
                     $expiry = $realExpiry;
                     $tsQuery = DB::table(DB::raw("{$table}{$indexHint}"))
-                        ->where('trading_symbol', 'NIFTY')
+                        ->where('trading_symbol', $targetSymbol)
                         ->where('expiry', $expiry)
                         ->where('captured_at', '>=', "{$date} 00:00:00")
                         ->where('captured_at', '<=', "{$date} 23:59:59");
@@ -211,12 +214,12 @@ class TrendingOiController extends Controller
         $latestTimestamp = end($timestamps);
         $latestRows = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', $latestTimestamp)
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->get(['strike_price', 'underlying_spot_price', 'option_type', 'ltp', 'oi']);
 
         $spot = (float) ($latestRows->first()->underlying_spot_price ?? 0);
-        $atmStrike = (int) (round($spot / 50) * 50);
+        $atmStrike = (int) (round($spot / $strikeStep) * $strikeStep);
 
         // All available strikes for this expiry extracted directly from the snapshot in 0ms
         $allStrikes = $latestRows->pluck('strike_price')->unique()->sort()->values()->map(fn($s) => (int) $s)->toArray();
@@ -554,7 +557,7 @@ class TrendingOiController extends Controller
         // Latest rows for stream strikes
         $streamRows = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', $latestTimestamp)
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $streamStrikes)
             ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp']);
@@ -563,7 +566,7 @@ class TrendingOiController extends Controller
         $firstTimestamp = reset($timestamps);
         $baseRowsMap = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', $firstTimestamp)
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $streamStrikes)
             ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp'])
@@ -576,7 +579,7 @@ class TrendingOiController extends Controller
 
         $prevRowsMap = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', $prev5mTimestamp)
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $streamStrikes)
             ->get(['strike_price', 'option_type', 'instrument_key', 'oi', 'ltp'])
@@ -1071,17 +1074,18 @@ class TrendingOiController extends Controller
      */
     public function getExpiries(Request $request)
     {
-        $mode       = $request->input('mode', 'live');
-        $date       = $request->input('date', today()->toDateString());
-        $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
-        $isToday    = ($date === today()->toDateString());
+        $mode         = $request->input('mode', 'live');
+        $date         = $request->input('date', today()->toDateString());
+        $underlying   = $request->input('underlying', 'NSE_INDEX|Nifty 50');
+        $isToday      = ($date === today()->toDateString());
+        $targetSymbol = ($request->input('symbol') === 'BANKNIFTY' || str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
 
         $expiries = collect([]);
 
         // For historical dates: check expired_expiries first (ultra-fast, indexed, <1ms)
         if (!$isToday && Schema::hasTable('expired_expiries')) {
             $expiries = DB::table('expired_expiries')
-                ->where('underlying_symbol', 'NIFTY')
+                ->where('underlying_symbol', $targetSymbol)
                 ->where('instrument_type', 'OPT')
                 ->where('expiry_date', '>=', $date)
                 ->select('expiry_date')
@@ -1094,7 +1098,7 @@ class TrendingOiController extends Controller
         // For historical dates: check option_chains_history if expired_expiries was empty
         if (!$isToday && $expiries->isEmpty() && Schema::hasTable('option_chains_history')) {
             $expiries = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
-                ->where('trading_symbol', 'NIFTY')
+                ->where('trading_symbol', $targetSymbol)
                 ->where('captured_at', '>=', "{$date} 09:00:00")
                 ->where('captured_at', '<=', "{$date} 15:35:00")
                 ->where('expiry', '>=', $date)
@@ -1108,7 +1112,7 @@ class TrendingOiController extends Controller
         // For today or future dates (or fallback): check nse_expiries (<1ms)
         if ($expiries->isEmpty() && Schema::hasTable('nse_expiries')) {
             $query = DB::table('nse_expiries')
-                ->where('trading_symbol', 'NIFTY')
+                ->where('trading_symbol', $targetSymbol)
                 ->where('instrument_type', 'OPT');
             if ($isToday) {
                 $query->where('expiry_date', '>=', $date);
@@ -1126,7 +1130,7 @@ class TrendingOiController extends Controller
             if (Schema::hasTable($table)) {
                 $optHint = $this->getOptimalIndexHint($table);
                 $expiries = DB::table(DB::raw("{$table}{$optHint}"))
-                    ->where('trading_symbol', 'NIFTY')
+                    ->where('trading_symbol', $targetSymbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
                     ->where('captured_at', '<=', "{$date} 15:35:00")
                     ->where('expiry', '>=', $date)
@@ -1140,7 +1144,7 @@ class TrendingOiController extends Controller
 
         if ($expiries->isEmpty() && Schema::hasTable('nse_expiries')) {
             $expiries = DB::table('nse_expiries')
-                ->where('trading_symbol', 'NIFTY')
+                ->where('trading_symbol', $targetSymbol)
                 ->where('instrument_type', 'OPT')
                 ->select('expiry_date')
                 ->distinct()
@@ -1454,8 +1458,9 @@ class TrendingOiController extends Controller
         // Query all required timestamps in one single query
         $neededTimestamps = array_unique(array_filter([$ts5m, $ts15m, $ts30m, $tsToday, $latestTimestamp]));
         $hint = $this->getOptimalIndexHint($table);
+        $targetSymbol = (str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
         $rows = DB::table(DB::raw("{$table}{$hint}"))
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('captured_at', $neededTimestamps)
             ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);
@@ -1665,8 +1670,9 @@ class TrendingOiController extends Controller
 
         // 2. Fetch all strike data for the 5-minute timestamps
         $hint = $this->getOptimalIndexHint($table);
+        $targetSymbol = (str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
         $rows = DB::table(DB::raw("{$table}{$hint}"))
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('captured_at', $ts5mList)
             ->get(['captured_at', 'strike_price', 'option_type', 'oi', 'ltp']);

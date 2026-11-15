@@ -103,7 +103,7 @@ class OptionsBreadthMonitorController extends Controller
                 $selectedExpiry = DB::table(DB::raw("option_chains_history USE INDEX (idx_och_sym_exp_cap)"))
                     ->where('trading_symbol', $symbol)
                     ->where('captured_at', '>=', "{$date} 09:00:00")
-                    ->where('captured_at', '<=', "{$date} 15:35:00")
+                    ->where('captured_at', '<=', "{$date} 23:59:59")
                     ->where('expiry', '>=', $date)
                     ->orderBy('expiry')
                     ->value('expiry');
@@ -123,8 +123,12 @@ class OptionsBreadthMonitorController extends Controller
             $selectedExpiry = $date;
         }
 
-        $startTs = "{$date} 09:00:00";
-        $endTs   = "{$date} 15:35:00";
+        $startTs = "{$date} 08:00:00";
+        $endTs   = "{$date} 23:59:59";
+
+        $isBank = ($symbol === 'BANKNIFTY' || str_contains($symbol, 'BANK') || str_contains($symbol, 'Bank'));
+        $defaultStrike = $isBank ? 60000 : 24000;
+        $strikeStep    = $isBank ? 100 : 50;
 
         // Multi-timeframe interval support: 1, 3, 5, 15, 30, 60, 375 (1D)
         $interval = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', $request->input('timeframe', 5)));
@@ -140,7 +144,7 @@ class OptionsBreadthMonitorController extends Controller
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode, $interval) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode, $interval, $defaultStrike, $strikeStep) {
             // 2. Fetch Strikes and determine ATM strike
             $indexHint = $this->getOptimalIndexHint($table);
             $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
@@ -228,10 +232,14 @@ class OptionsBreadthMonitorController extends Controller
             }
 
             // Auto-migration on demand: If this historical date has no option contracts in option_chains_history,
-            // automatically migrate this single date from expired_ohlc on-the-fly!
-            if ($strikes->isEmpty() && !$isToday && Schema::hasTable('expired_ohlc')) {
+            // automatically migrate this single date from expired_ohlc or Upstox on-the-fly!
+            if ($strikes->isEmpty() && !$isToday) {
                 try {
-                    \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
+                    if ($isBank) {
+                        \Illuminate\Support\Facades\Artisan::call('options:sync-banknifty-history', ['--date' => $date]);
+                    } elseif (Schema::hasTable('expired_ohlc')) {
+                        \Illuminate\Support\Facades\Artisan::call('options:fill-history-from-expired', ['--date' => $date]);
+                    }
 
                     $table = 'option_chains_history';
                     $indexHint = $this->getOptimalIndexHint($table);
@@ -261,7 +269,13 @@ class OptionsBreadthMonitorController extends Controller
 
         // Defensive check: If date still has no option contracts in database
         if ($strikes->isEmpty()) {
-            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, 24000, $interval);
+            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $defaultStrike, $interval);
+            if (!empty($emptyCandles)) {
+                $lastCandle = end($emptyCandles);
+                if (!empty($lastCandle['close']) && $lastCandle['close'] > 0) {
+                    $defaultStrike = (int)(round($lastCandle['close'] / (float)$strikeStep) * $strikeStep);
+                }
+            }
             return [
                 'success'          => false,
                 'error'            => "No option strikes found for {$symbol} on {$date}. Please run migration for this date or select an available date.",
@@ -269,8 +283,8 @@ class OptionsBreadthMonitorController extends Controller
                 'interval'         => $interval,
                 'interval_label'   => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
                 'expiry'           => $selectedExpiry,
-                'center_strike'    => 24000,
-                'atm_strike'       => 24000,
+                'center_strike'    => $defaultStrike,
+                'atm_strike'       => $defaultStrike,
                 'basket_mode'      => $basketMode,
                 'range'            => $range,
                 'strikes'          => [],
@@ -311,7 +325,7 @@ class OptionsBreadthMonitorController extends Controller
                 ->value('underlying_spot_price');
         }
 
-        $atmStrike = 24000;
+        $atmStrike = $defaultStrike;
         if ($strikes->isNotEmpty()) {
             $atmStrike = $spotPrice ? $strikes->sortBy(fn($s) => abs($s - $spotPrice))->first() : $strikes->values()->get((int) floor($strikes->count() / 2));
         }
@@ -432,9 +446,16 @@ class OptionsBreadthMonitorController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $isPreMarket = ($isToday && $isWeekday && $curTimeStr >= '09:00' && $curTimeStr < '09:15');
 
-        // 1. Primary: Use NiftyWeightageMonitorController's battle-tested real candle loader for 100% chart synchronization
+        $isBank = ($symbol === 'BANKNIFTY' || str_contains($symbol, 'BANK') || str_contains($symbol, 'Bank'));
+        $targetSymbols = $isBank ? ['Nifty Bank', 'BANKNIFTY'] : ['Nifty 50', 'NIFTY'];
+
+        // 1. Primary: Use corresponding WeightageMonitorController's battle-tested real candle loader for 100% chart synchronization
         try {
-            $nwCtrl = app(\App\Http\Controllers\NiftyWeightageMonitorController::class);
+            if ($isBank) {
+                $nwCtrl = app(\App\Http\Controllers\BankNiftyWeightageMonitorController::class);
+            } else {
+                $nwCtrl = app(\App\Http\Controllers\NiftyWeightageMonitorController::class);
+            }
             $candles = $nwCtrl->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
             if (!empty($candles)) {
                 return $candles;
@@ -449,7 +470,7 @@ class OptionsBreadthMonitorController extends Controller
         if (Schema::hasTable('ohlc_5m_quotes')) {
             $dbCandles = DB::table('ohlc_5m_quotes')
                 ->where('instrument_type', 'INDEX')
-                ->whereIn('trading_symbol', ['Nifty 50', 'NIFTY'])
+                ->whereIn('trading_symbol', $targetSymbols)
                 ->where('ts_at', '>=', "{$date} 09:00:00")
                 ->where('ts_at', '<=', "{$date} 15:35:00")
                 ->orderBy('ts_at')
@@ -485,10 +506,9 @@ class OptionsBreadthMonitorController extends Controller
         // Check ohlc_quotes for 1-minute INDEX candles and aggregate into 5-minute candles
         if (empty($candles) && Schema::hasTable('ohlc_quotes')) {
             $oneMinQuotes = DB::table('ohlc_quotes')
-                ->where(function($q) use ($symbol) {
+                ->where(function($q) use ($symbol, $targetSymbols) {
                     $q->where('instrument_key', 'like', "%{$symbol}%")
-                      ->orWhere('trading_symbol', $symbol)
-                      ->orWhere('trading_symbol', 'Nifty 50');
+                      ->orWhereIn('trading_symbol', $targetSymbols);
                 })
                 ->where('instrument_type', 'INDEX')
                 ->where('ts_at', '>=', "{$date} 00:00:00")
@@ -738,7 +758,9 @@ class OptionsBreadthMonitorController extends Controller
             }
             if (!$candleSpot) $candleSpot = (float)$initialSpot;
 
-            $candleAtm = (int)(round($candleSpot / 50.0) * 50);
+            $isBank = ($symbol === 'BANKNIFTY' || str_contains($symbol, 'BANK') || str_contains($symbol, 'Bank'));
+            $strikeStep = $isBank ? 100.0 : 50.0;
+            $candleAtm = (int)(round($candleSpot / $strikeStep) * $strikeStep);
 
             if ($basketMode === 'dynamic' && !empty($allStrikesArr)) {
                 $cIdxAtm = array_search((float)$candleAtm, array_map('floatval', $allStrikesArr));

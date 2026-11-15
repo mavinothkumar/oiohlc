@@ -108,6 +108,14 @@ Schedule::command('ohlc:sync-nifty50')
         ->runInBackground()
         ->appendOutputTo(storage_path('logs/nifty50-5m-eod-sync.log'));
 
+Schedule::command('ohlc:sync-banknifty')
+        ->weekdays()
+        ->dailyAt('15:35')
+        ->timezone('Asia/Kolkata')
+        ->withoutOverlapping()
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/banknifty-5m-eod-sync.log'));
+
 
 //Schedule::command( 'optionchain:fetch' ) // php artisan optionchain:fetch
 //        ->everyFiveMinutes()

@@ -358,6 +358,17 @@ Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifie
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');
 
+// BANK NIFTY Multi-Timeframe Unified Monitor (1m, 3m, 5m, 15m, 30m, 60m, 1D)
+Route::get('/banknifty-multi-timeframe-monitor', [\App\Http\Controllers\BankNiftyMultiTimeframeMonitorController::class, 'index'])->name('banknifty.multi.timeframe.monitor');
+Route::get('/api/banknifty-weightage-monitor/data', [\App\Http\Controllers\BankNiftyWeightageMonitorController::class, 'getData'])->name('api.banknifty.weightage.monitor.data');
+
+// Heikin Ashi Nifty Breadth Backtest (5m/15m/30m | 70-90% Breadth | HA Confirmation | Normal SL)
+Route::get('/backtests/heikin-breadth', [\App\Http\Controllers\HeikinBreadthBacktestController::class, 'index'])->name('backtests.heikin-breadth.index');
+Route::get('/heikin-breadth-backtest', [\App\Http\Controllers\HeikinBreadthBacktestController::class, 'index']);
+Route::post('/api/backtests/heikin-breadth/run', [\App\Http\Controllers\HeikinBreadthBacktestController::class, 'run'])->name('api.backtests.heikin-breadth.run');
+Route::post('/api/backtests/heikin-breadth/matrix', [\App\Http\Controllers\HeikinBreadthBacktestController::class, 'matrix'])->name('api.backtests.heikin-breadth.matrix');
+Route::get('/api/backtests/heikin-breadth/export', [\App\Http\Controllers\HeikinBreadthBacktestController::class, 'exportCsv'])->name('api.backtests.heikin-breadth.export');
+
 // Institutional Gamma Exposure (GEX) & Gamma Blast Scalping Radar
 Route::get('/gamma-blast-radar', [\App\Http\Controllers\GammaBlastRadarController::class, 'index'])->name('gamma-blast.index');
 Route::get('/gamma-exposure', [\App\Http\Controllers\GammaBlastRadarController::class, 'index']);

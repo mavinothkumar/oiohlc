@@ -14,10 +14,11 @@ class  CollectOneMinOhlcCommand extends Command {
 
     private array $instruments = [
         [ 'key' => 'NSE_INDEX|Nifty 50', 'symbol' => 'NIFTY', 'exchange' => 'NSE' ],
+        [ 'key' => 'NSE_INDEX|Nifty Bank', 'symbol' => 'BANKNIFTY', 'exchange' => 'NSE' ],
     ];
 
     /**
-     * Exact Upstox instrument keys for all 50 NIFTY constituent stocks
+     * Exact Upstox instrument keys for all 50 NIFTY constituent stocks and Bank Nifty stocks
      */
     public static array $nifty50EquityStocks = [
         'HDFCBANK'   => 'NSE_EQ|INE040A01034',
@@ -70,6 +71,14 @@ class  CollectOneMinOhlcCommand extends Command {
         'TRENT'      => 'NSE_EQ|INE849A01020',
         'JIOFIN'     => 'NSE_EQ|INE758E01017',
         'BAJAJ-AUTO' => 'NSE_EQ|INE917I01010',
+        // Additional Bank Nifty constituent stocks:
+        'INDUSINDBK' => 'NSE_EQ|INE095A01012',
+        'BANKBARODA' => 'NSE_EQ|INE028A01039',
+        'PNB'        => 'NSE_EQ|INE160A01022',
+        'AUBANK'     => 'NSE_EQ|INE949L01017',
+        'FEDERALBNK' => 'NSE_EQ|INE171A01029',
+        'IDFCFIRSTB' => 'NSE_EQ|INE092T01019',
+        'BANDHANBNK' => 'NSE_EQ|INE545U01014',
     ];
 
     public function handle(): int {
@@ -245,7 +254,7 @@ class  CollectOneMinOhlcCommand extends Command {
 
             $isIndex = ( $meta['instrument_type'] === 'INDEX' );
             $isEq    = ( $meta['instrument_type'] === 'EQ' );
-            $tradingSymbol = $isIndex ? 'Nifty 50' : ( $isEq ? ( $meta['symbol'] ?? $inst['symbol'] ) : $inst['symbol'] );
+            $tradingSymbol = $isIndex ? ($inst['symbol'] === 'BANKNIFTY' ? 'Nifty Bank' : 'Nifty 50') : ($isEq ? ($meta['symbol'] ?? $inst['symbol']) : $inst['symbol']);
 
             $rows[] = [
                 'instrument_key'  => $instrumentKey,
@@ -347,12 +356,13 @@ class  CollectOneMinOhlcCommand extends Command {
                 if ( ! empty( $candles ) ) {
                     $now = now();
                     $indexRows = [];
+                    $indexSymbol = str_contains($instrumentKey, 'Bank') ? 'Nifty Bank' : 'Nifty 50';
                     foreach ( $candles as $c ) {
                         $tsAt = Carbon::parse( $c[0] )->setTimezone( config( 'app.timezone', 'Asia/Kolkata' ) )->second( 0 );
                         $indexRows[] = [
                             'instrument_key'  => $instrumentKey,
                             'instrument_type' => 'INDEX',
-                            'trading_symbol'  => 'Nifty 50',
+                            'trading_symbol'  => $indexSymbol,
                             'expiry_date'     => null,
                             'strike_price'    => 0,
                             'open'            => (float) $c[1],

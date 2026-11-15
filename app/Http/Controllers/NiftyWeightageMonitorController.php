@@ -1163,6 +1163,21 @@ class NiftyWeightageMonitorController extends Controller
                 ->orderBy('ts_at')
                 ->get();
 
+            if ($oneMinQuotes->isEmpty() && !$isToday) {
+                $this->syncHistoricalOneMinIndexQuotes($date, 'NSE_INDEX|Nifty 50', 'Nifty 50');
+                $oneMinQuotes = DB::table('ohlc_quotes')
+                    ->where(function($q) {
+                        $q->where('instrument_key', 'like', '%Nifty 50%')
+                          ->orWhere('trading_symbol', 'Nifty 50')
+                          ->orWhere('trading_symbol', 'NIFTY');
+                    })
+                    ->where('instrument_type', 'INDEX')
+                    ->where('ts_at', '>=', "{$date} 00:00:00")
+                    ->where('ts_at', '<=', "{$date} 23:59:59")
+                    ->orderBy('ts_at')
+                    ->get();
+            }
+
             if ($oneMinQuotes->isNotEmpty()) {
                 $raw1m = [];
                 $seen1m = [];
@@ -1288,6 +1303,21 @@ class NiftyWeightageMonitorController extends Controller
                 ->where('ts_at', '<=', "{$date} 23:59:59")
                 ->orderBy('ts_at')
                 ->get();
+
+            if ($oneMinQuotes->isEmpty() && !$isToday) {
+                $this->syncHistoricalOneMinIndexQuotes($date, 'NSE_INDEX|Nifty 50', 'Nifty 50');
+                $oneMinQuotes = DB::table('ohlc_quotes')
+                    ->where(function($q) {
+                        $q->where('instrument_key', 'like', '%Nifty 50%')
+                          ->orWhere('trading_symbol', 'Nifty 50')
+                          ->orWhere('trading_symbol', 'NIFTY');
+                    })
+                    ->where('instrument_type', 'INDEX')
+                    ->where('ts_at', '>=', "{$date} 00:00:00")
+                    ->where('ts_at', '<=', "{$date} 23:59:59")
+                    ->orderBy('ts_at')
+                    ->get();
+            }
 
             if ($oneMinQuotes->isNotEmpty()) {
                 $fiveMinGroups = [];
@@ -1466,5 +1496,57 @@ class NiftyWeightageMonitorController extends Controller
         }
 
         return $niftyCandles;
+    }
+
+    /**
+     * On-demand sync of 1-minute historical index candles from Upstox for past dates
+     */
+    protected function syncHistoricalOneMinIndexQuotes(string $date, string $instrumentKey, string $tradingSymbol): void
+    {
+        try {
+            $token = config('services.upstox.analytics_token') ?: config('services.upstox.access_token');
+            if (!$token) return;
+
+            $encodedKey = rawurlencode($instrumentKey);
+            $resp = \Illuminate\Support\Facades\Http::withHeaders([
+                'Accept'        => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
+            ])->timeout(10)->get("https://api.upstox.com/v2/historical-candle/{$encodedKey}/1minute/{$date}/{$date}");
+
+            if ($resp->ok()) {
+                $candles = $resp->json('data.candles') ?? [];
+                if (!empty($candles)) {
+                    $rows = [];
+                    $now = now();
+                    foreach ($candles as $c) {
+                        $tsAt = Carbon::parse($c[0])->setTimezone('Asia/Kolkata')->second(0);
+                        $rows[] = [
+                            'instrument_key'  => $instrumentKey,
+                            'instrument_type' => 'INDEX',
+                            'trading_symbol'  => $tradingSymbol,
+                            'expiry_date'     => null,
+                            'strike_price'    => 0,
+                            'open'            => (float)$c[1],
+                            'high'            => (float)$c[2],
+                            'low'             => (float)$c[3],
+                            'close'           => (float)$c[4],
+                            'volume'          => (int)($c[5] ?? 0),
+                            'ts'              => $tsAt->timestamp,
+                            'ts_at'           => $tsAt->toDateTimeString(),
+                            'last_price'      => (float)$c[4],
+                            'created_at'      => $now,
+                            'updated_at'      => $now,
+                        ];
+                    }
+                    DB::table('ohlc_quotes')->upsert(
+                        $rows,
+                        ['instrument_key', 'ts'],
+                        ['open', 'high', 'low', 'close', 'volume', 'last_price', 'updated_at']
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Could not sync 1m candles for {$instrumentKey} on {$date}: " . $e->getMessage());
+        }
     }
 }

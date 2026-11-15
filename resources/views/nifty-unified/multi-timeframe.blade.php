@@ -621,7 +621,7 @@
                                 <span class="text-gray-300 font-bold flex items-center gap-1">
                                     <span class="text-xs">🎯</span>
                                     <span>Stocks Trigger Strength</span>
-                                    <span class="text-[9px] text-gray-400 font-normal font-mono" id="stk-trigger-val-badge">(≥80%)</span>
+                                    <span class="text-[9px] text-gray-400 hover:text-sky-300 font-normal font-mono cursor-pointer transition" id="stk-trigger-val-badge" onclick="cycleStocksTriggerThreshold()" title="Click to cycle Stocks breach threshold (75% / 80% / 85%) • Recommended: 80%">(≥80%)</span>
                                 </span>
                                 <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Nothing happened
@@ -876,7 +876,7 @@
                                 <span class="text-gray-300 font-bold flex items-center gap-1">
                                     <span class="text-xs">🎯</span>
                                     <span>Options Trigger Strength</span>
-                                    <span class="text-[9px] text-gray-400 font-normal font-mono" id="opt-trigger-val-badge">(≥70%)</span>
+                                    <span class="text-[9px] text-gray-400 hover:text-purple-300 font-normal font-mono cursor-pointer transition" id="opt-trigger-val-badge" onclick="cycleOptionsTriggerThreshold()" title="Click to cycle Options breach threshold (65% / 70% / 75% / 80%) • Recommended: 70%">(≥70%)</span>
                                 </span>
                                 <span id="opt-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Nothing happened
@@ -1912,8 +1912,20 @@
     }
 
     // Independent Timeframes for Chart 1 (Stocks) and Chart 2 (Options)
-    let wTimeframe = localStorage.getItem('nifty_unified_w_tf') || currentUnifiedTimeframe || '5m';
-    let oTimeframe = localStorage.getItem('nifty_unified_o_tf') || (currentUnifiedTimeframe === '15m' ? '15m' : '15m');
+    // Priority: Explicit URL timeframe parameter -> currentUnifiedTimeframe -> localStorage -> default 5m
+    const urlParamsObj = new URLSearchParams(window.location.search);
+    const hasExplicitUrlTf = urlParamsObj.has('timeframe') || urlParamsObj.has('interval');
+    let initialTf = hasExplicitUrlTf ? currentUnifiedTimeframe : (localStorage.getItem('nifty_unified_w_tf') || currentUnifiedTimeframe || '5m');
+
+    let wTimeframe = initialTf;
+    let oTimeframe = hasExplicitUrlTf ? currentUnifiedTimeframe : (localStorage.getItem('nifty_unified_o_tf') || initialTf);
+
+    if (hasExplicitUrlTf) {
+        try {
+            localStorage.setItem('nifty_unified_w_tf', currentUnifiedTimeframe);
+            localStorage.setItem('nifty_unified_o_tf', currentUnifiedTimeframe);
+        } catch(e){}
+    }
 
     function setChart1Timeframe(tf) {
         if (wTimeframe === tf) return;
@@ -2075,7 +2087,12 @@
     let alarmSettings = { ...defaultAlarmSettings };
     try {
         const saved = localStorage.getItem('nifty_unified_alarm_settings');
-        if (saved) alarmSettings = { ...alarmSettings, ...JSON.parse(saved) };
+        if (saved) {
+            alarmSettings = { ...alarmSettings, ...JSON.parse(saved) };
+            // Auto-heal unreachable options threshold if set > 80% (Options surface rarely hits 80% on 15m+)
+            if (alarmSettings.optionsUpThreshold > 80) alarmSettings.optionsUpThreshold = 70;
+            if (alarmSettings.optionsDownThreshold > 80) alarmSettings.optionsDownThreshold = 70;
+        }
     } catch (e) {
         console.warn('Could not read alarm settings:', e);
     }
@@ -3195,6 +3212,44 @@
         renderOptionsBreadthColumn();
     }
     window.toggleChart2OptionsSignal = toggleChart2OptionsSignal;
+
+    function cycleOptionsTriggerThreshold() {
+        const current = alarmSettings.optionsUpThreshold || 70;
+        const next = (current === 65) ? 70 : ((current === 70) ? 75 : ((current === 75) ? 80 : 65));
+        alarmSettings.optionsUpThreshold = next;
+        alarmSettings.optionsDownThreshold = next;
+        const inUp = document.getElementById('options-up-input');
+        const inDown = document.getElementById('options-down-input');
+        const slUp = document.getElementById('options-up-slider');
+        const slDown = document.getElementById('options-down-slider');
+        if (inUp) inUp.value = next;
+        if (inDown) inDown.value = next;
+        if (slUp) slUp.value = next;
+        if (slDown) slDown.value = next;
+        saveAlarmSettings();
+        renderOptionsBreadthColumn();
+        renderWeightageColumn();
+    }
+    window.cycleOptionsTriggerThreshold = cycleOptionsTriggerThreshold;
+
+    function cycleStocksTriggerThreshold() {
+        const current = alarmSettings.stocksUpThreshold || 80;
+        const next = (current === 75) ? 80 : ((current === 80) ? 85 : 75);
+        alarmSettings.stocksUpThreshold = next;
+        alarmSettings.stocksDownThreshold = next;
+        const inUp = document.getElementById('stocks-up-input');
+        const inDown = document.getElementById('stocks-down-input');
+        const slUp = document.getElementById('stocks-up-slider');
+        const slDown = document.getElementById('stocks-down-slider');
+        if (inUp) inUp.value = next;
+        if (inDown) inDown.value = next;
+        if (slUp) slUp.value = next;
+        if (slDown) slDown.value = next;
+        saveAlarmSettings();
+        renderOptionsBreadthColumn();
+        renderWeightageColumn();
+    }
+    window.cycleStocksTriggerThreshold = cycleStocksTriggerThreshold;
 
     function updateChartSignalButtonsUI() {
         const c1Stk = (alarmSettings.chart1ShowStocks !== false);
@@ -4950,7 +5005,9 @@
 
         // Find the matching candle for precise Low/High invalidation levels
         const triggerCandle = weightageData?.candles?.find(c => (c.time_str === timeStr || c.time === timeStr))
-            || weightageData?.candles?.[activeCandleIndex];
+            || breadthData?.nifty_candles?.find(c => (c.time_str === timeStr || c.time === timeStr))
+            || weightageData?.candles?.[activeCandleIndex]
+            || breadthData?.nifty_candles?.[activeCandleIndex];
 
         const candleTime = triggerCandle ? Number(triggerCandle.time || triggerCandle.timestamp) : null;
         const wHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, false, timeStr) : null;
@@ -5649,6 +5706,7 @@
                     });
                 }
                 renderWeightageColumn();
+                if (breadthData) renderOptionsBreadthColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
             }
@@ -5680,6 +5738,7 @@
                     });
                 }
                 renderOptionsBreadthColumn();
+                if (weightageData) renderWeightageColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
             }
@@ -5742,6 +5801,7 @@
                         });
                     }
                     renderOptionsBreadthColumn();
+                    if (weightageData) renderWeightageColumn();
                     buildMasterTimeline();
                     document.getElementById('o-chart-loading')?.classList.add('hidden');
                 } else {
@@ -5808,6 +5868,7 @@
                         });
                     }
                     renderWeightageColumn();
+                    if (breadthData) renderOptionsBreadthColumn();
                     buildMasterTimeline();
                 }
             })
@@ -5943,6 +6004,10 @@
                 const oUpTh = alarmSettings.optionsUpThreshold || 70;
                 const oDownTh = alarmSettings.optionsDownThreshold || 70;
 
+                let lastPos = null;
+                let lastMarkerIdx = -999;
+                let lastPeakPct = 0;
+
                 rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
@@ -5959,7 +6024,7 @@
                         }
                     }
 
-                    let sBull = false, sBear = false;
+                    let sBull = false, sBear = false, sPct = 0;
                     if (showStocks && b) {
                         if (sTrig === 'both') {
                             sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
@@ -5974,18 +6039,19 @@
                             sBull = (b.green_weight >= sUpTh);
                             sBear = (b.red_weight >= sDownTh);
                         }
+                        sPct = sBull ? Math.round(b.green_count_pct) : (sBear ? Math.round(b.red_count_pct) : 0);
                     }
 
-                    let oBull = false, oBear = false;
+                    let oBull = false, oBear = false, oPct = 0;
                     let oUw = 0, oDw = 0;
                     if (showOptions && oB) {
                         oUw = Number(oB.up_weight || 0);
                         oDw = Number(oB.down_weight || 0);
                         oBull = (oUw >= oUpTh);
                         oBear = (oDw >= oDownTh);
+                        oPct = oBull ? Math.round(oUw) : (oBear ? Math.round(oDw) : 0);
                     }
 
-                    const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
@@ -5995,121 +6061,113 @@
                     const oHaAnalysis = showOptions ? getCandleHaWickAnalysis(candleTime, true, c.time_str) : null;
                     const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
 
-                    let validStockBull = sBull;
-                    let validStockBear = sBear;
-                    let validOptBull = oBull;
-                    let validOptBear = oBear;
-
-                    // ── CANDLE COLOR & WICK VALIDATION FOR CHART 1 ──
                     // 1. Determine visual candle color on Chart 1:
                     const isRegularGreen = Number(c.close) >= Number(c.open);
                     const isHaGreen = wHaAnalysis ? wHaAnalysis.isHaBull : isRegularGreen;
-                    const isChart1CandleGreen = (wCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
+                    const isCandleGreen = (wCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
 
-                    // 2. Strict Directional Alignment:
-                    // A BUY / Bull alert can NEVER be placed on a RED candle!
-                    // A SELL / Bear alert can NEVER be placed on a GREEN candle!
-                    if (!isChart1CandleGreen) {
-                        validStockBull = false;
-                        validOptBull = false;
-                    } else {
-                        validStockBear = false;
-                        validOptBear = false;
+                    // 2. Strict Wick Validation for entries:
+                    let cleanStkBull = sBull, cleanStkBear = sBear;
+                    if (useStocksHa && wHaAnalysis) {
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) cleanStkBull = false;
+                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) cleanStkBear = false;
                     }
-
-                    // 3. Strict Wick Filter:
-                    // If Wick Strict is enabled, require zero opposite wick and NO both wicks
-                    if (useStocksHa) {
-                        if (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) {
-                            validStockBull = false;
-                            validOptBull = false;
-                        }
-                        if (!wHaAnalysis || wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) {
-                            validStockBear = false;
-                            validOptBear = false;
+                    let cleanOptBull = oBull, cleanOptBear = oBear;
+                    if (useOptionsHa) {
+                        const oHa = oHaAnalysis || wHaAnalysis;
+                        if (oHa) {
+                            if (oHa.hasBothWicks || !oHa.isCleanBullEntry) cleanOptBull = false;
+                            if (oHa.hasBothWicks || !oHa.isCleanBearEntry) cleanOptBear = false;
                         }
                     }
-                    if (useOptionsHa && oHaAnalysis) {
-                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) validOptBull = false;
-                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) validOptBear = false;
+
+                    // 3. Resolve EXACTLY ONE clean signal per candle on Chart 1 (Stocks Chart)
+                    let sig = null;
+                    // Confluence (Both agree with candle direction)
+                    if (showStocks && showOptions && cleanStkBull && cleanOptBull && isCandleGreen) {
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#10b981', text: `🔥 CONF ${sPct}%`, pct: sPct };
+                    } else if (showStocks && showOptions && cleanStkBear && cleanOptBear && !isCandleGreen) {
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ef4444', text: `🔥 CONF ${sPct}%`, pct: sPct };
+                    }
+                    // Trap Signals (Price and Breadth Divergence)
+                    else if ((showStocks && sBear && isCandleGreen) || (showOptions && oBear && isCandleGreen)) {
+                        // Bull Trap (Bearish fade)
+                        const isBoth = (showStocks && sBear && showOptions && oBear);
+                        const p = isBoth ? Math.max(sPct, oPct) : (sBear ? sPct : oPct);
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: isBoth ? `⚠️ CONF TRAP ${p}%` : `⚠️ TRAP ${p}%`, pct: p };
+                    } else if ((showStocks && sBull && !isCandleGreen) || (showOptions && oBull && !isCandleGreen)) {
+                        // Bear Trap (Bullish absorption)
+                        const isBoth = (showStocks && sBull && showOptions && oBull);
+                        const p = isBoth ? Math.max(sPct, oPct) : (sBull ? sPct : oPct);
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: isBoth ? `⚡ CONF TRAP ${p}%` : `⚡ TRAP ${p}%`, pct: p };
+                    }
+                    // Native Stock Entries on Chart 1
+                    else if (showStocks && cleanStkBull && isCandleGreen) {
+                        const isDiv = showOptions && oBear;
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#38bdf8' : '#10b981', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct };
+                    } else if (showStocks && cleanStkBear && !isCandleGreen) {
+                        const isDiv = showOptions && oBull;
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#fb7185' : '#ef4444', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct };
+                    }
+                    // Option Entries on Chart 1 (when enabled and Stock is neutral)
+                    else if (showOptions && cleanOptBull && isCandleGreen) {
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#a855f7', text: `OPT ${oPct}%`, pct: oPct };
+                    } else if (showOptions && cleanOptBear && !isCandleGreen) {
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ec4899', text: `OPT ${oPct}%`, pct: oPct };
                     }
 
-                    // 1. High-Probability Confluence (if both enabled on this chart)
-                    if (validStockBull && validOptBull) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: '#10b981',
-                            shape: 'arrowUp',
-                            text: `🔥 CONFLUENCE ${b.green_count_pct}%` + openTag,
-                            size: 2,
-                        });
-                    } else if (validStockBear && validOptBear) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#ef4444',
-                            shape: 'arrowDown',
-                            text: `🔥 CONFLUENCE ${b.red_count_pct}%` + openTag,
-                            size: 2,
-                        });
-                    } else {
-                        // 2. Individual Stock Alert
-                        if (validStockBull) {
-                            const isTrap = !isCandleGreen;
-                            const labelText = isTrap ? `⚡TRAP ${b.green_count_pct}%` : (useStocksHa ? `🎯 ENTRY ${b.green_count_pct}%` : `🐂 ${b.green_count_pct}%`);
+                    if (sig) {
+                        const isFlip = (lastPos !== sig.pos);
+                        const barsSinceLast = cIdx - lastMarkerIdx;
+
+                        if (isFlip) {
                             markers.push({
                                 time: candleTime,
-                                position: 'belowBar',
-                                color: isTrap ? '#06b6d4' : '#10b981',
-                                shape: 'arrowUp',
-                                text: labelText + openTag,
-                                size: 2,
+                                position: sig.pos,
+                                color: sig.color,
+                                shape: sig.shape,
+                                text: sig.text + openTag,
+                                size: 1,
                             });
-                        } else if (validStockBear) {
-                            const isTrap = isCandleGreen;
-                            const labelText = isTrap ? `⚠️TRAP ${b.red_count_pct}%` : (useStocksHa ? `🎯 ENTRY ${b.red_count_pct}%` : `🐻 ${b.red_count_pct}%`);
+                            lastPos = sig.pos;
+                            lastMarkerIdx = cIdx;
+                            lastPeakPct = sig.pct;
+                        } else {
+                            if (sig.pct >= lastPeakPct + 5 && barsSinceLast >= 2) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: sig.pos,
+                                    color: sig.color,
+                                    shape: sig.shape,
+                                    text: `Pk ${sig.pct}%`,
+                                    size: 1,
+                                });
+                                lastPeakPct = sig.pct;
+                                lastMarkerIdx = cIdx;
+                            } else if (barsSinceLast >= 3) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: sig.pos,
+                                    color: sig.color,
+                                    shape: sig.shape,
+                                    text: sig.text + openTag,
+                                    size: 1,
+                                });
+                                lastMarkerIdx = cIdx;
+                                lastPeakPct = Math.max(lastPeakPct, sig.pct);
+                            }
+                        }
+                    } else {
+                        if (isOpenCandle) {
                             markers.push({
                                 time: candleTime,
                                 position: 'aboveBar',
-                                color: isTrap ? '#f59e0b' : '#ef4444',
+                                color: '#38bdf8',
                                 shape: 'arrowDown',
-                                text: labelText + openTag,
-                                size: 2,
+                                text: 'TODAY',
+                                size: 1,
                             });
                         }
-
-                        // 3. Individual Option Alert (when user enabled on Chart 1)
-                        if (validOptBull) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'belowBar',
-                                color: '#a855f7',
-                                shape: 'arrowUp',
-                                text: `⚡ OPT ${Math.round(oUw)}%` + openTag,
-                                size: 2,
-                            });
-                        } else if (validOptBear) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#ec4899',
-                                shape: 'arrowDown',
-                                text: `⚡ OPT ${Math.round(oDw)}%` + openTag,
-                                size: 2,
-                            });
-                        }
-                    }
-
-                    if (!validStockBull && !validStockBear && !validOptBull && !validOptBear && isOpenCandle) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#38bdf8',
-                            shape: 'arrowDown',
-                            text: 'TODAY',
-                            size: 1,
-                        });
                     }
                 });
             } else {
@@ -6191,6 +6249,10 @@
                 const sDownTh = alarmSettings.stocksDownThreshold || 80;
                 const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
+                let lastPos = null;
+                let lastMarkerIdx = -999;
+                let lastPeakPct = 0;
+
                 rawCandles.forEach((c, cIdx) => {
                     const candleTime = Number(c.time || c.timestamp);
                     if (!candleTime) return;
@@ -6208,16 +6270,17 @@
                         }
                     }
 
-                    let oBull = false, oBear = false;
+                    let oBull = false, oBear = false, oPct = 0;
                     let uw = 0, dw = 0;
                     if (showOptions && ob) {
                         uw = Number(ob.up_weight) || 0;
                         dw = Number(ob.down_weight) || 0;
                         oBull = (uw >= oUpTh);
                         oBear = (dw >= oDownTh);
+                        oPct = oBull ? Math.round(uw) : (oBear ? Math.round(dw) : 0);
                     }
 
-                    let sBull = false, sBear = false;
+                    let sBull = false, sBear = false, sPct = 0;
                     if (showStocks && sB) {
                         if (sTrig === 'both') {
                             sBull = (sB.green_count_pct >= sUpTh && sB.green_weight >= sUpTh);
@@ -6232,9 +6295,9 @@
                             sBull = (sB.green_weight >= sUpTh);
                             sBear = (sB.red_weight >= sDownTh);
                         }
+                        sPct = sBull ? Math.round(sB.green_count_pct) : (sBear ? Math.round(sB.red_count_pct) : 0);
                     }
 
-                    const isCandleGreen = Number(c.close) >= Number(c.open);
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
 
@@ -6244,121 +6307,113 @@
                     const wHaAnalysis = showStocks ? getCandleHaWickAnalysis(candleTime, false, c.time_str) : null;
                     const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
 
-                    let validOptBull = oBull;
-                    let validOptBear = oBear;
-                    let validStockBull = sBull;
-                    let validStockBear = sBear;
-
-                    // ── CANDLE COLOR & WICK VALIDATION FOR CHART 2 ──
                     // 1. Determine visual candle color on Chart 2:
                     const isRegularGreen = Number(c.close) >= Number(c.open);
                     const isHaGreen = oHaAnalysis ? oHaAnalysis.isHaBull : isRegularGreen;
-                    const isChart2CandleGreen = (oCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
+                    const isCandleGreen = (oCandleStyle === 'heikin_ashi') ? isHaGreen : isRegularGreen;
 
-                    // 2. Strict Directional Alignment:
-                    // A BUY / Bull alert can NEVER be placed on a RED candle!
-                    // A SELL / Bear alert can NEVER be placed on a GREEN candle!
-                    if (!isChart2CandleGreen) {
-                        validOptBull = false;
-                        validStockBull = false;
-                    } else {
-                        validOptBear = false;
-                        validStockBear = false;
+                    // 2. Strict Wick Validation:
+                    let cleanOptBull = oBull, cleanOptBear = oBear;
+                    if (useOptionsHa && oHaAnalysis) {
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) cleanOptBull = false;
+                        if (oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) cleanOptBear = false;
                     }
-
-                    // 3. Strict Wick Filter:
-                    // If Wick Strict is enabled, require zero opposite wick and NO both wicks
-                    if (useOptionsHa) {
-                        if (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBullEntry) {
-                            validOptBull = false;
-                            validStockBull = false;
-                        }
-                        if (!oHaAnalysis || oHaAnalysis.hasBothWicks || !oHaAnalysis.isCleanBearEntry) {
-                            validOptBear = false;
-                            validStockBear = false;
+                    let cleanStkBull = sBull, cleanStkBear = sBear;
+                    if (useStocksHa) {
+                        const sHa = wHaAnalysis || oHaAnalysis;
+                        if (sHa) {
+                            if (sHa.hasBothWicks || !sHa.isCleanBullEntry) cleanStkBull = false;
+                            if (sHa.hasBothWicks || !sHa.isCleanBearEntry) cleanStkBear = false;
                         }
                     }
-                    if (useStocksHa && wHaAnalysis) {
-                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBullEntry) validStockBull = false;
-                        if (wHaAnalysis.hasBothWicks || !wHaAnalysis.isCleanBearEntry) validStockBear = false;
+
+                    // 3. Resolve EXACTLY ONE clean signal per candle on Chart 2 (Options Chart)
+                    let sig = null;
+                    // Confluence (Both agree with candle direction)
+                    if (showOptions && showStocks && cleanOptBull && cleanStkBull && isCandleGreen) {
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#10b981', text: `🔥 CONF ${oPct}%`, pct: oPct };
+                    } else if (showOptions && showStocks && cleanOptBear && cleanStkBear && !isCandleGreen) {
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ef4444', text: `🔥 CONF ${oPct}%`, pct: oPct };
+                    }
+                    // Trap Signals (Price and Breadth Divergence)
+                    else if ((showOptions && oBear && isCandleGreen) || (showStocks && sBear && isCandleGreen)) {
+                        // Bull Trap (Bearish fade)
+                        const isBoth = (showOptions && oBear && showStocks && sBear);
+                        const p = isBoth ? Math.max(oPct, sPct) : (oBear ? oPct : sPct);
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: isBoth ? `⚠️ CONF TRAP ${p}%` : `⚠️ TRAP ${p}%`, pct: p };
+                    } else if ((showOptions && oBull && !isCandleGreen) || (showStocks && sBull && !isCandleGreen)) {
+                        // Bear Trap (Bullish absorption)
+                        const isBoth = (showOptions && oBull && showStocks && sBull);
+                        const p = isBoth ? Math.max(oPct, sPct) : (oBull ? oPct : sPct);
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: isBoth ? `⚡ CONF TRAP ${p}%` : `⚡ TRAP ${p}%`, pct: p };
+                    }
+                    // Native Option Entries on Chart 2
+                    else if (showOptions && cleanOptBull && isCandleGreen) {
+                        const isDiv = showStocks && sBear;
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#a855f7' : '#10b981', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct };
+                    } else if (showOptions && cleanOptBear && !isCandleGreen) {
+                        const isDiv = showStocks && sBull;
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#ec4899' : '#ef4444', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct };
+                    }
+                    // Stock Entries on Chart 2 (when enabled and Option is neutral)
+                    else if (showStocks && cleanStkBull && isCandleGreen) {
+                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#38bdf8', text: `STK ${sPct}%`, pct: sPct };
+                    } else if (showStocks && cleanStkBear && !isCandleGreen) {
+                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#fb7185', text: `STK ${sPct}%`, pct: sPct };
                     }
 
-                    // 1. High-Probability Confluence (if both enabled on this chart)
-                    if (validOptBull && validStockBull) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'belowBar',
-                            color: '#10b981',
-                            shape: 'arrowUp',
-                            text: `🔥 CONFLUENCE ${Math.round(uw)}%` + openTag,
-                            size: 2,
-                        });
-                    } else if (validOptBear && validStockBear) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#ef4444',
-                            shape: 'arrowDown',
-                            text: `🔥 CONFLUENCE ${Math.round(dw)}%` + openTag,
-                            size: 2,
-                        });
-                    } else {
-                        // 2. Individual Option Alert
-                        if (validOptBull) {
-                            const isTrap = !isCandleGreen;
-                            const labelText = isTrap ? `⚡TRAP ${Math.round(uw)}%` : (useOptionsHa ? `🎯 ENTRY ${Math.round(uw)}%` : `🐂 ${Math.round(uw)}%`);
+                    if (sig) {
+                        const isFlip = (lastPos !== sig.pos);
+                        const barsSinceLast = cIdx - lastMarkerIdx;
+
+                        if (isFlip) {
                             markers.push({
                                 time: candleTime,
-                                position: 'belowBar',
-                                color: isTrap ? '#06b6d4' : '#10b981',
-                                shape: 'arrowUp',
-                                text: labelText + openTag,
-                                size: 2,
+                                position: sig.pos,
+                                color: sig.color,
+                                shape: sig.shape,
+                                text: sig.text + openTag,
+                                size: 1,
                             });
-                        } else if (validOptBear) {
-                            const isTrap = isCandleGreen;
-                            const labelText = isTrap ? `⚠️TRAP ${Math.round(dw)}%` : (useOptionsHa ? `🎯 ENTRY ${Math.round(dw)}%` : `🐻 ${Math.round(dw)}%`);
+                            lastPos = sig.pos;
+                            lastMarkerIdx = cIdx;
+                            lastPeakPct = sig.pct;
+                        } else {
+                            if (sig.pct >= lastPeakPct + 5 && barsSinceLast >= 2) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: sig.pos,
+                                    color: sig.color,
+                                    shape: sig.shape,
+                                    text: `Pk ${sig.pct}%`,
+                                    size: 1,
+                                });
+                                lastPeakPct = sig.pct;
+                                lastMarkerIdx = cIdx;
+                            } else if (barsSinceLast >= 3) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: sig.pos,
+                                    color: sig.color,
+                                    shape: sig.shape,
+                                    text: sig.text + openTag,
+                                    size: 1,
+                                });
+                                lastMarkerIdx = cIdx;
+                                lastPeakPct = Math.max(lastPeakPct, sig.pct);
+                            }
+                        }
+                    } else {
+                        if (isOpenCandle) {
                             markers.push({
                                 time: candleTime,
                                 position: 'aboveBar',
-                                color: isTrap ? '#f59e0b' : '#ef4444',
+                                color: '#818cf8',
                                 shape: 'arrowDown',
-                                text: labelText + openTag,
-                                size: 2,
+                                text: 'TODAY',
+                                size: 1,
                             });
                         }
-
-                        // 3. Individual Stock Alert (when user enabled on Chart 2)
-                        if (validStockBull) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'belowBar',
-                                color: '#38bdf8',
-                                shape: 'arrowUp',
-                                text: `📊 STK ${sB.green_count_pct}%` + openTag,
-                                size: 2,
-                            });
-                        } else if (validStockBear) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#fb7185',
-                                shape: 'arrowDown',
-                                text: `📊 STK ${sB.red_count_pct}%` + openTag,
-                                size: 2,
-                            });
-                        }
-                    }
-
-                    if (!validOptBull && !validOptBear && !validStockBull && !validStockBear && isOpenCandle) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#818cf8',
-                            shape: 'arrowDown',
-                            text: 'TODAY',
-                            size: 1,
-                        });
                     }
                 });
             } else {
@@ -7331,7 +7386,11 @@
                 optVerdictBadge.className = 'px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700';
             }
             if (optLeadText) {
-                optLeadText.textContent = 'Nothing happened (No triggers reached)';
+                if (optsUpTh >= 80) {
+                    optLeadText.innerHTML = `No triggers at ≥${optsUpTh}% • <span class="text-sky-400 font-bold underline cursor-pointer hover:text-white" onclick="cycleOptionsTriggerThreshold()" title="Click to set recommended 70% threshold">Click here to set 70%</span>`;
+                } else {
+                    optLeadText.textContent = 'Nothing happened (No triggers reached)';
+                }
                 optLeadText.className = 'text-gray-400 font-medium truncate text-[9px]';
             }
         } else if (optPosHits > optNegHits) {

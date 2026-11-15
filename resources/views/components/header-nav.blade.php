@@ -231,6 +231,10 @@
                                         <span class="font-medium">Unified Breadth Backtest</span>
                                         <span class="text-[10px] text-slate-400">Validation</span>
                                     </a>
+                                    <a href="{{ route('backtests.heikin-breadth.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-slate-50 transition">
+                                        <span class="font-medium text-emerald-700 font-bold">📊 Heikin Breadth Backtest</span>
+                                        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1 rounded font-bold">HA + SL</span>
+                                    </a>
                                     <a href="{{ route('backtests.six-level.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
                                         <span class="font-medium">Six Levels Backtest</span>
                                         <span class="text-[10px] text-slate-400">Intraday</span>
@@ -329,7 +333,15 @@
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.multi.timeframe.monitor') ? 'bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-cyan-300' }}"
                    title="NIFTY 50 Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D)">
                     <span class="text-xs">⏱️</span>
-                    <span class="whitespace-nowrap">Multi-TF (1m-1D)</span>
+                    <span class="whitespace-nowrap">Nifty Multi-TF</span>
+                </a>
+
+                <!-- Bank Nifty Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D) -->
+                <a href="{{ route('banknifty.multi.timeframe.monitor') }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('banknifty.multi.timeframe.monitor') ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30' }}"
+                   title="BANK NIFTY Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D)">
+                    <span class="text-xs">🏦</span>
+                    <span class="whitespace-nowrap">Bank Nifty Multi-TF</span>
                 </a>
 
                 <!-- 2. Live Straddle Decay & Expansion Radar (Audio Spike Alarm) -->
@@ -526,6 +538,7 @@
                     <a href="{{ route('backtest.strategies.index') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Backtest Strategies Hub</a>
                     <a href="{{ route('backtests.basket-builder') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Backtest Basket Builder</a>
                     <a href="{{ route('nifty.unified.backtest') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Unified Breadth Backtest</a>
+                    <a href="{{ route('backtests.heikin-breadth.index') }}" class="block py-1 text-emerald-700 font-semibold">📊 Heikin Breadth Backtest</a>
                     <a href="{{ route('backtests.six-level.index') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Six Levels Backtest</a>
                     <a href="{{ route('backtests.straddles.index') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Straddle Backtest</a>
                     <a href="{{ route('strangle.profit') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Monthly Strangle Profit</a>
