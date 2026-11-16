@@ -5570,9 +5570,12 @@
         fetch('/api/nifty-weightage-monitor/alert-logs?limit=100', {
             headers: { 'Accept': 'application/json' }
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) return null;
+            return res.json();
+        })
         .then(data => {
-            if (data.status === 'success') {
+            if (data && data.status === 'success') {
                 cachedLogsList = data.logs || [];
                 loggedSignalsSet = new Set(cachedLogsList.map(l => `${l.trade_date}_${l.candle_time}_${l.signal || (l.action === 'BUY' ? 'BUY' : 'SELL')}`));
                 const logCountBadge = document.getElementById('log-count-badge');
@@ -5582,7 +5585,7 @@
                 if (renderTable) renderLogsTable();
             }
         })
-        .catch(err => console.warn('Could not fetch alert logs:', err));
+        .catch(err => console.warn('Could not fetch alert logs (non-fatal):', err));
     }
 
     function renderLogsTable() {
