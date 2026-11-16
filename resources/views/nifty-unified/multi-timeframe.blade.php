@@ -201,18 +201,7 @@
                 </select>
             </div>
 
-            <!-- Dynamic Chart Height Selector -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0">
-                <span class="text-gray-400 text-[10px] font-bold">H:</span>
-                <select id="chart-height-select" class="bg-transparent text-sky-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Change Height of Both Candlestick Charts">
-                    <option value="300" class="bg-[#131722] text-white">300px</option>
-                    <option value="350" class="bg-[#131722] text-white">350px</option>
-                    <option value="380" class="bg-[#131722] text-white">380px</option>
-                    <option value="420" selected class="bg-[#131722] text-white">420px</option>
-                    <option value="480" class="bg-[#131722] text-white">480px</option>
-                    <option value="550" class="bg-[#131722] text-white">550px</option>
-                </select>
-            </div>
+            
 
             <!-- Dynamic Candle Style Selector (Regular vs Heikin Ashi) -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Candlestick Style (Keyboard Shortcut: H)">
@@ -505,6 +494,19 @@
                                     <span>⚡ OPT:</span>
                                     <span id="w-opt-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
                                 </button>
+                                <div class="flex items-center bg-[#151924] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="Chart 1 & Data Panel Height">
+                                    <span class="text-gray-400 text-[10px] font-bold">H:</span>
+                                    <select id="w-height-select" onchange="setChart1Height(this.value)" class="bg-transparent text-sky-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize Chart 1 Height">
+                                        <option value="300" class="bg-[#131722] text-white">300px</option>
+                                        <option value="350" class="bg-[#131722] text-white">350px</option>
+                                        <option value="380" class="bg-[#131722] text-white">380px</option>
+                                        <option value="420" class="bg-[#131722] text-white">420px</option>
+                                        <option value="460" class="bg-[#131722] text-white">460px</option>
+                                        <option value="500" class="bg-[#131722] text-white">500px</option>
+                                        <option value="550" class="bg-[#131722] text-white">550px</option>
+                                        <option value="600" class="bg-[#131722] text-white">600px</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="flex items-center gap-1.5 text-[10px] shrink-0 whitespace-nowrap ml-2">
                                 <span class="text-gray-400">Selected: <strong id="w-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -571,7 +573,7 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 1 Timeframe) -->
-                    <div class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
+                    <div id="w-cockpit-panel" class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
@@ -832,6 +834,19 @@
                                     <span>⚡ OPT:</span>
                                     <span id="o-opt-signal-badge" class="font-mono text-purple-400 font-extrabold">ON</span>
                                 </button>
+                                <div class="flex items-center bg-[#151924] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="Chart 2 & Data Panel Height">
+                                    <span class="text-gray-400 text-[10px] font-bold">H:</span>
+                                    <select id="o-height-select" onchange="setChart2Height(this.value)" class="bg-transparent text-purple-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize Chart 2 Height">
+                                        <option value="300" class="bg-[#131722] text-white">300px</option>
+                                        <option value="350" class="bg-[#131722] text-white">350px</option>
+                                        <option value="380" class="bg-[#131722] text-white">380px</option>
+                                        <option value="420" class="bg-[#131722] text-white">420px</option>
+                                        <option value="460" class="bg-[#131722] text-white">460px</option>
+                                        <option value="500" class="bg-[#131722] text-white">500px</option>
+                                        <option value="550" class="bg-[#131722] text-white">550px</option>
+                                        <option value="600" class="bg-[#131722] text-white">600px</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="flex items-center gap-1.5 text-[10px] shrink-0 whitespace-nowrap ml-2">
                                 <span class="text-gray-400">Selected: <strong id="o-chart-time" class="text-sky-400 font-mono">09:15</strong></span>
@@ -898,7 +913,7 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 2 Timeframe) -->
-                    <div class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
+                    <div id="o-cockpit-panel" class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
@@ -1118,6 +1133,17 @@
                             <span id="toi-dot-spot" class="w-2 h-0.5 border-t border-dashed border-cyan-400"></span>
                             <span>Spot</span>
                         </button>
+                        <div class="flex items-center bg-[#151922] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="Trending OI Chart Height">
+                            <span class="text-gray-400 text-[10px] font-bold">H:</span>
+                            <select id="toi-height-select" onchange="setToiChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize Trending OI Chart Height">
+                                <option value="180" class="bg-[#131722] text-white">180px</option>
+                                <option value="220" class="bg-[#131722] text-white">220px</option>
+                                <option value="250" class="bg-[#131722] text-white">250px</option>
+                                <option value="280" class="bg-[#131722] text-white">280px</option>
+                                <option value="320" class="bg-[#131722] text-white">320px</option>
+                                <option value="380" class="bg-[#131722] text-white">380px</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -1227,6 +1253,17 @@
                         <button type="button" data-tf="15m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">15M</button>
                         <button type="button" data-tf="30m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">30M</button>
                         <button type="button" data-tf="today" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">Today</button>
+                    </div>
+                    <div class="flex items-center bg-[#151922] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="OI Buildup Chart Height">
+                        <span class="text-gray-400 text-[10px] font-bold">H:</span>
+                        <select id="bld-height-select" onchange="setBldChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize OI Buildup Chart Height">
+                            <option value="150" class="bg-[#131722] text-white">150px</option>
+                            <option value="175" class="bg-[#131722] text-white">175px</option>
+                            <option value="195" class="bg-[#131722] text-white">195px</option>
+                            <option value="220" class="bg-[#131722] text-white">220px</option>
+                            <option value="260" class="bg-[#131722] text-white">260px</option>
+                            <option value="300" class="bg-[#131722] text-white">300px</option>
+                        </select>
                     </div>
                 </div>
 
@@ -2401,7 +2438,11 @@
     let activeRefreshSeconds = 300;
     let autoRefreshMode = localStorage.getItem('nifty_unified_refresh_mode') || 'candle_5m';
     let isTimerVisible = localStorage.getItem('nifty_unified_timer_visible') !== 'false';
-    let currentChartHeight = parseInt(localStorage.getItem('nifty_unified_chart_height') || '420', 10);
+        let currentChart1Height = parseInt(localStorage.getItem('nifty_unified_chart1_height') || localStorage.getItem('nifty_unified_chart_height') || '420', 10);
+    let currentChart2Height = parseInt(localStorage.getItem('nifty_unified_chart2_height') || localStorage.getItem('nifty_unified_chart_height') || '420', 10);
+    let currentToiHeight = parseInt(localStorage.getItem('nifty_unified_toi_height') || '250', 10);
+    let currentBldHeight = parseInt(localStorage.getItem('nifty_unified_buildup_height') || '195', 10);
+    let currentChartHeight = currentChart1Height; // Fallback backward compatibility
     let currentCockpitFontScale = parseInt(localStorage.getItem('nifty_unified_font_scale') || '115', 10);
 
     // Audio & Alarm System
@@ -6108,45 +6149,100 @@
         stopAlarm();
     }
 
-    // ── 3. Apply Dynamic Chart Height (User Requested) ─────────────────────────────
-    function applyChartHeight(h) {
-        currentChartHeight = h;
-        localStorage.setItem('nifty_unified_chart_height', h);
+    // ── 3. Apply Independent Section Heights (User Customizable & Persistent) ──
+    function setChart1Height(val) {
+        const h = parseInt(val, 10);
+        if (!h || isNaN(h)) return;
+        currentChart1Height = h;
+        localStorage.setItem('nifty_unified_chart1_height', h);
 
-        const select = document.getElementById('chart-height-select');
-        if (select && select.value !== String(h)) {
-            select.value = String(h);
-        }
-
-        // Apply height to Column 1 (Weightage) and Column 2 (Options Breadth)
         const wContainer = document.getElementById('w-chart-container');
         if (wContainer) wContainer.style.height = `${h}px`;
         if (wChart && wContainer) {
             wChart.applyOptions({ height: h, width: wContainer.clientWidth });
         }
+        const wPanel = document.getElementById('w-cockpit-panel');
+        if (wPanel) {
+            wPanel.style.height = `${h}px`;
+            wPanel.style.maxHeight = `${h}px`;
+        }
+        const sel = document.getElementById('w-height-select');
+        if (sel && sel.value !== String(h)) sel.value = String(h);
+
+        if (typeof updateDaySeparators === 'function') updateDaySeparators();
+        if (typeof updateWeightageTvDrawings === 'function') updateWeightageTvDrawings();
+    }
+    window.setChart1Height = setChart1Height;
+
+    function setChart2Height(val) {
+        const h = parseInt(val, 10);
+        if (!h || isNaN(h)) return;
+        currentChart2Height = h;
+        localStorage.setItem('nifty_unified_chart2_height', h);
 
         const oContainer = document.getElementById('o-chart-container');
         if (oContainer) oContainer.style.height = `${h}px`;
         if (oChart && oContainer) {
             oChart.applyOptions({ height: h, width: oContainer.clientWidth });
         }
+        const oPanel = document.getElementById('o-cockpit-panel');
+        if (oPanel) {
+            oPanel.style.height = `${h}px`;
+            oPanel.style.maxHeight = `${h}px`;
+        }
+        const sel = document.getElementById('o-height-select');
+        if (sel && sel.value !== String(h)) sel.value = String(h);
 
-        // Column 2 (Right 25%): 2 Blocks evenly aligned with the 2 left charts
-        const toiWrapper = document.getElementById('toi-chart-wrapper');
-        const bldWrapper = document.getElementById('bld-chart-wrapper');
+        if (typeof updateDaySeparators === 'function') updateDaySeparators();
+        if (typeof updateOptionsTvDrawings === 'function') updateOptionsTvDrawings();
+    }
+    window.setChart2Height = setChart2Height;
 
-        // Accounting for decision hero & 4-metric grid (~145px) in Card 1, and footer/legend (~115px) in Card 2:
-        const toiH = Math.max(180, Math.min(260, h - 150));
-        const bldH = Math.max(160, Math.min(210, h - 180));
+    function setToiChartHeight(val) {
+        const h = parseInt(val, 10);
+        if (!h || isNaN(h)) return;
+        currentToiHeight = h;
+        localStorage.setItem('nifty_unified_toi_height', h);
 
-        if (toiWrapper) toiWrapper.style.height = `${toiH}px`;
-        if (bldWrapper) bldWrapper.style.height = `${bldH}px`;
+        const el = document.getElementById('toi-chart-wrapper');
+        if (el) el.style.height = `${h}px`;
+        const sel = document.getElementById('toi-height-select');
+        if (sel && sel.value !== String(h)) sel.value = String(h);
 
         if (toiChartInstance) toiChartInstance.resize();
+    }
+    window.setToiChartHeight = setToiChartHeight;
+
+    function setBldChartHeight(val) {
+        const h = parseInt(val, 10);
+        if (!h || isNaN(h)) return;
+        currentBldHeight = h;
+        localStorage.setItem('nifty_unified_buildup_height', h);
+
+        const el = document.getElementById('bld-chart-wrapper');
+        if (el) el.style.height = `${h}px`;
+        const sel = document.getElementById('bld-height-select');
+        if (sel && sel.value !== String(h)) sel.value = String(h);
+
         if (buildupChartInstance) buildupChartInstance.resize();
     }
+    window.setBldChartHeight = setBldChartHeight;
 
-    // ── 3.1 Apply Dynamic Cockpit Font Scale (User Requested) ──────────────────────
+    function applyAllSectionHeights() {
+        setChart1Height(currentChart1Height);
+        setChart2Height(currentChart2Height);
+        setToiChartHeight(currentToiHeight);
+        setBldChartHeight(currentBldHeight);
+    }
+    window.applyAllSectionHeights = applyAllSectionHeights;
+
+    function applyChartHeight(h) {
+        setChart1Height(h);
+        setChart2Height(h);
+    }
+    window.applyChartHeight = applyChartHeight;
+
+        // ── 3.1 Apply Dynamic Cockpit Font Scale (User Requested) ──────────────────────
     function applyCockpitFontScale(scale) {
         currentCockpitFontScale = scale;
         localStorage.setItem('nifty_unified_font_scale', scale);
@@ -6203,7 +6299,7 @@
         // Row 1: Weightage Candlestick Chart (75% width)
         const wContainer = document.getElementById('w-chart-container');
         if (wContainer) {
-            wContainer.style.height = `${currentChartHeight}px`;
+            wContainer.style.height = `${currentChart1Height}px`;
             if (wChart) {
                 try { wChart.remove(); } catch(e){}
                 wChart = null;
@@ -6214,7 +6310,7 @@
             wChart = LightweightCharts.createChart(wContainer, {
                 ...chartOptions,
                 width: wContainer.clientWidth,
-                height: currentChartHeight,
+                height: currentChart1Height,
             });
 
             wCandleSeries = wChart.addCandlestickSeries({
@@ -6280,7 +6376,7 @@
         // Row 2: Options Breadth Candlestick Chart (75% width)
         const oContainer = document.getElementById('o-chart-container');
         if (oContainer) {
-            oContainer.style.height = `${currentChartHeight}px`;
+            oContainer.style.height = `${currentChart2Height}px`;
             if (oChart) {
                 try { oChart.remove(); } catch(e){}
                 oChart = null;
@@ -6291,7 +6387,7 @@
             oChart = LightweightCharts.createChart(oContainer, {
                 ...chartOptions,
                 width: oContainer.clientWidth,
-                height: currentChartHeight,
+                height: currentChart2Height,
             });
 
             oCandleSeries = oChart.addCandlestickSeries({
@@ -6697,7 +6793,7 @@
             await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow]);
             renderWeightageColumn();
             renderOptionsBreadthColumn();
-            applyChartHeight(currentChartHeight);
+            applyAllSectionHeights();
             if (timestampsList && timestampsList.length > 0) {
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
                 updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
@@ -8561,13 +8657,17 @@
     // ── 11. Event Handlers & Settings Sync ────────────────────────────────────────
     function setupControls() {
         // Height Dropdown
-        const heightSelect = document.getElementById('chart-height-select');
-        if (heightSelect) {
-            heightSelect.value = String(currentChartHeight);
-            heightSelect.addEventListener('change', (e) => {
-                applyChartHeight(parseInt(e.target.value, 10));
-            });
-        }
+                const wHeightSel = document.getElementById('w-height-select');
+        if (wHeightSel) wHeightSel.value = String(currentChart1Height);
+
+        const oHeightSel = document.getElementById('o-height-select');
+        if (oHeightSel) oHeightSel.value = String(currentChart2Height);
+
+        const toiHeightSel = document.getElementById('toi-height-select');
+        if (toiHeightSel) toiHeightSel.value = String(currentToiHeight);
+
+        const bldHeightSel = document.getElementById('bld-height-select');
+        if (bldHeightSel) bldHeightSel.value = String(currentBldHeight);
 
         // Candle Style Dropdown (Regular vs Heikin Ashi)
         const candleStyleSelect = document.getElementById('candle-style-select');
@@ -8784,7 +8884,7 @@
         document.getElementById('btn-zen')?.addEventListener('click', () => {
             document.body.classList.toggle('zen-mode');
             setTimeout(() => {
-                applyChartHeight(currentChartHeight);
+                applyAllSectionHeights();
             }, 100);
         });
 
@@ -9661,6 +9761,7 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         updateToiLegendUI();
         updateToiStreamToggleUI();
         initLightweightCharts();
+        applyAllSectionHeights();
         setupControls();
         syncAlarmToolbarUI();
         updateMarkerButtonsUI();
