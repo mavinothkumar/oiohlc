@@ -1153,16 +1153,19 @@
                     </div>
                 </div>
 
-                {{-- Active Basket Strikes Ribbon with ATM Highlight --}}
+                {{-- Active Basket Strikes Ribbon with ATM Highlight & Manual Selection --}}
                 <div id="toi-strikes-container" class="flex items-center gap-1.5 py-1 px-1.5 mb-1 bg-[#0e131d]/90 rounded border border-gray-800/70 text-[9.5px] font-mono select-none overflow-hidden">
                     <div class="flex items-center gap-1 shrink-0 text-slate-400 font-sans font-semibold text-[9px]">
                         <span class="text-amber-400">🎯</span>
                         <span>Strikes:</span>
                         <span id="toi-strikes-count" class="text-slate-500 font-mono text-[8.5px]">(15)</span>
+                        <span id="toi-atm-mode-indicator" class="hidden"></span>
                     </div>
-                    <div id="toi-strikes-list" class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+                    <button type="button" onclick="stepManualAtmStrike(-1)" class="px-1 py-0.2 rounded bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 text-[9px] font-bold shrink-0 cursor-pointer transition select-none" title="Step ATM 1 strike down (-50 pts)">◀</button>
+                    <div id="toi-strikes-list" class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 flex-1 min-w-0">
                         <span class="text-gray-500 italic text-[9px]">Loading strikes...</span>
                     </div>
+                    <button type="button" onclick="stepManualAtmStrike(1)" class="px-1 py-0.2 rounded bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 text-[9px] font-bold shrink-0 cursor-pointer transition select-none" title="Step ATM 1 strike up (+50 pts)">▶</button>
                 </div>
 
                 <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
@@ -3150,8 +3153,9 @@
     }
     window.toggleToiSeries = toggleToiSeries;
 
-    // ── Active Basket Strikes Strip (with ATM Highlight) ───────────────
+    // ── Active Basket Strikes Strip (with ATM Highlight & Manual Selection) ───
     let lastRenderedAtmStrike = null;
+    let manualToiAtmStrike = null;
 
     function renderTrendingOiStrikes(activeSpot = null) {
         const listEl = document.getElementById('toi-strikes-list');
@@ -3171,14 +3175,16 @@
         const countEl = document.getElementById('toi-strikes-count');
         if (countEl) countEl.textContent = `(${strikes.length})`;
 
-        // Determine ATM strike based on spot or API data
+        // Determine ATM strike based on manual override, spot, or API data
         const strikeStep = 50;
         let spotVal = (activeSpot !== null && Number(activeSpot) > 0)
             ? Number(activeSpot)
             : (trendingOiData.underlying_data?.spot ? Number(trendingOiData.underlying_data.spot) : null);
 
         let atmStrike = null;
-        if (spotVal && spotVal > 0) {
+        if (manualToiAtmStrike !== null && manualToiAtmStrike > 0) {
+            atmStrike = manualToiAtmStrike;
+        } else if (spotVal && spotVal > 0) {
             atmStrike = Math.round(spotVal / strikeStep) * strikeStep;
         } else if (trendingOiData.atm_strike) {
             atmStrike = Number(trendingOiData.atm_strike);
@@ -3198,6 +3204,21 @@
             atmStrike = closest;
         }
 
+        // Update ATM Mode Indicator (Auto vs Manual)
+        const indicator = document.getElementById('toi-atm-mode-indicator');
+        if (indicator) {
+            if (manualToiAtmStrike !== null) {
+                indicator.className = 'flex items-center gap-1';
+                indicator.innerHTML = `
+                    <span class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[8px] font-mono font-bold" title="Manual ATM strike active">MANUAL</span>
+                    <button type="button" onclick="resetToiManualAtm()" class="px-1 py-0.2 rounded bg-cyan-950 text-cyan-300 hover:bg-cyan-900 border border-cyan-500/40 text-[8px] font-mono font-bold cursor-pointer" title="Reset to Auto Spot ATM">🔄 AUTO</button>
+                `;
+            } else {
+                indicator.className = 'hidden';
+                indicator.innerHTML = '';
+            }
+        }
+
         // Avoid unnecessary re-rendering if ATM hasn't changed and list is already populated
         if (atmStrike === lastRenderedAtmStrike && listEl.children.length === strikes.length && !listEl.querySelector('.text-gray-500')) {
             return;
@@ -3206,10 +3227,11 @@
 
         listEl.innerHTML = strikes.map(s => {
             const isAtm = (atmStrike !== null && s === atmStrike);
+            const isManual = (manualToiAtmStrike !== null && s === manualToiAtmStrike);
             if (isAtm) {
-                return `<span class="toi-atm-pill px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-[9px] font-mono shadow-[0_0_8px_rgba(251,191,36,0.35)] flex items-center gap-1 shrink-0 ring-1 ring-amber-400/40 whitespace-nowrap cursor-default" title="At-The-Money (ATM) Strike: ₹${s.toLocaleString('en-IN')}"><span class="text-amber-400">★</span> ${s.toLocaleString('en-IN')} <span class="text-[7px] bg-amber-400 text-slate-950 font-black px-1 rounded uppercase tracking-wider">ATM</span></span>`;
+                return `<button type="button" onclick="selectManualAtmStrike(${s})" class="toi-atm-pill px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-[9px] font-mono shadow-[0_0_8px_rgba(251,191,36,0.35)] flex items-center gap-1 shrink-0 ring-1 ring-amber-400/40 whitespace-nowrap cursor-pointer hover:bg-amber-500/30 transition-all" title="${isManual ? 'Manual ATM active. Click to reset to Auto Spot' : 'Active ATM Strike. Click to re-center or pick another'}"><span class="text-amber-400">★</span> ${s.toLocaleString('en-IN')} <span class="text-[7px] ${isManual ? 'bg-amber-300 text-slate-950 font-black' : 'bg-amber-400 text-slate-950 font-black'} px-1 rounded uppercase tracking-wider">${isManual ? 'MANUAL ATM' : 'ATM'}</span></button>`;
             } else {
-                return `<span class="px-1.5 py-0.5 rounded bg-slate-900/90 border border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-500 font-semibold text-[9px] font-mono shrink-0 select-none transition-colors whitespace-nowrap cursor-default" title="Strike: ₹${s.toLocaleString('en-IN')}">${s.toLocaleString('en-IN')}</span>`;
+                return `<button type="button" onclick="selectManualAtmStrike(${s})" class="px-1.5 py-0.5 rounded bg-slate-900/90 border border-slate-700/60 text-slate-300 hover:text-amber-300 hover:border-amber-500/60 hover:bg-slate-800 font-semibold text-[9px] font-mono shrink-0 select-none transition-all whitespace-nowrap cursor-pointer" title="Click to set ₹${s.toLocaleString('en-IN')} as ATM Strike & recalibrate Trending OI">${s.toLocaleString('en-IN')}</button>`;
             }
         }).join('');
 
@@ -3222,6 +3244,40 @@
         });
     }
     window.renderTrendingOiStrikes = renderTrendingOiStrikes;
+
+    function selectManualAtmStrike(strike) {
+        if (manualToiAtmStrike === Number(strike)) {
+            resetToiManualAtm();
+            return;
+        }
+        setManualToiAtmStrike(strike);
+    }
+    window.selectManualAtmStrike = selectManualAtmStrike;
+
+    function setManualToiAtmStrike(strike) {
+        manualToiAtmStrike = Number(strike);
+        lastRenderedAtmStrike = null;
+        reloadTrendingOiWithInterval(currentTfMinutes || 5);
+    }
+    window.setManualToiAtmStrike = setManualToiAtmStrike;
+
+    function resetToiManualAtm() {
+        manualToiAtmStrike = null;
+        lastRenderedAtmStrike = null;
+        reloadTrendingOiWithInterval(currentTfMinutes || 5);
+    }
+    window.resetToiManualAtm = resetToiManualAtm;
+
+    function stepManualAtmStrike(dir) {
+        const strikeStep = 50;
+        const currentAtm = (manualToiAtmStrike !== null) 
+            ? manualToiAtmStrike 
+            : (lastRenderedAtmStrike || (trendingOiData?.underlying_data?.spot ? Math.round(trendingOiData.underlying_data.spot / strikeStep) * strikeStep : null));
+        if (!currentAtm) return;
+        const newAtm = currentAtm + (dir * strikeStep);
+        setManualToiAtmStrike(newAtm);
+    }
+    window.stepManualAtmStrike = stepManualAtmStrike;
 
     function updateTrendingOiDiffBadge(targetIndex = -1) {
         if (!trendingOiData || !trendingOiData.chart) return;
@@ -5167,9 +5223,10 @@
             document.getElementById('toi-chart-loading')?.classList.remove('hidden');
             const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
             const currentToiMode = (typeof selectedDate !== 'undefined' && selectedDate === todayStr) ? 'live' : 'history';
-            let resToi = await fetch(`/api/trending-oi/data?mode=${currentToiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
+            const atmParam = (manualToiAtmStrike !== null && manualToiAtmStrike > 0) ? `&atm_strike=${manualToiAtmStrike}` : '';
+            let resToi = await fetch(`/api/trending-oi/data?mode=${currentToiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
             if (currentToiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
-                resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0`).then(r => r.json());
+                resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
             }
             if (resToi && !resToi.error) {
                 trendingOiData = resToi;
@@ -5177,6 +5234,7 @@
                     toiStreamConfig = resToi.stream_config;
                 }
                 renderTrendingOiRows();
+                if (typeof renderStrikeBuildupChart === 'function') renderStrikeBuildupChart();
                 buildMasterTimeline();
             }
         } catch(e) {
@@ -6976,9 +7034,10 @@
             }
             try {
                 const reqInterval = currentTfMinutes;
-                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
+                const atmParam = (manualToiAtmStrike !== null && manualToiAtmStrike > 0) ? `&atm_strike=${manualToiAtmStrike}` : '';
+                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
                 if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
-                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
+                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${reqInterval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
                 }
                 if (resToi && !resToi.error) {
                     trendingOiData = resToi;

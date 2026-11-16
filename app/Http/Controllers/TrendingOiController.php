@@ -87,6 +87,7 @@ class TrendingOiController extends Controller
         $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
         $interval   = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', 5)); // 1, 3, 5, 15, 30, 60, 375
         $customStrikes = $request->input('strikes'); // optional comma separated or array
+        $customAtm     = (int) $request->input('atm_strike', 0); // optional manual ATM override
 
         $targetSymbol = ($request->input('symbol') === 'BANKNIFTY' || str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
         $strikeStep   = ($targetSymbol === 'BANKNIFTY') ? 100 : 50;
@@ -132,7 +133,7 @@ class TrendingOiController extends Controller
             Cache::store('file')->forget($cacheKey);
         }
 
-        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $endTime, $skipOpen, $request, $isToday, $targetSymbol, $strikeStep) {
+        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $customAtm, $endTime, $skipOpen, $request, $isToday, $targetSymbol, $strikeStep) {
             // Auto-migration on demand: If this historical date has no records in option_chains_history,
             // automatically migrate this single date from expired_ohlc on-the-fly!
             if (!$isToday && Schema::hasTable('expired_ohlc')) {
@@ -219,7 +220,11 @@ class TrendingOiController extends Controller
             ->get(['strike_price', 'underlying_spot_price', 'option_type', 'ltp', 'oi']);
 
         $spot = (float) ($latestRows->first()->underlying_spot_price ?? 0);
-        $atmStrike = (int) (round($spot / $strikeStep) * $strikeStep);
+        if ($customAtm > 0) {
+            $atmStrike = $customAtm;
+        } else {
+            $atmStrike = (int) (round($spot / $strikeStep) * $strikeStep);
+        }
 
         // All available strikes for this expiry extracted directly from the snapshot in 0ms
         $allStrikes = $latestRows->pluck('strike_price')->unique()->sort()->values()->map(fn($s) => (int) $s)->toArray();
@@ -284,7 +289,7 @@ class TrendingOiController extends Controller
         // Fetch all rows for selected strikes at the sampled timestamps
         $dataRows = DB::table(DB::raw("{$table}{$indexHint}"))
             ->whereIn('captured_at', $sampledTimestamps)
-            ->where('trading_symbol', 'NIFTY')
+            ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->whereIn('strike_price', $selectedStrikes)
             ->get([
@@ -639,6 +644,7 @@ class TrendingOiController extends Controller
             'all_strikes'            => $allStrikes,
             'underlying_data'        => $underlyingData,
             'atm_strike'             => $atmStrike,
+            'is_manual_atm'          => ($customAtm > 0),
             'signal_data'            => $signalData,
             'daily_strategy_station' => $strategyStation,
             'strategy_calls_count'   => $strategyCallsCount,
