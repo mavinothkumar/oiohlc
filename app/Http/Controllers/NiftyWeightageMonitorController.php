@@ -560,15 +560,41 @@ class NiftyWeightageMonitorController extends Controller
             $greenWeightPct = round($candleGreenWeight, 1);
             $redWeightPct   = round($candleRedWeight, 1);
 
-            $insight = $this->determineMarketInsight(
-                $nCandle['move_pts'],
-                $greenCountPct,
-                $redCountPct,
-                $greenWeightPct,
-                $redWeightPct,
-                $topContributors[0] ?? null,
-                $topDraggers[0] ?? null
-            );
+            // Zero-Flicker Carry-Forward: If a newly opened forming candle has 0 stock updates yet,
+            // inherit the breadth & sentiment from the immediately preceding candle rather than flashing 0% Flat.
+            if (($candleGreenCount + $candleRedCount) === 0 && $candleIndex > 0) {
+                $prevTimeStr = $niftyCandles[$candleIndex - 1]['time_str'];
+                if (isset($breadthByTime[$prevTimeStr])) {
+                    $prevB = $breadthByTime[$prevTimeStr];
+                    $candleGreenCount  = $prevB['green_count'];
+                    $candleRedCount    = $prevB['red_count'];
+                    $candleFlatCount   = $prevB['flat_count'];
+                    $candleGreenWeight = $prevB['green_weight'];
+                    $candleRedWeight   = $prevB['red_weight'];
+                    $candleFlatWeight  = $prevB['flat_weight'];
+                    $greenCountPct     = $prevB['green_count_pct'];
+                    $redCountPct       = $prevB['red_count_pct'];
+                    $greenWeightPct    = $prevB['green_weight'];
+                    $redWeightPct      = $prevB['red_weight'];
+                    $netGreenPts       = $prevB['net_green_pts'];
+                    $netRedPts         = $prevB['net_red_pts'];
+                    $topContributors   = $prevB['top_contributors'] ?? $topContributors;
+                    $topDraggers       = $prevB['top_draggers'] ?? $topDraggers;
+                    $insight           = $prevB['insight'] ?? null;
+                }
+            }
+
+            if (!$insight) {
+                $insight = $this->determineMarketInsight(
+                    $nCandle['move_pts'],
+                    $greenCountPct,
+                    $redCountPct,
+                    $greenWeightPct,
+                    $redWeightPct,
+                    $topContributors[0] ?? null,
+                    $topDraggers[0] ?? null
+                );
+            }
 
             // Sector contribution aggregation
             $sectorAgg = [];
