@@ -569,130 +569,184 @@
                         </div>
                     </div>
 
-                    <!-- Right: 25% Weightage Data Panel -->
-                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel">
-                        <!-- Interval Header & Move -->
-                        <div class="flex items-center justify-between pb-1 border-b border-gray-800">
+                    <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 1 Timeframe) -->
+                    <div class="lg:col-span-3 flex flex-col space-y-1.5 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="max-height: 420px;">
+                        <!-- Unified Candle Header & Moves -->
+                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
-                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
                                 <div class="text-xs font-bold text-sky-400 font-mono" id="w-stat-time">
                                     09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <span class="text-[9.5px] text-gray-400">Index Move</span>
-                                <div id="w-stat-pts" class="text-sm font-black font-mono text-emerald-400">
-                                    +0.0 pts (+0.0%)
+                            <div class="flex items-center gap-2 text-right">
+                                <div>
+                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Index Move</span>
+                                    <div id="w-stat-pts" class="text-xs font-black font-mono text-emerald-400">+0.0 pts</div>
+                                </div>
+                                <div class="border-l border-gray-700/80 pl-2">
+                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Opt Impulse</span>
+                                    <div id="w-opt-stat-impulse" class="text-xs font-black font-mono text-emerald-400">+0.00 pts</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- UP vs DOWN Big Blocks -->
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <span class="text-xl font-black text-emerald-400 font-mono" id="w-stat-green-pct">0%</span>
-                                <span class="ml-1 px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[9px] rounded uppercase">UP</span>
-                                <div class="text-[10px] text-emerald-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
-                                    <div>Weight: <strong id="w-stat-green-wt" class="text-white">0.0%</strong></div>
-                                    <div><strong id="w-stat-green-cnt" class="text-white">0</strong> stocks &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0.0</span></div>
-                                </div>
-                            </div>
-
-                            <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <span class="text-xl font-black text-rose-400 font-mono" id="w-stat-red-pct">0%</span>
-                                <span class="ml-1 px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[9px] rounded uppercase">DOWN</span>
-                                <div class="text-[10px] text-rose-200/90 font-medium mt-0.5 space-y-0.2 leading-tight">
-                                    <div>Weight: <strong id="w-stat-red-wt" class="text-white">0.0%</strong></div>
-                                    <div><strong id="w-stat-red-cnt" class="text-white">0</strong> stocks &bull; <span id="w-stat-red-pts" class="text-rose-300">-0.0</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Weight Influence Progress Bar -->
-                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[10px] space-y-0.5">
-                            <div class="flex justify-between items-center text-gray-400">
-                                <span>Weight Influence (100% Index)</span>
-                                <span id="w-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
-                                <div id="w-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
-                                <div id="w-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Institutional Conviction Verdict -->
-                        <div id="w-insight-card" class="p-1.5 rounded bg-gray-800/40 border border-gray-700 text-[10.5px]">
-                            <div class="font-bold text-white flex items-center gap-1" id="w-insight-badge">
-                                <span>🚀 Broad Institutional Buying</span>
-                            </div>
-                            <p class="text-[10px] text-gray-400 leading-snug mt-0.5" id="w-insight-desc">
-                                High conviction rally: stocks UP backed by weight.
-                            </p>
-                            <div id="w-divergence-banner" class="hidden"></div>
-                        </div>
-
-                        <!-- Candle Key Movers -->
-                        <div class="space-y-1">
-                            <div class="flex items-center justify-between text-[10px] text-gray-400 font-semibold px-0.5">
-                                <span>⚡ Key Movers</span>
-                                <span id="w-movers-time" class="font-mono text-sky-400 text-[9.5px]">09:15</span>
-                            </div>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <div class="space-y-0.5">
-                                    <div class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">▲ DRIVERS (+PTS)</div>
-                                    <div id="w-top-drivers" class="space-y-0.5 text-[9.5px]">
-                                        <div class="text-gray-500 italic text-[9px]">Loading...</div>
-                                    </div>
-                                </div>
-                                <div class="space-y-0.5">
-                                    <div class="text-[9px] font-bold text-rose-400 uppercase tracking-wider">▼ DRAGGERS (-PTS)</div>
-                                    <div id="w-top-draggers" class="space-y-0.5 text-[9.5px]">
-                                        <div class="text-gray-500 italic text-[9px]">Loading...</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- NIFTY 50 Stocks Trigger Strength Analysis & Overall Breadth -->
-                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1.5 text-[10px]">
+                        <!-- ══ DECK 1: BANK NIFTY STOCKS (CHART 1 TIMEFRAME) ══ -->
+                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-sky-900/50 p-1.5 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-gray-300 font-bold flex items-center gap-1">
-                                    <span class="text-xs">🎯</span>
-                                    <span>Stocks Trigger Strength</span>
-                                    <span class="text-[9px] text-gray-400 hover:text-sky-300 font-normal font-mono cursor-pointer transition" id="stk-trigger-val-badge" onclick="cycleStocksTriggerThreshold()" title="Click to cycle Stocks breach threshold (75% / 80% / 85%) • Recommended: 80%">(≥80%)</span>
+                                <span class="text-[10px] font-bold text-sky-300 flex items-center gap-1">
+                                    <span>📊</span> <span>BANK NIFTY STOCKS</span>
                                 </span>
-                                <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
-                                    Nothing happened
+                                <span id="stk-trigger-verdict-badge" class="px-1 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                    Normal
                                 </span>
                             </div>
 
-                            <!-- Trigger Counts Grid: Positive vs Negative -->
-                            <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
-                                <div class="bg-[#181d2a] p-1.5 rounded border border-emerald-950/70 text-left">
-                                    <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-emerald-400 font-bold text-[9.5px] uppercase tracking-wider">▲ POSITIVE</span>
-                                        <strong id="stk-pos-triggers-count" class="text-emerald-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
+                            <!-- UP vs DOWN Compact Grid -->
+                            <div class="grid grid-cols-2 gap-1">
+                                <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-emerald-400 font-mono" id="w-stat-green-pct">0%</span>
+                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">UP</span>
                                     </div>
-                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="stk-pos-details">
-                                        Pk: <span class="text-emerald-300 font-bold" id="stk-pos-peak">0%</span> <span class="text-gray-500" id="stk-pos-peak-time"></span>
+                                    <div class="text-[8.5px] text-emerald-200/90 font-medium flex justify-between mt-0.5">
+                                        <span>Wt: <strong id="w-stat-green-wt" class="text-white">0%</strong></span>
+                                        <span><strong id="w-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0</span></span>
                                     </div>
                                 </div>
 
-                                <div class="bg-[#181d2a] p-1.5 rounded border border-rose-950/70 text-left">
-                                    <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-rose-400 font-bold text-[9.5px] uppercase tracking-wider">▼ NEGATIVE</span>
-                                        <strong id="stk-neg-triggers-count" class="text-rose-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
+                                <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-rose-400 font-mono" id="w-stat-red-pct">0%</span>
+                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">DN</span>
                                     </div>
-                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="stk-neg-details">
-                                        Pk: <span class="text-rose-300 font-bold" id="stk-neg-peak">0%</span> <span class="text-gray-500" id="stk-neg-peak-time"></span>
+                                    <div class="text-[8.5px] text-rose-200/90 font-medium flex justify-between mt-0.5">
+                                        <span>Wt: <strong id="w-stat-red-wt" class="text-white">0%</strong></span>
+                                        <span><strong id="w-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-red-pts" class="text-rose-300">-0</span></span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Status & Overall Stock Breadth So Far -->
-                            <div class="bg-[#181d2a] px-2 py-1 rounded border border-gray-800/80 flex items-center justify-between text-[9px] font-mono">
-                                <span id="stk-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
-                                <span class="text-gray-400">Stocks Avg: <strong id="stk-session-bull" class="text-emerald-400">50%</strong>/<strong id="stk-session-bear" class="text-rose-400">50%</strong></span>
+                            <!-- Weight Influence Split Bar -->
+                            <div class="space-y-0.5">
+                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                    <span>Weight Split</span>
+                                    <span id="w-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
+                                </div>
+                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                    <div id="w-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
+                                    <div id="w-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Institutional Verdict Badge -->
+                            <div id="w-insight-card" class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                                <div class="font-bold text-white truncate" id="w-insight-badge">🚀 Broad Institutional Buying</div>
+                                <div id="w-divergence-banner" class="hidden"></div>
+                            </div>
+
+                            <!-- Key Movers Compact Ticker -->
+                            <div class="flex items-center justify-between gap-1 text-[8.5px] font-mono px-0.5">
+                                <div id="w-top-drivers" class="truncate text-emerald-300">
+                                    <span class="text-gray-500 italic">Drivers: --</span>
+                                </div>
+                                <div id="w-top-draggers" class="truncate text-rose-300 text-right">
+                                    <span class="text-gray-500 italic">Draggers: --</span>
+                                </div>
+                            </div>
+
+                            <!-- Stock Trigger Strength Mini-Pill -->
+                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                                <span class="flex items-center gap-1">
+                                    <span>🎯 STK</span>
+                                    <span id="stk-trigger-val-badge" class="text-[7.5px] text-sky-400 cursor-pointer" onclick="cycleStocksTriggerThreshold()">(≥80%)</span>
+                                </span>
+                                <span>▲ <strong id="stk-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="stk-neg-triggers-count" class="text-rose-400">0</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- ══ DECK 2: OPTIONS FLOW & PARITY (CHART 1 TIMEFRAME) ══ -->
+                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-purple-900/50 p-1.5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                    <span>⚡</span> <span>OPTIONS FLOW</span>
+                                </span>
+                                <div class="flex items-center gap-1 text-[8.5px] font-mono">
+                                    <span class="text-gray-400">ATM:</span>
+                                    <strong id="w-opt-stat-atm-val" class="text-amber-300">₹24,150</strong>
+                                </div>
+                            </div>
+
+                            <!-- BUY vs SELL Compact Grid -->
+                            <div class="grid grid-cols-2 gap-1">
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-emerald-300 font-mono" id="w-opt-stat-green-ratio">50%</span>
+                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">BUY</span>
+                                    </div>
+                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                        <span id="w-opt-stat-green-wt">50% Wt</span>
+                                        <span><strong id="w-opt-stat-green-cnt" class="text-white">0</strong> strk</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-rose-300 font-mono" id="w-opt-stat-red-ratio">50%</span>
+                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">SELL</span>
+                                    </div>
+                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                        <span id="w-opt-stat-red-wt">50% Wt</span>
+                                        <span><strong id="w-opt-stat-red-cnt" class="text-white">0</strong> strk</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Options Balance Bar -->
+                            <div class="space-y-0.5">
+                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                    <span>Tug-of-War</span>
+                                    <span id="w-opt-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
+                                </div>
+                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                    <div id="w-opt-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
+                                    <div id="w-opt-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Options Verdict Badge -->
+                            <div class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                                <div class="font-bold text-white truncate" id="w-opt-verdict-title">⚖️ Balanced Options Equilibrium</div>
+                                <div id="w-opt-divergence-banner" class="hidden"></div>
+                            </div>
+
+                            <!-- Greeks 4-Grid Micro Bar -->
+                            <div class="grid grid-cols-4 gap-1 text-center font-mono text-[8px]">
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">Delta</span>
+                                    <span class="font-bold text-sky-400" id="w-opt-greek-delta">0k</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">CE Veg</span>
+                                    <span class="font-bold text-emerald-400" id="w-opt-greek-ce-vega">0.0</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">PE Veg</span>
+                                    <span class="font-bold text-rose-400" id="w-opt-greek-pe-vega">0.0</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">PCR</span>
+                                    <span class="font-bold text-amber-400" id="w-opt-greek-pcr">1.0</span>
+                                </div>
+                            </div>
+
+                            <!-- Options Trigger Mini-Pill -->
+                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                                <span class="flex items-center gap-1">
+                                    <span>🎯 OPT</span>
+                                    <span id="opt-trigger-val-badge" class="text-[7.5px] text-purple-400 cursor-pointer" onclick="cycleOptionsTriggerThreshold()">(≥70%)</span>
+                                </span>
+                                <span>▲ <strong id="w-opt-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="w-opt-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
                         </div>
                     </div>
@@ -836,160 +890,178 @@
                         </div>
                     </div>
 
-                    <!-- Right: 25% Options Breadth Data Panel -->
-                    <div class="lg:col-span-3 flex flex-col space-y-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel">
-                        <!-- Interval Header & Impulse -->
-                        <div class="flex items-center justify-between pb-1 border-b border-gray-800">
+                    <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 2 Timeframe) -->
+                    <div class="lg:col-span-3 flex flex-col space-y-1.5 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="max-height: 420px;">
+                        <!-- Unified Candle Header & Moves -->
+                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
-                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
                                 <div class="text-xs font-bold text-sky-400 font-mono" id="o-stat-time">
                                     09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <span class="text-[9.5px] text-gray-400">Net Impulse</span>
-                                <div id="o-stat-impulse" class="text-sm font-black font-mono text-emerald-400">
-                                    +0.00 pts
+                            <div class="flex items-center gap-2 text-right">
+                                <div>
+                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Index Move</span>
+                                    <div id="o-stk-stat-pts" class="text-xs font-black font-mono text-emerald-400">+0.0 pts</div>
+                                </div>
+                                <div class="border-l border-gray-700/80 pl-2">
+                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Opt Impulse</span>
+                                    <div id="o-stat-impulse" class="text-xs font-black font-mono text-emerald-400">+0.00 pts</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Active Basket Inspector Badge (Dynamic Floating ATM & Strike Range) -->
-                        <div id="o-stat-basket-badge" class="flex items-center justify-between px-2 py-1 rounded bg-[#131722] border border-cyan-500/30 text-[9.5px] font-mono shadow-sm">
-                            <span class="flex items-center gap-1 text-cyan-300">
-                                <span>🎯</span>
-                                <span class="text-gray-400 font-sans">ATM:</span>
-                                <strong id="o-stat-atm-val" class="text-amber-300 font-bold">22,950</strong>
-                            </span>
-                            <span class="text-gray-600">&bull;</span>
-                            <span class="text-gray-300 truncate" title="Active 11-strike basket evaluated for this 5-min candle">
-                                <span class="text-gray-400 font-sans">Basket:</span>
-                                <strong id="o-stat-basket-range" class="text-white">22,700 – 23,200</strong>
-                            </span>
-                            <span id="o-stat-basket-mode-tag" class="px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-cyan-950 text-cyan-300 border border-cyan-600/40">Dynamic</span>
-                        </div>
-
-                        <!-- BUY vs SELL Big Blocks -->
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <div class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider mb-0.5">BUY (BULL FLOW)</div>
-                                <span class="text-xl font-black text-emerald-300 font-mono" id="o-stat-green-ratio">50%</span>
-                                <div class="text-[10px] text-gray-300 mt-0.5">
-                                    <span id="o-stat-green-wt">50% Wt</span> &bull; <span id="o-stat-green-cnt">0</span> strikes
-                                </div>
-                            </div>
-
-                            <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded p-1.5 text-center shadow-inner relative overflow-hidden">
-                                <div class="text-[9px] font-bold text-rose-400 uppercase tracking-wider mb-0.5">SELL (BEAR FLOW)</div>
-                                <span class="text-xl font-black text-rose-300 font-mono" id="o-stat-red-ratio">50%</span>
-                                <div class="text-[10px] text-gray-300 mt-0.5">
-                                    <span id="o-stat-red-wt">50% Wt</span> &bull; <span id="o-stat-red-cnt">0</span> strikes
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tug-of-War Balance Bar -->
-                        <div class="bg-[#1a1e29] border border-gray-800 rounded px-2 py-1 text-[10px] space-y-0.5">
-                            <div class="flex justify-between items-center text-gray-400">
-                                <span>Options Tug-of-War</span>
-                                <span id="o-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
-                                <div id="o-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
-                                <div id="o-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Equilibrium Verdict -->
-                        <div class="p-1.5 rounded bg-[#181d2a] border border-gray-800 text-[10.5px]">
-                            <div class="font-bold text-white flex items-center gap-1 mb-0.5" id="o-verdict-title">
-                                <span>⚖️ Balanced Options Equilibrium</span>
-                            </div>
-                            <p class="text-[10px] text-gray-400 leading-snug" id="o-verdict-desc">
-                                Options flow is balanced between Call buying and Put shorting.
-                            </p>
-                            <div id="o-divergence-banner" class="hidden"></div>
-                        </div>
-
-                        <!-- Greek Snapshot Footer -->
-                        <div class="pt-1.5 border-t border-gray-800 grid grid-cols-4 gap-1 text-center font-mono text-[9.5px]">
-                            <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8.5px] text-gray-400">Delta</div>
-                                <div class="text-xs font-bold text-sky-400" id="o-greek-delta">0.0k</div>
-                            </div>
-                            <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8.5px] text-gray-400">CE Vega</div>
-                                <div class="text-xs font-bold text-emerald-400" id="o-greek-ce-vega">0.00</div>
-                            </div>
-                            <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8.5px] text-gray-400">PE Vega</div>
-                                <div class="text-xs font-bold text-rose-400" id="o-greek-pe-vega">0.00</div>
-                            </div>
-                            <div class="bg-[#181d2a] p-1 rounded border border-gray-800">
-                                <div class="text-[8.5px] text-gray-400">PCR</div>
-                                <div class="text-xs font-bold text-amber-400" id="o-greek-pcr">1.00</div>
-                            </div>
-                        </div>
-
-                        <!-- NIFTY Options Trigger Strength Analysis & Overall Breadth -->
-                        <div class="pt-1.5 border-t border-gray-800/80 space-y-1.5 text-[10px]">
+                        <!-- ══ DECK 1: BANK NIFTY STOCKS (CHART 2 TIMEFRAME) ══ -->
+                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-sky-900/50 p-1.5 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-gray-300 font-bold flex items-center gap-1">
-                                    <span class="text-xs">🎯</span>
-                                    <span>Options Trigger Strength</span>
-                                    <span class="text-[9px] text-gray-400 hover:text-purple-300 font-normal font-mono cursor-pointer transition" id="opt-trigger-val-badge" onclick="cycleOptionsTriggerThreshold()" title="Click to cycle Options breach threshold (65% / 70% / 75% / 80%) • Recommended: 70%">(≥70%)</span>
+                                <span class="text-[10px] font-bold text-sky-300 flex items-center gap-1">
+                                    <span>📊</span> <span>BANK NIFTY STOCKS</span>
                                 </span>
-                                <span id="opt-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
-                                    Nothing happened
+                                <span id="o-stk-trigger-verdict-badge" class="px-1 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                    Normal
                                 </span>
                             </div>
 
-                            <!-- Trigger Counts Grid: Positive vs Negative -->
-                            <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
-                                <div class="bg-[#181d2a] p-1.5 rounded border border-emerald-950/70 text-left">
-                                    <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-emerald-400 font-bold text-[9.5px] uppercase tracking-wider">▲ POSITIVE</span>
-                                        <strong id="opt-pos-triggers-count" class="text-emerald-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
+                            <!-- UP vs DOWN Compact Grid -->
+                            <div class="grid grid-cols-2 gap-1">
+                                <div id="o-stk-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-emerald-400 font-mono" id="o-stk-stat-green-pct">0%</span>
+                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">UP</span>
                                     </div>
-                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="opt-pos-details">
-                                        Pk: <span class="text-emerald-300 font-bold" id="opt-pos-peak">0%</span> <span class="text-gray-500" id="opt-pos-peak-time"></span>
+                                    <div class="text-[8.5px] text-emerald-200/90 font-medium flex justify-between mt-0.5">
+                                        <span>Wt: <strong id="o-stk-stat-green-wt" class="text-white">0%</strong></span>
+                                        <span><strong id="o-stk-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-green-pts" class="text-emerald-300">+0</span></span>
+                                    </div>
+                                </div>
+
+                                <div id="o-stk-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-rose-400 font-mono" id="o-stk-stat-red-pct">0%</span>
+                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">DN</span>
+                                    </div>
+                                    <div class="text-[8.5px] text-rose-200/90 font-medium flex justify-between mt-0.5">
+                                        <span>Wt: <strong id="o-stk-stat-red-wt" class="text-white">0%</strong></span>
+                                        <span><strong id="o-stk-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-red-pts" class="text-rose-300">-0</span></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Weight Influence Split Bar -->
+                            <div class="space-y-0.5">
+                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                    <span>Weight Split</span>
+                                    <span id="o-stk-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
+                                </div>
+                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                    <div id="o-stk-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
+                                    <div id="o-stk-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Institutional Verdict Badge -->
+                            <div id="o-stk-insight-card" class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                                <div class="font-bold text-white truncate" id="o-stk-insight-badge">🚀 Broad Institutional Buying</div>
+                                <div id="o-stk-divergence-banner" class="hidden"></div>
+                            </div>
+
+                            <!-- Key Movers Compact Ticker -->
+                            <div class="flex items-center justify-between gap-1 text-[8.5px] font-mono px-0.5">
+                                <div id="o-stk-top-drivers" class="truncate text-emerald-300">
+                                    <span class="text-gray-500 italic">Drivers: --</span>
+                                </div>
+                                <div id="o-stk-top-draggers" class="truncate text-rose-300 text-right">
+                                    <span class="text-gray-500 italic">Draggers: --</span>
+                                </div>
+                            </div>
+
+                            <!-- Stock Trigger Strength Mini-Pill -->
+                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                                <span>🎯 STK (Chart 2):</span>
+                                <span>▲ <strong id="o-stk-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="o-stk-neg-triggers-count" class="text-rose-400">0</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- ══ DECK 2: OPTIONS FLOW & PARITY (CHART 2 TIMEFRAME) ══ -->
+                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-purple-900/50 p-1.5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                    <span>⚡</span> <span>OPTIONS FLOW</span>
+                                </span>
+                                <div class="flex items-center gap-1 text-[8.5px] font-mono">
+                                    <span class="text-gray-400">ATM:</span>
+                                    <strong id="o-stat-atm-val" class="text-amber-300">₹24,150</strong>
+                                </div>
+                            </div>
+
+                            <!-- BUY vs SELL Compact Grid -->
+                            <div class="grid grid-cols-2 gap-1">
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-emerald-300 font-mono" id="o-stat-green-ratio">50%</span>
+                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">BUY</span>
+                                    </div>
+                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                        <span id="o-stat-green-wt">50% Wt</span>
+                                        <span><strong id="o-stat-green-cnt" class="text-white">0</strong> strk</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-[#181d2a] p-1.5 rounded border border-rose-950/70 text-left">
-                                    <div class="flex items-center justify-between text-gray-400">
-                                        <span class="text-rose-400 font-bold text-[9.5px] uppercase tracking-wider">▼ NEGATIVE</span>
-                                        <strong id="opt-neg-triggers-count" class="text-rose-400 text-lg sm:text-xl font-black font-mono leading-none">0</strong>
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-black text-rose-300 font-mono" id="o-stat-red-ratio">50%</span>
+                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">SELL</span>
                                     </div>
-                                    <div class="text-gray-400 text-[9px] truncate mt-1" id="opt-neg-details">
-                                        Pk: <span class="text-rose-300 font-bold" id="opt-neg-peak">0%</span> <span class="text-gray-500" id="opt-neg-peak-time"></span>
+                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                        <span id="o-stat-red-wt">50% Wt</span>
+                                        <span><strong id="o-stat-red-cnt" class="text-white">0</strong> strk</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Status & Overall Options Breadth So Far -->
-                            <div class="bg-[#181d2a] px-2 py-1 rounded border border-gray-800/80 flex items-center justify-between text-[9px] font-mono">
-                                <span id="opt-trigger-lead-text" class="text-gray-400 font-medium truncate">Nothing happened</span>
-                                <span class="text-gray-400">Options Avg: <strong id="opt-session-bull" class="text-emerald-400">50%</strong>/<strong id="opt-session-bear" class="text-rose-400">50%</strong></span>
+                            <!-- Options Balance Bar -->
+                            <div class="space-y-0.5">
+                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                    <span>Tug-of-War</span>
+                                    <span id="o-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
+                                </div>
+                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                    <div id="o-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
+                                    <div id="o-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
+                                </div>
                             </div>
 
-                            <!-- Smart Money Trap / Divergence Tracker Strip -->
-                            <div id="opt-trap-tracker-strip" class="hidden flex items-center justify-between px-2 py-0.5 rounded bg-amber-950/40 border border-amber-600/40 text-[9px] font-mono text-amber-300">
-                                <span class="flex items-center gap-1 font-bold">
-                                    <span>⚠️ Smart Money Traps:</span>
-                                    <span id="opt-trap-summary-badge" class="font-normal text-amber-200">0 Traps</span>
-                                </span>
-                                <span id="opt-trap-times-badge" class="text-[8.5px] text-amber-400/80 font-mono"></span>
+                            <!-- Options Verdict Badge -->
+                            <div class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                                <div class="font-bold text-white truncate" id="o-verdict-title">⚖️ Balanced Options Equilibrium</div>
+                                <div id="o-divergence-banner" class="hidden"></div>
                             </div>
 
-                            <!-- Combined Confluence Trigger Summary Strip -->
-                            <div class="flex items-center justify-between px-2 py-1 rounded bg-[#151922] border border-gray-800/90 text-[9.5px] font-mono">
-                                <span class="text-amber-400 font-bold flex items-center gap-1">
-                                    <span>🔥 Combined:</span>
-                                </span>
-                                <span id="comb-trigger-badge" class="font-bold text-gray-400 text-[10px]">
-                                    Nothing happened
-                                </span>
+                            <!-- Greeks 4-Grid Micro Bar -->
+                            <div class="grid grid-cols-4 gap-1 text-center font-mono text-[8px]">
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">Delta</span>
+                                    <span class="font-bold text-sky-400" id="o-greek-delta">0k</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">CE Veg</span>
+                                    <span class="font-bold text-emerald-400" id="o-greek-ce-vega">0.0</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">PE Veg</span>
+                                    <span class="font-bold text-rose-400" id="o-greek-pe-vega">0.0</span>
+                                </div>
+                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
+                                    <span class="text-[7px] text-gray-400 block leading-none">PCR</span>
+                                    <span class="font-bold text-amber-400" id="o-greek-pcr">1.0</span>
+                                </div>
+                            </div>
+
+                            <!-- Options Trigger Mini-Pill -->
+                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                                <span>🎯 OPT (Chart 2):</span>
+                                <span>▲ <strong id="opt-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="opt-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
                         </div>
                     </div>
@@ -999,8 +1071,6 @@
 
         </div>
 
-        <!-- ──────────────────────────────────────────────────────────────────────────── -->
-        <!-- ──────────────────────────────────────────────────────────────────────────── -->
         <!-- COLUMN 2 (25% WIDTH): TWO ROWS (TRENDING OI & SENTIMENT, OI BUILDUP)          -->
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
         <div class="xl:col-span-3 flex flex-col space-y-2 w-full cockpit-data-panel">
@@ -2428,9 +2498,13 @@
         console.warn('Could not read alarm settings:', e);
     }
 
-    // Data stores
-    let weightageData = null;
-    let breadthData = null;
+    // Data stores (Per-Chart Dual Deck for Chart 1 & Chart 2)
+    let weightageData = null; // Chart 1 Stocks active reference
+    let breadthData = null;   // Chart 2 Options active reference
+    let wWeightageData = null; // Stocks data for Chart 1 (wTimeframe)
+    let wBreadthData = null;   // Options data for Chart 1 (wTimeframe)
+    let oWeightageData = null; // Stocks data for Chart 2 (oTimeframe)
+    let oBreadthData = null;   // Options data for Chart 2 (oTimeframe)
     let trendingOiData = null;
     let activeBuildupTf = '5m';
 
@@ -6295,15 +6369,23 @@
         renderAllChartOverlays();
     }
 
-    // ── 5. Independent Chart Data Fetchers ─────────────────────────────────────────
+    // ── 5. Independent Chart Data Fetchers (Dual-Deck: Both Stocks & Options per Chart) ──
     async function reloadChart1Weightage(isSilent = false) {
         if (!isSilent) document.getElementById('w-chart-loading')?.classList.remove('hidden');
         const minutes = getTfMinutes(wTimeframe);
+        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
         try {
-            const res = await fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`);
-            const data = await res.json();
-            if (data && !data.error) {
-                weightageData = data;
+            // Fetch Chart 1 Stocks & Options for wTimeframe in parallel
+            const [stkRes, optRes] = await Promise.all([
+                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`),
+                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`)
+            ]);
+            const stkData = await stkRes.json();
+            const optData = await optRes.json();
+
+            if (stkData && !stkData.error) {
+                weightageData = stkData;
+                wWeightageData = stkData;
                 if (!weightageData.candles && weightageData.nifty_candles) {
                     weightageData.candles = weightageData.nifty_candles;
                 }
@@ -6313,12 +6395,24 @@
                     });
                 }
                 renderWeightageColumn();
-                if (breadthData) renderOptionsBreadthColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
             }
+
+            if (optData && optData.success !== false && !optData.error) {
+                wBreadthData = optData;
+                if (optData.expiry && optData.expiry !== selectedExpiry) {
+                    selectedExpiry = optData.expiry;
+                    const expSelect = document.getElementById('expiry-select');
+                    if (expSelect) expSelect.value = selectedExpiry;
+                }
+            }
+
+            if (activeTimelineIndex !== null && masterTimeline[activeTimelineIndex]) {
+                syncWeightageUI(activeTimelineIndex, masterTimeline[activeTimelineIndex]);
+            }
         } catch (e) {
-            console.error('Error reloading Weightage:', e);
+            console.error('Error reloading Chart 1 Data:', e);
         } finally {
             document.getElementById('w-chart-loading')?.classList.add('hidden');
         }
@@ -6330,10 +6424,17 @@
         const minutes = getTfMinutes(oTimeframe);
         const bMode = alarmSettings.optionsBasketMode || 'dynamic';
         try {
-            const res = await fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`);
-            const data = await res.json();
-            if (data && data.success !== false && !data.error) {
-                breadthData = data;
+            // Fetch Chart 2 Options & Stocks for oTimeframe in parallel
+            const [optRes, stkRes] = await Promise.all([
+                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`),
+                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`)
+            ]);
+            const optData = await optRes.json();
+            const stkData = await stkRes.json();
+
+            if (optData && optData.success !== false && !optData.error) {
+                breadthData = optData;
+                oBreadthData = optData;
                 if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
                     selectedExpiry = breadthData.expiry;
                     const expSelect = document.getElementById('expiry-select');
@@ -6345,12 +6446,22 @@
                     });
                 }
                 renderOptionsBreadthColumn();
-                if (weightageData) renderWeightageColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
             }
+
+            if (stkData && !stkData.error) {
+                oWeightageData = stkData;
+                if (!oWeightageData.candles && oWeightageData.nifty_candles) {
+                    oWeightageData.candles = oWeightageData.nifty_candles;
+                }
+            }
+
+            if (activeTimelineIndex !== null && masterTimeline[activeTimelineIndex]) {
+                syncOptionsBreadthUI(activeTimelineIndex, masterTimeline[activeTimelineIndex]);
+            }
         } catch (e) {
-            console.error('Error reloading Options:', e);
+            console.error('Error reloading Chart 2 Data:', e);
         } finally {
             document.getElementById('o-chart-loading')?.classList.add('hidden');
         }
@@ -6389,83 +6500,18 @@
 
         const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
         let toiMode = (selectedDate === todayStr) ? 'live' : 'history';
-
-        // 1. Fetch Options Breadth independently & render immediately upon arrival
         const bMode = alarmSettings.optionsBasketMode || 'dynamic';
-        const pBreadth = fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${getTfMinutes(oTimeframe)}&_t=${Date.now()}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data && data.success !== false && !data.error) {
-                    breadthData = data;
-                    if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
-                        selectedExpiry = breadthData.expiry;
-                        const expSelect = document.getElementById('expiry-select');
-                        if (expSelect) expSelect.value = selectedExpiry;
-                    }
-                    if (breadthData.nifty_candles) {
-                        breadthData.nifty_candles.forEach(c => {
-                            if (!c.time && c.timestamp) c.time = c.timestamp;
-                        });
-                    }
-                    renderOptionsBreadthColumn();
-                    if (weightageData) renderWeightageColumn();
-                    buildMasterTimeline();
-                    document.getElementById('o-chart-loading')?.classList.add('hidden');
-                } else {
-                    const errText = data?.error || 'Options data unavailable for this date';
-                    const msg = document.getElementById('o-loading-msg');
-                    if (msg) {
-                        msg.innerHTML = `<span class="text-rose-400 font-semibold">${errText}</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
-                    }
-                }
-            })
-            .catch(e => {
-                console.error('Error fetching Options Breadth:', e);
-                const msg = document.getElementById('o-loading-msg');
-                if (msg) {
-                    msg.innerHTML = `<span class="text-rose-400 font-semibold">Failed to load Options data</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
-                }
-            });
+        const wMin = getTfMinutes(wTimeframe);
+        const oMin = getTfMinutes(oTimeframe);
 
-        // 2. Fetch Trending OI independently & render immediately upon arrival
-        const pTrendingOi = (async () => {
-            // When in Live Stream mode during periodic background countdown sync (isSilent === true),
-            // skip reloading Trending OI and OI Buildup so the live WebSocket stream remains in continuous sync without interruption!
-            if (isSilent && toiStreamMode === 'live') {
-                return;
-            }
-            try {
-                const reqInterval = currentTfMinutes;
-                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty Bank&symbol=BANKNIFTY&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
-                if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
-                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty Bank&symbol=BANKNIFTY&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
-                }
-                if (resToi && !resToi.error) {
-                    trendingOiData = resToi;
-                    if (resToi.stream_config) {
-                        toiStreamConfig = resToi.stream_config;
-                    }
-                    renderTrendingOiRows();
-                    buildMasterTimeline();
-                    if (selectedDate === todayStr) {
-                        connectToiWebSocket();
-                    } else {
-                        disconnectToiWebSocket();
-                    }
-                }
-            } catch (e) {
-                console.error('Error fetching Trending OI:', e);
-            } finally {
-                document.getElementById('toi-chart-loading')?.classList.add('hidden');
-            }
-        })();
-
-        // 3. Fetch Nifty Weightage independently & render immediately upon arrival
-        const pWeightage = fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${getTfMinutes(wTimeframe)}&_t=${Date.now()}`)
+        // Define fetch promises
+        // 1. Chart 1 Stocks (wTimeframe)
+        const pChart1Stk = fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
                     weightageData = data;
+                    wWeightageData = data;
                     if (!weightageData.candles && weightageData.nifty_candles) {
                         weightageData.candles = weightageData.nifty_candles;
                     }
@@ -6475,139 +6521,116 @@
                         });
                     }
                     renderWeightageColumn();
-                    if (breadthData) renderOptionsBreadthColumn();
                     buildMasterTimeline();
+                    document.getElementById('w-chart-loading')?.classList.add('hidden');
                 }
-            })
-            .catch(e => console.error('Error fetching Weightage:', e))
-            .finally(() => {
-                document.getElementById('w-chart-loading')?.classList.add('hidden');
+                return data;
+            }).catch(e => {
+                console.error('Error fetching Chart 1 Stocks:', e);
+                return null;
             });
 
-        // 4. Fetch Quant S/R Levels independently & update UI/chart price lines
-        const pQuant = fetch(`/api/nifty-unified/quant-levels?date=${selectedDate}&symbol=BANKNIFTY&_t=${Date.now()}`)
+        // 2. Chart 1 Options (wTimeframe)
+        const pChart1Opt = fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
-                if (data && data.success && data.playbook) {
-                    updateQuantLevelsUI(data.playbook);
+                if (data && data.success !== false && !data.error) {
+                    wBreadthData = data;
+                    if (wBreadthData.expiry && wBreadthData.expiry !== selectedExpiry) {
+                        selectedExpiry = wBreadthData.expiry;
+                        const expSelect = document.getElementById('expiry-select');
+                        if (expSelect) expSelect.value = selectedExpiry;
+                    }
                 }
+                return data;
+            }).catch(e => {
+                console.error('Error fetching Chart 1 Options:', e);
+                return null;
+            });
+
+        // 3. Chart 2 Options (oTimeframe) - If same timeframe as Chart 1, reuse pChart1Opt
+        const pChart2Opt = (wTimeframe === oTimeframe)
+            ? pChart1Opt.then(data => {
+                if (data && data.success !== false && !data.error) {
+                    breadthData = data;
+                    oBreadthData = data;
+                    renderOptionsBreadthColumn();
+                    document.getElementById('o-chart-loading')?.classList.add('hidden');
+                }
+                return data;
             })
-            .catch(e => console.warn('Could not auto-update Quant S/R levels:', e));
+            : fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success !== false && !data.error) {
+                        breadthData = data;
+                        oBreadthData = data;
+                        if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
+                            selectedExpiry = breadthData.expiry;
+                            const expSelect = document.getElementById('expiry-select');
+                            if (expSelect) expSelect.value = selectedExpiry;
+                        }
+                        if (breadthData.nifty_candles) {
+                            breadthData.nifty_candles.forEach(c => {
+                                if (!c.time && c.timestamp) c.time = c.timestamp;
+                            });
+                        }
+                        renderOptionsBreadthColumn();
+                        buildMasterTimeline();
+                        document.getElementById('o-chart-loading')?.classList.add('hidden');
+                    }
+                    return data;
+                }).catch(e => {
+                    console.error('Error fetching Chart 2 Options:', e);
+                    return null;
+                });
 
-        // 5. Fetch Order Flow S/R Levels (Top Bid Support & Ask Resistance)
-        const pOrderFlow = fetchOrderFlowLevels();
+        // 4. Chart 2 Stocks (oTimeframe) - If same timeframe as Chart 1, reuse pChart1Stk
+        const pChart2Stk = (wTimeframe === oTimeframe)
+            ? pChart1Stk.then(data => {
+                if (data && !data.error) {
+                    oWeightageData = data;
+                }
+                return data;
+            })
+            : fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && !data.error) {
+                        oWeightageData = data;
+                        if (!oWeightageData.candles && oWeightageData.nifty_candles) {
+                            oWeightageData.candles = oWeightageData.nifty_candles;
+                        }
+                    }
+                    return data;
+                }).catch(e => {
+                    console.error('Error fetching Chart 2 Stocks:', e);
+                    return null;
+                });
+
+        // 5. Trending OI and Buildup
+        const pTrending = fetch(`/api/trending-oi/data?date=${selectedDate}&mode=${toiMode}&range=10&interval=5&expiry=${selectedExpiry}&_t=${Date.now()}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.success !== false) {
+                    trendingOiData = data;
+                    renderTrendingOiChart();
+                    renderOiBuildup();
+                }
+            }).catch(e => console.error('Error fetching Trending OI:', e));
 
         try {
-            await Promise.allSettled([pBreadth, pTrendingOi, pWeightage, pQuant, pOrderFlow]);
-            renderWeightageColumn();
-            renderOptionsBreadthColumn();
-            applyChartHeight(currentChartHeight);
-            if (timestampsList && timestampsList.length > 0) {
-                checkAlarmConditions(timestampsList[timestampsList.length - 1]);
-                updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
-            }
-
-            // Update Last Sync Time (Only Time: HH:mm:ss)
-            const syncNow = new Date();
-            const timeOnlyStr = String(syncNow.getHours()).padStart(2, '0') + ':' +
-                                String(syncNow.getMinutes()).padStart(2, '0') + ':' +
-                                String(syncNow.getSeconds()).padStart(2, '0');
-            const syncBadge = document.getElementById('last-sync-time-badge');
-            if (syncBadge) {
-                syncBadge.textContent = timeOnlyStr;
-                syncBadge.classList.add('bg-emerald-500/30', 'text-emerald-200');
-                setTimeout(() => syncBadge.classList.remove('bg-emerald-500/30', 'text-emerald-200'), 800);
-            }
-            const quantSyncEl = document.getElementById('quant-last-sync-time');
-            if (quantSyncEl) {
-                quantSyncEl.textContent = timeOnlyStr;
-            }
-        } finally {
-            const spinner = document.getElementById('reload-spinner');
-            if (spinner) spinner.classList.remove('animate-spin');
-        }
-    }
-
-    // ── Helper: Intraday Session Break Vertical Line ──────────────────────────────
-    window._wTodayTime = null;
-    window._wYesterdayLastTime = null;
-    window._oTodayTime = null;
-    window._oYesterdayLastTime = null;
-
-    function updateDaySeparators() {
-        updateDaySeparatorForChart(wChart, 'w-day-separator', window._wTodayTime, window._wYesterdayLastTime);
-        updateDaySeparatorForChart(oChart, 'o-day-separator', window._oTodayTime, window._oYesterdayLastTime);
-    }
-    window.updateDaySeparators = updateDaySeparators;
-
-    function updateDaySeparatorForChart(chart, elemId, todayTime, yestTime) {
-        const el = document.getElementById(elemId);
-        if (!el) return;
-        if (!chart || !todayTime || !yestTime) {
-            el.classList.add('hidden');
-            return;
-        }
-        try {
-            const xToday = chart.timeScale().timeToCoordinate(todayTime);
-            if (xToday === null || isNaN(xToday)) {
-                el.classList.add('hidden');
-                return;
-            }
-            let xCoord = xToday;
-            const xYest = chart.timeScale().timeToCoordinate(yestTime);
-            if (xYest !== null && !isNaN(xYest)) {
-                xCoord = (xToday + xYest) / 2;
-            }
-            const parentW = el.parentElement ? el.parentElement.clientWidth : 0;
-            if (xCoord < 0 || xCoord > (parentW - 50)) {
-                el.classList.add('hidden');
-                return;
-            }
-            el.style.left = `${Math.round(xCoord)}px`;
-            el.classList.remove('hidden');
+            await Promise.all([pChart1Stk, pChart1Opt, pChart2Opt, pChart2Stk, pTrending]);
+            buildMasterTimeline();
+            updateCandleStyleUI();
         } catch (e) {
-            el.classList.add('hidden');
+            console.error('Error loading cockpit data:', e);
+        } finally {
+            hideChartLoaders();
         }
     }
 
-    // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View & Day Anchoring ──
-    function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = [], tf = '5m') {
-        if (!chart || !todayCandles || todayCandles.length === 0) return;
-        const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
-        const tCount = todayCandles.length;
-        const tfBarsMap = { '1m': 375, '3m': 125, '5m': 75, '15m': 25, '30m': 13, '60m': 7, '1h': 7, '1D': 1 };
-        const sessionBars = tfBarsMap[tf] || 75;
-
-        const applyRange = () => {
-            try {
-                chart.timeScale().applyOptions({
-                    minBarSpacing: 3,
-                    fixLeftEdge: false,
-                    fixRightEdge: false,
-                });
-
-                // Anchor Today's 09:15 open candle (at logical index yCount) with at least 10 candle widths of spacing to the right of the left edge
-                // This ensures the left floating tool dock does not override or overlap the start of the day candles and alert badges
-                const leftOffsetBars = 10;
-                const fromIndex = (yCount > 0 ? yCount : 0) - leftOffsetBars;
-                // Always display a full trading day window plus the left margin so candles never stretch or zoom
-                const toIndex = fromIndex + Math.max(sessionBars + leftOffsetBars, tCount + leftOffsetBars + 5);
-
-                chart.timeScale().setVisibleLogicalRange({
-                    from: fromIndex,
-                    to: toIndex,
-                });
-                requestAnimationFrame(updateDaySeparators);
-            } catch (e) {
-                console.warn('adjustChartTimeScale warning:', e);
-            }
-        };
-
-        requestAnimationFrame(applyRange);
-    }
-
-    // ── 6. Render Weightage Row ───────────────────────────────────────────────────
-    function renderWeightageColumn() {
+        function renderWeightageColumn() {
         const rawCandles = weightageData?.candles || weightageData?.nifty_candles;
         if (!rawCandles || rawCandles.length === 0) return;
         if (!weightageData.candles) weightageData.candles = rawCandles;
@@ -7685,9 +7708,12 @@
     window.findCandleForTime = findCandleForTime;
 
     function syncWeightageUI(index, timeStr) {
-        if (!weightageData) return;
+        const stkData = wWeightageData || weightageData;
+        const optData = wBreadthData || breadthData;
+        if (!stkData) return;
 
-        const candles = weightageData.candles || weightageData.nifty_candles || [];
+        // 1. Resolve Chart 1 Candlestick details
+        const candles = stkData.candles || stkData.nifty_candles || [];
         const candle = (timeStr ? findCandleForTime(candles, timeStr) : null) || candles[index] || null;
         const resolvedTime = candle?.time_str || timeStr;
 
@@ -7696,41 +7722,19 @@
             const wTfSuffix = (wTimeframe === '1D') ? '1-Day candle' : `${wTimeframe} candle`;
             const wStatTimeEl = document.getElementById('w-stat-time');
             if (wStatTimeEl) wStatTimeEl.textContent = `${candle.time_str} - ${wTfSuffix}`;
+
             if (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0) {
                 const cTime = Number(candle.time || candle.timestamp);
-                let haCandle = null;
-                if (cTime && !isNaN(cTime)) {
-                    for (let i = window._unifiedHaCandles.length - 1; i >= 0; i--) {
-                        if (Number(window._unifiedHaCandles[i].time) === cTime) {
-                            haCandle = window._unifiedHaCandles[i];
-                            break;
-                        }
-                    }
-                }
-                if (!haCandle && candle.time_str) {
-                    for (let i = window._unifiedHaCandles.length - 1; i >= 0; i--) {
-                        if (window._unifiedHaCandles[i].time_str === candle.time_str) {
-                            haCandle = window._unifiedHaCandles[i];
-                            break;
-                        }
-                    }
-                }
+                let haCandle = window._unifiedHaCandles.find(h => Number(h.time) === cTime || h.time_str === candle.time_str);
                 if (haCandle) {
-                    document.getElementById('w-chart-open').textContent = haCandle.open.toFixed(2);
-                    document.getElementById('w-chart-close').textContent = haCandle.close.toFixed(2);
+                    document.getElementById('w-chart-open').textContent = Number(haCandle.open).toFixed(2);
+                    document.getElementById('w-chart-close').textContent = Number(haCandle.close).toFixed(2);
                     const chgEl = document.getElementById('w-chart-chg');
                     const haMove = haCandle.close - haCandle.open;
                     const haMovePct = haCandle.open > 0 ? (haMove / haCandle.open) * 100 : 0;
                     const sign = haMove >= 0 ? '+' : '';
                     chgEl.textContent = `${sign}${haMove.toFixed(2)} (${sign}${haMovePct.toFixed(2)}%) [HA]`;
                     chgEl.className = haMove >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
-                } else {
-                    document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
-                    document.getElementById('w-chart-close').textContent = Number(candle.close).toFixed(2);
-                    const chgEl = document.getElementById('w-chart-chg');
-                    const sign = candle.move_pts >= 0 ? '+' : '';
-                    chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
-                    chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
                 }
             } else {
                 document.getElementById('w-chart-open').textContent = Number(candle.open).toFixed(2);
@@ -7742,288 +7746,264 @@
             }
         }
 
-        const b = (resolvedTime ? weightageData.breadth_by_time?.[resolvedTime] : null)
-               || (timeStr ? weightageData.breadth_by_time?.[timeStr] : null);
-        if (b) {
-            const displayTime = resolvedTime || timeStr || b.time || '09:15';
-            const tfSuffix = (currentUnifiedTimeframe === '1D') ? '1-Day candle' : `${currentUnifiedTimeframe} candle`;
-            document.getElementById('w-stat-time').textContent = `${displayTime} - ${tfSuffix}`;
+        // 2. Chart 1 Deck 1: BANK NIFTY STOCKS (wTimeframe)
+        const bStk = (resolvedTime ? stkData.breadth_by_time?.[resolvedTime] : null)
+                  || (timeStr ? stkData.breadth_by_time?.[timeStr] : null);
+        if (bStk) {
             const ptsEl = document.getElementById('w-stat-pts');
-            const movePts = Number(b.nifty_move_pts ?? b.index_move_pts ?? 0);
-            const movePct = Number(b.nifty_move_pct ?? b.index_move_pct ?? 0);
-            const sign = movePts >= 0 ? '+' : '';
-            ptsEl.textContent = `${sign}${movePts.toFixed(2)} pts (${sign}${movePct.toFixed(2)}%)`;
-            ptsEl.className = movePts >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
-
-            document.getElementById('w-stat-green-pct').textContent = `${b.green_count_pct ?? 0}%`;
-            document.getElementById('w-stat-green-wt').textContent = `${Number(b.green_weight ?? 0).toFixed(1)}%`;
-            document.getElementById('w-stat-green-cnt').textContent = b.green_count ?? 0;
-            const greenPts = Number(b.net_green_pts ?? b.green_pts ?? 0);
-            document.getElementById('w-stat-green-pts').textContent = `+${greenPts.toFixed(1)}`;
-
-            document.getElementById('w-stat-red-pct').textContent = `${b.red_count_pct ?? 0}%`;
-            document.getElementById('w-stat-red-wt').textContent = `${Number(b.red_weight ?? 0).toFixed(1)}%`;
-            document.getElementById('w-stat-red-cnt').textContent = b.red_count ?? 0;
-            const redPts = Number(b.net_red_pts ?? b.red_pts ?? 0);
-            document.getElementById('w-stat-red-pts').textContent = `${redPts.toFixed(1)}`;
-
-            document.getElementById('w-bar-green').style.width = `${b.green_weight}%`;
-            document.getElementById('w-bar-red').style.width = `${b.red_weight}%`;
-            document.getElementById('w-stat-split').textContent = `${Number(b.green_weight).toFixed(0)}% G / ${Number(b.red_weight).toFixed(0)}% R`;
-
-            if (b.insight) {
-                document.getElementById('w-insight-badge').innerHTML = b.insight.title || b.insight.badge || '<span>Institutional Conviction</span>';
-                document.getElementById('w-insight-desc').textContent = b.insight.message || '';
+            if (ptsEl) {
+                const sign = bStk.nifty_move_pts >= 0 ? '+' : '';
+                ptsEl.textContent = `${sign}${Number(bStk.nifty_move_pts).toFixed(1)} pts (${sign}${Number(bStk.nifty_move_pct).toFixed(2)}%)`;
+                ptsEl.className = bStk.nifty_move_pts >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
             }
 
-            // Stock Breadth Divergence Warning Banner
+            const gPctEl = document.getElementById('w-stat-green-pct');
+            if (gPctEl) gPctEl.textContent = `${bStk.green_count_pct}%`;
+            const gWtEl = document.getElementById('w-stat-green-wt');
+            if (gWtEl) gWtEl.textContent = `${Number(bStk.green_weight).toFixed(0)}%`;
+            const gCntEl = document.getElementById('w-stat-green-cnt');
+            if (gCntEl) gCntEl.textContent = bStk.green_count;
+            const gPtsEl = document.getElementById('w-stat-green-pts');
+            if (gPtsEl) gPtsEl.textContent = `+${Number(bStk.net_green_pts).toFixed(0)}`;
+
+            const rPctEl = document.getElementById('w-stat-red-pct');
+            if (rPctEl) rPctEl.textContent = `${bStk.red_count_pct}%`;
+            const rWtEl = document.getElementById('w-stat-red-wt');
+            if (rWtEl) rWtEl.textContent = `${Number(bStk.red_weight).toFixed(0)}%`;
+            const rCntEl = document.getElementById('w-stat-red-cnt');
+            if (rCntEl) rCntEl.textContent = bStk.red_count;
+            const rPtsEl = document.getElementById('w-stat-red-pts');
+            if (rPtsEl) rPtsEl.textContent = `${Number(bStk.net_red_pts).toFixed(0)}`;
+
+            const barG = document.getElementById('w-bar-green');
+            if (barG) barG.style.width = `${bStk.green_weight}%`;
+            const barR = document.getElementById('w-bar-red');
+            if (barR) barR.style.width = `${bStk.red_weight}%`;
+            const splitEl = document.getElementById('w-stat-split');
+            if (splitEl) splitEl.textContent = `${Number(bStk.green_weight).toFixed(0)}% G / ${Number(bStk.red_weight).toFixed(0)}% R`;
+
+            if (bStk.insight) {
+                const insEl = document.getElementById('w-insight-badge');
+                if (insEl) insEl.innerHTML = bStk.insight.badge || '<span>Institutional Conviction</span>';
+            }
+
+            // Divergence warning banner
             const divEl = document.getElementById('w-divergence-banner');
             if (divEl) {
-                if (!candle) {
-                    divEl.classList.add('hidden');
+                if (bStk.divergence && bStk.divergence.active) {
+                    divEl.className = 'mt-1 p-1 rounded text-[8px] font-mono leading-tight ' +
+                        (bStk.divergence.type === 'bearish' ? 'bg-amber-950/80 border border-amber-600/70 text-amber-200' : 'bg-cyan-950/80 border border-cyan-600/70 text-cyan-200');
+                    divEl.innerHTML = `<strong>⚠️ ${bStk.divergence.label}:</strong> ${bStk.divergence.desc}`;
+                    divEl.classList.remove('hidden');
                 } else {
-                    const isGreen = Number(candle.close) >= Number(candle.open);
-                    const isRed   = Number(candle.close) < Number(candle.open);
-                    const trig = alarmSettings.stocksTriggerBy || 'both';
-                    const upTh = alarmSettings.stocksUpThreshold || 80;
-                    const downTh = alarmSettings.stocksDownThreshold || 80;
-
-                    let isGreenBreach = false, isRedBreach = false;
-                    if (trig === 'both') {
-                        isGreenBreach = (b.green_count_pct >= upTh && b.green_weight >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh && b.red_weight >= downTh);
-                    } else if (trig === 'either') {
-                        isGreenBreach = (b.green_count_pct >= upTh || b.green_weight >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh || b.red_weight >= downTh);
-                    } else if (trig === 'count') {
-                        isGreenBreach = (b.green_count_pct >= upTh);
-                        isRedBreach   = (b.red_count_pct >= downTh);
-                    } else if (trig === 'weight') {
-                        isGreenBreach = (b.green_weight >= upTh);
-                        isRedBreach   = (b.red_weight >= downTh);
-                    }
-
-                    if (isGreen && isRedBreach) {
-                        divEl.classList.remove('hidden');
-                        divEl.className = 'p-1.5 rounded bg-amber-950/70 border border-amber-500/60 text-[10px] text-amber-200 mt-1.5';
-                        divEl.innerHTML = `
-                            <div class="flex items-center gap-1 font-bold text-amber-300">
-                                <span>⚠️ STOCK BREADTH DIVERGENCE (BULL TRAP)</span>
-                            </div>
-                            <div class="text-[9.5px] text-amber-200/90 leading-tight mt-0.5">
-                                Candle rose (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.red_count_pct}% of stocks (${Number(b.red_weight).toFixed(0)}% wt)</strong> are dragging down! Narrow rally / fakeout warning.
-                            </div>
-                        `;
-                    } else if (isRed && isGreenBreach) {
-                        divEl.classList.remove('hidden');
-                        divEl.className = 'p-1.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-[10px] text-cyan-200 mt-1.5';
-                        divEl.innerHTML = `
-                            <div class="flex items-center gap-1 font-bold text-cyan-300">
-                                <span>⚡ STOCK BREADTH DIVERGENCE (BEAR TRAP)</span>
-                            </div>
-                            <div class="text-[9.5px] text-cyan-200/90 leading-tight mt-0.5">
-                                Candle dropped (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.green_count_pct}% of stocks (${Number(b.green_weight).toFixed(0)}% wt)</strong> are advancing! Institutional absorption.
-                            </div>
-                        `;
-                    } else {
-                        divEl.classList.add('hidden');
-                    }
+                    divEl.className = 'hidden';
+                    divEl.innerHTML = '';
                 }
             }
 
-            document.getElementById('w-movers-time').textContent = displayTime;
-            const driversEl = document.getElementById('w-top-drivers');
-            const draggersEl = document.getElementById('w-top-draggers');
+            // Movers ticker
+            renderKeyMovers('w-top-drivers', bStk.drivers || []);
+            renderKeyMovers('w-top-draggers', bStk.draggers || []);
+        }
 
-            const topDrivers = (b.top_contributors || b.top_leaders || []).filter(s => (s.pts ?? s.pts_impact ?? 0) > 0).slice(0, 3);
-            if (driversEl) {
-                driversEl.innerHTML = topDrivers.length === 0 ? '<div class="text-gray-500 italic text-[9px]">None</div>' : topDrivers.map(s => {
-                    const p = Number(s.pts ?? s.pts_impact ?? 0);
-                    const wt = Number(s.weight ?? 0);
-                    return `
-                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40 text-[9.5px]">
-                        <span class="font-semibold text-gray-200 truncate pr-1" title="${s.symbol}">
-                            ${s.symbol} <span class="text-[8.5px] text-gray-400">(${wt.toFixed(1)}%)</span>
-                        </span>
-                        <span class="text-emerald-400 font-bold whitespace-nowrap">+${p.toFixed(1)}</span>
-                    </div>
-                `;}).join('');
-            }
+        // 3. Chart 1 Deck 2: OPTIONS FLOW (wTimeframe)
+        if (optData) {
+            const optCandles = optData.nifty_candles || optData.candles || [];
+            const optCandle = (resolvedTime ? findCandleForTime(optCandles, resolvedTime) : null) || optCandles[index] || null;
+            const bOpt = (resolvedTime ? optData.breadth_by_time?.[resolvedTime] : null)
+                      || (optCandle?.time_str ? optData.breadth_by_time?.[optCandle.time_str] : null);
 
-            const topDraggers = (b.top_draggers || []).filter(s => (s.pts ?? s.pts_impact ?? 0) < 0).slice(0, 3);
-            if (draggersEl) {
-                draggersEl.innerHTML = topDraggers.length === 0 ? '<div class="text-gray-500 italic text-[9px]">None</div>' : topDraggers.map(s => {
-                    const p = Number(s.pts ?? s.pts_impact ?? 0);
-                    const wt = Number(s.weight ?? 0);
-                    return `
-                    <div class="flex items-center justify-between px-1.5 py-0.5 rounded bg-rose-950/40 border border-rose-800/40 text-[9.5px]">
-                        <span class="font-semibold text-gray-200 truncate pr-1" title="${s.symbol}">
-                            ${s.symbol} <span class="text-[8.5px] text-gray-400">(${wt.toFixed(1)}%)</span>
-                        </span>
-                        <span class="text-rose-400 font-bold whitespace-nowrap">${p.toFixed(1)}</span>
-                    </div>
-                `;}).join('');
+            if (bOpt) {
+                const impEl = document.getElementById('w-opt-stat-impulse');
+                if (impEl) {
+                    const sign = bOpt.net_impulse >= 0 ? '+' : '';
+                    impEl.textContent = `${sign}${Number(bOpt.net_impulse).toFixed(2)} pts`;
+                    impEl.className = bOpt.net_impulse >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
+                }
+
+                const atmEl = document.getElementById('w-opt-stat-atm-val');
+                if (atmEl && bOpt.atm_strike) atmEl.textContent = `₹${Number(bOpt.atm_strike).toLocaleString('en-IN')}`;
+
+                const gRatioEl = document.getElementById('w-opt-stat-green-ratio');
+                if (gRatioEl) gRatioEl.textContent = `${bOpt.green_ratio_pct}%`;
+                const gWtEl = document.getElementById('w-opt-stat-green-wt');
+                if (gWtEl) gWtEl.textContent = `${bOpt.green_weight_pct}% Wt`;
+                const gCntEl = document.getElementById('w-opt-stat-green-cnt');
+                if (gCntEl) gCntEl.textContent = bOpt.green_strikes;
+
+                const rRatioEl = document.getElementById('w-opt-stat-red-ratio');
+                if (rRatioEl) rRatioEl.textContent = `${bOpt.red_ratio_pct}%`;
+                const rWtEl = document.getElementById('w-opt-stat-red-wt');
+                if (rWtEl) rWtEl.textContent = `${bOpt.red_weight_pct}% Wt`;
+                const rCntEl = document.getElementById('w-opt-stat-red-cnt');
+                if (rCntEl) rCntEl.textContent = bOpt.red_strikes;
+
+                const barG = document.getElementById('w-opt-bar-green');
+                if (barG) barG.style.width = `${bOpt.green_weight_pct}%`;
+                const barR = document.getElementById('w-opt-bar-red');
+                if (barR) barR.style.width = `${bOpt.red_weight_pct}%`;
+                const splitEl = document.getElementById('w-opt-stat-split');
+                if (splitEl) splitEl.textContent = `${bOpt.green_weight_pct}% / ${bOpt.red_weight_pct}%`;
+
+                const vTitle = document.getElementById('w-opt-verdict-title');
+                if (vTitle && bOpt.verdict) vTitle.innerHTML = bOpt.verdict.title || '⚖️ Balanced Options Equilibrium';
+
+                const gDelta = document.getElementById('w-opt-greek-delta');
+                if (gDelta && bOpt.greeks) gDelta.textContent = `${Number(bOpt.greeks.net_delta / 1000).toFixed(1)}k`;
+                const gCeVeg = document.getElementById('w-opt-greek-ce-vega');
+                if (gCeVeg && bOpt.greeks) gCeVeg.textContent = Number(bOpt.greeks.ce_vega).toFixed(1);
+                const gPeVeg = document.getElementById('w-opt-greek-pe-vega');
+                if (gPeVeg && bOpt.greeks) gPeVeg.textContent = Number(bOpt.greeks.pe_vega).toFixed(1);
+                const gPcr = document.getElementById('w-opt-greek-pcr');
+                if (gPcr && bOpt.greeks) gPcr.textContent = Number(bOpt.greeks.pcr_oi).toFixed(2);
             }
         }
+
+        // 4. Update Trigger Analysis and companion counters for Chart 1
+        updateOverallAndTriggerStats();
     }
 
     function syncOptionsBreadthUI(index, timeStr) {
-        if (!breadthData) return;
+        const optData = oBreadthData || breadthData;
+        const stkData = oWeightageData || weightageData;
+        if (!optData) return;
 
-        const candles = breadthData.nifty_candles || [];
+        // 1. Resolve Chart 2 Candlestick details
+        const candles = optData.nifty_candles || optData.candles || [];
         const candle = (timeStr ? findCandleForTime(candles, timeStr) : null) || candles[index] || null;
         const resolvedTime = candle?.time_str || timeStr;
 
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
-            if (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0) {
+            const oTfSuffix = (oTimeframe === '1D') ? '1-Day candle' : `${oTimeframe} candle`;
+            const oStatTimeEl = document.getElementById('o-stat-time');
+            if (oStatTimeEl) oStatTimeEl.textContent = `${candle.time_str} - ${oTfSuffix}`;
+
+            if (oCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0) {
                 const cTime = Number(candle.time || candle.timestamp);
-                let haCandle = null;
-                if (cTime && !isNaN(cTime)) {
-                    for (let i = window._unifiedOptionsHaCandles.length - 1; i >= 0; i--) {
-                        if (Number(window._unifiedOptionsHaCandles[i].time) === cTime) {
-                            haCandle = window._unifiedOptionsHaCandles[i];
-                            break;
-                        }
-                    }
-                }
-                if (!haCandle && candle.time_str) {
-                    for (let i = window._unifiedOptionsHaCandles.length - 1; i >= 0; i--) {
-                        if (window._unifiedOptionsHaCandles[i].time_str === candle.time_str) {
-                            haCandle = window._unifiedOptionsHaCandles[i];
-                            break;
-                        }
-                    }
-                }
+                let haCandle = window._unifiedHaCandles.find(h => Number(h.time) === cTime || h.time_str === candle.time_str);
                 if (haCandle) {
-                    document.getElementById('o-chart-open').textContent = haCandle.open.toFixed(2);
-                    document.getElementById('o-chart-close').textContent = haCandle.close.toFixed(2);
-                    const moveEl = document.getElementById('o-chart-move');
+                    document.getElementById('o-chart-open').textContent = Number(haCandle.open).toFixed(2);
+                    document.getElementById('o-chart-close').textContent = Number(haCandle.close).toFixed(2);
+                    const chgEl = document.getElementById('o-chart-chg');
                     const haMove = haCandle.close - haCandle.open;
                     const haMovePct = haCandle.open > 0 ? (haMove / haCandle.open) * 100 : 0;
                     const sign = haMove >= 0 ? '+' : '';
-                    moveEl.textContent = `${sign}${haMove.toFixed(2)} (${sign}${haMovePct.toFixed(2)}%) [HA]`;
-                    moveEl.className = haMove >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
-                } else {
-                    document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
-                    document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
-                    const moveEl = document.getElementById('o-chart-move');
-                    const sign = candle.move_pts >= 0 ? '+' : '';
-                    moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
-                    moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                    chgEl.textContent = `${sign}${haMove.toFixed(2)} (${sign}${haMovePct.toFixed(2)}%) [HA]`;
+                    chgEl.className = haMove >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
                 }
             } else {
                 document.getElementById('o-chart-open').textContent = Number(candle.open).toFixed(2);
                 document.getElementById('o-chart-close').textContent = Number(candle.close).toFixed(2);
-                const moveEl = document.getElementById('o-chart-move');
+                const chgEl = document.getElementById('o-chart-chg');
                 const sign = candle.move_pts >= 0 ? '+' : '';
-                moveEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
-                moveEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                chgEl.textContent = `${sign}${Number(candle.move_pts).toFixed(2)} (${sign}${Number(candle.move_pct).toFixed(2)}%)`;
+                chgEl.className = candle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
             }
         }
 
-        const b = (resolvedTime ? breadthData.breadth_by_time?.[resolvedTime] : null)
-               || (timeStr ? breadthData.breadth_by_time?.[timeStr] : null);
-        if (b) {
-            const displayTime = resolvedTime || timeStr || b.time_str || '09:15';
-            const tfSuffix = (oTimeframe === '1D') ? '1-Day candle' : `${oTimeframe} candle`;
-            document.getElementById('o-stat-time').textContent = `${displayTime} - ${tfSuffix}`;
+        // 2. Chart 2 Deck 1: BANK NIFTY STOCKS (oTimeframe)
+        if (stkData) {
+            const stkCandles = stkData.candles || stkData.nifty_candles || [];
+            const stkCandle = (resolvedTime ? findCandleForTime(stkCandles, resolvedTime) : null) || stkCandles[index] || null;
+            const bStk = (resolvedTime ? stkData.breadth_by_time?.[resolvedTime] : null)
+                      || (stkCandle?.time_str ? stkData.breadth_by_time?.[stkCandle.time_str] : null);
+
+            if (bStk) {
+                const ptsEl = document.getElementById('o-stk-stat-pts');
+                if (ptsEl) {
+                    const sign = bStk.nifty_move_pts >= 0 ? '+' : '';
+                    ptsEl.textContent = `${sign}${Number(bStk.nifty_move_pts).toFixed(1)} pts (${sign}${Number(bStk.nifty_move_pct).toFixed(2)}%)`;
+                    ptsEl.className = bStk.nifty_move_pts >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
+                }
+
+                const gPctEl = document.getElementById('o-stk-stat-green-pct');
+                if (gPctEl) gPctEl.textContent = `${bStk.green_count_pct}%`;
+                const gWtEl = document.getElementById('o-stk-stat-green-wt');
+                if (gWtEl) gWtEl.textContent = `${Number(bStk.green_weight).toFixed(0)}%`;
+                const gCntEl = document.getElementById('o-stk-stat-green-cnt');
+                if (gCntEl) gCntEl.textContent = bStk.green_count;
+                const gPtsEl = document.getElementById('o-stk-stat-green-pts');
+                if (gPtsEl) gPtsEl.textContent = `+${Number(bStk.net_green_pts).toFixed(0)}`;
+
+                const rPctEl = document.getElementById('o-stk-stat-red-pct');
+                if (rPctEl) rPctEl.textContent = `${bStk.red_count_pct}%`;
+                const rWtEl = document.getElementById('o-stk-stat-red-wt');
+                if (rWtEl) rWtEl.textContent = `${Number(bStk.red_weight).toFixed(0)}%`;
+                const rCntEl = document.getElementById('o-stk-stat-red-cnt');
+                if (rCntEl) rCntEl.textContent = bStk.red_count;
+                const rPtsEl = document.getElementById('o-stk-stat-red-pts');
+                if (rPtsEl) rPtsEl.textContent = `${Number(bStk.net_red_pts).toFixed(0)}`;
+
+                const barG = document.getElementById('o-stk-bar-green');
+                if (barG) barG.style.width = `${bStk.green_weight}%`;
+                const barR = document.getElementById('o-stk-bar-red');
+                if (barR) barR.style.width = `${bStk.red_weight}%`;
+                const splitEl = document.getElementById('o-stk-stat-split');
+                if (splitEl) splitEl.textContent = `${Number(bStk.green_weight).toFixed(0)}% G / ${Number(bStk.red_weight).toFixed(0)}% R`;
+
+                if (bStk.insight) {
+                    const insEl = document.getElementById('o-stk-insight-badge');
+                    if (insEl) insEl.innerHTML = bStk.insight.badge || '<span>Institutional Conviction</span>';
+                }
+
+                // Movers ticker for Chart 2
+                renderKeyMovers('o-stk-top-drivers', bStk.drivers || []);
+                renderKeyMovers('o-stk-top-draggers', bStk.draggers || []);
+            }
+        }
+
+        // 3. Chart 2 Deck 2: OPTIONS FLOW (oTimeframe)
+        const bOpt = (resolvedTime ? optData.breadth_by_time?.[resolvedTime] : null)
+                  || (timeStr ? optData.breadth_by_time?.[timeStr] : null);
+
+        if (bOpt) {
             const impEl = document.getElementById('o-stat-impulse');
-            const sign = b.net_points >= 0 ? '+' : '';
-            impEl.textContent = `${sign}${Number(b.net_points).toFixed(2)} pts`;
-            impEl.className = b.net_points >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
-
-            // Basket badge update (ATM & Strike Range for selected candle)
-            const atmValEl = document.getElementById('o-stat-atm-val');
-            if (atmValEl) {
-                const atm = b.atm_strike || (breadthData.atm_strike || (candle ? Math.round(Number(candle.close) / 50) * 50 : 23000));
-                atmValEl.textContent = '₹' + Number(atm).toLocaleString('en-IN');
+            if (impEl) {
+                const sign = bOpt.net_impulse >= 0 ? '+' : '';
+                impEl.textContent = `${sign}${Number(bOpt.net_impulse).toFixed(2)} pts`;
+                impEl.className = bOpt.net_impulse >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
             }
 
-            const basketRangeEl = document.getElementById('o-stat-basket-range');
-            if (basketRangeEl) {
-                if (b.basket_min && b.basket_max) {
-                    basketRangeEl.textContent = `₹${Number(b.basket_min).toLocaleString('en-IN')} – ₹${Number(b.basket_max).toLocaleString('en-IN')}`;
-                } else if (breadthData.strikes && breadthData.strikes.length > 0) {
-                    const minS = Math.min(...breadthData.strikes);
-                    const maxS = Math.max(...breadthData.strikes);
-                    basketRangeEl.textContent = `₹${minS.toLocaleString('en-IN')} – ₹${maxS.toLocaleString('en-IN')}`;
-                } else {
-                    basketRangeEl.textContent = '--';
-                }
-            }
+            const atmEl = document.getElementById('o-stat-atm-val');
+            if (atmEl && bOpt.atm_strike) atmEl.textContent = `₹${Number(bOpt.atm_strike).toLocaleString('en-IN')}`;
 
-            const basketModeTag = document.getElementById('o-stat-basket-mode-tag');
-            if (basketModeTag) {
-                const isDyn = (b.basket_mode === 'dynamic' || alarmSettings.optionsBasketMode === 'dynamic');
-                basketModeTag.textContent = isDyn ? 'Dynamic' : 'Fixed';
-                basketModeTag.className = isDyn
-                    ? 'px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-cyan-950 text-cyan-300 border border-cyan-600/40'
-                    : 'px-1 py-0.2 rounded text-[8.5px] font-sans font-bold bg-gray-800 text-gray-300 border border-gray-600';
-            }
+            const gRatioEl = document.getElementById('o-stat-green-ratio');
+            if (gRatioEl) gRatioEl.textContent = `${bOpt.green_ratio_pct}%`;
+            const gWtEl = document.getElementById('o-stat-green-wt');
+            if (gWtEl) gWtEl.textContent = `${bOpt.green_weight_pct}% Wt`;
+            const gCntEl = document.getElementById('o-stat-green-cnt');
+            if (gCntEl) gCntEl.textContent = bOpt.green_strikes;
 
-            document.getElementById('o-stat-green-ratio').textContent = `${b.up_weight}%`;
-            document.getElementById('o-stat-green-wt').textContent = `${b.up_weight}% Wt`;
-            document.getElementById('o-stat-green-cnt').textContent = b.up_count;
+            const rRatioEl = document.getElementById('o-stat-red-ratio');
+            if (rRatioEl) rRatioEl.textContent = `${bOpt.red_ratio_pct}%`;
+            const rWtEl = document.getElementById('o-stat-red-wt');
+            if (rWtEl) rWtEl.textContent = `${bOpt.red_weight_pct}% Wt`;
+            const rCntEl = document.getElementById('o-stat-red-cnt');
+            if (rCntEl) rCntEl.textContent = bOpt.red_strikes;
 
-            document.getElementById('o-stat-red-ratio').textContent = `${b.down_weight}%`;
-            document.getElementById('o-stat-red-wt').textContent = `${b.down_weight}% Wt`;
-            document.getElementById('o-stat-red-cnt').textContent = b.down_count;
+            const barG = document.getElementById('o-bar-green');
+            if (barG) barG.style.width = `${bOpt.green_weight_pct}%`;
+            const barR = document.getElementById('o-bar-red');
+            if (barR) barR.style.width = `${bOpt.red_weight_pct}%`;
+            const splitEl = document.getElementById('o-stat-split');
+            if (splitEl) splitEl.textContent = `${bOpt.green_weight_pct}% / ${bOpt.red_weight_pct}%`;
 
-            document.getElementById('o-stat-split').textContent = `${b.up_weight}% / ${b.down_weight}%`;
-            document.getElementById('o-bar-green').style.width = `${b.up_weight}%`;
-            document.getElementById('o-bar-red').style.width = `${b.down_weight}%`;
+            const vTitle = document.getElementById('o-verdict-title');
+            if (vTitle && bOpt.verdict) vTitle.innerHTML = bOpt.verdict.title || '⚖️ Balanced Options Equilibrium';
 
-            document.getElementById('o-verdict-desc').textContent = b.verdict || '';
-
-            // Options Breadth Divergence / Smart Money Trap Banner
-            const divEl = document.getElementById('o-divergence-banner');
-            if (divEl) {
-                if (!candle) {
-                    divEl.classList.add('hidden');
-                } else {
-                    const isGreen = Number(candle.close) >= Number(candle.open);
-                    const isRed   = Number(candle.close) < Number(candle.open);
-                    const downTh  = alarmSettings.optionsDownThreshold || 70;
-                    const upTh    = alarmSettings.optionsUpThreshold || 70;
-
-                    if (isGreen && b.down_weight >= downTh) {
-                        divEl.classList.remove('hidden');
-                        divEl.className = 'p-1.5 rounded bg-amber-950/70 border border-amber-500/60 text-[10px] text-amber-200 mt-1.5';
-                        divEl.innerHTML = `
-                            <div class="flex items-center justify-between font-bold text-amber-300">
-                                <span class="flex items-center gap-1"><span>⚠️</span> BULL TRAP / FADE WARNING</span>
-                                <span class="text-[9px] px-1 bg-amber-900/80 rounded border border-amber-500/40 font-mono">${b.down_weight}% Bear Flow</span>
-                            </div>
-                            <div class="text-[9.5px] text-amber-200/90 leading-tight mt-0.5">
-                                Spot candle closed GREEN (+${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.down_count} of 11 strikes</strong> are aggressively writing Calls & buying Puts! High probability fakeout / resistance.
-                            </div>
-                        `;
-                    } else if (isRed && b.up_weight >= upTh) {
-                        divEl.classList.remove('hidden');
-                        divEl.className = 'p-1.5 rounded bg-cyan-950/70 border border-cyan-500/60 text-[10px] text-cyan-200 mt-1.5';
-                        divEl.innerHTML = `
-                            <div class="flex items-center justify-between font-bold text-cyan-300">
-                                <span class="flex items-center gap-1"><span>⚡</span> BEAR TRAP / ABSORPTION WARNING</span>
-                                <span class="text-[9px] px-1 bg-cyan-900/80 rounded border border-cyan-500/40 font-mono">${b.up_weight}% Bull Flow</span>
-                            </div>
-                            <div class="text-[9.5px] text-cyan-200/90 leading-tight mt-0.5">
-                                Spot candle closed RED (${(Number(candle.close) - Number(candle.open)).toFixed(1)} pts), but <strong>${b.up_count} of 11 strikes</strong> are aggressively buying Calls & writing Puts! Short-covering bounce expected.
-                            </div>
-                        `;
-                    } else {
-                        divEl.classList.add('hidden');
-                    }
-                }
-            }
-
-            if (b.greeks) {
-                document.getElementById('o-greek-delta').textContent = b.greeks.net_delta;
-                document.getElementById('o-greek-ce-vega').textContent = Number(b.greeks.avg_ce_vega).toFixed(2);
-                document.getElementById('o-greek-pe-vega').textContent = Number(b.greeks.avg_pe_vega).toFixed(2);
-                document.getElementById('o-greek-pcr').textContent = Number(b.greeks.pcr).toFixed(2);
-            }
+            const gDelta = document.getElementById('o-greek-delta');
+            if (gDelta && bOpt.greeks) gDelta.textContent = `${Number(bOpt.greeks.net_delta / 1000).toFixed(1)}k`;
+            const gCeVeg = document.getElementById('o-greek-ce-vega');
+            if (gCeVeg && bOpt.greeks) gCeVeg.textContent = Number(bOpt.greeks.ce_vega).toFixed(1);
+            const gPeVeg = document.getElementById('o-greek-pe-vega');
+            if (gPeVeg && bOpt.greeks) gPeVeg.textContent = Number(bOpt.greeks.pe_vega).toFixed(1);
+            const gPcr = document.getElementById('o-greek-pcr');
+            if (gPcr && bOpt.greeks) gPcr.textContent = Number(bOpt.greeks.pcr_oi).toFixed(2);
         }
+
+        // 4. Update Trigger Analysis and companion counters for Chart 2
+        updateOverallAndTriggerStats();
     }
 
     function syncTrendingOiCursor(index, timeStr) {
@@ -8135,6 +8115,10 @@
         if (stkPosCntEl) stkPosCntEl.textContent = stkPosHits;
         const stkNegCntEl = document.getElementById('stk-neg-triggers-count');
         if (stkNegCntEl) stkNegCntEl.textContent = stkNegHits;
+        const oStkPosEl = document.getElementById('o-stk-pos-triggers-count');
+        const oStkNegEl = document.getElementById('o-stk-neg-triggers-count');
+        if (oStkPosEl) oStkPosEl.textContent = stkPosHits;
+        if (oStkNegEl) oStkNegEl.textContent = stkNegHits;
 
         const stkPosPkEl = document.getElementById('stk-pos-peak');
         if (stkPosPkEl) stkPosPkEl.textContent = stkPosMax > 0 ? `${stkPosMax.toFixed(0)}%` : '0%';
@@ -8258,6 +8242,10 @@
         if (optPosCntEl) optPosCntEl.textContent = optPosHits;
         const optNegCntEl = document.getElementById('opt-neg-triggers-count');
         if (optNegCntEl) optNegCntEl.textContent = optNegHits;
+        const wOptPosEl = document.getElementById('w-opt-pos-triggers-count');
+        const wOptNegEl = document.getElementById('w-opt-neg-triggers-count');
+        if (wOptPosEl) wOptPosEl.textContent = optPosHits;
+        if (wOptNegEl) wOptNegEl.textContent = optNegHits;
 
         const optPosPkEl = document.getElementById('opt-pos-peak');
         if (optPosPkEl) optPosPkEl.textContent = optPosMax > 0 ? `${optPosMax.toFixed(0)}%` : '0%';
