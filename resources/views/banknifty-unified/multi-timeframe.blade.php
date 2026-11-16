@@ -6500,133 +6500,178 @@
 
         const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
         let toiMode = (selectedDate === todayStr) ? 'live' : 'history';
-        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+
         const wMin = getTfMinutes(wTimeframe);
         const oMin = getTfMinutes(oTimeframe);
+        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
 
-        // Define fetch promises
-        // 1. Chart 1 Stocks (wTimeframe)
+        // 1. Fetch Chart 1 Stocks & Options (wTimeframe)
         const pChart1Stk = fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && !data.error) {
-                    weightageData = data;
                     wWeightageData = data;
-                    if (!weightageData.candles && weightageData.nifty_candles) {
-                        weightageData.candles = weightageData.nifty_candles;
+                    if (!wWeightageData.candles && wWeightageData.nifty_candles) wWeightageData.candles = wWeightageData.nifty_candles;
+                    if (wWeightageData.candles) {
+                        wWeightageData.candles.forEach(c => { if (!c.time && c.timestamp) c.time = c.timestamp; });
                     }
-                    if (weightageData.candles) {
-                        weightageData.candles.forEach(c => {
-                            if (!c.time && c.timestamp) c.time = c.timestamp;
-                        });
-                    }
+                    weightageData = wWeightageData;
                     renderWeightageColumn();
+                    if (breadthData) renderOptionsBreadthColumn();
                     buildMasterTimeline();
-                    document.getElementById('w-chart-loading')?.classList.add('hidden');
                 }
-                return data;
-            }).catch(e => {
-                console.error('Error fetching Chart 1 Stocks:', e);
-                return null;
-            });
+            })
+            .catch(e => console.error('Error fetching Chart 1 Weightage:', e))
+            .finally(() => document.getElementById('w-chart-loading')?.classList.add('hidden'));
 
-        // 2. Chart 1 Options (wTimeframe)
         const pChart1Opt = fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
                 if (data && data.success !== false && !data.error) {
                     wBreadthData = data;
-                    if (wBreadthData.expiry && wBreadthData.expiry !== selectedExpiry) {
-                        selectedExpiry = wBreadthData.expiry;
-                        const expSelect = document.getElementById('expiry-select');
-                        if (expSelect) expSelect.value = selectedExpiry;
+                    if (wBreadthData.nifty_candles) {
+                        wBreadthData.nifty_candles.forEach(c => { if (!c.time && c.timestamp) c.time = c.timestamp; });
                     }
                 }
-                return data;
-            }).catch(e => {
-                console.error('Error fetching Chart 1 Options:', e);
-                return null;
-            });
-
-        // 3. Chart 2 Options (oTimeframe) - If same timeframe as Chart 1, reuse pChart1Opt
-        const pChart2Opt = (wTimeframe === oTimeframe)
-            ? pChart1Opt.then(data => {
-                if (data && data.success !== false && !data.error) {
-                    breadthData = data;
-                    oBreadthData = data;
-                    renderOptionsBreadthColumn();
-                    document.getElementById('o-chart-loading')?.classList.add('hidden');
-                }
-                return data;
             })
-            : fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
+            .catch(e => console.error('Error fetching Chart 1 Options:', e));
+
+        // 2. Fetch Chart 2 Stocks & Options (oTimeframe)
+        let pChart2Stk, pChart2Opt;
+        if (oMin === wMin) {
+            pChart2Stk = pChart1Stk.then(() => { oWeightageData = wWeightageData; });
+            pChart2Opt = pChart1Opt.then(() => {
+                oBreadthData = wBreadthData;
+                breadthData = oBreadthData;
+                if (breadthData?.expiry && breadthData.expiry !== selectedExpiry) {
+                    selectedExpiry = breadthData.expiry;
+                    const expSelect = document.getElementById('expiry-select');
+                    if (expSelect) expSelect.value = selectedExpiry;
+                }
+                renderOptionsBreadthColumn();
+                document.getElementById('o-chart-loading')?.classList.add('hidden');
+            });
+        } else {
+            pChart2Stk = fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && !data.error) {
+                        oWeightageData = data;
+                        if (!oWeightageData.candles && oWeightageData.nifty_candles) oWeightageData.candles = oWeightageData.nifty_candles;
+                        if (oWeightageData.candles) {
+                            oWeightageData.candles.forEach(c => { if (!c.time && c.timestamp) c.time = c.timestamp; });
+                        }
+                    }
+                })
+                .catch(e => console.error('Error fetching Chart 2 Weightage:', e));
+
+            pChart2Opt = fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data && data.success !== false && !data.error) {
-                        breadthData = data;
                         oBreadthData = data;
+                        breadthData = oBreadthData;
                         if (breadthData.expiry && breadthData.expiry !== selectedExpiry) {
                             selectedExpiry = breadthData.expiry;
                             const expSelect = document.getElementById('expiry-select');
                             if (expSelect) expSelect.value = selectedExpiry;
                         }
                         if (breadthData.nifty_candles) {
-                            breadthData.nifty_candles.forEach(c => {
-                                if (!c.time && c.timestamp) c.time = c.timestamp;
-                            });
+                            breadthData.nifty_candles.forEach(c => { if (!c.time && c.timestamp) c.time = c.timestamp; });
                         }
                         renderOptionsBreadthColumn();
+                        if (weightageData) renderWeightageColumn();
                         buildMasterTimeline();
                         document.getElementById('o-chart-loading')?.classList.add('hidden');
-                    }
-                    return data;
-                }).catch(e => {
-                    console.error('Error fetching Chart 2 Options:', e);
-                    return null;
-                });
-
-        // 4. Chart 2 Stocks (oTimeframe) - If same timeframe as Chart 1, reuse pChart1Stk
-        const pChart2Stk = (wTimeframe === oTimeframe)
-            ? pChart1Stk.then(data => {
-                if (data && !data.error) {
-                    oWeightageData = data;
-                }
-                return data;
-            })
-            : fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data && !data.error) {
-                        oWeightageData = data;
-                        if (!oWeightageData.candles && oWeightageData.nifty_candles) {
-                            oWeightageData.candles = oWeightageData.nifty_candles;
+                    } else {
+                        const errText = data?.error || 'Options data unavailable for this date';
+                        const msg = document.getElementById('o-loading-msg');
+                        if (msg) {
+                            msg.innerHTML = `<span class="text-rose-400 font-semibold">${errText}</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
                         }
                     }
-                    return data;
-                }).catch(e => {
-                    console.error('Error fetching Chart 2 Stocks:', e);
-                    return null;
+                })
+                .catch(e => {
+                    console.error('Error fetching Options Breadth:', e);
+                    const msg = document.getElementById('o-loading-msg');
+                    if (msg) {
+                        msg.innerHTML = `<span class="text-rose-400 font-semibold">Failed to load Options data</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
+                    }
                 });
+        }
 
-        // 5. Trending OI and Buildup
-        const pTrending = fetch(`/api/trending-oi/data?date=${selectedDate}&mode=${toiMode}&range=10&interval=5&expiry=${selectedExpiry}&_t=${Date.now()}`)
+        // 3. Fetch Trending OI independently & render immediately upon arrival
+        const pTrendingOi = (async () => {
+            if (isSilent && toiStreamMode === 'live') {
+                return;
+            }
+            try {
+                const reqInterval = currentTfMinutes;
+                let resToi = await fetch(`/api/trending-oi/data?mode=${toiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty Bank&symbol=BANKNIFTY&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
+                if (toiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
+                    resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty Bank&symbol=BANKNIFTY&interval=${reqInterval}&lookback=auto&skip_open=0`).then(r => r.json());
+                }
+                if (resToi && !resToi.error) {
+                    trendingOiData = resToi;
+                    if (resToi.stream_config) {
+                        toiStreamConfig = resToi.stream_config;
+                    }
+                    renderTrendingOiRows();
+                    buildMasterTimeline();
+                    if (selectedDate === todayStr) {
+                        connectToiWebSocket();
+                    } else {
+                        disconnectToiWebSocket();
+                    }
+                }
+            } catch (e) {
+                console.error('Error fetching Trending OI:', e);
+            } finally {
+                document.getElementById('toi-chart-loading')?.classList.add('hidden');
+            }
+        })();
+
+        // 4. Fetch Quant S/R Levels independently & update UI/chart price lines
+        const pQuant = fetch(`/api/nifty-unified/quant-levels?date=${selectedDate}&symbol=BANKNIFTY&_t=${Date.now()}`)
             .then(r => r.json())
             .then(data => {
-                if (data && data.success !== false) {
-                    trendingOiData = data;
-                    renderTrendingOiChart();
-                    renderOiBuildup();
+                if (data && data.success && data.playbook) {
+                    updateQuantLevelsUI(data.playbook);
                 }
-            }).catch(e => console.error('Error fetching Trending OI:', e));
+            })
+            .catch(e => console.warn('Could not auto-update Quant S/R levels:', e));
+
+        // 5. Fetch Order Flow S/R Levels (Top Bid Support & Ask Resistance)
+        const pOrderFlow = fetchOrderFlowLevels();
 
         try {
-            await Promise.all([pChart1Stk, pChart1Opt, pChart2Opt, pChart2Stk, pTrending]);
-            buildMasterTimeline();
-            updateCandleStyleUI();
-        } catch (e) {
-            console.error('Error loading cockpit data:', e);
+            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow]);
+            renderWeightageColumn();
+            renderOptionsBreadthColumn();
+            applyChartHeight(currentChartHeight);
+            if (timestampsList && timestampsList.length > 0) {
+                checkAlarmConditions(timestampsList[timestampsList.length - 1]);
+                updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
+            }
+
+            // Update Last Sync Time (Only Time: HH:mm:ss)
+            const syncNow = new Date();
+            const timeOnlyStr = String(syncNow.getHours()).padStart(2, '0') + ':' +
+                                String(syncNow.getMinutes()).padStart(2, '0') + ':' +
+                                String(syncNow.getSeconds()).padStart(2, '0');
+            const syncBadge = document.getElementById('last-sync-time-badge');
+            if (syncBadge) {
+                syncBadge.textContent = timeOnlyStr;
+                syncBadge.classList.add('bg-emerald-500/30', 'text-emerald-200');
+                setTimeout(() => syncBadge.classList.remove('bg-emerald-500/30', 'text-emerald-200'), 800);
+            }
+            const quantSyncEl = document.getElementById('quant-last-sync-time');
+            if (quantSyncEl) {
+                quantSyncEl.textContent = timeOnlyStr;
+            }
         } finally {
-            hideChartLoaders();
+            const spinner = document.getElementById('reload-spinner');
+            if (spinner) spinner.classList.remove('animate-spin');
         }
     }
 

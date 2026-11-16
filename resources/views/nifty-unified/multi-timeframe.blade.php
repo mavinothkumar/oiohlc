@@ -6693,7 +6693,7 @@
         const pOrderFlow = fetchOrderFlowLevels();
 
         try {
-            await Promise.allSettled([pBreadth, pTrendingOi, pWeightage, pQuant, pOrderFlow]);
+            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow]);
             renderWeightageColumn();
             renderOptionsBreadthColumn();
             applyChartHeight(currentChartHeight);
