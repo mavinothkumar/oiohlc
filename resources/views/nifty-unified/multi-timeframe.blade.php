@@ -613,25 +613,39 @@
 
                             <!-- UP vs DOWN Compact Grid -->
                             <div class="grid grid-cols-2 gap-1.5">
-                                <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="w-stat-green-pct">0%</span>
-                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
+                                <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="w-stat-green-pct">0%</span>
+                                            <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
+                                            <span>Wt: <strong id="w-stat-green-wt" class="text-white">0%</strong></span>
+                                            <span><strong id="w-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0</span></span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
-                                        <span>Wt: <strong id="w-stat-green-wt" class="text-white">0%</strong></span>
-                                        <span><strong id="w-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0</span></span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-emerald-500/20 flex items-center justify-between text-[8px] font-mono text-emerald-300/60 leading-none">
+                                        <span>Prev: <span id="w-prev-green-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="w-prev-green-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
 
-                                <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="w-stat-red-pct">0%</span>
-                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
+                                <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="w-stat-red-pct">0%</span>
+                                            <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
+                                            <span>Wt: <strong id="w-stat-red-wt" class="text-white">0%</strong></span>
+                                            <span><strong id="w-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-red-pts" class="text-rose-300">-0</span></span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
-                                        <span>Wt: <strong id="w-stat-red-wt" class="text-white">0%</strong></span>
-                                        <span><strong id="w-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-red-pts" class="text-rose-300">-0</span></span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-rose-500/20 flex items-center justify-between text-[8px] font-mono text-rose-300/60 leading-none">
+                                        <span>Prev: <span id="w-prev-red-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="w-prev-red-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -688,25 +702,39 @@
 
                             <!-- BUY vs SELL Compact Grid -->
                             <div class="grid grid-cols-2 gap-1.5">
-                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="w-opt-stat-green-ratio">50%</span>
-                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="w-opt-stat-green-ratio">50%</span>
+                                            <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
+                                            <span id="w-opt-stat-green-wt">50% Wt</span>
+                                            <span><strong id="w-opt-stat-green-cnt" class="text-white">0</strong> strk</span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
-                                        <span id="w-opt-stat-green-wt">50% Wt</span>
-                                        <span><strong id="w-opt-stat-green-cnt" class="text-white">0</strong> strk</span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-emerald-500/20 flex items-center justify-between text-[8px] font-mono text-emerald-300/60 leading-none">
+                                        <span>Prev: <span id="w-opt-prev-green-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="w-opt-prev-green-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="w-opt-stat-red-ratio">50%</span>
-                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="w-opt-stat-red-ratio">50%</span>
+                                            <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
+                                            <span id="w-opt-stat-red-wt">50% Wt</span>
+                                            <span><strong id="w-opt-stat-red-cnt" class="text-white">0</strong> strk</span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
-                                        <span id="w-opt-stat-red-wt">50% Wt</span>
-                                        <span><strong id="w-opt-stat-red-cnt" class="text-white">0</strong> strk</span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-rose-500/20 flex items-center justify-between text-[8px] font-mono text-rose-300/60 leading-none">
+                                        <span>Prev: <span id="w-opt-prev-red-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="w-opt-prev-red-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -953,25 +981,39 @@
 
                             <!-- UP vs DOWN Compact Grid -->
                             <div class="grid grid-cols-2 gap-1.5">
-                                <div id="o-stk-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="o-stk-stat-green-pct">0%</span>
-                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
+                                <div id="o-stk-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="o-stk-stat-green-pct">0%</span>
+                                            <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
+                                            <span>Wt: <strong id="o-stk-stat-green-wt" class="text-white">0%</strong></span>
+                                            <span><strong id="o-stk-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-green-pts" class="text-emerald-300">+0</span></span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
-                                        <span>Wt: <strong id="o-stk-stat-green-wt" class="text-white">0%</strong></span>
-                                        <span><strong id="o-stk-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-green-pts" class="text-emerald-300">+0</span></span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-emerald-500/20 flex items-center justify-between text-[8px] font-mono text-emerald-300/60 leading-none">
+                                        <span>Prev: <span id="o-stk-prev-green-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="o-stk-prev-green-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
 
-                                <div id="o-stk-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="o-stk-stat-red-pct">0%</span>
-                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
+                                <div id="o-stk-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="o-stk-stat-red-pct">0%</span>
+                                            <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
+                                            <span>Wt: <strong id="o-stk-stat-red-wt" class="text-white">0%</strong></span>
+                                            <span><strong id="o-stk-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-red-pts" class="text-rose-300">-0</span></span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
-                                        <span>Wt: <strong id="o-stk-stat-red-wt" class="text-white">0%</strong></span>
-                                        <span><strong id="o-stk-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-red-pts" class="text-rose-300">-0</span></span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-rose-500/20 flex items-center justify-between text-[8px] font-mono text-rose-300/60 leading-none">
+                                        <span>Prev: <span id="o-stk-prev-red-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="o-stk-prev-red-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -1025,25 +1067,39 @@
 
                             <!-- BUY vs SELL Compact Grid -->
                             <div class="grid grid-cols-2 gap-1.5">
-                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="o-stat-green-ratio">50%</span>
-                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="o-stat-green-ratio">50%</span>
+                                            <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
+                                            <span id="o-stat-green-wt">50% Wt</span>
+                                            <span><strong id="o-stat-green-cnt" class="text-white">0</strong> strk</span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
-                                        <span id="o-stat-green-wt">50% Wt</span>
-                                        <span><strong id="o-stat-green-cnt" class="text-white">0</strong> strk</span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-emerald-500/20 flex items-center justify-between text-[8px] font-mono text-emerald-300/60 leading-none">
+                                        <span>Prev: <span id="o-opt-prev-green-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="o-opt-prev-green-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="o-stat-red-ratio">50%</span>
-                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="o-stat-red-ratio">50%</span>
+                                            <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
+                                        </div>
+                                        <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
+                                            <span id="o-stat-red-wt">50% Wt</span>
+                                            <span><strong id="o-stat-red-cnt" class="text-white">0</strong> strk</span>
+                                        </div>
                                     </div>
-                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
-                                        <span id="o-stat-red-wt">50% Wt</span>
-                                        <span><strong id="o-stat-red-cnt" class="text-white">0</strong> strk</span>
+                                    <!-- Previous Candle Micro-Footer -->
+                                    <div class="pt-0.5 mt-1 border-t border-rose-500/20 flex items-center justify-between text-[8px] font-mono text-rose-300/60 leading-none">
+                                        <span>Prev: <span id="o-opt-prev-red-val" class="text-gray-300 font-semibold">--</span></span>
+                                        <span id="o-opt-prev-red-delta" class="font-bold">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -8205,6 +8261,26 @@
     }
     window.findCandleForTime = findCandleForTime;
 
+    function formatDeltaMicroFooter(currentVal, prevVal, isBullishBox) {
+        if (prevVal === null || prevVal === undefined || isNaN(prevVal)) {
+            return { deltaText: '--', deltaClass: 'text-gray-500' };
+        }
+        const diff = Math.round(Number(currentVal) - Number(prevVal));
+        if (diff === 0) {
+            return { deltaText: '0%', deltaClass: 'text-gray-400' };
+        }
+        const sign = diff > 0 ? '+' : '';
+        const arrow = diff > 0 ? '▲ ' : '▼ ';
+        const deltaText = `${arrow}${sign}${diff}%`;
+        let deltaClass = 'text-gray-400';
+        if (isBullishBox) {
+            deltaClass = diff > 0 ? 'text-emerald-400' : 'text-rose-400';
+        } else {
+            deltaClass = diff > 0 ? 'text-rose-400' : 'text-emerald-400';
+        }
+        return { deltaText, deltaClass };
+    }
+
     function syncWeightageUI(index, timeStr) {
         const stkData = wWeightageData || weightageData;
         const optData = wBreadthData || breadthData;
@@ -8272,6 +8348,47 @@
             if (rCntEl) rCntEl.textContent = bStk.red_count;
             const rPtsEl = document.getElementById('w-stat-red-pts');
             if (rPtsEl) rPtsEl.textContent = `${Number(bStk.net_red_pts).toFixed(0)}`;
+
+            // Previous Candle Micro-Footer for Stocks (Deck 1)
+            let bStkPrev = null;
+            if (candles && candles.length > 0) {
+                let cIdx = -1;
+                if (candle) {
+                    cIdx = candles.findIndex(c => (c.time && candle.time && c.time === candle.time) || c.time_str === candle.time_str);
+                } else if (resolvedTime) {
+                    cIdx = candles.findIndex(c => c.time_str === resolvedTime);
+                }
+                if (cIdx < 0 && index !== undefined && index !== null) cIdx = Number(index);
+                if (cIdx > 0 && candles[cIdx - 1]) {
+                    const prevCandle = candles[cIdx - 1];
+                    bStkPrev = stkData.breadth_by_time?.[prevCandle.time_str] || null;
+                }
+            }
+
+            const prevGreenValEl = document.getElementById('w-prev-green-val');
+            const prevGreenDeltaEl = document.getElementById('w-prev-green-delta');
+            const prevRedValEl = document.getElementById('w-prev-red-val');
+            const prevRedDeltaEl = document.getElementById('w-prev-red-delta');
+
+            if (bStkPrev) {
+                if (prevGreenValEl) prevGreenValEl.textContent = `${bStkPrev.green_count_pct}% (${bStkPrev.green_count} stk)`;
+                if (prevGreenDeltaEl) {
+                    const d = formatDeltaMicroFooter(bStk.green_count_pct, bStkPrev.green_count_pct, true);
+                    prevGreenDeltaEl.textContent = d.deltaText;
+                    prevGreenDeltaEl.className = `font-bold ${d.deltaClass}`;
+                }
+                if (prevRedValEl) prevRedValEl.textContent = `${bStkPrev.red_count_pct}% (${bStkPrev.red_count} stk)`;
+                if (prevRedDeltaEl) {
+                    const d = formatDeltaMicroFooter(bStk.red_count_pct, bStkPrev.red_count_pct, false);
+                    prevRedDeltaEl.textContent = d.deltaText;
+                    prevRedDeltaEl.className = `font-bold ${d.deltaClass}`;
+                }
+            } else {
+                if (prevGreenValEl) prevGreenValEl.textContent = '--';
+                if (prevGreenDeltaEl) { prevGreenDeltaEl.textContent = '--'; prevGreenDeltaEl.className = 'font-bold text-gray-500'; }
+                if (prevRedValEl) prevRedValEl.textContent = '--';
+                if (prevRedDeltaEl) { prevRedDeltaEl.textContent = '--'; prevRedDeltaEl.className = 'font-bold text-gray-500'; }
+            }
 
             const barG = document.getElementById('w-bar-green');
             if (barG) barG.style.width = `${bStk.green_weight}%`;
@@ -8361,6 +8478,46 @@
                 if (optRWt) optRWt.textContent = `${bOpt.down_weight}% Wt`;
                 const optRCnt = document.getElementById('w-opt-stat-red-cnt');
                 if (optRCnt) optRCnt.textContent = bOpt.down_count;
+
+                // Previous Candle Micro-Footer for Options Flow (Deck 2)
+                let bOptPrev = null;
+                if (optCandles && optCandles.length > 0) {
+                    let oIdx = -1;
+                    if (optCandle) {
+                        oIdx = optCandles.findIndex(c => (c.time && optCandle.time && c.time === optCandle.time) || c.time_str === optCandle.time_str);
+                    } else if (resolvedTime) {
+                        oIdx = optCandles.findIndex(c => c.time_str === resolvedTime);
+                    }
+                    if (oIdx > 0 && optCandles[oIdx - 1]) {
+                        const prevCandle = optCandles[oIdx - 1];
+                        bOptPrev = optData.breadth_by_time?.[prevCandle.time_str] || null;
+                    }
+                }
+
+                const optPrevGVal = document.getElementById('w-opt-prev-green-val');
+                const optPrevGDelta = document.getElementById('w-opt-prev-green-delta');
+                const optPrevRVal = document.getElementById('w-opt-prev-red-val');
+                const optPrevRDelta = document.getElementById('w-opt-prev-red-delta');
+
+                if (bOptPrev) {
+                    if (optPrevGVal) optPrevGVal.textContent = `${bOptPrev.up_weight}% (${bOptPrev.up_count} strk)`;
+                    if (optPrevGDelta) {
+                        const d = formatDeltaMicroFooter(bOpt.up_weight, bOptPrev.up_weight, true);
+                        optPrevGDelta.textContent = d.deltaText;
+                        optPrevGDelta.className = `font-bold ${d.deltaClass}`;
+                    }
+                    if (optPrevRVal) optPrevRVal.textContent = `${bOptPrev.down_weight}% (${bOptPrev.down_count} strk)`;
+                    if (optPrevRDelta) {
+                        const d = formatDeltaMicroFooter(bOpt.down_weight, bOptPrev.down_weight, false);
+                        optPrevRDelta.textContent = d.deltaText;
+                        optPrevRDelta.className = `font-bold ${d.deltaClass}`;
+                    }
+                } else {
+                    if (optPrevGVal) optPrevGVal.textContent = '--';
+                    if (optPrevGDelta) { optPrevGDelta.textContent = '--'; optPrevGDelta.className = 'font-bold text-gray-500'; }
+                    if (optPrevRVal) optPrevRVal.textContent = '--';
+                    if (optPrevRDelta) { optPrevRDelta.textContent = '--'; optPrevRDelta.className = 'font-bold text-gray-500'; }
+                }
 
                 const optSplit = document.getElementById('w-opt-stat-split');
                 if (optSplit) optSplit.textContent = `${bOpt.up_weight}% / ${bOpt.down_weight}%`;
@@ -8462,6 +8619,46 @@
                 const rPtsEl = document.getElementById('o-stk-stat-red-pts');
                 if (rPtsEl) rPtsEl.textContent = `${Number(bStk.net_red_pts).toFixed(0)}`;
 
+                // Previous Candle Micro-Footer for Chart 2 Stocks (Deck 1)
+                let bStkPrev = null;
+                if (stkCandles && stkCandles.length > 0) {
+                    let sIdx = -1;
+                    if (stkCandle) {
+                        sIdx = stkCandles.findIndex(c => (c.time && stkCandle.time && c.time === stkCandle.time) || c.time_str === stkCandle.time_str);
+                    } else if (resolvedTime) {
+                        sIdx = stkCandles.findIndex(c => c.time_str === resolvedTime);
+                    }
+                    if (sIdx > 0 && stkCandles[sIdx - 1]) {
+                        const prevCandle = stkCandles[sIdx - 1];
+                        bStkPrev = stkData.breadth_by_time?.[prevCandle.time_str] || null;
+                    }
+                }
+
+                const oStkPrevGVal = document.getElementById('o-stk-prev-green-val');
+                const oStkPrevGDelta = document.getElementById('o-stk-prev-green-delta');
+                const oStkPrevRVal = document.getElementById('o-stk-prev-red-val');
+                const oStkPrevRDelta = document.getElementById('o-stk-prev-red-delta');
+
+                if (bStkPrev) {
+                    if (oStkPrevGVal) oStkPrevGVal.textContent = `${bStkPrev.green_count_pct}% (${bStkPrev.green_count} stk)`;
+                    if (oStkPrevGDelta) {
+                        const d = formatDeltaMicroFooter(bStk.green_count_pct, bStkPrev.green_count_pct, true);
+                        oStkPrevGDelta.textContent = d.deltaText;
+                        oStkPrevGDelta.className = `font-bold ${d.deltaClass}`;
+                    }
+                    if (oStkPrevRVal) oStkPrevRVal.textContent = `${bStkPrev.red_count_pct}% (${bStkPrev.red_count} stk)`;
+                    if (oStkPrevRDelta) {
+                        const d = formatDeltaMicroFooter(bStk.red_count_pct, bStkPrev.red_count_pct, false);
+                        oStkPrevRDelta.textContent = d.deltaText;
+                        oStkPrevRDelta.className = `font-bold ${d.deltaClass}`;
+                    }
+                } else {
+                    if (oStkPrevGVal) oStkPrevGVal.textContent = '--';
+                    if (oStkPrevGDelta) { oStkPrevGDelta.textContent = '--'; oStkPrevGDelta.className = 'font-bold text-gray-500'; }
+                    if (oStkPrevRVal) oStkPrevRVal.textContent = '--';
+                    if (oStkPrevRDelta) { oStkPrevRDelta.textContent = '--'; oStkPrevRDelta.className = 'font-bold text-gray-500'; }
+                }
+
                 const barG = document.getElementById('o-stk-bar-green');
                 if (barG) barG.style.width = `${bStk.green_weight}%`;
                 const barR = document.getElementById('o-stk-bar-red');
@@ -8527,6 +8724,47 @@
             if (rWt) rWt.textContent = `${bOpt.down_weight}% Wt`;
             const rCnt = document.getElementById('o-stat-red-cnt');
             if (rCnt) rCnt.textContent = bOpt.down_count;
+
+            // Previous Candle Micro-Footer for Chart 2 Options (Deck 2)
+            let bOptPrev = null;
+            if (candles && candles.length > 0) {
+                let oIdx = -1;
+                if (candle) {
+                    oIdx = candles.findIndex(c => (c.time && candle.time && c.time === candle.time) || c.time_str === candle.time_str);
+                } else if (resolvedTime) {
+                    oIdx = candles.findIndex(c => c.time_str === resolvedTime);
+                }
+                if (oIdx < 0 && index !== undefined && index !== null) oIdx = Number(index);
+                if (oIdx > 0 && candles[oIdx - 1]) {
+                    const prevCandle = candles[oIdx - 1];
+                    bOptPrev = optData.breadth_by_time?.[prevCandle.time_str] || null;
+                }
+            }
+
+            const oOptPrevGVal = document.getElementById('o-opt-prev-green-val');
+            const oOptPrevGDelta = document.getElementById('o-opt-prev-green-delta');
+            const oOptPrevRVal = document.getElementById('o-opt-prev-red-val');
+            const oOptPrevRDelta = document.getElementById('o-opt-prev-red-delta');
+
+            if (bOptPrev) {
+                if (oOptPrevGVal) oOptPrevGVal.textContent = `${bOptPrev.up_weight}% (${bOptPrev.up_count} strk)`;
+                if (oOptPrevGDelta) {
+                    const d = formatDeltaMicroFooter(bOpt.up_weight, bOptPrev.up_weight, true);
+                    oOptPrevGDelta.textContent = d.deltaText;
+                    oOptPrevGDelta.className = `font-bold ${d.deltaClass}`;
+                }
+                if (oOptPrevRVal) oOptPrevRVal.textContent = `${bOptPrev.down_weight}% (${bOptPrev.down_count} strk)`;
+                if (oOptPrevRDelta) {
+                    const d = formatDeltaMicroFooter(bOpt.down_weight, bOptPrev.down_weight, false);
+                    oOptPrevRDelta.textContent = d.deltaText;
+                    oOptPrevRDelta.className = `font-bold ${d.deltaClass}`;
+                }
+            } else {
+                if (oOptPrevGVal) oOptPrevGVal.textContent = '--';
+                if (oOptPrevGDelta) { oOptPrevGDelta.textContent = '--'; oOptPrevGDelta.className = 'font-bold text-gray-500'; }
+                if (oOptPrevRVal) oOptPrevRVal.textContent = '--';
+                if (oOptPrevRDelta) { oOptPrevRDelta.textContent = '--'; oOptPrevRDelta.className = 'font-bold text-gray-500'; }
+            }
 
             const splitEl = document.getElementById('o-stat-split');
             if (splitEl) splitEl.textContent = `${bOpt.up_weight}% / ${bOpt.down_weight}%`;
