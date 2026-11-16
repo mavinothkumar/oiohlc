@@ -903,9 +903,9 @@ class OrderFlowCumulativeReportService
             ];
         }
 
-        // 2. Process Depth Alert Logs (logged directly from DOM 30-depth radar)
+        // 2. Process Depth Alert Logs (logged directly from DOM 30-depth radar, excluding disconnect volume spikes)
         foreach ($alerts as $alt) {
-            if ($alt->quantity > 0) {
+            if ($alt->quantity > 0 && $alt->quantity <= 35000) {
                 $timeStr = is_string($alt->alert_time) ? $alt->alert_time : ($alt->alert_time ? $alt->alert_time->format('H:i:s') : '00:00:00');
 
                 $isOpening   = strcmp($timeStr, '09:15:00') >= 0 && strcmp($timeStr, '09:30:00') <= 0;

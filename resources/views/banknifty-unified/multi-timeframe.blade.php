@@ -1140,6 +1140,18 @@
                     </div>
                 </div>
 
+                {{-- Active Basket Strikes Ribbon with ATM Highlight --}}
+                <div id="toi-strikes-container" class="flex items-center gap-1.5 py-1 px-1.5 mb-1 bg-[#0e131d]/90 rounded border border-gray-800/70 text-[9.5px] font-mono select-none overflow-hidden">
+                    <div class="flex items-center gap-1 shrink-0 text-slate-400 font-sans font-semibold text-[9px]">
+                        <span class="text-amber-400">🎯</span>
+                        <span>Strikes:</span>
+                        <span id="toi-strikes-count" class="text-slate-500 font-mono text-[8.5px]">(15)</span>
+                    </div>
+                    <div id="toi-strikes-list" class="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+                        <span class="text-gray-500 italic text-[9px]">Loading strikes...</span>
+                    </div>
+                </div>
+
                 <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
                     <div id="toi-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                         <div class="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
@@ -2997,6 +3009,79 @@
     }
     window.toggleToiSeries = toggleToiSeries;
 
+    // ── Active Basket Strikes Strip (with ATM Highlight) ───────────────
+    let lastRenderedAtmStrike = null;
+
+    function renderTrendingOiStrikes(activeSpot = null) {
+        const listEl = document.getElementById('toi-strikes-list');
+        if (!listEl) return;
+        if (!trendingOiData || trendingOiData.error) {
+            listEl.innerHTML = '<span class="text-gray-500 italic text-[9px]">Strikes unavailable</span>';
+            return;
+        }
+
+        const rawStrikes = trendingOiData.selected_strikes || [];
+        if (!rawStrikes || rawStrikes.length === 0) {
+            listEl.innerHTML = '<span class="text-gray-500 italic text-[9px]">Strikes unavailable</span>';
+            return;
+        }
+
+        const strikes = [...rawStrikes].map(Number).sort((a, b) => a - b);
+        const countEl = document.getElementById('toi-strikes-count');
+        if (countEl) countEl.textContent = `(${strikes.length})`;
+
+        // Determine ATM strike based on spot or API data (Bank Nifty strike step: 100)
+        const strikeStep = 100;
+        let spotVal = (activeSpot !== null && Number(activeSpot) > 0)
+            ? Number(activeSpot)
+            : (trendingOiData.underlying_data?.spot ? Number(trendingOiData.underlying_data.spot) : null);
+
+        let atmStrike = null;
+        if (spotVal && spotVal > 0) {
+            atmStrike = Math.round(spotVal / strikeStep) * strikeStep;
+        } else if (trendingOiData.atm_strike) {
+            atmStrike = Number(trendingOiData.atm_strike);
+        }
+
+        // If atmStrike not in strikes, find closest in strikes
+        if (atmStrike !== null && !strikes.includes(atmStrike)) {
+            let closest = strikes[0];
+            let minDiff = Math.abs(closest - atmStrike);
+            for (let i = 1; i < strikes.length; i++) {
+                const diff = Math.abs(strikes[i] - atmStrike);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = strikes[i];
+                }
+            }
+            atmStrike = closest;
+        }
+
+        // Avoid unnecessary re-rendering if ATM hasn't changed and list is already populated
+        if (atmStrike === lastRenderedAtmStrike && listEl.children.length === strikes.length && !listEl.querySelector('.text-gray-500')) {
+            return;
+        }
+        lastRenderedAtmStrike = atmStrike;
+
+        listEl.innerHTML = strikes.map(s => {
+            const isAtm = (atmStrike !== null && s === atmStrike);
+            if (isAtm) {
+                return `<span class="toi-atm-pill px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-[9px] font-mono shadow-[0_0_8px_rgba(251,191,36,0.35)] flex items-center gap-1 shrink-0 ring-1 ring-amber-400/40 whitespace-nowrap cursor-default" title="At-The-Money (ATM) Strike: ₹${s.toLocaleString('en-IN')}"><span class="text-amber-400">★</span> ${s.toLocaleString('en-IN')} <span class="text-[7px] bg-amber-400 text-slate-950 font-black px-1 rounded uppercase tracking-wider">ATM</span></span>`;
+            } else {
+                return `<span class="px-1.5 py-0.5 rounded bg-slate-900/90 border border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-500 font-semibold text-[9px] font-mono shrink-0 select-none transition-colors whitespace-nowrap cursor-default" title="Strike: ₹${s.toLocaleString('en-IN')}">${s.toLocaleString('en-IN')}</span>`;
+            }
+        }).join('');
+
+        // Smoothly center the ATM pill within the horizontal strip
+        requestAnimationFrame(() => {
+            const atmPill = listEl.querySelector('.toi-atm-pill');
+            if (atmPill) {
+                atmPill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+            }
+        });
+    }
+    window.renderTrendingOiStrikes = renderTrendingOiStrikes;
+
     function updateTrendingOiDiffBadge(targetIndex = -1) {
         if (!trendingOiData || !trendingOiData.chart) return;
         const chart = trendingOiData.chart;
@@ -3014,6 +3099,8 @@
         const spotVal = (chart.spot && chart.spot[idx] !== undefined && Number(chart.spot[idx]) > 0)
             ? Number(chart.spot[idx])
             : 0;
+
+        renderTrendingOiStrikes(spotVal > 0 ? spotVal : null);
 
         const diffHero = document.getElementById('toi-bottom-diff-hero');
         const diffPctEl = document.getElementById('toi-bottom-diff-pct') || document.getElementById('toi-bottom-diff-raw');
@@ -3336,6 +3423,7 @@
                     if (spotEl) spotEl.textContent = Number(feedLtp).toFixed(2);
                     oiUpdated = true;
                     updateLiveCandleFromTick(feedLtp);
+                    renderTrendingOiStrikes(feedLtp);
                 }
 
                 // Option strike update
@@ -7503,6 +7591,8 @@
     // ── 8. Render Column 2 (Right 25%): 3 Rows ────────────────────────────────────
     function renderTrendingOiRows() {
         if (!trendingOiData || trendingOiData.error) return;
+        lastRenderedAtmStrike = null;
+        renderTrendingOiStrikes();
 
         // Spot Readout
         if (trendingOiData.underlying_data) {
@@ -9706,6 +9796,15 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         updateTvToolsUI();
         updateCandleStyleUI();
         updateOfSrButtonUI();
+        const toiStrikesList = document.getElementById('toi-strikes-list');
+        if (toiStrikesList) {
+            toiStrikesList.addEventListener('wheel', (evt) => {
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    toiStrikesList.scrollLeft += evt.deltaY;
+                }
+            }, { passive: false });
+        }
         fetchAlertLogs(false);
         loadAllData();
         setupAutoRefresh();

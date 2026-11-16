@@ -480,6 +480,9 @@
                             <button type="button" onclick="switchTopTradedView('ask')" id="btn-top-traded-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 10 Ask Traded Qty (Aggressive Buys)">Ask (Buys)</button>
                             <button type="button" onclick="switchTopTradedView('bid')" id="btn-top-traded-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 10 Bid Traded Qty (Aggressive Sells)">Bid (Sells)</button>
                         </div>
+                        <button type="button" onclick="cleanCorruptedTrades(true)" id="btn-clean-outliers" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Clean / purge network disconnect volume outliers">
+                            <span>🧹</span>
+                        </button>
                         <button type="button" onclick="toggleTopTradedCard()" id="btn-toggle-top-traded" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Top Traded Qty">
                             <span id="top-traded-toggle-icon">▲</span>
                         </button>
@@ -2743,6 +2746,8 @@
         lastSignalLogTime: 0,
         activeMarketOrderAlert: null,
         lastLoggedMarketAlertKey: '',
+        isReconnecting: false,
+        lastTickMs: 0,
         activeLoggedSignals: [],
         currentOptionTrade: null,
         wallPersistence: {},
@@ -2846,6 +2851,34 @@
     };
 
     // ── HIGHEST TRADED ASK & BID VOLUME FOOTPRINT (FROM 09:15 WITH SKIP FILTER) ──
+    function cleanCorruptedTrades(showFeedback = false) {
+        const workingDate = "{{ $workingDate }}";
+        const maxLimit = 35000;
+        state.topTradedVolume.allAsk = (state.topTradedVolume.allAsk || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
+        state.topTradedVolume.allBid = (state.topTradedVolume.allBid || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
+        state.topTradedVolume.sessionAnchorAsk = (state.topTradedVolume.sessionAnchorAsk || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
+        state.topTradedVolume.sessionAnchorBid = (state.topTradedVolume.sessionAnchorBid || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
+        try {
+            localStorage.setItem(`order_flow_all_ask_${workingDate}`, JSON.stringify(state.topTradedVolume.allAsk));
+            localStorage.setItem(`order_flow_all_bid_${workingDate}`, JSON.stringify(state.topTradedVolume.allBid));
+        } catch (e) {}
+        renderTopTradedVolumeUI();
+        if (showFeedback) {
+            console.log('🧹 Cleaned disconnect outlier volume prints from browser storage.');
+            const btn = document.getElementById('btn-clean-outliers');
+            if (btn) {
+                const oldText = btn.innerHTML;
+                btn.innerHTML = '<span>✅ Cleaned</span>';
+                btn.className = 'px-1.5 py-0.5 rounded-md bg-emerald-800 text-emerald-200 border border-emerald-600 text-[10px] font-bold transition flex items-center gap-1';
+                setTimeout(() => {
+                    btn.innerHTML = oldText;
+                    btn.className = 'px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer';
+                }, 2000);
+            }
+        }
+    }
+    window.cleanCorruptedTrades = cleanCorruptedTrades;
+
     function initTopTradedVolume() {
         const workingDate = "{{ $workingDate }}";
         const savedSkip = localStorage.getItem('order_flow_skip_open_time');
@@ -2861,13 +2894,15 @@
             if (savedAsk) {
                 const pAsk = JSON.parse(savedAsk);
                 if (Array.isArray(pAsk) && pAsk.length > 0) {
-                    state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, pAsk);
+                    const sanitizedAsk = pAsk.filter(x => x && x.qty >= 500 && x.qty <= 35000);
+                    state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, sanitizedAsk);
                 }
             }
             if (savedBid) {
                 const pBid = JSON.parse(savedBid);
                 if (Array.isArray(pBid) && pBid.length > 0) {
-                    state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, pBid);
+                    const sanitizedBid = pBid.filter(x => x && x.qty >= 500 && x.qty <= 35000);
+                    state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, sanitizedBid);
                 }
             }
         } catch (e) {
@@ -2876,11 +2911,16 @@
 
         // Always re-merge master sessionAnchor trades (from 09:15 start) to ensure morning peak trades are never lost
         if (state.topTradedVolume.sessionAnchorAsk && state.topTradedVolume.sessionAnchorAsk.length > 0) {
-            state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, state.topTradedVolume.sessionAnchorAsk);
+            const sanitizedAnchorAsk = state.topTradedVolume.sessionAnchorAsk.filter(x => x && x.qty >= 500 && x.qty <= 35000);
+            state.topTradedVolume.allAsk = mergeSessionTrades(state.topTradedVolume.allAsk, sanitizedAnchorAsk);
         }
         if (state.topTradedVolume.sessionAnchorBid && state.topTradedVolume.sessionAnchorBid.length > 0) {
-            state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, state.topTradedVolume.sessionAnchorBid);
+            const sanitizedAnchorBid = state.topTradedVolume.sessionAnchorBid.filter(x => x && x.qty >= 500 && x.qty <= 35000);
+            state.topTradedVolume.allBid = mergeSessionTrades(state.topTradedVolume.allBid, sanitizedAnchorBid);
         }
+
+        // Auto-scrub any outlier artifacts from localStorage
+        cleanCorruptedTrades(false);
 
         // Flush any initial localStorage cached trades into database to ensure complete sync
         if (state.topTradedVolume.allAsk.length > 0 || state.topTradedVolume.allBid.length > 0) {
@@ -2901,6 +2941,8 @@
             const timeStr = String(item.time || '').trim();
             const sideStr = String(item.side || 'ASK').toUpperCase();
             if (!timeStr || isNaN(priceNum) || isNaN(qtyNum)) return;
+            // Purge network disconnect volume spikes (> 35,000 qty)
+            if (qtyNum > 35000) return;
 
             const key = `${timeStr}_${priceNum.toFixed(2)}_${sideStr}`;
             if (!map.has(key) || map.get(key).qty < qtyNum) {
@@ -2969,11 +3011,12 @@
 
     function getFilteredTopTraded(rawList, skipTime) {
         if (!Array.isArray(rawList)) return [];
-        let filtered = rawList;
+        // Sanitize any corrupt outlier records from previous disconnects
+        let filtered = rawList.filter(item => item && item.qty >= 500 && item.qty <= 35000);
         if (skipTime && skipTime !== 'none' && skipTime !== '09:15') {
             // E.g. skipTime = '09:30'. Cutoff is 09:30:59, so values start from 09:31:00 onwards
             const cutoff = skipTime.length === 5 ? (skipTime + ':59') : skipTime;
-            filtered = rawList.filter(item => item.time > cutoff);
+            filtered = filtered.filter(item => item.time > cutoff);
         }
         // Deduplicate very close prints (same minute & price) to show distinct institutional levels
         const map = new Map();
@@ -2991,8 +3034,8 @@
     function recordTradedVolumePrint(side, price, qty, timeStr = null) {
         const parsedQty = parseInt(qty);
         const parsedPrice = parseFloat(price);
-        // Ignore retail noise ticks (< 500 qty) to preserve institutional integrity
-        if (!parsedQty || parsedQty < 500 || !parsedPrice || parsedPrice <= 0) return;
+        // Ignore retail noise ticks (< 500 qty) and network disconnect volume spikes (> 35,000 qty)
+        if (!parsedQty || parsedQty < 500 || parsedQty > 35000 || !parsedPrice || parsedPrice <= 0) return;
 
         const time = timeStr || new Date().toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const isAsk = side === 'ASK' || side === 'BUY';
@@ -3549,6 +3592,7 @@
 
             state.ws.onopen = () => {
                 console.log('🔌 Upstox WebSocket connected.');
+                state.isReconnecting = true; // Clean baseline resync without ghost trade volume spikes
                 if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-400';
                 const open = isMarketHours();
                 if (statusText) statusText.textContent = open ? 'Live Feed Active' : 'Live Connected (Market Closed)';
@@ -3560,6 +3604,7 @@
             };
 
             state.ws.onclose = () => {
+                state.isReconnecting = true;
                 if (state.feedMode === 'live') {
                     if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-rose-500';
                     if (statusText) statusText.textContent = 'Disconnected, retrying in 5s...';
@@ -3568,6 +3613,7 @@
             };
 
             state.ws.onerror = (err) => {
+                state.isReconnecting = true;
                 console.error('WebSocket error:', err);
                 if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-rose-500';
                 if (statusText) statusText.textContent = 'Feed Error';
@@ -3730,22 +3776,35 @@
         state.depthData.heavyBidBlock = heavyBidBlock;
         state.depthData.heavyAskBlock = heavyAskBlock;
 
-        // ── 1. COMPUTE TICK DELTA VOLUME ──
+        // ── 1. COMPUTE TICK DELTA VOLUME WITH DISCONNECT PROTECTION ──
         let deltaV = 0;
+        const nowMs = Date.now();
+        const timeSinceLastTick = state.lastTickMs > 0 ? (nowMs - state.lastTickMs) : 0;
+        state.lastTickMs = nowMs;
+
         if (ltp > 0) {
             const pKey = ltp.toFixed(2);
             if (vtt > 0) {
-                if (state.lastVtt > 0 && vtt >= state.lastVtt) {
+                // Network disconnect guard: If reconnecting, first tick, or elapsed tick gap > 4.5s, establish clean baseline!
+                if (state.isReconnecting || state.lastVtt === 0 || timeSinceLastTick > 4500) {
+                    state.lastVtt = vtt;
+                    state.isReconnecting = false;
+                    deltaV = 0; // Discard accumulated outage volume from being misclassified as a single trade!
+                } else if (vtt >= state.lastVtt) {
                     deltaV = vtt - state.lastVtt;
-                } else if (state.lastVtt === 0) {
-                    deltaV = Math.floor(120 + Math.random() * 280);
                 }
                 state.lastVtt = vtt;
             } else {
-                deltaV = Math.floor(40 + Math.random() * 160);
+                deltaV = 0;
             }
 
-            if (deltaV > 0 && deltaV < 2500000) {
+            // Plausibility safety ceiling: NSE freeze limit is 1,800 qty; a single tick cannot exceed 35,000 qty
+            if (deltaV > 35000) {
+                console.warn(`⚠️ Filtered out disconnect volume outlier of ${deltaV.toLocaleString()} qty.`);
+                deltaV = 0;
+            }
+
+            if (deltaV > 0) {
                 state.volumeProfile[pKey] = (state.volumeProfile[pKey] || 0) + deltaV;
             }
 
@@ -7678,6 +7737,17 @@
             prompt('Copy desk brief:', text);
         });
     };
+
+    // ── 16. NETWORK CONNECTION LIFECYCLE GUARDS ──
+    window.addEventListener('offline', () => {
+        state.isReconnecting = true;
+        console.warn('⚠️ Network offline detected: feed will cleanly resynchronize baseline on reconnect.');
+    });
+
+    window.addEventListener('online', () => {
+        state.isReconnecting = true;
+        console.log('✅ Network restored: establishing clean volume baseline.');
+    });
 
 })();
 </script>

@@ -124,10 +124,11 @@ class OrderFlowStrategyController extends Controller
         $sessionAskRecords = [];
         $sessionBidRecords = [];
 
-        // Primary source: Dedicated Traded Volumes Table
+        // Primary source: Dedicated Traded Volumes Table (filtered to realistic single-order bounds <= 35,000 qty)
         if (Schema::hasTable('order_flow_traded_volumes')) {
             $tvRecords = OrderFlowTradedVolume::forDate($workingDate)
                 ->forSymbol($symbol)
+                ->where('quantity', '<=', 35000)
                 ->orderBy('trade_time', 'asc')
                 ->get(['trade_time', 'price', 'quantity', 'side']);
 
@@ -150,6 +151,7 @@ class OrderFlowStrategyController extends Controller
         if (Schema::hasTable('order_flow_alert_logs')) {
             $allTodayAlerts = OrderFlowAlertLog::where('trade_date', $workingDate)
                 ->where('symbol', $symbol)
+                ->where('quantity', '<=', 35000)
                 ->orderBy('alert_time', 'asc')
                 ->get(['alert_time', 'price', 'quantity', 'side', 'alert_type', 'title', 'details']);
 
