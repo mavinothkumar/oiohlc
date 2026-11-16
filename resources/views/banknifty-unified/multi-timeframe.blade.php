@@ -6838,6 +6838,14 @@
             renderOptionsBreadthColumn();
             applyAllSectionHeights();
             if (timestampsList && timestampsList.length > 0) {
+                if (isLiveMarketOpen() && !isPlaying) {
+                    snapToLiveCandle();
+                } else {
+                    const targetIdx = (activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
+                        ? activeCandleIndex
+                        : (timestampsList.length - 1);
+                    syncActiveCandleIndex(targetIdx);
+                }
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
                 updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
             }
@@ -7887,16 +7895,62 @@
             masterSlider.max = timestampsList.length - 1;
         }
 
-        const targetIdx = (activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
-            ? activeCandleIndex
-            : (timestampsList.length - 1);
+        let targetIdx;
+        if (isLiveMarketOpen() && !isPlaying) {
+            targetIdx = timestampsList.length - 1;
+        } else {
+            targetIdx = (activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
+                ? activeCandleIndex
+                : (timestampsList.length - 1);
+        }
         syncActiveCandleIndex(targetIdx);
     }
+
+    // ── Live Market Hours Detection & Live Snapping ────────────────────────────
+    function isLiveMarketOpen() {
+        const now = new Date();
+        const istOffset = 5.5 * 3600 * 1000;
+        const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istDate = new Date(utcMs + istOffset);
+        const dayOfWeek = istDate.getDay(); // 0 = Sun, 6 = Sat
+        const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
+        const todayIstStr = istDate.toISOString().slice(0, 10);
+        const currentSecsOfDay = istDate.getHours() * 3600 + istDate.getMinutes() * 60 + istDate.getSeconds();
+        const marketOpenSecs = 9 * 3600 + 15 * 60; // 09:15:00 = 33300
+        const marketCloseSecs = 15 * 3600 + 30 * 60; // 15:30:00 = 55800
+
+        return (typeof selectedDate !== 'undefined' && selectedDate === todayIstStr && isWeekday && currentSecsOfDay >= marketOpenSecs && currentSecsOfDay < marketCloseSecs);
+    }
+    window.isLiveMarketOpen = isLiveMarketOpen;
+
+    function snapToLiveCandle() {
+        if (!timestampsList || timestampsList.length === 0) return;
+        syncActiveCandleIndex(timestampsList.length - 1);
+        if (wChart) {
+            try { wChart.timeScale().scrollToRealTime(); } catch (e) {}
+        }
+        if (oChart) {
+            try { oChart.timeScale().scrollToRealTime(); } catch (e) {}
+        }
+    }
+    window.snapToLiveCandle = snapToLiveCandle;
 
     function syncActiveCandleIndex(index) {
         if (!timestampsList || index < 0 || index >= timestampsList.length) return;
         activeCandleIndex = index;
         const timeStr = timestampsList[index];
+
+        const isLive = (index === timestampsList.length - 1);
+        const liveBtn = document.getElementById('btn-snap-live');
+        if (liveBtn) {
+            if (isLive) {
+                liveBtn.className = 'px-1.5 py-0.2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition cursor-pointer shadow-[0_0_8px_rgba(16,185,129,0.4)]';
+                liveBtn.title = 'Active: Latest Live Candle';
+            } else {
+                liveBtn.className = 'px-1.5 py-0.2 bg-slate-800 hover:bg-emerald-600 text-slate-300 hover:text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition cursor-pointer border border-slate-700';
+                liveBtn.title = `Viewing Historical Candle [${timeStr}] • Click to Snap to Live`;
+            }
+        }
 
         const masterBadge = document.getElementById('master-time-badge');
         if (masterBadge) masterBadge.textContent = timeStr;
@@ -8786,11 +8840,7 @@
         });
 
         document.getElementById('btn-step-start')?.addEventListener('click', () => syncActiveCandleIndex(0));
-        document.getElementById('btn-snap-live')?.addEventListener('click', () => {
-            if (timestampsList && timestampsList.length > 0) {
-                syncActiveCandleIndex(timestampsList.length - 1);
-            }
-        });
+        document.getElementById('btn-snap-live')?.addEventListener('click', snapToLiveCandle);
 
         document.getElementById('btn-step-prev')?.addEventListener('click', () => {
             if (activeCandleIndex > 0) syncActiveCandleIndex(activeCandleIndex - 1);
