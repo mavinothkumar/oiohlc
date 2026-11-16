@@ -375,14 +375,23 @@
             </div>
             <span class="text-slate-700">|</span>
 
-            <!-- Candle Close Remaining Time Countdown Badge (User Requested: Near PIVOT with min & sec in big string) -->
-            <div id="candle-timer-container" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 shadow-md shrink-0 cursor-default" title="Time remaining until the active candle closes for the selected timeframe">
+            <!-- Candle Close Remaining Time Countdown Badge (Dual Chart 1 & Chart 2 Remaining Time) -->
+            <div id="candle-timer-container" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 shadow-md shrink-0 cursor-default" title="Time remaining until active candle closes for Chart 1 & Chart 2">
                 <span class="flex h-2 w-2 relative shrink-0">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
-                <span id="candle-timer-tf-label" class="text-amber-400 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">{{ $selectedTimeframe }} CLOSE:</span>
-                <span id="candle-timer-countdown" class="font-mono font-black text-amber-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow">--:--</span>
+                <div class="flex items-center gap-1.5 whitespace-nowrap">
+                    <div class="flex items-center gap-1" title="Chart 1 (Top) Active Candle Countdown">
+                        <span id="candle-timer-tf-label" class="text-sky-400 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">C1 (5M):</span>
+                        <span id="candle-timer-countdown" class="font-mono font-black text-sky-200 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow">--:--</span>
+                    </div>
+                    <span id="candle-timer-divider" class="text-slate-600 font-bold text-xs">|</span>
+                    <div class="flex items-center gap-1" title="Chart 2 (Bottom) Active Candle Countdown">
+                        <span id="candle-timer-tf2-label" class="text-purple-400 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">C2 (15M):</span>
+                        <span id="candle-timer-countdown2" class="font-mono font-black text-purple-200 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow">--:--</span>
+                    </div>
+                </div>
             </div>
             <span class="text-slate-700">|</span>
 
@@ -445,6 +454,15 @@
                                     <button type="button" onclick="setChart1Timeframe('1h')" data-wtf="1h" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
                                     <button type="button" onclick="setChart1Timeframe('1D')" data-wtf="1D" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
                                 </div>
+                                <!-- Chart 1 Dedicated Candle Close Countdown Badge -->
+                                <div id="w-candle-timer-badge" class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950/80 border border-sky-500/50 shadow-xs shrink-0 cursor-default ml-1" title="Top Chart Active Candle Countdown">
+                                    <span class="flex h-1.5 w-1.5 relative shrink-0">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-500"></span>
+                                    </span>
+                                    <span id="w-candle-timer-label" class="text-sky-300 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">5M:</span>
+                                    <span id="w-candle-timer-countdown" class="font-mono font-black text-sky-200 text-xs tracking-wider leading-none select-none">--:--</span>
+                                </div>
                                 <button type="button" id="w-candle-style-btn" onclick="toggleWeightageCandleStyle()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Toggle Candle Style: Regular Candlestick / Heikin Ashi (Row 1)">
@@ -456,12 +474,6 @@
                                     title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Weightage chart">
                                     <span>📐 S/R:</span>
                                     <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-                                </button>
-                                <button type="button" id="w-of-sr-btn" onclick="toggleWeightageOfSrLines()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer"
-                                    title="Toggle Order Flow Depth Institutional S/R Lines (Yesterday & Today Bid/Ask Liquidity)">
-                                    <span>🌊 OF:</span>
-                                    <span id="w-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
                                 <button type="button" id="w-of-sr-btn" onclick="toggleWeightageOfSrLines()" 
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer"
@@ -708,6 +720,15 @@
                                     <button type="button" onclick="setChart2Timeframe('30m')" data-otf="30m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">30m</button>
                                     <button type="button" onclick="setChart2Timeframe('1h')" data-otf="1h" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
                                     <button type="button" onclick="setChart2Timeframe('1D')" data-otf="1D" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
+                                </div>
+                                <!-- Chart 2 Dedicated Candle Close Countdown Badge -->
+                                <div id="o-candle-timer-badge" class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/50 shadow-xs shrink-0 cursor-default ml-1" title="Bottom Chart Active Candle Countdown">
+                                    <span class="flex h-1.5 w-1.5 relative shrink-0">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
+                                    </span>
+                                    <span id="o-candle-timer-label" class="text-purple-300 font-black text-[10px] tracking-wider uppercase whitespace-nowrap">15M:</span>
+                                    <span id="o-candle-timer-countdown" class="font-mono font-black text-purple-200 text-xs tracking-wider leading-none select-none">--:--</span>
                                 </div>
                                 <button type="button" id="o-candle-style-btn" onclick="toggleOptionsCandleStyle()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -2232,6 +2253,7 @@
         wTimeframe = tf;
         try { localStorage.setItem('nifty_unified_w_tf', tf); } catch(e){}
         updateTimeframeButtonsUI();
+        if (typeof updateCandleCloseCountdown === 'function') updateCandleCloseCountdown();
         reloadChart1Weightage();
     }
     window.setChart1Timeframe = setChart1Timeframe;
@@ -2241,6 +2263,7 @@
         oTimeframe = tf;
         try { localStorage.setItem('nifty_unified_o_tf', tf); } catch(e){}
         updateTimeframeButtonsUI();
+        if (typeof updateCandleCloseCountdown === 'function') updateCandleCloseCountdown();
         reloadChart2Options();
     }
     window.setChart2Timeframe = setChart2Timeframe;
@@ -9235,23 +9258,63 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         }
     }
 
-    // ── Active Candle Close Countdown Timer (Prominent Big String near PIVOT) ──
+    // ── Active Candle Close Countdown Timer (Per-Chart & Dual Summary) ──
     let candleCloseTimerId = null;
 
-    function updateCandleCloseCountdown() {
-        const countdownEl = document.getElementById('candle-timer-countdown');
-        const labelEl = document.getElementById('candle-timer-tf-label');
-        if (!countdownEl) return;
-
-        const tfKey = (typeof currentUnifiedTimeframe !== 'undefined' && currentUnifiedTimeframe) ? currentUnifiedTimeframe : '15m';
-        const tfMinutes = (typeof currentTfMinutes !== 'undefined' && currentTfMinutes > 0) ? currentTfMinutes : 15;
-
-        if (labelEl) {
-            const formattedLabel = (tfKey === '1D') ? '1D CLOSE:' : `${tfKey.toUpperCase()} CLOSE:`;
-            if (labelEl.textContent !== formattedLabel) {
-                labelEl.textContent = formattedLabel;
-            }
+    function calcTfRemainingSecs(tfKey, currentSecsOfDay, marketOpenSecs, marketCloseSecs) {
+        const tfMinutes = (typeof getTfMinutes === 'function') ? getTfMinutes(tfKey) : (TF_MINUTES_MAP[tfKey] || 5);
+        if (tfMinutes >= 375 || tfKey === '1D') {
+            return Math.max(0, marketCloseSecs - currentSecsOfDay);
         }
+        const durationSecs = tfMinutes * 60;
+        const elapsedSinceOpen = currentSecsOfDay - marketOpenSecs;
+        const lastCandleBoundary = 15 * 3600 + 15 * 60; // 15:15:00
+        if ((tfMinutes === 30 || tfMinutes === 60) && currentSecsOfDay >= lastCandleBoundary) {
+            return Math.max(0, marketCloseSecs - currentSecsOfDay);
+        }
+        let rem = durationSecs - (elapsedSinceOpen % durationSecs);
+        if (rem === 0) rem = durationSecs;
+        return rem;
+    }
+
+    function formatCountdownTime(remSecs) {
+        if (remSecs == null || remSecs < 0) return '--:--';
+        const m = Math.floor(remSecs / 60);
+        const s = remSecs % 60;
+        if (m >= 60) {
+            const h = Math.floor(m / 60);
+            const remM = m % 60;
+            return `${String(h).padStart(2, '0')}:${String(remM).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateCandleCloseCountdown() {
+        // Elements for Top Toolbar dual badge
+        const countdown1El = document.getElementById('candle-timer-countdown');
+        const label1El = document.getElementById('candle-timer-tf-label');
+        const countdown2El = document.getElementById('candle-timer-countdown2');
+        const label2El = document.getElementById('candle-timer-tf2-label');
+
+        // Elements for Chart 1 Header Badge
+        const wCountdownEl = document.getElementById('w-candle-timer-countdown');
+        const wLabelEl = document.getElementById('w-candle-timer-label');
+
+        // Elements for Chart 2 Header Badge
+        const oCountdownEl = document.getElementById('o-candle-timer-countdown');
+        const oLabelEl = document.getElementById('o-candle-timer-label');
+
+        const tf1Key = (typeof wTimeframe !== 'undefined' && wTimeframe) ? wTimeframe : (typeof currentUnifiedTimeframe !== 'undefined' && currentUnifiedTimeframe ? currentUnifiedTimeframe : '5m');
+        const tf2Key = (typeof oTimeframe !== 'undefined' && oTimeframe) ? oTimeframe : (typeof currentUnifiedTimeframe !== 'undefined' && currentUnifiedTimeframe ? currentUnifiedTimeframe : '15m');
+
+        // Update labels
+        const tf1LabelStr = (tf1Key === '1D') ? '1D' : tf1Key.toUpperCase();
+        const tf2LabelStr = (tf2Key === '1D') ? '1D' : tf2Key.toUpperCase();
+
+        if (label1El) label1El.textContent = `C1 (${tf1LabelStr}):`;
+        if (label2El) label2El.textContent = `C2 (${tf2LabelStr}):`;
+        if (wLabelEl) wLabelEl.textContent = `${tf1LabelStr}:`;
+        if (oLabelEl) oLabelEl.textContent = `${tf2LabelStr}:`;
 
         const now = new Date();
         const istParts = new Intl.DateTimeFormat('en-CA', {
@@ -9281,10 +9344,14 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
 
         // If viewing a historical date other than today:
         if (typeof selectedDate !== 'undefined' && selectedDate && selectedDate !== todayIstStr) {
-            countdownEl.textContent = 'CLOSED';
-            countdownEl.className = 'font-mono font-black text-slate-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
-            if (countdownEl.parentElement) {
-                countdownEl.parentElement.title = `Viewing historical session (${selectedDate}). Candle closed.`;
+            const closedText = 'CLOSED';
+            const closedClass = 'font-mono font-black text-slate-400 text-xs sm:text-sm tracking-wider leading-none select-none';
+            if (countdown1El) { countdown1El.textContent = closedText; countdown1El.className = closedClass; }
+            if (countdown2El) { countdown2El.textContent = closedText; countdown2El.className = closedClass; }
+            if (wCountdownEl) { wCountdownEl.textContent = closedText; wCountdownEl.className = 'font-mono font-black text-slate-400 text-xs tracking-wider leading-none select-none'; }
+            if (oCountdownEl) { oCountdownEl.textContent = closedText; oCountdownEl.className = 'font-mono font-black text-slate-400 text-xs tracking-wider leading-none select-none'; }
+            if (countdown1El?.parentElement?.parentElement) {
+                countdown1El.parentElement.parentElement.title = `Viewing historical session (${selectedDate}). Market closed.`;
             }
             return;
         }
@@ -9292,62 +9359,77 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         // Pre-market (before 09:15:00 IST)
         if (currentSecsOfDay < marketOpenSecs) {
             const remPre = marketOpenSecs - currentSecsOfDay;
-            const m = Math.floor(remPre / 60);
-            const s = remPre % 60;
-            const text = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-            countdownEl.textContent = text;
-            countdownEl.className = 'font-mono font-black text-sky-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
-            if (countdownEl.parentElement) {
-                countdownEl.parentElement.title = `Pre-market: Session opens at 09:15:00 IST (${text} remaining)`;
+            const text = formatCountdownTime(remPre);
+            const preClass = 'font-mono font-black text-sky-300 text-xs sm:text-sm tracking-wider leading-none select-none';
+            if (countdown1El) { countdown1El.textContent = text; countdown1El.className = preClass; }
+            if (countdown2El) { countdown2El.textContent = text; countdown2El.className = preClass; }
+            if (wCountdownEl) { wCountdownEl.textContent = text; wCountdownEl.className = 'font-mono font-black text-sky-300 text-xs leading-none select-none'; }
+            if (oCountdownEl) { oCountdownEl.textContent = text; oCountdownEl.className = 'font-mono font-black text-purple-300 text-xs leading-none select-none'; }
+            if (countdown1El?.parentElement?.parentElement) {
+                countdown1El.parentElement.parentElement.title = `Pre-market: Session opens at 09:15:00 IST (${text} remaining)`;
             }
             return;
         }
 
         // Post-market (after 15:30:00 IST)
         if (currentSecsOfDay >= marketCloseSecs) {
-            countdownEl.textContent = 'CLOSED';
-            countdownEl.className = 'font-mono font-black text-slate-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
-            if (countdownEl.parentElement) {
-                countdownEl.parentElement.title = `Market session ended at 15:30:00 IST.`;
+            const closedText = 'CLOSED';
+            const closedClass = 'font-mono font-black text-slate-400 text-xs sm:text-sm tracking-wider leading-none select-none';
+            if (countdown1El) { countdown1El.textContent = closedText; countdown1El.className = closedClass; }
+            if (countdown2El) { countdown2El.textContent = closedText; countdown2El.className = closedClass; }
+            if (wCountdownEl) { wCountdownEl.textContent = closedText; wCountdownEl.className = 'font-mono font-black text-slate-400 text-xs tracking-wider leading-none select-none'; }
+            if (oCountdownEl) { oCountdownEl.textContent = closedText; oCountdownEl.className = 'font-mono font-black text-slate-400 text-xs tracking-wider leading-none select-none'; }
+            if (countdown1El?.parentElement?.parentElement) {
+                countdown1El.parentElement.parentElement.title = `Market session ended at 15:30:00 IST.`;
             }
             return;
         }
 
         // Live Market Hours (09:15 to 15:30)
-        let remSecs = 0;
-        if (tfMinutes >= 375 || tfKey === '1D') {
-            remSecs = Math.max(0, marketCloseSecs - currentSecsOfDay);
-        } else {
-            const durationSecs = tfMinutes * 60;
-            const elapsedSinceOpen = currentSecsOfDay - marketOpenSecs;
-            const lastCandleBoundary = 15 * 3600 + 15 * 60; // 15:15:00
-            if ((tfMinutes === 30 || tfMinutes === 60) && currentSecsOfDay >= lastCandleBoundary) {
-                remSecs = Math.max(0, marketCloseSecs - currentSecsOfDay);
-            } else {
-                remSecs = durationSecs - (elapsedSinceOpen % durationSecs);
-                if (remSecs === 0) remSecs = durationSecs;
+        const rem1 = calcTfRemainingSecs(tf1Key, currentSecsOfDay, marketOpenSecs, marketCloseSecs);
+        const rem2 = calcTfRemainingSecs(tf2Key, currentSecsOfDay, marketOpenSecs, marketCloseSecs);
+
+        const text1 = formatCountdownTime(rem1);
+        const text2 = formatCountdownTime(rem2);
+
+        // Chart 1 (Top) styling
+        const isUrgent1 = rem1 <= 30 && rem1 > 0;
+        if (countdown1El) {
+            countdown1El.textContent = text1;
+            countdown1El.className = isUrgent1 
+                ? 'font-mono font-black text-rose-400 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow animate-pulse'
+                : 'font-mono font-black text-sky-200 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow';
+        }
+        if (wCountdownEl) {
+            wCountdownEl.textContent = text1;
+            wCountdownEl.className = isUrgent1
+                ? 'font-mono font-black text-rose-400 text-xs tracking-wider leading-none select-none animate-pulse'
+                : 'font-mono font-black text-sky-200 text-xs tracking-wider leading-none select-none';
+            if (wCountdownEl.parentElement) {
+                wCountdownEl.parentElement.title = `Top Chart (${tf1LabelStr}) candle closes in ${text1} (Wall-clock IST)`;
             }
         }
 
-        const m = Math.floor(remSecs / 60);
-        const s = remSecs % 60;
-
-        let formattedText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        if (m >= 60) {
-            const h = Math.floor(m / 60);
-            const remM = m % 60;
-            formattedText = `${String(h).padStart(2, '0')}:${String(remM).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        // Chart 2 (Bottom) styling
+        const isUrgent2 = rem2 <= 30 && rem2 > 0;
+        if (countdown2El) {
+            countdown2El.textContent = text2;
+            countdown2El.className = isUrgent2
+                ? 'font-mono font-black text-rose-400 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow animate-pulse'
+                : 'font-mono font-black text-purple-200 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow';
+        }
+        if (oCountdownEl) {
+            oCountdownEl.textContent = text2;
+            oCountdownEl.className = isUrgent2
+                ? 'font-mono font-black text-rose-400 text-xs tracking-wider leading-none select-none animate-pulse'
+                : 'font-mono font-black text-purple-200 text-xs tracking-wider leading-none select-none';
+            if (oCountdownEl.parentElement) {
+                oCountdownEl.parentElement.title = `Bottom Chart (${tf2LabelStr}) candle closes in ${text2} (Wall-clock IST)`;
+            }
         }
 
-        countdownEl.textContent = formattedText;
-        if (remSecs <= 30 && remSecs > 0) {
-            countdownEl.className = 'font-mono font-black text-rose-400 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow animate-pulse';
-        } else {
-            countdownEl.className = 'font-mono font-black text-amber-300 text-base sm:text-lg tracking-widest leading-none select-none drop-shadow';
-        }
-
-        if (countdownEl.parentElement) {
-            countdownEl.parentElement.title = `Active ${tfKey.toUpperCase()} Candle closes in ${formattedText} (Wall-clock IST)`;
+        if (countdown1El?.parentElement?.parentElement) {
+            countdown1El.parentElement.parentElement.title = `Active candle remaining: Top Chart (${tf1LabelStr}) ${text1} · Bottom Chart (${tf2LabelStr}) ${text2}`;
         }
     }
 
