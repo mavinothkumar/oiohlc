@@ -570,57 +570,57 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 1 Timeframe) -->
-                    <div class="lg:col-span-3 flex flex-col space-y-1.5 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="max-height: 420px;">
+                    <div class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
-                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-xs font-bold text-sky-400 font-mono" id="w-stat-time">
+                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <div class="text-xs sm:text-sm font-bold text-sky-400 font-mono" id="w-stat-time">
                                     09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 text-right">
                                 <div>
-                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Index Move</span>
-                                    <div id="w-stat-pts" class="text-xs font-black font-mono text-emerald-400">+0.0 pts</div>
+                                    <span class="text-[9px] text-gray-400 block leading-tight">Index Move</span>
+                                    <div id="w-stat-pts" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.0 pts</div>
                                 </div>
                                 <div class="border-l border-gray-700/80 pl-2">
-                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Opt Impulse</span>
-                                    <div id="w-opt-stat-impulse" class="text-xs font-black font-mono text-emerald-400">+0.00 pts</div>
+                                    <span class="text-[9px] text-gray-400 block leading-tight">Opt Impulse</span>
+                                    <div id="w-opt-stat-impulse" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.00 pts</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ══ DECK 1: BANK NIFTY STOCKS (CHART 1 TIMEFRAME) ══ -->
-                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-sky-900/50 p-1.5 shadow-sm">
+                        <div class="flex flex-col space-y-1.5 rounded-lg bg-[#131722]/95 border border-sky-900/60 p-2 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-bold text-sky-300 flex items-center gap-1">
+                                <span class="text-[11px] font-bold text-sky-300 flex items-center gap-1.5">
                                     <span>📊</span> <span>BANK NIFTY STOCKS</span>
                                 </span>
-                                <span id="stk-trigger-verdict-badge" class="px-1 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                <span id="stk-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Normal
                                 </span>
                             </div>
 
                             <!-- UP vs DOWN Compact Grid -->
-                            <div class="grid grid-cols-2 gap-1">
-                                <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div id="w-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-emerald-400 font-mono" id="w-stat-green-pct">0%</span>
-                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">UP</span>
+                                        <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="w-stat-green-pct">0%</span>
+                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
                                     </div>
-                                    <div class="text-[8.5px] text-emerald-200/90 font-medium flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
                                         <span>Wt: <strong id="w-stat-green-wt" class="text-white">0%</strong></span>
                                         <span><strong id="w-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-green-pts" class="text-emerald-300">+0</span></span>
                                     </div>
                                 </div>
 
-                                <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                <div id="w-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-rose-400 font-mono" id="w-stat-red-pct">0%</span>
-                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">DN</span>
+                                        <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="w-stat-red-pct">0%</span>
+                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
                                     </div>
-                                    <div class="text-[8.5px] text-rose-200/90 font-medium flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
                                         <span>Wt: <strong id="w-stat-red-wt" class="text-white">0%</strong></span>
                                         <span><strong id="w-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="w-stat-red-pts" class="text-rose-300">-0</span></span>
                                     </div>
@@ -629,24 +629,24 @@
 
                             <!-- Weight Influence Split Bar -->
                             <div class="space-y-0.5">
-                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                <div class="flex justify-between items-center text-[9px] text-gray-400">
                                     <span>Weight Split</span>
                                     <span id="w-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
                                 </div>
-                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
                                     <div id="w-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
                                     <div id="w-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
                                 </div>
                             </div>
 
                             <!-- Institutional Verdict Badge -->
-                            <div id="w-insight-card" class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                            <div id="w-insight-card" class="px-2 py-1 rounded bg-gray-800/50 border border-gray-700/70 text-[9.5px]">
                                 <div class="font-bold text-white truncate" id="w-insight-badge">🚀 Broad Institutional Buying</div>
                                 <div id="w-divergence-banner" class="hidden"></div>
                             </div>
 
                             <!-- Key Movers Compact Ticker -->
-                            <div class="flex items-center justify-between gap-1 text-[8.5px] font-mono px-0.5">
+                            <div class="flex items-center justify-between gap-1 text-[9px] font-mono px-0.5">
                                 <div id="w-top-drivers" class="truncate text-emerald-300">
                                     <span class="text-gray-500 italic">Drivers: --</span>
                                 </div>
@@ -656,46 +656,46 @@
                             </div>
 
                             <!-- Stock Trigger Strength Mini-Pill -->
-                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                            <div class="flex items-center justify-between text-[8.5px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
                                 <span class="flex items-center gap-1">
                                     <span>🎯 STK</span>
-                                    <span id="stk-trigger-val-badge" class="text-[7.5px] text-sky-400 cursor-pointer" onclick="cycleStocksTriggerThreshold()">(≥80%)</span>
+                                    <span id="stk-trigger-val-badge" class="text-[8px] text-sky-400 cursor-pointer" onclick="cycleStocksTriggerThreshold()">(≥80%)</span>
                                 </span>
                                 <span>▲ <strong id="stk-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="stk-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
                         </div>
 
                         <!-- ══ DECK 2: OPTIONS FLOW & PARITY (CHART 1 TIMEFRAME) ══ -->
-                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-purple-900/50 p-1.5 shadow-sm">
+                        <div class="flex flex-col space-y-1.5 rounded-lg bg-[#131722]/95 border border-purple-900/60 p-2 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                <span class="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
                                     <span>⚡</span> <span>OPTIONS FLOW</span>
                                 </span>
-                                <div class="flex items-center gap-1 text-[8.5px] font-mono">
+                                <div class="flex items-center gap-1 text-[9px] font-mono">
                                     <span class="text-gray-400">ATM:</span>
                                     <strong id="w-opt-stat-atm-val" class="text-amber-300">₹24,150</strong>
                                 </div>
                             </div>
 
                             <!-- BUY vs SELL Compact Grid -->
-                            <div class="grid grid-cols-2 gap-1">
-                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-emerald-300 font-mono" id="w-opt-stat-green-ratio">50%</span>
-                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">BUY</span>
+                                        <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="w-opt-stat-green-ratio">50%</span>
+                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
                                     </div>
-                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
                                         <span id="w-opt-stat-green-wt">50% Wt</span>
                                         <span><strong id="w-opt-stat-green-cnt" class="text-white">0</strong> strk</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-rose-300 font-mono" id="w-opt-stat-red-ratio">50%</span>
-                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">SELL</span>
+                                        <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="w-opt-stat-red-ratio">50%</span>
+                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
                                     </div>
-                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
                                         <span id="w-opt-stat-red-wt">50% Wt</span>
                                         <span><strong id="w-opt-stat-red-cnt" class="text-white">0</strong> strk</span>
                                     </div>
@@ -704,47 +704,47 @@
 
                             <!-- Options Balance Bar -->
                             <div class="space-y-0.5">
-                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                <div class="flex justify-between items-center text-[9px] text-gray-400">
                                     <span>Tug-of-War</span>
                                     <span id="w-opt-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
                                 </div>
-                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
                                     <div id="w-opt-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
                                     <div id="w-opt-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
                                 </div>
                             </div>
 
                             <!-- Options Verdict Badge -->
-                            <div class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                            <div class="px-2 py-1 rounded bg-gray-800/50 border border-gray-700/70 text-[9.5px]">
                                 <div class="font-bold text-white truncate" id="w-opt-verdict-title">⚖️ Balanced Options Equilibrium</div>
                                 <div id="w-opt-divergence-banner" class="hidden"></div>
                             </div>
 
                             <!-- Greeks 4-Grid Micro Bar -->
-                            <div class="grid grid-cols-4 gap-1 text-center font-mono text-[8px]">
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">Delta</span>
-                                    <span class="font-bold text-sky-400" id="w-opt-greek-delta">0k</span>
+                            <div class="grid grid-cols-4 gap-1 text-center font-mono">
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">Delta</span>
+                                    <span class="font-bold text-[9.5px] text-sky-400" id="w-opt-greek-delta">0k</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">CE Veg</span>
-                                    <span class="font-bold text-emerald-400" id="w-opt-greek-ce-vega">0.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">CE Veg</span>
+                                    <span class="font-bold text-[9.5px] text-emerald-400" id="w-opt-greek-ce-vega">0.0</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">PE Veg</span>
-                                    <span class="font-bold text-rose-400" id="w-opt-greek-pe-vega">0.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">PE Veg</span>
+                                    <span class="font-bold text-[9.5px] text-rose-400" id="w-opt-greek-pe-vega">0.0</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">PCR</span>
-                                    <span class="font-bold text-amber-400" id="w-opt-greek-pcr">1.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">PCR</span>
+                                    <span class="font-bold text-[9.5px] text-amber-400" id="w-opt-greek-pcr">1.0</span>
                                 </div>
                             </div>
 
                             <!-- Options Trigger Mini-Pill -->
-                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                            <div class="flex items-center justify-between text-[8.5px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
                                 <span class="flex items-center gap-1">
                                     <span>🎯 OPT</span>
-                                    <span id="opt-trigger-val-badge" class="text-[7.5px] text-purple-400 cursor-pointer" onclick="cycleOptionsTriggerThreshold()">(≥70%)</span>
+                                    <span id="opt-trigger-val-badge" class="text-[8px] text-purple-400 cursor-pointer" onclick="cycleOptionsTriggerThreshold()">(≥70%)</span>
                                 </span>
                                 <span>▲ <strong id="w-opt-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="w-opt-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
@@ -891,57 +891,57 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 2 Timeframe) -->
-                    <div class="lg:col-span-3 flex flex-col space-y-1.5 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="max-height: 420px;">
+                    <div class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
                         <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
                             <div>
-                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-xs font-bold text-sky-400 font-mono" id="o-stat-time">
+                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
+                                <div class="text-xs sm:text-sm font-bold text-sky-400 font-mono" id="o-stat-time">
                                     09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 text-right">
                                 <div>
-                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Index Move</span>
-                                    <div id="o-stk-stat-pts" class="text-xs font-black font-mono text-emerald-400">+0.0 pts</div>
+                                    <span class="text-[9px] text-gray-400 block leading-tight">Index Move</span>
+                                    <div id="o-stk-stat-pts" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.0 pts</div>
                                 </div>
                                 <div class="border-l border-gray-700/80 pl-2">
-                                    <span class="text-[8.5px] text-gray-400 block leading-tight">Opt Impulse</span>
-                                    <div id="o-stat-impulse" class="text-xs font-black font-mono text-emerald-400">+0.00 pts</div>
+                                    <span class="text-[9px] text-gray-400 block leading-tight">Opt Impulse</span>
+                                    <div id="o-stat-impulse" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.00 pts</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ══ DECK 1: BANK NIFTY STOCKS (CHART 2 TIMEFRAME) ══ -->
-                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-sky-900/50 p-1.5 shadow-sm">
+                        <div class="flex flex-col space-y-1.5 rounded-lg bg-[#131722]/95 border border-sky-900/60 p-2 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-bold text-sky-300 flex items-center gap-1">
+                                <span class="text-[11px] font-bold text-sky-300 flex items-center gap-1.5">
                                     <span>📊</span> <span>BANK NIFTY STOCKS</span>
                                 </span>
-                                <span id="o-stk-trigger-verdict-badge" class="px-1 py-0.2 rounded text-[8.5px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
+                                <span id="o-stk-trigger-verdict-badge" class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-gray-800 text-gray-400 border border-gray-700">
                                     Normal
                                 </span>
                             </div>
 
                             <!-- UP vs DOWN Compact Grid -->
-                            <div class="grid grid-cols-2 gap-1">
-                                <div id="o-stk-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div id="o-stk-box-up" class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-emerald-400 font-mono" id="o-stk-stat-green-pct">0%</span>
-                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">UP</span>
+                                        <span class="text-base sm:text-lg font-black text-emerald-400 font-mono leading-none" id="o-stk-stat-green-pct">0%</span>
+                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">UP</span>
                                     </div>
-                                    <div class="text-[8.5px] text-emerald-200/90 font-medium flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-emerald-200/90 font-medium flex justify-between mt-1">
                                         <span>Wt: <strong id="o-stk-stat-green-wt" class="text-white">0%</strong></span>
                                         <span><strong id="o-stk-stat-green-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-green-pts" class="text-emerald-300">+0</span></span>
                                     </div>
                                 </div>
 
-                                <div id="o-stk-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                <div id="o-stk-box-down" class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-rose-400 font-mono" id="o-stk-stat-red-pct">0%</span>
-                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">DN</span>
+                                        <span class="text-base sm:text-lg font-black text-rose-400 font-mono leading-none" id="o-stk-stat-red-pct">0%</span>
+                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">DN</span>
                                     </div>
-                                    <div class="text-[8.5px] text-rose-200/90 font-medium flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-rose-200/90 font-medium flex justify-between mt-1">
                                         <span>Wt: <strong id="o-stk-stat-red-wt" class="text-white">0%</strong></span>
                                         <span><strong id="o-stk-stat-red-cnt" class="text-white">0</strong> stk &bull; <span id="o-stk-stat-red-pts" class="text-rose-300">-0</span></span>
                                     </div>
@@ -950,24 +950,24 @@
 
                             <!-- Weight Influence Split Bar -->
                             <div class="space-y-0.5">
-                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                <div class="flex justify-between items-center text-[9px] text-gray-400">
                                     <span>Weight Split</span>
                                     <span id="o-stk-stat-split" class="font-mono text-gray-300 font-bold">50% G / 50% R</span>
                                 </div>
-                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
                                     <div id="o-stk-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
                                     <div id="o-stk-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
                                 </div>
                             </div>
 
                             <!-- Institutional Verdict Badge -->
-                            <div id="o-stk-insight-card" class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                            <div id="o-stk-insight-card" class="px-2 py-1 rounded bg-gray-800/50 border border-gray-700/70 text-[9.5px]">
                                 <div class="font-bold text-white truncate" id="o-stk-insight-badge">🚀 Broad Institutional Buying</div>
                                 <div id="o-stk-divergence-banner" class="hidden"></div>
                             </div>
 
                             <!-- Key Movers Compact Ticker -->
-                            <div class="flex items-center justify-between gap-1 text-[8.5px] font-mono px-0.5">
+                            <div class="flex items-center justify-between gap-1 text-[9px] font-mono px-0.5">
                                 <div id="o-stk-top-drivers" class="truncate text-emerald-300">
                                     <span class="text-gray-500 italic">Drivers: --</span>
                                 </div>
@@ -977,43 +977,43 @@
                             </div>
 
                             <!-- Stock Trigger Strength Mini-Pill -->
-                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                            <div class="flex items-center justify-between text-[8.5px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
                                 <span>🎯 STK (Chart 2):</span>
                                 <span>▲ <strong id="o-stk-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="o-stk-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
                         </div>
 
                         <!-- ══ DECK 2: OPTIONS FLOW & PARITY (CHART 2 TIMEFRAME) ══ -->
-                        <div class="flex flex-col space-y-1 rounded bg-[#131722]/90 border border-purple-900/50 p-1.5 shadow-sm">
+                        <div class="flex flex-col space-y-1.5 rounded-lg bg-[#131722]/95 border border-purple-900/60 p-2 shadow-sm">
                             <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-bold text-purple-300 flex items-center gap-1">
+                                <span class="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
                                     <span>⚡</span> <span>OPTIONS FLOW</span>
                                 </span>
-                                <div class="flex items-center gap-1 text-[8.5px] font-mono">
+                                <div class="flex items-center gap-1 text-[9px] font-mono">
                                     <span class="text-gray-400">ATM:</span>
                                     <strong id="o-stat-atm-val" class="text-amber-300">₹24,150</strong>
                                 </div>
                             </div>
 
                             <!-- BUY vs SELL Compact Grid -->
-                            <div class="grid grid-cols-2 gap-1">
-                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div class="bg-gradient-to-br from-emerald-950/70 to-emerald-900/30 border border-emerald-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-emerald-300 font-mono" id="o-stat-green-ratio">50%</span>
-                                        <span class="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 font-bold text-[8px] rounded uppercase">BUY</span>
+                                        <span class="text-base sm:text-lg font-black text-emerald-300 font-mono leading-none" id="o-stat-green-ratio">50%</span>
+                                        <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 font-bold text-[8.5px] rounded uppercase">BUY</span>
                                     </div>
-                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
                                         <span id="o-stat-green-wt">50% Wt</span>
                                         <span><strong id="o-stat-green-cnt" class="text-white">0</strong> strk</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded px-1.5 py-0.5 shadow-inner">
+                                <div class="bg-gradient-to-br from-rose-950/70 to-rose-900/30 border border-rose-500/40 rounded-md px-2 py-1 shadow-inner">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-black text-rose-300 font-mono" id="o-stat-red-ratio">50%</span>
-                                        <span class="px-1 py-0.2 bg-rose-500/20 text-rose-300 font-bold text-[8px] rounded uppercase">SELL</span>
+                                        <span class="text-base sm:text-lg font-black text-rose-300 font-mono leading-none" id="o-stat-red-ratio">50%</span>
+                                        <span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-300 font-bold text-[8.5px] rounded uppercase">SELL</span>
                                     </div>
-                                    <div class="text-[8.5px] text-gray-300 flex justify-between mt-0.5">
+                                    <div class="text-[9.5px] text-gray-300 flex justify-between mt-1">
                                         <span id="o-stat-red-wt">50% Wt</span>
                                         <span><strong id="o-stat-red-cnt" class="text-white">0</strong> strk</span>
                                     </div>
@@ -1022,44 +1022,44 @@
 
                             <!-- Options Balance Bar -->
                             <div class="space-y-0.5">
-                                <div class="flex justify-between items-center text-[8.5px] text-gray-400">
+                                <div class="flex justify-between items-center text-[9px] text-gray-400">
                                     <span>Tug-of-War</span>
                                     <span id="o-stat-split" class="font-mono text-gray-300 font-bold">50% / 50%</span>
                                 </div>
-                                <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden flex">
+                                <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
                                     <div id="o-bar-green" class="h-full bg-emerald-500 transition-all duration-150" style="width: 50%;"></div>
                                     <div id="o-bar-red" class="h-full bg-rose-500 transition-all duration-150" style="width: 50%;"></div>
                                 </div>
                             </div>
 
                             <!-- Options Verdict Badge -->
-                            <div class="px-1.5 py-0.5 rounded bg-gray-800/50 border border-gray-700/70 text-[9px]">
+                            <div class="px-2 py-1 rounded bg-gray-800/50 border border-gray-700/70 text-[9.5px]">
                                 <div class="font-bold text-white truncate" id="o-verdict-title">⚖️ Balanced Options Equilibrium</div>
                                 <div id="o-divergence-banner" class="hidden"></div>
                             </div>
 
                             <!-- Greeks 4-Grid Micro Bar -->
-                            <div class="grid grid-cols-4 gap-1 text-center font-mono text-[8px]">
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">Delta</span>
-                                    <span class="font-bold text-sky-400" id="o-greek-delta">0k</span>
+                            <div class="grid grid-cols-4 gap-1 text-center font-mono">
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">Delta</span>
+                                    <span class="font-bold text-[9.5px] text-sky-400" id="o-greek-delta">0k</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">CE Veg</span>
-                                    <span class="font-bold text-emerald-400" id="o-greek-ce-vega">0.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">CE Veg</span>
+                                    <span class="font-bold text-[9.5px] text-emerald-400" id="o-greek-ce-vega">0.0</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">PE Veg</span>
-                                    <span class="font-bold text-rose-400" id="o-greek-pe-vega">0.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">PE Veg</span>
+                                    <span class="font-bold text-[9.5px] text-rose-400" id="o-greek-pe-vega">0.0</span>
                                 </div>
-                                <div class="bg-[#181d2a] p-0.5 rounded border border-gray-800/80">
-                                    <span class="text-[7px] text-gray-400 block leading-none">PCR</span>
-                                    <span class="font-bold text-amber-400" id="o-greek-pcr">1.0</span>
+                                <div class="bg-[#181d2a] p-1 rounded border border-gray-800/80">
+                                    <span class="text-[8px] text-gray-400 block leading-tight">PCR</span>
+                                    <span class="font-bold text-[9.5px] text-amber-400" id="o-greek-pcr">1.0</span>
                                 </div>
                             </div>
 
                             <!-- Options Trigger Mini-Pill -->
-                            <div class="flex items-center justify-between text-[8px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
+                            <div class="flex items-center justify-between text-[8.5px] font-mono text-gray-400 pt-0.5 border-t border-gray-800/60">
                                 <span>🎯 OPT (Chart 2):</span>
                                 <span>▲ <strong id="opt-pos-triggers-count" class="text-emerald-400">0</strong> &bull; ▼ <strong id="opt-neg-triggers-count" class="text-rose-400">0</strong></span>
                             </div>
@@ -1114,7 +1114,7 @@
                     </div>
                 </div>
 
-                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 330px;">
+                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
                     <div id="toi-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                         <div class="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                         <span id="toi-loading-msg" class="text-[11px] text-amber-300 font-mono font-medium tracking-wide">Loading Trending OI &amp; Sentiment...</span>
@@ -1123,7 +1123,7 @@
                 </div>
 
                 <!-- ── SEPARATE DECISION WIDGET (NET DIFF HERO & OI METRICS) ── -->
-                <div id="toi-decision-widget" class="mt-2 pt-2 border-t border-gray-800/80 flex flex-col gap-1.5 select-none">
+                <div id="toi-decision-widget" class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex flex-col gap-1 select-none">
                     <!-- Top Hero: Net Diff (OI Skew) & Direction Conviction -->
                     <div class="flex items-center justify-between bg-gradient-to-r from-[#121622] via-[#161d2d] to-[#121622] px-2.5 py-1.5 rounded-lg border border-slate-700/60 shadow-inner flex-wrap gap-2">
                         <div class="flex items-baseline gap-2">
@@ -1233,7 +1233,7 @@
                     </div>
                 </div>
 
-                <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 320px;">
+                <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 195px;">
                     <canvas id="chart-oi-buildup"></canvas>
                 </div>
 
@@ -6125,8 +6125,9 @@
         const toiWrapper = document.getElementById('toi-chart-wrapper');
         const bldWrapper = document.getElementById('bld-chart-wrapper');
 
-        const toiH = Math.max(220, h - 35);
-        const bldH = Math.max(200, h - 98);
+        // Accounting for decision hero & 4-metric grid (~145px) in Card 1, and footer/legend (~115px) in Card 2:
+        const toiH = Math.max(180, Math.min(260, h - 150));
+        const bldH = Math.max(160, Math.min(210, h - 180));
 
         if (toiWrapper) toiWrapper.style.height = `${toiH}px`;
         if (bldWrapper) bldWrapper.style.height = `${bldH}px`;
@@ -7620,7 +7621,7 @@
                     data: dataVals,
                     backgroundColor: colors,
                     borderRadius: 3,
-                    barThickness: 15,
+                    barThickness: 13,
                     formattedLabels: formattedLabels,
                     itemsMeta: items,
                 }]
