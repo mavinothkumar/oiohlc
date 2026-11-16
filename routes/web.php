@@ -356,6 +356,7 @@ Route::get('/nifty-multi-timeframe-monitor', [\App\Http\Controllers\NiftyMultiTi
 Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index']);
 Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/api/multi-timeframe/order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getOrderFlowLevels'])->name('api.multi-timeframe.order-flow-levels');
+Route::get('/api/multi-timeframe/multi-day-order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getMultiDayOrderFlowLevels'])->name('api.multi-timeframe.multi-day-order-flow-levels');
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');
 

@@ -7,6 +7,7 @@ use App\Services\TimeframeResampler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -278,6 +279,116 @@ class NiftyMultiTimeframeMonitorController extends Controller
                 'bids' => $tdBids,
             ],
         ]);
+    }
+
+    /**
+     * Get Multi-Day Top 1 Order Flow Support & Resistance Levels (Past N Days)
+     */
+    public function getMultiDayOrderFlowLevels(Request $request): JsonResponse
+    {
+        $date = $request->input('date', Carbon::today('Asia/Kolkata')->toDateString());
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $daysCount = max(1, min(10, (int) $request->input('days', 5)));
+        $clusterPts = (float) $request->input('cluster', ($symbol === 'BANKNIFTY' ? 10.0 : 5.0));
+        $rankBy = strtolower($request->input('rank_by', 'cumulative')); // 'cumulative' or 'peak'
+        $refPrice = (float) $request->input('spot', 0.0);
+
+        if ($refPrice <= 0) {
+            $refPrice = ($symbol === 'BANKNIFTY') ? 57000.0 : 25200.0;
+        }
+
+        // Cache for 60 seconds (for today's session)
+        $cacheKey = "multiday_of_levels_{$symbol}_{$date}_{$daysCount}_{$rankBy}_" . round($refPrice, -1);
+        $result = Cache::remember($cacheKey, 60, function () use ($date, $symbol, $daysCount, $clusterPts, $rankBy, $refPrice) {
+            // Find past trading dates
+            $pastDates = [];
+            if (Schema::hasTable('nse_working_days')) {
+                $pastDates = DB::table('nse_working_days')
+                    ->where('working_date', '<', $date)
+                    ->orderByDesc('working_date')
+                    ->limit($daysCount)
+                    ->pluck('working_date')
+                    ->toArray();
+            }
+
+            if (count($pastDates) < $daysCount && Schema::hasTable('order_flow_traded_volumes')) {
+                $existingDates = DB::table('order_flow_traded_volumes')
+                    ->where('trade_date', '<', $date)
+                    ->where('symbol', $symbol)
+                    ->distinct()
+                    ->orderByDesc('trade_date')
+                    ->limit($daysCount)
+                    ->pluck('trade_date')
+                    ->map(fn($d) => Carbon::parse($d)->toDateString())
+                    ->toArray();
+                $pastDates = array_values(array_unique(array_merge($pastDates, $existingDates)));
+                rsort($pastDates);
+                $pastDates = array_slice($pastDates, 0, $daysCount);
+            }
+
+            // Basis Spread: Calculate between latest Future trade and Spot
+            $futurePrice = 0.0;
+            if (Schema::hasTable('order_flow_traded_volumes')) {
+                $latestTrade = DB::table('order_flow_traded_volumes')
+                    ->where('trade_date', '<=', $date)
+                    ->where('symbol', $symbol)
+                    ->orderByDesc('id')
+                    ->first(['price']);
+                if ($latestTrade) {
+                    $futurePrice = (float) $latestTrade->price;
+                }
+            }
+            $basisSpread = ($futurePrice > 0 && $refPrice > 0) ? round($futurePrice - $refPrice, 1) : 0.0;
+
+            $days = [];
+            foreach ($pastDates as $idx => $d) {
+                $cDate = Carbon::parse($d);
+                $formattedDate = $cDate->format('d M');
+                $dayCode = ($idx === 0) ? 'YD' : "D-" . ($idx + 1);
+
+                $askLevels = $this->clusterLevels(
+                    OrderFlowTradedVolume::forDate($d)->forSymbol($symbol)->ask(),
+                    $refPrice,
+                    $clusterPts,
+                    1,
+                    "{$formattedDate} RES",
+                    $rankBy,
+                    $basisSpread
+                );
+
+                $bidLevels = $this->clusterLevels(
+                    OrderFlowTradedVolume::forDate($d)->forSymbol($symbol)->bid(),
+                    $refPrice,
+                    $clusterPts,
+                    1,
+                    "{$formattedDate} SUP",
+                    $rankBy,
+                    $basisSpread
+                );
+
+                $days[] = [
+                    'date'           => $d,
+                    'formatted_date' => $formattedDate,
+                    'day_code'       => $dayCode,
+                    'day_offset'     => $idx + 1,
+                    'ask'            => $askLevels[0] ?? null,
+                    'bid'            => $bidLevels[0] ?? null,
+                ];
+            }
+
+            return [
+                'success'      => true,
+                'date'         => $date,
+                'symbol'       => $symbol,
+                'ref_price'    => $refPrice,
+                'future_price' => $futurePrice,
+                'basis_spread' => $basisSpread,
+                'rank_by'      => $rankBy,
+                'days'         => $days,
+            ];
+        });
+
+        return response()->json($result);
     }
 
     /**

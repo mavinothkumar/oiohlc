@@ -121,18 +121,7 @@
                 <span id="spot-change-display" class="font-semibold text-gray-400 text-[10px]"></span>
             </div>
 
-            <!-- Multi-Timeframe Selector Bar: 1m, 3m, 5m, 15m, 30m, 60m, 1D -->
-            <div class="flex items-center bg-[#151924] border border-sky-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner" id="unified-tf-group">
-                @foreach($availableTimeframes as $tfKey => $tfData)
-                    <button type="button" 
-                            data-tf="{{ $tfKey }}"
-                            data-minutes="{{ $tfData['minutes'] }}"
-                            onclick="setUnifiedTimeframe('{{ $tfKey }}', {{ $tfData['minutes'] }})"
-                            class="tf-selector-btn px-1.5 py-0.5 rounded font-mono font-bold text-[10.5px] transition cursor-pointer {{ $selectedTimeframe === $tfKey ? 'bg-sky-600 text-white shadow-xs' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
-                        {{ $tfData['label'] }}
-                    </button>
-                @endforeach
-            </div>
+
 
             <!-- Real-Time Institutional Driver Diagnosis Pill (Resolving Stock vs Options Conflicts) -->
             <div id="driver-diagnosis-pill" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10.5px] font-black tracking-wider transition-all duration-200 cursor-help bg-slate-900 text-slate-400 border-slate-700 shrink-0 shadow-xs" title="Institutional Driver Diagnosis: Resolving conflicts between Options Flow, Heavyweight Cash Breadth, and Futures">
@@ -141,11 +130,17 @@
             </div>
         </div>
 
-        <!-- Center: Master Unified Timeline Scrubber & Replay Controller -->
-        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-2 py-0.5 shadow-inner shrink-0">
-            <span id="master-time-badge" class="px-1.5 py-0.2 bg-sky-950 border border-sky-500/50 text-sky-300 font-mono font-bold text-[11px] rounded">
-                09:15
-            </span>
+        <!-- Center: Master Unified Timeline Dropdown & Replay Controller -->
+        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-1.5 py-0.5 shadow-inner shrink-0">
+            <!-- Timeline Candle Time Dropdown -->
+            <div class="flex items-center bg-sky-950/80 border border-sky-500/50 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Select Candle Time">
+                <span class="text-sky-400 font-bold text-[10px]">⏰</span>
+                <select id="master-time-select" onchange="syncActiveCandleIndex(parseInt(this.value, 10))" class="bg-transparent text-sky-300 font-mono font-bold text-[11px] focus:outline-none cursor-pointer">
+                    <option value="0">09:15</option>
+                </select>
+                <span id="master-time-badge" class="hidden">09:15</span>
+                <input id="master-slider" type="range" min="0" max="74" value="0" class="hidden">
+            </div>
 
             <!-- Stepper buttons -->
             <div class="flex items-center gap-0.5 border-l border-gray-700 pl-1">
@@ -166,11 +161,6 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
                     <span>LIVE</span>
                 </button>
-            </div>
-
-            <!-- Master Scrubber Slider -->
-            <div class="w-16 sm:w-20 md:w-24 lg:w-28 xl:w-32 flex items-center px-0.5">
-                <input id="master-slider" type="range" min="0" max="74" value="0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
             </div>
         </div>
 
@@ -198,27 +188,6 @@
                             {{ \Carbon\Carbon::parse($exp)->format('d-M') }}
                         </option>
                     @endforeach
-                </select>
-            </div>
-
-            
-
-            <!-- Dynamic Candle Style Selector (Regular vs Heikin Ashi) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Candlestick Style (Keyboard Shortcut: H)">
-                <span class="text-gray-400 text-[10px] font-bold">Type:</span>
-                <select id="candle-style-select" onchange="setCandleStyle(this.value)" class="bg-transparent text-emerald-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Regular Candlestick / Heikin Ashi (Shortcut: H)">
-                    <option value="candle" class="bg-[#131722] text-white">🕯️ Candle</option>
-                    <option value="heikin_ashi" class="bg-[#131722] text-white">📊 Heikin Ashi</option>
-                </select>
-            </div>
-
-            <!-- Master Signals Mode Selector (Breach / Every 5M / Off) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Signals on Chart Candles (Breach Only / Every Candle / Off)">
-                <span class="text-gray-400 text-[10px] font-bold">Signals:</span>
-                <select id="signals-mode-select" onchange="setGlobalSignalsMode(this.value)" class="bg-transparent text-cyan-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Chart Signals (Breach / All / Off)">
-                    <option value="breach" class="bg-[#131722] text-white">🎯 Breach Only</option>
-                    <option value="all" class="bg-[#131722] text-white">🏷️ Every 5M</option>
-                    <option value="off" class="bg-[#131722] text-white">🚫 Off</option>
                 </select>
             </div>
 
@@ -250,7 +219,6 @@
                 </button>
             </div>
 
-            <!-- 0Click Signal Logs Button -->
             <!-- 5 Quant Edge Boosters Status Pill -->
             <button type="button" onclick="openQuantEdgeModalTab()" id="btn-quant-edge-status" title="5 Quant Edge & Accuracy Boosters • Click to Configure" class="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/80 text-sky-300 border border-sky-500/40 hover:bg-sky-900 transition cursor-pointer shrink-0">
                 <span>🎯</span>
@@ -263,12 +231,6 @@
                 <span class="hidden xl:inline text-[11px]">Logs</span>
                 <span id="log-count-badge" class="ml-0.5 px-1 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[9.5px] rounded-full">0</span>
             </button>
-
-            <!-- Unified Backtest Cockpit Button -->
-            <a href="{{ route('nifty.unified.backtest') }}" target="_blank" title="Launch Unified Breadth 2+ Year Backtest Cockpit (Charts, Equity Curve, Drawdown)" class="flex items-center gap-1 px-1.5 py-0.5 bg-[#1a1e29] hover:bg-blue-900/60 border border-gray-700 hover:border-blue-500/50 text-blue-400 hover:text-blue-300 rounded text-xs font-semibold transition cursor-pointer shrink-0">
-                <span>📊</span>
-                <span class="hidden xl:inline text-[11px]">Backtest</span>
-            </a>
 
             <!-- Auto-Refresh Selector -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Smart Candle Sync & Auto-Refresh">
@@ -340,30 +302,6 @@
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
-            <div class="flex items-center gap-1" title="R3: Major Ceiling / Breakout Exhaustion">
-                <span class="text-rose-400 font-black text-[10px]">R3:</span>
-                <span id="quant-val-r3" class="text-rose-200 font-bold">{{ $lvlR3 ? '₹' . number_format($lvlR3, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1" title="R2: Value Area High (VAH) / Ask Wall">
-                <span class="text-rose-400 font-bold text-[10px]">R2:</span>
-                <span id="quant-val-r2" class="text-rose-100 font-bold">{{ $lvlR2 ? '₹' . number_format($lvlR2, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1" title="R1: Immediate Supply Pivot">
-                <span class="text-rose-300 font-bold text-[10px]">R1:</span>
-                <span id="quant-val-r1" class="text-slate-200 font-bold">{{ $lvlR1 ? '₹' . number_format($lvlR1, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/40" title="Central Equilibrium / POC Anchor (Bullish above · Bearish below)">
-                <span class="text-amber-400 font-black text-[10px]">PIVOT:</span>
-                <span id="quant-val-pivot" class="text-amber-300 font-black">{{ $lvlP ? '₹' . number_format($lvlP, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
             <!-- Candle Close Remaining Time Countdown Badge (Dual Chart 1 & Chart 2 Remaining Time) -->
             <div id="candle-timer-container" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 shadow-md shrink-0 cursor-default" title="Time remaining until active candle closes for Chart 1 & Chart 2">
                 <span class="flex h-2 w-2 relative shrink-0">
@@ -381,24 +319,6 @@
                         <span id="candle-timer-countdown2" class="font-mono font-black text-purple-200 text-xs sm:text-sm tracking-wider leading-none select-none drop-shadow">--:--</span>
                     </div>
                 </div>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1" title="S1: Immediate Demand Pivot">
-                <span class="text-emerald-300 font-bold text-[10px]">S1:</span>
-                <span id="quant-val-s1" class="text-slate-200 font-bold">{{ $lvlS1 ? '₹' . number_format($lvlS1, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1" title="S2: Value Area Low (VAL) / Bid Wall">
-                <span class="text-emerald-400 font-bold text-[10px]">S2:</span>
-                <span id="quant-val-s2" class="text-emerald-100 font-bold">{{ $lvlS2 ? '₹' . number_format($lvlS2, 2) : '--' }}</span>
-            </div>
-            <span class="text-slate-700">|</span>
-
-            <div class="flex items-center gap-1" title="S3: Major Floor / Day Low Invalidation">
-                <span class="text-emerald-400 font-black text-[10px]">S3:</span>
-                <span id="quant-val-s3" class="text-emerald-200 font-bold">{{ $lvlS3 ? '₹' . number_format($lvlS3, 2) : '--' }}</span>
             </div>
         </div>
 
@@ -475,6 +395,13 @@
                                     title="Toggle Order Flow Calibration: Click to switch between Spot-Calibrated and Raw Futures">
                                     <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
                                     <span id="w-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
+                                </button>
+                                <button type="button" id="w-hist-of-dropdown-btn" onclick="toggleHistOfDropdown('w', this)" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/70 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer select-none"
+                                    title="Multi-Day Top 1 Order Flow S/R Levels (Past 5 Days)">
+                                    <span>🎯 5D Levels</span>
+                                    <span id="w-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono">0</span>
+                                    <span class="text-[8px]">▾</span>
                                 </button>
                                 <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -843,6 +770,13 @@
                                     title="Toggle Order Flow Calibration: Click to switch between Spot-Calibrated and Raw Futures">
                                     <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
                                     <span id="o-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
+                                </button>
+                                <button type="button" id="o-hist-of-dropdown-btn" onclick="toggleHistOfDropdown('o', this)" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/70 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer select-none"
+                                    title="Multi-Day Top 1 Order Flow S/R Levels (Past 5 Days)">
+                                    <span>🎯 5D Levels</span>
+                                    <span id="o-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono">0</span>
+                                    <span class="text-[8px]">▾</span>
                                 </button>
                                 <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -2130,9 +2064,14 @@
                             <span>🔍 Active Clustered S/R Levels</span>
                             <span id="of-preview-date-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-gray-800 text-gray-300">--</span>
                         </span>
-                        <button type="button" onclick="fetchOrderFlowLevels()" class="text-teal-400 hover:text-teal-300 font-bold text-[10px] cursor-pointer flex items-center gap-0.5">
-                            <span>🔄</span> Refresh Levels
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="toggleHistOfDropdown('modal', this)" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] cursor-pointer flex items-center gap-0.5">
+                                <span>🎯</span> 5-Day Historical Levels
+                            </button>
+                            <button type="button" onclick="fetchOrderFlowLevels()" class="text-teal-400 hover:text-teal-300 font-bold text-[10px] cursor-pointer flex items-center gap-0.5">
+                                <span>🔄</span> Refresh Levels
+                            </button>
+                        </div>
                     </div>
                     <div id="of-levels-preview-content" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
                         <div class="p-2 rounded bg-[#1a1e29] border border-gray-800 text-gray-400">Loading Order Flow Levels...</div>
@@ -2151,6 +2090,39 @@
                     Save &amp; Apply
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- ════════════ MULTI-DAY HISTORICAL ORDER FLOW S/R DROPDOWN (PAST 5 DAYS) ════════════ -->
+    <div id="hist-of-levels-dropdown" class="fixed z-50 hidden bg-[#131722]/98 backdrop-blur-md border border-amber-500/60 rounded-xl shadow-2xl p-3 w-84 sm:w-96 text-xs text-gray-200 font-sans transition-all">
+        <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+            <div class="flex items-center gap-1.5">
+                <span class="text-sm">🎯</span>
+                <span class="font-bold text-amber-300 text-[11px] uppercase tracking-wider">Multi-Day Top 1 S/R (Past 5 Days)</span>
+            </div>
+            <button type="button" onclick="closeHistOfDropdown()" class="text-gray-400 hover:text-white p-0.5 rounded text-sm cursor-pointer leading-none">✕</button>
+        </div>
+        
+        <!-- Quick Action Filters -->
+        <div class="flex items-center justify-between py-1.5 border-b border-gray-800/80 text-[10px]">
+            <span class="text-gray-400 text-[9.5px]">Quick:</span>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="selectAllHistOf('all')" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">All</button>
+                <button type="button" onclick="selectAllHistOf('none')" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">Clear</button>
+                <button type="button" onclick="selectAllHistOf('res')" class="px-1.5 py-0.5 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-600/40 text-rose-300 font-semibold cursor-pointer">Only RES</button>
+                <button type="button" onclick="selectAllHistOf('sup')" class="px-1.5 py-0.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 font-semibold cursor-pointer">Only SUP</button>
+            </div>
+        </div>
+
+        <!-- Days List Container -->
+        <div id="hist-of-dropdown-list" class="py-1.5 space-y-1.5 max-h-72 overflow-y-auto scrollbar-none">
+            <div class="text-gray-400 text-center py-4 text-[10.5px]">Loading 5-day Order Flow levels...</div>
+        </div>
+
+        <!-- Footer Spread & Mode Info -->
+        <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] text-gray-400 font-mono">
+            <span id="hist-of-footer-calib">Basis: Spot Calibrated</span>
+            <span id="hist-of-footer-rank">Rank: Accumulated Volume</span>
         </div>
     </div>
 
@@ -2716,6 +2688,18 @@
     let wShowOfSrLines = localStorage.getItem('nifty_unified_w_of_sr_lines') !== 'false'; // default true
     let oShowOfSrLines = localStorage.getItem('nifty_unified_o_of_sr_lines') !== 'false'; // default true
 
+    // Multi-Day Top 1 Order Flow S/R Levels (5 Days)
+    let multiDayOfData = null;
+    let multiDayOfSelected = {};
+    try {
+        multiDayOfSelected = JSON.parse(localStorage.getItem('nifty_unified_multiday_of_selected') || '{}');
+    } catch (e) {
+        multiDayOfSelected = {};
+    }
+    let histOfPriceLinesWeightage = [];
+    let histOfPriceLinesOptions = [];
+    let histOfDropdownTrigger = null;
+
     function updateQuantLinesButtonUI() {
         const badgeO = document.getElementById('quant-lines-status-badge');
         if (badgeO) {
@@ -2807,7 +2791,9 @@
         updateOfCalibrationUI();
         drawWeightageOrderFlowLines();
         drawOptionsOrderFlowLines();
+        drawMultiDayOrderFlowLines();
         renderOfLevelsPreview();
+        renderHistOfDropdownContent();
     }
     window.setOfCalibration = setOfCalibration;
 
@@ -2832,6 +2818,7 @@
         } catch(e){}
         updateOfSrButtonUI();
         drawWeightageOrderFlowLines();
+        drawMultiDayOrderFlowLines();
     }
     window.toggleWeightageOfSrLines = toggleWeightageOfSrLines;
 
@@ -2842,6 +2829,7 @@
         } catch(e){}
         updateOfSrButtonUI();
         drawOptionsOrderFlowLines();
+        drawMultiDayOrderFlowLines();
     }
     window.toggleOptionsOfSrLines = toggleOptionsOfSrLines;
 
@@ -3134,6 +3122,359 @@
         container.innerHTML = html;
     }
     window.renderOfLevelsPreview = renderOfLevelsPreview;
+
+    // ── Multi-Day Top 1 Order Flow Support & Resistance Levels (Past 5 Days) ──
+    const HIST_OF_COLORS = {
+        1: { res: '#ef4444', sup: '#10b981', style: 2, labelStyle: 'Dashed' }, // YD (D-1)
+        2: { res: '#fb923c', sup: '#2dd4bf', style: 1, labelStyle: 'Dotted' }, // D-2 (Orange / Teal)
+        3: { res: '#f59e0b', sup: '#06b6d4', style: 1, labelStyle: 'Dotted' }, // D-3 (Amber / Cyan)
+        4: { res: '#eab308', sup: '#38bdf8', style: 1, labelStyle: 'Dotted' }, // D-4 (Yellow / Sky)
+        5: { res: '#d97706', sup: '#0ea5e9', style: 1, labelStyle: 'Dotted' }, // D-5 (Dark Amber / Deep Sky)
+    };
+
+    function clearMultiDayOrderFlowLines() {
+        if (wCandleSeries && histOfPriceLinesWeightage.length > 0) {
+            histOfPriceLinesWeightage.forEach(line => {
+                try { wCandleSeries.removePriceLine(line); } catch (e) {}
+            });
+            histOfPriceLinesWeightage = [];
+        }
+        if (oCandleSeries && histOfPriceLinesOptions.length > 0) {
+            histOfPriceLinesOptions.forEach(line => {
+                try { oCandleSeries.removePriceLine(line); } catch (e) {}
+            });
+            histOfPriceLinesOptions = [];
+        }
+    }
+    window.clearMultiDayOrderFlowLines = clearMultiDayOrderFlowLines;
+
+    function drawMultiDayOrderFlowLines() {
+        clearMultiDayOrderFlowLines();
+        if (!multiDayOfData || !multiDayOfData.days || !Array.isArray(multiDayOfData.days)) {
+            updateHistOfBadgeCount();
+            return;
+        }
+
+        const isSpotMode = (ofCalibrationMode !== 'future');
+        const lineWidth = parseInt(alarmSettings.ofLineWidth || 2, 10);
+
+        multiDayOfData.days.forEach(day => {
+            const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
+            const askKey = `${day.date}_ask`;
+            const bidKey = `${day.date}_bid`;
+
+            // Draw Ask (RES) if selected
+            if (multiDayOfSelected[askKey] && day.ask) {
+                const item = day.ask;
+                const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                const title = isSpotMode ? (item.label || `${day.formatted_date} RES ₹${price}`) : (item.raw_label || `${day.formatted_date} RES (FUT) ₹${price}`);
+
+                if (wShowOfSrLines && wCandleSeries) {
+                    try {
+                        const lineW = wCandleSeries.createPriceLine({
+                            price: price,
+                            color: colors.res,
+                            lineWidth: lineWidth,
+                            lineStyle: colors.style,
+                            axisLabelVisible: true,
+                            title: title,
+                        });
+                        histOfPriceLinesWeightage.push(lineW);
+                    } catch (e) {}
+                }
+                if (oShowOfSrLines && oCandleSeries) {
+                    try {
+                        const lineO = oCandleSeries.createPriceLine({
+                            price: price,
+                            color: colors.res,
+                            lineWidth: lineWidth,
+                            lineStyle: colors.style,
+                            axisLabelVisible: true,
+                            title: title,
+                        });
+                        histOfPriceLinesOptions.push(lineO);
+                    } catch (e) {}
+                }
+            }
+
+            // Draw Bid (SUP) if selected
+            if (multiDayOfSelected[bidKey] && day.bid) {
+                const item = day.bid;
+                const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                const title = isSpotMode ? (item.label || `${day.formatted_date} SUP ₹${price}`) : (item.raw_label || `${day.formatted_date} SUP (FUT) ₹${price}`);
+
+                if (wShowOfSrLines && wCandleSeries) {
+                    try {
+                        const lineW = wCandleSeries.createPriceLine({
+                            price: price,
+                            color: colors.sup,
+                            lineWidth: lineWidth,
+                            lineStyle: colors.style,
+                            axisLabelVisible: true,
+                            title: title,
+                        });
+                        histOfPriceLinesWeightage.push(lineW);
+                    } catch (e) {}
+                }
+                if (oShowOfSrLines && oCandleSeries) {
+                    try {
+                        const lineO = oCandleSeries.createPriceLine({
+                            price: price,
+                            color: colors.sup,
+                            lineWidth: lineWidth,
+                            lineStyle: colors.style,
+                            axisLabelVisible: true,
+                            title: title,
+                        });
+                        histOfPriceLinesOptions.push(lineO);
+                    } catch (e) {}
+                }
+            }
+        });
+
+        updateHistOfBadgeCount();
+    }
+    window.drawMultiDayOrderFlowLines = drawMultiDayOrderFlowLines;
+
+    function updateHistOfBadgeCount() {
+        let count = 0;
+        if (multiDayOfData && multiDayOfData.days) {
+            multiDayOfData.days.forEach(d => {
+                if (multiDayOfSelected[`${d.date}_ask`]) count++;
+                if (multiDayOfSelected[`${d.date}_bid`]) count++;
+            });
+        }
+        ['w-hist-of-count-badge', 'o-hist-of-count-badge'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) {
+                b.textContent = count;
+                b.className = count > 0 
+                    ? 'px-1 py-0 rounded text-[8.5px] bg-amber-500 text-black font-extrabold font-mono'
+                    : 'px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono';
+            }
+        });
+    }
+
+    async function fetchMultiDayOrderFlowLevels() {
+        const symbol = typeof SYMBOL !== 'undefined' ? SYMBOL : (window.location.pathname.includes('banknifty') ? 'BANKNIFTY' : 'NIFTY');
+        const spotEl = document.getElementById('spot-price-display');
+        let curSpot = 0;
+        if (spotEl && spotEl.textContent) {
+            const raw = parseFloat(spotEl.textContent.replace(/[^0-9.]/g, ''));
+            if (!isNaN(raw) && raw > 0) curSpot = raw;
+        }
+        if (!curSpot && typeof trendingOiData !== 'undefined' && trendingOiData?.underlying_data?.spot) {
+            curSpot = parseFloat(trendingOiData.underlying_data.spot);
+        }
+
+        try {
+            const spotParam = curSpot > 0 ? `&spot=${curSpot}` : '';
+            const res = await fetchJsonSafe(`/api/multi-timeframe/multi-day-order-flow-levels?date=${selectedDate}&symbol=${symbol}&days=5${spotParam}&_t=${Date.now()}`);
+            if (res && res.success && res.days) {
+                multiDayOfData = res;
+                // If user has not selected anything yet, default YD (D-1) ask & bid to checked
+                if (Object.keys(multiDayOfSelected).length === 0 && res.days.length > 0) {
+                    const yd = res.days[0];
+                    multiDayOfSelected[`${yd.date}_ask`] = true;
+                    multiDayOfSelected[`${yd.date}_bid`] = true;
+                    try {
+                        const sKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+                        localStorage.setItem(sKey, JSON.stringify(multiDayOfSelected));
+                    } catch (e) {}
+                }
+                renderHistOfDropdownContent();
+                drawMultiDayOrderFlowLines();
+            }
+        } catch (e) {
+            console.warn('Could not fetch Multi-Day Order Flow levels:', e);
+        }
+    }
+    window.fetchMultiDayOrderFlowLevels = fetchMultiDayOrderFlowLevels;
+
+    function toggleHistOfLevel(date, side) {
+        const key = `${date}_${side}`;
+        multiDayOfSelected[key] = !multiDayOfSelected[key];
+        try {
+            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
+        } catch (e) {}
+        renderHistOfDropdownContent();
+        drawMultiDayOrderFlowLines();
+    }
+    window.toggleHistOfLevel = toggleHistOfLevel;
+
+    function toggleHistOfDay(date) {
+        const askKey = `${date}_ask`;
+        const bidKey = `${date}_bid`;
+        const bothOn = (multiDayOfSelected[askKey] && multiDayOfSelected[bidKey]);
+        if (bothOn) {
+            multiDayOfSelected[askKey] = false;
+            multiDayOfSelected[bidKey] = false;
+        } else {
+            multiDayOfSelected[askKey] = true;
+            multiDayOfSelected[bidKey] = true;
+        }
+        try {
+            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
+        } catch (e) {}
+        renderHistOfDropdownContent();
+        drawMultiDayOrderFlowLines();
+    }
+    window.toggleHistOfDay = toggleHistOfDay;
+
+    function selectAllHistOf(mode) {
+        if (!multiDayOfData || !multiDayOfData.days) return;
+        multiDayOfData.days.forEach(day => {
+            const askKey = `${day.date}_ask`;
+            const bidKey = `${day.date}_bid`;
+            if (mode === 'all') {
+                multiDayOfSelected[askKey] = true;
+                multiDayOfSelected[bidKey] = true;
+            } else if (mode === 'none') {
+                multiDayOfSelected[askKey] = false;
+                multiDayOfSelected[bidKey] = false;
+            } else if (mode === 'res') {
+                multiDayOfSelected[askKey] = true;
+                multiDayOfSelected[bidKey] = false;
+            } else if (mode === 'sup') {
+                multiDayOfSelected[askKey] = false;
+                multiDayOfSelected[bidKey] = true;
+            }
+        });
+        try {
+            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
+        } catch (e) {}
+        renderHistOfDropdownContent();
+        drawMultiDayOrderFlowLines();
+    }
+    window.selectAllHistOf = selectAllHistOf;
+
+    function renderHistOfDropdownContent() {
+        const listEl = document.getElementById('hist-of-dropdown-list');
+        if (!listEl) return;
+        if (!multiDayOfData || !multiDayOfData.days || multiDayOfData.days.length === 0) {
+            listEl.innerHTML = `<div class="text-gray-400 text-center py-4 text-[10.5px]">No historical Order Flow records found for the past 5 trading days.</div>`;
+            return;
+        }
+
+        const isSpotMode = (ofCalibrationMode !== 'future');
+        const calibFooter = document.getElementById('hist-of-footer-calib');
+        if (calibFooter) {
+            const spread = multiDayOfData.basis_spread || 0;
+            calibFooter.textContent = isSpotMode ? `Basis: Spot Calibrated (${spread >= 0 ? '+' : ''}${spread} pts)` : `Basis: Raw Futures`;
+        }
+
+        let html = '';
+        multiDayOfData.days.forEach(day => {
+            const askKey = `${day.date}_ask`;
+            const bidKey = `${day.date}_bid`;
+            const askSelected = !!multiDayOfSelected[askKey];
+            const bidSelected = !!multiDayOfSelected[bidKey];
+            const isBothSelected = (askSelected && bidSelected);
+            const isAnySelected = (askSelected || bidSelected);
+
+            const askItem = day.ask;
+            const bidItem = day.bid;
+
+            const askPrice = askItem 
+                ? (isSpotMode ? Number(askItem.calibrated_price || askItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : Number(askItem.raw_price || askItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1})) 
+                : '--';
+            const askQty = askItem ? (askItem.qty >= 1000 ? (askItem.qty / 1000).toFixed(1) + 'k' : askItem.qty) : '--';
+
+            const bidPrice = bidItem 
+                ? (isSpotMode ? Number(bidItem.calibrated_price || bidItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : Number(bidItem.raw_price || bidItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1})) 
+                : '--';
+            const bidQty = bidItem ? (bidItem.qty >= 1000 ? (bidItem.qty / 1000).toFixed(1) + 'k' : bidItem.qty) : '--';
+
+            const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
+
+            html += `
+                <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${isAnySelected ? 'border-amber-500/50 bg-amber-950/15' : 'border-gray-800'} space-y-1">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                            <input type="checkbox" ${isBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('${day.date}')" class="rounded accent-amber-500 cursor-pointer">
+                            <span class="font-bold text-[11px] ${day.day_offset === 1 ? 'text-amber-300' : 'text-gray-200'}">${day.formatted_date} (${day.day_code})</span>
+                        </label>
+                        <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
+                            <span class="w-2 h-0.5 inline-block" style="background-color: ${colors.res};"></span>
+                            <span>D-${day.day_offset}</span>
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
+                        <!-- Ask RES Pill -->
+                        <button type="button" onclick="toggleHistOfLevel('${day.date}', 'ask')" 
+                            class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${askSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                            title="${askItem ? (isSpotMode ? askItem.label : askItem.raw_label) : 'No Ask record'}">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
+                                <span class="text-[8px] font-mono px-1 rounded ${askSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${askSelected ? 'ON' : 'OFF'}</span>
+                            </div>
+                            <div class="font-bold text-[11px] mt-0.5 text-rose-200">₹${askPrice}</div>
+                            <div class="text-[8.5px] text-gray-400">${askQty} ${askItem?.time ? '· ' + askItem.time : ''}</div>
+                        </button>
+
+                        <!-- Bid SUP Pill -->
+                        <button type="button" onclick="toggleHistOfLevel('${day.date}', 'bid')" 
+                            class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${bidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                            title="${bidItem ? (isSpotMode ? bidItem.label : bidItem.raw_label) : 'No Bid record'}">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
+                                <span class="text-[8px] font-mono px-1 rounded ${bidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${bidSelected ? 'ON' : 'OFF'}</span>
+                            </div>
+                            <div class="font-bold text-[11px] mt-0.5 text-emerald-200">₹${bidPrice}</div>
+                            <div class="text-[8.5px] text-gray-400">${bidQty} ${bidItem?.time ? '· ' + bidItem.time : ''}</div>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        listEl.innerHTML = html;
+        updateHistOfBadgeCount();
+    }
+    window.renderHistOfDropdownContent = renderHistOfDropdownContent;
+
+    function toggleHistOfDropdown(source, btnEl) {
+        const dd = document.getElementById('hist-of-levels-dropdown');
+        if (!dd) return;
+
+        if (!dd.classList.contains('hidden') && histOfDropdownTrigger === source) {
+            closeHistOfDropdown();
+            return;
+        }
+
+        histOfDropdownTrigger = source;
+        const rect = btnEl.getBoundingClientRect();
+        dd.style.top = `${rect.bottom + window.scrollY + 4}px`;
+        dd.style.left = `${Math.max(10, Math.min(window.innerWidth - 390, rect.left + window.scrollX))}px`;
+        dd.classList.remove('hidden');
+
+        if (!multiDayOfData) {
+            fetchMultiDayOrderFlowLevels();
+        } else {
+            renderHistOfDropdownContent();
+        }
+    }
+    window.toggleHistOfDropdown = toggleHistOfDropdown;
+
+    function closeHistOfDropdown() {
+        const dd = document.getElementById('hist-of-levels-dropdown');
+        if (dd) dd.classList.add('hidden');
+        histOfDropdownTrigger = null;
+    }
+    window.closeHistOfDropdown = closeHistOfDropdown;
+
+    document.addEventListener('click', function(e) {
+        const dd = document.getElementById('hist-of-levels-dropdown');
+        if (!dd || dd.classList.contains('hidden')) return;
+        const btnW = document.getElementById('w-hist-of-dropdown-btn');
+        const btnO = document.getElementById('o-hist-of-dropdown-btn');
+        if (!dd.contains(e.target) && (!btnW || !btnW.contains(e.target)) && (!btnO || !btnO.contains(e.target))) {
+            closeHistOfDropdown();
+        }
+    });
 
     // ── Trending OI & Sentiment Series Visibility (Call, Put, Sentiment, Spot) ───
     let toiSeriesVisibility = {
@@ -3973,6 +4314,17 @@
                             if (activeCandleIndex >= timestampsList.length - 2) {
                                 slider.value = timestampsList.length - 1;
                                 activeCandleIndex = timestampsList.length - 1;
+                            }
+                        }
+                        const masterSelect = document.getElementById('master-time-select');
+                        if (masterSelect) {
+                            const opt = document.createElement('option');
+                            opt.value = timestampsList.length - 1;
+                            opt.textContent = timeStr;
+                            opt.className = 'bg-[#131722] text-white';
+                            masterSelect.appendChild(opt);
+                            if (activeCandleIndex >= timestampsList.length - 2) {
+                                masterSelect.value = timestampsList.length - 1;
                             }
                         }
                         const wSlider = document.getElementById('w-slider');
@@ -6976,6 +7328,26 @@
         if (spinner) spinner.classList.add('animate-spin');
     }
 
+    async function fetchJsonSafe(url, options = {}, retries = 2, delay = 800) {
+        try {
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                if ((res.status === 502 || res.status === 503 || res.status === 504) && retries > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                    return fetchJsonSafe(url, options, retries - 1, delay * 1.5);
+                }
+                throw new Error(`HTTP ${res.status}: ${res.statusText || 'Server Error'}`);
+            }
+            return await res.json();
+        } catch (err) {
+            if (retries > 0 && (err.name === 'TypeError' || String(err.message).includes('fetch') || String(err.message).includes('503'))) {
+                await new Promise(r => setTimeout(r, delay));
+                return fetchJsonSafe(url, options, retries - 1, delay * 1.5);
+            }
+            throw err;
+        }
+    }
+
     async function loadAllData(isSilent = false) {
         if (!isSilent) {
             showChartLoaders(selectedDate);
@@ -6989,8 +7361,7 @@
         const bMode = alarmSettings.optionsBasketMode || 'dynamic';
 
         // 1. Fetch Chart 1 Stocks & Options (wTimeframe)
-        const pChart1Stk = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&_t=${Date.now()}`)
-            .then(r => r.json())
+        const pChart1Stk = fetchJsonSafe(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&_t=${Date.now()}`)
             .then(data => {
                 if (data && !data.error) {
                     wWeightageData = data;
@@ -7007,8 +7378,7 @@
             .catch(e => console.error('Error fetching Chart 1 Weightage:', e))
             .finally(() => document.getElementById('w-chart-loading')?.classList.add('hidden'));
 
-        const pChart1Opt = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&_t=${Date.now()}`)
-            .then(r => r.json())
+        const pChart1Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&_t=${Date.now()}`)
             .then(data => {
                 if (data && data.success !== false && !data.error) {
                     wBreadthData = data;
@@ -7032,11 +7402,13 @@
                     if (expSelect) expSelect.value = selectedExpiry;
                 }
                 renderOptionsBreadthColumn();
+            }).catch(e => {
+                console.error('Error syncing Chart 2 Options:', e);
+            }).finally(() => {
                 document.getElementById('o-chart-loading')?.classList.add('hidden');
             });
         } else {
-            pChart2Stk = fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
-                .then(r => r.json())
+            pChart2Stk = fetchJsonSafe(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
                 .then(data => {
                     if (data && !data.error) {
                         oWeightageData = data;
@@ -7048,8 +7420,7 @@
                 })
                 .catch(e => console.error('Error fetching Chart 2 Weightage:', e));
 
-            pChart2Opt = fetch(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
-                .then(r => r.json())
+            pChart2Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=NIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
                 .then(data => {
                     if (data && data.success !== false && !data.error) {
                         oBreadthData = data;
@@ -7065,7 +7436,6 @@
                         renderOptionsBreadthColumn();
                         if (weightageData) renderWeightageColumn();
                         buildMasterTimeline();
-                        document.getElementById('o-chart-loading')?.classList.add('hidden');
                     } else {
                         const errText = data?.error || 'Options data unavailable for this date';
                         const msg = document.getElementById('o-loading-msg');
@@ -7080,6 +7450,9 @@
                     if (msg) {
                         msg.innerHTML = `<span class="text-rose-400 font-semibold">Failed to load Options data</span> <button type="button" onclick="loadAllData()" class="underline text-sky-400 ml-2 cursor-pointer font-bold">Retry</button>`;
                     }
+                })
+                .finally(() => {
+                    document.getElementById('o-chart-loading')?.classList.add('hidden');
                 });
         }
 
@@ -7125,11 +7498,12 @@
             })
             .catch(e => console.warn('Could not auto-update Quant S/R levels:', e));
 
-        // 5. Fetch Order Flow S/R Levels (Top Bid Support & Ask Resistance)
+        // 5. Fetch Order Flow S/R Levels (Top Bid Support & Ask Resistance + 5-Day Historical Anchors)
         const pOrderFlow = fetchOrderFlowLevels();
+        const pMultiDayOf = fetchMultiDayOrderFlowLevels();
 
         try {
-            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow]);
+            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow, pMultiDayOf]);
             renderWeightageColumn();
             renderOptionsBreadthColumn();
             applyAllSectionHeights();
@@ -8160,6 +8534,11 @@
             masterSlider.max = timestampsList.length - 1;
         }
 
+        const masterSelect = document.getElementById('master-time-select');
+        if (masterSelect) {
+            masterSelect.innerHTML = timestampsList.map((t, idx) => `<option value="${idx}" class="bg-[#131722] text-white">${t}</option>`).join('');
+        }
+
         let targetIdx;
         if (isLiveMarketOpen() && !isPlaying) {
             targetIdx = timestampsList.length - 1;
@@ -8221,6 +8600,8 @@
         if (masterBadge) masterBadge.textContent = timeStr;
         const masterSlider = document.getElementById('master-slider');
         if (masterSlider) masterSlider.value = index;
+        const masterSelect = document.getElementById('master-time-select');
+        if (masterSelect) masterSelect.value = index;
 
         const wSlider = document.getElementById('w-slider');
         if (wSlider) wSlider.value = index;

@@ -124,12 +124,17 @@ class OrderFlowStrategyController extends Controller
         $sessionAskRecords = [];
         $sessionBidRecords = [];
 
-        // Primary source: Dedicated Traded Volumes Table (filtered to realistic single-order bounds <= 35,000 qty)
+        // Primary source: Dedicated Traded Volumes Table (filtered to realistic single-order bounds <= 35,000 qty and within session spot corridor)
         if (Schema::hasTable('order_flow_traded_volumes')) {
-            $tvRecords = OrderFlowTradedVolume::forDate($workingDate)
+            $tvQuery = OrderFlowTradedVolume::forDate($workingDate)
                 ->forSymbol($symbol)
-                ->where('quantity', '<=', 35000)
-                ->orderBy('trade_time', 'asc')
+                ->where('quantity', '<=', 35000);
+
+            if ($spotPrice > 1000) {
+                $tvQuery->whereBetween('price', [$spotPrice - 600, $spotPrice + 600]);
+            }
+
+            $tvRecords = $tvQuery->orderBy('trade_time', 'asc')
                 ->get(['trade_time', 'price', 'quantity', 'side']);
 
             foreach ($tvRecords as $r) {
@@ -149,10 +154,15 @@ class OrderFlowStrategyController extends Controller
 
         // Secondary / fallback source: OrderFlowAlertLog (for historical blocks and alerts)
         if (Schema::hasTable('order_flow_alert_logs')) {
-            $allTodayAlerts = OrderFlowAlertLog::where('trade_date', $workingDate)
+            $alQuery = OrderFlowAlertLog::where('trade_date', $workingDate)
                 ->where('symbol', $symbol)
-                ->where('quantity', '<=', 35000)
-                ->orderBy('alert_time', 'asc')
+                ->where('quantity', '<=', 35000);
+
+            if ($spotPrice > 1000) {
+                $alQuery->whereBetween('price', [$spotPrice - 600, $spotPrice + 600]);
+            }
+
+            $allTodayAlerts = $alQuery->orderBy('alert_time', 'asc')
                 ->get(['alert_time', 'price', 'quantity', 'side', 'alert_type', 'title', 'details']);
 
             $existingAskKeys = [];

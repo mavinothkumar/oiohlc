@@ -128,11 +128,17 @@
             </div>
         </div>
 
-        <!-- Center: Master Unified Timeline Scrubber & Replay Controller -->
-        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-2 py-0.5 shadow-inner shrink-0">
-            <span id="master-time-badge" class="px-1.5 py-0.2 bg-sky-950 border border-sky-500/50 text-sky-300 font-mono font-bold text-[11px] rounded">
-                09:15
-            </span>
+        <!-- Center: Master Unified Timeline Dropdown & Replay Controller -->
+        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-1.5 py-0.5 shadow-inner shrink-0">
+            <!-- Timeline Candle Time Dropdown -->
+            <div class="flex items-center bg-sky-950/80 border border-sky-500/50 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Select Candle Time">
+                <span class="text-sky-400 font-bold text-[10px]">⏰</span>
+                <select id="master-time-select" onchange="syncActiveCandleIndex(parseInt(this.value, 10))" class="bg-transparent text-sky-300 font-mono font-bold text-[11px] focus:outline-none cursor-pointer">
+                    <option value="0">09:15</option>
+                </select>
+                <span id="master-time-badge" class="hidden">09:15</span>
+                <input id="master-slider" type="range" min="0" max="74" value="0" class="hidden">
+            </div>
 
             <!-- Stepper buttons -->
             <div class="flex items-center gap-0.5 border-l border-gray-700 pl-1">
@@ -153,11 +159,6 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
                     <span>LIVE</span>
                 </button>
-            </div>
-
-            <!-- Master Scrubber Slider -->
-            <div class="w-16 sm:w-20 md:w-24 lg:w-28 xl:w-32 flex items-center px-0.5">
-                <input id="master-slider" type="range" min="0" max="74" value="0" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none">
             </div>
         </div>
 
@@ -201,25 +202,6 @@
                 </select>
             </div>
 
-            <!-- Dynamic Candle Style Selector (Regular vs Heikin Ashi) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Candlestick Style (Keyboard Shortcut: H)">
-                <span class="text-gray-400 text-[10px] font-bold">Type:</span>
-                <select id="candle-style-select" onchange="setCandleStyle(this.value)" class="bg-transparent text-emerald-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Regular Candlestick / Heikin Ashi (Shortcut: H)">
-                    <option value="candle" class="bg-[#131722] text-white">🕯️ Candle</option>
-                    <option value="heikin_ashi" class="bg-[#131722] text-white">📊 Heikin Ashi</option>
-                </select>
-            </div>
-
-            <!-- Master Signals Mode Selector (Breach / Every 5M / Off) -->
-            <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Signals on Chart Candles (Breach Only / Every Candle / Off)">
-                <span class="text-gray-400 text-[10px] font-bold">Signals:</span>
-                <select id="signals-mode-select" onchange="setGlobalSignalsMode(this.value)" class="bg-transparent text-cyan-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Toggle Chart Signals (Breach / All / Off)">
-                    <option value="breach" class="bg-[#131722] text-white">🎯 Breach Only</option>
-                    <option value="all" class="bg-[#131722] text-white">🏷️ Every 5M</option>
-                    <option value="off" class="bg-[#131722] text-white">🚫 Off</option>
-                </select>
-            </div>
-
             <!-- Dynamic Font Size / Cockpit Scale Selector -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Adjust Font Size / Scale for Your Monitor">
                 <span class="text-gray-400 text-[10px] flex items-center gap-0.5 font-bold">
@@ -254,12 +236,6 @@
                 <span class="hidden xl:inline text-[11px]">Logs</span>
                 <span id="log-count-badge" class="ml-0.5 px-1 py-0.2 bg-sky-950/90 border border-sky-500/50 text-sky-300 font-mono text-[9.5px] rounded-full">0</span>
             </button>
-
-            <!-- Unified Backtest Cockpit Button -->
-            <a href="{{ route('nifty.unified.backtest') }}" target="_blank" title="Launch Unified Breadth 2+ Year Backtest Cockpit (Charts, Equity Curve, Drawdown)" class="flex items-center gap-1 px-1.5 py-0.5 bg-[#1a1e29] hover:bg-blue-900/60 border border-gray-700 hover:border-blue-500/50 text-blue-400 hover:text-blue-300 rounded text-xs font-semibold transition cursor-pointer shrink-0">
-                <span>📊</span>
-                <span class="hidden xl:inline text-[11px]">Backtest</span>
-            </a>
 
             <!-- Auto-Refresh Selector -->
             <div class="flex items-center bg-[#1a1e29] border border-gray-700 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Smart Candle Sync & Auto-Refresh">
@@ -6641,6 +6617,11 @@
             masterSlider.max = timestampsList.length - 1;
         }
 
+        const masterSelect = document.getElementById('master-time-select');
+        if (masterSelect) {
+            masterSelect.innerHTML = timestampsList.map((t, idx) => `<option value="${idx}" class="bg-[#131722] text-white">${t}</option>`).join('');
+        }
+
         const targetIdx = (activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
             ? activeCandleIndex
             : (timestampsList.length - 1);
@@ -6656,6 +6637,8 @@
         if (masterBadge) masterBadge.textContent = timeStr;
         const masterSlider = document.getElementById('master-slider');
         if (masterSlider) masterSlider.value = index;
+        const masterSelect = document.getElementById('master-time-select');
+        if (masterSelect) masterSelect.value = index;
 
         const wSlider = document.getElementById('w-slider');
         if (wSlider) wSlider.value = index;

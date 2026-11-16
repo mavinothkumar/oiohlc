@@ -544,6 +544,86 @@
                 </div>
             </div>
 
+            {{-- 1.6. Session Accumulated Volume Clusters (Top 5 Ask & Top 5 Bid Price Levels) --}}
+            <div id="today-clusters-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-amber-400">🎯</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Price Level Aggregation</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>TOP 5 ACCUMULATED VOLUME</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">CLUSTERS</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30" title="Sum of all executed trades grouped by price level across the session">📊 VOLUME PROFILE</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    {{-- Controls: View Filter & Collapse Toggle --}}
+                    <div class="flex items-center gap-1.5">
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
+                            <button type="button" onclick="switchTodayClustersView('both')" id="btn-cluster-view-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 5 Ask & Bid Clusters">Both</button>
+                            <button type="button" onclick="switchTodayClustersView('ask')" id="btn-cluster-view-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Ask (Institutional Demand)">Ask (Buys)</button>
+                            <button type="button" onclick="switchTodayClustersView('bid')" id="btn-cluster-view-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Bid (Institutional Supply)">Bid (Sells)</button>
+                        </div>
+                        <button type="button" onclick="toggleTodayClustersCard()" id="btn-toggle-today-clusters" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Volume Clusters">
+                            <span id="today-clusters-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Live Summary Bar --}}
+                <div id="today-clusters-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2 flex-wrap">
+                    <div class="flex items-center gap-1 truncate">
+                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">LTP:</span>
+                        <span id="today-clusters-ltp-display" class="font-bold text-cyan-300">₹--</span>
+                    </div>
+                    <div class="flex items-center gap-1 truncate" title="Nearest Accumulated Volume Cluster vs Live Price">
+                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">Nearest Cluster:</span>
+                        <span id="today-clusters-nearest-text" class="font-bold text-amber-300 truncate max-w-[170px]">Calculating...</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[9px]">
+                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
+                        <span id="today-clusters-bias-badge" class="px-1.5 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400 border border-slate-800">NEUTRAL</span>
+                    </div>
+                </div>
+
+                {{-- Collapsible Container --}}
+                <div id="today-clusters-collapsible" class="transition-all duration-200">
+                    <div id="today-clusters-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                        
+                        {{-- Top 5 Accumulated ASK (Green / Buy Clusters) --}}
+                        <div id="today-clusters-col-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>TOP 5 ACCUMULATED ASK (BUYS)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500 font-sans">LTP vs Cluster</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[170px] overflow-y-auto" id="today-clusters-list-ask">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Ask volume accumulation...</div>
+                            </div>
+                        </div>
+
+                        {{-- Top 5 Accumulated BID (Red / Sell Clusters) --}}
+                        <div id="today-clusters-col-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-rose-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>TOP 5 ACCUMULATED BID (SELLS)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500 font-sans">LTP vs Cluster</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[170px] overflow-y-auto" id="today-clusters-list-bid">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Bid volume accumulation...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
             {{-- 2. Interactive Mini-Tabs: Engine Inspector (Journal Default, Alert, Math, Vacuum, JSON) --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-1.5">
@@ -2840,6 +2920,14 @@
             isCollapsed: false,
         },
 
+        // Today's Top 5 Accumulated Volume Clusters (Grouped by Executed Price Level)
+        todayClusters: {
+            activeView: localStorage.getItem('order_flow_today_clusters_view') || 'both',
+            isCollapsed: localStorage.getItem('order_flow_today_clusters_collapsed') === 'true',
+            topAsk: [],
+            topBid: [],
+        },
+
         // Previous Day Institutional Anchors (Top 5 Ask & Bid Traded Volumes vs Live Stream Price)
         pdAnchors: {
             prevDate: "{{ $prevTradingDate }}",
@@ -2854,10 +2942,16 @@
     function cleanCorruptedTrades(showFeedback = false) {
         const workingDate = "{{ $workingDate }}";
         const maxLimit = 35000;
-        state.topTradedVolume.allAsk = (state.topTradedVolume.allAsk || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
-        state.topTradedVolume.allBid = (state.topTradedVolume.allBid || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
-        state.topTradedVolume.sessionAnchorAsk = (state.topTradedVolume.sessionAnchorAsk || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
-        state.topTradedVolume.sessionAnchorBid = (state.topTradedVolume.sessionAnchorBid || []).filter(x => x && x.qty >= 500 && x.qty <= maxLimit);
+        const spotRef = {{ (float) ($spotPrice ?? 0) }};
+        const isPlausible = (x) => {
+            if (!x || x.qty < 500 || x.qty > maxLimit) return false;
+            if (spotRef > 1000 && Math.abs(x.price - spotRef) > 600) return false;
+            return true;
+        };
+        state.topTradedVolume.allAsk = (state.topTradedVolume.allAsk || []).filter(isPlausible);
+        state.topTradedVolume.allBid = (state.topTradedVolume.allBid || []).filter(isPlausible);
+        state.topTradedVolume.sessionAnchorAsk = (state.topTradedVolume.sessionAnchorAsk || []).filter(isPlausible);
+        state.topTradedVolume.sessionAnchorBid = (state.topTradedVolume.sessionAnchorBid || []).filter(isPlausible);
         try {
             localStorage.setItem(`order_flow_all_ask_${workingDate}`, JSON.stringify(state.topTradedVolume.allAsk));
             localStorage.setItem(`order_flow_all_bid_${workingDate}`, JSON.stringify(state.topTradedVolume.allBid));
@@ -3011,8 +3105,13 @@
 
     function getFilteredTopTraded(rawList, skipTime) {
         if (!Array.isArray(rawList)) return [];
-        // Sanitize any corrupt outlier records from previous disconnects
-        let filtered = rawList.filter(item => item && item.qty >= 500 && item.qty <= 35000);
+        const spotRef = state.depthData.ltp || {{ (float) ($spotPrice ?? 0) }};
+        // Sanitize any corrupt outlier records from previous disconnects or cross-feed simulator artifacts
+        let filtered = rawList.filter(item => {
+            if (!item || item.qty < 500 || item.qty > 35000) return false;
+            if (spotRef > 1000 && Math.abs(item.price - spotRef) > 600) return false;
+            return true;
+        });
         if (skipTime && skipTime !== 'none' && skipTime !== '09:15') {
             // E.g. skipTime = '09:30'. Cutoff is 09:30:59, so values start from 09:31:00 onwards
             const cutoff = skipTime.length === 5 ? (skipTime + ':59') : skipTime;
@@ -3247,6 +3346,11 @@
                 }).join('');
             }
         }
+
+        // Also update Today's Top 5 Accumulated Volume Clusters
+        if (typeof renderTodayClustersUI === 'function') {
+            renderTodayClustersUI();
+        }
     }
 
     function switchTopTradedView(view) {
@@ -3298,6 +3402,284 @@
         }
     }
     window.toggleTopTradedCard = toggleTopTradedCard;
+
+    // ── 1.6. TODAY'S TOP 5 ACCUMULATED VOLUME CLUSTERS (GROUPED BY PRICE LEVEL) ──
+    function computeAccumulatedClusters(rawList, skipTime = null) {
+        if (!Array.isArray(rawList)) return [];
+        const spotRef = state.depthData.ltp || {{ (float) ($spotPrice ?? 0) }};
+        let filtered = rawList.filter(item => {
+            if (!item || item.qty < 500 || item.qty > 35000) return false;
+            if (spotRef > 1000 && Math.abs(item.price - spotRef) > 600) return false;
+            return true;
+        });
+        if (skipTime && skipTime !== 'none' && skipTime !== '09:15') {
+            const cutoff = skipTime.length === 5 ? (skipTime + ':59') : skipTime;
+            filtered = filtered.filter(item => item.time > cutoff);
+        }
+
+        const map = new Map();
+        filtered.forEach(item => {
+            const p = parseFloat(item.price);
+            if (isNaN(p) || p <= 0) return;
+            const key = p.toFixed(2);
+            const q = parseInt(item.qty) || 0;
+            if (!map.has(key)) {
+                map.set(key, {
+                    price: p,
+                    priceKey: key,
+                    totalQty: 0,
+                    printsCount: 0,
+                    maxSingleQty: 0,
+                    firstTime: item.time,
+                    lastTime: item.time,
+                    side: item.side || 'ASK'
+                });
+            }
+            const row = map.get(key);
+            row.totalQty += q;
+            row.printsCount += 1;
+            if (q > row.maxSingleQty) {
+                row.maxSingleQty = q;
+            }
+            if (item.time > row.lastTime) {
+                row.lastTime = item.time;
+            }
+        });
+
+        const arr = Array.from(map.values());
+        arr.sort((a, b) => b.totalQty - a.totalQty);
+        return arr.slice(0, 5);
+    }
+
+    function initTodayClusters() {
+        applyTodayClustersCollapseUI();
+        applyTodayClustersViewUI();
+        const initialLtp = state.depthData.ltp || {{ (float) ($spotPrice ?? 0) }};
+        renderTodayClustersUI(initialLtp);
+    }
+    window.initTodayClusters = initTodayClusters;
+
+    function toggleTodayClustersCard() {
+        state.todayClusters.isCollapsed = !state.todayClusters.isCollapsed;
+        try {
+            localStorage.setItem('order_flow_today_clusters_collapsed', state.todayClusters.isCollapsed ? 'true' : 'false');
+        } catch(e) {}
+        applyTodayClustersCollapseUI();
+    }
+    window.toggleTodayClustersCard = toggleTodayClustersCard;
+
+    function applyTodayClustersCollapseUI() {
+        const body = document.getElementById('today-clusters-collapsible');
+        const icon = document.getElementById('today-clusters-toggle-icon');
+        if (!body) return;
+        if (state.todayClusters.isCollapsed) {
+            body.classList.add('hidden');
+            if (icon) icon.textContent = '▼';
+        } else {
+            body.classList.remove('hidden');
+            if (icon) icon.textContent = '▲';
+        }
+    }
+
+    function switchTodayClustersView(view) {
+        state.todayClusters.activeView = view;
+        try {
+            localStorage.setItem('order_flow_today_clusters_view', view);
+        } catch(e) {}
+        applyTodayClustersViewUI();
+    }
+    window.switchTodayClustersView = switchTodayClustersView;
+
+    function applyTodayClustersViewUI() {
+        const view = state.todayClusters.activeView || 'both';
+        const btnBoth = document.getElementById('btn-cluster-view-both');
+        const btnAsk = document.getElementById('btn-cluster-view-ask');
+        const btnBid = document.getElementById('btn-cluster-view-bid');
+        const colAsk = document.getElementById('today-clusters-col-ask');
+        const colBid = document.getElementById('today-clusters-col-bid');
+        const grid = document.getElementById('today-clusters-grid');
+
+        if (!colAsk || !colBid || !grid) return;
+
+        if (view === 'ask') {
+            colAsk.classList.remove('hidden');
+            colAsk.classList.add('sm:col-span-2');
+            colBid.classList.add('hidden');
+            colBid.classList.remove('sm:col-span-2');
+            grid.className = 'grid grid-cols-1 gap-2 text-xs font-mono';
+        } else if (view === 'bid') {
+            colAsk.classList.add('hidden');
+            colAsk.classList.remove('sm:col-span-2');
+            colBid.classList.remove('hidden');
+            colBid.classList.add('sm:col-span-2');
+            grid.className = 'grid grid-cols-1 gap-2 text-xs font-mono';
+        } else {
+            colAsk.classList.remove('hidden', 'sm:col-span-2');
+            colBid.classList.remove('hidden', 'sm:col-span-2');
+            grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono';
+        }
+
+        const activeClass = 'px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer';
+        const inactiveAskClass = 'px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer';
+        const inactiveBidClass = 'px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer';
+        const inactiveBothClass = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer';
+
+        if (btnBoth) btnBoth.className = view === 'both' ? activeClass : inactiveBothClass;
+        if (btnAsk) btnAsk.className = view === 'ask' ? 'px-2 py-0.5 rounded bg-emerald-600 text-white transition cursor-pointer' : inactiveAskClass;
+        if (btnBid) btnBid.className = view === 'bid' ? 'px-2 py-0.5 rounded bg-rose-600 text-white transition cursor-pointer' : inactiveBidClass;
+    }
+
+    function renderTodayClustersUI(forcedLtp = null) {
+        const ltp = forcedLtp !== null ? forcedLtp : (state.depthData.ltp || 0);
+        const ltpEl = document.getElementById('today-clusters-ltp-display');
+        if (ltpEl) {
+            ltpEl.textContent = ltp > 0 ? `₹${ltp.toFixed(2)}` : '₹--';
+        }
+
+        const skipTime = state.topTradedVolume.skipTime || '09:30';
+        const askClusters = computeAccumulatedClusters(state.topTradedVolume.allAsk, skipTime);
+        const bidClusters = computeAccumulatedClusters(state.topTradedVolume.allBid, skipTime);
+
+        state.todayClusters.topAsk = askClusters;
+        state.todayClusters.topBid = bidClusters;
+
+        const allClusterQtys = [...askClusters.map(x => x.totalQty), ...bidClusters.map(x => x.totalQty)];
+        const maxClusterQty = Math.max(...allClusterQtys, 1);
+
+        let nearestCluster = null;
+        let minAbsDiff = Infinity;
+        let askAboveCount = 0;
+        let bidAboveCount = 0;
+
+        // 1. Render Top 5 Ask (Demand Clusters)
+        const askContainer = document.getElementById('today-clusters-list-ask');
+        if (askContainer) {
+            if (askClusters.length === 0) {
+                askContainer.innerHTML = `<div class="text-slate-500 text-[10px] py-2 text-center italic">No Ask volume accumulation recorded</div>`;
+            } else {
+                askContainer.innerHTML = askClusters.map((item, idx) => {
+                    const diff = ltp > 0 ? (ltp - item.price) : 0;
+                    const absDiff = Math.abs(diff);
+
+                    if (absDiff < minAbsDiff && ltp > 0) {
+                        minAbsDiff = absDiff;
+                        nearestCluster = { side: 'Ask', rank: idx + 1, price: item.price, diff: diff };
+                    }
+                    if (diff > 0) askAboveCount++;
+
+                    const fillPct = Math.min(100, Math.max(12, Math.round((item.totalQty / maxClusterQty) * 100)));
+
+                    let diffBadgeHtml = '';
+                    if (ltp <= 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[8.5px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                    } else if (absDiff <= 3.5) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                    } else if (diff > 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Holding Above Demand (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                    } else {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Demand (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                    }
+
+                    return `
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-emerald-500/15 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
+                                <span class="text-slate-400 font-mono text-[9px]" title="Latest execution: ${item.lastTime}">${item.lastTime}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${item.price.toFixed(2)}</span>
+                                <span class="font-black text-emerald-300 font-mono text-[10.5px]">${item.totalQty.toLocaleString()}</span>
+                                <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-800 text-slate-400 font-sans border border-slate-700/60" title="${item.printsCount} trade prints accumulated · Peak single trade: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
+                            </div>
+                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[65px] justify-end">
+                                ${diffBadgeHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 2. Render Top 5 Bid (Supply Clusters)
+        const bidContainer = document.getElementById('today-clusters-list-bid');
+        if (bidContainer) {
+            if (bidClusters.length === 0) {
+                bidContainer.innerHTML = `<div class="text-slate-500 text-[10px] py-2 text-center italic">No Bid volume accumulation recorded</div>`;
+            } else {
+                bidContainer.innerHTML = bidClusters.map((item, idx) => {
+                    const diff = ltp > 0 ? (ltp - item.price) : 0;
+                    const absDiff = Math.abs(diff);
+
+                    if (absDiff < minAbsDiff && ltp > 0) {
+                        minAbsDiff = absDiff;
+                        nearestCluster = { side: 'Bid', rank: idx + 1, price: item.price, diff: diff };
+                    }
+                    if (diff > 0) bidAboveCount++;
+
+                    const fillPct = Math.min(100, Math.max(12, Math.round((item.totalQty / maxClusterQty) * 100)));
+
+                    let diffBadgeHtml = '';
+                    if (ltp <= 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[8.5px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                    } else if (absDiff <= 3.5) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                    } else if (diff > 0) {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Reclaimed Supply (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                    } else {
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Supply (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                    }
+
+                    return `
+                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                            <div class="absolute inset-y-0 left-0 bg-rose-500/15 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-[9px] font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
+                                <span class="text-slate-400 font-mono text-[9px]" title="Latest execution: ${item.lastTime}">${item.lastTime}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 z-10 shrink-0">
+                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${item.price.toFixed(2)}</span>
+                                <span class="font-black text-rose-300 font-mono text-[10.5px]">${item.totalQty.toLocaleString()}</span>
+                                <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-800 text-slate-400 font-sans border border-slate-700/60" title="${item.printsCount} trade prints accumulated · Peak single trade: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
+                            </div>
+                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[65px] justify-end">
+                                ${diffBadgeHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 3. Nearest Cluster in Summary Bar
+        const nearestEl = document.getElementById('today-clusters-nearest-text');
+        if (nearestEl) {
+            if (nearestCluster) {
+                const sign = nearestCluster.diff >= 0 ? '+' : '';
+                nearestEl.innerHTML = `<span class="${nearestCluster.side === 'Ask' ? 'text-emerald-300' : 'text-rose-300'}">#${nearestCluster.rank} ${nearestCluster.side}</span> <span class="text-slate-400 font-sans text-[8px]">(₹${nearestCluster.price.toFixed(0)})</span> <span class="${nearestCluster.diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${sign}${nearestCluster.diff.toFixed(1)} pts</span>`;
+            } else {
+                nearestEl.textContent = '--';
+            }
+        }
+
+        // 4. Bias Pill in Summary Bar
+        const biasEl = document.getElementById('today-clusters-bias-badge');
+        if (biasEl) {
+            const totalAskVol = askClusters.reduce((sum, x) => sum + x.totalQty, 0);
+            const totalBidVol = bidClusters.reduce((sum, x) => sum + x.totalQty, 0);
+            if (totalAskVol > totalBidVol * 1.25) {
+                biasEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0';
+                biasEl.textContent = '🟢 BUY ACCUMULATION';
+            } else if (totalBidVol > totalAskVol * 1.25) {
+                biasEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0';
+                biasEl.textContent = '🔴 SELL ACCUMULATION';
+            } else {
+                biasEl.className = 'px-1.5 py-0.2 rounded font-black text-[8px] bg-slate-900 text-slate-400 border border-slate-800 shrink-0';
+                biasEl.textContent = '⚖️ BALANCED ACCUMULATION';
+            }
+        }
+    }
+    window.renderTodayClustersUI = renderTodayClustersUI;
 
     // ── 2B. PREVIOUS DAY INSTITUTIONAL ANCHORS (TOP 5 ASK & BID VS LIVE STREAM PRICE) ──
     function initPdAnchors() {
@@ -5244,6 +5626,9 @@
         renderTapeMechanicsCapsule();
         if (typeof renderPdAnchorsUI === 'function') {
             renderPdAnchorsUI(d.ltp);
+        }
+        if (typeof renderTodayClustersUI === 'function') {
+            renderTodayClustersUI(d.ltp);
         }
     }
 
@@ -7200,7 +7585,7 @@
     function startSimulator() {
         if (state.simInterval) clearInterval(state.simInterval);
 
-        let basePrice = 24150.0;
+        let basePrice = state.depthData.ltp || {{ (float) ($spotPrice ?? 25250) }};
         let trendBias = 1;
         let tickCount = 0;
         let simVtt = 125000;
@@ -7315,6 +7700,9 @@
         }
         if (typeof initTopTradedVolume === 'function') {
             initTopTradedVolume();
+        }
+        if (typeof initTodayClusters === 'function') {
+            initTodayClusters();
         }
         if (typeof initPdAnchors === 'function') {
             initPdAnchors();
