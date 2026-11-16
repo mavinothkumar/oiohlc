@@ -470,6 +470,12 @@
                                     <span>🌊 OF:</span>
                                     <span id="w-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
+                                <button type="button" id="w-of-calib-btn" onclick="toggleOfCalibration()" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-slate-900 border-teal-500/40 text-teal-300 hover:border-teal-400 cursor-pointer select-none"
+                                    title="Toggle Order Flow Calibration: Click to switch between Spot-Calibrated and Raw Futures">
+                                    <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
+                                    <span id="w-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
+                                </button>
                                 <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
                                     title="Cycle Signals on Weightage Chart: Breach Only (≥80%) / Every 5M Candle / OFF">
@@ -804,11 +810,11 @@
                                     <span>🌊 OF:</span>
                                     <span id="o-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
-                                <button type="button" id="o-of-sr-btn" onclick="toggleOptionsOfSrLines()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer"
-                                    title="Toggle Order Flow Depth Institutional S/R Lines (Yesterday & Today Bid/Ask Liquidity)">
-                                    <span>🌊 OF:</span>
-                                    <span id="o-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+                                <button type="button" id="o-of-calib-btn" onclick="toggleOfCalibration()" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-slate-900 border-teal-500/40 text-teal-300 hover:border-teal-400 cursor-pointer select-none"
+                                    title="Toggle Order Flow Calibration: Click to switch between Spot-Calibrated and Raw Futures">
+                                    <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
+                                    <span id="o-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
                                 </button>
                                 <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -2041,6 +2047,23 @@
                     </span>
                 </div>
 
+                <!-- Price Basis Calibration (Spot vs Futures) -->
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800">
+                    <div>
+                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>🎯 Price Basis Calibration (Spot vs Futures)</span>
+                            <span id="cfg-of-calib-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-teal-950 text-teal-300 border border-teal-500/40">SPOT CALIBRATED</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400 block mt-0.5">
+                            Calibrate Order Flow Future levels to Spot candles by deducting the Spot-Future basis spread.
+                        </span>
+                    </div>
+                    <select id="cfg-of-calibration" onchange="setOfCalibration(this.value)" class="bg-[#131722] border border-gray-700 text-teal-300 font-bold font-mono text-xs rounded px-2.5 py-1.5 focus:border-teal-500 focus:outline-none cursor-pointer">
+                        <option value="spot" selected>🎯 Spot-Calibrated (Aligned to Spot)</option>
+                        <option value="future">🚀 Raw Future Levels (Contract Execution Prices)</option>
+                    </select>
+                </div>
+
                 <!-- 5. Live Clustered Order Flow Preview Card -->
                 <div class="p-2.5 rounded-lg bg-[#131722] border border-teal-900/60 space-y-2">
                     <div class="flex items-center justify-between text-xs">
@@ -2543,7 +2566,8 @@
         ofLineWidth: 3,                 // Line thickness (default 3)
         ofLineStyleYesterday: 'solid',  // 'solid', 'dashed', 'dotted'
         ofLineStyleToday: 'dashed',     // 'dashed', 'solid', 'dotted'
-        ofRankBy: 'cumulative'          // 'cumulative' (default) or 'peak'
+        ofRankBy: 'cumulative',         // 'cumulative' (default) or 'peak'
+        ofCalibration: 'spot'           // 'spot' (calibrated to spot index) or 'future' (raw future levels)
     };
 
     let alarmSettings = { ...defaultAlarmSettings };
@@ -2687,6 +2711,47 @@
     window.toggleQuantPriceLines = toggleQuantPriceLines;
 
     // ── Order Flow S/R Functions (Yesterday Anchors & Today Live Liquidity) ──
+    let ofCalibrationMode = localStorage.getItem('nifty_unified_of_calibration') || 'spot';
+
+    function updateOfCalibrationUI() {
+        const isSpot = (ofCalibrationMode !== 'future');
+        ['w-of-calib-badge', 'o-of-calib-badge'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = isSpot ? 'SPOT' : 'FUT';
+                el.className = isSpot ? 'font-mono text-teal-300 font-extrabold' : 'font-mono text-amber-400 font-extrabold';
+            }
+        });
+        const cfgSelect = document.getElementById('cfg-of-calibration');
+        if (cfgSelect) cfgSelect.value = ofCalibrationMode;
+        const cfgBadge = document.getElementById('cfg-of-calib-badge');
+        if (cfgBadge) {
+            cfgBadge.textContent = isSpot ? 'SPOT CALIBRATED' : 'RAW FUTURES';
+            cfgBadge.className = isSpot 
+                ? 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-teal-950 text-teal-300 border border-teal-500/40' 
+                : 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40';
+        }
+    }
+    window.updateOfCalibrationUI = updateOfCalibrationUI;
+
+    function toggleOfCalibration() {
+        setOfCalibration(ofCalibrationMode === 'spot' ? 'future' : 'spot');
+    }
+    window.toggleOfCalibration = toggleOfCalibration;
+
+    function setOfCalibration(mode) {
+        ofCalibrationMode = (mode === 'future') ? 'future' : 'spot';
+        try {
+            localStorage.setItem('nifty_unified_of_calibration', ofCalibrationMode);
+        } catch (e) {}
+        alarmSettings.ofCalibration = ofCalibrationMode;
+        updateOfCalibrationUI();
+        drawWeightageOrderFlowLines();
+        drawOptionsOrderFlowLines();
+        renderOfLevelsPreview();
+    }
+    window.setOfCalibration = setOfCalibration;
+
     function updateOfSrButtonUI() {
         const badgeW = document.getElementById('w-of-sr-status-badge');
         if (badgeW) {
@@ -2698,6 +2763,7 @@
             badgeO.textContent = oShowOfSrLines ? 'ON' : 'OFF';
             badgeO.className = oShowOfSrLines ? 'font-mono text-emerald-400 font-extrabold' : 'font-mono text-slate-400 font-bold';
         }
+        updateOfCalibrationUI();
     }
 
     function toggleWeightageOfSrLines() {
@@ -2747,31 +2813,36 @@
         const lineWidth = parseInt(alarmSettings.ofLineWidth || 3, 10);
         const styleYd = alarmSettings.ofLineStyleYesterday === 'dashed' ? 2 : (alarmSettings.ofLineStyleYesterday === 'dotted' ? 1 : 0);
         const styleTd = alarmSettings.ofLineStyleToday === 'solid' ? 0 : (alarmSettings.ofLineStyleToday === 'dotted' ? 1 : 2);
+        const isSpotMode = (ofCalibrationMode !== 'future');
 
         // Yesterday Lines
         if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday) {
             (orderFlowLevelsData.yesterday.asks || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `YD RES ₹${price}`) : (item.raw_label || `YD RES (FUT) ₹${price}`);
                     const line = wCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#ef4444',
                         lineWidth: lineWidth,
                         lineStyle: styleYd,
                         axisLabelVisible: true,
-                        title: item.label || `YD RES ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesWeightage.push(line);
                 } catch (e) {}
             });
             (orderFlowLevelsData.yesterday.bids || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `YD SUP ₹${price}`) : (item.raw_label || `YD SUP (FUT) ₹${price}`);
                     const line = wCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#10b981',
                         lineWidth: lineWidth,
                         lineStyle: styleYd,
                         axisLabelVisible: true,
-                        title: item.label || `YD SUP ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesWeightage.push(line);
                 } catch (e) {}
@@ -2782,26 +2853,30 @@
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
             (orderFlowLevelsData.today.asks || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `TD RES ₹${price}`) : (item.raw_label || `TD RES (FUT) ₹${price}`);
                     const line = wCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#f43f5e',
                         lineWidth: lineWidth,
                         lineStyle: styleTd,
                         axisLabelVisible: true,
-                        title: item.label || `TD RES ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesWeightage.push(line);
                 } catch (e) {}
             });
             (orderFlowLevelsData.today.bids || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `TD SUP ₹${price}`) : (item.raw_label || `TD SUP (FUT) ₹${price}`);
                     const line = wCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#34d399',
                         lineWidth: lineWidth,
                         lineStyle: styleTd,
                         axisLabelVisible: true,
-                        title: item.label || `TD SUP ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesWeightage.push(line);
                 } catch (e) {}
@@ -2817,31 +2892,36 @@
         const lineWidth = parseInt(alarmSettings.ofLineWidth || 3, 10);
         const styleYd = alarmSettings.ofLineStyleYesterday === 'dashed' ? 2 : (alarmSettings.ofLineStyleYesterday === 'dotted' ? 1 : 0);
         const styleTd = alarmSettings.ofLineStyleToday === 'solid' ? 0 : (alarmSettings.ofLineStyleToday === 'dotted' ? 1 : 2);
+        const isSpotMode = (ofCalibrationMode !== 'future');
 
         // Yesterday Lines
         if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday) {
             (orderFlowLevelsData.yesterday.asks || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `YD RES ₹${price}`) : (item.raw_label || `YD RES (FUT) ₹${price}`);
                     const line = oCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#ef4444',
                         lineWidth: lineWidth,
                         lineStyle: styleYd,
                         axisLabelVisible: true,
-                        title: item.label || `YD RES ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesOptions.push(line);
                 } catch (e) {}
             });
             (orderFlowLevelsData.yesterday.bids || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `YD SUP ₹${price}`) : (item.raw_label || `YD SUP (FUT) ₹${price}`);
                     const line = oCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#10b981',
                         lineWidth: lineWidth,
                         lineStyle: styleYd,
                         axisLabelVisible: true,
-                        title: item.label || `YD SUP ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesOptions.push(line);
                 } catch (e) {}
@@ -2852,26 +2932,30 @@
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
             (orderFlowLevelsData.today.asks || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `TD RES ₹${price}`) : (item.raw_label || `TD RES (FUT) ₹${price}`);
                     const line = oCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#f43f5e',
                         lineWidth: lineWidth,
                         lineStyle: styleTd,
                         axisLabelVisible: true,
-                        title: item.label || `TD RES ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesOptions.push(line);
                 } catch (e) {}
             });
             (orderFlowLevelsData.today.bids || []).forEach(item => {
                 try {
+                    const price = isSpotMode ? parseFloat(item.calibrated_price ?? item.price) : parseFloat(item.raw_price ?? item.price);
+                    const title = isSpotMode ? (item.label || `TD SUP ₹${price}`) : (item.raw_label || `TD SUP (FUT) ₹${price}`);
                     const line = oCandleSeries.createPriceLine({
-                        price: parseFloat(item.price),
+                        price: price,
                         color: '#34d399',
                         lineWidth: lineWidth,
                         lineStyle: styleTd,
                         axisLabelVisible: true,
-                        title: item.label || `TD SUP ₹${item.price}`,
+                        title: title,
                     });
                     ofPriceLinesOptions.push(line);
                 } catch (e) {}
@@ -2884,8 +2968,20 @@
         const symbol = 'NIFTY';
         const limit = parseInt(alarmSettings.ofLevelCount || 1, 10);
         const rankBy = alarmSettings.ofRankBy || 'cumulative';
+
+        const spotEl = document.getElementById('spot-price-display');
+        let curSpot = 0;
+        if (spotEl && spotEl.textContent) {
+            const raw = parseFloat(spotEl.textContent.replace(/[^0-9.]/g, ''));
+            if (!isNaN(raw) && raw > 0) curSpot = raw;
+        }
+        if (!curSpot && typeof trendingOiData !== 'undefined' && trendingOiData?.underlying_data?.spot) {
+            curSpot = parseFloat(trendingOiData.underlying_data.spot);
+        }
+
         try {
-            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&rank_by=${rankBy}&_t=${Date.now()}`);
+            const spotParam = curSpot > 0 ? `&spot=${curSpot}` : '';
+            const res = await fetch(`/api/multi-timeframe/order-flow-levels?date=${selectedDate}&symbol=${symbol}&limit=${limit}&rank_by=${rankBy}${spotParam}&_t=${Date.now()}`);
             const data = await res.json();
             if (data && data.success) {
                 orderFlowLevelsData = data;
@@ -2905,12 +3001,17 @@
         const dateBadge = document.getElementById('of-preview-date-badge');
         if (!container) return;
         if (dateBadge && orderFlowLevelsData) {
-            dateBadge.textContent = `${orderFlowLevelsData.prev_date || 'YD'} / ${orderFlowLevelsData.date || 'TD'}`;
+            const spreadInfo = (orderFlowLevelsData.basis_spread !== undefined && orderFlowLevelsData.basis_spread !== null) 
+                ? ` | Basis: ${orderFlowLevelsData.basis_spread >= 0 ? '+' : ''}${orderFlowLevelsData.basis_spread} pts` 
+                : '';
+            dateBadge.textContent = `${orderFlowLevelsData.prev_date || 'YD'} / ${orderFlowLevelsData.date || 'TD'}${spreadInfo}`;
         }
         if (!orderFlowLevelsData || (!orderFlowLevelsData.yesterday && !orderFlowLevelsData.today)) {
             container.innerHTML = `<div class="p-2 rounded bg-[#1a1e29] border border-gray-800 text-gray-400 col-span-2">No Order Flow Traded Volume levels recorded for this date.</div>`;
             return;
         }
+
+        const isSpot = (ofCalibrationMode !== 'future');
 
         let html = '';
         const ydAsks = orderFlowLevelsData.yesterday?.asks || [];
@@ -2919,10 +3020,26 @@
             <div class="p-2 rounded bg-[#1a1e29] border border-gray-800 space-y-1">
                 <div class="text-[10px] font-bold text-amber-300 flex items-center justify-between">
                     <span>PREVIOUS DAY (STATIC)</span>
-                    <span>${orderFlowLevelsData.prev_date || ''}</span>
+                    <span class="text-gray-400 font-mono text-[9px]">${orderFlowLevelsData.prev_date || ''}</span>
                 </div>
-                ${ydAsks.length > 0 ? ydAsks.map(a => `<div class="flex items-center justify-between text-rose-400 bg-rose-950/30 px-1.5 py-0.5 rounded border border-rose-900/40 font-bold"><span>RES (Ask):</span><span>₹${Number(a.price).toLocaleString()} [${a.qty >= 1000 ? (a.qty/1000).toFixed(1)+'k' : a.qty}]</span></div>`).join('') : '<div class="text-gray-500 text-[10px]">No YD Resistance</div>'}
-                ${ydBids.length > 0 ? ydBids.map(b => `<div class="flex items-center justify-between text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-900/40 font-bold"><span>SUP (Bid):</span><span>₹${Number(b.price).toLocaleString()} [${b.qty >= 1000 ? (b.qty/1000).toFixed(1)+'k' : b.qty}]</span></div>`).join('') : '<div class="text-gray-500 text-[10px]">No YD Support</div>'}
+                ${ydAsks.length > 0 ? ydAsks.map(a => {
+                    const dispP = isSpot ? Number(a.calibrated_price || a.price) : Number(a.raw_price || a.price);
+                    const altP = isSpot ? `Fut: ₹${Number(a.raw_price || a.price).toLocaleString()}` : `Spot: ₹${Number(a.calibrated_price || a.price).toLocaleString()}`;
+                    const k = a.qty >= 1000 ? (a.qty/1000).toFixed(1)+'k' : a.qty;
+                    return `<div class="flex items-center justify-between text-rose-400 bg-rose-950/30 px-1.5 py-0.5 rounded border border-rose-900/40 font-bold">
+                        <span>RES (Ask):</span>
+                        <span title="${altP}">₹${dispP.toLocaleString()} [${k}] <span class="text-[9px] text-gray-400 font-normal">(${isSpot ? 'Spot' : 'Fut'})</span></span>
+                    </div>`;
+                }).join('') : '<div class="text-gray-500 text-[10px]">No YD Resistance</div>'}
+                ${ydBids.length > 0 ? ydBids.map(b => {
+                    const dispP = isSpot ? Number(b.calibrated_price || b.price) : Number(b.raw_price || b.price);
+                    const altP = isSpot ? `Fut: ₹${Number(b.raw_price || b.price).toLocaleString()}` : `Spot: ₹${Number(b.calibrated_price || b.price).toLocaleString()}`;
+                    const k = b.qty >= 1000 ? (b.qty/1000).toFixed(1)+'k' : b.qty;
+                    return `<div class="flex items-center justify-between text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-900/40 font-bold">
+                        <span>SUP (Bid):</span>
+                        <span title="${altP}">₹${dispP.toLocaleString()} [${k}] <span class="text-[9px] text-gray-400 font-normal">(${isSpot ? 'Spot' : 'Fut'})</span></span>
+                    </div>`;
+                }).join('') : '<div class="text-gray-500 text-[10px]">No YD Support</div>'}
             </div>
         `;
 
@@ -2932,10 +3049,26 @@
             <div class="p-2 rounded bg-[#1a1e29] border border-gray-800 space-y-1">
                 <div class="text-[10px] font-bold text-emerald-300 flex items-center justify-between">
                     <span>TODAY LIVE (DYNAMIC)</span>
-                    <span>${orderFlowLevelsData.date || ''}</span>
+                    <span class="text-gray-400 font-mono text-[9px]">${orderFlowLevelsData.date || ''}</span>
                 </div>
-                ${tdAsks.length > 0 ? tdAsks.map(a => `<div class="flex items-center justify-between text-rose-300 bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-900/30"><span>RES (Ask):</span><span>₹${Number(a.price).toLocaleString()} [${a.qty >= 1000 ? (a.qty/1000).toFixed(1)+'k' : a.qty}]</span></div>`).join('') : '<div class="text-gray-500 text-[10px]">No TD Resistance yet</div>'}
-                ${tdBids.length > 0 ? tdBids.map(b => `<div class="flex items-center justify-between text-emerald-300 bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-900/30"><span>SUP (Bid):</span><span>₹${Number(b.price).toLocaleString()} [${b.qty >= 1000 ? (b.qty/1000).toFixed(1)+'k' : b.qty}]</span></div>`).join('') : '<div class="text-gray-500 text-[10px]">No TD Support yet</div>'}
+                ${tdAsks.length > 0 ? tdAsks.map(a => {
+                    const dispP = isSpot ? Number(a.calibrated_price || a.price) : Number(a.raw_price || a.price);
+                    const altP = isSpot ? `Fut: ₹${Number(a.raw_price || a.price).toLocaleString()}` : `Spot: ₹${Number(a.calibrated_price || a.price).toLocaleString()}`;
+                    const k = a.qty >= 1000 ? (a.qty/1000).toFixed(1)+'k' : a.qty;
+                    return `<div class="flex items-center justify-between text-rose-300 bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-900/30">
+                        <span>RES (Ask):</span>
+                        <span title="${altP}">₹${dispP.toLocaleString()} [${k}] <span class="text-[9px] text-gray-400 font-normal">(${isSpot ? 'Spot' : 'Fut'})</span></span>
+                    </div>`;
+                }).join('') : '<div class="text-gray-500 text-[10px]">No TD Resistance yet</div>'}
+                ${tdBids.length > 0 ? tdBids.map(b => {
+                    const dispP = isSpot ? Number(b.calibrated_price || b.price) : Number(b.raw_price || b.price);
+                    const altP = isSpot ? `Fut: ₹${Number(b.raw_price || b.price).toLocaleString()}` : `Spot: ₹${Number(b.calibrated_price || b.price).toLocaleString()}`;
+                    const k = b.qty >= 1000 ? (b.qty/1000).toFixed(1)+'k' : b.qty;
+                    return `<div class="flex items-center justify-between text-emerald-300 bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-900/30">
+                        <span>SUP (Bid):</span>
+                        <span title="${altP}">₹${dispP.toLocaleString()} [${k}] <span class="text-[9px] text-gray-400 font-normal">(${isSpot ? 'Spot' : 'Fut'})</span></span>
+                    </div>`;
+                }).join('') : '<div class="text-gray-500 text-[10px]">No TD Support yet</div>'}
             </div>
         `;
 
@@ -9365,6 +9498,11 @@
             if (ofStyleTd) alarmSettings.ofLineStyleToday = ofStyleTd.value;
             const ofRankBy = document.getElementById('cfg-of-rank-by');
             if (ofRankBy) alarmSettings.ofRankBy = ofRankBy.value;
+            const ofCalib = document.getElementById('cfg-of-calibration');
+            if (ofCalib) {
+                alarmSettings.ofCalibration = ofCalib.value;
+                setOfCalibration(ofCalib.value);
+            }
 
             fetchOrderFlowLevels();
 
@@ -9576,6 +9714,9 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (ofStyleTd) ofStyleTd.value = alarmSettings.ofLineStyleToday || 'dashed';
         const ofRankBy = document.getElementById('cfg-of-rank-by');
         if (ofRankBy) ofRankBy.value = alarmSettings.ofRankBy || 'cumulative';
+        const ofCalib = document.getElementById('cfg-of-calibration');
+        if (ofCalib) ofCalib.value = alarmSettings.ofCalibration || ofCalibrationMode || 'spot';
+        updateOfCalibrationUI();
         renderOfLevelsPreview();
     }
 

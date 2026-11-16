@@ -188,21 +188,23 @@ class NiftyMultiTimeframeMonitorController extends Controller
         $clusterPts = (float) $request->input('cluster', ($symbol === 'BANKNIFTY' ? 10.0 : 5.0));
         $rankBy = strtolower($request->input('rank_by', 'cumulative')); // 'cumulative' (default) or 'peak'
 
-        // 1. Resolve Reference Spot Price for Deviation Filtering
-        $refPrice = 0.0;
-        try {
-            $instKey = ($symbol === 'BANKNIFTY') ? 'NSE_INDEX|Nifty Bank' : 'NSE_INDEX|Nifty 50';
-            $quote = DB::table('ohlc_5m_quotes')
-                ->where('instrument_key', $instKey)
-                ->where('ts_at', '>=', "{$date} 09:15:00")
-                ->where('ts_at', '<=', "{$date} 15:30:00")
-                ->orderBy('ts_at', 'asc')
-                ->first(['open', 'close']);
-            if ($quote) {
-                $refPrice = (float) ($quote->open ?: $quote->close);
+        // 1. Resolve Reference Spot Price for Deviation Filtering (allow client to pass current live spot)
+        $refPrice = (float) $request->input('spot', 0.0);
+        if ($refPrice <= 0) {
+            try {
+                $instKey = ($symbol === 'BANKNIFTY') ? 'NSE_INDEX|Nifty Bank' : 'NSE_INDEX|Nifty 50';
+                $quote = DB::table('ohlc_5m_quotes')
+                    ->where('instrument_key', $instKey)
+                    ->where('ts_at', '>=', "{$date} 09:15:00")
+                    ->where('ts_at', '<=', "{$date} 15:30:00")
+                    ->orderBy('ts_at', 'desc')
+                    ->first(['open', 'close']);
+                if ($quote) {
+                    $refPrice = (float) ($quote->close ?: $quote->open);
+                }
+            } catch (\Throwable $e) {
+                $refPrice = ($symbol === 'BANKNIFTY') ? 57000.0 : 25000.0;
             }
-        } catch (\Throwable $e) {
-            $refPrice = ($symbol === 'BANKNIFTY') ? 57000.0 : 25000.0;
         }
 
         if ($refPrice <= 0) {
@@ -221,34 +223,57 @@ class NiftyMultiTimeframeMonitorController extends Controller
             $prevDate = Carbon::parse($date)->subDay()->toDateString();
         }
 
+        // 2b. Calculate Latest Future Price & Basis Spread (Future - Spot)
+        $futurePrice = 0.0;
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $latestTrade = DB::table('order_flow_traded_volumes')
+                ->where('trade_date', $date)
+                ->where('symbol', $symbol)
+                ->orderByDesc('id')
+                ->first(['price']);
+            if (!$latestTrade) {
+                $latestTrade = DB::table('order_flow_traded_volumes')
+                    ->where('trade_date', $prevDate)
+                    ->where('symbol', $symbol)
+                    ->orderByDesc('id')
+                    ->first(['price']);
+            }
+            if ($latestTrade) {
+                $futurePrice = (float) $latestTrade->price;
+            }
+        }
+        $basisSpread = ($futurePrice > 0 && $refPrice > 0) ? round($futurePrice - $refPrice, 1) : 0.0;
+
         // 3. Yesterday Clustered S/R
         $ydAsks = [];
         $ydBids = [];
         if (Schema::hasTable('order_flow_traded_volumes')) {
-            $ydAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'YD RES', $rankBy);
-            $ydBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'YD SUP', $rankBy);
+            $ydAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'YD RES', $rankBy, $basisSpread);
+            $ydBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($prevDate)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'YD SUP', $rankBy, $basisSpread);
         }
 
         // 4. Today Live Clustered S/R
         $tdAsks = [];
         $tdBids = [];
         if (Schema::hasTable('order_flow_traded_volumes')) {
-            $tdAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'TD RES', $rankBy);
-            $tdBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'TD SUP', $rankBy);
+            $tdAsks = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->ask(), $refPrice, $clusterPts, $limit, 'TD RES', $rankBy, $basisSpread);
+            $tdBids = $this->clusterLevels(OrderFlowTradedVolume::forDate($date)->forSymbol($symbol)->bid(), $refPrice, $clusterPts, $limit, 'TD SUP', $rankBy, $basisSpread);
         }
 
         return response()->json([
-            'success'   => true,
-            'date'      => $date,
-            'prev_date' => $prevDate,
-            'symbol'    => $symbol,
-            'ref_price' => $refPrice,
-            'rank_by'   => $rankBy,
-            'yesterday' => [
+            'success'      => true,
+            'date'         => $date,
+            'prev_date'    => $prevDate,
+            'symbol'       => $symbol,
+            'ref_price'    => $refPrice,
+            'future_price' => $futurePrice,
+            'basis_spread' => $basisSpread,
+            'rank_by'      => $rankBy,
+            'yesterday'    => [
                 'asks' => $ydAsks,
                 'bids' => $ydBids,
             ],
-            'today'     => [
+            'today'        => [
                 'asks' => $tdAsks,
                 'bids' => $tdBids,
             ],
@@ -258,7 +283,7 @@ class NiftyMultiTimeframeMonitorController extends Controller
     /**
      * Volume-Weighted Clustering of Order Flow Traded Volume prints
      */
-    protected function clusterLevels($query, float $refPrice, float $clusterDistance, int $limit, string $prefix, string $rankBy = 'cumulative'): array
+    protected function clusterLevels($query, float $refPrice, float $clusterDistance, int $limit, string $prefix, string $rankBy = 'cumulative', float $basisSpread = 0.0): array
     {
         $records = $query->get(['price', 'quantity', 'trade_time']);
         if ($records->isEmpty()) return [];
@@ -308,14 +333,23 @@ class NiftyMultiTimeframeMonitorController extends Controller
         }
         $sliced = array_slice($clusters, 0, $limit);
 
-        return array_map(function ($c) use ($prefix, $rankBy) {
+        return array_map(function ($c) use ($prefix, $rankBy, $basisSpread) {
             $kQty = $c['qty'] >= 1000 ? round($c['qty'] / 1000, 1) . 'k' : (string) $c['qty'];
             $kPeak = $c['peak_qty'] >= 1000 ? round($c['peak_qty'] / 1000, 1) . 'k' : (string) $c['peak_qty'];
-            $fmtPrice = number_format($c['price'], ($c['price'] == round($c['price'])) ? 0 : 1);
+            $fmtRaw = number_format($c['price'], ($c['price'] == round($c['price'])) ? 0 : 1);
+            $calibrated = round($c['price'] - $basisSpread, 1);
+            $fmtCalibrated = number_format($calibrated, ($calibrated == round($calibrated)) ? 0 : 1);
+
+            $c['raw_price'] = $c['price'];
+            $c['calibrated_price'] = $calibrated;
+            $c['basis_spread'] = $basisSpread;
+
             if ($rankBy === 'peak') {
-                $c['label'] = "{$prefix} ₹{$fmtPrice} [Peak: {$kPeak}]";
+                $c['label'] = "{$prefix} ₹{$fmtCalibrated} [Peak: {$kPeak}]";
+                $c['raw_label'] = "{$prefix} (FUT) ₹{$fmtRaw} [Peak: {$kPeak}]";
             } else {
-                $c['label'] = "{$prefix} ₹{$fmtPrice} [{$kQty}]";
+                $c['label'] = "{$prefix} ₹{$fmtCalibrated} [{$kQty}]";
+                $c['raw_label'] = "{$prefix} (FUT) ₹{$fmtRaw} [{$kQty}]";
             }
             return $c;
         }, $sliced);
