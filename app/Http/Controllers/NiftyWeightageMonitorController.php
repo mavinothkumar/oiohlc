@@ -559,6 +559,7 @@ class NiftyWeightageMonitorController extends Controller
             $redCountPct   = round(($candleRedCount / $totalCount) * 100);
             $greenWeightPct = round($candleGreenWeight, 1);
             $redWeightPct   = round($candleRedWeight, 1);
+            $insight        = null;
 
             // Zero-Flicker Carry-Forward: If a newly opened forming candle has 0 stock updates yet,
             // inherit the breadth & sentiment from the immediately preceding candle rather than flashing 0% Flat.
