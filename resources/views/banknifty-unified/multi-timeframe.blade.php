@@ -363,6 +363,11 @@
                                     <button type="button" onclick="setChart1Timeframe('1h')" data-wtf="1h" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
                                     <button type="button" onclick="setChart1Timeframe('1D')" data-wtf="1D" class="w-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
                                 </div>
+                                <!-- Chart 1 Candlestick Mode (SPOT vs FUT) -->
+                                <div class="flex items-center bg-[#151924] border border-sky-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" title="Chart 1 Candlestick Mode: BANK NIFTY Spot Index vs Near-Month Futures">
+                                    <button type="button" id="w-basis-spot-btn" onclick="setChart1CandleBasis('spot')" class="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-sky-600 text-white shadow-xs">SPOT</button>
+                                    <button type="button" id="w-basis-fut-btn" onclick="setChart1CandleBasis('future')" class="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">FUT</button>
+                                </div>
                                 <!-- Chart 1 Dedicated Candle Close Countdown Badge -->
                                 <div id="w-candle-timer-badge" class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-950/80 border border-sky-500/50 shadow-xs shrink-0 cursor-default ml-1" title="Top Chart Active Candle Countdown">
                                     <span class="flex h-1.5 w-1.5 relative shrink-0">
@@ -727,6 +732,11 @@
                                     <button type="button" onclick="setChart2Timeframe('30m')" data-otf="30m" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">30m</button>
                                     <button type="button" onclick="setChart2Timeframe('1h')" data-otf="1h" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1h</button>
                                     <button type="button" onclick="setChart2Timeframe('1D')" data-otf="1D" class="o-tf-btn px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">1D</button>
+                                </div>
+                                <!-- Chart 2 Candlestick Mode (SPOT vs FUT) -->
+                                <div class="flex items-center bg-[#151924] border border-purple-500/40 rounded p-0.5 gap-0.5 shrink-0 shadow-inner ml-1" title="Chart 2 Candlestick Mode: BANK NIFTY Spot Index vs Near-Month Futures">
+                                    <button type="button" id="o-basis-spot-btn" onclick="setChart2CandleBasis('spot')" class="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-purple-600 text-white shadow-xs">SPOT</button>
+                                    <button type="button" id="o-basis-fut-btn" onclick="setChart2CandleBasis('future')" class="px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800">FUT</button>
                                 </div>
                                 <!-- Chart 2 Dedicated Candle Close Countdown Badge -->
                                 <div id="o-candle-timer-badge" class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/50 shadow-xs shrink-0 cursor-default ml-1" title="Bottom Chart Active Candle Countdown">
@@ -2428,6 +2438,70 @@
         } catch(e){}
     }
 
+    // Chart Candlestick Mode (SPOT Index vs Near-Month FUTURES)
+    const isBankNiftyPage = true;
+    const wBasisStorageKey = 'banknifty_unified_w_basis';
+    const oBasisStorageKey = 'banknifty_unified_o_basis';
+    let wChartBasis = localStorage.getItem(wBasisStorageKey) || 'spot'; // 'spot' or 'future'
+    let oChartBasis = localStorage.getItem(oBasisStorageKey) || 'spot'; // 'spot' or 'future'
+
+    function setChart1CandleBasis(basis) {
+        if (wChartBasis === basis) return;
+        wChartBasis = (basis === 'future') ? 'future' : 'spot';
+        try { localStorage.setItem(wBasisStorageKey, wChartBasis); } catch(e){}
+        updateChartBasisUI();
+        drawWeightageOrderFlowLines();
+        drawMultiDayOrderFlowLines();
+        reloadChart1Weightage();
+    }
+    window.setChart1CandleBasis = setChart1CandleBasis;
+
+    function setChart2CandleBasis(basis) {
+        if (oChartBasis === basis) return;
+        oChartBasis = (basis === 'future') ? 'future' : 'spot';
+        try { localStorage.setItem(oBasisStorageKey, oChartBasis); } catch(e){}
+        updateChartBasisUI();
+        drawOptionsOrderFlowLines();
+        drawMultiDayOrderFlowLines();
+        reloadChart2Options();
+    }
+    window.setChart2CandleBasis = setChart2CandleBasis;
+
+    function updateChartBasisUI() {
+        const wSpotBtn = document.getElementById('w-basis-spot-btn');
+        const wFutBtn = document.getElementById('w-basis-fut-btn');
+        if (wSpotBtn && wFutBtn) {
+            if (wChartBasis === 'future') {
+                wSpotBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+                wFutBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-amber-500 text-black font-extrabold shadow-xs';
+            } else {
+                wSpotBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-sky-600 text-white font-extrabold shadow-xs';
+                wFutBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+            }
+        }
+        const wTitle = document.getElementById('w-chart-title');
+        if (wTitle) {
+            wTitle.textContent = (wChartBasis === 'future') ? 'BANK NIFTY FUT' : 'BANK NIFTY';
+        }
+
+        const oSpotBtn = document.getElementById('o-basis-spot-btn');
+        const oFutBtn = document.getElementById('o-basis-fut-btn');
+        if (oSpotBtn && oFutBtn) {
+            if (oChartBasis === 'future') {
+                oSpotBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+                oFutBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-amber-500 text-black font-extrabold shadow-xs';
+            } else {
+                oSpotBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer bg-purple-600 text-white font-extrabold shadow-xs';
+                oFutBtn.className = 'px-1.5 py-0.2 rounded font-mono font-bold text-[10px] transition cursor-pointer text-gray-400 hover:text-white hover:bg-gray-800';
+            }
+        }
+        const oTitle = document.getElementById('o-chart-title');
+        if (oTitle) {
+            oTitle.textContent = (oChartBasis === 'future') ? 'OPTIONS (FUT)' : 'OPTIONS';
+        }
+    }
+    window.updateChartBasisUI = updateChartBasisUI;
+
     function setChart1Timeframe(tf) {
         if (wTimeframe === tf) return;
         wTimeframe = tf;
@@ -2476,6 +2550,7 @@
         });
 
         updateCandleStyleUI();
+        updateChartBasisUI();
     }
     window.updateTimeframeButtonsUI = updateTimeframeButtonsUI;
 
@@ -2927,12 +3002,12 @@
             const asks = orderFlowLevelsData.today.asks || [];
             const bids = orderFlowLevelsData.today.bids || [];
             asks.forEach(item => {
-                if (isLevelSelected('today', 'spot_ask')) createSpecificOfLine(wCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesWeightage, true);
-                if (isLevelSelected('today', 'fut_ask'))  createSpecificOfLine(wCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'spot_ask', wChartBasis)) createSpecificOfLine(wCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'fut_ask', wChartBasis))  createSpecificOfLine(wCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesWeightage, true);
             });
             bids.forEach(item => {
-                if (isLevelSelected('today', 'spot_bid')) createSpecificOfLine(wCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesWeightage, true);
-                if (isLevelSelected('today', 'fut_bid'))  createSpecificOfLine(wCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'spot_bid', wChartBasis)) createSpecificOfLine(wCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'fut_bid', wChartBasis))  createSpecificOfLine(wCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesWeightage, true);
             });
         }
     }
@@ -2947,12 +3022,12 @@
             const asks = orderFlowLevelsData.today.asks || [];
             const bids = orderFlowLevelsData.today.bids || [];
             asks.forEach(item => {
-                if (isLevelSelected('today', 'spot_ask')) createSpecificOfLine(oCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesOptions, true);
-                if (isLevelSelected('today', 'fut_ask'))  createSpecificOfLine(oCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'spot_ask', oChartBasis)) createSpecificOfLine(oCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'fut_ask', oChartBasis))  createSpecificOfLine(oCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesOptions, true);
             });
             bids.forEach(item => {
-                if (isLevelSelected('today', 'spot_bid')) createSpecificOfLine(oCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesOptions, true);
-                if (isLevelSelected('today', 'fut_bid'))  createSpecificOfLine(oCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'spot_bid', oChartBasis)) createSpecificOfLine(oCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'fut_bid', oChartBasis))  createSpecificOfLine(oCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesOptions, true);
             });
         }
     }
@@ -3088,7 +3163,7 @@
     }
     window.clearMultiDayOrderFlowLines = clearMultiDayOrderFlowLines;
 
-    function isLevelSelected(date, type) {
+    function isLevelSelected(date, type, chartBasis = null) {
         const key = `${date}_${type}`;
         if (multiDayOfSelected[key] !== undefined) {
             return !!multiDayOfSelected[key];
@@ -3097,23 +3172,24 @@
         const isSpot = type.startsWith('spot');
         const side = type.endsWith('ask') ? 'ask' : 'bid';
         const oldKey = `${date}_${side}`;
+        const activeMode = chartBasis || ofCalibrationMode;
         if (multiDayOfSelected[oldKey] !== undefined) {
             const wasOn = !!multiDayOfSelected[oldKey];
             if (!wasOn) return false;
-            if (ofCalibrationMode === 'spot') return isSpot;
-            if (ofCalibrationMode === 'future') return !isSpot;
+            if (activeMode === 'spot') return isSpot;
+            if (activeMode === 'future') return !isSpot;
             return true;
         }
 
         // Defaults if no record exists:
         if (date === 'today') {
-            if (ofCalibrationMode === 'spot') return isSpot;
-            if (ofCalibrationMode === 'future') return !isSpot;
+            if (activeMode === 'spot') return isSpot;
+            if (activeMode === 'future') return !isSpot;
             return true;
         }
         if (multiDayOfData?.days?.length && multiDayOfData.days[0].date === date) {
-            if (ofCalibrationMode === 'spot') return isSpot;
-            if (ofCalibrationMode === 'future') return !isSpot;
+            if (activeMode === 'spot') return isSpot;
+            if (activeMode === 'future') return !isSpot;
             return true;
         }
         return false;
@@ -3161,27 +3237,35 @@
 
             if (askItem) {
                 // Spot Ask (RES)
-                if (isLevelSelected(day.date, 'spot_ask')) {
-                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
-                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
+                if (isLevelSelected(day.date, 'spot_ask', wChartBasis) && wShowOfSrLines && wCandleSeries) {
+                    createSpecificOfLine(wCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                }
+                if (isLevelSelected(day.date, 'spot_ask', oChartBasis) && oShowOfSrLines && oCandleSeries) {
+                    createSpecificOfLine(oCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
                 // Fut Ask (RES)
-                if (isLevelSelected(day.date, 'fut_ask')) {
-                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
-                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
+                if (isLevelSelected(day.date, 'fut_ask', wChartBasis) && wShowOfSrLines && wCandleSeries) {
+                    createSpecificOfLine(wCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                }
+                if (isLevelSelected(day.date, 'fut_ask', oChartBasis) && oShowOfSrLines && oCandleSeries) {
+                    createSpecificOfLine(oCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
             }
 
             if (bidItem) {
                 // Spot Bid (SUP)
-                if (isLevelSelected(day.date, 'spot_bid')) {
-                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
-                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
+                if (isLevelSelected(day.date, 'spot_bid', wChartBasis) && wShowOfSrLines && wCandleSeries) {
+                    createSpecificOfLine(wCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                }
+                if (isLevelSelected(day.date, 'spot_bid', oChartBasis) && oShowOfSrLines && oCandleSeries) {
+                    createSpecificOfLine(oCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
                 // Fut Bid (SUP)
-                if (isLevelSelected(day.date, 'fut_bid')) {
-                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
-                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
+                if (isLevelSelected(day.date, 'fut_bid', wChartBasis) && wShowOfSrLines && wCandleSeries) {
+                    createSpecificOfLine(wCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                }
+                if (isLevelSelected(day.date, 'fut_bid', oChartBasis) && oShowOfSrLines && oCandleSeries) {
+                    createSpecificOfLine(oCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
             }
         });
@@ -4997,6 +5081,7 @@
             localStorage.setItem('nifty_unified_w_candle_style', wCandleStyle);
         } catch(e) {}
         updateCandleStyleUI();
+        updateChartBasisUI();
         renderWeightageColumn();
         renderWeightageSuperTrend();
         if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
@@ -5017,6 +5102,7 @@
             localStorage.setItem('nifty_unified_o_candle_style', oCandleStyle);
         } catch(e) {}
         updateCandleStyleUI();
+        updateChartBasisUI();
         renderOptionsBreadthColumn();
         renderOptionsSuperTrend();
         if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
@@ -7354,6 +7440,7 @@
         drawOptionsOrderFlowLines();
         updateTvToolsUI();
         updateCandleStyleUI();
+        updateChartBasisUI();
         renderAllChartOverlays();
     }
 
@@ -7365,8 +7452,8 @@
         try {
             // Fetch Chart 1 Stocks & Options for wTimeframe in parallel
             const [stkRes, optRes] = await Promise.all([
-                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`),
-                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`)
+                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&basis=${wChartBasis}&_t=${Date.now()}`),
+                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&basis=${wChartBasis}&_t=${Date.now()}`)
             ]);
             const stkData = await stkRes.json();
             const optData = await optRes.json();
@@ -7385,6 +7472,7 @@
                 renderWeightageColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
+        updateChartBasisUI();
             }
 
             if (optData && optData.success !== false && !optData.error) {
@@ -7414,8 +7502,8 @@
         try {
             // Fetch Chart 2 Options & Stocks for oTimeframe in parallel
             const [optRes, stkRes] = await Promise.all([
-                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&_t=${Date.now()}`),
-                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&_t=${Date.now()}`)
+                fetch(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${minutes}&basis=${oChartBasis}&_t=${Date.now()}`),
+                fetch(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&basis=${oChartBasis}&_t=${Date.now()}`)
             ]);
             const optData = await optRes.json();
             const stkData = await stkRes.json();
@@ -7436,6 +7524,7 @@
                 renderOptionsBreadthColumn();
                 buildMasterTimeline();
                 updateCandleStyleUI();
+        updateChartBasisUI();
             }
 
             if (stkData && !stkData.error) {
@@ -7513,8 +7602,8 @@
         const oMin = getTfMinutes(oTimeframe);
         const bMode = alarmSettings.optionsBasketMode || 'dynamic';
 
-        // 1. Fetch Chart 1 Stocks & Options (wTimeframe)
-        const pChart1Stk = fetchJsonSafe(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&_t=${Date.now()}`)
+        // 1. Fetch Chart 1 Stocks & Options (wTimeframe with wChartBasis)
+        const pChart1Stk = fetchJsonSafe(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&basis=${wChartBasis}&_t=${Date.now()}`)
             .then(data => {
                 if (data && !data.error) {
                     wWeightageData = data;
@@ -7531,7 +7620,7 @@
             .catch(e => console.error('Error fetching Chart 1 Weightage:', e))
             .finally(() => document.getElementById('w-chart-loading')?.classList.add('hidden'));
 
-        const pChart1Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&_t=${Date.now()}`)
+        const pChart1Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${wMin}&basis=${wChartBasis}&_t=${Date.now()}`)
             .then(data => {
                 if (data && data.success !== false && !data.error) {
                     wBreadthData = data;
@@ -7542,9 +7631,9 @@
             })
             .catch(e => console.error('Error fetching Chart 1 Options:', e));
 
-        // 2. Fetch Chart 2 Stocks & Options (oTimeframe)
+        // 2. Fetch Chart 2 Stocks & Options (oTimeframe with oChartBasis)
         let pChart2Stk, pChart2Opt;
-        if (oMin === wMin) {
+        if (oMin === wMin && oChartBasis === wChartBasis) {
             pChart2Stk = pChart1Stk.then(() => { oWeightageData = wWeightageData; });
             pChart2Opt = pChart1Opt.then(() => {
                 oBreadthData = wBreadthData;
@@ -7561,7 +7650,7 @@
                 document.getElementById('o-chart-loading')?.classList.add('hidden');
             });
         } else {
-            pChart2Stk = fetchJsonSafe(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&_t=${Date.now()}`)
+            pChart2Stk = fetchJsonSafe(`/api/banknifty-weightage-monitor/data?date=${selectedDate}&interval=${oMin}&basis=${oChartBasis}&_t=${Date.now()}`)
                 .then(data => {
                     if (data && !data.error) {
                         oWeightageData = data;
@@ -7573,7 +7662,7 @@
                 })
                 .catch(e => console.error('Error fetching Chart 2 Weightage:', e));
 
-            pChart2Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&_t=${Date.now()}`)
+            pChart2Opt = fetchJsonSafe(`/api/options-breadth-monitor/data?symbol=BANKNIFTY&date=${selectedDate}&range=5&expiry=${selectedExpiry}&basket_mode=${bMode}&interval=${oMin}&basis=${oChartBasis}&_t=${Date.now()}`)
                 .then(data => {
                     if (data && data.success !== false && !data.error) {
                         oBreadthData = data;
@@ -10881,6 +10970,7 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         updateMarkerButtonsUI();
         updateTvToolsUI();
         updateCandleStyleUI();
+        updateChartBasisUI();
         updateOfSrButtonUI();
         const toiStrikesList = document.getElementById('toi-strikes-list');
         if (toiStrikesList) {

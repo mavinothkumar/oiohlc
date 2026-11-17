@@ -138,13 +138,14 @@ class OptionsBreadthMonitorController extends Controller
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
         $reqStrike = $request->input('strike', 'auto');
         $basketMode = $request->input('basket_mode', 'dynamic'); // 'dynamic' (auto-floating ATM) or 'fixed'
-        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}_{$interval}";
+        $basis = strtolower($request->input('basis', 'spot')) === 'future' ? 'future' : 'spot';
+        $cacheKey = "options_breadth_{$symbol}_{$date}_{$selectedExpiry}_{$range}_{$metric}_{$reqStrike}_{$basketMode}_{$interval}_{$basis}";
 
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode, $interval, $defaultStrike, $strikeStep) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($request, $table, $symbol, $selectedExpiry, $startTs, $endTs, $range, $metric, $date, $isToday, $isMarketHours, $nowKolkata, $basketMode, $interval, $defaultStrike, $strikeStep, $basis) {
             // 2. Fetch Strikes and determine ATM strike
             $indexHint = $this->getOptimalIndexHint($table);
             $latestCap = DB::table(DB::raw("{$table}{$indexHint}"))
@@ -269,7 +270,7 @@ class OptionsBreadthMonitorController extends Controller
 
         // Defensive check: If date still has no option contracts in database
         if ($strikes->isEmpty()) {
-            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $defaultStrike, $interval);
+            $emptyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $defaultStrike, $interval, $basis);
             if (!empty($emptyCandles)) {
                 $lastCandle = end($emptyCandles);
                 if (!empty($lastCandle['close']) && $lastCandle['close'] > 0) {
@@ -278,6 +279,7 @@ class OptionsBreadthMonitorController extends Controller
             }
             return [
                 'success'          => false,
+                'basis'            => $basis,
                 'error'            => "No option strikes found for {$symbol} on {$date}. Please run migration for this date or select an available date.",
                 'date'             => $date,
                 'interval'         => $interval,
@@ -358,7 +360,7 @@ class OptionsBreadthMonitorController extends Controller
         }
 
         // 3. Fetch Index Candlestick Data for target interval
-        $niftyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $centerStrike, $interval);
+        $niftyCandles = $this->fetchIndexCandles($date, $symbol, $table, $selectedExpiry, $centerStrike, $interval, $basis);
 
         // 4. Fetch Options Snapshot Records for Target Strikes
         $optionsData = $this->buildOptionsBreadthData(
@@ -390,7 +392,7 @@ class OptionsBreadthMonitorController extends Controller
                 ->value('ts_at');
             $prevTradingDate = $prevTs ? Carbon::parse($prevTs, 'Asia/Kolkata')->toDateString() : Carbon::parse($date)->subDay()->toDateString();
         }
-        $yesterdayCandles = $this->fetchIndexCandles($prevTradingDate, $symbol, $table, $selectedExpiry, $spotPrice ?: 23000, $interval);
+        $yesterdayCandles = $this->fetchIndexCandles($prevTradingDate, $symbol, $table, $selectedExpiry, $spotPrice ?: 23000, $interval, $basis);
 
         $lwChartCandles = array_map(function($c) {
             return [
@@ -406,6 +408,7 @@ class OptionsBreadthMonitorController extends Controller
 
             return [
                 'success'          => true,
+                'basis'            => $basis,
                 'date'             => $date,
                 'interval'         => $interval,
                 'interval_label'   => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
@@ -437,8 +440,15 @@ class OptionsBreadthMonitorController extends Controller
     /**
      * Fetch Index Candlestick Data across any timeframe interval.
      */
-    protected function fetchIndexCandles(string $date, string $symbol, string $table, string $expiry, int $baseStrike, int $interval = 5): array
+    protected function fetchIndexCandles(string $date, string $symbol, string $table, string $expiry, int $baseStrike, int $interval = 5, string $basis = 'spot'): array
     {
+        if ($basis === 'future') {
+            $futCandles = \App\Services\FuturesCandleService::loadCandlesForDate($symbol, $date, $interval);
+            if (!empty($futCandles)) {
+                return $futCandles;
+            }
+        }
+
         $nowKolkata = Carbon::now('Asia/Kolkata');
         $isToday = ($date === $nowKolkata->toDateString());
         $curTimeStr = $nowKolkata->format('H:i');

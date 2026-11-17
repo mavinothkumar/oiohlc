@@ -34,25 +34,35 @@ class BankNiftyWeightageMonitorController extends Controller
 
         // Multi-timeframe interval support: 1, 3, 5, 15, 30, 60, 375 (1D)
         $interval = TimeframeResampler::normalizeInterval($request->input('interval', $request->input('timeframe', 5)));
+        $basis = strtolower($request->input('basis', 'spot')) === 'future' ? 'future' : 'spot';
 
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
-        $cacheKey = "banknifty_weightage_data_{$date}_{$interval}";
+        $cacheKey = "banknifty_weightage_data_{$date}_{$interval}_{$basis}";
 
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval, $basis) {
             // Dynamic Bank Nifty constituent configuration for this specific date
             $periodInfo = BankNiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];
 
-            // 1. Fetch real Bank Nifty candles for today/selected date
-            $bankCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
-
             // Fetch previous session candles for seamless history pan & SuperTrend burn-in
             $prevTradingDate = $this->getPreviousTradingDate($date);
-            $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+
+            // 1. Fetch real Bank Nifty candles (Spot or Futures)
+            if ($basis === 'future') {
+                $bankCandles = \App\Services\FuturesCandleService::loadCandlesForDate('BANKNIFTY', $date, $interval);
+                $yesterdayCandles = \App\Services\FuturesCandleService::loadCandlesForDate('BANKNIFTY', $prevTradingDate, $interval);
+                if (empty($bankCandles)) {
+                    $bankCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
+                    $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+                }
+            } else {
+                $bankCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
+                $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+            }
 
             // 2. Synthesize all 12 constituent banking stocks' candles perfectly coordinated with Bank Nifty
             $stockData = $this->generateConstituentsMatrix($bankCandles, $date, $constituents, $interval);
@@ -78,6 +88,7 @@ class BankNiftyWeightageMonitorController extends Controller
 
             return [
                 'success'            => true,
+                'basis'              => $basis,
                 'symbol'             => 'BANKNIFTY',
                 'index_name'         => 'Nifty Bank',
                 'date'               => $date,

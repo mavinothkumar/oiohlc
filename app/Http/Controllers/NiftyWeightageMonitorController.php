@@ -146,27 +146,37 @@ class NiftyWeightageMonitorController extends Controller
 
         // Multi-timeframe interval support: 1, 3, 5, 15, 30, 60, 375 (1D)
         $interval = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', $request->input('timeframe', 5)));
+        $basis = strtolower($request->input('basis', 'spot')) === 'future' ? 'future' : 'spot';
 
         // Cache TTL: For today, keep cache short (15s during market, 30s outside market)
         // so live/incoming candles are never blocked. For past dates, cache for 1 day.
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
-        $cacheKey = "nifty_weightage_data_{$date}_{$interval}";
+        $cacheKey = "nifty_weightage_data_{$date}_{$interval}_{$basis}";
 
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
 
-        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval) {
+        $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval, $basis) {
             // Dynamic constituent configuration for this specific date
             $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];
 
-            // 1. Fetch real NIFTY candles for today/selected date
-            $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
-
             // Fetch previous session candles for seamless history pan & SuperTrend burn-in
             $prevTradingDate = $this->getPreviousTradingDate($date);
-            $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+
+            // 1. Fetch real NIFTY candles (Spot or Futures)
+            if ($basis === 'future') {
+                $niftyCandles = \App\Services\FuturesCandleService::loadCandlesForDate('NIFTY', $date, $interval);
+                $yesterdayCandles = \App\Services\FuturesCandleService::loadCandlesForDate('NIFTY', $prevTradingDate, $interval);
+                if (empty($niftyCandles)) {
+                    $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
+                    $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+                }
+            } else {
+                $niftyCandles = $this->loadCandlesForDate($date, $isToday, $isMarketHours, $curTimeStr, $isWeekday, $isPreMarket, $interval);
+                $yesterdayCandles = $this->loadCandlesForDate($prevTradingDate, false, false, '15:30', true, false, $interval);
+            }
 
             // 2. Synthesize all 50 constituent stocks' candles perfectly coordinated with Nifty
             $stockData = $this->generateConstituentsMatrix($niftyCandles, $date, $constituents, $interval);
@@ -192,6 +202,7 @@ class NiftyWeightageMonitorController extends Controller
 
             return [
                 'success'            => true,
+                'basis'              => $basis,
                 'date'               => $date,
                 'interval'           => $interval,
                 'interval_label'     => ($interval === 375 ? '1D' : ($interval === 60 ? '60m' : "{$interval}m")),
