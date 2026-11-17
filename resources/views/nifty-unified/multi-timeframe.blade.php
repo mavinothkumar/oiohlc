@@ -384,24 +384,14 @@
                                     <span>📐 S/R:</span>
                                     <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
-                                <button type="button" id="w-of-sr-btn" onclick="toggleWeightageOfSrLines()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer"
-                                    title="Toggle Order Flow Depth Institutional S/R Lines (Yesterday & Today Bid/Ask Liquidity)">
+                                <button type="button" id="w-of-menu-btn" onclick="toggleHistOfDropdown('w', this)" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer select-none"
+                                    title="Order Flow Levels Menu (Live Today & 5D Historical S/R, Basis & Filters)">
                                     <span>🌊 OF:</span>
                                     <span id="w-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-                                </button>
-                                <button type="button" id="w-of-calib-btn" onclick="toggleOfCalibration()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-slate-900 border-teal-500/40 text-teal-300 hover:border-teal-400 cursor-pointer select-none"
-                                    title="Toggle Order Flow Calibration: Click to cycle SPOT -> FUT -> SPOT & FUT">
-                                    <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
-                                    <span id="w-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
-                                </button>
-                                <button type="button" id="w-hist-of-dropdown-btn" onclick="toggleHistOfDropdown('w', this)" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/70 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer select-none"
-                                    title="Multi-Day Top 1 Order Flow S/R Levels (Past 5 Days)">
-                                    <span>🎯 5D Levels</span>
-                                    <span id="w-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono">0</span>
-                                    <span class="text-[8px]">▾</span>
+                                    <span id="w-of-calib-badge" class="px-1 py-0 rounded text-[8.5px] bg-cyan-950 text-cyan-300 font-mono font-extrabold border border-cyan-500/30">SPOT & FUT</span>
+                                    <span id="w-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500 text-black font-extrabold font-mono">0</span>
+                                    <span class="text-[8px] text-gray-400">▾</span>
                                 </button>
                                 <button type="button" id="w-marker-toggle-btn" onclick="cycleStocksMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -759,24 +749,14 @@
                                     <span>📐 S/R:</span>
                                     <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
                                 </button>
-                                <button type="button" id="o-of-sr-btn" onclick="toggleOptionsOfSrLines()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer"
-                                    title="Toggle Order Flow Depth Institutional S/R Lines (Yesterday & Today Bid/Ask Liquidity)">
+                                <button type="button" id="o-of-menu-btn" onclick="toggleHistOfDropdown('o', this)" 
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer select-none"
+                                    title="Order Flow Levels Menu (Live Today & 5D Historical S/R, Basis & Filters)">
                                     <span>🌊 OF:</span>
                                     <span id="o-of-sr-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-                                </button>
-                                <button type="button" id="o-of-calib-btn" onclick="toggleOfCalibration()" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-slate-900 border-teal-500/40 text-teal-300 hover:border-teal-400 cursor-pointer select-none"
-                                    title="Toggle Order Flow Calibration: Click to cycle SPOT -> FUT -> SPOT & FUT">
-                                    <span class="text-[9px] text-gray-400 font-sans">Basis:</span>
-                                    <span id="o-of-calib-badge" class="font-mono text-teal-300 font-extrabold">SPOT</span>
-                                </button>
-                                <button type="button" id="o-hist-of-dropdown-btn" onclick="toggleHistOfDropdown('o', this)" 
-                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-amber-950/70 border-amber-500/50 text-amber-300 hover:bg-amber-900 cursor-pointer select-none"
-                                    title="Multi-Day Top 1 Order Flow S/R Levels (Past 5 Days)">
-                                    <span>🎯 5D Levels</span>
-                                    <span id="o-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono">0</span>
-                                    <span class="text-[8px]">▾</span>
+                                    <span id="o-of-calib-badge" class="px-1 py-0 rounded text-[8.5px] bg-cyan-950 text-cyan-300 font-mono font-extrabold border border-cyan-500/30">SPOT & FUT</span>
+                                    <span id="o-hist-of-count-badge" class="px-1 py-0 rounded text-[8.5px] bg-amber-500 text-black font-extrabold font-mono">0</span>
+                                    <span class="text-[8px] text-gray-400">▾</span>
                                 </button>
                                 <button type="button" id="o-marker-toggle-btn" onclick="cycleOptionsMarkerMode()"
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-gray-800 border-gray-600 text-gray-300 hover:text-white cursor-pointer"
@@ -2094,30 +2074,56 @@
         </div>
     </div>
 
-    <!-- ════════════ MULTI-DAY HISTORICAL ORDER FLOW S/R DROPDOWN (PAST 5 DAYS) ════════════ -->
-    <div id="hist-of-levels-dropdown" class="fixed z-50 hidden bg-[#131722]/98 backdrop-blur-md border border-amber-500/60 rounded-xl shadow-2xl p-3 w-84 sm:w-96 text-xs text-gray-200 font-sans transition-all">
+    <!-- ════════════ UNIFIED ORDER FLOW S/R LEVELS DROPDOWN ════════════ -->
+    <div id="hist-of-levels-dropdown" class="fixed z-50 hidden bg-[#131722]/98 backdrop-blur-md border border-teal-500/60 rounded-xl shadow-2xl p-3 w-88 sm:w-104 text-xs text-gray-200 font-sans transition-all select-none">
         <div class="flex items-center justify-between pb-2 border-b border-gray-800">
             <div class="flex items-center gap-1.5">
-                <span class="text-sm">🎯</span>
-                <span class="font-bold text-amber-300 text-[11px] uppercase tracking-wider">Multi-Day Top 1 S/R (Past 5 Days)</span>
+                <span class="text-sm">🌊</span>
+                <span class="font-bold text-teal-300 text-[11px] uppercase tracking-wider">Order Flow S/R Levels</span>
+                <span id="of-menu-chart-target" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-gray-800 text-gray-300">Chart 1</span>
             </div>
-            <button type="button" onclick="closeHistOfDropdown()" class="text-gray-400 hover:text-white p-0.5 rounded text-sm cursor-pointer leading-none">✕</button>
+            <button type="button" onclick="closeHistOfDropdown()" class="text-gray-400 hover:text-white hover:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-bold cursor-pointer transition leading-none" title="Close (ESC)">✕</button>
         </div>
-        
-        <!-- Quick Action Filters -->
-        <div class="flex items-center justify-between py-1.5 border-b border-gray-800/80 text-[10px]">
-            <span class="text-gray-400 text-[9.5px]">Quick:</span>
-            <div class="flex items-center gap-1">
-                <button type="button" onclick="selectAllHistOf('all')" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">All</button>
-                <button type="button" onclick="selectAllHistOf('none')" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">Clear</button>
-                <button type="button" onclick="selectAllHistOf('res')" class="px-1.5 py-0.5 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-600/40 text-rose-300 font-semibold cursor-pointer">Only RES</button>
-                <button type="button" onclick="selectAllHistOf('sup')" class="px-1.5 py-0.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 font-semibold cursor-pointer">Only SUP</button>
+
+        <!-- Master Visibility & Basis Controls -->
+        <div class="py-2 border-b border-gray-800/80 space-y-2">
+            <!-- Master Toggle -->
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] text-gray-300 font-bold flex items-center gap-1">
+                    <span>Chart Lines:</span>
+                    <span id="of-menu-master-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">VISIBLE</span>
+                </span>
+                <button type="button" id="of-menu-master-btn" onclick="toggleActiveChartOfLines(event)" 
+                    class="px-2 py-0.5 rounded text-[9.5px] font-bold border transition cursor-pointer bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900">
+                    <span>● Lines: ON</span>
+                </button>
+            </div>
+
+            <!-- Basis Segmented Control -->
+            <div class="flex items-center justify-between text-[10px]">
+                <span class="text-gray-400 text-[9.5px] font-bold">Price Basis:</span>
+                <div class="inline-flex rounded-md p-0.5 bg-gray-900 border border-gray-800 text-[9px] font-mono font-bold">
+                    <button type="button" onclick="setOfCalibrationWithEvent('spot', event)" id="of-basis-btn-spot" class="px-2 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white">SPOT</button>
+                    <button type="button" onclick="setOfCalibrationWithEvent('future', event)" id="of-basis-btn-fut" class="px-2 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white">FUT</button>
+                    <button type="button" onclick="setOfCalibrationWithEvent('both', event)" id="of-basis-btn-both" class="px-2 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white">SPOT & FUT</button>
+                </div>
+            </div>
+
+            <!-- Quick Action Filters -->
+            <div class="flex items-center justify-between pt-0.5 text-[10px]">
+                <span class="text-gray-400 text-[9.5px]">Quick Filters:</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="selectAllHistOf('all', event)" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">All</button>
+                    <button type="button" onclick="selectAllHistOf('none', event)" class="px-1.5 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold cursor-pointer">Clear</button>
+                    <button type="button" onclick="selectAllHistOf('res', event)" class="px-1.5 py-0.5 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-600/40 text-rose-300 font-semibold cursor-pointer">Only RES</button>
+                    <button type="button" onclick="selectAllHistOf('sup', event)" class="px-1.5 py-0.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/40 text-emerald-300 font-semibold cursor-pointer">Only SUP</button>
+                </div>
             </div>
         </div>
 
-        <!-- Days List Container -->
-        <div id="hist-of-dropdown-list" class="py-1.5 space-y-1.5 max-h-72 overflow-y-auto scrollbar-none">
-            <div class="text-gray-400 text-center py-4 text-[10.5px]">Loading 5-day Order Flow levels...</div>
+        <!-- Days List Container (TODAY LIVE + PAST 5 DAYS) -->
+        <div id="hist-of-dropdown-list" class="py-1.5 space-y-1.5 max-h-76 overflow-y-auto scrollbar-none">
+            <div class="text-gray-400 text-center py-4 text-[10.5px]">Loading Order Flow levels...</div>
         </div>
 
         <!-- Footer Spread & Mode Info -->
@@ -2957,16 +2963,20 @@
             }
         };
 
-        // Yesterday Lines
-        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday) {
+        // Yesterday Lines (only fallback if multiDayOfData not loaded yet)
+        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday && (!multiDayOfData || !multiDayOfData.days)) {
             (orderFlowLevelsData.yesterday.asks || []).forEach(item => addOfLine(item, 'ask', true));
             (orderFlowLevelsData.yesterday.bids || []).forEach(item => addOfLine(item, 'bid', true));
         }
 
-        // Today Lines
+        // Today Lines (gated by multiDayOfSelected['today_ask'] & ['today_bid'])
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
-            (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
-            (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
+            if (multiDayOfSelected['today_ask'] !== false) {
+                (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
+            }
+            if (multiDayOfSelected['today_bid'] !== false) {
+                (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
+            }
         }
     }
     window.drawWeightageOrderFlowLines = drawWeightageOrderFlowLines;
@@ -3052,16 +3062,20 @@
             }
         };
 
-        // Yesterday Lines
-        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday) {
+        // Yesterday Lines (only fallback if multiDayOfData not loaded yet)
+        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday && (!multiDayOfData || !multiDayOfData.days)) {
             (orderFlowLevelsData.yesterday.asks || []).forEach(item => addOfLine(item, 'ask', true));
             (orderFlowLevelsData.yesterday.bids || []).forEach(item => addOfLine(item, 'bid', true));
         }
 
-        // Today Lines
+        // Today Lines (gated by multiDayOfSelected['today_ask'] & ['today_bid'])
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
-            (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
-            (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
+            if (multiDayOfSelected['today_ask'] !== false) {
+                (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
+            }
+            if (multiDayOfSelected['today_bid'] !== false) {
+                (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
+            }
         }
     }
     window.drawOptionsOrderFlowLines = drawOptionsOrderFlowLines;
@@ -3311,6 +3325,11 @@
 
     function updateHistOfBadgeCount() {
         let count = 0;
+        // Today levels
+        if (multiDayOfSelected['today_ask'] !== false && orderFlowLevelsData?.today?.asks?.length) count++;
+        if (multiDayOfSelected['today_bid'] !== false && orderFlowLevelsData?.today?.bids?.length) count++;
+
+        // Historical levels
         if (multiDayOfData && multiDayOfData.days) {
             multiDayOfData.days.forEach(d => {
                 if (multiDayOfSelected[`${d.date}_ask`]) count++;
@@ -3376,67 +3395,176 @@
     }
     window.toggleHistOfLevel = toggleHistOfLevel;
 
-    function toggleHistOfDay(date) {
-        const askKey = `${date}_ask`;
-        const bidKey = `${date}_bid`;
-        const bothOn = (multiDayOfSelected[askKey] && multiDayOfSelected[bidKey]);
-        if (bothOn) {
-            multiDayOfSelected[askKey] = false;
-            multiDayOfSelected[bidKey] = false;
+    function toggleHistOfLevel(date, side, e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const key = `${date}_${side}`;
+        if (date === 'today') {
+            multiDayOfSelected[key] = (multiDayOfSelected[key] === false) ? true : false;
         } else {
-            multiDayOfSelected[askKey] = true;
-            multiDayOfSelected[bidKey] = true;
+            multiDayOfSelected[key] = !multiDayOfSelected[key];
         }
         try {
             const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
             localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (e) {}
+        } catch (err) {}
         renderHistOfDropdownContent();
+        drawWeightageOrderFlowLines();
+        drawOptionsOrderFlowLines();
         drawMultiDayOrderFlowLines();
+        updateHistOfBadgeCount();
     }
-    window.toggleHistOfDay = toggleHistOfDay;
+    window.toggleHistOfLevel = toggleHistOfLevel;
 
-    function selectAllHistOf(mode) {
-        if (!multiDayOfData || !multiDayOfData.days) return;
-        multiDayOfData.days.forEach(day => {
-            const askKey = `${day.date}_ask`;
-            const bidKey = `${day.date}_bid`;
-            if (mode === 'all') {
-                multiDayOfSelected[askKey] = true;
-                multiDayOfSelected[bidKey] = true;
-            } else if (mode === 'none') {
-                multiDayOfSelected[askKey] = false;
-                multiDayOfSelected[bidKey] = false;
-            } else if (mode === 'res') {
-                multiDayOfSelected[askKey] = true;
-                multiDayOfSelected[bidKey] = false;
-            } else if (mode === 'sup') {
-                multiDayOfSelected[askKey] = false;
-                multiDayOfSelected[bidKey] = true;
-            }
-        });
+    function toggleHistOfDay(date, e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const askKey = `${date}_ask`;
+        const bidKey = `${date}_bid`;
+        let bothOn;
+        if (date === 'today') {
+            bothOn = (multiDayOfSelected[askKey] !== false && multiDayOfSelected[bidKey] !== false);
+            multiDayOfSelected[askKey] = !bothOn;
+            multiDayOfSelected[bidKey] = !bothOn;
+        } else {
+            bothOn = (multiDayOfSelected[askKey] && multiDayOfSelected[bidKey]);
+            multiDayOfSelected[askKey] = !bothOn;
+            multiDayOfSelected[bidKey] = !bothOn;
+        }
         try {
             const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
             localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (e) {}
+        } catch (err) {}
         renderHistOfDropdownContent();
+        drawWeightageOrderFlowLines();
+        drawOptionsOrderFlowLines();
         drawMultiDayOrderFlowLines();
+        updateHistOfBadgeCount();
+    }
+    window.toggleHistOfDay = toggleHistOfDay;
+
+    function selectAllHistOf(mode, e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (mode === 'all') {
+            multiDayOfSelected['today_ask'] = true;
+            multiDayOfSelected['today_bid'] = true;
+        } else if (mode === 'none') {
+            multiDayOfSelected['today_ask'] = false;
+            multiDayOfSelected['today_bid'] = false;
+        } else if (mode === 'res') {
+            multiDayOfSelected['today_ask'] = true;
+            multiDayOfSelected['today_bid'] = false;
+        } else if (mode === 'sup') {
+            multiDayOfSelected['today_ask'] = false;
+            multiDayOfSelected['today_bid'] = true;
+        }
+
+        if (multiDayOfData && multiDayOfData.days) {
+            multiDayOfData.days.forEach(day => {
+                const askKey = `${day.date}_ask`;
+                const bidKey = `${day.date}_bid`;
+                if (mode === 'all') {
+                    multiDayOfSelected[askKey] = true;
+                    multiDayOfSelected[bidKey] = true;
+                } else if (mode === 'none') {
+                    multiDayOfSelected[askKey] = false;
+                    multiDayOfSelected[bidKey] = false;
+                } else if (mode === 'res') {
+                    multiDayOfSelected[askKey] = true;
+                    multiDayOfSelected[bidKey] = false;
+                } else if (mode === 'sup') {
+                    multiDayOfSelected[askKey] = false;
+                    multiDayOfSelected[bidKey] = true;
+                }
+            });
+        }
+        try {
+            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
+        } catch (err) {}
+        renderHistOfDropdownContent();
+        drawWeightageOrderFlowLines();
+        drawOptionsOrderFlowLines();
+        drawMultiDayOrderFlowLines();
+        updateHistOfBadgeCount();
     }
     window.selectAllHistOf = selectAllHistOf;
+
+    function updateOfBasisButtonsUI() {
+        ['spot', 'fut', 'both'].forEach(b => {
+            const btn = document.getElementById(`of-basis-btn-${b}`);
+            if (!btn) return;
+            const isMatch = (b === 'fut' && ofCalibrationMode === 'future') || (b === ofCalibrationMode);
+            if (isMatch) {
+                if (b === 'spot') {
+                    btn.className = 'px-2 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-500/50 shadow-xs font-bold';
+                } else if (b === 'fut') {
+                    btn.className = 'px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/50 shadow-xs font-bold';
+                } else {
+                    btn.className = 'px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/50 shadow-xs font-bold';
+                }
+            } else {
+                btn.className = 'px-2 py-0.5 rounded text-gray-400 hover:text-white border border-transparent font-medium';
+            }
+        });
+    }
+    window.updateOfBasisButtonsUI = updateOfBasisButtonsUI;
+
+    function updateOfMenuMasterUI() {
+        const masterBadge = document.getElementById('of-menu-master-badge');
+        const masterBtn = document.getElementById('of-menu-master-btn');
+        const isChart1 = (histOfDropdownTrigger === 'w');
+        const isVisible = isChart1 ? wShowOfSrLines : oShowOfSrLines;
+
+        if (masterBadge) {
+            masterBadge.textContent = isVisible ? 'VISIBLE' : 'HIDDEN';
+            masterBadge.className = isVisible 
+                ? 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40' 
+                : 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-slate-900 text-slate-400 border border-slate-700';
+        }
+        if (masterBtn) {
+            masterBtn.innerHTML = isVisible ? '<span>● Lines: ON</span>' : '<span>○ Lines: OFF</span>';
+            masterBtn.className = isVisible 
+                ? 'px-2 py-0.5 rounded text-[9.5px] font-bold border transition cursor-pointer bg-emerald-950/80 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900' 
+                : 'px-2 py-0.5 rounded text-[9.5px] font-bold border transition cursor-pointer bg-gray-800 border-gray-700 text-gray-400 hover:text-white';
+        }
+    }
+    window.updateOfMenuMasterUI = updateOfMenuMasterUI;
+
+    function toggleActiveChartOfLines(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (histOfDropdownTrigger === 'o') {
+            oShowOfSrLines = !oShowOfSrLines;
+            try { localStorage.setItem('nifty_unified_o_of_sr_lines', oShowOfSrLines ? 'true' : 'false'); } catch (err) {}
+            updateOfSrButtonUI();
+            drawOptionsOrderFlowLines();
+            drawMultiDayOrderFlowLines();
+        } else {
+            wShowOfSrLines = !wShowOfSrLines;
+            try { localStorage.setItem('nifty_unified_w_of_sr_lines', wShowOfSrLines ? 'true' : 'false'); } catch (err) {}
+            updateOfSrButtonUI();
+            drawWeightageOrderFlowLines();
+            drawMultiDayOrderFlowLines();
+        }
+        updateOfMenuMasterUI();
+        updateHistOfBadgeCount();
+    }
+    window.toggleActiveChartOfLines = toggleActiveChartOfLines;
+
+    function setOfCalibrationWithEvent(mode, e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        setOfCalibration(mode);
+        updateOfBasisButtonsUI();
+    }
+    window.setOfCalibrationWithEvent = setOfCalibrationWithEvent;
 
     function renderHistOfDropdownContent() {
         const listEl = document.getElementById('hist-of-dropdown-list');
         if (!listEl) return;
-        if (!multiDayOfData || !multiDayOfData.days || multiDayOfData.days.length === 0) {
-            listEl.innerHTML = `<div class="text-gray-400 text-center py-4 text-[10.5px]">No historical Order Flow records found for the past 5 trading days.</div>`;
-            return;
-        }
 
         const isSpotMode = (ofCalibrationMode === 'spot');
         const isBothMode = (ofCalibrationMode === 'both');
         const calibFooter = document.getElementById('hist-of-footer-calib');
         if (calibFooter) {
-            const spread = multiDayOfData.basis_spread || 0;
+            const spread = (multiDayOfData?.basis_spread !== undefined) ? multiDayOfData.basis_spread : (orderFlowLevelsData?.basis_spread || 0);
             if (isBothMode) {
                 calibFooter.textContent = `Basis: Spot & Fut (${spread >= 0 ? '+' : ''}${spread} pts)`;
             } else if (isSpotMode) {
@@ -3446,81 +3574,134 @@
             }
         }
 
-        let html = '';
-        multiDayOfData.days.forEach(day => {
-            const askKey = `${day.date}_ask`;
-            const bidKey = `${day.date}_bid`;
-            const askSelected = !!multiDayOfSelected[askKey];
-            const bidSelected = !!multiDayOfSelected[bidKey];
-            const isBothSelected = (askSelected && bidSelected);
-            const isAnySelected = (askSelected || bidSelected);
+        updateOfBasisButtonsUI();
+        updateOfMenuMasterUI();
 
-            const askItem = day.ask;
-            const bidItem = day.bid;
-
-            const askSpot = askItem ? Number(askItem.calibrated_price || askItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : '--';
-            const askRaw = askItem ? Number(askItem.raw_price || askItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : '--';
-            const askQty = askItem ? (askItem.qty >= 1000 ? (askItem.qty / 1000).toFixed(1) + 'k' : askItem.qty) : '--';
-
-            const bidSpot = bidItem ? Number(bidItem.calibrated_price || bidItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : '--';
-            const bidRaw = bidItem ? Number(bidItem.raw_price || bidItem.price).toLocaleString('en-IN', {maximumFractionDigits: 1}) : '--';
-            const bidQty = bidItem ? (bidItem.qty >= 1000 ? (bidItem.qty / 1000).toFixed(1) + 'k' : bidItem.qty) : '--';
-
-            let askPriceHtml = '';
-            let bidPriceHtml = '';
+        const formatPillPrice = (item) => {
+            if (!item) return '<div class="text-[10px] text-gray-500 mt-0.5">--</div>';
+            const spot = Number(item.calibrated_price || item.price).toLocaleString('en-IN', {maximumFractionDigits: 1});
+            const raw = Number(item.raw_price || item.price).toLocaleString('en-IN', {maximumFractionDigits: 1});
             if (isBothMode) {
-                askPriceHtml = `<div class="font-bold text-[10px] mt-0.5 text-rose-200">₹${askSpot} <span class="text-[8.5px] text-gray-400 font-normal">/ F:₹${askRaw}</span></div>`;
-                bidPriceHtml = `<div class="font-bold text-[10px] mt-0.5 text-emerald-200">₹${bidSpot} <span class="text-[8.5px] text-gray-400 font-normal">/ F:₹${bidRaw}</span></div>`;
-            } else if (isSpotMode) {
-                askPriceHtml = `<div class="font-bold text-[11px] mt-0.5 text-rose-200">₹${askSpot}</div>`;
-                bidPriceHtml = `<div class="font-bold text-[11px] mt-0.5 text-emerald-200">₹${bidSpot}</div>`;
+                return `<div class="font-bold text-[10px] mt-0.5 text-inherit">₹${spot} <span class="text-[8.5px] text-gray-400 font-normal">/ F:₹${raw}</span></div>`;
+            } else if (ofCalibrationMode === 'future') {
+                return `<div class="font-bold text-[11px] mt-0.5 text-inherit">₹${raw}</div>`;
             } else {
-                askPriceHtml = `<div class="font-bold text-[11px] mt-0.5 text-rose-200">₹${askRaw}</div>`;
-                bidPriceHtml = `<div class="font-bold text-[11px] mt-0.5 text-emerald-200">₹${bidRaw}</div>`;
+                return `<div class="font-bold text-[11px] mt-0.5 text-inherit">₹${spot}</div>`;
             }
+        };
 
-            const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
+        let html = '';
 
-            html += `
-                <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${isAnySelected ? 'border-amber-500/50 bg-amber-950/15' : 'border-gray-800'} space-y-1">
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                            <input type="checkbox" ${isBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('${day.date}')" class="rounded accent-amber-500 cursor-pointer">
-                            <span class="font-bold text-[11px] ${day.day_offset === 1 ? 'text-amber-300' : 'text-gray-200'}">${day.formatted_date} (${day.day_code})</span>
-                        </label>
-                        <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
-                            <span class="w-2 h-0.5 inline-block" style="background-color: ${colors.res};"></span>
-                            <span>D-${day.day_offset}</span>
-                        </span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
-                        <!-- Ask RES Pill -->
-                        <button type="button" onclick="toggleHistOfLevel('${day.date}', 'ask')" 
-                            class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${askSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                            title="${askItem ? (isBothMode ? `Spot: ₹${askSpot} | Fut: ₹${askRaw} [${askQty}]` : (isSpotMode ? askItem.label : askItem.raw_label)) : 'No Ask record'}">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
-                                <span class="text-[8px] font-mono px-1 rounded ${askSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${askSelected ? 'ON' : 'OFF'}</span>
-                            </div>
-                            ${askPriceHtml}
-                            <div class="text-[8.5px] text-gray-400">${askQty} ${askItem?.time ? '· ' + askItem.time : ''}</div>
-                        </button>
+        // 1. TODAY LIVE DYNAMIC CARD
+        const tdAskItem = orderFlowLevelsData?.today?.asks?.[0];
+        const tdBidItem = orderFlowLevelsData?.today?.bids?.[0];
+        const tdAskSelected = (multiDayOfSelected['today_ask'] !== false);
+        const tdBidSelected = (multiDayOfSelected['today_bid'] !== false);
+        const tdBothSelected = (tdAskSelected && tdBidSelected);
+        const tdAnySelected = (tdAskSelected || tdBidSelected);
+        const tdAskQty = tdAskItem ? (tdAskItem.qty >= 1000 ? (tdAskItem.qty / 1000).toFixed(1) + 'k' : tdAskItem.qty) : '--';
+        const tdBidQty = tdBidItem ? (tdBidItem.qty >= 1000 ? (tdBidItem.qty / 1000).toFixed(1) + 'k' : tdBidItem.qty) : '--';
 
-                        <!-- Bid SUP Pill -->
-                        <button type="button" onclick="toggleHistOfLevel('${day.date}', 'bid')" 
-                            class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${bidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                            title="${bidItem ? (isBothMode ? `Spot: ₹${bidSpot} | Fut: ₹${bidRaw} [${bidQty}]` : (isSpotMode ? bidItem.label : bidItem.raw_label)) : 'No Bid record'}">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
-                                <span class="text-[8px] font-mono px-1 rounded ${bidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${bidSelected ? 'ON' : 'OFF'}</span>
-                            </div>
-                            ${bidPriceHtml}
-                            <div class="text-[8.5px] text-gray-400">${bidQty} ${bidItem?.time ? '· ' + bidItem.time : ''}</div>
-                        </button>
-                    </div>
+        html += `
+            <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${tdAnySelected ? 'border-teal-500/60 bg-teal-950/20' : 'border-gray-800'} space-y-1">
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-1.5 cursor-pointer select-none" onclick="event.stopPropagation()">
+                        <input type="checkbox" ${tdBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('today', event)" class="rounded accent-teal-500 cursor-pointer">
+                        <span class="font-bold text-[11px] text-teal-300">TODAY LIVE (DYNAMIC)</span>
+                        <span class="px-1 py-0 rounded text-[8px] bg-emerald-500/20 text-emerald-400 font-mono font-bold border border-emerald-500/30">LIVE</span>
+                    </label>
+                    <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
+                        <span class="w-2 h-0.5 inline-block bg-teal-400"></span>
+                        <span>${orderFlowLevelsData?.date || 'TODAY'}</span>
+                    </span>
                 </div>
-            `;
-        });
+                <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
+                    <!-- Today Ask RES Pill -->
+                    <button type="button" onclick="toggleHistOfLevel('today', 'ask', event)" 
+                        class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${tdAskSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                        title="Today Ask (RES)">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
+                            <span class="text-[8px] font-mono px-1 rounded ${tdAskSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${tdAskSelected ? 'ON' : 'OFF'}</span>
+                        </div>
+                        ${formatPillPrice(tdAskItem)}
+                        <div class="text-[8.5px] text-gray-400">${tdAskQty} ${tdAskItem?.time ? '· ' + tdAskItem.time : ''}</div>
+                    </button>
+
+                    <!-- Today Bid SUP Pill -->
+                    <button type="button" onclick="toggleHistOfLevel('today', 'bid', event)" 
+                        class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${tdBidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                        title="Today Bid (SUP)">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
+                            <span class="text-[8px] font-mono px-1 rounded ${tdBidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${tdBidSelected ? 'ON' : 'OFF'}</span>
+                        </div>
+                        ${formatPillPrice(tdBidItem)}
+                        <div class="text-[8.5px] text-gray-400">${tdBidQty} ${tdBidItem?.time ? '· ' + tdBidItem.time : ''}</div>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // 2. PAST 5 DAYS HISTORICAL CARDS
+        if (multiDayOfData && multiDayOfData.days && multiDayOfData.days.length > 0) {
+            multiDayOfData.days.forEach(day => {
+                const askKey = `${day.date}_ask`;
+                const bidKey = `${day.date}_bid`;
+                const askSelected = !!multiDayOfSelected[askKey];
+                const bidSelected = !!multiDayOfSelected[bidKey];
+                const isBothSelected = (askSelected && bidSelected);
+                const isAnySelected = (askSelected || bidSelected);
+
+                const askItem = day.ask;
+                const bidItem = day.bid;
+                const askQty = askItem ? (askItem.qty >= 1000 ? (askItem.qty / 1000).toFixed(1) + 'k' : askItem.qty) : '--';
+                const bidQty = bidItem ? (bidItem.qty >= 1000 ? (bidItem.qty / 1000).toFixed(1) + 'k' : bidItem.qty) : '--';
+                const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
+                const isYd = (day.day_offset === 1);
+
+                html += `
+                    <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${isAnySelected ? 'border-amber-500/50 bg-amber-950/15' : 'border-gray-800'} space-y-1">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-1.5 cursor-pointer select-none" onclick="event.stopPropagation()">
+                                <input type="checkbox" ${isBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('${day.date}', event)" class="rounded accent-amber-500 cursor-pointer">
+                                <span class="font-bold text-[11px] ${isYd ? 'text-amber-300' : 'text-gray-200'}">${day.formatted_date} (${day.day_code})</span>
+                                ${isYd ? '<span class="px-1 py-0 rounded text-[7.5px] bg-amber-500/20 text-amber-300 font-mono font-bold">YD</span>' : ''}
+                            </label>
+                            <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
+                                <span class="w-2 h-0.5 inline-block" style="background-color: ${colors.res};"></span>
+                                <span>D-${day.day_offset}</span>
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
+                            <!-- Ask RES Pill -->
+                            <button type="button" onclick="toggleHistOfLevel('${day.date}', 'ask', event)" 
+                                class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${askSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                                title="${askItem ? (isBothMode ? `Spot: ₹${askItem.calibrated_price || askItem.price} | Fut: ₹${askItem.raw_price || askItem.price} [${askQty}]` : (isSpotMode ? askItem.label : askItem.raw_label)) : 'No Ask record'}">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
+                                    <span class="text-[8px] font-mono px-1 rounded ${askSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${askSelected ? 'ON' : 'OFF'}</span>
+                                </div>
+                                ${formatPillPrice(askItem)}
+                                <div class="text-[8.5px] text-gray-400">${askQty} ${askItem?.time ? '· ' + askItem.time : ''}</div>
+                            </button>
+
+                            <!-- Bid SUP Pill -->
+                            <button type="button" onclick="toggleHistOfLevel('${day.date}', 'bid', event)" 
+                                class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${bidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
+                                title="${bidItem ? (isBothMode ? `Spot: ₹${bidItem.calibrated_price || bidItem.price} | Fut: ₹${bidItem.raw_price || bidItem.price} [${bidQty}]` : (isSpotMode ? bidItem.label : bidItem.raw_label)) : 'No Bid record'}">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
+                                    <span class="text-[8px] font-mono px-1 rounded ${bidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${bidSelected ? 'ON' : 'OFF'}</span>
+                                </div>
+                                ${formatPillPrice(bidItem)}
+                                <div class="text-[8.5px] text-gray-400">${bidQty} ${bidItem?.time ? '· ' + bidItem.time : ''}</div>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
         listEl.innerHTML = html;
         updateHistOfBadgeCount();
@@ -3537,9 +3718,17 @@
         }
 
         histOfDropdownTrigger = source;
+        const targetBadge = document.getElementById('of-menu-chart-target');
+        if (targetBadge) {
+            targetBadge.textContent = (source === 'w') ? 'Chart 1 (5M)' : (source === 'o' ? 'Chart 2 (15M)' : 'Settings Modal');
+        }
+
+        updateOfMenuMasterUI();
+        updateOfBasisButtonsUI();
+
         const rect = btnEl.getBoundingClientRect();
         dd.style.top = `${rect.bottom + window.scrollY + 4}px`;
-        dd.style.left = `${Math.max(10, Math.min(window.innerWidth - 390, rect.left + window.scrollX))}px`;
+        dd.style.left = `${Math.max(10, Math.min(window.innerWidth - 410, rect.left + window.scrollX))}px`;
         dd.classList.remove('hidden');
 
         if (!multiDayOfData) {
@@ -3560,9 +3749,27 @@
     document.addEventListener('click', function(e) {
         const dd = document.getElementById('hist-of-levels-dropdown');
         if (!dd || dd.classList.contains('hidden')) return;
-        const btnW = document.getElementById('w-hist-of-dropdown-btn');
-        const btnO = document.getElementById('o-hist-of-dropdown-btn');
-        if (!dd.contains(e.target) && (!btnW || !btnW.contains(e.target)) && (!btnO || !btnO.contains(e.target))) {
+        const btnW = document.getElementById('w-of-menu-btn');
+        const btnO = document.getElementById('o-of-menu-btn');
+
+        // 1. If click is on trigger buttons, ignore (handled by their onclick)
+        if ((btnW && btnW.contains(e.target)) || (btnO && btnO.contains(e.target))) {
+            return;
+        }
+        // 2. If click is inside the dropdown or its event path, DO NOT CLOSE
+        if (dd.contains(e.target) || (e.composedPath && e.composedPath().includes(dd))) {
+            return;
+        }
+        // 3. Fallback: check bounding client rect of dropdown to guard against replaced DOM elements
+        const rect = dd.getBoundingClientRect();
+        if (rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+            return;
+        }
+        closeHistOfDropdown();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
             closeHistOfDropdown();
         }
     });
