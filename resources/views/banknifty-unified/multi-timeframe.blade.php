@@ -445,9 +445,10 @@
                         <div id="w-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
                             <!-- Session Break Vertical Line -->
                             <div id="w-day-separator" class="day-separator pointer-events-none absolute top-0 bottom-[26px] z-10 hidden" style="width: 1px;">
-                                <div class="h-full border-l border-dashed border-indigo-400/80 shadow-[0_0_8px_rgba(129,140,248,0.5)]"></div>
-                                <div class="absolute top-2 -translate-x-1/2 bg-slate-900/95 text-indigo-300 text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border border-indigo-500/50 shadow-lg whitespace-nowrap">
-                                    SESSION BREAK
+                                <div class="h-full border-l-2 border-dashed border-sky-400/80 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></div>
+                                <div class="absolute top-2 -translate-x-1/2 flex items-center gap-1.5 bg-[#0d1322]/95 text-sky-300 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full border border-sky-500/50 shadow-xl whitespace-nowrap select-none backdrop-blur-xs">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span id="w-day-sep-label">TODAY</span>
                                 </div>
                             </div>
 
@@ -810,9 +811,10 @@
                         <div id="o-chart-container" class="w-full relative rounded overflow-hidden" style="height: 420px;">
                             <!-- Session Break Vertical Line -->
                             <div id="o-day-separator" class="day-separator pointer-events-none absolute top-0 bottom-[26px] z-10 hidden" style="width: 1px;">
-                                <div class="h-full border-l border-dashed border-indigo-400/80 shadow-[0_0_8px_rgba(129,140,248,0.5)]"></div>
-                                <div class="absolute top-2 -translate-x-1/2 bg-slate-900/95 text-indigo-300 text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border border-indigo-500/50 shadow-lg whitespace-nowrap">
-                                    SESSION BREAK
+                                <div class="h-full border-l-2 border-dashed border-purple-400/80 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                                <div class="absolute top-2 -translate-x-1/2 flex items-center gap-1.5 bg-[#0d1322]/95 text-purple-300 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full border border-purple-500/50 shadow-xl whitespace-nowrap select-none backdrop-blur-xs">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                                    <span id="o-day-sep-label">TODAY</span>
                                 </div>
                             </div>
 
@@ -7329,9 +7331,12 @@
                 }
             });
 
-            wChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
-                if (typeof updateDaySeparators === 'function') updateDaySeparators();
-            });
+            wChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+            wChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
+            if (oChart) {
+                oChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+                oChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
+            }
         }
 
         // Row 2: Options Breadth Candlestick Chart (75% width)
@@ -7410,9 +7415,12 @@
                 }
             });
 
-            wChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
-                if (typeof updateDaySeparators === 'function') updateDaySeparators();
-            });
+            wChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+            wChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
+            if (oChart) {
+                oChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+                oChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
+            }
         }
 
         window.addEventListener('resize', () => {
@@ -7536,6 +7544,99 @@
     window.reloadChart2Options = reloadChart2Options;
 
     // ── 5. Unified Data Fetcher ───────────────────────────────────────────────────
+    function updateDaySeparators() {
+        const isLiveDate = (typeof isLiveToday === 'function' ? isLiveToday() : (selectedDate === new Date().toISOString().slice(0, 10)));
+        const labelText = isLiveDate ? 'TODAY' : selectedDate;
+
+        const sepW = document.getElementById('w-day-separator');
+        const containerW = document.getElementById('w-chart-container');
+        if (wChart && sepW && containerW) {
+            try {
+                const timeTd = window._wTodayFirstTime;
+                const timeYd = window._wYesterdayLastTime;
+
+                let x = null;
+                const barSpacing = (typeof wChart.timeScale?.().options === 'function' ? wChart.timeScale().options().barSpacing : 6) || 6;
+
+                if (timeTd && timeYd) {
+                    const xTd = wChart.timeScale().timeToCoordinate(timeTd);
+                    const xYd = wChart.timeScale().timeToCoordinate(timeYd);
+                    if (xTd !== null && xYd !== null) {
+                        x = (xTd + xYd) / 2;
+                    } else if (xTd !== null) {
+                        x = xTd - (barSpacing / 2);
+                    } else if (xYd !== null) {
+                        x = xYd + (barSpacing / 2);
+                    }
+                } else if (timeTd) {
+                    const xTd = wChart.timeScale().timeToCoordinate(timeTd);
+                    if (xTd !== null) x = xTd - (barSpacing / 2);
+                } else if (timeYd) {
+                    const xYd = wChart.timeScale().timeToCoordinate(timeYd);
+                    if (xYd !== null) x = xYd + (barSpacing / 2);
+                }
+
+                const maxW = containerW.clientWidth || 99999;
+                if (x !== null && !isNaN(x) && x >= 0 && x <= maxW) {
+                    sepW.style.left = `${Math.round(x)}px`;
+                    const lblW = document.getElementById('w-day-sep-label');
+                    if (lblW) lblW.textContent = labelText;
+                    sepW.classList.remove('hidden');
+                } else {
+                    sepW.classList.add('hidden');
+                }
+            } catch (e) {
+                sepW.classList.add('hidden');
+            }
+        } else if (sepW) {
+            sepW.classList.add('hidden');
+        }
+
+        const sepO = document.getElementById('o-day-separator');
+        const containerO = document.getElementById('o-chart-container');
+        if (oChart && sepO && containerO) {
+            try {
+                const timeTd = window._oTodayFirstTime;
+                const timeYd = window._oYesterdayLastTime;
+
+                let x = null;
+                const barSpacing = (typeof oChart.timeScale?.().options === 'function' ? oChart.timeScale().options().barSpacing : 6) || 6;
+
+                if (timeTd && timeYd) {
+                    const xTd = oChart.timeScale().timeToCoordinate(timeTd);
+                    const xYd = oChart.timeScale().timeToCoordinate(timeYd);
+                    if (xTd !== null && xYd !== null) {
+                        x = (xTd + xYd) / 2;
+                    } else if (xTd !== null) {
+                        x = xTd - (barSpacing / 2);
+                    } else if (xYd !== null) {
+                        x = xYd + (barSpacing / 2);
+                    }
+                } else if (timeTd) {
+                    const xTd = oChart.timeScale().timeToCoordinate(timeTd);
+                    if (xTd !== null) x = xTd - (barSpacing / 2);
+                } else if (timeYd) {
+                    const xYd = oChart.timeScale().timeToCoordinate(timeYd);
+                    if (xYd !== null) x = xYd + (barSpacing / 2);
+                }
+
+                const maxW = containerO.clientWidth || 99999;
+                if (x !== null && !isNaN(x) && x >= 0 && x <= maxW) {
+                    sepO.style.left = `${Math.round(x)}px`;
+                    const lblO = document.getElementById('o-day-sep-label');
+                    if (lblO) lblO.textContent = labelText;
+                    sepO.classList.remove('hidden');
+                } else {
+                    sepO.classList.add('hidden');
+                }
+            } catch (e) {
+                sepO.classList.add('hidden');
+            }
+        } else if (sepO) {
+            sepO.classList.add('hidden');
+        }
+    }
+    window.updateDaySeparators = updateDaySeparators;
     function showChartLoaders(dateStr = selectedDate) {
         const wLoader = document.getElementById('w-chart-loading');
         const oLoader = document.getElementById('o-chart-loading');
@@ -8178,12 +8279,14 @@
             window._wCandleMarkers = markers;
             wCandleSeries.setMarkers(markers);
             window._wTodayTime = firstTodayTime;
+            window._wTodayFirstTime = todayCandles.length > 0 ? todayCandles[0].time : null;
             window._wYesterdayLastTime = yesterdayCandles.length > 0 ? yesterdayCandles[yesterdayCandles.length - 1].time : null;
             if (wChart) adjustChartTimeScale(wChart, todayCandles, yesterdayCandles, wTimeframe);
             drawWeightageQuantLines();
             drawWeightageOrderFlowLines();
             renderWeightageOverlays();
-            setTimeout(updateDaySeparators, 100);
+            setTimeout(updateDaySeparators, 50);
+            setTimeout(updateDaySeparators, 200);
         }
 
         const wSlider = document.getElementById('w-slider');
@@ -8601,12 +8704,14 @@
             window._oCandleMarkers = markers;
             oCandleSeries.setMarkers(markers);
             window._oTodayTime = firstTodayTime;
+            window._oTodayFirstTime = todayCandles.length > 0 ? todayCandles[0].time : null;
             window._oYesterdayLastTime = yesterdayCandles.length > 0 ? yesterdayCandles[yesterdayCandles.length - 1].time : null;
             if (oChart) adjustChartTimeScale(oChart, todayCandles, yesterdayCandles, oTimeframe);
             drawOptionsQuantLines();
             drawOptionsOrderFlowLines();
             renderOptionsOverlays();
-            setTimeout(updateDaySeparators, 100);
+            setTimeout(updateDaySeparators, 50);
+            setTimeout(updateDaySeparators, 200);
         }
 
         const oSlider = document.getElementById('o-slider');
