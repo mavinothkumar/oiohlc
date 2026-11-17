@@ -383,12 +383,7 @@
                                     <span id="w-candle-style-icon">🕯️</span>
                                     <span id="w-candle-style-badge" class="font-mono text-emerald-400 font-extrabold">CANDLE</span>
                                 </button>
-                                <button type="button" onclick="toggleWeightageQuantLines()" 
-                                    class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-blue-950/80 border-blue-500/50 text-blue-300 hover:bg-blue-900 cursor-pointer"
-                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Weightage chart">
-                                    <span>📐 S/R:</span>
-                                    <span id="w-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-                                </button>
+
                                 <button type="button" id="w-of-menu-btn" onclick="toggleHistOfDropdown('w', this)" 
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer select-none"
                                     title="Order Flow Levels Menu (Live Today & 5D Historical S/R, Basis & Filters)">
@@ -753,12 +748,7 @@
                                     <span id="o-candle-style-icon">🕯️</span>
                                     <span id="o-candle-style-badge" class="font-mono text-emerald-400 font-extrabold">CANDLE</span>
                                 </button>
-                                <button id="btn-toggle-quant-lines" type="button" onclick="toggleOptionsQuantLines()" 
-                                    class="ml-1 sm:ml-2 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-indigo-950/80 border-indigo-500/50 text-indigo-300 hover:bg-indigo-900 cursor-pointer"
-                                    title="Toggle Institutional Quant S/R Lines (R1-R3, Pivot, S1-S3) on Options chart">
-                                    <span>📐 S/R:</span>
-                                    <span id="quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-                                </button>
+
                                 <button type="button" id="o-of-menu-btn" onclick="toggleHistOfDropdown('o', this)" 
                                     class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 bg-teal-950/80 border-teal-500/50 text-teal-300 hover:bg-teal-900 cursor-pointer select-none"
                                     title="Order Flow Levels Menu (Live Today & 5D Historical S/R, Basis & Filters)">
@@ -2757,8 +2747,8 @@
 
     // Decoupled Quant S/R Lines Data & Instances per chart
     let quantPlaybookData = @json($quantPlaybook ?? null);
-    let wShowQuantLines = localStorage.getItem('nifty_unified_w_quant_lines') !== 'false'; // default true
-    let oShowQuantLines = localStorage.getItem('nifty_unified_o_quant_lines') !== 'false'; // default true
+    let wShowQuantLines = false; // Quant S/R chart lines removed
+    let oShowQuantLines = false; // Quant S/R chart lines removed
     let quantPriceLinesOptions = [];
     let quantPriceLinesWeightage = [];
 
@@ -7833,9 +7823,13 @@
                 const oUpTh = alarmSettings.optionsUpThreshold || 70;
                 const oDownTh = alarmSettings.optionsDownThreshold || 70;
 
-                let lastPos = null;
-                let lastMarkerIdx = -999;
-                let lastPeakPct = 0;
+                let lastStkPos = null;
+                let lastStkMarkerIdx = -999;
+                let lastStkPeakPct = 0;
+
+                let lastOptPos = null;
+                let lastOptMarkerIdx = -999;
+                let lastOptPeakPct = 0;
 
                 // Cumulative Intraday VWAP for HTF Alignment
                 let cumVol = 0, cumVolPrice = 0;
@@ -7921,43 +7915,42 @@
                         }
                     }
 
-                    // 3. Resolve EXACTLY ONE clean signal per candle on Chart 1 (Stocks Chart)
-                    let sig = null;
-                    // Confluence (Both agree with candle direction)
-                    if (showStocks && showOptions && cleanStkBull && cleanOptBull && isCandleGreen) {
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#10b981', text: `🔥 CONF ${sPct}%`, pct: sPct };
-                    } else if (showStocks && showOptions && cleanStkBear && cleanOptBear && !isCandleGreen) {
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ef4444', text: `🔥 CONF ${sPct}%`, pct: sPct };
-                    }
-                    // Trap Signals (Price and Breadth Divergence)
-                    else if ((showStocks && sBear && isCandleGreen) || (showOptions && oBear && isCandleGreen)) {
-                        // Bull Trap (Bearish fade)
-                        const isBoth = (showStocks && sBear && showOptions && oBear);
-                        const p = isBoth ? Math.max(sPct, oPct) : (sBear ? sPct : oPct);
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: isBoth ? `⚠️ CONF TRAP ${p}%` : `⚠️ TRAP ${p}%`, pct: p };
-                    } else if ((showStocks && sBull && !isCandleGreen) || (showOptions && oBull && !isCandleGreen)) {
-                        // Bear Trap (Bullish absorption)
-                        const isBoth = (showStocks && sBull && showOptions && oBull);
-                        const p = isBoth ? Math.max(sPct, oPct) : (sBull ? sPct : oPct);
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: isBoth ? `⚡ CONF TRAP ${p}%` : `⚡ TRAP ${p}%`, pct: p };
-                    }
-                    // Native Stock Entries on Chart 1
-                    else if (showStocks && cleanStkBull && isCandleGreen) {
-                        const isDiv = showOptions && oBear;
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#38bdf8' : '#10b981', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct };
-                    } else if (showStocks && cleanStkBear && !isCandleGreen) {
-                        const isDiv = showOptions && oBull;
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#fb7185' : '#ef4444', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct };
-                    }
-                    // Option Entries on Chart 1 (when enabled and Stock is neutral)
-                    else if (showOptions && cleanOptBull && isCandleGreen) {
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#a855f7', text: `OPT ${oPct}%`, pct: oPct };
-                    } else if (showOptions && cleanOptBear && !isCandleGreen) {
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ec4899', text: `OPT ${oPct}%`, pct: oPct };
+                    // 3. Independent Signal Resolution on Chart 1 (Stocks Chart)
+                    // Stock candidate (Primary)
+                    let stkSig = null;
+                    if (showStocks) {
+                        if (cleanStkBull && isCandleGreen) {
+                            const isDiv = showOptions && oBear;
+                            stkSig = { type: 'stk', pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#38bdf8' : '#10b981', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct, isDiv };
+                        } else if (cleanStkBear && !isCandleGreen) {
+                            const isDiv = showOptions && oBull;
+                            stkSig = { type: 'stk', pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#fb7185' : '#ef4444', text: isDiv ? `STK ${sPct}% ⚡DIV` : `STK ${sPct}%`, pct: sPct, isDiv };
+                        } else if (sBear && isCandleGreen) {
+                            // Bear Trap (Breadth red, candle green)
+                            stkSig = { type: 'stk_trap', pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: `⚠️ TRAP ${sPct}%`, pct: sPct };
+                        } else if (sBull && !isCandleGreen) {
+                            // Bull Trap (Breadth green, candle red)
+                            stkSig = { type: 'stk_trap', pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: `⚡ TRAP ${sPct}%`, pct: sPct };
+                        }
                     }
 
-                    // ── 4. Apply Active Quant Edge Filters (5 Boosters) ──
-                    if (sig) {
+                    // Option candidate (Secondary on Chart 1)
+                    let optSig = null;
+                    if (showOptions) {
+                        if (cleanOptBull && isCandleGreen) {
+                            optSig = { type: 'opt', pos: 'belowBar', shape: 'arrowUp', color: '#a855f7', text: `OPT ${oPct}%`, pct: oPct };
+                        } else if (cleanOptBear && !isCandleGreen) {
+                            optSig = { type: 'opt', pos: 'aboveBar', shape: 'arrowDown', color: '#ec4899', text: `OPT ${oPct}%`, pct: oPct };
+                        } else if (oBear && isCandleGreen) {
+                            optSig = { type: 'opt_trap', pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: `⚠️ TRAP ${oPct}%`, pct: oPct };
+                        } else if (oBull && !isCandleGreen) {
+                            optSig = { type: 'opt_trap', pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: `⚡ TRAP ${oPct}%`, pct: oPct };
+                        }
+                    }
+
+                    // Helper to apply Quant Edge Filters to a signal
+                    const applyFilters = (sig) => {
+                        if (!sig) return null;
                         const sigIsBull = (sig.pos === 'belowBar');
 
                         // Filter 1: Adaptive Heikin-Ashi Stop Reference
@@ -7966,150 +7959,207 @@
                             slPrice = sigIsBull ? (wHaAnalysis.haLow || Number(c.low)) : (wHaAnalysis.haHigh || Number(c.high));
                         }
 
-                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0, blocks exhaustion entries)
+                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0)
                         if (alarmSettings.filterBreadthVelocity !== false && cIdx > 0) {
-                            const prevCandle = rawCandles[cIdx - 1];
-                            const prevB = prevCandle ? weightageData.breadth_by_time?.[prevCandle.time_str] : null;
-                            const prevOb = prevCandle ? breadthData?.breadth_by_time?.[prevCandle.time_str] : null;
-
-                            if (sigIsBull) {
-                                const currGreen = b ? Number(b.green_count_pct || 0) : oPct;
-                                const prevGreen = prevB ? Number(prevB.green_count_pct || 0) : (prevOb ? Number(prevOb.up_weight || 0) : 0);
-                                if (prevGreen > 0 && currGreen < prevGreen - 4) {
-                                    sig.isExhausting = true;
-                                    sig.text += ' ⚠️EXH';
-                                }
-                            } else {
-                                const currRed = b ? Number(b.red_count_pct || 0) : oPct;
-                                const prevRed = prevB ? Number(prevB.red_count_pct || 0) : (prevOb ? Number(prevOb.down_weight || 0) : 0);
-                                if (prevRed > 0 && currRed < prevRed - 4) {
-                                    sig.isExhausting = true;
-                                    sig.text += ' ⚠️EXH';
-                                }
+                            const prevCandle = todayCandles[cIdx - 1];
+                            if (sig.type.startsWith('stk')) {
+                                const curScore = sigIsBull ? (c.stock_up_count || 0) : (c.stock_down_count || 0);
+                                const prevScore = sigIsBull ? (prevCandle?.stock_up_count || 0) : (prevCandle?.stock_down_count || 0);
+                                if (curScore < prevScore) return null;
+                            } else if (sig.type.startsWith('opt')) {
+                                const curBull = (c.call_buying_score || 0) + (c.put_covering_score || 0);
+                                const curBear = (c.put_buying_score || 0) + (c.call_writing_score || 0);
+                                const prevBull = (prevCandle?.call_buying_score || 0) + (prevCandle?.put_covering_score || 0);
+                                const prevBear = (prevCandle?.put_buying_score || 0) + (prevCandle?.call_writing_score || 0);
+                                if (isBull && curBull < prevBull) return null;
+                                if (!isBull && curBear < prevBear) return null;
                             }
                         }
 
-                        // Filter 3: Higher Timeframe Regime Alignment (15m SuperTrend / VWAP)
+                        // Filter 3: Higher Timeframe (HTF) Alignment on fast intraday charts (1m/3m/5m)
                         if (alarmSettings.filterHtfAlignment !== false && ['1m', '3m', '5m'].includes(wTimeframe)) {
-                            const vwap = vwapMap[c.time_str];
-                            if (vwap && vwap > 0) {
-                                const closeP = Number(c.close);
-                                if (sigIsBull && closeP < vwap) {
-                                    sig.isCounterTrend = true;
-                                    sig.text += ' ⚡CTR';
-                                    sig.color = '#38bdf8';
-                                } else if (!sigIsBull && closeP > vwap) {
-                                    sig.isCounterTrend = true;
-                                    sig.text += ' ⚡CTR';
-                                    sig.color = '#fb7185';
-                                }
+                            if (quantPlaybookData && quantPlaybookData.vwap) {
+                                const vwap = parseFloat(quantPlaybookData.vwap);
+                                if (sigIsBull && Number(c.close) < vwap) return null;
+                                if (!sigIsBull && Number(c.close) > vwap) return null;
                             }
                         }
 
-                        // Filter 4: Quant S/R Proximity Guard (Min 1.2x Risk-to-Reward clearance)
-                        if (alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
-                            const closeP = Number(c.close);
+                        // Filter 4: Quant S/R Proximity Guard (only when quant lines active)
+                        if (wShowQuantLines && alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
+                            const curClose = Number(c.close);
+                            const risk = Math.max(10, Math.abs(curClose - slPrice));
                             if (sigIsBull) {
-                                const overheadLevels = quantPlaybookData.levels
-                                    .map(l => Number(l.price))
-                                    .filter(p => !isNaN(p) && p > closeP)
-                                    .sort((a,b) => a - b);
-                                if (overheadLevels.length > 0) {
-                                    const nearestRes = overheadLevels[0];
-                                    const distToRes = nearestRes - closeP;
-                                    const riskDist = Math.max(25, closeP - slPrice);
-                                    if (distToRes < 1.0 * riskDist) {
-                                        sig.isSrClose = true;
-                                        sig.text += ' ⚠️S/R';
-                                    }
-                                }
+                                const aboveLevels = quantPlaybookData.levels
+                                    .map(l => parseFloat(l.price))
+                                    .filter(p => p > curClose)
+                                    .sort((a, b) => a - b);
+                                if (aboveLevels.length > 0 && (aboveLevels[0] - curClose) < (1.2 * risk)) return null;
                             } else {
                                 const belowLevels = quantPlaybookData.levels
-                                    .map(l => Number(l.price))
-                                    .filter(p => !isNaN(p) && p < closeP)
-                                    .sort((a,b) => b - a);
-                                if (belowLevels.length > 0) {
-                                    const nearestSup = belowLevels[0];
-                                    const distToSup = closeP - nearestSup;
-                                    const riskDist = Math.max(25, slPrice - closeP);
-                                    if (distToSup < 1.0 * riskDist) {
-                                        sig.isSrClose = true;
-                                        sig.text += ' ⚠️S/R';
-                                    }
-                                }
+                                    .map(l => parseFloat(l.price))
+                                    .filter(p => p < curClose)
+                                    .sort((a, b) => b - a);
+                                if (belowLevels.length > 0 && (curClose - belowLevels[0]) < (1.2 * risk)) return null;
                             }
                         }
 
-                        // Filter 5: Options OI Delta & Fresh Writing Confirmation
-                        if (alarmSettings.filterOiDeltaConfirmation !== false && trendingOiData && trendingOiData.chart && trendingOiData.chart.timestamps) {
-                            const tIdx = trendingOiData.chart.timestamps.indexOf(c.time_str);
-                            if (tIdx > 0) {
-                                const peCur = Number(trendingOiData.chart.pe_oi?.[tIdx] || 0);
-                                const pePrev = Number(trendingOiData.chart.pe_oi?.[tIdx - 1] || 0);
-                                const ceCur = Number(trendingOiData.chart.ce_oi?.[tIdx] || 0);
-                                const cePrev = Number(trendingOiData.chart.ce_oi?.[tIdx - 1] || 0);
+                        // Filter 5: Options OI Delta Confirmation (Flow Alignment) - don't suppress intentional DIV alerts
+                        if (!sig.isDiv && alarmSettings.filterOiDeltaConfirmation !== false && breadthData && breadthData.candles) {
+                            const optCandle = breadthData.candles.find(bc => bc.time === c.time || bc.timestamp === c.timestamp);
+                            if (optCandle) {
+                                const optBullFlow = (optCandle.call_buying_score || 0) + (optCandle.put_covering_score || 0);
+                                const optBearFlow = (optCandle.put_buying_score || 0) + (optCandle.call_writing_score || 0);
+                                if (sigIsBull && optBearFlow > 70 && optBullFlow < 30) return null;
+                                if (!sigIsBull && optBullFlow > 70 && optBearFlow < 30) return null;
+                            }
+                        }
 
-                                if (sigIsBull && pePrev > 0 && (peCur < pePrev - 50000)) {
-                                    sig.text += ' 📊OI DIV';
-                                } else if (!sigIsBull && cePrev > 0 && (ceCur < cePrev - 50000)) {
-                                    sig.text += ' 📊OI DIV';
+                        return sig;
+                    };
+
+                    stkSig = applyFilters(stkSig);
+                    optSig = applyFilters(optSig);
+
+                    // Check Confluence first (Both agree with same candle direction)
+                    let confSig = null;
+                    if (stkSig && optSig && stkSig.pos === optSig.pos) {
+                        const isBull = (stkSig.pos === 'belowBar');
+                        if (stkSig.type === 'stk' && optSig.type === 'opt') {
+                            confSig = {
+                                pos: stkSig.pos,
+                                shape: stkSig.shape,
+                                color: isBull ? '#10b981' : '#ef4444',
+                                text: `🔥 CONF ${sPct}%`,
+                                pct: sPct,
+                            };
+                        } else if (stkSig.type === 'stk_trap' && optSig.type === 'opt_trap') {
+                            const p = Math.max(sPct, oPct);
+                            confSig = {
+                                pos: stkSig.pos,
+                                shape: stkSig.shape,
+                                color: isBull ? '#06b6d4' : '#f59e0b',
+                                text: isBull ? `⚡ CONF TRAP ${p}%` : `⚠️ CONF TRAP ${p}%`,
+                                pct: p,
+                            };
+                        }
+                    }
+
+                    let candleHasMarker = false;
+
+                    if (confSig) {
+                        const isFlip = (lastStkPos !== confSig.pos);
+                        const barsSinceLast = cIdx - lastStkMarkerIdx;
+                        let pushConf = false;
+                        let markerText = confSig.text + openTag;
+
+                        if (isFlip) {
+                            pushConf = true;
+                        } else if (confSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
+                            pushConf = true;
+                            markerText = `🔥 CONF Pk ${confSig.pct}%`;
+                        } else if (barsSinceLast >= 3) {
+                            pushConf = true;
+                        }
+
+                        if (pushConf) {
+                            markers.push({
+                                time: candleTime,
+                                position: confSig.pos,
+                                color: confSig.color,
+                                shape: confSig.shape,
+                                text: markerText,
+                                size: 1,
+                            });
+                            lastStkPos = confSig.pos;
+                            lastStkMarkerIdx = cIdx;
+                            lastStkPeakPct = confSig.pct;
+
+                            lastOptPos = confSig.pos;
+                            lastOptMarkerIdx = cIdx;
+                            lastOptPeakPct = confSig.pct;
+                            candleHasMarker = true;
+                        }
+                    } else {
+                        // Independent STK signal evaluation (Primary on Chart 1)
+                        let pushedStk = false;
+                        if (stkSig) {
+                            const isFlip = (lastStkPos !== stkSig.pos);
+                            const barsSinceLast = cIdx - lastStkMarkerIdx;
+                            let pushSig = false;
+                            let markerText = stkSig.text + openTag;
+
+                            if (isFlip) {
+                                pushSig = true;
+                            } else if (stkSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
+                                pushSig = true;
+                                markerText = `Pk ${stkSig.pct}%`;
+                            } else if (barsSinceLast >= 3) {
+                                pushSig = true;
+                            }
+
+                            if (pushSig) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: stkSig.pos,
+                                    color: stkSig.color,
+                                    shape: stkSig.shape,
+                                    text: markerText,
+                                    size: 1,
+                                });
+                                lastStkPos = stkSig.pos;
+                                lastStkMarkerIdx = cIdx;
+                                lastStkPeakPct = stkSig.pct;
+                                pushedStk = true;
+                                candleHasMarker = true;
+                            }
+                        }
+
+                        // Independent OPT signal evaluation (Secondary on Chart 1)
+                        if (optSig) {
+                            const sameSideConflict = pushedStk && stkSig && (stkSig.pos === optSig.pos);
+                            if (!sameSideConflict) {
+                                const isFlip = (lastOptPos !== optSig.pos);
+                                const barsSinceLast = cIdx - lastOptMarkerIdx;
+                                let pushSig = false;
+                                let markerText = optSig.text + openTag;
+
+                                if (isFlip) {
+                                    pushSig = true;
+                                } else if (optSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
+                                    pushSig = true;
+                                    markerText = `OPT Pk ${optSig.pct}%`;
+                                } else if (barsSinceLast >= 3) {
+                                    pushSig = true;
+                                }
+
+                                if (pushSig) {
+                                    markers.push({
+                                        time: candleTime,
+                                        position: optSig.pos,
+                                        color: optSig.color,
+                                        shape: optSig.shape,
+                                        text: markerText,
+                                        size: 1,
+                                    });
+                                    lastOptPos = optSig.pos;
+                                    lastOptMarkerIdx = cIdx;
+                                    lastOptPeakPct = optSig.pct;
+                                    candleHasMarker = true;
                                 }
                             }
                         }
                     }
 
-                    if (sig) {
-                        const isFlip = (lastPos !== sig.pos);
-                        const barsSinceLast = cIdx - lastMarkerIdx;
-
-                        if (isFlip) {
-                            markers.push({
-                                time: candleTime,
-                                position: sig.pos,
-                                color: sig.color,
-                                shape: sig.shape,
-                                text: sig.text + openTag,
-                                size: 1,
-                            });
-                            lastPos = sig.pos;
-                            lastMarkerIdx = cIdx;
-                            lastPeakPct = sig.pct;
-                        } else {
-                            if (sig.pct >= lastPeakPct + 5 && barsSinceLast >= 2) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: sig.pos,
-                                    color: sig.color,
-                                    shape: sig.shape,
-                                    text: `Pk ${sig.pct}%`,
-                                    size: 1,
-                                });
-                                lastPeakPct = sig.pct;
-                                lastMarkerIdx = cIdx;
-                            } else if (barsSinceLast >= 3) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: sig.pos,
-                                    color: sig.color,
-                                    shape: sig.shape,
-                                    text: sig.text + openTag,
-                                    size: 1,
-                                });
-                                lastMarkerIdx = cIdx;
-                                lastPeakPct = Math.max(lastPeakPct, sig.pct);
-                            }
-                        }
-                    } else {
-                        if (isOpenCandle) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#38bdf8',
-                                shape: 'arrowDown',
-                                text: 'TODAY',
-                                size: 1,
-                            });
-                        }
+                    if (!candleHasMarker && isOpenCandle) {
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: '#38bdf8',
+                            shape: 'arrowDown',
+                            text: 'TODAY',
+                            size: 1,
+                        });
                     }
                 });
             } else {
@@ -8124,6 +8174,7 @@
                     });
                 }
             }
+            markers.sort((a, b) => a.time - b.time);
             window._wCandleMarkers = markers;
             wCandleSeries.setMarkers(markers);
             window._wTodayTime = firstTodayTime;
@@ -8195,9 +8246,13 @@
                 const sDownTh = alarmSettings.stocksDownThreshold || 80;
                 const sTrig = alarmSettings.stocksTriggerBy || 'both';
 
-                let lastPos = null;
-                let lastMarkerIdx = -999;
-                let lastPeakPct = 0;
+                let lastOptPos = null;
+                let lastOptMarkerIdx = -999;
+                let lastOptPeakPct = 0;
+
+                let lastStkPos = null;
+                let lastStkMarkerIdx = -999;
+                let lastStkPeakPct = 0;
 
                 // Cumulative Intraday VWAP for HTF Alignment
                 let cumVol = 0, cumVolPrice = 0;
@@ -8284,43 +8339,40 @@
                         }
                     }
 
-                    // 3. Resolve EXACTLY ONE clean signal per candle on Chart 2 (Options Chart)
-                    let sig = null;
-                    // Confluence (Both agree with candle direction)
-                    if (showOptions && showStocks && cleanOptBull && cleanStkBull && isCandleGreen) {
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#10b981', text: `🔥 CONF ${oPct}%`, pct: oPct };
-                    } else if (showOptions && showStocks && cleanOptBear && cleanStkBear && !isCandleGreen) {
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#ef4444', text: `🔥 CONF ${oPct}%`, pct: oPct };
-                    }
-                    // Trap Signals (Price and Breadth Divergence)
-                    else if ((showOptions && oBear && isCandleGreen) || (showStocks && sBear && isCandleGreen)) {
-                        // Bull Trap (Bearish fade)
-                        const isBoth = (showOptions && oBear && showStocks && sBear);
-                        const p = isBoth ? Math.max(oPct, sPct) : (oBear ? oPct : sPct);
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: isBoth ? `⚠️ CONF TRAP ${p}%` : `⚠️ TRAP ${p}%`, pct: p };
-                    } else if ((showOptions && oBull && !isCandleGreen) || (showStocks && sBull && !isCandleGreen)) {
-                        // Bear Trap (Bullish absorption)
-                        const isBoth = (showOptions && oBull && showStocks && sBull);
-                        const p = isBoth ? Math.max(oPct, sPct) : (oBull ? oPct : sPct);
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: isBoth ? `⚡ CONF TRAP ${p}%` : `⚡ TRAP ${p}%`, pct: p };
-                    }
-                    // Native Option Entries on Chart 2
-                    else if (showOptions && cleanOptBull && isCandleGreen) {
-                        const isDiv = showStocks && sBear;
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#a855f7' : '#10b981', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct };
-                    } else if (showOptions && cleanOptBear && !isCandleGreen) {
-                        const isDiv = showStocks && sBull;
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#ec4899' : '#ef4444', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct };
-                    }
-                    // Stock Entries on Chart 2 (when enabled and Option is neutral)
-                    else if (showStocks && cleanStkBull && isCandleGreen) {
-                        sig = { pos: 'belowBar', shape: 'arrowUp', color: '#38bdf8', text: `STK ${sPct}%`, pct: sPct };
-                    } else if (showStocks && cleanStkBear && !isCandleGreen) {
-                        sig = { pos: 'aboveBar', shape: 'arrowDown', color: '#fb7185', text: `STK ${sPct}%`, pct: sPct };
+                    // 3. Independent Signal Candidates on Chart 2 (Options Chart)
+                    // Option candidate (Primary on Chart 2)
+                    let optSig = null;
+                    if (showOptions) {
+                        if (cleanOptBull && isCandleGreen) {
+                            const isDiv = showStocks && sBear;
+                            optSig = { type: 'opt', pos: 'belowBar', shape: 'arrowUp', color: isDiv ? '#a855f7' : '#10b981', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct, isDiv };
+                        } else if (cleanOptBear && !isCandleGreen) {
+                            const isDiv = showStocks && sBull;
+                            optSig = { type: 'opt', pos: 'aboveBar', shape: 'arrowDown', color: isDiv ? '#ec4899' : '#ef4444', text: isDiv ? `OPT ${oPct}% 📊DIV` : `OPT ${oPct}%`, pct: oPct, isDiv };
+                        } else if (oBear && isCandleGreen) {
+                            optSig = { type: 'opt_trap', pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: `⚠️ TRAP ${oPct}%`, pct: oPct };
+                        } else if (oBull && !isCandleGreen) {
+                            optSig = { type: 'opt_trap', pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: `⚡ TRAP ${oPct}%`, pct: oPct };
+                        }
                     }
 
-                    // ── 4. Apply Active Quant Edge Filters (5 Boosters) for Chart 2 ──
-                    if (sig) {
+                    // Stock candidate (Secondary on Chart 2)
+                    let stkSig = null;
+                    if (showStocks) {
+                        if (cleanStkBull && isCandleGreen) {
+                            stkSig = { type: 'stk', pos: 'belowBar', shape: 'arrowUp', color: '#38bdf8', text: `STK ${sPct}%`, pct: sPct };
+                        } else if (cleanStkBear && !isCandleGreen) {
+                            stkSig = { type: 'stk', pos: 'aboveBar', shape: 'arrowDown', color: '#fb7185', text: `STK ${sPct}%`, pct: sPct };
+                        } else if (sBear && isCandleGreen) {
+                            stkSig = { type: 'stk_trap', pos: 'aboveBar', shape: 'arrowDown', color: '#f59e0b', text: `⚠️ TRAP ${sPct}%`, pct: sPct };
+                        } else if (sBull && !isCandleGreen) {
+                            stkSig = { type: 'stk_trap', pos: 'belowBar', shape: 'arrowUp', color: '#06b6d4', text: `⚡ TRAP ${sPct}%`, pct: sPct };
+                        }
+                    }
+
+                    // Helper to apply Quant Edge Filters to a signal for Chart 2
+                    const applyFilters = (sig) => {
+                        if (!sig) return null;
                         const sigIsBull = (sig.pos === 'belowBar');
 
                         // Filter 1: Adaptive Heikin-Ashi Stop Reference
@@ -8329,150 +8381,208 @@
                             slPrice = sigIsBull ? (oHaAnalysis.haLow || Number(c.low)) : (oHaAnalysis.haHigh || Number(c.high));
                         }
 
-                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0, blocks exhaustion entries)
+                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0)
                         if (alarmSettings.filterBreadthVelocity !== false && cIdx > 0) {
-                            const prevCandle = rawCandles[cIdx - 1];
-                            const prevOb = prevCandle ? breadthData?.breadth_by_time?.[prevCandle.time_str] : null;
-                            const prevSb = prevCandle ? weightageData?.breadth_by_time?.[prevCandle.time_str] : null;
-
-                            if (sigIsBull) {
-                                const currGreen = ob ? Number(ob.up_weight || 0) : sPct;
-                                const prevGreen = prevOb ? Number(prevOb.up_weight || 0) : (prevSb ? Number(prevSb.green_count_pct || 0) : 0);
-                                if (prevGreen > 0 && currGreen < prevGreen - 4) {
-                                    sig.isExhausting = true;
-                                    sig.text += ' ⚠️EXH';
-                                }
-                            } else {
-                                const currRed = ob ? Number(ob.down_weight || 0) : sPct;
-                                const prevRed = prevOb ? Number(prevOb.down_weight || 0) : (prevSb ? Number(prevSb.red_count_pct || 0) : 0);
-                                if (prevRed > 0 && currRed < prevRed - 4) {
-                                    sig.isExhausting = true;
-                                    sig.text += ' ⚠️EXH';
-                                }
+                            const prevCandle = todayCandles[cIdx - 1];
+                            if (sig.type.startsWith('opt')) {
+                                const curBull = (c.call_buying_score || 0) + (c.put_covering_score || 0);
+                                const curBear = (c.put_buying_score || 0) + (c.call_writing_score || 0);
+                                const prevBull = (prevCandle?.call_buying_score || 0) + (prevCandle?.put_covering_score || 0);
+                                const prevBear = (prevCandle?.put_buying_score || 0) + (prevCandle?.call_writing_score || 0);
+                                const curScore = sigIsBull ? curBull : curBear;
+                                const prevScore = sigIsBull ? prevBull : prevBear;
+                                if (curScore < prevScore) return null;
+                            } else if (sig.type.startsWith('stk')) {
+                                const curScore = sigIsBull ? (c.stock_up_count || 0) : (c.stock_down_count || 0);
+                                const prevScore = sigIsBull ? (prevCandle?.stock_up_count || 0) : (prevCandle?.stock_down_count || 0);
+                                if (curScore < prevScore) return null;
                             }
                         }
 
-                        // Filter 3: Higher Timeframe Regime Alignment (15m SuperTrend / VWAP)
+                        // Filter 3: Higher Timeframe (HTF) Alignment on fast intraday charts (1m/3m/5m)
                         if (alarmSettings.filterHtfAlignment !== false && ['1m', '3m', '5m'].includes(oTimeframe)) {
-                            const vwap = vwapMap[c.time_str];
-                            if (vwap && vwap > 0) {
-                                const closeP = Number(c.close);
-                                if (sigIsBull && closeP < vwap) {
-                                    sig.isCounterTrend = true;
-                                    sig.text += ' ⚡CTR';
-                                    sig.color = '#38bdf8';
-                                } else if (!sigIsBull && closeP > vwap) {
-                                    sig.isCounterTrend = true;
-                                    sig.text += ' ⚡CTR';
-                                    sig.color = '#fb7185';
-                                }
+                            if (quantPlaybookData && quantPlaybookData.vwap) {
+                                const vwap = parseFloat(quantPlaybookData.vwap);
+                                if (sigIsBull && Number(c.close) < vwap) return null;
+                                if (!sigIsBull && Number(c.close) > vwap) return null;
                             }
                         }
 
-                        // Filter 4: Quant S/R Proximity Guard (Min 1.2x Risk-to-Reward clearance)
-                        if (alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
-                            const closeP = Number(c.close);
+                        // Filter 4: Quant S/R Proximity Guard (only when quant lines active)
+                        if (oShowQuantLines && alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
+                            const curClose = Number(c.close);
+                            const risk = Math.max(10, Math.abs(curClose - slPrice));
                             if (sigIsBull) {
-                                const overheadLevels = quantPlaybookData.levels
-                                    .map(l => Number(l.price))
-                                    .filter(p => !isNaN(p) && p > closeP)
-                                    .sort((a,b) => a - b);
-                                if (overheadLevels.length > 0) {
-                                    const nearestRes = overheadLevels[0];
-                                    const distToRes = nearestRes - closeP;
-                                    const riskDist = Math.max(25, closeP - slPrice);
-                                    if (distToRes < 1.0 * riskDist) {
-                                        sig.isSrClose = true;
-                                        sig.text += ' ⚠️S/R';
-                                    }
-                                }
+                                const aboveLevels = quantPlaybookData.levels
+                                    .map(l => parseFloat(l.price))
+                                    .filter(p => p > curClose)
+                                    .sort((a, b) => a - b);
+                                if (aboveLevels.length > 0 && (aboveLevels[0] - curClose) < (1.2 * risk)) return null;
                             } else {
                                 const belowLevels = quantPlaybookData.levels
-                                    .map(l => Number(l.price))
-                                    .filter(p => !isNaN(p) && p < closeP)
-                                    .sort((a,b) => b - a);
-                                if (belowLevels.length > 0) {
-                                    const nearestSup = belowLevels[0];
-                                    const distToSup = closeP - nearestSup;
-                                    const riskDist = Math.max(25, slPrice - closeP);
-                                    if (distToSup < 1.0 * riskDist) {
-                                        sig.isSrClose = true;
-                                        sig.text += ' ⚠️S/R';
-                                    }
-                                }
+                                    .map(l => parseFloat(l.price))
+                                    .filter(p => p < curClose)
+                                    .sort((a, b) => b - a);
+                                if (belowLevels.length > 0 && (curClose - belowLevels[0]) < (1.2 * risk)) return null;
                             }
                         }
 
-                        // Filter 5: Options OI Delta & Fresh Writing Confirmation
-                        if (alarmSettings.filterOiDeltaConfirmation !== false && trendingOiData && trendingOiData.chart && trendingOiData.chart.timestamps) {
-                            const tIdx = trendingOiData.chart.timestamps.indexOf(c.time_str);
-                            if (tIdx > 0) {
-                                const peCur = Number(trendingOiData.chart.pe_oi?.[tIdx] || 0);
-                                const pePrev = Number(trendingOiData.chart.pe_oi?.[tIdx - 1] || 0);
-                                const ceCur = Number(trendingOiData.chart.ce_oi?.[tIdx] || 0);
-                                const cePrev = Number(trendingOiData.chart.ce_oi?.[tIdx - 1] || 0);
+                        // Filter 5: Stock Breadth Alignment (don't block intentional DIV alerts)
+                        if (!sig.isDiv && alarmSettings.filterOiDeltaConfirmation !== false && weightageData && weightageData.candles) {
+                            const stkCandle = weightageData.candles.find(sc => sc.time === c.time || sc.timestamp === c.timestamp);
+                            if (stkCandle) {
+                                const stkUp = stkCandle.stock_up_count || 0;
+                                const stkDown = stkCandle.stock_down_count || 0;
+                                if (sigIsBull && stkDown > 35 && stkUp < 15) return null;
+                                if (!sigIsBull && stkUp > 35 && stkDown < 15) return null;
+                            }
+                        }
 
-                                if (sigIsBull && pePrev > 0 && (peCur < pePrev - 50000)) {
-                                    sig.text += ' 📊OI DIV';
-                                } else if (!sigIsBull && cePrev > 0 && (ceCur < cePrev - 50000)) {
-                                    sig.text += ' 📊OI DIV';
+                        return sig;
+                    };
+
+                    optSig = applyFilters(optSig);
+                    stkSig = applyFilters(stkSig);
+
+                    // Check Confluence first (Both agree with same candle direction)
+                    let confSig = null;
+                    if (optSig && stkSig && optSig.pos === stkSig.pos) {
+                        const isBull = (optSig.pos === 'belowBar');
+                        if (optSig.type === 'opt' && stkSig.type === 'stk') {
+                            confSig = {
+                                pos: optSig.pos,
+                                shape: optSig.shape,
+                                color: isBull ? '#10b981' : '#ef4444',
+                                text: `🔥 CONF ${oPct}%`,
+                                pct: oPct,
+                            };
+                        } else if (optSig.type === 'opt_trap' && stkSig.type === 'stk_trap') {
+                            const p = Math.max(oPct, sPct);
+                            confSig = {
+                                pos: optSig.pos,
+                                shape: optSig.shape,
+                                color: isBull ? '#06b6d4' : '#f59e0b',
+                                text: isBull ? `⚡ CONF TRAP ${p}%` : `⚠️ CONF TRAP ${p}%`,
+                                pct: p,
+                            };
+                        }
+                    }
+
+                    let candleHasMarker = false;
+
+                    if (confSig) {
+                        const isFlip = (lastOptPos !== confSig.pos);
+                        const barsSinceLast = cIdx - lastOptMarkerIdx;
+                        let pushConf = false;
+                        let markerText = confSig.text + openTag;
+
+                        if (isFlip) {
+                            pushConf = true;
+                        } else if (confSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
+                            pushConf = true;
+                            markerText = `🔥 CONF Pk ${confSig.pct}%`;
+                        } else if (barsSinceLast >= 3) {
+                            pushConf = true;
+                        }
+
+                        if (pushConf) {
+                            markers.push({
+                                time: candleTime,
+                                position: confSig.pos,
+                                color: confSig.color,
+                                shape: confSig.shape,
+                                text: markerText,
+                                size: 1,
+                            });
+                            lastOptPos = confSig.pos;
+                            lastOptMarkerIdx = cIdx;
+                            lastOptPeakPct = confSig.pct;
+
+                            lastStkPos = confSig.pos;
+                            lastStkMarkerIdx = cIdx;
+                            lastStkPeakPct = confSig.pct;
+                            candleHasMarker = true;
+                        }
+                    } else {
+                        // Independent OPT signal evaluation (Primary on Chart 2)
+                        let pushedOpt = false;
+                        if (optSig) {
+                            const isFlip = (lastOptPos !== optSig.pos);
+                            const barsSinceLast = cIdx - lastOptMarkerIdx;
+                            let pushSig = false;
+                            let markerText = optSig.text + openTag;
+
+                            if (isFlip) {
+                                pushSig = true;
+                            } else if (optSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
+                                pushSig = true;
+                                markerText = `Pk ${optSig.pct}%`;
+                            } else if (barsSinceLast >= 3) {
+                                pushSig = true;
+                            }
+
+                            if (pushSig) {
+                                markers.push({
+                                    time: candleTime,
+                                    position: optSig.pos,
+                                    color: optSig.color,
+                                    shape: optSig.shape,
+                                    text: markerText,
+                                    size: 1,
+                                });
+                                lastOptPos = optSig.pos;
+                                lastOptMarkerIdx = cIdx;
+                                lastOptPeakPct = optSig.pct;
+                                pushedOpt = true;
+                                candleHasMarker = true;
+                            }
+                        }
+
+                        // Independent STK signal evaluation (Secondary on Chart 2)
+                        if (stkSig) {
+                            const sameSideConflict = pushedOpt && optSig && (optSig.pos === stkSig.pos);
+                            if (!sameSideConflict) {
+                                const isFlip = (lastStkPos !== stkSig.pos);
+                                const barsSinceLast = cIdx - lastStkMarkerIdx;
+                                let pushSig = false;
+                                let markerText = stkSig.text + openTag;
+
+                                if (isFlip) {
+                                    pushSig = true;
+                                } else if (stkSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
+                                    pushSig = true;
+                                    markerText = `STK Pk ${stkSig.pct}%`;
+                                } else if (barsSinceLast >= 3) {
+                                    pushSig = true;
+                                }
+
+                                if (pushSig) {
+                                    markers.push({
+                                        time: candleTime,
+                                        position: stkSig.pos,
+                                        color: stkSig.color,
+                                        shape: stkSig.shape,
+                                        text: markerText,
+                                        size: 1,
+                                    });
+                                    lastStkPos = stkSig.pos;
+                                    lastStkMarkerIdx = cIdx;
+                                    lastStkPeakPct = stkSig.pct;
+                                    candleHasMarker = true;
                                 }
                             }
                         }
                     }
 
-                    if (sig) {
-                        const isFlip = (lastPos !== sig.pos);
-                        const barsSinceLast = cIdx - lastMarkerIdx;
-
-                        if (isFlip) {
-                            markers.push({
-                                time: candleTime,
-                                position: sig.pos,
-                                color: sig.color,
-                                shape: sig.shape,
-                                text: sig.text + openTag,
-                                size: 1,
-                            });
-                            lastPos = sig.pos;
-                            lastMarkerIdx = cIdx;
-                            lastPeakPct = sig.pct;
-                        } else {
-                            if (sig.pct >= lastPeakPct + 5 && barsSinceLast >= 2) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: sig.pos,
-                                    color: sig.color,
-                                    shape: sig.shape,
-                                    text: `Pk ${sig.pct}%`,
-                                    size: 1,
-                                });
-                                lastPeakPct = sig.pct;
-                                lastMarkerIdx = cIdx;
-                            } else if (barsSinceLast >= 3) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: sig.pos,
-                                    color: sig.color,
-                                    shape: sig.shape,
-                                    text: sig.text + openTag,
-                                    size: 1,
-                                });
-                                lastMarkerIdx = cIdx;
-                                lastPeakPct = Math.max(lastPeakPct, sig.pct);
-                            }
-                        }
-                    } else {
-                        if (isOpenCandle) {
-                            markers.push({
-                                time: candleTime,
-                                position: 'aboveBar',
-                                color: '#818cf8',
-                                shape: 'arrowDown',
-                                text: 'TODAY',
-                                size: 1,
-                            });
-                        }
+                    if (!candleHasMarker && isOpenCandle) {
+                        markers.push({
+                            time: candleTime,
+                            position: 'aboveBar',
+                            color: '#818cf8',
+                            shape: 'arrowDown',
+                            text: 'TODAY',
+                            size: 1,
+                        });
                     }
                 });
             } else {
@@ -8487,6 +8597,7 @@
                     });
                 }
             }
+            markers.sort((a, b) => a.time - b.time);
             window._oCandleMarkers = markers;
             oCandleSeries.setMarkers(markers);
             window._oTodayTime = firstTodayTime;
