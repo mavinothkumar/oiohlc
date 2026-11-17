@@ -2075,7 +2075,7 @@
     </div>
 
     <!-- ════════════ UNIFIED ORDER FLOW S/R LEVELS DROPDOWN ════════════ -->
-    <div id="hist-of-levels-dropdown" class="fixed z-50 hidden bg-[#131722]/98 backdrop-blur-md border border-teal-500/60 rounded-xl shadow-2xl p-3 w-88 sm:w-104 text-xs text-gray-200 font-sans transition-all select-none">
+    <div id="hist-of-levels-dropdown" class="fixed z-50 hidden bg-[#131722]/98 backdrop-blur-md border border-teal-500/60 rounded-xl shadow-2xl p-3 w-[94vw] max-w-[480px] sm:w-[480px] text-xs text-gray-200 font-sans transition-all select-none">
         <div class="flex items-center justify-between pb-2 border-b border-gray-800">
             <div class="flex items-center gap-1.5">
                 <span class="text-sm">🌊</span>
@@ -2122,7 +2122,7 @@
         </div>
 
         <!-- Days List Container (TODAY LIVE + PAST 5 DAYS) -->
-        <div id="hist-of-dropdown-list" class="py-1.5 space-y-1.5 max-h-76 overflow-y-auto scrollbar-none">
+        <div id="hist-of-dropdown-list" class="py-1.5 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
             <div class="text-gray-400 text-center py-4 text-[10.5px]">Loading Order Flow levels...</div>
         </div>
 
@@ -2882,101 +2882,59 @@
     }
     window.clearOptionsOrderFlowLines = clearOptionsOrderFlowLines;
 
+    function createSpecificOfLine(series, item, type, isFut, dateLabel, colors, container, isToday) {
+        if (!series || !item) return;
+        const spotPrice = parseFloat(item.calibrated_price ?? item.price);
+        const rawPrice = parseFloat(item.raw_price ?? item.price);
+        const price = isFut ? rawPrice : spotPrice;
+        if (isNaN(price)) return;
+
+        const lineWidth = parseInt(alarmSettings.ofLineWidth || (isToday ? 3 : 2), 10);
+        const styleYd = alarmSettings.ofLineStyleYesterday === 'dashed' ? 2 : (alarmSettings.ofLineStyleYesterday === 'dotted' ? 1 : 0);
+        const styleTd = alarmSettings.ofLineStyleToday === 'solid' ? 0 : (alarmSettings.ofLineStyleToday === 'dotted' ? 1 : 2);
+
+        const baseColor = isToday 
+            ? (type === 'ask' ? '#f43f5e' : '#34d399') 
+            : ((colors && (type === 'ask' ? colors.res : colors.sup)) || (type === 'ask' ? '#ef4444' : '#10b981'));
+
+        const baseStyle = isToday ? styleTd : (colors?.style ?? styleYd);
+        // Fut lines use dashed / contrasting style (style 2 or 1) so trader can easily distinguish Spot vs Fut
+        const lineStyle = isFut ? ((baseStyle === 2) ? 1 : 2) : baseStyle;
+
+        const typeStr = (type === 'ask') ? 'RES' : 'SUP';
+        const basisTag = isFut ? '(FUT)' : '(SPOT)';
+        const defaultTitle = `${dateLabel} ${typeStr} ${basisTag} ₹${price.toLocaleString('en-IN', {maximumFractionDigits: 1})}`;
+        const title = isFut ? (item.raw_label || defaultTitle) : (item.label ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)') : defaultTitle);
+
+        try {
+            const line = series.createPriceLine({
+                price: price,
+                color: baseColor,
+                lineWidth: lineWidth,
+                lineStyle: lineStyle,
+                axisLabelVisible: true,
+                title: title,
+            });
+            container.push(line);
+        } catch (e) {}
+    }
+
     function drawWeightageOrderFlowLines() {
         clearWeightageOrderFlowLines();
         if (!wShowOfSrLines || !orderFlowLevelsData || !wCandleSeries) return;
 
-        const lineWidth = parseInt(alarmSettings.ofLineWidth || 3, 10);
-        const styleYd = alarmSettings.ofLineStyleYesterday === 'dashed' ? 2 : (alarmSettings.ofLineStyleYesterday === 'dotted' ? 1 : 0);
-        const styleTd = alarmSettings.ofLineStyleToday === 'solid' ? 0 : (alarmSettings.ofLineStyleToday === 'dotted' ? 1 : 2);
-        const isSpot = (ofCalibrationMode === 'spot');
-        const isBoth = (ofCalibrationMode === 'both');
-
-        const addOfLine = (item, type, isYesterday) => {
-            const baseColor = isYesterday ? (type === 'ask' ? '#ef4444' : '#10b981') : (type === 'ask' ? '#f43f5e' : '#34d399');
-            const baseStyle = isYesterday ? styleYd : styleTd;
-            const prefix = isYesterday ? (type === 'ask' ? 'YD RES' : 'YD SUP') : (type === 'ask' ? 'TD RES' : 'TD SUP');
-
-            const spotPrice = parseFloat(item.calibrated_price ?? item.price);
-            const rawPrice = parseFloat(item.raw_price ?? item.price);
-            const diff = Math.abs(spotPrice - rawPrice);
-
-            if (isBoth) {
-                if (diff < 0.1 || isNaN(rawPrice)) {
-                    try {
-                        const line = wCandleSeries.createPriceLine({
-                            price: spotPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: baseStyle,
-                            axisLabelVisible: true,
-                            title: item.label || `${prefix} ₹${spotPrice}`,
-                        });
-                        ofPriceLinesWeightage.push(line);
-                    } catch (e) {}
-                } else {
-                    // Spot line
-                    try {
-                        const spotTitle = item.label 
-                            ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)')
-                            : `${prefix} (SPOT) ₹${spotPrice}`;
-                        const lineSpot = wCandleSeries.createPriceLine({
-                            price: spotPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: baseStyle,
-                            axisLabelVisible: true,
-                            title: spotTitle,
-                        });
-                        ofPriceLinesWeightage.push(lineSpot);
-                    } catch (e) {}
-
-                    // Fut line (dashed / contrasting style)
-                    try {
-                        const futStyle = (baseStyle === 2) ? 1 : 2;
-                        const futTitle = item.raw_label || `${prefix} (FUT) ₹${rawPrice}`;
-                        const lineFut = wCandleSeries.createPriceLine({
-                            price: rawPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: futStyle,
-                            axisLabelVisible: true,
-                            title: futTitle,
-                        });
-                        ofPriceLinesWeightage.push(lineFut);
-                    } catch (e) {}
-                }
-            } else {
-                const price = isSpot ? spotPrice : rawPrice;
-                const title = isSpot ? (item.label || `${prefix} ₹${price}`) : (item.raw_label || `${prefix} (FUT) ₹${price}`);
-                try {
-                    const line = wCandleSeries.createPriceLine({
-                        price: price,
-                        color: baseColor,
-                        lineWidth: lineWidth,
-                        lineStyle: baseStyle,
-                        axisLabelVisible: true,
-                        title: title,
-                    });
-                    ofPriceLinesWeightage.push(line);
-                } catch (e) {}
-            }
-        };
-
-        // Yesterday Lines (only fallback if multiDayOfData not loaded yet)
-        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday && (!multiDayOfData || !multiDayOfData.days)) {
-            (orderFlowLevelsData.yesterday.asks || []).forEach(item => addOfLine(item, 'ask', true));
-            (orderFlowLevelsData.yesterday.bids || []).forEach(item => addOfLine(item, 'bid', true));
-        }
-
-        // Today Lines (gated by multiDayOfSelected['today_ask'] & ['today_bid'])
+        // Today Lines (gated by isLevelSelected for spot_ask, fut_ask, spot_bid, fut_bid)
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
-            if (multiDayOfSelected['today_ask'] !== false) {
-                (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
-            }
-            if (multiDayOfSelected['today_bid'] !== false) {
-                (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
-            }
+            const asks = orderFlowLevelsData.today.asks || [];
+            const bids = orderFlowLevelsData.today.bids || [];
+            asks.forEach(item => {
+                if (isLevelSelected('today', 'spot_ask')) createSpecificOfLine(wCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'fut_ask'))  createSpecificOfLine(wCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesWeightage, true);
+            });
+            bids.forEach(item => {
+                if (isLevelSelected('today', 'spot_bid')) createSpecificOfLine(wCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesWeightage, true);
+                if (isLevelSelected('today', 'fut_bid'))  createSpecificOfLine(wCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesWeightage, true);
+            });
         }
     }
     window.drawWeightageOrderFlowLines = drawWeightageOrderFlowLines;
@@ -2985,97 +2943,18 @@
         clearOptionsOrderFlowLines();
         if (!oShowOfSrLines || !orderFlowLevelsData || !oCandleSeries) return;
 
-        const lineWidth = parseInt(alarmSettings.ofLineWidth || 3, 10);
-        const styleYd = alarmSettings.ofLineStyleYesterday === 'dashed' ? 2 : (alarmSettings.ofLineStyleYesterday === 'dotted' ? 1 : 0);
-        const styleTd = alarmSettings.ofLineStyleToday === 'solid' ? 0 : (alarmSettings.ofLineStyleToday === 'dotted' ? 1 : 2);
-        const isSpot = (ofCalibrationMode === 'spot');
-        const isBoth = (ofCalibrationMode === 'both');
-
-        const addOfLine = (item, type, isYesterday) => {
-            const baseColor = isYesterday ? (type === 'ask' ? '#ef4444' : '#10b981') : (type === 'ask' ? '#f43f5e' : '#34d399');
-            const baseStyle = isYesterday ? styleYd : styleTd;
-            const prefix = isYesterday ? (type === 'ask' ? 'YD RES' : 'YD SUP') : (type === 'ask' ? 'TD RES' : 'TD SUP');
-
-            const spotPrice = parseFloat(item.calibrated_price ?? item.price);
-            const rawPrice = parseFloat(item.raw_price ?? item.price);
-            const diff = Math.abs(spotPrice - rawPrice);
-
-            if (isBoth) {
-                if (diff < 0.1 || isNaN(rawPrice)) {
-                    try {
-                        const line = oCandleSeries.createPriceLine({
-                            price: spotPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: baseStyle,
-                            axisLabelVisible: true,
-                            title: item.label || `${prefix} ₹${spotPrice}`,
-                        });
-                        ofPriceLinesOptions.push(line);
-                    } catch (e) {}
-                } else {
-                    // Spot line
-                    try {
-                        const spotTitle = item.label 
-                            ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)')
-                            : `${prefix} (SPOT) ₹${spotPrice}`;
-                        const lineSpot = oCandleSeries.createPriceLine({
-                            price: spotPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: baseStyle,
-                            axisLabelVisible: true,
-                            title: spotTitle,
-                        });
-                        ofPriceLinesOptions.push(lineSpot);
-                    } catch (e) {}
-
-                    // Fut line (dashed / contrasting style)
-                    try {
-                        const futStyle = (baseStyle === 2) ? 1 : 2;
-                        const futTitle = item.raw_label || `${prefix} (FUT) ₹${rawPrice}`;
-                        const lineFut = oCandleSeries.createPriceLine({
-                            price: rawPrice,
-                            color: baseColor,
-                            lineWidth: lineWidth,
-                            lineStyle: futStyle,
-                            axisLabelVisible: true,
-                            title: futTitle,
-                        });
-                        ofPriceLinesOptions.push(lineFut);
-                    } catch (e) {}
-                }
-            } else {
-                const price = isSpot ? spotPrice : rawPrice;
-                const title = isSpot ? (item.label || `${prefix} ₹${price}`) : (item.raw_label || `${prefix} (FUT) ₹${price}`);
-                try {
-                    const line = oCandleSeries.createPriceLine({
-                        price: price,
-                        color: baseColor,
-                        lineWidth: lineWidth,
-                        lineStyle: baseStyle,
-                        axisLabelVisible: true,
-                        title: title,
-                    });
-                    ofPriceLinesOptions.push(line);
-                } catch (e) {}
-            }
-        };
-
-        // Yesterday Lines (only fallback if multiDayOfData not loaded yet)
-        if (alarmSettings.ofShowYesterday !== false && orderFlowLevelsData.yesterday && (!multiDayOfData || !multiDayOfData.days)) {
-            (orderFlowLevelsData.yesterday.asks || []).forEach(item => addOfLine(item, 'ask', true));
-            (orderFlowLevelsData.yesterday.bids || []).forEach(item => addOfLine(item, 'bid', true));
-        }
-
-        // Today Lines (gated by multiDayOfSelected['today_ask'] & ['today_bid'])
+        // Today Lines (gated by isLevelSelected for spot_ask, fut_ask, spot_bid, fut_bid)
         if (alarmSettings.ofShowToday !== false && orderFlowLevelsData.today) {
-            if (multiDayOfSelected['today_ask'] !== false) {
-                (orderFlowLevelsData.today.asks || []).forEach(item => addOfLine(item, 'ask', false));
-            }
-            if (multiDayOfSelected['today_bid'] !== false) {
-                (orderFlowLevelsData.today.bids || []).forEach(item => addOfLine(item, 'bid', false));
-            }
+            const asks = orderFlowLevelsData.today.asks || [];
+            const bids = orderFlowLevelsData.today.bids || [];
+            asks.forEach(item => {
+                if (isLevelSelected('today', 'spot_ask')) createSpecificOfLine(oCandleSeries, item, 'ask', false, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'fut_ask'))  createSpecificOfLine(oCandleSeries, item, 'ask', true, 'TD', null, ofPriceLinesOptions, true);
+            });
+            bids.forEach(item => {
+                if (isLevelSelected('today', 'spot_bid')) createSpecificOfLine(oCandleSeries, item, 'bid', false, 'TD', null, ofPriceLinesOptions, true);
+                if (isLevelSelected('today', 'fut_bid'))  createSpecificOfLine(oCandleSeries, item, 'bid', true, 'TD', null, ofPriceLinesOptions, true);
+            });
         }
     }
     window.drawOptionsOrderFlowLines = drawOptionsOrderFlowLines;
@@ -3210,6 +3089,65 @@
     }
     window.clearMultiDayOrderFlowLines = clearMultiDayOrderFlowLines;
 
+    function isLevelSelected(date, type) {
+        const key = `${date}_${type}`;
+        if (multiDayOfSelected[key] !== undefined) {
+            return !!multiDayOfSelected[key];
+        }
+        // Backward compatibility migration from old key format: `${date}_ask` / `${date}_bid`
+        const isSpot = type.startsWith('spot');
+        const side = type.endsWith('ask') ? 'ask' : 'bid';
+        const oldKey = `${date}_${side}`;
+        if (multiDayOfSelected[oldKey] !== undefined) {
+            const wasOn = !!multiDayOfSelected[oldKey];
+            if (!wasOn) return false;
+            if (ofCalibrationMode === 'spot') return isSpot;
+            if (ofCalibrationMode === 'future') return !isSpot;
+            return true;
+        }
+
+        // Defaults if no record exists:
+        if (date === 'today') {
+            if (ofCalibrationMode === 'spot') return isSpot;
+            if (ofCalibrationMode === 'future') return !isSpot;
+            return true;
+        }
+        if (multiDayOfData?.days?.length && multiDayOfData.days[0].date === date) {
+            if (ofCalibrationMode === 'spot') return isSpot;
+            if (ofCalibrationMode === 'future') return !isSpot;
+            return true;
+        }
+        return false;
+    }
+    window.isLevelSelected = isLevelSelected;
+
+    function saveMultiDayOfSelected() {
+        try {
+            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
+            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
+        } catch (err) {}
+    }
+
+    function syncCalibrationModeFromSelections() {
+        let hasSpot = false;
+        let hasFut = false;
+        const check = (d) => {
+            if (isLevelSelected(d, 'spot_ask') || isLevelSelected(d, 'spot_bid')) hasSpot = true;
+            if (isLevelSelected(d, 'fut_ask') || isLevelSelected(d, 'fut_bid')) hasFut = true;
+        };
+        check('today');
+        if (multiDayOfData?.days) multiDayOfData.days.forEach(day => check(day.date));
+
+        if (hasSpot && hasFut) {
+            ofCalibrationMode = 'both';
+        } else if (hasSpot) {
+            ofCalibrationMode = 'spot';
+        } else if (hasFut) {
+            ofCalibrationMode = 'future';
+        }
+        updateOfBasisButtonsUI();
+    }
+
     function drawMultiDayOrderFlowLines() {
         clearMultiDayOrderFlowLines();
         if (!multiDayOfData || !multiDayOfData.days || !Array.isArray(multiDayOfData.days)) {
@@ -3217,104 +3155,34 @@
             return;
         }
 
-        const isSpot = (ofCalibrationMode === 'spot');
-        const isBoth = (ofCalibrationMode === 'both');
-        const lineWidth = parseInt(alarmSettings.ofLineWidth || 2, 10);
-
-        const addHistLine = (series, item, type, day, colors, container) => {
-            if (!series) return;
-            const spotPrice = parseFloat(item.calibrated_price ?? item.price);
-            const rawPrice = parseFloat(item.raw_price ?? item.price);
-            const diff = Math.abs(spotPrice - rawPrice);
-            const color = (type === 'ask') ? colors.res : colors.sup;
-            const typeStr = (type === 'ask') ? 'RES' : 'SUP';
-
-            if (isBoth) {
-                if (diff < 0.1 || isNaN(rawPrice)) {
-                    try {
-                        const line = series.createPriceLine({
-                            price: spotPrice,
-                            color: color,
-                            lineWidth: lineWidth,
-                            lineStyle: colors.style,
-                            axisLabelVisible: true,
-                            title: item.label || `${day.formatted_date} ${typeStr} ₹${spotPrice}`,
-                        });
-                        container.push(line);
-                    } catch (e) {}
-                } else {
-                    // Spot line
-                    try {
-                        const spotTitle = item.label 
-                            ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)')
-                            : `${day.formatted_date} ${typeStr} (SPOT) ₹${spotPrice}`;
-                        const lineSpot = series.createPriceLine({
-                            price: spotPrice,
-                            color: color,
-                            lineWidth: lineWidth,
-                            lineStyle: colors.style,
-                            axisLabelVisible: true,
-                            title: spotTitle,
-                        });
-                        container.push(lineSpot);
-                    } catch (e) {}
-
-                    // Fut line
-                    try {
-                        const futStyle = (colors.style === 2) ? 1 : 2;
-                        const futTitle = item.raw_label || `${day.formatted_date} ${typeStr} (FUT) ₹${rawPrice}`;
-                        const lineFut = series.createPriceLine({
-                            price: rawPrice,
-                            color: color,
-                            lineWidth: lineWidth,
-                            lineStyle: futStyle,
-                            axisLabelVisible: true,
-                            title: futTitle,
-                        });
-                        container.push(lineFut);
-                    } catch (e) {}
-                }
-            } else {
-                const price = isSpot ? spotPrice : rawPrice;
-                const title = isSpot 
-                    ? (item.label || `${day.formatted_date} ${typeStr} ₹${price}`) 
-                    : (item.raw_label || `${day.formatted_date} ${typeStr} (FUT) ₹${price}`);
-                try {
-                    const line = series.createPriceLine({
-                        price: price,
-                        color: color,
-                        lineWidth: lineWidth,
-                        lineStyle: colors.style,
-                        axisLabelVisible: true,
-                        title: title,
-                    });
-                    container.push(line);
-                } catch (e) {}
-            }
-        };
-
         multiDayOfData.days.forEach(day => {
             const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
-            const askKey = `${day.date}_ask`;
-            const bidKey = `${day.date}_bid`;
+            const askItem = day.ask;
+            const bidItem = day.bid;
 
-            // Draw Ask (RES) if selected
-            if (multiDayOfSelected[askKey] && day.ask) {
-                if (wShowOfSrLines && wCandleSeries) {
-                    addHistLine(wCandleSeries, day.ask, 'ask', day, colors, histOfPriceLinesWeightage);
+            if (askItem) {
+                // Spot Ask (RES)
+                if (isLevelSelected(day.date, 'spot_ask')) {
+                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, askItem, 'ask', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
-                if (oShowOfSrLines && oCandleSeries) {
-                    addHistLine(oCandleSeries, day.ask, 'ask', day, colors, histOfPriceLinesOptions);
+                // Fut Ask (RES)
+                if (isLevelSelected(day.date, 'fut_ask')) {
+                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, askItem, 'ask', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
             }
 
-            // Draw Bid (SUP) if selected
-            if (multiDayOfSelected[bidKey] && day.bid) {
-                if (wShowOfSrLines && wCandleSeries) {
-                    addHistLine(wCandleSeries, day.bid, 'bid', day, colors, histOfPriceLinesWeightage);
+            if (bidItem) {
+                // Spot Bid (SUP)
+                if (isLevelSelected(day.date, 'spot_bid')) {
+                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, bidItem, 'bid', false, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
-                if (oShowOfSrLines && oCandleSeries) {
-                    addHistLine(oCandleSeries, day.bid, 'bid', day, colors, histOfPriceLinesOptions);
+                // Fut Bid (SUP)
+                if (isLevelSelected(day.date, 'fut_bid')) {
+                    if (wShowOfSrLines && wCandleSeries) createSpecificOfLine(wCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesWeightage, false);
+                    if (oShowOfSrLines && oCandleSeries) createSpecificOfLine(oCandleSeries, bidItem, 'bid', true, day.formatted_date, colors, histOfPriceLinesOptions, false);
                 }
             }
         });
@@ -3325,17 +3193,21 @@
 
     function updateHistOfBadgeCount() {
         let count = 0;
-        // Today levels
-        if (multiDayOfSelected['today_ask'] !== false && orderFlowLevelsData?.today?.asks?.length) count++;
-        if (multiDayOfSelected['today_bid'] !== false && orderFlowLevelsData?.today?.bids?.length) count++;
+        let hasSpot = false;
+        let hasFut = false;
 
-        // Historical levels
+        const countDay = (date) => {
+            if (isLevelSelected(date, 'spot_ask')) { count++; hasSpot = true; }
+            if (isLevelSelected(date, 'spot_bid')) { count++; hasSpot = true; }
+            if (isLevelSelected(date, 'fut_ask')) { count++; hasFut = true; }
+            if (isLevelSelected(date, 'fut_bid')) { count++; hasFut = true; }
+        };
+
+        countDay('today');
         if (multiDayOfData && multiDayOfData.days) {
-            multiDayOfData.days.forEach(d => {
-                if (multiDayOfSelected[`${d.date}_ask`]) count++;
-                if (multiDayOfSelected[`${d.date}_bid`]) count++;
-            });
+            multiDayOfData.days.forEach(d => countDay(d.date));
         }
+
         ['w-hist-of-count-badge', 'o-hist-of-count-badge'].forEach(id => {
             const b = document.getElementById(id);
             if (b) {
@@ -3344,6 +3216,12 @@
                     ? 'px-1 py-0 rounded text-[8.5px] bg-amber-500 text-black font-extrabold font-mono'
                     : 'px-1 py-0 rounded text-[8.5px] bg-amber-500/30 text-amber-200 font-mono';
             }
+        });
+
+        const basisText = (hasSpot && hasFut) ? 'SPOT & FUT' : (hasFut ? 'FUT' : (hasSpot ? 'SPOT' : 'OFF'));
+        ['w-of-calib-badge', 'o-of-calib-badge'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = basisText;
         });
     }
 
@@ -3364,15 +3242,18 @@
             const res = await fetchJsonSafe(`/api/multi-timeframe/multi-day-order-flow-levels?date=${selectedDate}&symbol=${symbol}&days=5${spotParam}&_t=${Date.now()}`);
             if (res && res.success && res.days) {
                 multiDayOfData = res;
-                // If user has not selected anything yet, default YD (D-1) ask & bid to checked
+                // Default selections if completely empty
                 if (Object.keys(multiDayOfSelected).length === 0 && res.days.length > 0) {
                     const yd = res.days[0];
-                    multiDayOfSelected[`${yd.date}_ask`] = true;
-                    multiDayOfSelected[`${yd.date}_bid`] = true;
-                    try {
-                        const sKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
-                        localStorage.setItem(sKey, JSON.stringify(multiDayOfSelected));
-                    } catch (e) {}
+                    multiDayOfSelected['today_spot_ask'] = true;
+                    multiDayOfSelected['today_spot_bid'] = true;
+                    multiDayOfSelected['today_fut_ask'] = (ofCalibrationMode === 'both' || ofCalibrationMode === 'future');
+                    multiDayOfSelected['today_fut_bid'] = (ofCalibrationMode === 'both' || ofCalibrationMode === 'future');
+                    multiDayOfSelected[`${yd.date}_spot_ask`] = true;
+                    multiDayOfSelected[`${yd.date}_spot_bid`] = true;
+                    multiDayOfSelected[`${yd.date}_fut_ask`] = (ofCalibrationMode === 'both' || ofCalibrationMode === 'future');
+                    multiDayOfSelected[`${yd.date}_fut_bid`] = (ofCalibrationMode === 'both' || ofCalibrationMode === 'future');
+                    saveMultiDayOfSelected();
                 }
                 renderHistOfDropdownContent();
                 drawMultiDayOrderFlowLines();
@@ -3383,30 +3264,13 @@
     }
     window.fetchMultiDayOrderFlowLevels = fetchMultiDayOrderFlowLevels;
 
-    function toggleHistOfLevel(date, side) {
-        const key = `${date}_${side}`;
-        multiDayOfSelected[key] = !multiDayOfSelected[key];
-        try {
-            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
-            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (e) {}
-        renderHistOfDropdownContent();
-        drawMultiDayOrderFlowLines();
-    }
-    window.toggleHistOfLevel = toggleHistOfLevel;
-
-    function toggleHistOfLevel(date, side, e) {
+    function toggleHistOfLevel(date, type, e) {
         if (e && e.stopPropagation) e.stopPropagation();
-        const key = `${date}_${side}`;
-        if (date === 'today') {
-            multiDayOfSelected[key] = (multiDayOfSelected[key] === false) ? true : false;
-        } else {
-            multiDayOfSelected[key] = !multiDayOfSelected[key];
-        }
-        try {
-            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
-            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (err) {}
+        const current = isLevelSelected(date, type);
+        multiDayOfSelected[`${date}_${type}`] = !current;
+        saveMultiDayOfSelected();
+        syncCalibrationModeFromSelections();
+
         renderHistOfDropdownContent();
         drawWeightageOrderFlowLines();
         drawOptionsOrderFlowLines();
@@ -3417,22 +3281,25 @@
 
     function toggleHistOfDay(date, e) {
         if (e && e.stopPropagation) e.stopPropagation();
-        const askKey = `${date}_ask`;
-        const bidKey = `${date}_bid`;
-        let bothOn;
-        if (date === 'today') {
-            bothOn = (multiDayOfSelected[askKey] !== false && multiDayOfSelected[bidKey] !== false);
-            multiDayOfSelected[askKey] = !bothOn;
-            multiDayOfSelected[bidKey] = !bothOn;
+        const anyOn = isLevelSelected(date, 'spot_ask') || isLevelSelected(date, 'spot_bid') || isLevelSelected(date, 'fut_ask') || isLevelSelected(date, 'fut_bid');
+        const newState = !anyOn;
+
+        if (!newState) {
+            multiDayOfSelected[`${date}_spot_ask`] = false;
+            multiDayOfSelected[`${date}_spot_bid`] = false;
+            multiDayOfSelected[`${date}_fut_ask`] = false;
+            multiDayOfSelected[`${date}_fut_bid`] = false;
         } else {
-            bothOn = (multiDayOfSelected[askKey] && multiDayOfSelected[bidKey]);
-            multiDayOfSelected[askKey] = !bothOn;
-            multiDayOfSelected[bidKey] = !bothOn;
+            const enableSpot = (ofCalibrationMode === 'spot' || ofCalibrationMode === 'both');
+            const enableFut = (ofCalibrationMode === 'future' || ofCalibrationMode === 'both');
+            multiDayOfSelected[`${date}_spot_ask`] = enableSpot;
+            multiDayOfSelected[`${date}_spot_bid`] = enableSpot;
+            multiDayOfSelected[`${date}_fut_ask`] = enableFut;
+            multiDayOfSelected[`${date}_fut_bid`] = enableFut;
         }
-        try {
-            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
-            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (err) {}
+        saveMultiDayOfSelected();
+        syncCalibrationModeFromSelections();
+
         renderHistOfDropdownContent();
         drawWeightageOrderFlowLines();
         drawOptionsOrderFlowLines();
@@ -3443,43 +3310,41 @@
 
     function selectAllHistOf(mode, e) {
         if (e && e.stopPropagation) e.stopPropagation();
-        if (mode === 'all') {
-            multiDayOfSelected['today_ask'] = true;
-            multiDayOfSelected['today_bid'] = true;
-        } else if (mode === 'none') {
-            multiDayOfSelected['today_ask'] = false;
-            multiDayOfSelected['today_bid'] = false;
-        } else if (mode === 'res') {
-            multiDayOfSelected['today_ask'] = true;
-            multiDayOfSelected['today_bid'] = false;
-        } else if (mode === 'sup') {
-            multiDayOfSelected['today_ask'] = false;
-            multiDayOfSelected['today_bid'] = true;
-        }
+        const setDayLevels = (date) => {
+            if (mode === 'all') {
+                multiDayOfSelected[`${date}_spot_ask`] = true;
+                multiDayOfSelected[`${date}_spot_bid`] = true;
+                multiDayOfSelected[`${date}_fut_ask`] = true;
+                multiDayOfSelected[`${date}_fut_bid`] = true;
+            } else if (mode === 'none') {
+                multiDayOfSelected[`${date}_spot_ask`] = false;
+                multiDayOfSelected[`${date}_spot_bid`] = false;
+                multiDayOfSelected[`${date}_fut_ask`] = false;
+                multiDayOfSelected[`${date}_fut_bid`] = false;
+            } else if (mode === 'res') {
+                const enableSpot = (ofCalibrationMode !== 'future');
+                const enableFut = (ofCalibrationMode !== 'spot');
+                multiDayOfSelected[`${date}_spot_ask`] = enableSpot;
+                multiDayOfSelected[`${date}_fut_ask`] = enableFut;
+                multiDayOfSelected[`${date}_spot_bid`] = false;
+                multiDayOfSelected[`${date}_fut_bid`] = false;
+            } else if (mode === 'sup') {
+                const enableSpot = (ofCalibrationMode !== 'future');
+                const enableFut = (ofCalibrationMode !== 'spot');
+                multiDayOfSelected[`${date}_spot_ask`] = false;
+                multiDayOfSelected[`${date}_fut_ask`] = false;
+                multiDayOfSelected[`${date}_spot_bid`] = enableSpot;
+                multiDayOfSelected[`${date}_fut_bid`] = enableFut;
+            }
+        };
 
-        if (multiDayOfData && multiDayOfData.days) {
-            multiDayOfData.days.forEach(day => {
-                const askKey = `${day.date}_ask`;
-                const bidKey = `${day.date}_bid`;
-                if (mode === 'all') {
-                    multiDayOfSelected[askKey] = true;
-                    multiDayOfSelected[bidKey] = true;
-                } else if (mode === 'none') {
-                    multiDayOfSelected[askKey] = false;
-                    multiDayOfSelected[bidKey] = false;
-                } else if (mode === 'res') {
-                    multiDayOfSelected[askKey] = true;
-                    multiDayOfSelected[bidKey] = false;
-                } else if (mode === 'sup') {
-                    multiDayOfSelected[askKey] = false;
-                    multiDayOfSelected[bidKey] = true;
-                }
-            });
+        setDayLevels('today');
+        if (multiDayOfData?.days) {
+            multiDayOfData.days.forEach(day => setDayLevels(day.date));
         }
-        try {
-            const storageKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_multiday_of_selected' : 'nifty_unified_multiday_of_selected';
-            localStorage.setItem(storageKey, JSON.stringify(multiDayOfSelected));
-        } catch (err) {}
+        saveMultiDayOfSelected();
+        syncCalibrationModeFromSelections();
+
         renderHistOfDropdownContent();
         drawWeightageOrderFlowLines();
         drawOptionsOrderFlowLines();
@@ -3551,8 +3416,36 @@
 
     function setOfCalibrationWithEvent(mode, e) {
         if (e && e.stopPropagation) e.stopPropagation();
-        setOfCalibration(mode);
+        ofCalibrationMode = mode;
+        try {
+            const calibKey = window.location.pathname.includes('banknifty') ? 'banknifty_unified_of_calibration' : 'nifty_unified_of_calibration';
+            localStorage.setItem(calibKey, mode);
+        } catch (err) {}
+
+        const applyModeToDay = (date) => {
+            const askActive = isLevelSelected(date, 'spot_ask') || isLevelSelected(date, 'fut_ask');
+            const bidActive = isLevelSelected(date, 'spot_bid') || isLevelSelected(date, 'fut_bid');
+            if (askActive) {
+                multiDayOfSelected[`${date}_spot_ask`] = (mode === 'spot' || mode === 'both');
+                multiDayOfSelected[`${date}_fut_ask`] = (mode === 'future' || mode === 'both');
+            }
+            if (bidActive) {
+                multiDayOfSelected[`${date}_spot_bid`] = (mode === 'spot' || mode === 'both');
+                multiDayOfSelected[`${date}_fut_bid`] = (mode === 'future' || mode === 'both');
+            }
+        };
+        applyModeToDay('today');
+        if (multiDayOfData?.days) {
+            multiDayOfData.days.forEach(d => applyModeToDay(d.date));
+        }
+        saveMultiDayOfSelected();
+
         updateOfBasisButtonsUI();
+        renderHistOfDropdownContent();
+        drawWeightageOrderFlowLines();
+        drawOptionsOrderFlowLines();
+        drawMultiDayOrderFlowLines();
+        updateHistOfBadgeCount();
     }
     window.setOfCalibrationWithEvent = setOfCalibrationWithEvent;
 
@@ -3560,34 +3453,126 @@
         const listEl = document.getElementById('hist-of-dropdown-list');
         if (!listEl) return;
 
-        const isSpotMode = (ofCalibrationMode === 'spot');
-        const isBothMode = (ofCalibrationMode === 'both');
         const calibFooter = document.getElementById('hist-of-footer-calib');
         if (calibFooter) {
             const spread = (multiDayOfData?.basis_spread !== undefined) ? multiDayOfData.basis_spread : (orderFlowLevelsData?.basis_spread || 0);
-            if (isBothMode) {
-                calibFooter.textContent = `Basis: Spot & Fut (${spread >= 0 ? '+' : ''}${spread} pts)`;
-            } else if (isSpotMode) {
-                calibFooter.textContent = `Basis: Spot Calibrated (${spread >= 0 ? '+' : ''}${spread} pts)`;
-            } else {
-                calibFooter.textContent = `Basis: Raw Futures`;
-            }
+            calibFooter.textContent = `Basis Spread: ${spread >= 0 ? '+' : ''}${spread} pts`;
         }
 
         updateOfBasisButtonsUI();
         updateOfMenuMasterUI();
 
-        const formatPillPrice = (item) => {
-            if (!item) return '<div class="text-[10px] text-gray-500 mt-0.5">--</div>';
-            const spot = Number(item.calibrated_price || item.price).toLocaleString('en-IN', {maximumFractionDigits: 1});
-            const raw = Number(item.raw_price || item.price).toLocaleString('en-IN', {maximumFractionDigits: 1});
-            if (isBothMode) {
-                return `<div class="font-bold text-[10px] mt-0.5 text-inherit">₹${spot} <span class="text-[8.5px] text-gray-400 font-normal">/ F:₹${raw}</span></div>`;
-            } else if (ofCalibrationMode === 'future') {
-                return `<div class="font-bold text-[11px] mt-0.5 text-inherit">₹${raw}</div>`;
-            } else {
-                return `<div class="font-bold text-[11px] mt-0.5 text-inherit">₹${spot}</div>`;
+        const renderLevelPill = (date, side, isFut, item) => {
+            const type = isFut ? `fut_${side}` : `spot_${side}`;
+            const selected = isLevelSelected(date, type);
+            const isAsk = (side === 'ask');
+            const label = isAsk ? 'RES' : 'SUP';
+
+            if (!item) {
+                return `
+                    <div class="px-1.5 py-1 rounded border border-gray-800/60 bg-gray-900/30 opacity-40 text-left font-mono">
+                        <span class="text-[8px] text-gray-500 font-bold">${label}</span>
+                        <div class="text-[9px] text-gray-600">--</div>
+                    </div>
+                `;
             }
+
+            const rawVal = isFut ? (item.raw_price ?? item.price) : (item.calibrated_price ?? item.price);
+            const priceStr = Number(rawVal).toLocaleString('en-IN', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+            const qtyStr = item.qty ? (item.qty >= 1000 ? (item.qty / 1000).toFixed(1) + 'k' : item.qty) : '--';
+            const timeStr = item.time || '';
+
+            let pillClass = '';
+            let badgeClass = '';
+            if (selected) {
+                if (isAsk) {
+                    pillClass = 'bg-rose-950/70 border-rose-500 text-rose-100 shadow-xs ring-1 ring-rose-500/40';
+                    badgeClass = 'bg-rose-500 text-white font-bold';
+                } else {
+                    pillClass = 'bg-emerald-950/70 border-emerald-500 text-emerald-100 shadow-xs ring-1 ring-emerald-500/40';
+                    badgeClass = 'bg-emerald-500 text-white font-bold';
+                }
+            } else {
+                pillClass = 'bg-[#121620] border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-200';
+                badgeClass = 'bg-gray-800 text-gray-500 font-semibold';
+            }
+
+            const pillTitle = `${date} ${isFut ? 'FUT' : 'SPOT'} ${label}: ₹${priceStr} [${qtyStr}]`;
+
+            return `
+                <button type="button" onclick="toggleHistOfLevel('${date}', '${type}', event)"
+                    class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${pillClass}"
+                    title="${pillTitle}">
+                    <div class="flex items-center justify-between gap-1 w-full">
+                        <span class="text-[8.5px] font-bold ${isAsk ? 'text-rose-400' : 'text-emerald-400'}">${label}</span>
+                        <span class="text-[7.5px] font-mono px-1 py-0.2 rounded leading-none ${badgeClass}">${selected ? 'ON' : 'OFF'}</span>
+                    </div>
+                    <div class="font-bold text-[10px] mt-0.5 tracking-tight text-inherit">₹${priceStr}</div>
+                    <div class="text-[7.5px] text-gray-400 mt-0.5 truncate flex items-center justify-between w-full font-mono">
+                        <span>${qtyStr}</span>
+                        ${timeStr ? `<span class="text-gray-500 text-[7px]">${timeStr}</span>` : ''}
+                    </div>
+                </button>
+            `;
+        };
+
+        const renderDayCard = (date, title, badgeHtml, rightBadgeHtml, askItem, bidItem, isToday) => {
+            const spotAskSelected = isLevelSelected(date, 'spot_ask');
+            const spotBidSelected = isLevelSelected(date, 'spot_bid');
+            const futAskSelected = isLevelSelected(date, 'fut_ask');
+            const futBidSelected = isLevelSelected(date, 'fut_bid');
+            const anySelected = (spotAskSelected || spotBidSelected || futAskSelected || futBidSelected);
+
+            const cardBorder = anySelected 
+                ? (isToday ? 'border-teal-500/60 bg-teal-950/20' : 'border-amber-500/50 bg-amber-950/15') 
+                : 'border-gray-800 bg-[#171b24]';
+
+            return `
+                <div class="p-1.5 rounded-xl border transition-all ${cardBorder} space-y-1.5">
+                    <!-- Day Header -->
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-1.5 cursor-pointer select-none" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${anySelected ? 'checked' : ''} onchange="toggleHistOfDay('${date}', event)" class="rounded accent-teal-500 cursor-pointer">
+                            <span class="font-bold text-[11px] ${isToday ? 'text-teal-300' : 'text-gray-200'}">${title}</span>
+                            ${badgeHtml}
+                        </label>
+                        <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
+                            ${rightBadgeHtml}
+                        </span>
+                    </div>
+
+                    <!-- Granular 4-Way Controls: Spot & Fut -->
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <!-- SPOT Sub-panel -->
+                        <div class="p-1 rounded-lg bg-[#0e121a] border border-teal-900/40 space-y-1">
+                            <div class="flex items-center justify-between px-0.5">
+                                <span class="text-[8.5px] font-extrabold text-teal-400 tracking-wider flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400 inline-block"></span> SPOT
+                                </span>
+                                <span class="text-[7.5px] text-gray-500">Calibrated</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1 font-mono">
+                                ${renderLevelPill(date, 'ask', false, askItem)}
+                                ${renderLevelPill(date, 'bid', false, bidItem)}
+                            </div>
+                        </div>
+
+                        <!-- FUT Sub-panel -->
+                        <div class="p-1 rounded-lg bg-[#0e121a] border border-amber-900/40 space-y-1">
+                            <div class="flex items-center justify-between px-0.5">
+                                <span class="text-[8.5px] font-extrabold text-amber-400 tracking-wider flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span> FUT
+                                </span>
+                                <span class="text-[7.5px] text-gray-500">Raw Futures</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1 font-mono">
+                                ${renderLevelPill(date, 'ask', true, askItem)}
+                                ${renderLevelPill(date, 'bid', true, bidItem)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         };
 
         let html = '';
@@ -3595,111 +3580,33 @@
         // 1. TODAY LIVE DYNAMIC CARD
         const tdAskItem = orderFlowLevelsData?.today?.asks?.[0];
         const tdBidItem = orderFlowLevelsData?.today?.bids?.[0];
-        const tdAskSelected = (multiDayOfSelected['today_ask'] !== false);
-        const tdBidSelected = (multiDayOfSelected['today_bid'] !== false);
-        const tdBothSelected = (tdAskSelected && tdBidSelected);
-        const tdAnySelected = (tdAskSelected || tdBidSelected);
-        const tdAskQty = tdAskItem ? (tdAskItem.qty >= 1000 ? (tdAskItem.qty / 1000).toFixed(1) + 'k' : tdAskItem.qty) : '--';
-        const tdBidQty = tdBidItem ? (tdBidItem.qty >= 1000 ? (tdBidItem.qty / 1000).toFixed(1) + 'k' : tdBidItem.qty) : '--';
-
-        html += `
-            <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${tdAnySelected ? 'border-teal-500/60 bg-teal-950/20' : 'border-gray-800'} space-y-1">
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-1.5 cursor-pointer select-none" onclick="event.stopPropagation()">
-                        <input type="checkbox" ${tdBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('today', event)" class="rounded accent-teal-500 cursor-pointer">
-                        <span class="font-bold text-[11px] text-teal-300">TODAY LIVE (DYNAMIC)</span>
-                        <span class="px-1 py-0 rounded text-[8px] bg-emerald-500/20 text-emerald-400 font-mono font-bold border border-emerald-500/30">LIVE</span>
-                    </label>
-                    <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
-                        <span class="w-2 h-0.5 inline-block bg-teal-400"></span>
-                        <span>${orderFlowLevelsData?.date || 'TODAY'}</span>
-                    </span>
-                </div>
-                <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
-                    <!-- Today Ask RES Pill -->
-                    <button type="button" onclick="toggleHistOfLevel('today', 'ask', event)" 
-                        class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${tdAskSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                        title="Today Ask (RES)">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
-                            <span class="text-[8px] font-mono px-1 rounded ${tdAskSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${tdAskSelected ? 'ON' : 'OFF'}</span>
-                        </div>
-                        ${formatPillPrice(tdAskItem)}
-                        <div class="text-[8.5px] text-gray-400">${tdAskQty} ${tdAskItem?.time ? '· ' + tdAskItem.time : ''}</div>
-                    </button>
-
-                    <!-- Today Bid SUP Pill -->
-                    <button type="button" onclick="toggleHistOfLevel('today', 'bid', event)" 
-                        class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${tdBidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                        title="Today Bid (SUP)">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
-                            <span class="text-[8px] font-mono px-1 rounded ${tdBidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${tdBidSelected ? 'ON' : 'OFF'}</span>
-                        </div>
-                        ${formatPillPrice(tdBidItem)}
-                        <div class="text-[8.5px] text-gray-400">${tdBidQty} ${tdBidItem?.time ? '· ' + tdBidItem.time : ''}</div>
-                    </button>
-                </div>
-            </div>
-        `;
+        const tdDateStr = orderFlowLevelsData?.date || 'TODAY';
+        html += renderDayCard(
+            'today', 
+            'TODAY LIVE (DYNAMIC)', 
+            '<span class="px-1 py-0 rounded text-[7.5px] bg-emerald-500/20 text-emerald-400 font-mono font-bold border border-emerald-500/30">LIVE</span>', 
+            `<span class="w-2 h-0.5 inline-block bg-teal-400"></span><span>${tdDateStr}</span>`, 
+            tdAskItem, 
+            tdBidItem, 
+            true
+        );
 
         // 2. PAST 5 DAYS HISTORICAL CARDS
         if (multiDayOfData && multiDayOfData.days && multiDayOfData.days.length > 0) {
             multiDayOfData.days.forEach(day => {
-                const askKey = `${day.date}_ask`;
-                const bidKey = `${day.date}_bid`;
-                const askSelected = !!multiDayOfSelected[askKey];
-                const bidSelected = !!multiDayOfSelected[bidKey];
-                const isBothSelected = (askSelected && bidSelected);
-                const isAnySelected = (askSelected || bidSelected);
-
-                const askItem = day.ask;
-                const bidItem = day.bid;
-                const askQty = askItem ? (askItem.qty >= 1000 ? (askItem.qty / 1000).toFixed(1) + 'k' : askItem.qty) : '--';
-                const bidQty = bidItem ? (bidItem.qty >= 1000 ? (bidItem.qty / 1000).toFixed(1) + 'k' : bidItem.qty) : '--';
                 const colors = HIST_OF_COLORS[day.day_offset] || HIST_OF_COLORS[5];
                 const isYd = (day.day_offset === 1);
-
-                html += `
-                    <div class="p-1.5 rounded bg-[#1a1e29] border transition-all ${isAnySelected ? 'border-amber-500/50 bg-amber-950/15' : 'border-gray-800'} space-y-1">
-                        <div class="flex items-center justify-between">
-                            <label class="flex items-center gap-1.5 cursor-pointer select-none" onclick="event.stopPropagation()">
-                                <input type="checkbox" ${isBothSelected ? 'checked' : ''} onchange="toggleHistOfDay('${day.date}', event)" class="rounded accent-amber-500 cursor-pointer">
-                                <span class="font-bold text-[11px] ${isYd ? 'text-amber-300' : 'text-gray-200'}">${day.formatted_date} (${day.day_code})</span>
-                                ${isYd ? '<span class="px-1 py-0 rounded text-[7.5px] bg-amber-500/20 text-amber-300 font-mono font-bold">YD</span>' : ''}
-                            </label>
-                            <span class="text-[9px] text-gray-400 font-mono flex items-center gap-1">
-                                <span class="w-2 h-0.5 inline-block" style="background-color: ${colors.res};"></span>
-                                <span>D-${day.day_offset}</span>
-                            </span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
-                            <!-- Ask RES Pill -->
-                            <button type="button" onclick="toggleHistOfLevel('${day.date}', 'ask', event)" 
-                                class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${askSelected ? 'bg-rose-950/80 border-rose-500 text-rose-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                                title="${askItem ? (isBothMode ? `Spot: ₹${askItem.calibrated_price || askItem.price} | Fut: ₹${askItem.raw_price || askItem.price} [${askQty}]` : (isSpotMode ? askItem.label : askItem.raw_label)) : 'No Ask record'}">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[9px] font-bold text-rose-400">RES (Ask)</span>
-                                    <span class="text-[8px] font-mono px-1 rounded ${askSelected ? 'bg-rose-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${askSelected ? 'ON' : 'OFF'}</span>
-                                </div>
-                                ${formatPillPrice(askItem)}
-                                <div class="text-[8.5px] text-gray-400">${askQty} ${askItem?.time ? '· ' + askItem.time : ''}</div>
-                            </button>
-
-                            <!-- Bid SUP Pill -->
-                            <button type="button" onclick="toggleHistOfLevel('${day.date}', 'bid', event)" 
-                                class="px-1.5 py-1 rounded border text-left transition cursor-pointer flex flex-col justify-between ${bidSelected ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-xs' : 'bg-gray-900/60 border-gray-700/60 text-gray-500 hover:text-gray-300'}"
-                                title="${bidItem ? (isBothMode ? `Spot: ₹${bidItem.calibrated_price || bidItem.price} | Fut: ₹${bidItem.raw_price || bidItem.price} [${bidQty}]` : (isSpotMode ? bidItem.label : bidItem.raw_label)) : 'No Bid record'}">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[9px] font-bold text-emerald-400">SUP (Bid)</span>
-                                    <span class="text-[8px] font-mono px-1 rounded ${bidSelected ? 'bg-emerald-500 text-white font-bold' : 'bg-gray-800 text-gray-400'}">${bidSelected ? 'ON' : 'OFF'}</span>
-                                </div>
-                                ${formatPillPrice(bidItem)}
-                                <div class="text-[8.5px] text-gray-400">${bidQty} ${bidItem?.time ? '· ' + bidItem.time : ''}</div>
-                            </button>
-                        </div>
-                    </div>
-                `;
+                const ydBadge = isYd ? '<span class="px-1 py-0 rounded text-[7.5px] bg-amber-500/20 text-amber-300 font-mono font-bold">YD</span>' : '';
+                const rightBadge = `<span class="w-2 h-0.5 inline-block" style="background-color: ${colors.res};"></span><span>D-${day.day_offset}</span>`;
+                html += renderDayCard(
+                    day.date, 
+                    `${day.formatted_date} (${day.day_code})`, 
+                    ydBadge, 
+                    rightBadge, 
+                    day.ask, 
+                    day.bid, 
+                    false
+                );
             });
         }
 
@@ -3728,7 +3635,7 @@
 
         const rect = btnEl.getBoundingClientRect();
         dd.style.top = `${rect.bottom + window.scrollY + 4}px`;
-        dd.style.left = `${Math.max(10, Math.min(window.innerWidth - 410, rect.left + window.scrollX))}px`;
+        dd.style.left = `${Math.max(10, Math.min(window.innerWidth - 490, rect.left + window.scrollX))}px`;
         dd.classList.remove('hidden');
 
         if (!multiDayOfData) {
