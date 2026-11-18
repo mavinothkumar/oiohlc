@@ -445,7 +445,7 @@ class HomeController extends Controller
 
         // 9. Live 1-Minute OHLC Stream Check
         $latestOhlc = DB::table('ohlc_quotes')->latest('id')->first();
-        $candlesTodayCount = DB::table('ohlc_quotes')->whereDate('created_at', $today)->count();
+        $candlesTodayCount = DB::table('ohlc_quotes')->where('created_at', '>=', $today . ' 00:00:00')->count();
         $latestOhlcTime = null;
         $latestOhlcDiffMinutes = null;
         $ohlcStreamStatus = 'pending';

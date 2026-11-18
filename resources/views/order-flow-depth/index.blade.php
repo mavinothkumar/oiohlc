@@ -323,127 +323,302 @@
         {{-- ───────────────────── COLUMN 2: TOP RECOMMENDATION & ENGINE INSPECTOR ───────────────────── --}}
         <div class="lg:col-span-4 space-y-2.5">
             
-            {{-- 1. Real-Time High Probability Trade Suggestion Card (TOP PRIORITY) --}}
-            <div id="top-recommendation-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden transition-all duration-200">
-                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            {{-- 1. INSTITUTIONAL ORDER FLOW INTELLIGENCE & PREDICTIVE RADAR (TOP PRIORITY) --}}
+            <div id="flow-intelligence-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5 relative overflow-hidden transition-all duration-200">
+                
+                {{-- Header with Bias Badge, Conviction Score, Noise Calibration Toggle & 0Click Desk --}}
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2 flex-wrap gap-2">
                     <div class="flex items-center gap-2">
-                        <span id="signal-badge-icon" class="text-base sm:text-lg">🎯</span>
+                        <span class="text-base text-cyan-400">🧠</span>
                         <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Confluence Engine</span>
-                            <h2 id="signal-main-text" class="text-xs sm:text-sm font-black text-white leading-tight">
-                                CONFLUENCE SCANNER
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Order Flow Brain · Predictive Radar</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>FLOW INTELLIGENCE &amp; 15-30M FORECAST</span>
                             </h2>
                         </div>
                     </div>
-
-                    {{-- 4 Pillar Real-Time Status Boxes: 50 Stock | Opt Flow | Trend OI | 30 D Book --}}
-                    <div class="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-                        <div id="pillar-box-stock" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 1: Nifty 50 Stocks Breadth (≥80% Weight & Stocks)">
-                            <span>50 Stock</span>
-                        </div>
-                        <div id="pillar-box-optflow" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 2: Options Flow Parity (≥70% Buy or Sell Flow)">
-                            <span>Opt Flow</span>
-                        </div>
-                        <div id="pillar-box-trendoi" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 3: Trending OI & PCR Difference">
-                            <span>Trend OI</span>
-                        </div>
-                        <div id="pillar-box-d30" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 4: 30-Level Order Book (OBI, Stack & Divergence)">
-                            <span>30 D Book</span>
-                        </div>
-                        <button type="button" onclick="toggleRecDetails()" id="btn-toggle-rec-details" class="ml-1 px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Show/Hide Trade & Strike Details to enlarge Engine Inspector">
-                            <span id="rec-toggle-label">Details</span>
-                            <span id="rec-toggle-icon">▼</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span id="flow-intel-timestamp" class="px-1.5 py-0.5 rounded text-[9px] font-mono text-slate-400 bg-slate-950 border border-slate-800" title="Last State Update Timestamp">⏱️ LIVE</span>
+                        <span id="flow-intel-conviction-pill" class="px-2 py-0.5 rounded-full text-[9.5px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🟢 80% BULLISH SQUEEZE</span>
+                        <button type="button" onclick="toggleFlowCalibrationDrawer()" id="btn-flow-calibration-toggle" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] border border-slate-700 transition cursor-pointer flex items-center gap-1" title="Adjust Win Probability Threshold (70%, 80%, 90%), Whale Size, and Audio Alarm">
+                            <span>⚙️</span>
+                            <span id="flow-calib-btn-label">Alarm: 80%</span>
                         </button>
+                        <a href="{{ route('nifty.option.trader') }}" target="_blank" class="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs" title="Open NIFTY Option Trader Execution Desk in a new tab">
+                            <span>🎯 0Click Desk</span>
+                        </a>
                     </div>
                 </div>
 
-                {{-- Master Anchor Process Indicator (NIFTY 50 Stock Anchor & API Cap) --}}
-                <div id="master-anchor-banner" class="mb-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/90 text-[10px] flex items-center justify-between flex-wrap gap-1">
-                    <div class="flex items-center gap-1.5 font-mono">
-                        <span class="text-amber-400">⚓</span>
-                        <span class="text-slate-400 font-bold uppercase text-[9px]">Master Anchor:</span>
-                        <span id="anchor-candle-pill" class="font-bold text-amber-300">NIFTY 50 Stocks (Awaiting Trigger)</span>
+                {{-- Interactive Calibration & Noise Filter Drawer (Collapsible) --}}
+                <div id="flow-calibration-drawer" class="hidden p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs transition-all duration-200">
+                    <div class="flex items-center justify-between pb-1 border-b border-slate-800/80">
+                        <span class="font-extrabold text-[10px] uppercase text-amber-300 tracking-wider flex items-center gap-1">
+                            <span>⚙️</span> NOISE CALIBRATION &amp; PERSISTENT ALARM SETTINGS
+                        </span>
+                        <button type="button" onclick="toggleFlowCalibrationDrawer()" class="text-slate-400 hover:text-white text-xs cursor-pointer">✕ Close</button>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <span id="rec-tape-capsule" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800" title="Tape State">TAPE: BALANCED</span>
-                        <span id="dom-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800 cursor-help" title="Institutional Driver Diagnosis: Detects and resolves divergences between Options Flow, Equities, and Futures Book">DRIVER: BALANCED</span>
-                        <span id="anchor-status-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400">BIAS: NEUTRAL</span>
-                        <span id="api-trade-cap-pill" class="hidden px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">API: 0/3</span>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                        {{-- 1. Win Probability Alarm Threshold (70%, 80%, 90%, Mute) --}}
+                        <div class="space-y-1">
+                            <span class="text-slate-400 font-bold block">1. Alarm Conviction Threshold (Nifty MTF 80% Rule):</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="setFlowAlarmThreshold(70)" id="btn-thresh-70" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white font-bold transition cursor-pointer">70%</button>
+                                <button type="button" onclick="setFlowAlarmThreshold(80)" id="btn-thresh-80" class="px-2 py-0.5 rounded bg-emerald-600 text-white font-black transition cursor-pointer">⭐ 80% Rec</button>
+                                <button type="button" onclick="setFlowAlarmThreshold(90)" id="btn-thresh-90" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white font-bold transition cursor-pointer">90% Strict</button>
+                                <button type="button" onclick="setFlowAlarmThreshold(0)"  id="btn-thresh-0"  class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white font-bold transition cursor-pointer">🔕 Mute</button>
+                            </div>
+                            <span class="text-[8.5px] text-slate-500 block leading-tight">Continuous ringing alarm triggers and stops only when acknowledged.</span>
+                        </div>
+
+                        {{-- 2. Dominance Ratio Threshold --}}
+                        <div class="space-y-1">
+                            <span class="text-slate-400 font-bold block">2. Buyer / Seller Dominance Threshold:</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="setFlowDominanceThreshold(2.0)" id="btn-dom-20" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold transition cursor-pointer">2.0x</button>
+                                <button type="button" onclick="setFlowDominanceThreshold(2.5)" id="btn-dom-25" class="px-2 py-0.5 rounded bg-cyan-600 text-white font-black transition cursor-pointer">⭐ 2.5x (80%)</button>
+                                <button type="button" onclick="setFlowDominanceThreshold(3.5)" id="btn-dom-35" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold transition cursor-pointer">3.5x Mega</button>
+                            </div>
+                            <span class="text-[8.5px] text-slate-500 block leading-tight">Requires institutional volume dominance before validating trend.</span>
+                        </div>
+
+                        {{-- 3. Whale Order Cutoff Qty --}}
+                        <div class="space-y-1">
+                            <span class="text-slate-400 font-bold block">3. Single Whale Block Cutoff:</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="setFlowWhaleThreshold(5000)"  id="btn-whale-5k"  class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold transition cursor-pointer">5,000 Qty</button>
+                                <button type="button" onclick="setFlowWhaleThreshold(8000)"  id="btn-whale-8k"  class="px-2 py-0.5 rounded bg-amber-600 text-white font-black transition cursor-pointer">⭐ 8,000 Qty</button>
+                                <button type="button" onclick="setFlowWhaleThreshold(15000)" id="btn-whale-15k" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold transition cursor-pointer">15,000 Qty</button>
+                            </div>
+                            <span class="text-[8.5px] text-slate-500 block leading-tight">Filters retail noise; only alerts on bona fide institutional strikes.</span>
+                        </div>
+
+                        {{-- 4. Audio Sound Profile & Test Sound --}}
+                        <div class="space-y-1">
+                            <span class="text-slate-400 font-bold block">4. Synthesized Audio Tone:</span>
+                            <div class="flex items-center gap-1">
+                                <select id="flow-sound-profile-select" onchange="setFlowAlarmSound(this.value)" class="bg-slate-900 text-slate-200 text-[10px] rounded px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                                    <option value="radar" selected>📡 Radar Sonar (Default)</option>
+                                    <option value="crystal">🔔 Crystal Chime</option>
+                                    <option value="laser">⚡ Cyber Laser</option>
+                                    <option value="marimba">🎶 Warm Marimba</option>
+                                </select>
+                                <button type="button" onclick="testFlowAlarmSound()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold transition cursor-pointer" title="Test Alert Ringing Tone">
+                                    ▶ Test Tone
+                                </button>
+                            </div>
+                            <span class="text-[8.5px] text-slate-500 block leading-tight">Web Audio API synthesized tone. Zero external MP3 downloads.</span>
+                        </div>
                     </div>
                 </div>
 
-                {{-- Collapsible Details Section: Trade Parameters & Option Strike Recommendation --}}
-                <div id="rec-collapsible-section" class="space-y-2 transition-all duration-200">
-                    {{-- Trade Parameters Grid --}}
-                    <div class="grid grid-cols-2 gap-1.5 text-xs">
-                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Instrument</span>
-                            <p id="trade-instrument" class="text-xs font-black text-amber-300 truncate mt-0.5">NIFTY FUT</p>
-                            <span id="trade-type" class="text-[9px] font-bold text-emerald-400">Momentum Scalp</span>
-                        </div>
-
-                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Entry Zone</span>
-                            <p id="trade-entry-zone" class="text-xs font-black text-white font-mono mt-0.5">₹--</p>
-                            <span class="text-[9px] text-slate-400">Limit Pullback</span>
-                        </div>
-
-                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Stop Loss (Wall)</span>
-                            <p id="trade-sl" class="text-xs font-black text-rose-400 font-mono mt-0.5">₹--</p>
-                            <span id="trade-sl-wall" class="text-[9px] text-slate-400 truncate block">Behind Bid Wall</span>
-                        </div>
-
-                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
-                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Target (Wall)</span>
-                            <p id="trade-target" class="text-xs font-black text-emerald-400 font-mono mt-0.5">₹--</p>
-                            <span id="trade-rr" class="text-[9px] font-bold text-emerald-300">1 : 2.2 R:R</span>
+                {{-- Section 1: 15–30M Predictive Target Trajectory & Trade State Guard (Hero Box) --}}
+                <div class="p-2.5 rounded-xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 shadow-inner space-y-2">
+                    <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider flex-wrap gap-1">
+                        <span class="text-amber-300 flex items-center gap-1">
+                            <span>🔮</span> 15–30M PREDICTIVE OUTLOOK &amp; TARGET TRAJECTORY
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="flow-trade-state-guard" class="px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🟢 FRESH TRIGGER</span>
+                            <span class="text-slate-400 font-mono text-[8.5px]">Horizon: 15–25 mins</span>
                         </div>
                     </div>
 
-                    {{-- Rationale Snippet (Single line fixed height to prevent layout jerking) --}}
-                    <div class="bg-slate-950/70 px-2.5 rounded-lg border border-slate-800/80 text-[10.5px] text-slate-300 flex items-center gap-1.5 overflow-hidden h-7">
-                        <span class="text-amber-400 text-xs shrink-0">💡</span>
-                        <p id="trade-rationale" class="truncate whitespace-nowrap text-slate-300 font-medium flex-1">
-                            Awaiting 30-depth order book alignment with quant and heavyweight breadth.
+                    {{-- Visual Trajectory Pipeline: Current ➔ Target 1 ➔ Target 2 --}}
+                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/90 flex items-center justify-between gap-1 text-center font-mono">
+                        <div class="flex-1">
+                            <span class="text-[8px] uppercase font-bold text-slate-400 block font-sans">Current Spot</span>
+                            <span id="flow-traj-current" class="text-xs sm:text-sm font-black text-white block mt-0.5">₹--</span>
+                            <span id="flow-traj-current-sub" class="text-[8px] text-slate-500 font-sans block truncate">Waiting LTP</span>
+                        </div>
+                        <span class="text-slate-600 font-bold text-xs shrink-0">──►</span>
+                        <div class="flex-1">
+                            <span class="text-[8px] uppercase font-bold text-emerald-400 block font-sans">Target 1 (Magnet)</span>
+                            <span id="flow-traj-t1" class="text-xs sm:text-sm font-black text-emerald-300 block mt-0.5">₹--</span>
+                            <span id="flow-traj-t1-sub" class="text-[8px] text-emerald-400/80 font-sans block truncate">TD RES Wall</span>
+                        </div>
+                        <span class="text-slate-600 font-bold text-xs shrink-0">──►</span>
+                        <div class="flex-1">
+                            <span class="text-[8px] uppercase font-bold text-cyan-400 block font-sans">Target 2 (Squeeze)</span>
+                            <span id="flow-traj-t2" class="text-xs sm:text-sm font-black text-cyan-300 block mt-0.5">₹--</span>
+                            <span id="flow-traj-t2-sub" class="text-[8px] text-cyan-400/80 font-sans block truncate">Air Pocket Peak</span>
+                        </div>
+                    </div>
+
+                    {{-- Concrete Stop Loss & Invalidation Bar --}}
+                    <div class="flex items-center justify-between text-[9.5px] px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800 font-mono flex-wrap gap-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-rose-400 font-bold">🛑 Concrete Spot SL:</span>
+                            <span id="flow-concrete-sl" class="font-black text-rose-300 font-mono">₹--</span>
+                            <span id="flow-concrete-sl-desc" class="text-slate-500 font-sans text-[8.5px]">(Behind Institutional Floor)</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-[8.5px] text-slate-400 font-sans">
+                            <span>Thesis Invalidation:</span>
+                            <span id="flow-invalidation-rule" class="text-rose-400 font-mono">5M Close Below SL</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Section 2: Institutional S/R Matrix (Today & Yesterday Volume Anchors) --}}
+                <div class="p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5">
+                    <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        <span class="flex items-center gap-1 text-amber-400"><span>⚓</span> Master Institutional Anchors (Today &amp; Yesterday Top #1 Clusters)</span>
+                        <span id="flow-regime-badge" class="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">ABOVE TD SUP</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-center font-mono">
+                        {{-- TD SUP --}}
+                        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800/90" title="Today's #1 Ask (Institutional Demand Support)">
+                            <span class="text-[8px] uppercase font-bold text-emerald-400 block font-sans">🟢 TD SUP (Today)</span>
+                            <span id="flow-matrix-td-sup" class="text-[11px] font-black text-emerald-300 block truncate mt-0.5">₹--</span>
+                            <span id="flow-matrix-td-sup-stat" class="text-[8px] text-slate-400 block truncate">--</span>
+                        </div>
+
+                        {{-- TD RES --}}
+                        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800/90" title="Today's #1 Bid (Institutional Supply Resistance)">
+                            <span class="text-[8px] uppercase font-bold text-rose-400 block font-sans">🔴 TD RES (Today)</span>
+                            <span id="flow-matrix-td-res" class="text-[11px] font-black text-rose-300 block truncate mt-0.5">₹--</span>
+                            <span id="flow-matrix-td-res-stat" class="text-[8px] text-slate-400 block truncate">--</span>
+                        </div>
+
+                        {{-- YD SUP --}}
+                        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800/90" title="Yesterday's Primary Demand Floor Anchor">
+                            <span class="text-[8px] uppercase font-bold text-emerald-400/80 block font-sans">🟢 YD SUP (Yday)</span>
+                            <span id="flow-matrix-yd-sup" class="text-[11px] font-black text-emerald-400 block truncate mt-0.5">₹--</span>
+                            <span id="flow-matrix-yd-sup-stat" class="text-[8px] text-slate-400 block truncate">--</span>
+                        </div>
+
+                        {{-- YD RES --}}
+                        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800/90" title="Yesterday's Primary Supply Ceiling Anchor">
+                            <span class="text-[8px] uppercase font-bold text-rose-400/80 block font-sans">🔴 YD RES (Yday)</span>
+                            <span id="flow-matrix-yd-res" class="text-[11px] font-black text-rose-400 block truncate mt-0.5">₹--</span>
+                            <span id="flow-matrix-yd-res-stat" class="text-[8px] text-slate-400 block truncate">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Section 3: Live Microstructure & Tape Dynamics (Whale Tracker & Herd / FOMO Radar) --}}
+                <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2 text-xs">
+                    <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                        <span class="text-cyan-400 flex items-center gap-1"><span>🌊</span> Live Tape Dynamics: Whales &amp; Herd Velocity</span>
+                        <div class="flex items-center gap-1 font-mono text-[8.5px]">
+                            <span id="flow-net-aggressive-tag" class="px-1.5 py-0.2 rounded bg-slate-900 text-emerald-300 border border-slate-800">+0k Net</span>
+                            <span id="flow-dominance-ratio-tag" class="px-1.5 py-0.2 rounded bg-slate-900 text-cyan-300 border border-slate-800">1.00x Dom</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px]">
+                        {{-- Whale Tracker: Taking the Ride vs Sunk in Ship --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-[9.5px] uppercase text-amber-300 flex items-center gap-1">
+                                    <span>🐋</span> Whale Tracker
+                                </span>
+                                <span id="flow-whale-time" class="text-[8.5px] text-slate-500 font-mono">--:--:--</span>
+                            </div>
+                            <div id="flow-whale-details" class="text-[10px] text-slate-300 font-sans leading-tight">
+                                Scanning tape for &ge;8,000 qty single block orders...
+                            </div>
+                        </div>
+
+                        {{-- Herd / FOMO Radar: FOMO Breakout vs Blow-off Exhaustion vs Panic Flush --}}
+                        <div class="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-[9.5px] uppercase text-cyan-300 flex items-center gap-1">
+                                    <span>🔥</span> FOMO &amp; Herd Radar
+                                </span>
+                                <span id="flow-fomo-time" class="text-[8.5px] text-slate-500 font-mono">--:--:--</span>
+                            </div>
+                            <div id="flow-fomo-details" class="text-[10px] text-slate-300 font-sans leading-tight">
+                                Monitoring for rapid &ge;3 cluster prints in tight 2-pt window...
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Microstructure Boosters: Iceberg Reloads & Frictionless Air Pocket Voids --}}
+                    <div id="flow-micro-tags" class="flex items-center gap-1.5 flex-wrap text-[9px] font-mono">
+                        <span id="flow-tag-iceberg" class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">🧊 Iceberg: Monitoring</span>
+                        <span id="flow-tag-airpocket" class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">⚡ Air Pocket: Calibrated</span>
+                        <span id="flow-tag-clock" class="px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">🕒 Session Clock: Active</span>
+                    </div>
+                </div>
+
+                {{-- Section 4: The 3-Timeline Story (Past ➔ Present ➔ Future Narrative) --}}
+                <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 space-y-1.5">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                        📖 The 3-Timeline Story (What Happened ➔ What Is Happening ➔ Next 15–30M Forecast)
+                    </span>
+                    <div class="space-y-1 text-[10.5px] font-sans leading-relaxed">
+                        <p id="flow-story-past" class="text-slate-400">
+                            <strong class="text-slate-300">⏳ Past (Last 30m):</strong> Aggregating session trade prints...
+                        </p>
+                        <p id="flow-story-present" class="text-slate-300">
+                            <strong class="text-cyan-300">⚡ Present (Right Now):</strong> Synchronizing 30-depth order book...
+                        </p>
+                        <p id="flow-story-future" class="text-emerald-300">
+                            <strong class="text-amber-300">🎯 Future (Next 15–30M):</strong> Synthesizing institutional trajectory...
                         </p>
                     </div>
+                </div>
 
-                    {{-- ⚡ DIRECT OPTION STRIKE EXECUTION CARD (Options Trader Mode) --}}
-                    <div class="p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5 shadow-inner">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs">⚡</span>
-                                <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider">Option Strike Recommendation:</span>
-                                <span id="opt-rec-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400">STAND ASIDE</span>
-                            </div>
-                            <button type="button" onclick="copyOrderDetails()" id="btn-copy-order" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
-                                <span>📋</span>
-                                <span>Copy Order</span>
-                            </button>
+                {{-- Section 5: Actionable Trade Playbook (Option Selling 80% vs Momentum Buying) --}}
+                <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider">
+                        <span class="text-amber-400 flex items-center gap-1"><span>🎯</span> Actionable Playbook (Options Trader Mode)</span>
+                        <span class="text-slate-500 font-sans text-[8.5px]">Calibrated to 30-Depth &amp; S/R Anchors</span>
+                    </div>
+
+                    <div class="space-y-1 text-[10.5px] font-sans">
+                        <div class="flex items-start gap-1.5 text-slate-300">
+                            <span class="px-1.5 py-0.2 rounded text-[8px] font-extrabold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0 mt-0.5">80% SELLING</span>
+                            <span id="flow-intel-playbook-sell" class="leading-tight">Awaiting setup...</span>
                         </div>
-
-                        <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
-                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Suggested Strike</span>
-                                <span id="opt-rec-strike" class="text-[11px] font-black text-amber-300 truncate mt-0.5 block font-mono">--</span>
-                            </div>
-                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Option Entry</span>
-                                <span id="opt-rec-entry" class="text-[11px] font-bold text-white font-mono mt-0.5 block">--</span>
-                            </div>
-                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">SL / Target</span>
-                                <span id="opt-rec-sltgt" class="text-[10px] font-bold text-slate-300 font-mono mt-0.5 block">--</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5 px-0.5">
-                            <span id="opt-rec-note">Calculated for NIFTY Derivatives (Lot Size: 25)</span>
-                            <span id="opt-copy-status" class="text-emerald-400 font-bold hidden animate-pulse">✓ Copied to clipboard!</span>
+                        <div class="flex items-start gap-1.5 text-slate-300">
+                            <span class="px-1.5 py-0.2 rounded text-[8px] font-extrabold uppercase bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shrink-0 mt-0.5">MOMENTUM BUY</span>
+                            <span id="flow-intel-playbook-buy" class="leading-tight">Awaiting setup...</span>
                         </div>
                     </div>
                 </div>
+
+                {{-- Section 6: Click-to-Inspect Institutional Event Journal (Historical Timeline & Backtesting) --}}
+                <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider">
+                        <span class="text-slate-400 flex items-center gap-1">
+                            <span>📜</span> Institutional Event Journal &amp; State History
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <span id="flow-journal-count" class="px-1.5 py-0.2 rounded text-[8.5px] font-mono bg-slate-900 text-slate-400 border border-slate-800">0 Events</span>
+                            <button type="button" onclick="toggleFlowJournalTable()" id="btn-toggle-flow-journal" class="px-1.5 py-0.2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8.5px] font-bold transition cursor-pointer">
+                                Show Journal ▼
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Collapsible Event Journal Table --}}
+                    <div id="flow-journal-container" class="hidden overflow-x-auto max-h-48 custom-scrollbar border-t border-slate-800/80 pt-1">
+                        <table class="w-full text-left text-[9.5px] font-mono">
+                            <thead class="text-slate-500 uppercase text-[8px] border-b border-slate-800 sticky top-0 bg-slate-950">
+                                <tr>
+                                    <th class="py-1 px-1.5">Time</th>
+                                    <th class="py-1 px-1.5">Event</th>
+                                    <th class="py-1 px-1.5">Price &amp; Qty</th>
+                                    <th class="py-1 px-1.5">Score</th>
+                                    <th class="py-1 px-1.5">Action</th>
+                                    <th class="py-1 px-1.5 text-right">Inspect</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flow-journal-tbody" class="divide-y divide-slate-900">
+                                <tr>
+                                    <td colspan="6" class="py-3 text-center text-slate-500 italic font-sans text-[9px]">
+                                        Listening for institutional whale strikes, FOMO cascades &amp; prediction triggers...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
 
             {{-- 1.5. Highest Number of ASK & BID QTY Traded So Far (Top 10 Footprint with Time) --}}
@@ -620,6 +795,19 @@
                             </div>
                         </div>
 
+                    </div>
+
+                    {{-- Real-Time Flow Intelligence Narrative & Strategy Strip below Top 5 --}}
+                    <div id="clusters-intel-strip" class="mt-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1">
+                        <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800/80 flex-wrap gap-1">
+                            <span class="font-extrabold text-amber-300 flex items-center gap-1">
+                                <span>🧠</span> FLOW INTELLIGENCE SUMMARY
+                            </span>
+                            <span id="clusters-intel-ratio-tag" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300">--</span>
+                        </div>
+                        <p id="clusters-intel-summary-text" class="text-[10.5px] text-slate-200 font-sans leading-relaxed">
+                            Evaluating price level aggregation...
+                        </p>
                     </div>
                 </div>
             </div>
@@ -889,238 +1077,389 @@
                 </div>
             </div>
 
-            {{-- 1. Depth-Weighted Micro-Price & Lead Drift --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Micro-Price &amp; Lead Drift</span>
-                    <span id="val-micro-divergence" class="text-[10px] font-bold text-cyan-300 font-mono">+0.00 pts</span>
-                </div>
-
-                <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                        <span class="text-[9px] text-slate-400 block uppercase font-bold">Std Mid</span>
-                        <span id="val-mid-price" class="font-bold text-white text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-cyan-800/60">
-                        <span class="text-[9px] text-cyan-400 block uppercase font-black">Micro</span>
-                        <span id="val-micro-price" class="font-black text-cyan-300 text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-
-                    <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800">
-                        <span class="text-[9px] text-slate-400 block uppercase font-bold">LTP</span>
-                        <span id="val-side-ltp" class="font-bold text-amber-300 text-[11px] font-mono mt-0.5 block">--</span>
-                    </div>
-                </div>
-
-                <p class="text-[10px] text-slate-400 leading-tight">
-                    Micro-Price incorporates order volume into the spread to lead the next market tick.
-                </p>
-            </div>
-
-            {{-- 1B. Cumulative Volume Delta (CVD) Continuous Line & Divergence Radar --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs">📈</span>
-                        <span class="text-[11px] font-black uppercase text-white tracking-wider">Cumulative Volume Delta (CVD)</span>
-                    </div>
-                    <span id="cvd-current-val" class="text-xs font-black font-mono text-emerald-400">+0 Delta</span>
-                </div>
-
-                {{-- CVD Mini Canvas Chart --}}
-                <div class="relative w-full h-[68px] bg-slate-950 rounded-lg border border-slate-800 overflow-hidden p-1">
-                    <canvas id="cvd-mini-canvas" class="w-full h-full block"></canvas>
-                    <div class="absolute top-1 left-2 text-[8px] font-mono text-slate-500 pointer-events-none">
-                        High: <span id="cvd-stat-high" class="text-slate-400">0</span> · Low: <span id="cvd-stat-low" class="text-slate-400">0</span>
-                    </div>
-                </div>
-
-                {{-- Delta Divergence Alert Status & Execution State --}}
-                <div class="flex items-center justify-between pt-0.5 flex-wrap gap-1">
-                    <span id="cvd-divergence-badge" class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[200px]">
-                        <span class="text-slate-500">●</span>
-                        <span id="cvd-divergence-text" class="truncate">Normal Flow (In Sync)</span>
-                    </span>
-                    <span id="cvd-tape-capsule" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-slate-950 text-slate-400 border border-slate-800 truncate" title="Tape Execution State">⚖️ BALANCED AUCTION</span>
-                </div>
-            </div>
-
-            {{-- 2. Confluence Alignment Scorecard --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Confluence Alignment Scorecard</span>
-                    <span id="scorecard-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-950 text-slate-400 border border-slate-800 cursor-help" title="Market Driver Diagnosis">⚖️ DRIVER: BALANCED</span>
-                </div>
-
-                {{-- Alignment Bar --}}
-                <div>
-                    <div class="flex justify-between items-baseline mb-0.5">
-                        <span class="text-[10px] text-slate-400">Total System Alignment</span>
-                        <span id="confluence-meter-text" class="text-base font-black text-rose-400 font-mono">0%</span>
-                    </div>
-                    <div class="w-full bg-slate-950 rounded-full h-2.5 p-0.5 overflow-hidden border border-slate-800">
-                        <div id="confluence-meter-bar" class="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
-                    </div>
-                    <div class="flex justify-between text-[9px] text-slate-500 mt-0.5 font-bold">
-                        <span>0% Bear</span>
-                        <span>50% Neutral Chop</span>
-                        <span>100% Bull</span>
-                    </div>
-                </div>
-
-                {{-- 6-Engine Badges Grid --}}
-                <div class="grid grid-cols-2 gap-1.5 text-[10px]">
-                    <div id="engine-card-depth" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">30-Depth OBI</span>
-                        <span class="font-bold text-amber-300 font-mono">0.0% (Bal)</span>
-                    </div>
-
-                    <div id="engine-card-micro" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Micro-Price Drift</span>
-                        <span class="font-bold text-slate-300 font-mono">0.00 pts</span>
-                    </div>
-
-                    <div id="engine-card-wall" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Wall Absorption</span>
-                        <span class="font-bold text-slate-300">Neutral</span>
-                    </div>
-
-                    <div id="engine-card-quant" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Quant POP</span>
-                        <span class="font-bold text-emerald-400">{{ $strategySignals['factors']['quant_engine']['signal'] ?? 'SAFE' }}</span>
-                    </div>
-
-                    <div id="engine-card-oi" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">OI Flow / PCR</span>
-                        <span class="font-bold text-emerald-400">{{ $strategySignals['factors']['oi_buildup']['signal'] ?? 'NEUTRAL' }}</span>
-                    </div>
-
-                    <div id="engine-card-breadth" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Breadth</span>
-                        <span class="font-bold text-slate-300">{{ $strategySignals['factors']['market_breadth']['signal'] ?? 'NEUTRAL' }}</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3. Tiered Order Book Imbalance (OBI) --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Tiered Order Book Imbalance (OBI)</span>
-                    <span class="text-[9px] text-slate-400">(B - A) / (B + A)</span>
-                </div>
-
-                {{-- Top 5 (Near Book) --}}
-                <div class="space-y-0.5">
-                    <div class="flex justify-between text-[10px]">
-                        <span class="text-slate-400">Near Book (Top 5 Levels - Retail)</span>
-                        <span id="val-obi-5" class="font-bold text-slate-200 font-mono">0.0%</span>
-                    </div>
-                    <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-800">
-                        <div id="bar-obi-5-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                        <div id="bar-obi-5-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                    </div>
-                </div>
-
-                {{-- Top 10 (Mid Book) --}}
-                <div class="space-y-0.5">
-                    <div class="flex justify-between text-[10px]">
-                        <span class="text-slate-400">Mid Book (Top 10 Levels - Scalpers)</span>
-                        <span id="val-obi-10" class="font-bold text-slate-200 font-mono">0.0%</span>
-                    </div>
-                    <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-800">
-                        <div id="bar-obi-10-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                        <div id="bar-obi-10-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                    </div>
-                </div>
-
-                {{-- Top 30 (Full Deep Book) --}}
-                <div class="space-y-0.5">
-                    <div class="flex justify-between text-[10px]">
-                        <span class="text-emerald-400 font-bold">Deep Book (All 30 Levels - Institutions)</span>
-                        <span id="val-obi-30" class="font-black text-emerald-400 font-mono">0.0%</span>
-                    </div>
-                    <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-800">
-                        <div id="bar-obi-30-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                        <div id="bar-obi-30-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3B. Order Book Slope & Curvature (Depth Buildup Asymmetry) --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs">📐</span>
-                        <span class="text-[11px] font-black uppercase text-white tracking-wider">Book Slope &amp; Curvature</span>
-                    </div>
-                    <span id="book-slope-asymmetry-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-950 text-slate-300 border border-slate-800">
-                        1.00x Balanced
-                    </span>
-                </div>
-
-                {{-- Slope Rates Comparison Grid --}}
-                <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-0.5">
-                        <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
-                            <span>Bid Slope (Support)</span>
-                            <span class="text-emerald-400 font-mono">▲</span>
+            {{-- 1. Real-Time High Probability Confluence Scanner (Moved Below Prev Day Anchors) --}}
+            <div id="top-recommendation-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden transition-all duration-200">
+                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span id="signal-badge-icon" class="text-base sm:text-lg">🎯</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Confluence Engine</span>
+                            <h2 id="signal-main-text" class="text-xs sm:text-sm font-black text-white leading-tight">
+                                CONFLUENCE SCANNER
+                            </h2>
                         </div>
-                        <div id="val-bid-slope" class="text-sm font-black text-emerald-400 font-mono">0 qty/pt</div>
-                        <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee drop</div>
                     </div>
 
-                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 space-y-0.5">
-                        <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
-                            <span>Ask Slope (Resistance)</span>
-                            <span class="text-rose-400 font-mono">▼</span>
+                    {{-- 4 Pillar Real-Time Status Boxes: 50 Stock | Opt Flow | Trend OI | 30 D Book --}}
+                    <div class="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                        <div id="pillar-box-stock" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 1: Nifty 50 Stocks Breadth (≥80% Weight & Stocks)">
+                            <span>50 Stock</span>
                         </div>
-                        <div id="val-ask-slope" class="text-sm font-black text-rose-400 font-mono">0 qty/pt</div>
-                        <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee rise</div>
+                        <div id="pillar-box-optflow" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 2: Options Flow Parity (≥70% Buy or Sell Flow)">
+                            <span>Opt Flow</span>
+                        </div>
+                        <div id="pillar-box-trendoi" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 3: Trending OI & PCR Difference">
+                            <span>Trend OI</span>
+                        </div>
+                        <div id="pillar-box-d30" class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide border transition-all duration-150 bg-slate-950/80 text-slate-500 border-slate-800 flex items-center gap-1" title="Pillar 4: 30-Level Order Book (OBI, Stack & Divergence)">
+                            <span>30 D Book</span>
+                        </div>
+                        <button type="button" onclick="toggleRecDetails()" id="btn-toggle-rec-details" class="ml-1 px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Show/Hide Trade & Strike Details to enlarge Engine Inspector">
+                            <span id="rec-toggle-label">Details</span>
+                            <span id="rec-toggle-icon">▼</span>
+                        </button>
                     </div>
                 </div>
 
-                {{-- Curvature Steepness Visualizer Bar --}}
-                <div class="space-y-1">
-                    <div class="flex justify-between text-[9px] text-slate-400">
-                        <span id="lbl-slope-bid-ratio">Bids 50%</span>
-                        <span class="text-slate-500 font-mono">Slope Curvature Asymmetry</span>
-                        <span id="lbl-slope-ask-ratio">Asks 50%</span>
+                {{-- Master Anchor Process Indicator (NIFTY 50 Stock Anchor & API Cap) --}}
+                <div id="master-anchor-banner" class="mb-2 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800/90 text-[10px] flex items-center justify-between flex-wrap gap-1">
+                    <div class="flex items-center gap-1.5 font-mono">
+                        <span class="text-amber-400">⚓</span>
+                        <span class="text-slate-400 font-bold uppercase text-[9px]">Master Anchor:</span>
+                        <span id="anchor-candle-pill" class="font-bold text-amber-300">NIFTY 50 Stocks (Awaiting Trigger)</span>
                     </div>
-                    <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-800">
-                        <div id="bar-slope-bid" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300" style="width: 50%;"></div>
-                        <div id="bar-slope-ask" class="bg-gradient-to-r from-rose-400 to-rose-600 h-full transition-all duration-300" style="width: 50%;"></div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="rec-tape-capsule" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800" title="Tape State">TAPE: BALANCED</span>
+                        <span id="dom-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800 cursor-help" title="Institutional Driver Diagnosis: Detects and resolves divergences between Options Flow, Equities, and Futures Book">DRIVER: BALANCED</span>
+                        <span id="anchor-status-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-800 text-slate-400">BIAS: NEUTRAL</span>
+                        <span id="api-trade-cap-pill" class="hidden px-1.5 py-0.2 rounded text-[8.5px] font-bold font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">API: 0/3</span>
                     </div>
                 </div>
 
-                <p id="book-slope-desc" class="text-[9.5px] text-slate-400 leading-tight">
-                    Measures how rapidly resting liquidity builds up away from LTP. Steeper Bid slope indicates institutional floor defense.
-                </p>
+                {{-- Collapsible Details Section: Trade Parameters & Option Strike Recommendation --}}
+                <div id="rec-collapsible-section" class="space-y-2 transition-all duration-200">
+                    {{-- Trade Parameters Grid --}}
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Instrument</span>
+                            <p id="trade-instrument" class="text-xs font-black text-amber-300 truncate mt-0.5">NIFTY FUT</p>
+                            <span id="trade-type" class="text-[9px] font-bold text-emerald-400">Momentum Scalp</span>
+                        </div>
+
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Entry Zone</span>
+                            <p id="trade-entry-zone" class="text-xs font-black text-white font-mono mt-0.5">₹--</p>
+                            <span class="text-[9px] text-slate-400">Limit Pullback</span>
+                        </div>
+
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Stop Loss (Wall)</span>
+                            <p id="trade-sl" class="text-xs font-black text-rose-400 font-mono mt-0.5">₹--</p>
+                            <span id="trade-sl-wall" class="text-[9px] text-slate-400 truncate block">Behind Bid Wall</span>
+                        </div>
+
+                        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                            <span class="text-[9px] uppercase font-bold text-slate-400 block">Target (Wall)</span>
+                            <p id="trade-target" class="text-xs font-black text-emerald-400 font-mono mt-0.5">₹--</p>
+                            <span id="trade-rr" class="text-[9px] font-bold text-emerald-300">1 : 2.2 R:R</span>
+                        </div>
+                    </div>
+
+                    {{-- Rationale Snippet (Single line fixed height to prevent layout jerking) --}}
+                    <div class="bg-slate-950/70 px-2.5 rounded-lg border border-slate-800/80 text-[10.5px] text-slate-300 flex items-center gap-1.5 overflow-hidden h-7">
+                        <span class="text-amber-400 text-xs shrink-0">💡</span>
+                        <p id="trade-rationale" class="truncate whitespace-nowrap text-slate-300 font-medium flex-1">
+                            Awaiting 30-depth order book alignment with quant and heavyweight breadth.
+                        </p>
+                    </div>
+
+                    {{-- ⚡ DIRECT OPTION STRIKE EXECUTION CARD (Options Trader Mode) --}}
+                    <div class="p-2 rounded-xl bg-slate-950 border border-slate-800/90 space-y-1.5 shadow-inner">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs">⚡</span>
+                                <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider">Option Strike Recommendation:</span>
+                                <span id="opt-rec-badge" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400">STAND ASIDE</span>
+                            </div>
+                            <button type="button" onclick="copyOrderDetails()" id="btn-copy-order" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-xs active:scale-95 cursor-pointer">
+                                <span>📋</span>
+                                <span>Copy Order</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Suggested Strike</span>
+                                <span id="opt-rec-strike" class="text-[11px] font-black text-amber-300 truncate mt-0.5 block font-mono">--</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">Option Entry</span>
+                                <span id="opt-rec-entry" class="text-[11px] font-bold text-white font-mono mt-0.5 block">--</span>
+                            </div>
+                            <div class="bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[8.5px] uppercase font-bold text-slate-400 block">SL / Target</span>
+                                <span id="opt-rec-sltgt" class="text-[10px] font-bold text-slate-300 font-mono mt-0.5 block">--</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5 px-0.5">
+                            <span id="opt-rec-note">Calculated for NIFTY Derivatives (Lot Size: 25)</span>
+                            <span id="opt-copy-status" class="text-emerald-400 font-bold hidden animate-pulse">✓ Copied to clipboard!</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {{-- 4. Active Liquidity Walls (≥2.2x) & Absorption / Spoofing Tracker --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-white tracking-wider">Liquidity Walls (≥2.2x)</span>
-                    <span id="wall-spoof-score" class="text-[10px] font-bold text-emerald-400">Genuine Orders</span>
-                </div>
-
-                {{-- Active Walls Mini List --}}
-                <div id="liquidity-walls-list" class="space-y-1 text-xs">
-                    <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 text-center text-[10px]">
-                        Scanning 30-depth order book for walls...
+            {{-- 2. Combined Collapsible Container: Microstructure & Order Book Diagnostics (Default Hidden) --}}
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5" id="order-book-diagnostics-card">
+                {{-- Header with Show/Hide Toggle --}}
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-indigo-400">🔬</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Advanced Order Book Analytics</span>
+                            <h3 class="text-xs font-black text-white leading-tight flex items-center gap-1.5">
+                                <span>6-ENGINE MICROSTRUCTURE DIAGNOSTICS</span>
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="diag-toggle-badge" class="px-1.5 py-0.2 rounded text-[8px] font-mono bg-slate-950 text-slate-400 border border-slate-800">COLLAPSED</span>
+                        <button type="button" onclick="toggleOrderBookDiagnostics()" id="btn-toggle-diagnostics" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer shadow-xs" title="Show or Hide Micro-Price, CVD, Confluence, OBI, Slope, and Liquidity Walls">
+                            <span id="diag-toggle-text">Show Diagnostics</span>
+                            <span id="diag-toggle-icon">▼</span>
+                        </button>
                     </div>
                 </div>
 
-                {{-- Absorption Meter --}}
-                <div class="pt-1 border-t border-slate-800/80 space-y-1">
-                    <div class="flex justify-between items-center text-[10px]">
-                        <span class="text-slate-400">Wall Absorption Progress:</span>
-                        <span id="val-absorption-pct" class="font-bold text-amber-300 font-mono">0%</span>
+                {{-- Collapsible Diagnostics Body (Default Hidden) --}}
+                <div id="order-book-diagnostics-body" class="hidden space-y-2.5 transition-all duration-200 pt-2 border-t border-slate-800/80">
+                    
+                    {{-- 1. Depth-Weighted Micro-Price & Lead Drift --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-white tracking-wider">Micro-Price &amp; Lead Drift</span>
+                            <span id="val-micro-divergence" class="text-[10px] font-bold text-cyan-300 font-mono">+0.00 pts</span>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5 text-center text-xs">
+                            <div class="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">Std Mid</span>
+                                <span id="val-mid-price" class="font-bold text-white text-[11px] font-mono mt-0.5 block">--</span>
+                            </div>
+
+                            <div class="bg-slate-900 p-1.5 rounded-lg border border-cyan-800/60">
+                                <span class="text-[9px] text-cyan-400 block uppercase font-black">Micro</span>
+                                <span id="val-micro-price" class="font-black text-cyan-300 text-[11px] font-mono mt-0.5 block">--</span>
+                            </div>
+
+                            <div class="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">LTP</span>
+                                <span id="val-side-ltp" class="font-bold text-amber-300 text-[11px] font-mono mt-0.5 block">--</span>
+                            </div>
+                        </div>
+
+                        <p class="text-[10px] text-slate-400 leading-tight">
+                            Micro-Price incorporates order volume into the spread to lead the next market tick.
+                        </p>
                     </div>
-                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
-                        <div id="bar-absorption" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-300" style="width: 0%;"></div>
+
+                    {{-- 1B. Cumulative Volume Delta (CVD) Continuous Line & Divergence Radar --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs">📈</span>
+                                <span class="text-[11px] font-black uppercase text-white tracking-wider">Cumulative Volume Delta (CVD)</span>
+                            </div>
+                            <span id="cvd-current-val" class="text-xs font-black font-mono text-emerald-400">+0 Delta</span>
+                        </div>
+
+                        {{-- CVD Mini Canvas Chart --}}
+                        <div class="relative w-full h-[68px] bg-slate-900 rounded-lg border border-slate-800 overflow-hidden p-1">
+                            <canvas id="cvd-mini-canvas" class="w-full h-full block"></canvas>
+                            <div class="absolute top-1 left-2 text-[8px] font-mono text-slate-500 pointer-events-none">
+                                High: <span id="cvd-stat-high" class="text-slate-400">0</span> · Low: <span id="cvd-stat-low" class="text-slate-400">0</span>
+                            </div>
+                        </div>
+
+                        {{-- Delta Divergence Alert Status & Execution State --}}
+                        <div class="flex items-center justify-between pt-0.5 flex-wrap gap-1">
+                            <span id="cvd-divergence-badge" class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold bg-slate-900 text-slate-400 border border-slate-800 flex items-center gap-1 truncate max-w-[200px]">
+                                <span class="text-slate-500">●</span>
+                                <span id="cvd-divergence-text" class="truncate">Normal Flow (In Sync)</span>
+                            </span>
+                            <span id="cvd-tape-capsule" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-slate-900 text-slate-400 border border-slate-800 truncate" title="Tape Execution State">⚖️ BALANCED AUCTION</span>
+                        </div>
                     </div>
+
+                    {{-- 2. Confluence Alignment Scorecard --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-white tracking-wider">Confluence Alignment Scorecard</span>
+                            <span id="scorecard-driver-diagnosis-pill" class="px-1.5 py-0.2 rounded text-[8.5px] font-black font-mono bg-slate-900 text-slate-400 border border-slate-800 cursor-help" title="Market Driver Diagnosis">⚖️ DRIVER: BALANCED</span>
+                        </div>
+
+                        {{-- Alignment Bar --}}
+                        <div>
+                            <div class="flex justify-between items-baseline mb-0.5">
+                                <span class="text-[10px] text-slate-400">Total System Alignment</span>
+                                <span id="confluence-meter-text" class="text-base font-black text-rose-400 font-mono">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 rounded-full h-2.5 p-0.5 overflow-hidden border border-slate-800">
+                                <div id="confluence-meter-bar" class="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] text-slate-500 mt-0.5 font-bold">
+                                <span>0% Bear</span>
+                                <span>50% Neutral Chop</span>
+                                <span>100% Bull</span>
+                            </div>
+                        </div>
+
+                        {{-- 6-Engine Badges Grid --}}
+                        <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div id="engine-card-depth" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">30-Depth OBI</span>
+                                <span class="font-bold text-amber-300 font-mono">0.0% (Bal)</span>
+                            </div>
+
+                            <div id="engine-card-micro" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">Micro-Price Drift</span>
+                                <span class="font-bold text-slate-300 font-mono">0.00 pts</span>
+                            </div>
+
+                            <div id="engine-card-wall" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">Wall Absorption</span>
+                                <span class="font-bold text-slate-300">Neutral</span>
+                            </div>
+
+                            <div id="engine-card-quant" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">Quant POP</span>
+                                <span class="font-bold text-emerald-400">{{ $strategySignals['factors']['quant_engine']['signal'] ?? 'SAFE' }}</span>
+                            </div>
+
+                            <div id="engine-card-oi" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">OI Flow / PCR</span>
+                                <span class="font-bold text-emerald-400">{{ $strategySignals['factors']['oi_buildup']['signal'] ?? 'NEUTRAL' }}</span>
+                            </div>
+
+                            <div id="engine-card-breadth" class="flex items-center justify-between p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span class="text-slate-400">Breadth</span>
+                                <span class="font-bold text-slate-300">{{ $strategySignals['factors']['market_breadth']['signal'] ?? 'NEUTRAL' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 3. Tiered Order Book Imbalance (OBI) --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-white tracking-wider">Tiered Order Book Imbalance (OBI)</span>
+                            <span class="text-[9px] text-slate-400">(B - A) / (B + A)</span>
+                        </div>
+
+                        {{-- Top 5 (Near Book) --}}
+                        <div class="space-y-0.5">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-400">Near Book (Top 5 Levels - Retail)</span>
+                                <span id="val-obi-5" class="font-bold text-slate-200 font-mono">0.0%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden flex border border-slate-800">
+                                <div id="bar-obi-5-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                                <div id="bar-obi-5-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                            </div>
+                        </div>
+
+                        {{-- Top 10 (Mid Book) --}}
+                        <div class="space-y-0.5">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-400">Mid Book (Top 10 Levels - Scalpers)</span>
+                                <span id="val-obi-10" class="font-bold text-slate-200 font-mono">0.0%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden flex border border-slate-800">
+                                <div id="bar-obi-10-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                                <div id="bar-obi-10-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                            </div>
+                        </div>
+
+                        {{-- Top 30 (Full Deep Book) --}}
+                        <div class="space-y-0.5">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-emerald-400 font-bold">Deep Book (All 30 Levels - Institutions)</span>
+                                <span id="val-obi-30" class="font-black text-emerald-400 font-mono">0.0%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden flex border border-slate-800">
+                                <div id="bar-obi-30-bid" class="bg-emerald-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                                <div id="bar-obi-30-ask" class="bg-rose-500 h-full transition-all duration-300" style="width: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 3B. Order Book Slope & Curvature (Depth Buildup Asymmetry) --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs">📐</span>
+                                <span class="text-[11px] font-black uppercase text-white tracking-wider">Book Slope &amp; Curvature</span>
+                            </div>
+                            <span id="book-slope-asymmetry-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-900 text-slate-300 border border-slate-800">
+                                1.00x Balanced
+                            </span>
+                        </div>
+
+                        {{-- Slope Rates Comparison Grid --}}
+                        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 space-y-0.5">
+                                <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
+                                    <span>Bid Slope (Support)</span>
+                                    <span class="text-emerald-400 font-mono">▲</span>
+                                </div>
+                                <div id="val-bid-slope" class="text-sm font-black text-emerald-400 font-mono">0 qty/pt</div>
+                                <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee drop</div>
+                            </div>
+
+                            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 space-y-0.5">
+                                <div class="flex justify-between items-center text-[9.5px] text-slate-400 font-sans font-bold">
+                                    <span>Ask Slope (Resistance)</span>
+                                    <span class="text-rose-400 font-mono">▼</span>
+                                </div>
+                                <div id="val-ask-slope" class="text-sm font-black text-rose-400 font-mono">0 qty/pt</div>
+                                <div class="text-[8.5px] text-slate-500 font-sans">Accumulation rate per rupee rise</div>
+                            </div>
+                        </div>
+
+                        {{-- Curvature Steepness Visualizer Bar --}}
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[9px] text-slate-400">
+                                <span id="lbl-slope-bid-ratio">Bids 50%</span>
+                                <span class="text-slate-500 font-mono">Slope Curvature Asymmetry</span>
+                                <span id="lbl-slope-ask-ratio">Asks 50%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden flex border border-slate-800">
+                                <div id="bar-slope-bid" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300" style="width: 50%;"></div>
+                                <div id="bar-slope-ask" class="bg-gradient-to-r from-rose-400 to-rose-600 h-full transition-all duration-300" style="width: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <p id="book-slope-desc" class="text-[9.5px] text-slate-400 leading-tight">
+                            Measures how rapidly resting liquidity builds up away from LTP. Steeper Bid slope indicates institutional floor defense.
+                        </p>
+                    </div>
+
+                    {{-- 4. Active Liquidity Walls (≥2.2x) & Absorption / Spoofing Tracker --}}
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-md space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black uppercase text-white tracking-wider">Liquidity Walls (≥2.2x)</span>
+                            <span id="wall-spoof-score" class="text-[10px] font-bold text-emerald-400">Genuine Orders</span>
+                        </div>
+
+                        {{-- Active Walls Mini List --}}
+                        <div id="liquidity-walls-list" class="space-y-1 text-xs">
+                            <div class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 text-center text-[10px]">
+                                Scanning 30-depth order book for walls...
+                            </div>
+                        </div>
+
+                        {{-- Absorption Meter --}}
+                        <div class="pt-1 border-t border-slate-800/80 space-y-1">
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span class="text-slate-400">Wall Absorption Progress:</span>
+                                <span id="val-absorption-pct" class="font-bold text-amber-300 font-mono">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                                <div id="bar-absorption" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full transition-all duration-300" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -1867,6 +2206,99 @@
         </div>
     </div>
 
+    {{-- ════════════ HIGH-CONVICTION ORDER FLOW ALARM POPUP MODAL (PERSISTENT AUDIO RINGING) ════════════ --}}
+    <div id="flow-alarm-popup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4">
+        <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/80 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl relative space-y-3.5 ring-2 ring-emerald-500/30 animate-in fade-in duration-200">
+            {{-- Header --}}
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl animate-bounce">🚨</span>
+                    <div>
+                        <span class="text-[9.5px] font-black uppercase text-amber-400 tracking-wider block">Institutional Order Flow Alert</span>
+                        <h3 id="flow-popup-title" class="text-sm sm:text-base font-black text-white leading-tight">
+                            HIGH-CONVICTION SQUEEZE DETECTED
+                        </h3>
+                    </div>
+                </div>
+                <button type="button" onclick="stopFlowAlarmRinging()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer" title="Stop Audio Alarm & Close (Esc)">
+                    <span>✕ Dismiss (Esc)</span>
+                </button>
+            </div>
+
+            {{-- Big Conviction Banner --}}
+            <div id="flow-popup-conviction-box" class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-center space-y-1">
+                <div class="flex items-center justify-center gap-2">
+                    <span id="flow-popup-score-badge" class="px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-slate-950 shadow-md">
+                        🟢 88% BULLISH CONVICTION
+                    </span>
+                    <span id="flow-popup-time-badge" class="px-2 py-0.5 rounded font-mono text-[10px] bg-slate-900 text-emerald-300 border border-emerald-500/30">
+                        14:24:05
+                    </span>
+                </div>
+                <p id="flow-popup-core-msg" class="text-xs text-slate-200 font-medium">
+                    Whale Ride active + 4.99x Buyer Dominance + Air Pocket ahead!
+                </p>
+            </div>
+
+            {{-- Target Trajectory & Stop Loss --}}
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800">
+                    <span class="text-[9px] uppercase font-bold text-slate-400 block font-sans">15–30M Target</span>
+                    <span id="flow-popup-target" class="text-sm font-black text-emerald-300 block mt-0.5">₹25,500 (+28 pts)</span>
+                    <span class="text-[8.5px] text-slate-500 font-sans">TD RES Magnet</span>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800">
+                    <span class="text-[9px] uppercase font-bold text-slate-400 block font-sans">Concrete Spot SL</span>
+                    <span id="flow-popup-sl" class="text-sm font-black text-rose-400 block mt-0.5">₹25,465</span>
+                    <span class="text-[8.5px] text-slate-500 font-sans">Behind TD SUP (882k)</span>
+                </div>
+            </div>
+
+            {{-- Strategy Suggestion --}}
+            <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                <span class="text-[9px] font-black uppercase text-amber-400 tracking-wider block">Recommended Strategy:</span>
+                <p id="flow-popup-strategy" class="text-xs text-slate-200">
+                    <strong class="text-indigo-300">80% Edge:</strong> Sell NIFTY 25,450 PE on minor dip. Or <strong class="text-fuchsia-300">Momentum:</strong> Buy 25,500 CE with strict 5 pt SL.
+                </p>
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex items-center gap-2 pt-1">
+                <a href="{{ route('nifty.option.trader') }}" target="_blank" onclick="stopFlowAlarmRinging()" class="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs text-center transition shadow-lg flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>🎯 Open 0Click Execution Desk</span>
+                    <span>↗</span>
+                </a>
+                <button type="button" onclick="stopFlowAlarmRinging()" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer">
+                    ✕ Stop Alarm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ════════════ HISTORICAL STATE INSPECTOR MODAL (CLICK-TO-INSPECT LOG) ════════════ --}}
+    <div id="flow-inspect-state-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-4 shadow-2xl relative space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2 font-mono">
+                    <span class="text-lg">🔍</span>
+                    <div>
+                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Snapshot Audit</span>
+                        <h4 id="inspect-modal-title" class="text-xs font-black text-white">Event State at 14:14:05</h4>
+                    </div>
+                </div>
+                <button type="button" onclick="closeFlowInspectModal()" class="text-slate-400 hover:text-white text-sm font-bold cursor-pointer">✕</button>
+            </div>
+
+            <pre id="inspect-modal-json" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[10.5px] text-cyan-300 font-mono overflow-x-auto max-h-72 custom-scrollbar"></pre>
+
+            <div class="flex justify-end pt-1">
+                <button type="button" onclick="closeFlowInspectModal()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 {{-- ════════════════════════ 4. SCRIPTS: PROTOBUF, WEBSOCKET & CONFLUENCE ENGINE ════════════════════════ --}}
@@ -2080,6 +2512,45 @@
         // Default to collapsed so Engine Inspector sits high up immediately
         const isCollapsed = (saved === null) ? true : (saved === 'true');
         toggleRecDetails(isCollapsed);
+    };
+
+    window.toggleOrderBookDiagnostics = function(forcedState = null) {
+        const body = document.getElementById('order-book-diagnostics-body');
+        const icon = document.getElementById('diag-toggle-icon');
+        const text = document.getElementById('diag-toggle-text');
+        const badge = document.getElementById('diag-toggle-badge');
+        if (!body) return;
+
+        let willHide;
+        if (forcedState !== null) {
+            willHide = forcedState;
+            if (willHide) body.classList.add('hidden');
+            else body.classList.remove('hidden');
+        } else {
+            willHide = body.classList.toggle('hidden');
+        }
+
+        if (icon) icon.textContent = willHide ? '▼' : '▲';
+        if (text) text.textContent = willHide ? 'Show Diagnostics' : 'Hide Diagnostics';
+        if (badge) {
+            badge.textContent = willHide ? 'COLLAPSED' : 'EXPANDED';
+            badge.className = willHide ? 'px-1.5 py-0.2 rounded text-[8px] font-mono bg-slate-950 text-slate-400 border border-slate-800' : 'px-1.5 py-0.2 rounded text-[8px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/40';
+        }
+
+        try {
+            localStorage.setItem('order_flow_diagnostics_collapsed', willHide ? 'true' : 'false');
+        } catch(e) {}
+
+        if (!willHide && typeof renderCvdUI === 'function') {
+            setTimeout(renderCvdUI, 80);
+        }
+    };
+
+    window.initOrderBookDiagnostics = function() {
+        const saved = localStorage.getItem('order_flow_diagnostics_collapsed');
+        // Default to TRUE (hidden) as explicitly requested by user
+        const shouldHide = (saved === null) ? true : (saved === 'true');
+        window.toggleOrderBookDiagnostics(shouldHide);
     };
 
     window.updatePillarStatusBoxes = function(isP1Bull, isP1Bear, isP2Bull, isP2Bear, isP3Bull, isP3Bear, isP4Bull, isP4Bear) {
@@ -3529,6 +4000,17 @@
         if (btnBid) btnBid.className = view === 'bid' ? 'px-2 py-0.5 rounded bg-rose-600 text-white transition cursor-pointer' : inactiveBidClass;
     }
 
+    function safeNum(val) {
+        if (val === null || val === undefined || val === '') return null;
+        const n = parseFloat(val);
+        return isNaN(n) ? null : n;
+    }
+
+    function safePrice(val, decimals = 1, fallback = '--') {
+        const n = safeNum(val);
+        return n !== null ? n.toFixed(decimals) : fallback;
+    }
+
     function renderTodayClustersUI(forcedLtp = null) {
         const ltp = forcedLtp !== null ? forcedLtp : (state.depthData.ltp || 0);
         const ltpEl = document.getElementById('today-clusters-ltp-display');
@@ -3563,7 +4045,7 @@
 
                     if (absDiff < minAbsDiff && ltp > 0) {
                         minAbsDiff = absDiff;
-                        nearestCluster = { side: 'Ask', rank: idx + 1, price: item.price, diff: diff };
+                        nearestCluster = { side: 'Ask', rank: idx + 1, price: item.price, diff: diff, totalQty: item.totalQty };
                     }
                     if (diff > 0) askAboveCount++;
 
@@ -3613,7 +4095,7 @@
 
                     if (absDiff < minAbsDiff && ltp > 0) {
                         minAbsDiff = absDiff;
-                        nearestCluster = { side: 'Bid', rank: idx + 1, price: item.price, diff: diff };
+                        nearestCluster = { side: 'Bid', rank: idx + 1, price: item.price, diff: diff, totalQty: item.totalQty };
                     }
                     if (diff > 0) bidAboveCount++;
 
@@ -3654,9 +4136,11 @@
         // 3. Nearest Cluster in Summary Bar
         const nearestEl = document.getElementById('today-clusters-nearest-text');
         if (nearestEl) {
-            if (nearestCluster) {
-                const sign = nearestCluster.diff >= 0 ? '+' : '';
-                nearestEl.innerHTML = `<span class="${nearestCluster.side === 'Ask' ? 'text-emerald-300' : 'text-rose-300'}">#${nearestCluster.rank} ${nearestCluster.side}</span> <span class="text-slate-400 font-sans text-[8px]">(₹${nearestCluster.price.toFixed(0)})</span> <span class="${nearestCluster.diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${sign}${nearestCluster.diff.toFixed(1)} pts</span>`;
+            if (nearestCluster && safeNum(nearestCluster.price) !== null && safeNum(nearestCluster.diff) !== null) {
+                const numP = safeNum(nearestCluster.price);
+                const numD = safeNum(nearestCluster.diff);
+                const sign = numD >= 0 ? '+' : '';
+                nearestEl.innerHTML = `<span class="${nearestCluster.side === 'Ask' ? 'text-emerald-300' : 'text-rose-300'}">#${nearestCluster.rank} ${nearestCluster.side}</span> <span class="text-slate-400 font-sans text-[8px]">(₹${numP.toFixed(0)})</span> <span class="${numD >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${sign}${numD.toFixed(1)} pts</span>`;
             } else {
                 nearestEl.textContent = '--';
             }
@@ -3678,8 +4162,756 @@
                 biasEl.textContent = '⚖️ BALANCED ACCUMULATION';
             }
         }
+
+        // 5. Update Flow Intelligence & Predictive Radar (Options A, B, C, S/R Matrix, Whales, FOMO & Trajectory)
+        if (typeof updateFlowIntelligenceUI === 'function') {
+            updateFlowIntelligenceUI(askClusters, bidClusters, ltp, nearestCluster);
+        }
     }
     window.renderTodayClustersUI = renderTodayClustersUI;
+
+    // ── 1.7. INSTITUTIONAL ORDER FLOW INTELLIGENCE & 15-30M PREDICTIVE ENGINE ──
+    let flowAlarmSettings = {
+        threshold: 80,         // Alarm trigger cutoff: 70 | 80 | 90 | 0 (0 = Mute)
+        dominanceRatio: 2.5,   // Dominance filter: 2.0 | 2.5 | 3.5
+        minWhaleQty: 8000,     // Single Whale Cutoff: 5000 | 8000 | 15000
+        sound: 'radar'         // Sound profile: radar | crystal | laser | marimba
+    };
+
+    // Load persisted alarm settings
+    try {
+        const savedSettings = localStorage.getItem('order_flow_alarm_settings_v3');
+        if (savedSettings) {
+            flowAlarmSettings = Object.assign(flowAlarmSettings, JSON.parse(savedSettings));
+        }
+    } catch(e) {}
+
+    let flowAlarmLoopInterval = null;
+    let isFlowAlarmRinging = false;
+    let lastFlowAlarmTimestamp = 0;
+    const cachedJournalEvents = [];
+    const recentTapeTradesBuffer = []; // For FOMO cascade detection
+
+    function saveFlowAlarmSettings() {
+        try {
+            localStorage.setItem('order_flow_alarm_settings_v3', JSON.stringify(flowAlarmSettings));
+        } catch(e) {}
+        syncFlowCalibrationUI();
+    }
+
+    function toggleFlowCalibrationDrawer() {
+        const drawer = document.getElementById('flow-calibration-drawer');
+        if (!drawer) return;
+        drawer.classList.toggle('hidden');
+    }
+    window.toggleFlowCalibrationDrawer = toggleFlowCalibrationDrawer;
+
+    function setFlowAlarmThreshold(val) {
+        flowAlarmSettings.threshold = parseInt(val);
+        saveFlowAlarmSettings();
+    }
+    window.setFlowAlarmThreshold = setFlowAlarmThreshold;
+
+    function setFlowDominanceThreshold(val) {
+        flowAlarmSettings.dominanceRatio = parseFloat(val);
+        saveFlowAlarmSettings();
+    }
+    window.setFlowDominanceThreshold = setFlowDominanceThreshold;
+
+    function setFlowWhaleThreshold(val) {
+        flowAlarmSettings.minWhaleQty = parseInt(val);
+        saveFlowAlarmSettings();
+    }
+    window.setFlowWhaleThreshold = setFlowWhaleThreshold;
+
+    function setFlowAlarmSound(val) {
+        flowAlarmSettings.sound = val;
+        saveFlowAlarmSettings();
+    }
+    window.setFlowAlarmSound = setFlowAlarmSound;
+
+    function testFlowAlarmSound() {
+        if (typeof playSynthesizedAlert === 'function') {
+            playSynthesizedAlert(flowAlarmSettings.sound, 'BUY');
+        }
+    }
+    window.testFlowAlarmSound = testFlowAlarmSound;
+
+    function syncFlowCalibrationUI() {
+        const activeBtnClass = 'px-2 py-0.5 rounded bg-emerald-600 text-white font-black transition cursor-pointer shadow-xs';
+        const activeCyanClass = 'px-2 py-0.5 rounded bg-cyan-600 text-white font-black transition cursor-pointer shadow-xs';
+        const activeAmberClass = 'px-2 py-0.5 rounded bg-amber-600 text-white font-black transition cursor-pointer shadow-xs';
+        const inactiveBtnClass = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white font-bold transition cursor-pointer';
+
+        // 1. Threshold
+        [70, 80, 90, 0].forEach(t => {
+            const btn = document.getElementById(`btn-thresh-${t}`);
+            if (btn) btn.className = (flowAlarmSettings.threshold === t) ? activeBtnClass : inactiveBtnClass;
+        });
+
+        // 2. Dominance
+        const b20 = document.getElementById('btn-dom-20');
+        const b25 = document.getElementById('btn-dom-25');
+        const b35 = document.getElementById('btn-dom-35');
+        if (b20) b20.className = (flowAlarmSettings.dominanceRatio === 2.0) ? activeCyanClass : inactiveBtnClass;
+        if (b25) b25.className = (flowAlarmSettings.dominanceRatio === 2.5) ? activeCyanClass : inactiveBtnClass;
+        if (b35) b35.className = (flowAlarmSettings.dominanceRatio === 3.5) ? activeCyanClass : inactiveBtnClass;
+
+        // 3. Whale Qty
+        const w5k = document.getElementById('btn-whale-5k');
+        const w8k = document.getElementById('btn-whale-8k');
+        const w15k = document.getElementById('btn-whale-15k');
+        if (w5k) w5k.className = (flowAlarmSettings.minWhaleQty === 5000) ? activeAmberClass : inactiveBtnClass;
+        if (w8k) w8k.className = (flowAlarmSettings.minWhaleQty === 8000) ? activeAmberClass : inactiveBtnClass;
+        if (w15k) w15k.className = (flowAlarmSettings.minWhaleQty === 15000) ? activeAmberClass : inactiveBtnClass;
+
+        // 4. Sound select
+        const soundSel = document.getElementById('flow-sound-profile-select');
+        if (soundSel) soundSel.value = flowAlarmSettings.sound;
+
+        // Label on header button
+        const lbl = document.getElementById('flow-calib-btn-label');
+        if (lbl) {
+            lbl.textContent = flowAlarmSettings.threshold > 0 ? `Alarm: ${flowAlarmSettings.threshold}%` : 'Alarm: Muted';
+        }
+    }
+    window.syncFlowCalibrationUI = syncFlowCalibrationUI;
+
+    // ── AUDIO ALARM RINGING & POPUP MODAL LOGIC ──
+    function startFlowAlarmRinging(side, profile = 'radar') {
+        if (isFlowAlarmRinging) return;
+        isFlowAlarmRinging = true;
+
+        if (typeof playSynthesizedAlert === 'function') {
+            playSynthesizedAlert(profile, side);
+        }
+
+        if (flowAlarmLoopInterval) clearInterval(flowAlarmLoopInterval);
+        flowAlarmLoopInterval = setInterval(() => {
+            if (typeof playSynthesizedAlert === 'function') {
+                playSynthesizedAlert(profile, side);
+            }
+        }, 1600);
+    }
+
+    function stopFlowAlarmRinging() {
+        isFlowAlarmRinging = false;
+        if (flowAlarmLoopInterval) {
+            clearInterval(flowAlarmLoopInterval);
+            flowAlarmLoopInterval = null;
+        }
+        const modal = document.getElementById('flow-alarm-popup-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+    window.stopFlowAlarmRinging = stopFlowAlarmRinging;
+
+    // ESC key listener to dismiss alarm modal
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            stopFlowAlarmRinging();
+            closeFlowInspectModal();
+        }
+    });
+
+    // Toggle and State Inspect modals
+    function toggleFlowJournalTable() {
+        const container = document.getElementById('flow-journal-container');
+        const btn = document.getElementById('btn-toggle-flow-journal');
+        if (!container) return;
+        const isHidden = container.classList.contains('hidden');
+        if (isHidden) {
+            container.classList.remove('hidden');
+            if (btn) btn.textContent = 'Hide Journal ▲';
+        } else {
+            container.classList.add('hidden');
+            if (btn) btn.textContent = 'Show Journal ▼';
+        }
+    }
+    window.toggleFlowJournalTable = toggleFlowJournalTable;
+
+    function openFlowInspectModal(idx) {
+        const eventItem = cachedJournalEvents[idx];
+        if (!eventItem) return;
+        const modal = document.getElementById('flow-inspect-state-modal');
+        const titleEl = document.getElementById('inspect-modal-title');
+        const jsonEl = document.getElementById('inspect-modal-json');
+        if (titleEl) titleEl.textContent = `${eventItem.type} at ${eventItem.time} (₹${eventItem.price})`;
+        if (jsonEl) jsonEl.textContent = JSON.stringify(eventItem, null, 2);
+        if (modal) modal.classList.remove('hidden');
+    }
+    window.openFlowInspectModal = openFlowInspectModal;
+
+    function closeFlowInspectModal() {
+        const modal = document.getElementById('flow-inspect-state-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+    window.closeFlowInspectModal = closeFlowInspectModal;
+
+    function formatQtyAbbr(num) {
+        if (!num || isNaN(num)) return '0';
+        const abs = Math.abs(num);
+        if (abs >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+        if (abs >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return num.toLocaleString();
+    }
+
+    // ── MAIN PREDICTIVE RADAR AND ORDER FLOW BRAIN UPDATE ──
+    const flowEngineState = {
+        lastBias: null,
+        lastWhale: null,
+        lastFomo: null,
+        lastTriggerPrice: null,
+        tradeStatus: 'FRESH' // 'FRESH' | 'IN_FLIGHT' | 'TARGET_HIT' | 'INVALIDATED'
+    };
+
+    function updateFlowIntelligenceUI(askClusters, bidClusters, ltp, nearestCluster) {
+        const currentTimeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // Update timestamp banner
+        const tsEl = document.getElementById('flow-intel-timestamp');
+        if (tsEl) tsEl.textContent = `⏱️ ${currentTimeStr}`;
+
+        const totalAskVol = (askClusters || []).reduce((sum, x) => sum + (x.totalQty || 0), 0);
+        const totalBidVol = (bidClusters || []).reduce((sum, x) => sum + (x.totalQty || 0), 0);
+        const netVol = totalAskVol - totalBidVol;
+
+        // 1. Dominance Calculation & Bias
+        let ratioVal = 1.0;
+        let isBullish = (totalAskVol >= totalBidVol);
+        if (isBullish) {
+            ratioVal = totalBidVol > 0 ? (totalAskVol / totalBidVol) : (totalAskVol > 0 ? 99.0 : 1.0);
+        } else {
+            ratioVal = totalAskVol > 0 ? (totalBidVol / totalAskVol) : (totalBidVol > 0 ? 99.0 : 1.0);
+        }
+
+        const isDirectional = ratioVal >= (flowAlarmSettings.dominanceRatio || 2.5);
+        const currentBias = isDirectional ? (isBullish ? 'BUY' : 'SELL') : 'BALANCED';
+
+        // 2. Institutional Master S/R Levels (Today & Yesterday Top #1 Clusters)
+        const tdSup = (askClusters && askClusters.length > 0) ? askClusters[0] : null; // Today #1 Demand
+        const tdRes = (bidClusters && bidClusters.length > 0) ? bidClusters[0] : null; // Today #1 Supply
+
+        const ydSup = (state.pdAnchors && state.pdAnchors.topAsk && state.pdAnchors.topAsk.length > 0) ? state.pdAnchors.topAsk[0] : null;
+        const ydRes = (state.pdAnchors && state.pdAnchors.topBid && state.pdAnchors.topBid.length > 0) ? state.pdAnchors.topBid[0] : null;
+
+        const pTdSup = tdSup ? safeNum(tdSup.price) : null;
+        const pTdRes = tdRes ? safeNum(tdRes.price) : null;
+        const pYdSup = ydSup ? safeNum(ydSup.price) : null;
+        const pYdRes = ydRes ? safeNum(ydRes.price) : null;
+        const numLtp = safeNum(ltp);
+        const hasLtp = numLtp !== null && numLtp > 0;
+
+        // Update S/R Matrix DOM
+        const mTdSup = document.getElementById('flow-matrix-td-sup');
+        const mTdSupStat = document.getElementById('flow-matrix-td-sup-stat');
+        if (mTdSup) {
+            if (pTdSup !== null) {
+                mTdSup.textContent = `₹${pTdSup.toFixed(1)} (${formatQtyAbbr(tdSup.totalQty || tdSup.qty)})`;
+                if (hasLtp) {
+                    const diff = numLtp - pTdSup;
+                    if (mTdSupStat) {
+                        mTdSupStat.textContent = diff >= 0 ? `Holding +${diff.toFixed(1)} pts` : `Breached ${diff.toFixed(1)} pts`;
+                        mTdSupStat.className = diff >= 0 ? 'text-[8px] text-emerald-400 font-bold block truncate' : 'text-[8px] text-rose-400 font-bold block truncate';
+                    }
+                }
+            } else {
+                mTdSup.textContent = '₹--';
+                if (mTdSupStat) mTdSupStat.textContent = 'Listening...';
+            }
+        }
+
+        const mTdRes = document.getElementById('flow-matrix-td-res');
+        const mTdResStat = document.getElementById('flow-matrix-td-res-stat');
+        if (mTdRes) {
+            if (pTdRes !== null) {
+                mTdRes.textContent = `₹${pTdRes.toFixed(1)} (${formatQtyAbbr(tdRes.totalQty || tdRes.qty)})`;
+                if (hasLtp) {
+                    const diff = pTdRes - numLtp;
+                    if (mTdResStat) {
+                        mTdResStat.textContent = diff > 0 ? `Overhead -${diff.toFixed(1)} pts` : `Cleared +${Math.abs(diff).toFixed(1)} pts`;
+                        mTdResStat.className = diff > 0 ? 'text-[8px] text-amber-300 font-bold block truncate' : 'text-[8px] text-emerald-400 font-bold block truncate';
+                    }
+                }
+            } else {
+                mTdRes.textContent = '₹--';
+                if (mTdResStat) mTdResStat.textContent = 'Listening...';
+            }
+        }
+
+        const mYdSup = document.getElementById('flow-matrix-yd-sup');
+        const mYdSupStat = document.getElementById('flow-matrix-yd-sup-stat');
+        if (mYdSup) {
+            if (pYdSup !== null) {
+                mYdSup.textContent = `₹${pYdSup.toFixed(1)} (${formatQtyAbbr(ydSup.totalQty || ydSup.qty)})`;
+                if (hasLtp) {
+                    const diff = numLtp - pYdSup;
+                    if (mYdSupStat) {
+                        mYdSupStat.textContent = diff >= 0 ? `Reclaimed +${diff.toFixed(1)} pts` : `Below -${Math.abs(diff).toFixed(1)} pts`;
+                        mYdSupStat.className = diff >= 0 ? 'text-[8px] text-emerald-400 font-bold block truncate' : 'text-[8px] text-rose-400 font-bold block truncate';
+                    }
+                }
+            } else {
+                mYdSup.textContent = '₹--';
+                if (mYdSupStat) mYdSupStat.textContent = 'No PD Anchor';
+            }
+        }
+
+        const mYdRes = document.getElementById('flow-matrix-yd-res');
+        const mYdResStat = document.getElementById('flow-matrix-yd-res-stat');
+        if (mYdRes) {
+            if (pYdRes !== null) {
+                mYdRes.textContent = `₹${pYdRes.toFixed(1)} (${formatQtyAbbr(ydRes.totalQty || ydRes.qty)})`;
+                if (hasLtp) {
+                    const diff = numLtp - pYdRes;
+                    if (mYdResStat) {
+                        mYdResStat.textContent = diff >= 0 ? `Cleared +${diff.toFixed(1)} pts` : `Capping -${Math.abs(diff).toFixed(1)} pts`;
+                        mYdResStat.className = diff >= 0 ? 'text-[8px] text-emerald-400 font-bold block truncate' : 'text-[8px] text-rose-400 font-bold block truncate';
+                    }
+                }
+            } else {
+                mYdRes.textContent = '₹--';
+                if (mYdResStat) mYdResStat.textContent = 'No PD Anchor';
+            }
+        }
+
+        // Regime Badge
+        const regimeBadge = document.getElementById('flow-regime-badge');
+        if (regimeBadge) {
+            if (hasLtp) {
+                if (pTdSup !== null && numLtp >= pTdSup && pYdRes !== null && numLtp >= pYdRes) {
+                    regimeBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+                    regimeBadge.textContent = '🟢 EXPANSION: ABOVE TD SUP & YD RES';
+                } else if (pTdRes !== null && numLtp <= pTdRes && pTdSup !== null && numLtp >= pTdSup) {
+                    regimeBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-cyan-500/15 text-cyan-300 border border-cyan-500/30';
+                    regimeBadge.textContent = '⚖️ CONSOLIDATION (INSIDE TD RANGE)';
+                } else if (pTdSup !== null && numLtp < pTdSup) {
+                    regimeBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500/15 text-rose-300 border border-rose-500/30';
+                    regimeBadge.textContent = '🔴 VULNERABLE: BELOW TD SUP';
+                } else {
+                    regimeBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-slate-800 text-slate-300 border border-slate-700';
+                    regimeBadge.textContent = '⚖️ ORDER BOOK BALANCED';
+                }
+            } else {
+                regimeBadge.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black bg-slate-800 text-slate-400 border border-slate-700';
+                regimeBadge.textContent = '⏳ WAITING FOR TICKS';
+            }
+        }
+
+        // 3. WHALE ORDER TRACKER & DISPLACEMENT ("Taking the Ride" vs "Sunk in the Ship")
+        const allRecentTrades = [...(state.topTradedVolume.allAsk || []), ...(state.topTradedVolume.allBid || [])];
+        const minWhale = flowAlarmSettings.minWhaleQty || 8000;
+        const latestWhale = allRecentTrades
+            .filter(t => t && safeNum(t.price) !== null && parseInt(t.qty || 0) >= minWhale)
+            .sort((a,b) => (b.time > a.time ? 1 : -1))[0] || null;
+
+        const whaleTimeEl = document.getElementById('flow-whale-time');
+        const whaleDetailsEl = document.getElementById('flow-whale-details');
+
+        let whaleBonusScore = 0;
+        let whaleStatusTag = '';
+
+        if (latestWhale && safeNum(latestWhale.price) !== null && hasLtp) {
+            const whaleP = safeNum(latestWhale.price);
+            if (whaleTimeEl) whaleTimeEl.textContent = latestWhale.time || currentTimeStr;
+            const diffFromWhale = numLtp - whaleP;
+            const isWhaleBuy = (latestWhale.side === 'ASK' || latestWhale.side === 'BUY');
+
+            if (isWhaleBuy) {
+                if (diffFromWhale >= 2.5) {
+                    whaleStatusTag = 'RIDE_BUY';
+                    whaleBonusScore = +18;
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-emerald-300 font-bold">🚀 TAKING THE RIDE:</span> ${formatQtyAbbr(latestWhale.qty)} Buy at ₹${whaleP.toFixed(1)} pushed price up to ₹${numLtp.toFixed(1)} (+${diffFromWhale.toFixed(1)} pts). Momentum expanding.`;
+                } else if (diffFromWhale <= -1.5) {
+                    whaleStatusTag = 'SUNK_BUY_TRAP';
+                    whaleBonusScore = -15; // Bull Trap
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-rose-400 font-bold">🪤 SUNK IN SHIP (BULL TRAP):</span> ${formatQtyAbbr(latestWhale.qty)} Buy at ₹${whaleP.toFixed(1)} absorbed; price slipped to ₹${numLtp.toFixed(1)}. Buyers trapped!`;
+                } else {
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-amber-300 font-bold">⏳ IN PROGRESS:</span> ${formatQtyAbbr(latestWhale.qty)} Buy at ₹${whaleP.toFixed(1)} currently testing at ₹${numLtp.toFixed(1)} (${diffFromWhale >= 0 ? '+' : ''}${diffFromWhale.toFixed(1)} pts).`;
+                }
+            } else { // Whale Sell
+                if (diffFromWhale <= -2.5) {
+                    whaleStatusTag = 'RIDE_SELL';
+                    whaleBonusScore = +18;
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-rose-400 font-bold">🌊 WATERFALL SELLING:</span> ${formatQtyAbbr(latestWhale.qty)} Sell at ₹${whaleP.toFixed(1)} collapsed price to ₹${numLtp.toFixed(1)} (${diffFromWhale.toFixed(1)} pts). Downside running.`;
+                } else if (diffFromWhale >= 1.5) {
+                    whaleStatusTag = 'SUNK_SELL_TRAP';
+                    whaleBonusScore = +22; // Bear Trap = Massive upside fuel!
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-emerald-400 font-bold">🛡️ SUNK IN SHIP (BEAR TRAP):</span> ${formatQtyAbbr(latestWhale.qty)} Sell at ₹${whaleP.toFixed(1)} absorbed by hidden bids! Nifty holding ₹${numLtp.toFixed(1)}. Short squeeze primed!`;
+                } else {
+                    if (whaleDetailsEl) whaleDetailsEl.innerHTML = `<span class="text-amber-300 font-bold">⏳ IN PROGRESS:</span> ${formatQtyAbbr(latestWhale.qty)} Sell at ₹${whaleP.toFixed(1)} testing at ₹${numLtp.toFixed(1)} (${diffFromWhale >= 0 ? '+' : ''}${diffFromWhale.toFixed(1)} pts).`;
+                }
+            }
+        }
+
+        // 4. HERD & FOMO RADAR (Multiple >=1.8k prints across 1-2 points)
+        const fomoTimeEl = document.getElementById('flow-fomo-time');
+        const fomoDetailsEl = document.getElementById('flow-fomo-details');
+        let fomoBonusScore = 0;
+
+        const recentClusteredTrades = allRecentTrades.filter(t => t && safeNum(t.price) !== null && (t.qty || 0) >= 1800).slice(0, 15);
+        let fomoBuyClusterCount = 0;
+        let fomoSellClusterCount = 0;
+        if (hasLtp && recentClusteredTrades.length >= 3) {
+            recentClusteredTrades.forEach(t => {
+                const tp = safeNum(t.price);
+                if (tp !== null && Math.abs(tp - numLtp) <= 2.8) {
+                    if (t.side === 'ASK' || t.side === 'BUY') fomoBuyClusterCount++;
+                    else fomoSellClusterCount++;
+                }
+            });
+        }
+
+        if (fomoTimeEl) fomoTimeEl.textContent = currentTimeStr;
+        if (fomoBuyClusterCount >= 3) {
+            if (currentBias === 'BUY') {
+                fomoBonusScore = +15;
+                if (fomoDetailsEl) fomoDetailsEl.innerHTML = `<span class="text-emerald-300 font-bold">🏃 FOMO BUY CASCADE:</span> ${fomoBuyClusterCount} rapid block buys hitting Ask within 2.5 pts. Trapped shorts covering stop-losses simultaneously!`;
+            } else {
+                if (fomoDetailsEl) fomoDetailsEl.innerHTML = `<span class="text-amber-400 font-bold">🪤 BLOW-OFF EXHAUSTION:</span> Rapid FOMO buying into supply ceiling. High risk of buyer trap.`;
+            }
+        } else if (fomoSellClusterCount >= 3) {
+            if (currentBias === 'SELL') {
+                fomoBonusScore = +15;
+                if (fomoDetailsEl) fomoDetailsEl.innerHTML = `<span class="text-rose-400 font-bold">💥 PANIC CAPITULATION:</span> ${fomoSellClusterCount} rapid block sells slamming Bid. Retailers dumping at market.`;
+            } else {
+                fomoBonusScore = +12; // Bottom flush
+                if (fomoDetailsEl) fomoDetailsEl.innerHTML = `<span class="text-cyan-300 font-bold">🛡️ BOTTOM FLUSH ABSORPTION:</span> Panic selling into institutional floor. Rebound setup active.`;
+            }
+        } else {
+            if (fomoDetailsEl) fomoDetailsEl.innerHTML = `<span class="text-slate-400">Order execution pace orderly. No panic herd cascades detected in current 2-point zone.</span>`;
+        }
+
+        // 5. SESSION CLOCK PENALTY / BOOST
+        let clockScoreMod = 0;
+        const now = new Date();
+        const currentHourMin = now.getHours() * 100 + now.getMinutes();
+        const clockTagEl = document.getElementById('flow-tag-clock');
+        if (currentHourMin >= 1145 && currentHourMin <= 1245) {
+            clockScoreMod = -12; // Midday lunch chop penalty
+            if (clockTagEl) {
+                clockTagEl.textContent = '🕒 Lunch Chop (False Breakouts Common)';
+                clockTagEl.className = 'px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30';
+            }
+        } else if (currentHourMin >= 1315 && currentHourMin <= 1515) {
+            clockScoreMod = +8; // Afternoon European squeeze boost
+            if (clockTagEl) {
+                clockTagEl.textContent = '🕒 Afternoon Squeeze Window (High Conviction)';
+                clockTagEl.className = 'px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+            }
+        } else {
+            if (clockTagEl) {
+                clockTagEl.textContent = '🕒 Institutional Trading Window Active';
+                clockTagEl.className = 'px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800';
+            }
+        }
+
+        // 6. TOTAL CONVICTION SCORE (0 to 100%)
+        let baseScore = 40;
+        if (ratioVal >= 3.5) baseScore += 28;
+        else if (ratioVal >= 2.5) baseScore += 22;
+        else if (ratioVal >= 1.8) baseScore += 14;
+        else if (ratioVal >= 1.3) baseScore += 8;
+
+        if (Math.abs(netVol) >= 1000000) baseScore += 18;
+        else if (Math.abs(netVol) >= 500000) baseScore += 12;
+        else if (Math.abs(netVol) >= 200000) baseScore += 8;
+
+        let totalConvictionScore = Math.min(96, Math.max(35, Math.round(baseScore + whaleBonusScore + fomoBonusScore + clockScoreMod)));
+
+        // Conviction Pill in Header
+        const convPill = document.getElementById('flow-intel-conviction-pill');
+        if (convPill) {
+            if (currentBias === 'BUY' && totalConvictionScore >= 75) {
+                convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse';
+                convPill.textContent = `🟢 ${totalConvictionScore}% BULLISH SQUEEZE`;
+            } else if (currentBias === 'SELL' && totalConvictionScore >= 75) {
+                convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse';
+                convPill.textContent = `🔴 ${totalConvictionScore}% BEARISH EXPANSION`;
+            } else {
+                convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-slate-900 text-slate-400 border border-slate-800';
+                convPill.textContent = `⚖️ ${totalConvictionScore}% EQUILIBRIUM CHOP`;
+            }
+        }
+
+        // Tags for Net Aggressive & Dominance
+        const netTag = document.getElementById('flow-net-aggressive-tag');
+        if (netTag) {
+            netTag.textContent = `${netVol >= 0 ? '+' : ''}${formatQtyAbbr(netVol)} Net`;
+            netTag.className = `px-1.5 py-0.2 rounded font-mono ${netVol >= 0 ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'}`;
+        }
+        const domTag = document.getElementById('flow-dominance-ratio-tag');
+        if (domTag) {
+            domTag.textContent = `${ratioVal.toFixed(2)}x ${currentBias}`;
+            domTag.className = `px-1.5 py-0.2 rounded font-mono ${currentBias === 'BUY' ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30' : (currentBias === 'SELL' ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : 'bg-slate-900 text-slate-400 border border-slate-800')}`;
+        }
+
+        // 7. TARGET TRAJECTORY PIPELINE & CONCRETE STOP LOSS
+        let target1 = null;
+        let target2 = null;
+        let concreteSl = null;
+        let slDesc = '';
+
+        if (hasLtp) {
+            if (currentBias === 'BUY') {
+                target1 = (pTdRes !== null && pTdRes > numLtp) ? pTdRes : (numLtp + 25);
+                target2 = (target1 + 22);
+                concreteSl = (pTdSup !== null && pTdSup <= numLtp) ? (pTdSup - 5.5) : (numLtp - 14.0);
+                slDesc = pTdSup !== null ? `Behind TD SUP (${formatQtyAbbr(tdSup.totalQty || tdSup.qty)})` : 'Trailing 14 pts';
+            } else if (currentBias === 'SELL') {
+                target1 = (pTdSup !== null && pTdSup < numLtp) ? pTdSup : (numLtp - 25);
+                target2 = (target1 - 22);
+                concreteSl = (pTdRes !== null && pTdRes >= numLtp) ? (pTdRes + 5.5) : (numLtp + 14.0);
+                slDesc = pTdRes !== null ? `Behind TD RES (${formatQtyAbbr(tdRes.totalQty || tdRes.qty)})` : 'Trailing 14 pts';
+            }
+        }
+
+        // Update Trajectory DOM
+        const curEl = document.getElementById('flow-traj-current');
+        const curSub = document.getElementById('flow-traj-current-sub');
+        if (curEl) {
+            curEl.textContent = safePrice(numLtp, 1, '₹--');
+            if (curSub) curSub.textContent = hasLtp ? 'Live Spot' : 'Waiting for ticks';
+        }
+
+        const t1El = document.getElementById('flow-traj-t1');
+        const t1Sub = document.getElementById('flow-traj-t1-sub');
+        if (t1El) {
+            if (safeNum(target1) !== null && hasLtp) {
+                const pts = (target1 - numLtp).toFixed(1);
+                t1El.textContent = `₹${target1.toFixed(1)} (${pts >= 0 ? '+' : ''}${pts})`;
+                if (t1Sub) t1Sub.textContent = currentBias === 'BUY' ? 'TD RES Magnet' : 'TD SUP Floor';
+            } else {
+                t1El.textContent = '₹--';
+                if (t1Sub) t1Sub.textContent = 'Target 1';
+            }
+        }
+
+        const t2El = document.getElementById('flow-traj-t2');
+        const t2Sub = document.getElementById('flow-traj-t2-sub');
+        if (t2El) {
+            if (safeNum(target2) !== null && hasLtp) {
+                const pts = (target2 - numLtp).toFixed(1);
+                t2El.textContent = `₹${target2.toFixed(1)} (${pts >= 0 ? '+' : ''}${pts})`;
+                if (t2Sub) t2Sub.textContent = 'Air Pocket Peak';
+            } else {
+                t2El.textContent = '₹--';
+                if (t2Sub) t2Sub.textContent = 'Target 2';
+            }
+        }
+
+        // Concrete SL
+        const slEl = document.getElementById('flow-concrete-sl');
+        const slDescEl = document.getElementById('flow-concrete-sl-desc');
+        if (slEl) {
+            if (safeNum(concreteSl) !== null) {
+                slEl.textContent = `₹${concreteSl.toFixed(1)}`;
+                if (slDescEl) slDescEl.textContent = `(${slDesc})`;
+            } else {
+                slEl.textContent = '₹--';
+                if (slDescEl) slDescEl.textContent = 'Calculating...';
+            }
+        }
+
+        // 8. TRADE STATE GUARD (Fresh Trigger vs In Flight vs Target Hit vs Invalidated)
+        const guardEl = document.getElementById('flow-trade-state-guard');
+        if (guardEl && hasLtp && safeNum(concreteSl) !== null && safeNum(target1) !== null) {
+            if ((currentBias === 'BUY' && numLtp < concreteSl) || (currentBias === 'SELL' && numLtp > concreteSl)) {
+                flowEngineState.tradeStatus = 'INVALIDATED';
+                guardEl.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                guardEl.textContent = '🛑 INVALIDATED (EXIT)';
+            } else if ((currentBias === 'BUY' && numLtp >= target1) || (currentBias === 'SELL' && numLtp <= target1)) {
+                flowEngineState.tradeStatus = 'TARGET_HIT';
+                guardEl.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                guardEl.textContent = '🎯 TARGET 1 HIT (TRAIL SL)';
+            } else if (flowEngineState.lastTriggerPrice && Math.abs(numLtp - flowEngineState.lastTriggerPrice) >= 7.0) {
+                flowEngineState.tradeStatus = 'IN_FLIGHT';
+                guardEl.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40';
+                guardEl.textContent = '⏳ IN FLIGHT (DO NOT CHASE)';
+            } else {
+                flowEngineState.tradeStatus = 'FRESH';
+                guardEl.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                guardEl.textContent = '🟢 FRESH TRIGGER (ENTER NOW)';
+            }
+        }
+
+        // 9. THE 3-TIMELINE STORY NARRATIVE
+        const storyPast = document.getElementById('flow-story-past');
+        const storyPresent = document.getElementById('flow-story-present');
+        const storyFuture = document.getElementById('flow-story-future');
+
+        if (storyPast && storyPresent && storyFuture) {
+            const tdSupStr = pTdSup !== null ? pTdSup.toFixed(0) : '--';
+            const tdResStr = pTdRes !== null ? pTdRes.toFixed(0) : '--';
+            const t1Str = safePrice(target1, 0, '--');
+            const t1DiffStr = (safeNum(target1) !== null && hasLtp) ? (target1 - numLtp).toFixed(0) : '--';
+
+            if (currentBias === 'BUY') {
+                storyPast.innerHTML = `<strong class="text-slate-300">⏳ Past (Last 30m):</strong> Big buyers absorbed <strong>${formatQtyAbbr(totalAskVol)}</strong> contracts at the ₹${tdSupStr} base floor. Sellers tried pushing down twice and failed.`;
+                storyPresent.innerHTML = `<strong class="text-cyan-300">⚡ Present (Right Now):</strong> Dominance is <strong>${ratioVal.toFixed(2)}x</strong> favoring buyers. ${whaleStatusTag === 'SUNK_SELL_TRAP' ? 'Bear trap active — trapped sellers fuel upside thrust.' : 'Order book bids stacking beneath price.'}`;
+                storyFuture.innerHTML = `<strong class="text-amber-300">🎯 Future (Next 15–30M):</strong> High probability (<strong>${totalConvictionScore}%</strong>) of an explosive squeeze toward the <strong>₹${t1Str}</strong> liquidity magnet (+${t1DiffStr} pts).`;
+            } else if (currentBias === 'SELL') {
+                storyPast.innerHTML = `<strong class="text-slate-300">⏳ Past (Last 30m):</strong> Institutional sellers dumped <strong>${formatQtyAbbr(totalBidVol)}</strong> contracts capping price below ₹${tdResStr}.`;
+                storyPresent.innerHTML = `<strong class="text-rose-300">⚡ Present (Right Now):</strong> Seller dominance is <strong>${ratioVal.toFixed(2)}x</strong>. Bids are thinning out into a vacuum.`;
+                storyFuture.innerHTML = `<strong class="text-amber-300">🎯 Future (Next 15–30M):</strong> High probability (<strong>${totalConvictionScore}%</strong>) of downside cascade targeting <strong>₹${t1Str}</strong> floor.`;
+            } else {
+                storyPast.innerHTML = `<strong class="text-slate-300">⏳ Past (Last 30m):</strong> Order flow has been balanced between ₹${tdSupStr} support and ₹${tdResStr} resistance.`;
+                storyPresent.innerHTML = `<strong class="text-cyan-300">⚡ Present (Right Now):</strong> Neither side holds &ge;${(flowAlarmSettings.dominanceRatio || 2.5)}x dominance. Coiling in range.`;
+                storyFuture.innerHTML = `<strong class="text-slate-400">🎯 Future (Next 15–30M):</strong> Wait for high-probability breakout above ₹${tdResStr} or below ₹${tdSupStr}.`;
+            }
+        }
+
+        // 10. ACTIONABLE PLAYBOOK
+        const pbSell = document.getElementById('flow-intel-playbook-sell');
+        const pbBuy = document.getElementById('flow-intel-playbook-buy');
+        if (pbSell && pbBuy) {
+            const slStr = safePrice(concreteSl, 1, '--');
+            const t1Str = safePrice(target1, 0, '--');
+            const tdSupStr = pTdSup !== null ? pTdSup.toFixed(0) : '--';
+            const tdResStr = pTdRes !== null ? pTdRes.toFixed(0) : '--';
+
+            if (currentBias === 'BUY' && hasLtp) {
+                const peStrike = Math.round((numLtp - 25) / 50) * 50;
+                pbSell.innerHTML = `<strong>Sell NIFTY ${peStrike} PE</strong> on minor dip toward ₹${pTdSup !== null ? tdSupStr : (numLtp - 3).toFixed(0)}. Stop Loss: Spot <span class="font-mono text-rose-300 font-bold">₹${slStr}</span>. 80% Win-Rate edge favoring theta decay.`;
+                const ceStrike = Math.round((numLtp + 25) / 50) * 50;
+                pbBuy.innerHTML = `<strong>Buy NIFTY ${ceStrike} CE</strong> ONLY on 5M candle breakout above ₹${numLtp.toFixed(0)}. Scalp 15–25 pts toward ₹${t1Str}. Strict 5 pt Spot SL.`;
+            } else if (currentBias === 'SELL' && hasLtp) {
+                const ceStrike = Math.round((numLtp + 25) / 50) * 50;
+                pbSell.innerHTML = `<strong>Sell NIFTY ${ceStrike} CE</strong> on minor bounce toward ₹${pTdRes !== null ? tdResStr : (numLtp + 3).toFixed(0)}. Stop Loss: Spot <span class="font-mono text-rose-300 font-bold">₹${slStr}</span>. Premium decay strongly favors CE sellers.`;
+                const peStrike = Math.round((numLtp - 25) / 50) * 50;
+                pbBuy.innerHTML = `<strong>Buy NIFTY ${peStrike} PE</strong> on breakdown below ₹${numLtp.toFixed(0)}. Target ₹${t1Str}. Strict 5 pt Spot SL.`;
+            } else {
+                pbSell.innerHTML = `<strong>Non-Directional Short Strangle / Iron Fly</strong> centered at ATM ₹${hasLtp ? (Math.round(numLtp/50)*50) : '--'} to collect range theta decay.`;
+                pbBuy.innerHTML = `<strong>Stand aside from option buying</strong> in balanced chop to protect capital from rapid time erosion.`;
+            }
+        }
+
+        // 11. CHECK ALARM TRIGGER (CONTINUOUS RINGING & POPUP IF SCORE >= THRESHOLD)
+        const nowMs = Date.now();
+        if (hasLtp && flowAlarmSettings.threshold > 0 && totalConvictionScore >= flowAlarmSettings.threshold && currentBias !== 'BALANCED') {
+            // Deduplication: Only pop modal if last alert was > 60 seconds ago OR price moved > 10 pts
+            if ((nowMs - lastFlowAlarmTimestamp > 60000) && (!isFlowAlarmRinging)) {
+                lastFlowAlarmTimestamp = nowMs;
+                flowEngineState.lastTriggerPrice = numLtp;
+
+                // Update popup contents
+                const popTitle = document.getElementById('flow-popup-title');
+                const popScore = document.getElementById('flow-popup-score-badge');
+                const popTime = document.getElementById('flow-popup-time-badge');
+                const popCore = document.getElementById('flow-popup-core-msg');
+                const popTgt = document.getElementById('flow-popup-target');
+                const popSl = document.getElementById('flow-popup-sl');
+                const popStrat = document.getElementById('flow-popup-strategy');
+
+                if (popTitle) popTitle.textContent = currentBias === 'BUY' ? `${totalConvictionScore}% BULLISH SQUEEZE DETECTED` : `${totalConvictionScore}% BEARISH CASCADE DETECTED`;
+                if (popScore) {
+                    popScore.textContent = currentBias === 'BUY' ? `🟢 ${totalConvictionScore}% BULLISH CONVICTION` : `🔴 ${totalConvictionScore}% BEARISH CONVICTION`;
+                    popScore.className = `px-3 py-1 rounded-full text-xs font-black shadow-md ${currentBias === 'BUY' ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'}`;
+                }
+                if (popTime) popTime.textContent = currentTimeStr;
+                if (popCore) {
+                    popCore.textContent = `${ratioVal.toFixed(2)}x ${currentBias} Dominance | Net Vol: ${netVol >= 0 ? '+' : ''}${formatQtyAbbr(netVol)} | Trajectory Target: ₹${safePrice(target1, 0)}`;
+                }
+                if (popTgt) popTgt.textContent = safeNum(target1) !== null ? `₹${target1.toFixed(1)} (+${(target1 - numLtp).toFixed(1)} pts)` : '₹--';
+                if (popSl) popSl.textContent = safeNum(concreteSl) !== null ? `₹${concreteSl.toFixed(1)}` : '₹--';
+                if (popStrat) {
+                    const recStrike = Math.round(numLtp / 50) * 50;
+                    const slDisplay = safePrice(concreteSl, 1);
+                    popStrat.innerHTML = currentBias === 'BUY'
+                        ? `<strong class="text-indigo-300">80% Edge:</strong> Sell NIFTY ${recStrike - 50} PE. Or <strong class="text-fuchsia-300">Momentum:</strong> Buy ${recStrike + 50} CE. Spot SL ₹${slDisplay}.`
+                        : `<strong class="text-indigo-300">80% Edge:</strong> Sell NIFTY ${recStrike + 50} CE. Or <strong class="text-fuchsia-300">Momentum:</strong> Buy ${recStrike - 50} PE. Spot SL ₹${slDisplay}.`;
+                }
+
+                // Show modal & start persistent ringing audio loop!
+                const modal = document.getElementById('flow-alarm-popup-modal');
+                if (modal) modal.classList.remove('hidden');
+                startFlowAlarmRinging(currentBias, flowAlarmSettings.sound);
+
+                // Add to Event Journal
+                const eventRecord = {
+                    time: currentTimeStr,
+                    type: currentBias === 'BUY' ? 'BULLISH SQUEEZE' : 'BEARISH BREAKDOWN',
+                    price: numLtp,
+                    qty: Math.abs(netVol),
+                    score: totalConvictionScore,
+                    ratio: ratioVal.toFixed(2),
+                    target: target1,
+                    sl: concreteSl,
+                    whale: latestWhale,
+                    fomo: fomoBuyClusterCount >= 3 ? 'FOMO_BUY' : (fomoSellClusterCount >= 3 ? 'PANIC_SELL' : 'NORMAL')
+                };
+                cachedJournalEvents.unshift(eventRecord);
+                if (cachedJournalEvents.length > 50) cachedJournalEvents.pop();
+                renderFlowJournalTable();
+
+                // Persist to MySQL database table order_flow_alert_logs
+                try {
+                    fetch('/api/order-flow/log-alert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        },
+                        body: JSON.stringify({
+                            mode: state.feedMode || 'live',
+                            symbol: 'NIFTY',
+                            price: numLtp,
+                            side: currentBias,
+                            alert_type: currentBias === 'BUY' ? 'PREDICTIVE_SQUEEZE' : 'PREDICTIVE_BREAKDOWN',
+                            title: `${totalConvictionScore}% ${currentBias} Conviction: Target ₹${safePrice(target1, 0)}`,
+                            details: `Buyer Dominance: ${ratioVal.toFixed(2)}x, Net Vol: ${netVol}, SL: ${safePrice(concreteSl, 1)}`,
+                            guidance: currentBias === 'BUY' ? `Sell NIFTY PE on dip toward ₹${pTdSup !== null ? pTdSup.toFixed(0) : '--'}` : `Sell NIFTY CE on bounce`,
+                            confluence_score: totalConvictionScore,
+                            meta: eventRecord
+                        })
+                    }).catch(e => console.warn('Alert DB persist silently skipped:', e));
+                } catch(e) {}
+            }
+        }
+
+        // 12. UPDATE CLUSTERS INTEL STRIP (BELOW TOP 5 TABLE)
+        const stripRatioTag = document.getElementById('clusters-intel-ratio-tag');
+        const stripSummaryText = document.getElementById('clusters-intel-summary-text');
+        if (stripRatioTag) {
+            stripRatioTag.className = `px-1.5 py-0.2 rounded text-[9px] font-bold ${currentBias === 'BUY' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : (currentBias === 'SELL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300')}`;
+            stripRatioTag.textContent = `${ratioVal.toFixed(2)}x ${currentBias} (${totalConvictionScore}%)`;
+        }
+        if (stripSummaryText) {
+            stripSummaryText.innerHTML = `Institutions controlling order book with <strong class="${currentBias === 'BUY' ? 'text-emerald-300' : 'text-rose-300'}">${netVol >= 0 ? '+' : ''}${formatQtyAbbr(netVol)}</strong> net contracts. 15–30M trajectory targeting <span class="font-mono text-amber-300 font-bold">₹${safePrice(target1, 0)}</span> with Spot SL at <span class="font-mono text-rose-300 font-bold">₹${safePrice(concreteSl, 1)}</span>.`;
+        }
+    }
+    window.updateFlowIntelligenceUI = updateFlowIntelligenceUI;
+
+    function renderFlowJournalTable() {
+        const tbody = document.getElementById('flow-journal-tbody');
+        const countEl = document.getElementById('flow-journal-count');
+        if (countEl) countEl.textContent = `${cachedJournalEvents.length} Events`;
+        if (!tbody) return;
+
+        if (cachedJournalEvents.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-center text-slate-500 italic font-sans text-[9px]">Listening for institutional whale strikes, FOMO cascades &amp; prediction triggers...</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = cachedJournalEvents.map((evt, idx) => {
+            const isBuy = evt.type.includes('BUY') || evt.type.includes('SQUEEZE');
+            const scoreClass = evt.score >= 80 ? 'text-emerald-300 font-black' : 'text-cyan-300 font-bold';
+            return `
+                <tr class="hover:bg-slate-900/80 transition group">
+                    <td class="py-1 px-1.5 text-slate-400">${evt.time}</td>
+                    <td class="py-1 px-1.5 ${isBuy ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${evt.type}</td>
+                    <td class="py-1 px-1.5 text-slate-200">₹${safePrice(evt.price, 1)} <span class="text-slate-500">(${formatQtyAbbr(evt.qty)})</span></td>
+                    <td class="py-1 px-1.5 ${scoreClass}">${evt.score}%</td>
+                    <td class="py-1 px-1.5 text-slate-300">${isBuy ? 'SELL PE / BUY CE' : 'SELL CE / BUY PE'}</td>
+                    <td class="py-1 px-1.5 text-right">
+                        <button type="button" onclick="openFlowInspectModal(${idx})" class="px-1.5 py-0.2 rounded bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600 hover:text-white transition font-mono text-[8.5px] cursor-pointer">
+                            Inspect 🔍
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    window.renderFlowJournalTable = renderFlowJournalTable;
 
     // ── 2B. PREVIOUS DAY INSTITUTIONAL ANCHORS (TOP 5 ASK & BID VS LIVE STREAM PRICE) ──
     function initPdAnchors() {
@@ -6967,50 +8199,69 @@
         }
     }
 
+    let isCheckingSignalsOutcome = false;
     async function checkActiveSignalsOutcome(currentLtp) {
-        if (!state.activeLoggedSignals || state.activeLoggedSignals.length === 0) return;
+        if (!currentLtp || isNaN(currentLtp) || currentLtp <= 0) return;
+        if (!state.activeLoggedSignals || !Array.isArray(state.activeLoggedSignals) || state.activeLoggedSignals.length === 0) return;
+        if (isCheckingSignalsOutcome) return;
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+        isCheckingSignalsOutcome = true;
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
 
-        for (let i = state.activeLoggedSignals.length - 1; i >= 0; i--) {
-            const sig = state.activeLoggedSignals[i];
-            const isBuy = (sig.signal_type === 'BUY_CE' || sig.action.includes('CALL') || sig.action.includes('BUY') || sig.action.includes('SELL PUT'));
-            const pnlPts = isBuy ? (currentLtp - sig.entry_price) : (sig.entry_price - currentLtp);
+            for (let i = state.activeLoggedSignals.length - 1; i >= 0; i--) {
+                const sig = state.activeLoggedSignals[i];
+                if (!sig) continue;
 
-            sig.max_favorable_pts = Math.max(sig.max_favorable_pts || 0, pnlPts);
-            sig.max_adverse_pts = Math.min(sig.max_adverse_pts || 0, pnlPts);
+                const sigTypeStr = (sig.signal_type || '').toUpperCase();
+                const actionStr = (sig.action || '').toUpperCase();
+                const isBuy = (sigTypeStr === 'BUY_CE' || sigTypeStr === 'BUY' || actionStr.includes('CALL') || actionStr.includes('BUY') || actionStr.includes('SELL PUT'));
 
-            let newStatus = null;
-            if (isBuy) {
-                if (currentLtp >= sig.target_price) newStatus = 'TARGET_HIT';
-                else if (currentLtp <= sig.stop_loss) newStatus = 'STOPPED_OUT';
-            } else {
-                if (currentLtp <= sig.target_price) newStatus = 'TARGET_HIT';
-                else if (currentLtp >= sig.stop_loss) newStatus = 'STOPPED_OUT';
+                const entryP = parseFloat(sig.entry_price || 0);
+                const targetP = parseFloat(sig.target_price || 0);
+                const slP = parseFloat(sig.stop_loss || 0);
+
+                if (!entryP) continue;
+
+                const pnlPts = isBuy ? (currentLtp - entryP) : (entryP - currentLtp);
+
+                sig.max_favorable_pts = Math.max(sig.max_favorable_pts || 0, pnlPts);
+                sig.max_adverse_pts = Math.min(sig.max_adverse_pts || 0, pnlPts);
+
+                let newStatus = null;
+                if (isBuy) {
+                    if (targetP > 0 && currentLtp >= targetP) newStatus = 'TARGET_HIT';
+                    else if (slP > 0 && currentLtp <= slP) newStatus = 'STOPPED_OUT';
+                } else {
+                    if (targetP > 0 && currentLtp <= targetP) newStatus = 'TARGET_HIT';
+                    else if (slP > 0 && currentLtp >= slP) newStatus = 'STOPPED_OUT';
+                }
+
+                if (newStatus) {
+                    state.activeLoggedSignals.splice(i, 1);
+                    try {
+                        await fetch(`{{ route('api.order-flow.update-outcome') }}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                id: sig.id,
+                                status: newStatus,
+                                exit_price: currentLtp,
+                                pnl_points: parseFloat(pnlPts.toFixed(2)),
+                                max_favorable_pts: parseFloat((sig.max_favorable_pts || 0).toFixed(2)),
+                                max_adverse_pts: parseFloat((sig.max_adverse_pts || 0).toFixed(2))
+                            })
+                        });
+                        refreshSignalLogs();
+                    } catch(e) {}
+                }
             }
-
-            if (newStatus) {
-                state.activeLoggedSignals.splice(i, 1);
-                try {
-                    await fetch(`{{ route('api.order-flow.update-outcome') }}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            id: sig.id,
-                            status: newStatus,
-                            exit_price: currentLtp,
-                            pnl_points: parseFloat(pnlPts.toFixed(2)),
-                            max_favorable_pts: parseFloat((sig.max_favorable_pts || 0).toFixed(2)),
-                            max_adverse_pts: parseFloat((sig.max_adverse_pts || 0).toFixed(2))
-                        })
-                    });
-                    refreshSignalLogs();
-                } catch(e) {}
-            }
+        } finally {
+            isCheckingSignalsOutcome = false;
         }
     }
 
@@ -7086,7 +8337,10 @@
 
         let html = '';
         filtered.forEach(l => {
-            const isBuy = l.action.includes('CALL') || l.action.includes('BUY') || (l.signal_type && l.signal_type.includes('BUY')) || l.action.includes('SELL PUT');
+            if (!l) return;
+            const actionStr = (l.action || '').toUpperCase();
+            const sigTypeStr = (l.signal_type || '').toUpperCase();
+            const isBuy = actionStr.includes('CALL') || actionStr.includes('BUY') || sigTypeStr.includes('BUY') || actionStr.includes('SELL PUT');
             
             let statusBadge = '';
             if (l.status === 'TARGET_HIT') {
@@ -7379,7 +8633,9 @@
         state.pendingDispatchLogId = logId;
         state.pendingDispatchBtnEl = btnEl;
 
-        const isBuy = log.action.includes('CALL') || log.action.includes('BUY') || (log.signal_type && log.signal_type.includes('BUY')) || log.action.includes('SELL PUT');
+        const actionStr = (log.action || '').toUpperCase();
+        const sigTypeStr = (log.signal_type || '').toUpperCase();
+        const isBuy = actionStr.includes('CALL') || actionStr.includes('BUY') || sigTypeStr.includes('BUY') || actionStr.includes('SELL PUT');
         const actionBadge = document.getElementById('confirm-modal-action-badge');
         const styleBadge = document.getElementById('confirm-modal-style-badge');
         const contractEl = document.getElementById('confirm-modal-contract');
@@ -7570,8 +8826,8 @@
                     pnlEl.className = s.net_pnl_pts > 0 ? 'font-black text-emerald-400 text-sm sm:text-base font-mono' : (s.net_pnl_pts < 0 ? 'font-black text-rose-400 text-sm sm:text-base font-mono' : 'font-black text-slate-300 text-sm sm:text-base font-mono');
                 }
 
-                state.cachedJournalLogs = res.logs || [];
-                state.activeLoggedSignals = (res.logs || []).filter(l => l.status === 'ACTIVE');
+                state.cachedJournalLogs = (res.logs || []).filter(Boolean);
+                state.activeLoggedSignals = (res.logs || []).filter(l => l && l.status === 'ACTIVE');
 
                 updateJournalFilterUI();
                 renderJournalLogsUI();
@@ -7688,6 +8944,98 @@
         if (spotEl) spotEl.textContent = `₹${spot.toFixed(2)}`;
     }
 
+    // ── BOOTSTRAP FLOW INTELLIGENCE FROM PERSISTED DATABASE SNAPSHOT ──
+    async function bootstrapFlowIntelligenceFromDb() {
+        try {
+            const workingDate = "{{ $workingDate }}";
+            const sym = state.symbol || 'NIFTY';
+            const resp = await fetch(`/api/order-flow/intelligence/latest?date=${workingDate}&symbol=${sym}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const snap = data.snapshot;
+            if (!snap) return;
+
+            // Update timestamp banner
+            const tsEl = document.getElementById('flow-intel-timestamp');
+            if (tsEl && snap.snapshot_time) {
+                tsEl.textContent = `⏱️ ${snap.snapshot_time} (Headless Synced)`;
+            }
+
+            // Conviction Pill
+            const convPill = document.getElementById('flow-intel-conviction-pill');
+            if (convPill) {
+                const score = snap.conviction_score || 50;
+                if (snap.bias === 'BUY' && score >= 75) {
+                    convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse';
+                    convPill.textContent = `🟢 ${score}% BULLISH SQUEEZE`;
+                } else if (snap.bias === 'SELL' && score >= 75) {
+                    convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse';
+                    convPill.textContent = `🔴 ${score}% BEARISH EXPANSION`;
+                } else {
+                    convPill.className = 'px-2 py-0.5 rounded-full text-[9.5px] font-black bg-slate-900 text-slate-400 border border-slate-800';
+                    convPill.textContent = `⚖️ ${score}% EQUILIBRIUM CHOP`;
+                }
+            }
+
+            // Tags for Net Aggressive & Dominance
+            const netTag = document.getElementById('flow-net-aggressive-tag');
+            if (netTag && snap.net_volume !== undefined) {
+                const netVol = Number(snap.net_volume);
+                netTag.textContent = `${netVol >= 0 ? '+' : ''}${formatQtyAbbr(netVol)} Net`;
+                netTag.className = `px-1.5 py-0.2 rounded font-mono ${netVol >= 0 ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'}`;
+            }
+            const domTag = document.getElementById('flow-dominance-ratio-tag');
+            if (domTag && snap.dominance_ratio !== undefined) {
+                domTag.textContent = `${Number(snap.dominance_ratio).toFixed(2)}x ${snap.bias || 'BALANCED'}`;
+                domTag.className = `px-1.5 py-0.2 rounded font-mono ${snap.bias === 'BUY' ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30' : (snap.bias === 'SELL' ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30' : 'bg-slate-900 text-slate-400 border border-slate-800')}`;
+            }
+
+            // Trajectory
+            const curEl = document.getElementById('flow-traj-current');
+            if (curEl && snap.ltp) curEl.textContent = `₹${Number(snap.ltp).toFixed(1)}`;
+            const t1El = document.getElementById('flow-traj-t1');
+            if (t1El && snap.target1) t1El.textContent = `₹${Number(snap.target1).toFixed(1)}`;
+            const t2El = document.getElementById('flow-traj-t2');
+            if (t2El && snap.target2) t2El.textContent = `₹${Number(snap.target2).toFixed(1)}`;
+            const slEl = document.getElementById('flow-concrete-sl');
+            if (slEl && snap.concrete_sl) slEl.textContent = `₹${Number(snap.concrete_sl).toFixed(1)}`;
+
+            // S/R Anchors
+            const mTdSup = document.getElementById('flow-matrix-td-sup');
+            if (mTdSup && snap.td_sup) mTdSup.textContent = `₹${Number(snap.td_sup).toFixed(1)} (${formatQtyAbbr(snap.td_sup_qty)})`;
+            const mTdRes = document.getElementById('flow-matrix-td-res');
+            if (mTdRes && snap.td_res) mTdRes.textContent = `₹${Number(snap.td_res).toFixed(1)} (${formatQtyAbbr(snap.td_res_qty)})`;
+
+            // Whale & FOMO
+            const whaleDetailsEl = document.getElementById('flow-whale-details');
+            if (whaleDetailsEl && snap.whale_status) whaleDetailsEl.innerHTML = `<span class="text-slate-300">${snap.whale_status}</span>`;
+            const fomoDetailsEl = document.getElementById('flow-fomo-details');
+            if (fomoDetailsEl && snap.fomo_status) fomoDetailsEl.innerHTML = `<span class="text-slate-300">${snap.fomo_status}</span>`;
+
+            // 3-Timeline Story
+            const storyPast = document.getElementById('flow-story-past');
+            if (storyPast && snap.past_story) storyPast.innerHTML = `<strong class="text-slate-300">⏳ Past:</strong> ${snap.past_story}`;
+            const storyPresent = document.getElementById('flow-story-present');
+            if (storyPresent && snap.present_story) storyPresent.innerHTML = `<strong class="text-cyan-300">⚡ Present:</strong> ${snap.present_story}`;
+            const storyFuture = document.getElementById('flow-story-future');
+            if (storyFuture && snap.future_story) storyFuture.innerHTML = `<strong class="text-amber-300">🎯 Future:</strong> ${snap.future_story}`;
+
+            // Playbook
+            if (snap.playbook_suggestion) {
+                const pbSell = document.getElementById('flow-intel-playbook-sell');
+                if (pbSell) pbSell.innerHTML = `<strong>Playbook Strategy:</strong> ${snap.playbook_suggestion}`;
+            }
+
+            // Trade Guard
+            const guardEl = document.getElementById('flow-trade-state-guard');
+            if (guardEl && snap.trade_status) {
+                guardEl.textContent = snap.trade_status;
+            }
+        } catch (e) {
+            console.warn('Could not bootstrap intelligence snapshot:', e);
+        }
+    }
+
     // ── 16. EVENT LISTENERS & SETUP ──
     document.addEventListener('DOMContentLoaded', async () => {
         loadAlertSettings();
@@ -7706,6 +9054,15 @@
         }
         if (typeof initPdAnchors === 'function') {
             initPdAnchors();
+        }
+        if (typeof syncFlowCalibrationUI === 'function') {
+            syncFlowCalibrationUI();
+        }
+        if (typeof initOrderBookDiagnostics === 'function') {
+            initOrderBookDiagnostics();
+        }
+        if (typeof bootstrapFlowIntelligenceFromDb === 'function') {
+            bootstrapFlowIntelligenceFromDb();
         }
 
         const btnLive = document.getElementById('btn-mode-live');

@@ -18,7 +18,7 @@
     ]);
 
     $isStrategiesActive = request()->routeIs([
-        'trading-journal.*', 'quant-strategy.*', 'test.trading-simulator*',
+        'trading-journal.*', 'quant-strategy.*', 'test.trading-simulator*', 'nifty.option.trader',
         'backtest.*', 'backtests.*', 'strangle.profit', 'entries.*', 'nifty.unified.backtest'
     ]);
 
@@ -91,6 +91,13 @@
                                             Unified Cockpit
                                         </span>
                                         <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded">Flagship</span>
+                                    </a>
+                                    <a href="{{ route('nifty.option.trader') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/50 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            🎯 NIFTY Option Trader
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">0Click Desk</span>
                                     </a>
                                     <a href="{{ route('order-flow-depth.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-amber-600 hover:bg-slate-50 transition">
                                         <span class="font-medium">30-Depth Radar</span>
@@ -196,6 +203,13 @@
                                     Strategies &amp; Execution
                                 </div>
                                 <div class="space-y-0.5">
+                                    <a href="{{ route('nifty.option.trader') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/50 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            🎯 NIFTY Option Trader
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">0Click Desk</span>
+                                    </a>
                                     <a href="{{ route('trading-journal.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
                                         <span class="font-bold flex items-center gap-1.5 text-indigo-700">
                                             <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
@@ -386,7 +400,15 @@
                     <span class="whitespace-nowrap">Gamma Blast</span>
                 </a>
 
-                <!-- 6. Strategy Live Trade & Journal -->
+                <!-- 6. NIFTY Option Trader (0Click Execution Desk) -->
+                <a href="{{ route('nifty.option.trader') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border {{ request()->routeIs('nifty.option.trader') ? 'bg-emerald-600 text-white shadow-xs border-emerald-600 ring-2 ring-emerald-300 ring-offset-1' : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-400' }}"
+                   title="Institutional NIFTY Options Execution Desk (0Click.in Integrated)">
+                    <span class="text-xs">🎯</span>
+                    <span class="whitespace-nowrap">Option Trader</span>
+                </a>
+
+                <!-- 7. Strategy Live Trade & Journal -->
                 <a href="{{ route('trading-journal.index') }}"
                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('trading-journal.*') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 ring-1 ring-indigo-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
                    title="Strategy Live Trade Execution &amp; Journal">
@@ -448,6 +470,10 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
                     Unified Cockpit
                 </a>
+                <a href="{{ route('nifty.option.trader') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow-xs">
+                    <span>🎯</span>
+                    Option Trader
+                </a>
                 <a href="{{ route('live.straddle.radar') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-xs">
                     <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                     Straddle Radar 🔔
@@ -464,7 +490,7 @@
                 <a href="{{ route('gamma-blast.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-fuchsia-700 text-white text-xs font-semibold">
                     ⚡ Gamma Blast
                 </a>
-                <a href="{{ route('trading-journal.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
+                <a href="{{ route('trading-journal.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">
                     💼 Live Trade
                 </a>
             </div>
@@ -482,6 +508,7 @@
                 </summary>
                 <div class="pl-4 space-y-1.5 py-1 text-xs">
                     <a href="{{ route('nifty.unified.monitor') }}" class="block py-1 text-indigo-600 font-bold">⚡ Unified Cockpit (Flagship)</a>
+                    <a href="{{ route('nifty.option.trader') }}" class="block py-1 text-emerald-700 font-bold">🎯 NIFTY Option Trader (0Click Desk)</a>
                     <a href="{{ route('order-flow-depth.index') }}" class="block py-1 text-amber-700 font-semibold">30-Depth Radar</a>
                     <a href="{{ route('gamma-blast.index') }}" class="block py-1 text-fuchsia-700 font-semibold">⚡ Gamma Blast Radar</a>
                     <a href="{{ route('nifty.weightage.monitor') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Nifty 50 Weightage</a>
@@ -530,6 +557,7 @@
                     </svg>
                 </summary>
                 <div class="pl-4 space-y-1.5 py-1 text-xs">
+                    <a href="{{ route('nifty.option.trader') }}" class="block py-1 text-emerald-700 font-bold">🎯 NIFTY Option Trader (0Click Desk)</a>
                     <a href="{{ route('trading-journal.index') }}" class="block py-1 text-indigo-600 font-bold">⚡ Live Trade &amp; Journal</a>
                     <a href="{{ route('quant-strategy.index') }}" class="block py-1 text-emerald-700 font-semibold">⚡ High-Probability Quant (80%+)</a>
                     <a href="{{ route('test.trading-simulator') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Trading Simulator</a>

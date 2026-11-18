@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -464,5 +465,73 @@ class NiftyMultiTimeframeMonitorController extends Controller
             }
             return $c;
         }, $sliced);
+    }
+
+    /**
+     * Save full page screenshot image (PNG) to D:\OneDrive - Buffercode\0iohlc\{date}\{timestamp}.png
+     */
+    public function saveScreenshot(Request $request): JsonResponse
+    {
+        $imageData = $request->input('image');
+        if (empty($imageData)) {
+            return response()->json(['success' => false, 'error' => 'No image data provided'], 400);
+        }
+
+        // Handle Base64 Data URL (data:image/png;base64,...)
+        if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
+            $imageData = substr($imageData, strpos($imageData, ',') + 1);
+            $ext = strtolower($type[1]);
+            if (!in_array($ext, ['png', 'jpg', 'jpeg'])) {
+                $ext = 'png';
+            }
+        } else {
+            $ext = 'png';
+        }
+
+        $decodedImage = base64_decode($imageData);
+        if ($decodedImage === false) {
+            return response()->json(['success' => false, 'error' => 'Invalid base64 image data'], 400);
+        }
+
+        $now = Carbon::now('Asia/Kolkata');
+        $date = $request->input('date', $now->toDateString());
+        $safeDate = preg_replace('/[^0-9\-]/', '', (string)$date) ?: $now->toDateString();
+
+        $timeStr = $request->input('time', $now->format('H-i-s'));
+        $safeTime = preg_replace('/[^a-zA-Z0-9\-_]/', '', str_replace([':', ' '], ['-', '_'], (string)$timeStr)) ?: $now->format('H-i-s');
+
+        $baseDir = "D:\\OneDrive - Buffercode\\0iohlc";
+        $targetDir = "{$baseDir}\\{$safeDate}";
+
+        try {
+            if (!File::isDirectory($targetDir)) {
+                File::makeDirectory($targetDir, 0755, true, true);
+            }
+
+            $filename = "{$safeTime}.{$ext}";
+            $fullPath = "{$targetDir}\\{$filename}";
+
+            $counter = 1;
+            while (File::exists($fullPath)) {
+                $filename = "{$safeTime}_{$counter}.{$ext}";
+                $fullPath = "{$targetDir}\\{$filename}";
+                $counter++;
+            }
+
+            File::put($fullPath, $decodedImage);
+
+            return response()->json([
+                'success'   => true,
+                'path'      => $fullPath,
+                'filename'  => $filename,
+                'directory' => $targetDir,
+                'size'      => strlen($decodedImage),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }

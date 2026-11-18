@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderFlowAlertLog;
+use App\Models\OrderFlowIntelligenceSnapshot;
 use App\Models\OrderFlowSignalLog;
 use App\Models\OrderFlowTradedVolume;
 use App\Models\ZeroClickAlertLog;
@@ -1711,5 +1712,110 @@ class OrderFlowStrategyController extends Controller
                 'timestamp'         => Carbon::now('Asia/Kolkata')->format('h:i:s A'),
             ];
         });
+    }
+
+    /**
+     * Save Flow Intelligence Snapshot (from Headless Engine or Browser).
+     */
+    public function saveIntelligenceSnapshot(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'trade_date'    => 'required|date',
+            'symbol'        => 'nullable|string|max:50',
+            'snapshot_time' => 'required|string|max:12',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $tradeDate = Carbon::parse($request->input('trade_date'))->toDateString();
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $snapshotTime = $request->input('snapshot_time');
+
+        $snapshot = OrderFlowIntelligenceSnapshot::create([
+            'trade_date'          => $tradeDate,
+            'snapshot_time'       => $snapshotTime,
+            'symbol'              => $symbol,
+            'instrument'          => $request->input('instrument'),
+            'ltp'                 => $request->input('ltp'),
+            'index_ltp'           => $request->input('index_ltp'),
+            'conviction_score'    => (int) $request->input('conviction_score', 50),
+            'regime'              => $request->input('regime'),
+            'bias'                => $request->input('bias', 'BALANCED'),
+            'dominance_ratio'     => $request->input('dominance_ratio', 1.0),
+            'net_volume'          => $request->input('net_volume', 0),
+            'total_ask_volume'    => $request->input('total_ask_volume', 0),
+            'total_bid_volume'    => $request->input('total_bid_volume', 0),
+            'td_sup'              => $request->input('td_sup'),
+            'td_sup_qty'          => $request->input('td_sup_qty'),
+            'td_res'              => $request->input('td_res'),
+            'td_res_qty'          => $request->input('td_res_qty'),
+            'yd_sup'              => $request->input('yd_sup'),
+            'yd_res'              => $request->input('yd_res'),
+            'target1'             => $request->input('target1'),
+            'target2'             => $request->input('target2'),
+            'concrete_sl'         => $request->input('concrete_sl'),
+            'trade_status'        => $request->input('trade_status'),
+            'whale_status'        => $request->input('whale_status'),
+            'fomo_status'         => $request->input('fomo_status'),
+            'past_story'          => $request->input('past_story'),
+            'present_story'       => $request->input('present_story'),
+            'future_story'        => $request->input('future_story'),
+            'playbook_suggestion' => $request->input('playbook_suggestion'),
+            'meta'                => $request->input('meta'),
+        ]);
+
+        return response()->json([
+            'success'  => true,
+            'snapshot' => $snapshot,
+        ]);
+    }
+
+    /**
+     * Get the latest Flow Intelligence Snapshot.
+     */
+    public function getLatestIntelligenceSnapshot(Request $request): JsonResponse
+    {
+        $tradeDate = $request->filled('date')
+            ? Carbon::parse($request->input('date'))->toDateString()
+            : Carbon::today('Asia/Kolkata')->toDateString();
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+
+        $snapshot = OrderFlowIntelligenceSnapshot::forDate($tradeDate)
+            ->forSymbol($symbol)
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json([
+            'success'  => true,
+            'snapshot' => $snapshot,
+        ]);
+    }
+
+    /**
+     * Get historical Flow Intelligence Snapshots (for EOD timeline & probability backtest).
+     */
+    public function getIntelligenceSnapshots(Request $request): JsonResponse
+    {
+        $tradeDate = $request->filled('date')
+            ? Carbon::parse($request->input('date'))->toDateString()
+            : Carbon::today('Asia/Kolkata')->toDateString();
+        $symbol = strtoupper($request->input('symbol', 'NIFTY'));
+        $limit = min(1000, (int) $request->input('limit', 200));
+
+        $snapshots = OrderFlowIntelligenceSnapshot::forDate($tradeDate)
+            ->forSymbol($symbol)
+            ->orderBy('id', 'asc')
+            ->take($limit)
+            ->get();
+
+        return response()->json([
+            'success'   => true,
+            'date'      => $tradeDate,
+            'symbol'    => $symbol,
+            'count'     => $snapshots->count(),
+            'snapshots' => $snapshots,
+        ]);
     }
 }

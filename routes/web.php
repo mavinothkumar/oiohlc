@@ -51,6 +51,14 @@ Route::post( '/api/order-flow/test-webhook', [ \App\Http\Controllers\OrderFlowSt
 Route::post( '/api/order-flow/dispatch-log/{id}', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'dispatchLogToWebhook' ] )->name( 'api.order-flow.dispatch-log' );
 Route::post( '/api/order-flow/save-traded-volume', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'saveTradedVolume' ] )->name( 'api.order-flow.save-traded-volume' );
 Route::get( '/api/order-flow/top-traded-volume', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getTopTradedVolume' ] )->name( 'api.order-flow.top-traded-volume' );
+Route::post( '/api/order-flow/intelligence/snapshot', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'saveIntelligenceSnapshot' ] )->name( 'api.order-flow.intelligence.snapshot' );
+Route::get( '/api/order-flow/intelligence/latest', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getLatestIntelligenceSnapshot' ] )->name( 'api.order-flow.intelligence.latest' );
+Route::get( '/api/order-flow/intelligence/snapshots', [ \App\Http\Controllers\OrderFlowStrategyController::class, 'getIntelligenceSnapshots' ] )->name( 'api.order-flow.intelligence.snapshots' );
+
+// Institutional NIFTY Option Trader Desk (Integrated with 0Click.in)
+Route::get( '/nifty-option-trader', [ \App\Http\Controllers\NiftyOptionTraderController::class, 'index' ] )->name( 'nifty.option.trader' );
+Route::post( '/api/nifty-option-trader/dispatch', [ \App\Http\Controllers\NiftyOptionTraderController::class, 'dispatchOrder' ] )->name( 'api.nifty.option.trader.dispatch' );
+Route::get( '/api/nifty-option-trader/logs', [ \App\Http\Controllers\NiftyOptionTraderController::class, 'getLogs' ] )->name( 'api.nifty.option.trader.logs' );
 Route::get( '/market-flow', [ App\Http\Controllers\MarketFlowController::class, 'index' ] )->name( 'market-flow.index' );
 
 // FII & DII Activity
@@ -357,6 +365,7 @@ Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonito
 Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/api/multi-timeframe/order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getOrderFlowLevels'])->name('api.multi-timeframe.order-flow-levels');
 Route::get('/api/multi-timeframe/multi-day-order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getMultiDayOrderFlowLevels'])->name('api.multi-timeframe.multi-day-order-flow-levels');
+Route::post('/api/multi-timeframe/save-screenshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'saveScreenshot'])->name('api.multi-timeframe.save-screenshot');
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');
 

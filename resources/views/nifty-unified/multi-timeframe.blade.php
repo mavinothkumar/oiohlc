@@ -12,6 +12,9 @@
     <!-- Flatpickr (Calendar Date Picker) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Screenshot Libraries for 1-Click Page Export -->
+    <script src="/html-to-image.js"></script>
+    <script src="/html2canvas.min.js?v=20261118"></script>
 
     <style>
         body {
@@ -162,6 +165,30 @@
                     <span>LIVE</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Default Settings Reset Section -->
+        <div class="flex items-center bg-[#1a1e29] border border-indigo-500/40 hover:border-indigo-500/70 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Default Cockpit Layout & Thresholds">
+            <button id="btn-reset-default" type="button" onclick="resetToDefaultSettings()" title="Reset to Default Settings (5m Stocks, 15m Options HA, OF Fut Sup/Rest, Breach, Wick Off, Live)" class="px-2 py-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
+                <span id="btn-reset-default-icon">🔄</span>
+                <span id="btn-reset-default-text">Default</span>
+            </button>
+        </div>
+
+        <!-- AI Snapshot Export Section -->
+        <div class="flex items-center bg-[#1a1e29] border border-emerald-500/40 hover:border-emerald-500/70 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="1-Click Copy Market Structure & Order Flow Snapshot JSON for AI Prediction">
+            <button id="btn-ai-snapshot" type="button" onclick="copyAiMarketSnapshot()" title="Copy Instant Market Structure JSON Snapshot for AI Prediction" class="px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
+                <span id="btn-ai-snapshot-icon">📋</span>
+                <span id="btn-ai-snapshot-text">AI Snapshot</span>
+            </button>
+        </div>
+
+        <!-- Print / Screenshot Export Section -->
+        <div class="flex items-center bg-[#1a1e29] border border-amber-500/40 hover:border-amber-500/70 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Save full page screenshot (PNG) to D:\OneDrive - Buffercode\0iohlc">
+            <button id="btn-print-page" type="button" onclick="captureAndSavePageScreenshot()" title="Take full page screenshot & save to D:\OneDrive - Buffercode\0iohlc" class="px-2 py-0.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
+                <span id="btn-print-page-icon">📸</span>
+                <span id="btn-print-page-text">Print</span>
+            </button>
         </div>
 
         <!-- Right: Date, Expiry, Chart Height, Alarm, Auto-Refresh & Controls (Strict 1-Row) -->
@@ -4401,8 +4428,9 @@
             // Update header badges
             updateTrendingOiDiffBadge(targetIdx);
 
-            // Update OI Buildup horizontal bar chart
-            updateLiveStrikeBuildup();
+            // Note: OI Buildup is NOT updated on live ticks anymore.
+            // As requested, it strictly updates every 5 minutes based on the completed 5m candle buildup.
+            // updateLiveStrikeBuildup();
 
             // Update label count in toggle
             const lbl = document.getElementById('toi-stream-label');
@@ -4413,114 +4441,8 @@
     }
 
     function updateLiveStrikeBuildup() {
-        if (!buildupChartInstance || !toiStreamConfig || !toiStreamConfig.strike_keys) return;
-        if (activeBuildupTf !== '5m') return;
-
-        const strikeKeys = toiStreamConfig.strike_keys;
-        const liveItems = [];
-
-        let totalCeChg = 0;
-        let totalPeChg = 0;
-
-        for (const k in strikeKeys) {
-            const item = strikeKeys[k];
-            const prevOi = Number(item.prev_oi !== undefined ? item.prev_oi : (item.base_oi || 0));
-            const prevLtp = Number(item.prev_ltp !== undefined ? item.prev_ltp : (item.ltp || 0));
-            const curOi = Number(item.oi || 0);
-            const curLtp = Number(item.ltp || 0);
-
-            const diffOi = curOi - prevOi;
-            const diffLtp = Number((curLtp - prevLtp).toFixed(2));
-            const absDiffLakh = Math.abs(diffOi / 100000);
-            const diffLakh = (diffOi / 100000).toFixed(1);
-
-            if (item.type === 'CE') {
-                totalCeChg += diffOi;
-            } else {
-                totalPeChg += diffOi;
-            }
-
-            // Buildup classification & color mapping matching backend:
-            // SB - Red (#dc2626)
-            // SC - Navy Blue (#1e3a8a)
-            // LB - Green (#16a34a)
-            // LU - Yellow (#eab308)
-            let bType = 'N';
-            let bName = 'Neutral';
-            let barColor = '#6b7280';
-
-            if (diffOi > 0 && diffLtp >= 0) {
-                bType = 'LB';
-                bName = 'Long Buildup';
-                barColor = '#16a34a'; // Green
-            } else if (diffOi > 0 && diffLtp < 0) {
-                bType = 'SB';
-                bName = 'Short Buildup';
-                barColor = '#dc2626'; // Red
-            } else if (diffOi < 0 && diffLtp <= 0) {
-                bType = 'LU';
-                bName = 'Long Unwinding';
-                barColor = '#eab308'; // Yellow
-            } else if (diffOi < 0 && diffLtp > 0) {
-                bType = 'SC';
-                bName = 'Short Covering';
-                barColor = '#1e3a8a'; // Navy Blue
-            } else {
-                bType = diffOi >= 0 ? 'SB' : 'LU';
-                bName = diffOi >= 0 ? 'Short Buildup' : 'Long Unwinding';
-                barColor = diffOi >= 0 ? '#dc2626' : '#eab308';
-            }
-
-            if (diffOi !== 0) {
-                liveItems.push({
-                    strike: item.strike,
-                    option_type: item.type,
-                    label: `${item.strike} ${item.type}`,
-                    buildup_type: bType,
-                    buildup_name: bName,
-                    diff_oi: diffOi,
-                    diff_oi_val_lakh: Number(absDiffLakh.toFixed(2)),
-                    diff_oi_lakh: (diffOi >= 0 ? '+' : '') + diffLakh + ' L',
-                    diff_ltp: (diffLtp >= 0 ? '+' : '') + diffLtp,
-                    bar_color: barColor
-                });
-            }
-        }
-
-        liveItems.sort((a, b) => b.diff_oi_val_lakh - a.diff_oi_val_lakh);
-        const top8 = liveItems.slice(0, 8);
-        if (top8.length === 0) return;
-
-        buildupChartInstance.data.labels = top8.map(x => x.label);
-        buildupChartInstance.data.datasets[0].data = top8.map(x => x.diff_oi_val_lakh);
-        buildupChartInstance.data.datasets[0].backgroundColor = top8.map(x => x.bar_color);
-        buildupChartInstance.data.datasets[0].formattedLabels = top8.map(x => x.diff_oi_lakh);
-        buildupChartInstance.data.datasets[0].itemsMeta = top8;
-        buildupChartInstance.update('none');
-
-        // Update footer net totals
-        const ceNetEl = document.getElementById('bld-ce-net');
-        const peNetEl = document.getElementById('bld-pe-net');
-        const domEl = document.getElementById('bld-dominant');
-        if (ceNetEl) {
-            const ceLakh = (totalCeChg / 100000).toFixed(1);
-            ceNetEl.textContent = `${totalCeChg >= 0 ? '+' : ''}${ceLakh} L`;
-            ceNetEl.className = totalCeChg >= 0 ? 'font-mono font-bold text-rose-400' : 'font-mono font-bold text-sky-400';
-        }
-        if (peNetEl) {
-            const peLakh = (totalPeChg / 100000).toFixed(1);
-            peNetEl.textContent = `${totalPeChg >= 0 ? '+' : ''}${peLakh} L`;
-            peNetEl.className = totalPeChg >= 0 ? 'font-mono font-bold text-emerald-400' : 'font-mono font-bold text-amber-400';
-        }
-        if (domEl) {
-            if (totalCeChg > totalPeChg * 1.35) {
-                domEl.textContent = 'Call Writing / CE Buildup Dominant (Ceiling Resistance)';
-            } else if (totalPeChg > totalCeChg * 1.35) {
-                domEl.textContent = 'Put Writing / PE Buildup Dominant (Floor Support)';
-            } else {
-                domEl.textContent = 'Dual Flow (Rangebound Momentum)';
-            }
-        }
+        // Disabled: OI Buildup updates strictly every 5 minutes on completed 5m candle, not on live ticks
+        return;
     }
 
     // ── LIVE STREAM CANDLE ENGINE & MARKER DENSITY CONTROLS ──
@@ -7803,9 +7725,6 @@
 
         // 3. Fetch Trending OI independently & render immediately upon arrival
         const pTrendingOi = (async () => {
-            if (isSilent && toiStreamMode === 'live') {
-                return;
-            }
             try {
                 const reqInterval = currentTfMinutes;
                 const atmParam = (manualToiAtmStrike !== null && manualToiAtmStrike > 0) ? `&atm_strike=${manualToiAtmStrike}` : '';
@@ -7819,6 +7738,7 @@
                         toiStreamConfig = resToi.stream_config;
                     }
                     renderTrendingOiRows();
+                    if (typeof renderStrikeBuildupChart === 'function') renderStrikeBuildupChart();
                     buildMasterTimeline();
                     if (selectedDate === todayStr) {
                         connectToiWebSocket();
@@ -8087,73 +8007,8 @@
                         }
                     }
 
-                    // Helper to apply Quant Edge Filters to a signal
+                    // Always preserve the signal whenever STK or OPT criteria are met
                     const applyFilters = (sig) => {
-                        if (!sig) return null;
-                        const sigIsBull = (sig.pos === 'belowBar');
-
-                        // Filter 1: Adaptive Heikin-Ashi Stop Reference
-                        let slPrice = sigIsBull ? Number(c.low) : Number(c.high);
-                        if (alarmSettings.filterHaAdaptiveSl !== false && wHaAnalysis) {
-                            slPrice = sigIsBull ? (wHaAnalysis.haLow || Number(c.low)) : (wHaAnalysis.haHigh || Number(c.high));
-                        }
-
-                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0)
-                        if (alarmSettings.filterBreadthVelocity !== false && cIdx > 0) {
-                            const prevCandle = todayCandles[cIdx - 1];
-                            if (sig.type.startsWith('stk')) {
-                                const curScore = sigIsBull ? (c.stock_up_count || 0) : (c.stock_down_count || 0);
-                                const prevScore = sigIsBull ? (prevCandle?.stock_up_count || 0) : (prevCandle?.stock_down_count || 0);
-                                if (curScore < prevScore) return null;
-                            } else if (sig.type.startsWith('opt')) {
-                                const curBull = (c.call_buying_score || 0) + (c.put_covering_score || 0);
-                                const curBear = (c.put_buying_score || 0) + (c.call_writing_score || 0);
-                                const prevBull = (prevCandle?.call_buying_score || 0) + (prevCandle?.put_covering_score || 0);
-                                const prevBear = (prevCandle?.put_buying_score || 0) + (prevCandle?.call_writing_score || 0);
-                                if (sigIsBull && curBull < prevBull) return null;
-                                if (!sigIsBull && curBear < prevBear) return null;
-                            }
-                        }
-
-                        // Filter 3: Higher Timeframe (HTF) Alignment on fast intraday charts (1m/3m/5m)
-                        if (alarmSettings.filterHtfAlignment !== false && ['1m', '3m', '5m'].includes(wTimeframe)) {
-                            if (quantPlaybookData && quantPlaybookData.vwap) {
-                                const vwap = parseFloat(quantPlaybookData.vwap);
-                                if (sigIsBull && Number(c.close) < vwap) return null;
-                                if (!sigIsBull && Number(c.close) > vwap) return null;
-                            }
-                        }
-
-                        // Filter 4: Quant S/R Proximity Guard (only when quant lines active)
-                        if (wShowQuantLines && alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
-                            const curClose = Number(c.close);
-                            const risk = Math.max(10, Math.abs(curClose - slPrice));
-                            if (sigIsBull) {
-                                const aboveLevels = quantPlaybookData.levels
-                                    .map(l => parseFloat(l.price))
-                                    .filter(p => p > curClose)
-                                    .sort((a, b) => a - b);
-                                if (aboveLevels.length > 0 && (aboveLevels[0] - curClose) < (1.2 * risk)) return null;
-                            } else {
-                                const belowLevels = quantPlaybookData.levels
-                                    .map(l => parseFloat(l.price))
-                                    .filter(p => p < curClose)
-                                    .sort((a, b) => b - a);
-                                if (belowLevels.length > 0 && (curClose - belowLevels[0]) < (1.2 * risk)) return null;
-                            }
-                        }
-
-                        // Filter 5: Options OI Delta Confirmation (Flow Alignment) - don't suppress intentional DIV alerts
-                        if (!sig.isDiv && alarmSettings.filterOiDeltaConfirmation !== false && breadthData && breadthData.candles) {
-                            const optCandle = breadthData.candles.find(bc => bc.time === c.time || bc.timestamp === c.timestamp);
-                            if (optCandle) {
-                                const optBullFlow = (optCandle.call_buying_score || 0) + (optCandle.put_covering_score || 0);
-                                const optBearFlow = (optCandle.put_buying_score || 0) + (optCandle.call_writing_score || 0);
-                                if (sigIsBull && optBearFlow > 70 && optBullFlow < 30) return null;
-                                if (!sigIsBull && optBullFlow > 70 && optBearFlow < 30) return null;
-                            }
-                        }
-
                         return sig;
                     };
 
@@ -8186,106 +8041,46 @@
 
                     let candleHasMarker = false;
 
+                    // Display every triggered STK or OPT signal whenever triggered and enabled
                     if (confSig) {
-                        const isFlip = (lastStkPos !== confSig.pos);
-                        const barsSinceLast = cIdx - lastStkMarkerIdx;
-                        let pushConf = false;
-                        let markerText = confSig.text + openTag;
-
-                        if (isFlip) {
-                            pushConf = true;
-                        } else if (confSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
-                            pushConf = true;
-                            markerText = `🔥 CONF Pk ${confSig.pct}%`;
-                        } else if (barsSinceLast >= 3) {
-                            pushConf = true;
-                        }
-
-                        if (pushConf) {
-                            markers.push({
-                                time: candleTime,
-                                position: confSig.pos,
-                                color: confSig.color,
-                                shape: confSig.shape,
-                                text: markerText,
-                                size: 1,
-                            });
-                            lastStkPos = confSig.pos;
-                            lastStkMarkerIdx = cIdx;
-                            lastStkPeakPct = confSig.pct;
-
-                            lastOptPos = confSig.pos;
-                            lastOptMarkerIdx = cIdx;
-                            lastOptPeakPct = confSig.pct;
-                            candleHasMarker = true;
-                        }
+                        markers.push({
+                            time: candleTime,
+                            position: confSig.pos,
+                            color: confSig.color,
+                            shape: confSig.shape,
+                            text: confSig.text + openTag,
+                            size: 1,
+                        });
+                        candleHasMarker = true;
                     } else {
                         // Independent STK signal evaluation (Primary on Chart 1)
                         let pushedStk = false;
                         if (stkSig) {
-                            const isFlip = (lastStkPos !== stkSig.pos);
-                            const barsSinceLast = cIdx - lastStkMarkerIdx;
-                            let pushSig = false;
-                            let markerText = stkSig.text + openTag;
-
-                            if (isFlip) {
-                                pushSig = true;
-                            } else if (stkSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
-                                pushSig = true;
-                                markerText = `Pk ${stkSig.pct}%`;
-                            } else if (barsSinceLast >= 3) {
-                                pushSig = true;
-                            }
-
-                            if (pushSig) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: stkSig.pos,
-                                    color: stkSig.color,
-                                    shape: stkSig.shape,
-                                    text: markerText,
-                                    size: 1,
-                                });
-                                lastStkPos = stkSig.pos;
-                                lastStkMarkerIdx = cIdx;
-                                lastStkPeakPct = stkSig.pct;
-                                pushedStk = true;
-                                candleHasMarker = true;
-                            }
+                            markers.push({
+                                time: candleTime,
+                                position: stkSig.pos,
+                                color: stkSig.color,
+                                shape: stkSig.shape,
+                                text: stkSig.text + openTag,
+                                size: 1,
+                            });
+                            pushedStk = true;
+                            candleHasMarker = true;
                         }
 
                         // Independent OPT signal evaluation (Secondary on Chart 1)
                         if (optSig) {
                             const sameSideConflict = pushedStk && stkSig && (stkSig.pos === optSig.pos);
                             if (!sameSideConflict) {
-                                const isFlip = (lastOptPos !== optSig.pos);
-                                const barsSinceLast = cIdx - lastOptMarkerIdx;
-                                let pushSig = false;
-                                let markerText = optSig.text + openTag;
-
-                                if (isFlip) {
-                                    pushSig = true;
-                                } else if (optSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
-                                    pushSig = true;
-                                    markerText = `OPT Pk ${optSig.pct}%`;
-                                } else if (barsSinceLast >= 3) {
-                                    pushSig = true;
-                                }
-
-                                if (pushSig) {
-                                    markers.push({
-                                        time: candleTime,
-                                        position: optSig.pos,
-                                        color: optSig.color,
-                                        shape: optSig.shape,
-                                        text: markerText,
-                                        size: 1,
-                                    });
-                                    lastOptPos = optSig.pos;
-                                    lastOptMarkerIdx = cIdx;
-                                    lastOptPeakPct = optSig.pct;
-                                    candleHasMarker = true;
-                                }
+                                markers.push({
+                                    time: candleTime,
+                                    position: optSig.pos,
+                                    color: optSig.color,
+                                    shape: optSig.shape,
+                                    text: optSig.text + openTag,
+                                    size: 1,
+                                });
+                                candleHasMarker = true;
                             }
                         }
                     }
@@ -8499,74 +8294,8 @@
                         }
                     }
 
-                    // Helper to apply Quant Edge Filters to a signal for Chart 2
+                    // Always preserve the signal whenever OPT or STK criteria are met
                     const applyFilters = (sig) => {
-                        if (!sig) return null;
-                        const sigIsBull = (sig.pos === 'belowBar');
-
-                        // Filter 1: Adaptive Heikin-Ashi Stop Reference
-                        let slPrice = sigIsBull ? Number(c.low) : Number(c.high);
-                        if (alarmSettings.filterHaAdaptiveSl !== false && oHaAnalysis) {
-                            slPrice = sigIsBull ? (oHaAnalysis.haLow || Number(c.low)) : (oHaAnalysis.haHigh || Number(c.high));
-                        }
-
-                        // Filter 2: Breadth Velocity (ΔBreadth ≥ 0)
-                        if (alarmSettings.filterBreadthVelocity !== false && cIdx > 0) {
-                            const prevCandle = todayCandles[cIdx - 1];
-                            if (sig.type.startsWith('opt')) {
-                                const curBull = (c.call_buying_score || 0) + (c.put_covering_score || 0);
-                                const curBear = (c.put_buying_score || 0) + (c.call_writing_score || 0);
-                                const prevBull = (prevCandle?.call_buying_score || 0) + (prevCandle?.put_covering_score || 0);
-                                const prevBear = (prevCandle?.put_buying_score || 0) + (prevCandle?.call_writing_score || 0);
-                                const curScore = sigIsBull ? curBull : curBear;
-                                const prevScore = sigIsBull ? prevBull : prevBear;
-                                if (curScore < prevScore) return null;
-                            } else if (sig.type.startsWith('stk')) {
-                                const curScore = sigIsBull ? (c.stock_up_count || 0) : (c.stock_down_count || 0);
-                                const prevScore = sigIsBull ? (prevCandle?.stock_up_count || 0) : (prevCandle?.stock_down_count || 0);
-                                if (curScore < prevScore) return null;
-                            }
-                        }
-
-                        // Filter 3: Higher Timeframe (HTF) Alignment on fast intraday charts (1m/3m/5m)
-                        if (alarmSettings.filterHtfAlignment !== false && ['1m', '3m', '5m'].includes(oTimeframe)) {
-                            if (quantPlaybookData && quantPlaybookData.vwap) {
-                                const vwap = parseFloat(quantPlaybookData.vwap);
-                                if (sigIsBull && Number(c.close) < vwap) return null;
-                                if (!sigIsBull && Number(c.close) > vwap) return null;
-                            }
-                        }
-
-                        // Filter 4: Quant S/R Proximity Guard (only when quant lines active)
-                        if (oShowQuantLines && alarmSettings.filterSrProximity !== false && quantPlaybookData && Array.isArray(quantPlaybookData.levels)) {
-                            const curClose = Number(c.close);
-                            const risk = Math.max(10, Math.abs(curClose - slPrice));
-                            if (sigIsBull) {
-                                const aboveLevels = quantPlaybookData.levels
-                                    .map(l => parseFloat(l.price))
-                                    .filter(p => p > curClose)
-                                    .sort((a, b) => a - b);
-                                if (aboveLevels.length > 0 && (aboveLevels[0] - curClose) < (1.2 * risk)) return null;
-                            } else {
-                                const belowLevels = quantPlaybookData.levels
-                                    .map(l => parseFloat(l.price))
-                                    .filter(p => p < curClose)
-                                    .sort((a, b) => b - a);
-                                if (belowLevels.length > 0 && (curClose - belowLevels[0]) < (1.2 * risk)) return null;
-                            }
-                        }
-
-                        // Filter 5: Stock Breadth Alignment (don't block intentional DIV alerts)
-                        if (!sig.isDiv && alarmSettings.filterOiDeltaConfirmation !== false && weightageData && weightageData.candles) {
-                            const stkCandle = weightageData.candles.find(sc => sc.time === c.time || sc.timestamp === c.timestamp);
-                            if (stkCandle) {
-                                const stkUp = stkCandle.stock_up_count || 0;
-                                const stkDown = stkCandle.stock_down_count || 0;
-                                if (sigIsBull && stkDown > 35 && stkUp < 15) return null;
-                                if (!sigIsBull && stkUp > 35 && stkDown < 15) return null;
-                            }
-                        }
-
                         return sig;
                     };
 
@@ -8599,106 +8328,46 @@
 
                     let candleHasMarker = false;
 
+                    // Display every triggered OPT or STK signal whenever triggered and enabled
                     if (confSig) {
-                        const isFlip = (lastOptPos !== confSig.pos);
-                        const barsSinceLast = cIdx - lastOptMarkerIdx;
-                        let pushConf = false;
-                        let markerText = confSig.text + openTag;
-
-                        if (isFlip) {
-                            pushConf = true;
-                        } else if (confSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
-                            pushConf = true;
-                            markerText = `🔥 CONF Pk ${confSig.pct}%`;
-                        } else if (barsSinceLast >= 3) {
-                            pushConf = true;
-                        }
-
-                        if (pushConf) {
-                            markers.push({
-                                time: candleTime,
-                                position: confSig.pos,
-                                color: confSig.color,
-                                shape: confSig.shape,
-                                text: markerText,
-                                size: 1,
-                            });
-                            lastOptPos = confSig.pos;
-                            lastOptMarkerIdx = cIdx;
-                            lastOptPeakPct = confSig.pct;
-
-                            lastStkPos = confSig.pos;
-                            lastStkMarkerIdx = cIdx;
-                            lastStkPeakPct = confSig.pct;
-                            candleHasMarker = true;
-                        }
+                        markers.push({
+                            time: candleTime,
+                            position: confSig.pos,
+                            color: confSig.color,
+                            shape: confSig.shape,
+                            text: confSig.text + openTag,
+                            size: 1,
+                        });
+                        candleHasMarker = true;
                     } else {
                         // Independent OPT signal evaluation (Primary on Chart 2)
                         let pushedOpt = false;
                         if (optSig) {
-                            const isFlip = (lastOptPos !== optSig.pos);
-                            const barsSinceLast = cIdx - lastOptMarkerIdx;
-                            let pushSig = false;
-                            let markerText = optSig.text + openTag;
-
-                            if (isFlip) {
-                                pushSig = true;
-                            } else if (optSig.pct >= lastOptPeakPct + 5 && barsSinceLast >= 2) {
-                                pushSig = true;
-                                markerText = `Pk ${optSig.pct}%`;
-                            } else if (barsSinceLast >= 3) {
-                                pushSig = true;
-                            }
-
-                            if (pushSig) {
-                                markers.push({
-                                    time: candleTime,
-                                    position: optSig.pos,
-                                    color: optSig.color,
-                                    shape: optSig.shape,
-                                    text: markerText,
-                                    size: 1,
-                                });
-                                lastOptPos = optSig.pos;
-                                lastOptMarkerIdx = cIdx;
-                                lastOptPeakPct = optSig.pct;
-                                pushedOpt = true;
-                                candleHasMarker = true;
-                            }
+                            markers.push({
+                                time: candleTime,
+                                position: optSig.pos,
+                                color: optSig.color,
+                                shape: optSig.shape,
+                                text: optSig.text + openTag,
+                                size: 1,
+                            });
+                            pushedOpt = true;
+                            candleHasMarker = true;
                         }
 
                         // Independent STK signal evaluation (Secondary on Chart 2)
                         if (stkSig) {
                             const sameSideConflict = pushedOpt && optSig && (optSig.pos === stkSig.pos);
                             if (!sameSideConflict) {
-                                const isFlip = (lastStkPos !== stkSig.pos);
-                                const barsSinceLast = cIdx - lastStkMarkerIdx;
-                                let pushSig = false;
-                                let markerText = stkSig.text + openTag;
-
-                                if (isFlip) {
-                                    pushSig = true;
-                                } else if (stkSig.pct >= lastStkPeakPct + 5 && barsSinceLast >= 2) {
-                                    pushSig = true;
-                                    markerText = `STK Pk ${stkSig.pct}%`;
-                                } else if (barsSinceLast >= 3) {
-                                    pushSig = true;
-                                }
-
-                                if (pushSig) {
-                                    markers.push({
-                                        time: candleTime,
-                                        position: stkSig.pos,
-                                        color: stkSig.color,
-                                        shape: stkSig.shape,
-                                        text: markerText,
-                                        size: 1,
-                                    });
-                                    lastStkPos = stkSig.pos;
-                                    lastStkMarkerIdx = cIdx;
-                                    lastStkPeakPct = stkSig.pct;
-                                    candleHasMarker = true;
-                                }
+                                markers.push({
+                                    time: candleTime,
+                                    position: stkSig.pos,
+                                    color: stkSig.color,
+                                    shape: stkSig.shape,
+                                    text: stkSig.text + openTag,
+                                    size: 1,
+                                });
+                                candleHasMarker = true;
                             }
                         }
                     }
@@ -8894,11 +8563,116 @@
         renderStrikeBuildupChart();
     }
 
+    // ── 9a. Resolve 5-Minute Strike OI Buildup for Any Given Timestamp ─────────────
+    function get5mBuildupForTime(timeStr) {
+        if (!trendingOiData) return null;
+        const cleanTime = timeStr ? String(timeStr).slice(0, 5) : '';
+        const bld5m = trendingOiData.strike_buildup?.['5m'];
+        const matrix = trendingOiData.buildup_matrix;
+
+        if (!matrix || !matrix.columns || !matrix.rows || matrix.rows.length === 0) {
+            return bld5m;
+        }
+
+        // If no cleanTime or it matches the latest column, prefer pre-computed bld5m
+        if ((!cleanTime || cleanTime === matrix.columns[0]) && bld5m && bld5m.top_items && bld5m.top_items.length > 0) {
+            return bld5m;
+        }
+
+        // Locate exact or closest prior 5m candle column in matrix (columns are sorted recent to old)
+        let targetCol = null;
+        if (matrix.columns.includes(cleanTime)) {
+            targetCol = cleanTime;
+        } else {
+            targetCol = matrix.columns.find(c => c <= cleanTime);
+        }
+
+        if (!targetCol) targetCol = matrix.columns[matrix.columns.length - 1];
+        if (!targetCol) return bld5m;
+
+        if (targetCol === matrix.columns[0] && bld5m && bld5m.top_items && bld5m.top_items.length > 0) {
+            return bld5m;
+        }
+
+        const items = [];
+        let totalCeChg = 0;
+        let totalPeChg = 0;
+
+        matrix.rows.forEach(r => {
+            const cell = r.cells ? r.cells[targetCol] : null;
+            if (cell && cell.diff_oi !== undefined && cell.diff_oi !== 0) {
+                const diffOi = Number(cell.diff_oi || 0);
+                const diffLtp = Number(cell.diff_ltp || 0);
+                const isCe = (r.option_type === 'CE' || (cell.strike && cell.strike.includes('CE')));
+                if (isCe) {
+                    totalCeChg += diffOi;
+                } else {
+                    totalPeChg += diffOi;
+                }
+
+                const absDiffLakh = Math.abs(diffOi / 100000);
+                const diffLakh = (diffOi / 100000).toFixed(1);
+
+                items.push({
+                    strike: r.strike_price,
+                    option_type: r.option_type,
+                    label: cell.strike || `${r.strike_price} ${r.option_type}`,
+                    buildup_type: cell.type,
+                    buildup_name: cell.name,
+                    diff_oi: diffOi,
+                    abs_diff_oi: Math.abs(diffOi),
+                    diff_oi_val_lakh: Number(absDiffLakh.toFixed(2)),
+                    diff_oi_lakh: cell.diff_oi_lakh || ((diffOi >= 0 ? '+' : '') + diffLakh + ' L'),
+                    diff_ltp: (diffLtp >= 0 ? '+' : '') + diffLtp,
+                    bar_color: cell.color || '#6b7280'
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            return bld5m;
+        }
+
+        items.sort((a, b) => b.abs_diff_oi - a.abs_diff_oi);
+
+        let dominant = 'Dual Flow (Rangebound Momentum)';
+        if (totalCeChg > totalPeChg * 1.35) {
+            dominant = 'Call Writing / CE Buildup Dominant (Ceiling Resistance)';
+        } else if (totalPeChg > totalCeChg * 1.35) {
+            dominant = 'Put Writing / PE Buildup Dominant (Floor Support)';
+        }
+
+        const ceLakh = (totalCeChg / 100000).toFixed(1);
+        const peLakh = (totalPeChg / 100000).toFixed(1);
+
+        return {
+            window_label: `${targetCol} (5M)`,
+            top_items: items.slice(0, 8),
+            summary: {
+                total_ce_chg_lakh: (totalCeChg >= 0 ? '+' : '') + ceLakh + ' L',
+                total_pe_chg_lakh: (totalPeChg >= 0 ? '+' : '') + peLakh + ' L',
+                dominant: dominant
+            }
+        };
+    }
+    window.get5mBuildupForTime = get5mBuildupForTime;
+
     // ── 9. Render OI Buildup (Row 2 of Column 2) ──────────────────────────────────
-    function renderStrikeBuildupChart() {
+    function renderStrikeBuildupChart(targetTime = null) {
         if (!trendingOiData?.strike_buildup) return;
         const bldData = trendingOiData.strike_buildup;
-        const tfData = bldData[activeBuildupTf] || bldData['5m'] || bldData;
+        let tfData = bldData[activeBuildupTf] || bldData['5m'] || bldData;
+
+        // If 5m view, resolve the completed 5-min candle buildup (latest or selected time)
+        if (activeBuildupTf === '5m') {
+            const reqTime = targetTime || ((timestampsList && activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length) ? timestampsList[activeCandleIndex] : null);
+            if (reqTime) {
+                const histData = get5mBuildupForTime(reqTime);
+                if (histData) {
+                    tfData = histData;
+                }
+            }
+        }
 
         const windowBadge = document.getElementById('bld-window-badge');
         if (windowBadge) windowBadge.textContent = tfData.window_label || '09:15 - 15:25';
@@ -8907,8 +8681,16 @@
             const ceNet = document.getElementById('bld-ce-net');
             const peNet = document.getElementById('bld-pe-net');
             const dom = document.getElementById('bld-dominant');
-            if (ceNet) ceNet.textContent = tfData.summary.total_ce_chg_lakh || '+0.0 L';
-            if (peNet) peNet.textContent = tfData.summary.total_pe_chg_lakh || '+0.0 L';
+            if (ceNet) {
+                ceNet.textContent = tfData.summary.total_ce_chg_lakh || '+0.0 L';
+                const ceVal = parseFloat(tfData.summary.total_ce_chg_lakh);
+                ceNet.className = ceVal >= 0 ? 'font-mono font-bold text-rose-400' : 'font-mono font-bold text-sky-400';
+            }
+            if (peNet) {
+                peNet.textContent = tfData.summary.total_pe_chg_lakh || '+0.0 L';
+                const peVal = parseFloat(tfData.summary.total_pe_chg_lakh);
+                peNet.className = peVal >= 0 ? 'font-mono font-bold text-emerald-400' : 'font-mono font-bold text-amber-400';
+            }
             if (dom) dom.textContent = tfData.summary.dominant || '---';
         }
 
@@ -9092,6 +8874,574 @@
         }
     }
     window.snapToLiveCandle = snapToLiveCandle;
+
+    /**
+     * Reset Cockpit to User's Default Settings:
+     * - Nifty 50 stocks: 5min, SPOT, CANDLE, OF to Today & Yesterday Fut Sup & Rest, Sig: Breach, Wick: Off, STK: ON, OPT: OFF
+     * - Options chart: 15min, SPOT, HA (Heikin Ashi), OF line OFF, Sig: Breach, Wick: Off, STK: ON, OPT: ON
+     * - Both Alarms enabled: Stocks to 80/80, Options to 75/75
+     * - Market in Live (at the top) Current candle
+     */
+    function resetToDefaultSettings() {
+        const btn = document.getElementById('btn-reset-default');
+        const btnIcon = document.getElementById('btn-reset-default-icon');
+        const btnText = document.getElementById('btn-reset-default-text');
+        if (btnText) btnText.textContent = 'Resetting...';
+        if (btnIcon) btnIcon.textContent = '⏳';
+
+        // 1. Timeframe & Candle Basis: Stocks 5min spot, Options 15min spot
+        const targetWTf = '5m';
+        const targetWBasis = 'spot';
+        const targetOTf = '15m';
+        const targetOBasis = 'spot';
+
+        const needReload1 = (wTimeframe !== targetWTf || wChartBasis !== targetWBasis);
+        const needReload2 = (oTimeframe !== targetOTf || oChartBasis !== targetOBasis);
+
+        wTimeframe = targetWTf;
+        wChartBasis = targetWBasis;
+        try { localStorage.setItem('nifty_unified_w_tf', targetWTf); } catch(e){}
+        try { localStorage.setItem(wBasisStorageKey, targetWBasis); } catch(e){}
+
+        oTimeframe = targetOTf;
+        oChartBasis = targetOBasis;
+        try { localStorage.setItem('nifty_unified_o_tf', targetOTf); } catch(e){}
+        try { localStorage.setItem(oBasisStorageKey, targetOBasis); } catch(e){}
+
+        updateTimeframeButtonsUI();
+        updateChartBasisUI();
+        if (typeof updateCandleCloseCountdown === 'function') updateCandleCloseCountdown();
+
+        // 2. Candle Style: Stocks CANDLE, Options HA
+        wCandleStyle = 'candle';
+        oCandleStyle = 'heikin_ashi';
+        try { localStorage.setItem('nifty_unified_w_candle_style', 'candle'); } catch(e){}
+        try { localStorage.setItem('nifty_unified_o_candle_style', 'heikin_ashi'); } catch(e){}
+        updateCandleStyleUI();
+
+        // 3. Order Flow (OF) Settings:
+        // Stocks: OF ON
+        wShowOfSrLines = true;
+        try { localStorage.setItem('nifty_unified_w_of_sr_lines', 'true'); } catch(e){}
+
+        // Options: OF line OFF
+        oShowOfSrLines = false;
+        try { localStorage.setItem('nifty_unified_o_of_sr_lines', 'false'); } catch(e){}
+
+        // OF Levels: Today and Yesterday Fut Sup & Rest
+        alarmSettings.ofShowToday = true;
+        alarmSettings.ofShowYesterday = true;
+
+        multiDayOfSelected = {};
+        multiDayOfSelected['today_fut_ask'] = true; // TD Fut Resistance
+        multiDayOfSelected['today_fut_bid'] = true; // TD Fut Support
+        multiDayOfSelected['today_spot_ask'] = false;
+        multiDayOfSelected['today_spot_bid'] = false;
+
+        const ydDate = (multiDayOfData?.days?.find(d => d.day_offset === 1)?.date)
+            || (multiDayOfData?.days?.[0]?.date)
+            || (orderFlowLevelsData?.prev_date);
+
+        if (ydDate) {
+            multiDayOfSelected[`${ydDate}_fut_ask`] = true; // YD Fut Resistance
+            multiDayOfSelected[`${ydDate}_fut_bid`] = true; // YD Fut Support
+            multiDayOfSelected[`${ydDate}_spot_ask`] = false;
+            multiDayOfSelected[`${ydDate}_spot_bid`] = false;
+        }
+
+        if (multiDayOfData?.days) {
+            multiDayOfData.days.forEach(d => {
+                if (d.date !== ydDate) {
+                    multiDayOfSelected[`${d.date}_fut_ask`] = false;
+                    multiDayOfSelected[`${d.date}_fut_bid`] = false;
+                    multiDayOfSelected[`${d.date}_spot_ask`] = false;
+                    multiDayOfSelected[`${d.date}_spot_bid`] = false;
+                }
+            });
+        }
+
+        saveMultiDayOfSelected();
+        syncCalibrationModeFromSelections();
+        updateOfSrButtonUI();
+        updateHistOfBadgeCount();
+        if (typeof renderHistOfDropdownContent === 'function') {
+            renderHistOfDropdownContent();
+        }
+
+        // 4. Signals, Wick Filters, and STK/OPT Badges:
+        // Sig: Breach on both
+        alarmSettings.stocksMarkerMode = 'breach';
+        alarmSettings.stocksShowMarkers = true;
+        alarmSettings.optionsMarkerMode = 'breach';
+        alarmSettings.optionsShowMarkers = true;
+
+        // Wick :Off on both
+        alarmSettings.stocksHaWickFilter = false;
+        alarmSettings.optionsHaWickFilter = false;
+
+        // Stocks Chart: STK: ON, OPT: OFF
+        alarmSettings.chart1ShowStocks = true;
+        alarmSettings.chart1ShowOptions = false;
+
+        // Options Chart: STK: ON, OPT: ON
+        alarmSettings.chart2ShowStocks = true;
+        alarmSettings.chart2ShowOptions = true;
+
+        // 5. Alarms: Both enabled with Stock to 80 and 80, option to 75 and 75
+        alarmSettings.masterEnabled = true;
+        alarmSettings.stocksAlertEnabled = true;
+        alarmSettings.stocksUpThreshold = 80;
+        alarmSettings.stocksDownThreshold = 80;
+        alarmSettings.optionsAlertEnabled = true;
+        alarmSettings.optionsUpThreshold = 75;
+        alarmSettings.optionsDownThreshold = 75;
+
+        saveAlarmSettings();
+        syncAlarmToolbarUI();
+        syncModalFieldsWithSettings();
+        updateChartSignalButtonsUI();
+        updateHaWickFilterUI();
+        updateMarkerButtonsUI();
+
+        // 6. Market should be in Live (at the top) Current candle
+        if (isPlaying) {
+            isPlaying = false;
+            if (playIntervalId) clearInterval(playIntervalId);
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+            if (icon) icon.textContent = '▶';
+            if (text) text.textContent = 'Play';
+        }
+
+        // 6b. OI Buildup: Reset to 5M
+        activeBuildupTf = '5m';
+        document.querySelectorAll('.bld-tf-btn').forEach(b => {
+            b.classList.remove('bg-blue-600', 'text-white');
+            b.classList.add('text-gray-400');
+            if (b.dataset.tf === '5m') {
+                b.classList.add('bg-blue-600', 'text-white');
+                b.classList.remove('text-gray-400');
+            }
+        });
+        if (typeof renderStrikeBuildupChart === 'function') {
+            renderStrikeBuildupChart();
+        }
+
+        // 7. Redraw and Reload Execution
+        const finishReset = () => {
+            renderWeightageColumn();
+            renderOptionsBreadthColumn();
+            renderWeightageSuperTrend();
+            renderOptionsSuperTrend();
+            drawWeightageOrderFlowLines();
+            drawOptionsOrderFlowLines();
+            drawMultiDayOrderFlowLines();
+            snapToLiveCandle();
+
+            if (btnText) btnText.textContent = 'Default ✓';
+            if (btnIcon) btnIcon.textContent = '✅';
+            setTimeout(() => {
+                if (btnText) btnText.textContent = 'Default';
+                if (btnIcon) btnIcon.textContent = '🔄';
+            }, 1500);
+        };
+
+        if (needReload1 && needReload2) {
+            Promise.all([reloadChart1Weightage(), reloadChart2Options()]).then(finishReset).catch(finishReset);
+        } else if (needReload1) {
+            reloadChart1Weightage().then(finishReset).catch(finishReset);
+        } else if (needReload2) {
+            reloadChart2Options().then(finishReset).catch(finishReset);
+        } else {
+            finishReset();
+        }
+    }
+    window.resetToDefaultSettings = resetToDefaultSettings;
+
+    /**
+     * Generate 1-Click AI Market Structure & Order Flow Snapshot JSON
+     * Aggregates live price, basis spread, 5m Heikin Ashi wick characteristics,
+     * Cash Breadth (advance/decline, weight, top drivers), Options Surface (call/put flow, PCR, net delta),
+     * Order Flow Liquidity walls (nearest Ask/Bid distances), Institutional Conflict Diagnosis, and Quant Pivots.
+     */
+    function generateAiMarketSnapshot() {
+        const symbol = typeof SYMBOL !== 'undefined' ? SYMBOL : (window.location.pathname.includes('banknifty') ? 'BANKNIFTY' : 'NIFTY');
+        const timeStr = (typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) ? timestampsList[activeCandleIndex] : 'LIVE';
+
+        // Spot & Futures
+        const spotText = document.getElementById('spot-price-display')?.textContent || '';
+        const spotPrice = parseFloat(spotText.replace(/[^0-9.]/g, '')) || 0;
+        const spotChange = document.getElementById('spot-change-display')?.textContent?.trim() || '';
+
+        // Active Candle (wTimeframe, e.g. 5m)
+        const stkData = wWeightageData || weightageData;
+        const candles = stkData?.candles || stkData?.nifty_candles || [];
+        const candle = (timeStr ? (typeof findCandleForTime === 'function' ? findCandleForTime(candles, timeStr) : null) : null) || candles[activeCandleIndex] || null;
+
+        // HA Wick analysis for active candle
+        let haAnalysis = null;
+        if (typeof getCandleHaWickAnalysis === 'function' && candle) {
+            haAnalysis = getCandleHaWickAnalysis(Number(candle.time || candle.timestamp), false, candle.time_str);
+        }
+
+        // Stocks Cash Breadth
+        const bStk = stkData?.breadth_by_time?.[timeStr] || stkData?.breadth_by_time?.[candle?.time_str] || null;
+
+        // Options Flow Breadth
+        const optData = oBreadthData || breadthData;
+        const bOpt = optData?.breadth_by_time?.[timeStr] || optData?.breadth_by_time?.[candle?.time_str] || null;
+
+        // Driver Diagnosis
+        const diagText = document.getElementById('driver-diagnosis-text')?.textContent?.trim() || 'BALANCED MARKET EQUILIBRIUM';
+
+        // Order Flow Nearest S/R
+        const ofTodayAsks = orderFlowLevelsData?.today?.asks || [];
+        const ofTodayBids = orderFlowLevelsData?.today?.bids || [];
+        const ofYdAsks = orderFlowLevelsData?.yesterday?.asks || [];
+        const ofYdBids = orderFlowLevelsData?.yesterday?.bids || [];
+
+        let nearestRes = null;
+        let nearestSup = null;
+        const allOfLevels = [];
+        ofTodayAsks.forEach(a => allOfLevels.push({ price: a.price, qty: a.qty, type: 'RES', source: 'TODAY_FUT_ASK' }));
+        ofYdAsks.forEach(a => allOfLevels.push({ price: a.price, qty: a.qty, type: 'RES', source: 'YD_FUT_ASK' }));
+        ofTodayBids.forEach(b => allOfLevels.push({ price: b.price, qty: b.qty, type: 'SUP', source: 'TODAY_FUT_BID' }));
+        ofYdBids.forEach(b => allOfLevels.push({ price: b.price, qty: b.qty, type: 'SUP', source: 'YD_FUT_BID' }));
+
+        if (spotPrice > 0) {
+            const resistances = allOfLevels.filter(l => l.price > spotPrice).sort((a, b) => a.price - b.price);
+            const supports = allOfLevels.filter(l => l.price < spotPrice).sort((a, b) => b.price - a.price);
+            if (resistances.length > 0) {
+                nearestRes = {
+                    price: resistances[0].price,
+                    source: resistances[0].source,
+                    qty: resistances[0].qty || null,
+                    distance_pts: Number((resistances[0].price - spotPrice).toFixed(1))
+                };
+            }
+            if (supports.length > 0) {
+                nearestSup = {
+                    price: supports[0].price,
+                    source: supports[0].source,
+                    qty: supports[0].qty || null,
+                    distance_pts: Number((spotPrice - supports[0].price).toFixed(1))
+                };
+            }
+        }
+
+        // Top heavyweight contributors / draggers
+        const topContributors = (bStk?.top_contributors || []).slice(0, 5).map(c => ({
+            symbol: c.symbol,
+            pts: c.pts_impact ?? c.pts,
+            pct: c.pct_chg ?? c.pct
+        }));
+        const topDraggers = (bStk?.top_draggers || []).slice(0, 5).map(d => ({
+            symbol: d.symbol,
+            pts: d.pts_impact ?? d.pts,
+            pct: d.pct_chg ?? d.pct
+        }));
+
+        // Quant playbook pivots
+        let quantSnapshot = null;
+        if (quantPlaybookData) {
+            quantSnapshot = {
+                central_pivot: quantPlaybookData.central_pivot || null,
+                vwap: quantPlaybookData.vwap || null,
+                levels: (quantPlaybookData.levels || []).map(l => ({ name: l.name, price: l.price }))
+            };
+        }
+
+        return {
+            metadata: {
+                tool: "nifty-multi-timeframe-monitor",
+                symbol: symbol,
+                date: selectedDate,
+                time: timeStr,
+                generated_at: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST'
+            },
+            market_price: {
+                spot: spotPrice,
+                change: spotChange,
+                basis_spread: (orderFlowLevelsData?.basis_spread !== undefined) ? orderFlowLevelsData.basis_spread : null,
+                candle: candle ? {
+                    timeframe: wTimeframe,
+                    open: Number(candle.open),
+                    high: Number(candle.high),
+                    low: Number(candle.low),
+                    close: Number(candle.close),
+                    move_pts: candle.move_pts !== undefined ? Number(candle.move_pts) : Number((candle.close - candle.open).toFixed(2))
+                } : null,
+                ha_wick_analysis: haAnalysis ? {
+                    candle_color: haAnalysis.isHaBull ? 'GREEN' : 'RED',
+                    top_wick: haAnalysis.topWick,
+                    bottom_wick: haAnalysis.bottomWick,
+                    has_both_wicks: haAnalysis.hasBothWicks,
+                    is_clean_bull_entry: haAnalysis.isCleanBullEntry,
+                    is_clean_bear_entry: haAnalysis.isCleanBearEntry
+                } : null
+            },
+            institutional_driver_diagnosis: diagText,
+            cash_equities_breadth: bStk ? {
+                timeframe: wTimeframe,
+                green_weight_pct: Number(bStk.green_weight),
+                red_weight_pct: Number(bStk.red_weight),
+                green_count_pct: Number(bStk.green_count_pct),
+                red_count_pct: Number(bStk.red_count_pct),
+                advances: bStk.green_count,
+                declines: bStk.red_count,
+                net_green_pts: bStk.net_green_pts,
+                net_red_pts: bStk.net_red_pts,
+                top_contributors: topContributors,
+                top_draggers: topDraggers
+            } : null,
+            options_flow_breadth: bOpt ? {
+                timeframe: oTimeframe,
+                call_weight_pct: Number(bOpt.up_weight),
+                put_weight_pct: Number(bOpt.down_weight),
+                atm_strike: bOpt.atm_strike,
+                basket_range: `${bOpt.basket_min} - ${bOpt.basket_max}`,
+                verdict: bOpt.verdict,
+                pcr: bOpt.greeks?.pcr ?? null,
+                net_delta: bOpt.greeks?.net_delta ?? null,
+                avg_ce_vega: bOpt.greeks?.avg_ce_vega ?? null,
+                avg_pe_vega: bOpt.greeks?.avg_pe_vega ?? null
+            } : null,
+            order_flow_liquidity_walls: {
+                nearest_resistance: nearestRes,
+                nearest_support: nearestSup
+            },
+            oi_buildup_5m: (function() {
+                const bld = (typeof get5mBuildupForTime === 'function' && timeStr) 
+                    ? get5mBuildupForTime(timeStr) 
+                    : trendingOiData?.strike_buildup?.['5m'];
+                if (!bld || !bld.top_items || bld.top_items.length === 0) return null;
+                return {
+                    window: bld.window_label,
+                    ce_net_chg: bld.summary?.total_ce_chg_lakh,
+                    pe_net_chg: bld.summary?.total_pe_chg_lakh,
+                    dominant_flow: bld.summary?.dominant,
+                    top_strikes: bld.top_items.slice(0, 8).map(it => ({
+                        strike: it.label || `${it.strike} ${it.option_type}`,
+                        buildup: `${it.buildup_name} (${it.buildup_type})`,
+                        delta_oi: it.diff_oi_lakh,
+                        delta_ltp: it.diff_ltp
+                    }))
+                };
+            })(),
+            quant_levels: quantSnapshot
+        };
+    }
+    window.generateAiMarketSnapshot = generateAiMarketSnapshot;
+
+    async function copyAiMarketSnapshot() {
+        const btn = document.getElementById('btn-ai-snapshot');
+        const btnIcon = document.getElementById('btn-ai-snapshot-icon');
+        const btnText = document.getElementById('btn-ai-snapshot-text');
+
+        try {
+            const snapshot = generateAiMarketSnapshot();
+            const jsonStr = JSON.stringify(snapshot, null, 2);
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(jsonStr);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = jsonStr;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            if (btnText) btnText.textContent = 'Copied ✓';
+            if (btnIcon) btnIcon.textContent = '✅';
+            if (btn) btn.className = 'px-2 py-0.5 bg-emerald-600 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide ring-2 ring-emerald-400';
+
+            setTimeout(() => {
+                if (btnText) btnText.textContent = 'AI Snapshot';
+                if (btnIcon) btnIcon.textContent = '📋';
+                if (btn) btn.className = 'px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy snapshot:', err);
+            if (btnText) btnText.textContent = 'Error!';
+            setTimeout(() => {
+                if (btnText) btnText.textContent = 'AI Snapshot';
+            }, 1500);
+        }
+    }
+    window.copyAiMarketSnapshot = copyAiMarketSnapshot;
+
+    /**
+     * Display a sleek floating notification when a screenshot is successfully saved.
+     */
+    function showScreenshotNotification(filename, fullPath) {
+        let toast = document.getElementById('screenshot-toast-notification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'screenshot-toast-notification';
+            toast.className = 'fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-3 py-2 bg-[#0e131f]/95 border border-emerald-500/60 rounded-lg shadow-2xl text-xs font-mono text-gray-200 backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0';
+            document.body.appendChild(toast);
+        }
+
+        toast.innerHTML = `
+            <span class="text-base">📸</span>
+            <div class="flex flex-col">
+                <span class="font-bold text-emerald-400">Screenshot Saved (PNG)</span>
+                <span class="text-[10px] text-gray-300 break-all select-all font-mono">${fullPath}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.classList.add('opacity-0', 'translate-y-10')" class="ml-2 text-gray-400 hover:text-white cursor-pointer">&times;</button>
+        `;
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+        });
+
+        setTimeout(() => {
+            if (toast) {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }
+        }, 4500);
+    }
+    window.showScreenshotNotification = showScreenshotNotification;
+
+    /**
+     * Capture full page / cockpit as PNG and save to D:\OneDrive - Buffercode\0iohlc\{date}\{timestamp}.png
+     */
+    async function captureAndSavePageScreenshot() {
+        const btn = document.getElementById('btn-print-page');
+        const btnIcon = document.getElementById('btn-print-page-icon');
+        const btnText = document.getElementById('btn-print-page-text');
+
+        const origIcon = btnIcon ? btnIcon.textContent : '📸';
+        const origText = btnText ? btnText.textContent : 'Print';
+
+        if (btnIcon) btnIcon.textContent = '⏳';
+        if (btnText) btnText.textContent = 'Capturing...';
+        if (btn) btn.disabled = true;
+
+        // Temporary style to hide native scrollbars in screenshot
+        const scrollbarStyle = document.createElement('style');
+        scrollbarStyle.id = 'temp-hide-scrollbars';
+        scrollbarStyle.innerHTML = `
+            *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+            * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        `;
+        document.head.appendChild(scrollbarStyle);
+
+        try {
+            // Target the entire cockpit root or document body
+            const target = document.getElementById('nifty-unified-root') || document.body;
+            let dataUrl = null;
+
+            // In the snapshot, keep the Print button clean (not in capturing state)
+            if (btnIcon) btnIcon.textContent = origIcon;
+            if (btnText) btnText.textContent = origText;
+
+            // 1. Primary Engine: htmlToImage (Pixel-perfect SVG foreignObject rendered by Chromium)
+            if (typeof htmlToImage !== 'undefined') {
+                dataUrl = await htmlToImage.toPng(target, {
+                    backgroundColor: '#0b0e14',
+                    pixelRatio: 1.5, // Ultra-sharp 1.5x resolution
+                    skipFonts: true,
+                    cacheBust: true
+                });
+            } else if (typeof html2canvas !== 'undefined') {
+                // 2. Secondary Fallback: html2canvas
+                const canvas = await html2canvas(target, {
+                    backgroundColor: '#0b0e14',
+                    useCORS: true,
+                    scale: 1.5,
+                    logging: false,
+                    windowWidth: target.scrollWidth,
+                    windowHeight: target.scrollHeight,
+                    onclone: (clonedDoc) => {
+                        const origCanvases = target.querySelectorAll('canvas');
+                        const clonedCanvases = clonedDoc.querySelectorAll('canvas');
+                        origCanvases.forEach((orig, idx) => {
+                            const clone = clonedCanvases[idx];
+                            if (clone && orig && orig.width > 0 && orig.height > 0) {
+                                const cloneCtx = clone.getContext('2d');
+                                if (cloneCtx) {
+                                    try { cloneCtx.drawImage(orig, 0, 0); } catch (e) {}
+                                }
+                            }
+                        });
+                    }
+                });
+                dataUrl = canvas.toDataURL('image/png');
+            } else {
+                throw new Error('Screenshot library not loaded');
+            }
+
+            // Immediately reflect saving progress in UI
+            if (btnIcon) btnIcon.textContent = '⏳';
+            if (btnText) btnText.textContent = 'Saving...';
+
+            // Format current wall-clock timestamp (HH-mm-ss)
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const timeStr = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+            const dateStr = (typeof selectedDate !== 'undefined' && selectedDate) ? selectedDate : `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+            const response = await fetch('/api/multi-timeframe/save-screenshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: dataUrl,
+                    date: dateStr,
+                    time: timeStr
+                })
+            });
+
+            const result = await response.json();
+
+            if (result && result.success) {
+                if (btnIcon) btnIcon.textContent = '✅';
+                if (btnText) btnText.textContent = 'Saved ✓';
+                if (btn) {
+                    btn.className = 'px-2 py-0.5 bg-emerald-600 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide ring-2 ring-emerald-400';
+                    btn.title = `Saved: ${result.path}`;
+                }
+
+                showScreenshotNotification(result.filename, result.path);
+
+                setTimeout(() => {
+                    if (btnIcon) btnIcon.textContent = origIcon;
+                    if (btnText) btnText.textContent = origText;
+                    if (btn) {
+                        btn.className = 'px-2 py-0.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide';
+                        btn.disabled = false;
+                        btn.title = 'Take full page screenshot & save to D:\\OneDrive - Buffercode\\0iohlc';
+                    }
+                }, 3000);
+            } else {
+                throw new Error(result?.error || 'Failed to save screenshot on server');
+            }
+        } catch (err) {
+            console.error('Screenshot error:', err);
+            if (btnIcon) btnIcon.textContent = '⚠️';
+            if (btnText) btnText.textContent = 'Failed';
+            alert('Failed to save screenshot: ' + (err.message || err));
+            setTimeout(() => {
+                if (btnIcon) btnIcon.textContent = origIcon;
+                if (btnText) btnText.textContent = origText;
+                if (btn) btn.disabled = false;
+            }, 2000);
+        } finally {
+            if (scrollbarStyle && scrollbarStyle.parentElement) {
+                scrollbarStyle.remove();
+            }
+        }
+    }
+    window.captureAndSavePageScreenshot = captureAndSavePageScreenshot;
 
     function syncActiveCandleIndex(index) {
         if (!timestampsList || index < 0 || index >= timestampsList.length) return;
@@ -9689,6 +10039,7 @@
         if (activeBuildupTf === '5m') {
             const badge = document.getElementById('bld-window-badge');
             if (badge) badge.textContent = `${timeStr} (5M)`;
+            renderStrikeBuildupChart(timeStr);
         }
         if (trendingOiData.chart && trendingOiData.chart.labels) {
             const labels = trendingOiData.chart.labels;
@@ -10366,7 +10717,8 @@
                 btn.classList.add('bg-blue-600', 'text-white');
                 btn.classList.remove('text-gray-400');
                 activeBuildupTf = btn.dataset.tf;
-                renderStrikeBuildupChart();
+                const currentTime = (timestampsList && activeCandleIndex >= 0) ? timestampsList[activeCandleIndex] : null;
+                renderStrikeBuildupChart(currentTime);
             });
         });
 
@@ -11229,11 +11581,36 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         candleCloseTimerId = setInterval(updateCandleCloseCountdown, 1000);
     }
 
+    // ── Dedicated 5-Minute OI Buildup Sync Engine ──────────────────────────
+    // Ensures OI Buildup updates strictly every 5 minutes based on the last completed 5m candle
+    let oiBuildupSyncTimerId = null;
+    let lastOiBuildupSyncMin = -1;
+    function setupOiBuildup5mSync() {
+        if (oiBuildupSyncTimerId) clearInterval(oiBuildupSyncTimerId);
+        oiBuildupSyncTimerId = setInterval(() => {
+            const now = new Date();
+            const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+            if (typeof selectedDate !== 'undefined' && selectedDate !== todayStr) return;
+            if (!isLiveMarketOpen()) return;
+
+            const curMin = now.getMinutes();
+            const curSec = now.getSeconds();
+
+            // 8-20 seconds after every 5m boundary (e.g. at :00:08, :05:08, :10:08, etc.)
+            if (curMin % 5 === 0 && curSec >= 8 && curSec <= 20 && lastOiBuildupSyncMin !== curMin) {
+                lastOiBuildupSyncMin = curMin;
+                console.log(`[OI Buildup] 5-minute candle closed at ${curMin}m. Refreshing completed 5m candle buildup...`);
+                reloadTrendingOiWithInterval(5);
+            }
+        }, 3000);
+    }
+
     // ── App Bootstrapper ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         applyCockpitFontScale(currentCockpitFontScale);
         applyTimerVisibility();
         setupCandleCloseCountdown();
+        setupOiBuildup5mSync();
         updateToiLegendUI();
         updateToiStreamToggleUI();
         initLightweightCharts();
