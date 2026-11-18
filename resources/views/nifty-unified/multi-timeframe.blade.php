@@ -479,6 +479,15 @@
                                 </div>
                             </div>
 
+                            <!-- Enterprise Active Candle Highlight Overlay (Beacon & Reticle) -->
+                            <div id="w-candle-highlight" class="pointer-events-none absolute top-0 bottom-[26px] z-[15] hidden" style="left: 0;">
+                                <div id="w-candle-highlight-beam" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="w-candle-highlight-laser" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="w-candle-highlight-reticle" class="absolute pointer-events-none"></div>
+                                <div id="w-candle-highlight-pill" class="absolute top-1.5 pointer-events-none"></div>
+                                <div id="w-candle-highlight-bot" class="absolute bottom-1 pointer-events-none"></div>
+                            </div>
+
                             <!-- Floating TradingView Style Dock Toolbar -->
                             <div class="tv-dock absolute left-2 top-2 z-20 flex flex-col items-center bg-[#151924]/90 backdrop-blur-md border border-gray-700/80 rounded shadow-2xl p-0.5 gap-1 select-none">
                                 <button type="button" onclick="setActiveWeightageTvTool('pointer')" id="w-tv-pointer" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-white bg-sky-600 shadow-xs cursor-pointer" title="Pointer / Select Candle">
@@ -843,6 +852,15 @@
                                     <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
                                     <span id="o-day-sep-label">TODAY</span>
                                 </div>
+                            </div>
+
+                            <!-- Enterprise Active Candle Highlight Overlay (Beacon & Reticle) -->
+                            <div id="o-candle-highlight" class="pointer-events-none absolute top-0 bottom-[26px] z-[15] hidden" style="left: 0;">
+                                <div id="o-candle-highlight-beam" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="o-candle-highlight-laser" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="o-candle-highlight-reticle" class="absolute pointer-events-none"></div>
+                                <div id="o-candle-highlight-pill" class="absolute top-1.5 pointer-events-none"></div>
+                                <div id="o-candle-highlight-bot" class="absolute bottom-1 pointer-events-none"></div>
                             </div>
 
                             <!-- Floating TradingView Style Dock Toolbar -->
@@ -7568,8 +7586,232 @@
         } else if (sepO) {
             sepO.classList.add('hidden');
         }
+
+        if (typeof updateActiveCandleHighlight === 'function') {
+            updateActiveCandleHighlight();
+        }
     }
     window.updateDaySeparators = updateDaySeparators;
+
+    // ── Dedicated Enterprise Active Candle Highlighter ──────────────────────────
+    let currentActiveCandleTimeStr = null;
+
+    function updateActiveCandleHighlight(targetTimeStr = null) {
+        if (targetTimeStr) {
+            currentActiveCandleTimeStr = targetTimeStr;
+        }
+        const timeStr = currentActiveCandleTimeStr || (timestampsList && activeCandleIndex >= 0 ? timestampsList[activeCandleIndex] : null);
+        if (!timeStr) {
+            document.getElementById('w-candle-highlight')?.classList.add('hidden');
+            document.getElementById('o-candle-highlight')?.classList.add('hidden');
+            return;
+        }
+
+        // Chart 1 (Weightage / Stocks)
+        renderSingleChartHighlight({
+            prefix: 'w',
+            chart: wChart,
+            series: wCandleSeries,
+            container: document.getElementById('w-chart-container'),
+            candles: window._unifiedAllCandles,
+            timeStr: timeStr,
+            isOptionsChart: false
+        });
+
+        // Chart 2 (Options Flow) - resolved across today's candles first
+        const oCandles = window._unifiedOptionsTodayCandles || window._unifiedOptionsCandles;
+        const matchingOCandle = (typeof findCandleForTime === 'function' && oCandles) 
+            ? findCandleForTime(oCandles, timeStr) 
+            : null;
+
+        renderSingleChartHighlight({
+            prefix: 'o',
+            chart: oChart,
+            series: oCandleSeries,
+            container: document.getElementById('o-chart-container'),
+            candles: oCandles,
+            forcedCandle: matchingOCandle,
+            timeStr: matchingOCandle?.time_str || timeStr,
+            isOptionsChart: true
+        });
+    }
+    window.updateActiveCandleHighlight = updateActiveCandleHighlight;
+
+    function renderSingleChartHighlight({ prefix, chart, series, container, candles, forcedCandle, timeStr, isOptionsChart }) {
+        const rootEl = document.getElementById(`${prefix}-candle-highlight`);
+        if (!rootEl || !chart || !series || !container) {
+            if (rootEl) rootEl.classList.add('hidden');
+            return;
+        }
+
+        const todayList = isOptionsChart ? window._unifiedOptionsTodayCandles : window._unifiedTodayCandles;
+        let candle = forcedCandle || (todayList || []).find(c => c.time_str === timeStr);
+        if (!candle && typeof activeCandleIndex === 'number' && todayList && todayList[activeCandleIndex]) {
+            candle = todayList[activeCandleIndex];
+        }
+        if (!candle) {
+            candle = (candles || []).find(c => c.time_str === timeStr);
+        }
+
+        if (!candle || !candle.time) {
+            rootEl.classList.add('hidden');
+            return;
+        }
+
+        const timeScale = chart.timeScale();
+        let x = timeScale.timeToCoordinate(candle.time);
+        const containerWidth = container.clientWidth || 99999;
+
+        // Auto-scroll into view if candle is off-screen
+        if (x === null || isNaN(x) || x < 25 || x > (containerWidth - 55)) {
+            try {
+                const visibleRange = timeScale.getVisibleRange();
+                if (visibleRange && (candle.time < visibleRange.from || candle.time > visibleRange.to)) {
+                    const span = visibleRange.to - visibleRange.from;
+                    timeScale.setVisibleRange({
+                        from: candle.time - (span * 0.45),
+                        to: candle.time + (span * 0.55)
+                    });
+                    x = timeScale.timeToCoordinate(candle.time);
+                }
+            } catch (e) {}
+        }
+
+        // Re-check coordinate after possible range shift
+        if (x === null || isNaN(x) || x < 0 || x > (containerWidth - 45)) {
+            rootEl.classList.add('hidden');
+            return;
+        }
+
+        const barSpacing = (typeof timeScale.options === 'function' ? timeScale.options().barSpacing : 10) || 10;
+        const colWidth = Math.max(Math.round(barSpacing * 1.5), 16);
+        const isBull = (candle.close >= candle.open);
+
+        const candleColor = isBull ? '#10b981' : '#f43f5e';
+        const candleGlow = isBull ? 'rgba(16, 185, 129, 0.6)' : 'rgba(244, 63, 94, 0.6)';
+        const themeColor = isOptionsChart ? '#a855f7' : '#38bdf8';
+        const themeBg = isOptionsChart 
+            ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.35) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(168, 85, 247, 0.35) 100%)'
+            : 'linear-gradient(180deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.08) 50%, rgba(56, 189, 248, 0.35) 100%)';
+        const themeBorder = isOptionsChart ? 'rgba(168, 85, 247, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+
+        // Position root container
+        rootEl.style.left = `${Math.round(x)}px`;
+        rootEl.style.top = '0px';
+        rootEl.style.bottom = '26px';
+        rootEl.classList.remove('hidden');
+
+        // 1. Translucent Spotlight Beam
+        const beamEl = document.getElementById(`${prefix}-candle-highlight-beam`);
+        if (beamEl) {
+            beamEl.style.position = 'absolute';
+            beamEl.style.top = '0px';
+            beamEl.style.bottom = '0px';
+            beamEl.style.left = `${-Math.round(colWidth / 2)}px`;
+            beamEl.style.width = `${colWidth}px`;
+            beamEl.style.background = themeBg;
+            beamEl.style.borderLeft = `1.5px dashed ${themeBorder}`;
+            beamEl.style.borderRight = `1.5px dashed ${themeBorder}`;
+            beamEl.style.boxShadow = `0 0 15px ${isOptionsChart ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.25)'}`;
+        }
+
+        // 2. High-Tech Center Laser Line
+        const laserEl = document.getElementById(`${prefix}-candle-highlight-laser`);
+        if (laserEl) {
+            laserEl.style.position = 'absolute';
+            laserEl.style.top = '0px';
+            laserEl.style.bottom = '0px';
+            laserEl.style.left = '0px';
+            laserEl.style.width = '2px';
+            laserEl.style.background = themeColor;
+            laserEl.style.boxShadow = `0 0 10px ${themeColor}, 0 0 20px ${themeColor}`;
+        }
+
+        // 3. Viewfinder Reticle Frame around Candle
+        const reticleEl = document.getElementById(`${prefix}-candle-highlight-reticle`);
+        if (reticleEl) {
+            const yH = series.priceToCoordinate(candle.high);
+            const yL = series.priceToCoordinate(candle.low);
+            if (yH !== null && yL !== null && !isNaN(yH) && !isNaN(yL)) {
+                const top = Math.min(yH, yL) - 4;
+                const height = Math.max(Math.abs(yL - yH) + 8, 8);
+                const rWidth = colWidth + 6;
+                const rLeft = -Math.round(rWidth / 2);
+
+                reticleEl.style.position = 'absolute';
+                reticleEl.style.top = `${Math.round(top)}px`;
+                reticleEl.style.left = `${rLeft}px`;
+                reticleEl.style.width = `${rWidth}px`;
+                reticleEl.style.height = `${Math.round(height)}px`;
+                reticleEl.style.border = `2px solid ${candleColor}`;
+                reticleEl.style.borderRadius = '4px';
+                reticleEl.style.boxShadow = `0 0 16px ${candleGlow}, inset 0 0 8px ${candleGlow}`;
+                reticleEl.style.display = 'block';
+
+                // Military/HUD Corner Targeting Brackets
+                reticleEl.innerHTML = `
+                    <div style="position: absolute; top: -3px; left: -3px; width: 6px; height: 6px; border-top: 2px solid #ffffff; border-left: 2px solid #ffffff;"></div>
+                    <div style="position: absolute; top: -3px; right: -3px; width: 6px; height: 6px; border-top: 2px solid #ffffff; border-right: 2px solid #ffffff;"></div>
+                    <div style="position: absolute; bottom: -3px; left: -3px; width: 6px; height: 6px; border-bottom: 2px solid #ffffff; border-left: 2px solid #ffffff;"></div>
+                    <div style="position: absolute; bottom: -3px; right: -3px; width: 6px; height: 6px; border-bottom: 2px solid #ffffff; border-right: 2px solid #ffffff;"></div>
+                `;
+            } else {
+                reticleEl.style.display = 'none';
+            }
+        }
+
+        // 4. Floating Top Beacon Badge
+        const pillEl = document.getElementById(`${prefix}-candle-highlight-pill`);
+        if (pillEl) {
+            const movePts = (candle.close - candle.open);
+            const moveText = `${movePts >= 0 ? '+' : ''}${movePts.toFixed(1)}`;
+            pillEl.style.left = '0px';
+            pillEl.style.top = '4px';
+            pillEl.style.transform = 'translateX(-50%)';
+            pillEl.className = 'absolute flex items-center gap-1.5 px-2.5 py-0.5 rounded-full shadow-2xl text-[10px] font-mono font-bold tracking-wider select-none whitespace-nowrap z-20 backdrop-blur-md border';
+
+            if (isOptionsChart) {
+                pillEl.style.background = 'rgba(15, 23, 42, 0.95)';
+                pillEl.style.borderColor = '#c084fc';
+                pillEl.style.color = '#ffffff';
+                pillEl.style.boxShadow = '0 0 15px rgba(168, 85, 247, 0.6)';
+            } else {
+                pillEl.style.background = 'rgba(15, 23, 42, 0.95)';
+                pillEl.style.borderColor = '#38bdf8';
+                pillEl.style.color = '#ffffff';
+                pillEl.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.6)';
+            }
+
+            pillEl.innerHTML = `
+                <span class="w-1.5 h-1.5 rounded-full ${isBull ? 'bg-emerald-400' : 'bg-rose-400'} animate-pulse"></span>
+                <span>${candle.time_str || timeStr}</span>
+                <span class="${isBull ? 'text-emerald-400' : 'text-rose-400'} font-bold">(${moveText})</span>
+            `;
+        }
+
+        // 5. Snapped Bottom Time Badge on Time Scale
+        const botEl = document.getElementById(`${prefix}-candle-highlight-bot`);
+        if (botEl) {
+            botEl.style.left = '0px';
+            botEl.style.bottom = '2px';
+            botEl.style.transform = 'translateX(-50%)';
+            botEl.className = 'absolute flex items-center px-2 py-0.5 rounded shadow-lg text-[9px] font-mono font-bold tracking-wider select-none whitespace-nowrap z-20 backdrop-blur-md border';
+
+            if (isOptionsChart) {
+                botEl.style.background = '#581c87';
+                botEl.style.borderColor = '#c084fc';
+                botEl.style.color = '#ffffff';
+                botEl.style.boxShadow = '0 0 10px rgba(168, 85, 247, 0.5)';
+            } else {
+                botEl.style.background = '#0369a1';
+                botEl.style.borderColor = '#38bdf8';
+                botEl.style.color = '#ffffff';
+                botEl.style.boxShadow = '0 0 10px rgba(56, 189, 248, 0.5)';
+            }
+
+            botEl.innerHTML = `<span>▲ ${candle.time_str || timeStr}</span>`;
+        }
+    }
 
     function showChartLoaders(dateStr = selectedDate) {
         const wLoader = document.getElementById('w-chart-loading');
@@ -7872,6 +8114,7 @@
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
         window._unifiedAllCandles = allCandles;
+        window._unifiedTodayCandles = todayCandles;
         window._unifiedHaCandles = calculateHeikinAshi(allCandles);
 
         const displayCandles = (wCandleStyle === 'heikin_ashi') ? window._unifiedHaCandles : allCandles;
@@ -8160,6 +8403,7 @@
 
         const allCandles = [...yesterdayCandles, ...todayCandles];
         window._unifiedOptionsCandles = allCandles;
+        window._unifiedOptionsTodayCandles = todayCandles;
         window._unifiedOptionsHaCandles = calculateHeikinAshi(allCandles);
 
         const displayCandles = (oCandleStyle === 'heikin_ashi') ? window._unifiedOptionsHaCandles : allCandles;
@@ -9476,6 +9720,11 @@
         syncOptionsBreadthUI(index, timeStr);
         syncTrendingOiCursor(index, timeStr);
 
+        // Highlight active selected candle on charts
+        if (typeof updateActiveCandleHighlight === 'function') {
+            updateActiveCandleHighlight(timeStr);
+        }
+
         // Check alarms on selected candle
         checkAlarmConditions(timeStr);
 
@@ -9483,6 +9732,7 @@
         updateOverallAndTriggerStats(index);
         updateDriverDiagnosis(timeStr);
     }
+    window.syncActiveCandleIndex = syncActiveCandleIndex;
 
     /**
      * Finds the candle matching or containing timeStr across different timeframes.
