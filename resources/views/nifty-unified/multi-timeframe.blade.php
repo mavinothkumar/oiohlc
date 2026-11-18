@@ -444,6 +444,12 @@
                                     <span>⚡ OPT:</span>
                                     <span id="w-opt-signal-badge" class="font-mono text-gray-400 font-bold">OFF</span>
                                 </button>
+                                <button type="button" id="w-candle-hl-btn" onclick="toggleActiveCandleHighlight()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white"
+                                    title="Toggle Active Candle Highlight Beacon: OFF (Default - Clean live chart) / ON (Highlight current timeline candle on chart with beam & reticle) [Hotkey: H]">
+                                    <span>🔦 HL:</span>
+                                    <span id="w-candle-hl-badge" class="font-mono text-gray-400 font-bold">OFF</span>
+                                </button>
                                 <div class="flex items-center bg-[#151924] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="Chart 1 & Data Panel Height">
                                     <span class="text-gray-400 text-[10px] font-bold">H:</span>
                                     <select id="w-height-select" onchange="setChart1Height(this.value)" class="bg-transparent text-sky-400 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize Chart 1 Height">
@@ -818,6 +824,12 @@
                                     title="Toggle Option Flow Alerts on Chart 2: ON (Display option parity alerts) / OFF">
                                     <span>⚡ OPT:</span>
                                     <span id="o-opt-signal-badge" class="font-mono text-purple-400 font-extrabold">ON</span>
+                                </button>
+                                <button type="button" id="o-candle-hl-btn" onclick="toggleActiveCandleHighlight()"
+                                    class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white"
+                                    title="Toggle Active Candle Highlight Beacon: OFF (Default - Clean live chart) / ON (Highlight active timeline candle on chart with beam & reticle) [Hotkey: H]">
+                                    <span>🔦 HL:</span>
+                                    <span id="o-candle-hl-badge" class="font-mono text-gray-400 font-bold">OFF</span>
                                 </button>
                                 <div class="flex items-center bg-[#151924] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="Chart 2 & Data Panel Height">
                                     <span class="text-gray-400 text-[10px] font-bold">H:</span>
@@ -7594,11 +7606,63 @@
     window.updateDaySeparators = updateDaySeparators;
 
     // ── Dedicated Enterprise Active Candle Highlighter ──────────────────────────
+    let isCandleHighlightEnabled = false; // Default: hidden (clean live market viewing)
     let currentActiveCandleTimeStr = null;
+
+    function toggleActiveCandleHighlight(forceState = null) {
+        if (typeof forceState === 'boolean') {
+            isCandleHighlightEnabled = forceState;
+        } else {
+            isCandleHighlightEnabled = !isCandleHighlightEnabled;
+        }
+        updateCandleHighlightButtonsUI();
+        if (isCandleHighlightEnabled) {
+            updateActiveCandleHighlight();
+        } else {
+            document.getElementById('w-candle-highlight')?.classList.add('hidden');
+            document.getElementById('o-candle-highlight')?.classList.add('hidden');
+        }
+    }
+    window.toggleActiveCandleHighlight = toggleActiveCandleHighlight;
+
+    function updateCandleHighlightButtonsUI() {
+        const btns = [
+            { btn: document.getElementById('w-candle-hl-btn'), badge: document.getElementById('w-candle-hl-badge') },
+            { btn: document.getElementById('o-candle-hl-btn'), badge: document.getElementById('o-candle-hl-badge') }
+        ];
+
+        btns.forEach(({ btn, badge }) => {
+            if (!btn || !badge) return;
+            if (isCandleHighlightEnabled) {
+                btn.className = "ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-cyan-950/70 border-cyan-500/50 text-cyan-300 hover:bg-cyan-900 shadow-xs";
+                badge.className = "font-mono text-cyan-400 font-extrabold";
+                badge.textContent = "ON";
+            } else {
+                btn.className = "ml-1 px-1.5 py-0.2 rounded text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer bg-gray-800 border-gray-600 text-gray-400 hover:text-white";
+                badge.className = "font-mono text-gray-400 font-bold";
+                badge.textContent = "OFF";
+            }
+        });
+    }
+    window.updateCandleHighlightButtonsUI = updateCandleHighlightButtonsUI;
+
+    // Quick keyboard shortcut: press 'H' to toggle highlight on/off
+    document.addEventListener('keydown', (e) => {
+        if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const tag = document.activeElement?.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            toggleActiveCandleHighlight();
+        }
+    });
 
     function updateActiveCandleHighlight(targetTimeStr = null) {
         if (targetTimeStr) {
             currentActiveCandleTimeStr = targetTimeStr;
+        }
+        if (!isCandleHighlightEnabled) {
+            document.getElementById('w-candle-highlight')?.classList.add('hidden');
+            document.getElementById('o-candle-highlight')?.classList.add('hidden');
+            return;
         }
         const timeStr = currentActiveCandleTimeStr || (timestampsList && activeCandleIndex >= 0 ? timestampsList[activeCandleIndex] : null);
         if (!timeStr) {
@@ -9133,6 +9197,11 @@
         if (btnText) btnText.textContent = 'Resetting...';
         if (btnIcon) btnIcon.textContent = '⏳';
 
+        // Reset Active Candle Highlight: OFF by default
+        if (typeof toggleActiveCandleHighlight === 'function') {
+            toggleActiveCandleHighlight(false);
+        }
+
         // 1. Timeframe & Candle Basis: Stocks 5min spot, Options 15min spot
         const targetWTf = '5m';
         const targetWBasis = 'spot';
@@ -9281,6 +9350,11 @@
             drawOptionsOrderFlowLines();
             drawMultiDayOrderFlowLines();
             snapToLiveCandle();
+
+            // Active Candle Highlight: OFF by default
+            if (typeof toggleActiveCandleHighlight === 'function') {
+                toggleActiveCandleHighlight(false);
+            }
 
             if (btnText) btnText.textContent = 'Default ✓';
             if (btnIcon) btnIcon.textContent = '✅';
