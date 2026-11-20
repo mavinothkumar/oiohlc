@@ -569,6 +569,26 @@
                 </div>
             </div>
 
+            {{-- Instant Sync: Restore Persistent Collapse State for Clusters & Top Traded --}}
+            <script>
+                (function() {
+                    try {
+                        if (localStorage.getItem('order_flow_today_clusters_collapsed') === 'true') {
+                            const c = document.getElementById('today-clusters-collapsible');
+                            if (c) c.classList.add('hidden');
+                            const i = document.getElementById('today-clusters-toggle-icon');
+                            if (i) i.textContent = '▼';
+                        }
+                        if (localStorage.getItem('order_flow_top_traded_collapsed') === 'true') {
+                            const c = document.getElementById('top-traded-collapsible');
+                            if (c) c.classList.add('hidden');
+                            const i = document.getElementById('top-traded-toggle-icon');
+                            if (i) i.textContent = '▼';
+                        }
+                    } catch(e) {}
+                })();
+            </script>
+
         </div>
 
         {{-- Hidden legacy placeholder for colSignals so no JS throws error --}}
@@ -3573,8 +3593,8 @@
             allAsk: @json($sessionAlertsAsk ?? []),
             allBid: @json($sessionAlertsBid ?? []),
             skipTime: localStorage.getItem('order_flow_skip_open_time') || 'none',
-            activeView: 'both', // 'both', 'ask', 'bid'
-            isCollapsed: false,
+            activeView: localStorage.getItem('order_flow_top_traded_view') || 'both',
+            isCollapsed: localStorage.getItem('order_flow_top_traded_collapsed') === 'true',
         },
 
         // Today's Top 5 Accumulated Volume Clusters (Grouped by Executed Price Level)
@@ -3680,6 +3700,8 @@
             }, 2500);
         }
 
+        applyTopTradedCollapseUI();
+        applyTopTradedViewUI();
         renderTopTradedVolumeUI();
     }
 
@@ -4012,6 +4034,15 @@
 
     function switchTopTradedView(view) {
         state.topTradedVolume.activeView = view;
+        try {
+            localStorage.setItem('order_flow_top_traded_view', view);
+        } catch (e) {}
+        applyTopTradedViewUI();
+    }
+    window.switchTopTradedView = switchTopTradedView;
+
+    function applyTopTradedViewUI() {
+        const view = state.topTradedVolume.activeView || 'both';
         const btnBoth = document.getElementById('btn-top-traded-both');
         const btnAsk = document.getElementById('btn-top-traded-ask');
         const btnBid = document.getElementById('btn-top-traded-bid');
@@ -4043,22 +4074,30 @@
             if (grid) grid.className = 'grid grid-cols-1 gap-2 text-xs font-mono';
         }
     }
-    window.switchTopTradedView = switchTopTradedView;
+    window.applyTopTradedViewUI = applyTopTradedViewUI;
 
     function toggleTopTradedCard() {
+        state.topTradedVolume.isCollapsed = !state.topTradedVolume.isCollapsed;
+        try {
+            localStorage.setItem('order_flow_top_traded_collapsed', state.topTradedVolume.isCollapsed ? 'true' : 'false');
+        } catch (e) {}
+        applyTopTradedCollapseUI();
+    }
+    window.toggleTopTradedCard = toggleTopTradedCard;
+
+    function applyTopTradedCollapseUI() {
         const coll = document.getElementById('top-traded-collapsible');
         const icon = document.getElementById('top-traded-toggle-icon');
         if (!coll) return;
-        const isHidden = coll.classList.contains('hidden');
-        if (isHidden) {
-            coll.classList.remove('hidden');
-            if (icon) icon.textContent = '▲';
-        } else {
+        if (state.topTradedVolume.isCollapsed) {
             coll.classList.add('hidden');
             if (icon) icon.textContent = '▼';
+        } else {
+            coll.classList.remove('hidden');
+            if (icon) icon.textContent = '▲';
         }
     }
-    window.toggleTopTradedCard = toggleTopTradedCard;
+    window.applyTopTradedCollapseUI = applyTopTradedCollapseUI;
 
     // ── 1.6. TODAY'S TOP 5 ACCUMULATED VOLUME CLUSTERS (GROUPED BY PRICE LEVEL) ──
     function computeAccumulatedClusters(rawList, skipTime = null) {
