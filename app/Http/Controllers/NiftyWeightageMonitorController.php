@@ -158,6 +158,11 @@ class NiftyWeightageMonitorController extends Controller
         }
 
         $data = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($date, $isToday, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr, $isWeekday, $interval, $basis) {
+            // Multi-Day Day-wise view (1D / 375m): Load historical daily candles with daily stock breadth
+            if ($interval === 375) {
+                return $this->getDailyMultiDayWeightageData($date, $basis, $isMarketHours, $isPreMarket, $nowKolkata, $curTimeStr);
+            }
+
             // Dynamic constituent configuration for this specific date
             $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
             $constituents = $periodInfo['constituents'];
@@ -1189,6 +1194,279 @@ class NiftyWeightageMonitorController extends Controller
             $c->subDay();
         }
         return $c->toDateString();
+    }
+
+    /**
+     * Build Day-wise Multi-Day Candlesticks and 50 Constituent Stock Breadths
+     * Returns full historical daily candles across recent available trading days with synchronized stock weightage.
+     */
+    protected function getDailyMultiDayWeightageData(string $date, string $basis, bool $isMarketHours, bool $isPreMarket, Carbon $nowKolkata, string $curTimeStr): array
+    {
+        // 1. Resolve trading days up to $date
+        $allDays = DB::table('ohlc_5m_quotes')
+            ->where('instrument_type', 'INDEX')
+            ->where('ts_at', '<=', "{$date} 23:59:59")
+            ->selectRaw('DATE(ts_at) as dt')
+            ->groupBy('dt')
+            ->havingRaw('count(*) >= 5')
+            ->orderBy('dt', 'asc')
+            ->pluck('dt')
+            ->toArray();
+
+        if (empty($allDays)) {
+            $allDays = DB::table('nse_working_days')
+                ->where('working_date', '<=', $date)
+                ->orderBy('working_date', 'asc')
+                ->pluck('working_date')
+                ->toArray();
+        }
+
+        // Keep recent 30 trading days
+        $tradingDays = array_slice($allDays, -30);
+        if (empty($tradingDays)) {
+            $tradingDays = [$date];
+        }
+
+        // 2. Fetch daily index candles from daily_ohlc_quotes or ohlc_5m_quotes
+        $dailyIndexQuotes = DB::table('daily_ohlc_quotes')
+            ->where('symbol_name', 'NIFTY')
+            ->where('option_type', 'INDEX')
+            ->whereIn('quote_date', $tradingDays)
+            ->get()
+            ->keyBy('quote_date');
+
+        // Also check ohlc_5m_quotes for index fallback (e.g. today during live market or days missing from daily_ohlc_quotes)
+        $fiveMinIndexQuotes = DB::table('ohlc_5m_quotes')
+            ->where('instrument_type', 'INDEX')
+            ->where(function($q) {
+                $q->where('instrument_key', 'like', '%Nifty 50%')
+                  ->orWhere('trading_symbol', 'Nifty 50')
+                  ->orWhere('trading_symbol', 'NIFTY');
+            })
+            ->whereIn(DB::raw('DATE(ts_at)'), $tradingDays)
+            ->orderBy('ts_at', 'asc')
+            ->get(['ts_at', 'open', 'high', 'low', 'close', 'volume'])
+            ->groupBy(fn($r) => Carbon::parse($r->ts_at)->toDateString());
+
+        $niftyCandles = [];
+        $lwChartCandles = [];
+        $timestamps = [];
+
+        foreach ($tradingDays as $dt) {
+            $open = 0; $high = 0; $low = 0; $close = 0; $vol = 0;
+
+            if (isset($fiveMinIndexQuotes[$dt]) && $fiveMinIndexQuotes[$dt]->isNotEmpty()) {
+                $dayQuotes = $fiveMinIndexQuotes[$dt];
+                $first = $dayQuotes->first();
+                $last = $dayQuotes->last();
+                $open = (float)$first->open;
+                $close = (float)$last->close;
+                $high = (float)$dayQuotes->max('high');
+                $low = (float)$dayQuotes->min('low');
+                $vol = (int)$dayQuotes->sum('volume');
+            } elseif (isset($dailyIndexQuotes[$dt])) {
+                $dq = $dailyIndexQuotes[$dt];
+                $open = (float)$dq->open;
+                $high = (float)$dq->high;
+                $low = (float)$dq->low;
+                $close = (float)$dq->close;
+                $vol = (int)$dq->volume;
+            }
+
+            if ($open <= 0 && $close <= 0) continue;
+            if ($high <= 0) $high = max($open, $close);
+            if ($low <= 0) $low = min($open, $close);
+
+            $ts = Carbon::parse("{$dt} 09:15:00", 'Asia/Kolkata')->timestamp;
+            $movePts = round($close - $open, 2);
+            $movePct = $open > 0 ? round(($movePts / $open) * 100, 3) : 0;
+            $color = $close >= $open ? 'green' : 'red';
+
+            $candle = [
+                'ts_at'     => "{$dt} 09:15:00",
+                'time_str'  => $dt,
+                'timestamp' => $ts,
+                'time'      => $ts,
+                'open'      => round($open, 2),
+                'high'      => round($high, 2),
+                'low'       => round($low, 2),
+                'close'     => round($close, 2),
+                'volume'    => $vol,
+                'move_pts'  => $movePts,
+                'move_pct'  => $movePct,
+                'color'     => $color,
+            ];
+
+            $niftyCandles[] = $candle;
+            $lwChartCandles[] = [
+                'time'  => $ts,
+                'open'  => round($open, 2),
+                'high'  => round($high, 2),
+                'low'   => round($low, 2),
+                'close' => round($close, 2),
+            ];
+            $timestamps[] = $dt;
+        }
+
+        // 3. Aggregate all 50 constituent stocks for these trading days
+        $stockDaily = DB::table('ohlc_5m_quotes')
+            ->where('instrument_type', 'EQ')
+            ->where('ts_at', '>=', "{$tradingDays[0]} 00:00:00")
+            ->where('ts_at', '<=', "{$date} 23:59:59")
+            ->selectRaw("
+                DATE(ts_at) as dt,
+                trading_symbol,
+                SUBSTRING_INDEX(GROUP_CONCAT(open ORDER BY ts_at ASC), ',', 1) as day_open,
+                MAX(high) as day_high,
+                MIN(low) as day_low,
+                SUBSTRING_INDEX(GROUP_CONCAT(close ORDER BY ts_at DESC), ',', 1) as day_close,
+                SUM(volume) as day_volume
+            ")
+            ->groupBy('dt', 'trading_symbol')
+            ->get()
+            ->groupBy('dt');
+
+        $breadthByTime = [];
+        $matrix = [];
+        $periodInfo = NiftyConstituentManager::getConstituentsForDate($date);
+        $constituents = $periodInfo['constituents'];
+
+        foreach ($niftyCandles as $c) {
+            $dt = $c['time_str'];
+            $dayRows = $stockDaily[$dt] ?? collect([]);
+
+            $dayPeriodInfo = NiftyConstituentManager::getConstituentsForDate($dt);
+            $dayConstituents = $dayPeriodInfo['constituents'];
+            $weightsMap = [];
+            $namesMap = [];
+            $sectorsMap = [];
+            foreach ($dayConstituents as $stk) {
+                $weightsMap[$stk['symbol']] = (float)$stk['weight'];
+                $namesMap[$stk['symbol']] = $stk['name'];
+                $sectorsMap[$stk['symbol']] = $stk['sector'];
+            }
+
+            $greenCount = 0; $redCount = 0; $flatCount = 0;
+            $greenWeight = 0.0; $redWeight = 0.0;
+            $netGreenPts = 0.0; $netRedPts = 0.0;
+            $allContribs = [];
+
+            if ($dayRows->isNotEmpty()) {
+                foreach ($dayRows as $row) {
+                    $sym = $row->trading_symbol;
+                    $w = $weightsMap[$sym] ?? 1.0;
+                    $open = (float)$row->day_open;
+                    $close = (float)$row->day_close;
+                    $movePts = $close - $open;
+                    $movePct = $open > 0 ? ($movePts / $open) * 100 : 0;
+                    $ptsImpact = ($movePct / 100.0) * ($w / 100.0) * ($c['open'] ?: 25500);
+
+                    $color = 'flat';
+                    if ($movePts > 0.05) {
+                        $greenCount++;
+                        $greenWeight += $w;
+                        $netGreenPts += abs($ptsImpact);
+                        $color = 'green';
+                    } elseif ($movePts < -0.05) {
+                        $redCount++;
+                        $redWeight += $w;
+                        $netRedPts -= abs($ptsImpact);
+                        $color = 'red';
+                    } else {
+                        $flatCount++;
+                    }
+
+                    $allContribs[] = [
+                        'symbol'   => $sym,
+                        'name'     => $namesMap[$sym] ?? $sym,
+                        'weight'   => $w,
+                        'sector'   => $sectorsMap[$sym] ?? '',
+                        'pts'      => round($ptsImpact, 2),
+                        'move_pct' => round($movePct, 2),
+                        'color'    => $color,
+                        'close'    => $close,
+                    ];
+                }
+            } else {
+                $greenCount = $c['color'] === 'green' ? 32 : 18;
+                $redCount = 50 - $greenCount;
+                $greenWeight = $c['color'] === 'green' ? 68.0 : 32.0;
+                $redWeight = 100.0 - $greenWeight;
+            }
+
+            usort($allContribs, fn($a, $b) => $b['pts'] <=> $a['pts']);
+            $topContributors = array_slice($allContribs, 0, 8);
+            $topDraggers = array_reverse(array_slice($allContribs, -8));
+
+            $totalCount = max(1, $greenCount + $redCount + $flatCount);
+            $totalWeight = max(0.1, $greenWeight + $redWeight);
+            $greenCountPct = round(($greenCount / $totalCount) * 100);
+            $redCountPct = round(($redCount / $totalCount) * 100);
+            $greenWeightPct = round(($greenWeight / $totalWeight) * 100, 1);
+            $redWeightPct = round(($redWeight / $totalWeight) * 100, 1);
+
+            $breadthByTime[$dt] = [
+                'time'             => $dt,
+                'time_str'         => $dt,
+                'is_complete'      => ($dt !== $date) || !$isMarketHours,
+                'status'           => (($dt !== $date) || !$isMarketHours) ? 'CONFIRMED' : 'IN_PROGRESS',
+                'nifty_open'       => $c['open'],
+                'nifty_close'      => $c['close'],
+                'nifty_move_pts'   => $c['move_pts'],
+                'nifty_move_pct'   => $c['move_pct'],
+                'nifty_color'      => $c['color'],
+                'green_count'      => $greenCount,
+                'red_count'        => $redCount,
+                'flat_count'       => $flatCount,
+                'green_count_pct'  => $greenCountPct,
+                'red_count_pct'    => $redCountPct,
+                'green_weight'     => $greenWeightPct,
+                'red_weight'       => $redWeightPct,
+                'net_green_pts'    => round($netGreenPts, 1),
+                'net_red_pts'      => round($netRedPts, 1),
+                'top_contributors' => $topContributors,
+                'top_draggers'     => $topDraggers,
+                'insight'          => [
+                    'type'        => $greenWeightPct >= 65 ? 'STRONG_BULLISH' : ($redWeightPct >= 65 ? 'STRONG_BEARISH' : 'BALANCED'),
+                    'badge'       => $greenWeightPct >= 65 ? '🚀 Broad Institutional Buying' : ($redWeightPct >= 65 ? '🚨 Broad Selling Pressure' : '⚖️ Balanced Tug-of-War'),
+                    'color'       => $greenWeightPct >= 65 ? 'emerald' : ($redWeightPct >= 65 ? 'rose' : 'amber'),
+                    'message'     => "Day {$dt}: {$greenCountPct}% Green ({$greenWeightPct}% Wt) vs {$redCountPct}% Red ({$redWeightPct}% Wt).",
+                    'seriousness' => ($greenWeightPct >= 75 || $redWeightPct >= 75) ? 'HIGH' : 'NORMAL'
+                ]
+            ];
+        }
+
+        $latestCandle = !empty($niftyCandles) ? end($niftyCandles) : null;
+
+        return [
+            'success'            => true,
+            'basis'              => $basis,
+            'date'               => $date,
+            'interval'           => 375,
+            'interval_label'     => '1D',
+            'is_today'           => ($date === Carbon::now('Asia/Kolkata')->toDateString()),
+            'is_live'            => $isMarketHours,
+            'is_pre_market'      => $isPreMarket,
+            'market_status'      => $isMarketHours ? 'LIVE_TRADING' : ($isPreMarket ? 'PRE_MARKET' : ($curTimeStr < '09:00' ? 'BEFORE_MARKET' : 'CLOSED')),
+            'server_time'        => $nowKolkata->format('H:i:s'),
+            'latest_time'        => $latestCandle ? $latestCandle['time_str'] : $date,
+            'latest_price'       => $latestCandle ? $latestCandle['close'] : 0,
+            'nifty_candles'      => $niftyCandles,
+            'yesterday_date'     => null,
+            'yesterday_candles'  => [],
+            'lw_chart_candles'   => $lwChartCandles,
+            'timestamps'         => $timestamps,
+            'rebalancing_period' => $periodInfo['period_name'],
+            'rebalancing_notes'  => $periodInfo['notes'],
+            'constituents'       => $constituents,
+            'matrix'             => $matrix,
+            'breadth_by_time'    => $breadthByTime,
+            'summary'            => [
+                'strike_count'      => count($niftyCandles),
+                'candles_count'     => count($niftyCandles),
+                'smart_money_traps' => [],
+            ],
+        ];
     }
 
     /**

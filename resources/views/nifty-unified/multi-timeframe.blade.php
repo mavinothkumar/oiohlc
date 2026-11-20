@@ -8454,6 +8454,20 @@
     // ── Helper: Adjust Chart TimeScale for Natural Zoomed-Out View & Day Anchoring ──
     function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = [], tf = '5m') {
         if (!chart || !todayCandles || todayCandles.length === 0) return;
+        if (tf === '1D') {
+            requestAnimationFrame(() => {
+                try {
+                    chart.timeScale().applyOptions({
+                        minBarSpacing: 6,
+                        fixLeftEdge: false,
+                        fixRightEdge: false,
+                    });
+                    chart.timeScale().fitContent();
+                    updateDaySeparators();
+                } catch (e) {}
+            });
+            return;
+        }
         const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
         const tCount = todayCandles.length;
         const tfBarsMap = { '1m': 375, '3m': 125, '5m': 75, '15m': 25, '30m': 13, '60m': 7, '1h': 7, '1D': 1 };
@@ -9879,7 +9893,7 @@
 
         // Show latest candle first on the left, oldest later on the right
         const displayPoints = [...points].reverse();
-        const labels = displayPoints.map(p => p.time);
+        const labels = displayPoints.map(p => (p.time && p.time.length === 10 && p.time.includes('-')) ? p.time.slice(5) : p.time);
         const datasets = [];
 
         // Dynamic Sizing for Horizontal Scroll vs Fit View
@@ -10364,7 +10378,8 @@
 
         displayPoints.forEach(p => {
             const isAct = (p.time === activeTime);
-            html += `<th class="px-1.5 py-0.5 cursor-pointer hover:bg-slate-800 ${isAct ? 'bg-sky-950 text-sky-300 font-black border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${p.time}</th>`;
+            const colLabel = (p.time && p.time.length === 10 && p.time.includes('-')) ? p.time.slice(5) : p.time;
+            html += `<th class="px-1.5 py-0.5 cursor-pointer hover:bg-slate-800 ${isAct ? 'bg-sky-950 text-sky-300 font-black border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})" title="${p.time}">${colLabel}</th>`;
         });
 
         html += `</tr></thead><tbody>`;
