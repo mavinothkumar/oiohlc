@@ -240,6 +240,37 @@ async function fetchYesterdayAnchors() {
     }
 }
 
+// 4b. Fetch Today's Existing Trades from MySQL to initialize Clusters and CVD on startup
+async function fetchTodayExistingTrades() {
+    try {
+        const today = getTodayDateStr();
+        const [rows] = await pool.execute(
+            `SELECT side, price, quantity FROM order_flow_traded_volumes 
+             WHERE trade_date = ? AND symbol = ? AND quantity <= 35000`,
+            [today, CONFIG.symbol]
+        );
+
+        if (rows && rows.length > 0) {
+            rows.forEach(r => {
+                const roundP = Math.round(Number(r.price) * 10) / 10;
+                const qty = Number(r.quantity) || 0;
+                if (r.side === 'ASK') {
+                    state.allAskClusters.set(roundP, (state.allAskClusters.get(roundP) || 0) + qty);
+                    state.cvd += qty;
+                } else {
+                    state.allBidClusters.set(roundP, (state.allBidClusters.get(roundP) || 0) + qty);
+                    state.cvd -= qty;
+                }
+            });
+            console.log(`📊 Initialized today's session clusters: ${rows.length} trades loaded from database (CVD: ${state.cvd}).`);
+        } else {
+            console.log("ℹ️ No previous trades found for today in database yet.");
+        }
+    } catch (e) {
+        console.warn('Could not load today existing trades:', e.message);
+    }
+}
+
 // 5. Initialize Protobuf
 async function initProtobuf() {
     const protoPath = path.join(rootDir, 'public/MarketDataFeed_v3.proto');
@@ -313,7 +344,8 @@ function subscribeStream() {
             instrumentKeys: [state.activeInstrumentKey, CONFIG.indexKey]
         }
     };
-    state.ws.send(JSON.stringify(subMsg));
+    // Upstox v3 WebSocket requires binary frame (Buffer)
+    state.ws.send(Buffer.from(JSON.stringify(subMsg)));
     console.log(`📡 Subscribed to [${state.activeInstrumentKey}, ${CONFIG.indexKey}] in full_d30 mode.`);
 }
 
@@ -769,6 +801,7 @@ async function main() {
 
     await resolveActiveInstrument();
     await fetchYesterdayAnchors();
+    await fetchTodayExistingTrades();
     await initProtobuf();
     await connectFeed();
 }

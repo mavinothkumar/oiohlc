@@ -979,13 +979,32 @@ class OptionsBreadthMonitorController extends Controller
             usort($strikeContributions, fn($a, $b) => $b['pts'] <=> $a['pts']);
 
             $pcr = $basketOiCeSum > 0 ? round($basketOiPeSum / $basketOiCeSum, 2) : 1.0;
+            $totBasket = max(1, count($activeBasket));
+            $upCountPct = (int) round(($candleBullCount / $totBasket) * 100);
+            $downCountPct = (int) round(($candleBearCount / $totBasket) * 100);
+            $flatCountPct = max(0, 100 - $upCountPct - $downCountPct);
+
+            $candleDurationSec = 300;
+            if (count($niftyCandles) >= 2 && !empty($niftyCandles[1]['timestamp']) && !empty($niftyCandles[0]['timestamp'])) {
+                $candleDurationSec = max(60, (int)$niftyCandles[1]['timestamp'] - (int)$niftyCandles[0]['timestamp']);
+            }
+            $candleStartTs = Carbon::parse("{$date} {$timeStr}:00", 'Asia/Kolkata')->timestamp;
+            $candleEndTs = $candleStartTs + $candleDurationSec;
+            $nowTs = Carbon::now('Asia/Kolkata')->timestamp;
+            $isTodayDate = ($date === Carbon::now('Asia/Kolkata')->toDateString());
+            $isComplete = (!$isTodayDate) || ($nowTs >= $candleEndTs);
 
             $breadthByTime[$timeStr] = [
                 'time_str'       => $timeStr,
+                'is_complete'    => $isComplete,
+                'status'         => $isComplete ? 'CONFIRMED' : 'IN_PROGRESS',
                 'candle_idx'     => $cIdx,
                 'up_count'       => $candleBullCount,
                 'down_count'     => $candleBearCount,
                 'flat_count'     => $candleFlatCount,
+                'up_count_pct'   => $upCountPct,
+                'down_count_pct' => $downCountPct,
+                'flat_count_pct' => $flatCountPct,
                 'up_weight'      => $upPct,
                 'down_weight'    => $downPct,
                 'flat_weight'    => $flatPct,

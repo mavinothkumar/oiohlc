@@ -165,6 +165,18 @@
                     <span id="sound-icon">🔔</span>
                 </button>
 
+                {{-- Screen Orientation Layout Selector (Landscape 🖥️ vs Portrait 📱) --}}
+                <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold shrink-0" title="Switch layout orientation for Landscape vs Portrait monitors">
+                    <button type="button" id="btn-layout-landscape" onclick="switchOrderFlowLayout('landscape')" title="Landscape Layout (3 Columns for wide monitors)" class="px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 bg-indigo-600 text-white font-bold shadow-xs">
+                        <span>🖥️</span>
+                        <span class="hidden md:inline text-[10.5px]">Landscape</span>
+                    </button>
+                    <button type="button" id="btn-layout-portrait" onclick="switchOrderFlowLayout('portrait')" title="Portrait Layout (2 Columns for vertical monitors)" class="px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 text-slate-400 hover:text-white">
+                        <span>📱</span>
+                        <span class="hidden md:inline text-[10.5px]">Portrait</span>
+                    </button>
+                </div>
+
                 {{-- Zen Mode Fullscreen Toggle Button (Seamless in-toolbar control, Esc supported) --}}
                 <button id="btn-zen-mode" onclick="toggleGlobalZenMode()" title="Toggle Zen Mode / Distraction-Free (Esc)" class="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition text-[11px] flex items-center gap-1 font-bold shadow-sm cursor-pointer zen-mode-toggle-btn">
                     <span id="zen-btn-icon" class="zen-btn-icon">⛶</span>
@@ -173,65 +185,79 @@
             </div>
         </div>
 
-        {{-- Single-Row Compact Metrics Bar --}}
-        <div class="grid grid-cols-2 sm:grid-cols-6 gap-1.5 mt-1.5 pt-1.5 border-t border-slate-800/80 text-[11px]">
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">Index Spot</span>
-                <div class="flex items-baseline gap-1">
-                    <span id="val-spot-price" class="font-black text-white text-xs">₹{{ number_format($spotPrice, 2) }}</span>
-                    <span id="val-spot-change" class="text-[9px] font-bold text-emerald-400">+0.00%</span>
+        @php
+            $openPriceVal = (float) ($openPrice ?? $spotPrice ?? 0);
+            $dayChange = ($openPriceVal > 0) ? (($spotPrice - $openPriceVal) / $openPriceVal) * 100 : 0.0;
+            $dayChangeSign = $dayChange >= 0 ? '+' : '';
+            $dayChangeColor = $dayChange >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        @endphp
+
+        {{-- Single-Row Compact Metrics Bar (Locked Height & Strict Non-Wrapping) --}}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 mt-1.5 pt-1.5 border-t border-slate-800/80 text-[11px]">
+            {{-- 1. Index Spot --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">Index Spot</span>
+                <div class="flex items-baseline gap-1 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-spot-price" class="font-black text-white text-[11px] font-mono tracking-tight shrink-0">₹{{ number_format($spotPrice, 2) }}</span>
+                    <span id="val-spot-change" class="text-[8.5px] font-bold {{ $dayChangeColor }} font-mono tracking-tight shrink-0">{{ $dayChangeSign }}{{ number_format($dayChange, 2) }}%</span>
                 </div>
             </div>
 
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">Target LTP</span>
-                <div class="flex items-baseline gap-1">
-                    <span id="val-target-ltp" class="font-black text-amber-300 text-xs">₹--</span>
-                    <span id="val-target-tick-dir" class="text-[9px] font-bold text-slate-400">--</span>
+            {{-- 2. Target LTP --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">Target LTP</span>
+                <div class="flex items-baseline gap-1 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-target-ltp" class="font-black text-amber-300 text-[11px] font-mono tracking-tight shrink-0">₹--</span>
+                    <span id="val-target-tick-dir" class="text-[8.5px] font-bold text-slate-400 font-mono tracking-tight shrink-0">--</span>
                 </div>
             </div>
 
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">Spread</span>
-                <div class="flex items-baseline gap-0.5">
-                    <span id="val-spread" class="font-black text-slate-200 text-xs">0.05</span>
-                    <span class="text-[9px] text-slate-500">pts</span>
+            {{-- 3. Spread --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">Spread</span>
+                <div class="flex items-baseline gap-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-spread" class="font-black text-slate-200 text-[11px] font-mono tracking-tight shrink-0">0.05</span>
+                    <span class="text-[8.5px] text-slate-500 font-mono tracking-tight shrink-0">pts</span>
                 </div>
             </div>
 
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">ATP (VWAP)</span>
-                <div class="flex items-baseline gap-1">
-                    <span id="val-atp" class="font-black text-cyan-300 text-xs">₹--</span>
-                    <span id="val-atp-status" class="text-[9px] font-bold text-emerald-400">Above</span>
+            {{-- 4. ATP (VWAP) --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">ATP (VWAP)</span>
+                <div class="flex items-baseline gap-1 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-atp" class="font-black text-cyan-300 text-[11px] font-mono tracking-tight shrink-0">₹--</span>
+                    <span id="val-atp-status" class="text-[8.5px] font-bold text-emerald-400 font-mono tracking-tight shrink-0">Above</span>
                 </div>
             </div>
 
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">TBQ / TSQ</span>
-                <div class="flex items-baseline gap-0.5">
-                    <span id="val-ratio-tbq-tsq" class="font-black text-emerald-400 text-xs">--</span>
-                    <span class="text-[9px] text-slate-400">Ratio</span>
+            {{-- 5. TBQ / TSQ --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">TBQ / TSQ</span>
+                <div class="flex items-baseline gap-0.5 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-ratio-tbq-tsq" class="font-black text-emerald-400 text-[11px] font-mono tracking-tight shrink-0">--</span>
+                    <span class="text-[8.5px] text-slate-400 font-mono tracking-tight shrink-0">Ratio</span>
                 </div>
             </div>
 
-            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between">
-                <span class="text-[9px] uppercase font-bold text-slate-400">Confluence</span>
-                <div class="flex items-baseline gap-1">
-                    <span id="val-hero-confluence" class="font-black text-rose-400 text-xs">--%</span>
-                    <span id="val-hero-badge" class="px-1 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300">WAIT</span>
+            {{-- 6. Confluence --}}
+            <div class="bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800 flex items-center justify-between gap-1.5 min-w-0 h-[30px] whitespace-nowrap flex-nowrap overflow-hidden shadow-xs">
+                <span class="text-[9px] uppercase font-bold text-slate-400 shrink-0 whitespace-nowrap">Confluence</span>
+                <div class="flex items-baseline gap-1 shrink-0 whitespace-nowrap flex-nowrap">
+                    <span id="val-hero-confluence" class="font-black text-rose-400 text-[11px] font-mono tracking-tight shrink-0">--%</span>
+                    <span id="val-hero-badge" class="px-1 py-0.2 rounded text-[8px] font-bold bg-slate-800 text-slate-300 shrink-0 uppercase tracking-tight">WAIT</span>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- ════════════════════════ 2. THREE-COLUMN COMMAND DASHBOARD (NO SCROLL) ════════════════════════ --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-start">
+    <div id="order-flow-dashboard-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-start">
         
         {{-- ───────────────────── COLUMN 1: LIVE 30-LEVEL ORDER BOOK (DOM) ───────────────────── --}}
-        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl flex flex-col justify-between">
-            <div>
-                {{-- DOM Header with Target & Dynamic Legend (Single Strict Line) --}}
+        <div id="col-dom-wrapper" class="lg:col-span-5 xl:col-span-4 space-y-2.5">
+            <div id="dom-card" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl flex flex-col justify-between">
+                <div>
+                    {{-- DOM Header with Target & Dynamic Legend (Single Strict Line) --}}
                 <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800 text-xs overflow-x-auto overflow-y-hidden whitespace-nowrap gap-1.5 no-scrollbar">
                     <div class="flex items-center gap-1.5 shrink-0">
                         <span class="font-black text-white text-xs sm:text-sm whitespace-nowrap">🌊 30-Level</span>
@@ -319,11 +345,389 @@
                 </div>
             </div>
         </div>
+        </div>
 
-        {{-- ───────────────────── COLUMN 2: TOP RECOMMENDATION & ENGINE INSPECTOR ───────────────────── --}}
-        <div class="lg:col-span-4 space-y-2.5">
+                        {{-- ───────────────────── COLUMN 2: RIGHT SIDE (RADAR + ACCUMULATED VOLUME + HIGHEST TRADED) ───────────────────── --}}
+        <div id="col-intel-container" class="lg:col-span-7 xl:col-span-8 space-y-2.5">
             
-            {{-- 1. INSTITUTIONAL ORDER FLOW INTELLIGENCE & PREDICTIVE RADAR (TOP PRIORITY) --}}
+            {{-- 1. Microstructure Radar Alert Banner --}}
+            {{-- 0. Microstructure & Directional Liquidity Alert Banner (Non-Jumping Fixed Placeholder) --}}
+            <div id="liquidity-alert-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="relative flex h-2 w-2">
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
+                                <span>🛡️ Microstructure Radar</span>
+                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">NORMAL</span>
+                            </span>
+                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
+                                No active block or stack alerts. Order flow stable.
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        MONITORING
+                    </span>
+                </div>
+            </div>
+
+            {{-- 2. MASSIVE HERO: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT --}}
+
+            {{-- 2. Top 5 Accumulated Volume Clusters (Price Level Aggregation) --}}
+            {{-- 1.6. Session Accumulated Volume Clusters (Top 5 Ask & Top 5 Bid Price Levels) --}}
+            <div id="today-clusters-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-amber-400">🎯</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Price Level Aggregation</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>TOP 5 ACCUMULATED VOLUME</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">CLUSTERS</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30" title="Sum of all executed trades grouped by price level across the session">📊 VOLUME PROFILE</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    {{-- Controls: View Filter & Collapse Toggle --}}
+                    <div class="flex items-center gap-1.5">
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
+                            <button type="button" onclick="switchTodayClustersView('both')" id="btn-cluster-view-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 5 Ask & Bid Clusters">Both</button>
+                            <button type="button" onclick="switchTodayClustersView('ask')" id="btn-cluster-view-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Ask (Institutional Demand)">Ask (Buys)</button>
+                            <button type="button" onclick="switchTodayClustersView('bid')" id="btn-cluster-view-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Bid (Institutional Supply)">Bid (Sells)</button>
+                        </div>
+                        <button type="button" onclick="toggleTodayClustersCard()" id="btn-toggle-today-clusters" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Volume Clusters">
+                            <span id="today-clusters-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Live Summary Bar --}}
+                <div id="today-clusters-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2 flex-wrap">
+                    <div class="flex items-center gap-1 truncate">
+                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">LTP:</span>
+                        <span id="today-clusters-ltp-display" class="font-bold text-cyan-300">₹--</span>
+                    </div>
+                    <div class="flex items-center gap-1 truncate" title="Nearest Accumulated Volume Cluster vs Live Price">
+                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">Nearest Cluster:</span>
+                        <span id="today-clusters-nearest-text" class="font-bold text-amber-300 truncate max-w-[170px]">Calculating...</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[9px]">
+                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
+                        <span id="today-clusters-bias-badge" class="px-1.5 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400 border border-slate-800">NEUTRAL</span>
+                    </div>
+                </div>
+
+                {{-- Collapsible Container --}}
+                <div id="today-clusters-collapsible" class="transition-all duration-200">
+                    <div id="today-clusters-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                        
+                        {{-- Top 5 Accumulated ASK (Green / Buy Clusters) --}}
+                        <div id="today-clusters-col-ask" class="bg-slate-950/90 rounded-lg p-2.5 border border-emerald-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 tracking-wide truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                                    <span class="truncate">TOP 5 BUYS (DEMAND)</span>
+                                </span>
+                                <span class="text-[8.5px] text-slate-400 font-mono shrink-0">vs Live LTP</span>
+                            </div>
+                            <div class="space-y-1.5 custom-scrollbar max-h-[280px] overflow-y-auto" id="today-clusters-list-ask">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Ask volume accumulation...</div>
+                            </div>
+                        </div>
+
+                        {{-- Top 5 Accumulated BID (Red / Sell Clusters) --}}
+                        <div id="today-clusters-col-bid" class="bg-slate-950/90 rounded-lg p-2.5 border border-rose-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-extrabold text-rose-400 flex items-center gap-1.5 tracking-wide truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0"></span>
+                                    <span class="truncate">TOP 5 SELLS (SUPPLY)</span>
+                                </span>
+                                <span class="text-[8.5px] text-slate-400 font-mono shrink-0">vs Live LTP</span>
+                            </div>
+                            <div class="space-y-1.5 custom-scrollbar max-h-[280px] overflow-y-auto" id="today-clusters-list-bid">
+                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Bid volume accumulation...</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {{-- Real-Time Flow Intelligence Narrative & Strategy Strip below Top 5 --}}
+                    <div id="clusters-intel-strip" class="mt-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1">
+                        <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800/80 flex-wrap gap-1">
+                            <span class="font-extrabold text-amber-300 flex items-center gap-1">
+                                <span>🧠</span> FLOW INTELLIGENCE SUMMARY
+                            </span>
+                            <span id="clusters-intel-ratio-tag" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300">--</span>
+                        </div>
+                        <p id="clusters-intel-summary-text" class="text-[10.5px] text-slate-200 font-sans leading-relaxed">
+                            Evaluating price level aggregation...
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. Highest Traded Qty (Session Volume Footprint) --}}
+            {{-- 1.5. Highest Number of ASK & BID QTY Traded So Far (Top 10 Footprint with Time) --}}
+            <div id="top-traded-volume-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-amber-400">🌊</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Session Volume Footprint</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>HIGHEST TRADED QTY</span>
+                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">TOP 10</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40" title="Every trade print >= 500 Qty is automatically persisted to MySQL database for historical backtesting">💾 DB PERSISTED</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    {{-- View Switcher (Both / Ask Only / Bid Only), Skip Open Filter & Collapse Button --}}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        {{-- Skip Open Time Filter --}}
+                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Skip opening minutes (e.g. 09:30 means records start from 09:31)">
+                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Skip Open:</span>
+                            <select id="sel-top-traded-skip" onchange="onTopTradedSkipChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
+                                <option value="09:15" class="bg-slate-900 text-slate-200">None (09:15+)</option>
+                                <option value="09:20" class="bg-slate-900 text-slate-200">09:20 (Start 09:21)</option>
+                                <option value="09:30" selected class="bg-slate-900 text-amber-300">09:30 (Start 09:31)</option>
+                                <option value="09:45" class="bg-slate-900 text-slate-200">09:45 (Start 09:46)</option>
+                                <option value="10:00" class="bg-slate-900 text-slate-200">10:00 (Start 10:01)</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
+                            <button type="button" onclick="switchTopTradedView('both')" id="btn-top-traded-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 10 Ask & Bid">Both</button>
+                            <button type="button" onclick="switchTopTradedView('ask')" id="btn-top-traded-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 10 Ask Traded Qty (Aggressive Buys)">Ask (Buys)</button>
+                            <button type="button" onclick="switchTopTradedView('bid')" id="btn-top-traded-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 10 Bid Traded Qty (Aggressive Sells)">Bid (Sells)</button>
+                        </div>
+                        <button type="button" onclick="cleanCorruptedTrades(true)" id="btn-clean-outliers" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Clean / purge network disconnect volume outliers">
+                            <span>🧹</span>
+                        </button>
+                        <button type="button" onclick="toggleTopTradedCard()" id="btn-toggle-top-traded" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Top Traded Qty">
+                            <span id="top-traded-toggle-icon">▲</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Summary Pill Bar --}}
+                <div id="top-traded-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2">
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Ask:</span>
+                        <span id="top-traded-peak-ask" class="text-emerald-300 font-bold">--</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Bid:</span>
+                        <span id="top-traded-peak-bid" class="text-rose-300 font-bold">--</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[9px]">
+                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
+                        <span id="top-traded-bias-pill" class="px-1 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400">NEUTRAL</span>
+                    </div>
+                </div>
+
+                {{-- Collapsible Container --}}
+                <div id="top-traded-collapsible" class="transition-all duration-200">
+                    {{-- Grid for Top 10 Ask & Top 10 Bid --}}
+                    <div id="top-traded-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                        
+                        {{-- Top 10 ASK QTY Traded (Green / Aggressive Buy) --}}
+                        <div id="col-top-traded-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>TOP 10 ASK (BUY TRADES)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500">Lifting Offer</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-ask">
+                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Ask volume prints...</div>
+                            </div>
+                        </div>
+
+                        {{-- Top 10 BID QTY Traded (Red / Aggressive Sell) --}}
+                        <div id="col-top-traded-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-bold text-rose-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>TOP 10 BID (SELL TRADES)</span>
+                                </span>
+                                <span class="text-[9px] text-slate-500">Hitting Bid</span>
+                            </div>
+                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-bid">
+                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Bid volume prints...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Hidden legacy placeholder for colSignals so no JS throws error --}}
+        <div id="col-signals-container" class="hidden"></div>
+    </div>
+
+    {{-- ════════════════════════ 2B. FULL-WIDTH LOWER SECTION: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT ════════════════════════ --}}
+    <div id="fullwidth-5m-flow-container" class="w-full space-y-2.5 mt-2.5">
+        {{-- 1. MASSIVE FULL-WIDTH: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT --}}
+        {{-- ════════════════════════ 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT ════════════════════════ --}}
+            <div id="flow-5m-cockpit-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/50 rounded-xl p-3 shadow-xl space-y-2.5 relative transition-all duration-200">
+                {{-- Header Row --}}
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-cyan-400">⚡</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">5-Min Tape Momentum &amp; Volume Delta</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>5-MIN AGGRESSIVE VOLUME &amp; DELTA</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">REAL-TIME TAPE</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    {{-- Live Pills & Controls --}}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        {{-- Live CVD Badge --}}
+                        <div id="v5m-cvd-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Cumulative Volume Delta (Total Market Buys minus Market Sells)">
+                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">CVD:</span>
+                            <span id="v5m-cvd-val" class="text-emerald-400">+0.0k</span>
+                        </div>
+
+                        {{-- Live Resting Depth Ratio (TBQ vs TSQ) --}}
+                        <div id="v5m-depth-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Resting Limit Order Book Imbalance (30-Depth TBQ vs TSQ)">
+                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">30D:</span>
+                            <span id="v5m-depth-val" class="text-sky-300">1.0x</span>
+                        </div>
+
+                        {{-- View Style Toggle: Dual Bars | Net Delta | Table --}}
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
+                            <button type="button" onclick="set5mViewMode('dual')" id="btn-v5m-view-dual" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Dual Green/Red Bars">📊 Bars</button>
+                            <button type="button" onclick="set5mViewMode('delta')" id="btn-v5m-view-delta" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Net Delta Bars">📈 Delta</button>
+                            <button type="button" onclick="set5mViewMode('table')" id="btn-v5m-view-table" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Data Table Focus">📋 Table</button>
+                        </div>
+
+                        {{-- Bar View Mode: Scroll vs Fit --}}
+                        <div id="v5m-bar-viewmode-container" class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
+                            <button type="button" id="btn-v5m-scroll" onclick="setV5mBarMode('scroll')" class="px-2 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs" title="Horizontal Scroll Mode (Generous detailed bars)">↔ Scroll</button>
+                            <button type="button" id="btn-v5m-fit" onclick="setV5mBarMode('fit')" class="px-2 py-0.5 rounded transition cursor-pointer text-slate-400 hover:text-white" title="Fit Mode (Squash all bars into view)">↕ Fit</button>
+                        </div>
+
+                        {{-- Chart Height Selector --}}
+                        <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-xs gap-1 shrink-0" title="Chart Height">
+                            <span class="text-slate-400 text-[8.5px] font-bold">H:</span>
+                            <select id="v5m-height-select" onchange="setV5mChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[9.5px]" title="Customize Chart Height">
+                                <option value="220" class="bg-slate-900 text-white">220px</option>
+                                <option value="260" class="bg-slate-900 text-white">260px</option>
+                                <option value="300" selected class="bg-slate-900 text-amber-300">300px</option>
+                                <option value="360" class="bg-slate-900 text-white">360px</option>
+                                <option value="420" class="bg-slate-900 text-white">420px</option>
+                            </select>
+                        </div>
+
+                        {{-- Volume Alert Threshold Filter --}}
+                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Highlight bars with volume exceeding this threshold">
+                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Alert:</span>
+                            <select id="sel-v5m-alert-thresh" onchange="on5mAlertThreshChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
+                                <option value="50000" class="bg-slate-900 text-slate-200">&gt; 50k</option>
+                                <option value="100000" selected class="bg-slate-900 text-amber-300">&gt; 100k (Rec)</option>
+                                <option value="150000" class="bg-slate-900 text-slate-200">&gt; 150k</option>
+                                <option value="200000" class="bg-slate-900 text-slate-200">&gt; 200k (Strict)</option>
+                            </select>
+                        </div>
+
+                        <button type="button" onclick="fetch5mVolumeFlow(true)" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Refresh 5M Volume Flow">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Interactive Canvas Chart Wrapper with Pinned Rail & Scrollable Body --}}
+                <div id="v5m-chart-container" class="relative w-full flex items-stretch overflow-hidden bg-[#0a0d14] rounded-lg border border-slate-800/90" style="height: 300px;">
+                    <!-- Fixed Y-Axis Scale Rail on Left (Pinned, Never Scrolls Away in Scroll mode) -->
+                    <div id="v5m-yaxis-rail" class="w-12 shrink-0 h-full relative select-none border-r border-slate-800/80 bg-[#0a0d14] z-10 block">
+                        <canvas id="chart-5m-yaxis" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Horizontally Scrollable Chart Area -->
+                    <div id="v5m-chart-scroll-wrapper" class="flex-1 h-full overflow-x-auto overflow-y-hidden custom-scrollbar relative select-none">
+                        <div id="v5m-canvas-inner-wrapper" class="h-full relative" style="min-width: 100%;">
+                            <canvas id="chart-5m-volume-flow" class="h-full block cursor-crosshair"></canvas>
+                            <div id="v5m-chart-tooltip" class="hidden absolute pointer-events-none bg-slate-950/95 border border-slate-700 rounded-lg p-2 text-[10px] font-mono text-slate-200 shadow-xl z-30 space-y-0.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 5-Minute Flow & Events Data Table (User's Favorite Proof Table) --}}
+                <div id="v5m-table-container" class="space-y-1">
+                    <div class="flex items-center justify-between text-[9.5px] font-bold px-1 text-slate-400">
+                        <span class="uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                            <span>📋</span> SESSION 5-MIN TAPE FLOW WITH INSTITUTIONAL EVENTS
+                        </span>
+                        <div class="flex items-center gap-2">
+                            {{-- Mini Event Filter --}}
+                            <div class="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[8.5px]" title="Filter 5M Tape Rows">
+                                <span class="text-slate-500 font-bold uppercase text-[8px]">Filter:</span>
+                                <select id="sel-v5m-table-filter" onchange="setV5mTableFilter(this.value)" class="bg-transparent text-cyan-300 font-mono font-bold text-[9px] focus:outline-none cursor-pointer">
+                                    <option value="all" class="bg-slate-900 text-slate-200">All Candles</option>
+                                    <option value="events_only" class="bg-slate-900 text-amber-300">⚡ Institutional Only</option>
+                                    <option value="buy_only" class="bg-slate-900 text-emerald-400">🟢 Buy Dominant</option>
+                                    <option value="sell_only" class="bg-slate-900 text-rose-400">🔴 Sell Dominant</option>
+                                    <option value="top_only" class="bg-slate-900 text-yellow-300">🏆 Top 5 Ranked</option>
+                                </select>
+                            </div>
+                            <span id="v5m-table-count" class="font-mono text-slate-500">0 Candles</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto overflow-y-auto max-h-[380px] custom-scrollbar rounded-lg border border-slate-800/80 bg-slate-950/90 select-none">
+                        <table class="w-full text-left border-collapse text-[10px] font-mono">
+                            <thead class="sticky top-0 bg-slate-950 text-slate-400 uppercase text-[9px] border-b border-slate-800 z-10">
+                                <tr>
+                                    <th class="py-1 px-2">Window</th>
+                                    <th class="py-1 px-2 text-right text-emerald-400">Market Buy (Ask)</th>
+                                    <th class="py-1 px-2 text-right text-rose-400">Market Sell (Bid)</th>
+                                    <th class="py-1 px-2 text-right">Net Delta</th>
+                                    <th class="py-1 px-2 text-center">Ratio</th>
+                                    <th class="py-1 px-2">Dominance &amp; Institutional Event</th>
+                                </tr>
+                            </thead>
+                            <tbody id="v5m-table-body" class="divide-y divide-slate-800/40">
+                                <tr>
+                                    <td colspan="6" class="py-4 text-center text-slate-500 italic">Syncing 5-minute trade prints...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. Watched Primary Panels: Top 5 Accumulated Clusters & Highest Traded Footprint --}}
+
+        {{-- 2. Single Collapsible Drawer for Secondary Sections --}}
+        {{-- 4. Single Collapsible Drawer for Secondary Sections --}}
+            <div id="secondary-intel-drawer" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 shadow-lg space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">🔍</span>
+                        <span class="text-xs font-bold text-slate-300">SECONDARY INTELLIGENCE &amp; DIAGNOSTICS</span>
+                        <span class="text-[9px] text-slate-500 font-mono hidden sm:inline">(15-30M Forecast, Prev Day Anchors, Confluence Scanner, 6-Engine)</span>
+                    </div>
+                    <button type="button" onclick="toggleSecondaryIntelDrawer()" id="btn-toggle-secondary-intel" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                        <span id="secondary-intel-toggle-text">Show Sections</span>
+                        <span id="secondary-intel-toggle-icon">▼</span>
+                    </button>
+                </div>
+
+                <div id="secondary-intel-body" class="hidden space-y-2.5 pt-2 border-t border-slate-800/80">
+                    {{-- 1. INSTITUTIONAL ORDER FLOW INTELLIGENCE & PREDICTIVE RADAR (TOP PRIORITY) --}}
             <div id="flow-intelligence-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5 relative overflow-hidden transition-all duration-200">
                 
                 {{-- Header with Bias Badge, Conviction Score, Noise Calibration Toggle & 0Click Desk --}}
@@ -621,381 +1025,7 @@
 
             </div>
 
-            {{-- 1.5. Highest Number of ASK & BID QTY Traded So Far (Top 10 Footprint with Time) --}}
-            <div id="top-traded-volume-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
-                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base text-amber-400">🌊</span>
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Session Volume Footprint</span>
-                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
-                                <span>HIGHEST TRADED QTY</span>
-                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">TOP 10</span>
-                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40" title="Every trade print >= 500 Qty is automatically persisted to MySQL database for historical backtesting">💾 DB PERSISTED</span>
-                            </h2>
-                        </div>
-                    </div>
-
-                    {{-- View Switcher (Both / Ask Only / Bid Only), Skip Open Filter & Collapse Button --}}
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        {{-- Skip Open Time Filter --}}
-                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Skip opening minutes (e.g. 09:30 means records start from 09:31)">
-                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Skip Open:</span>
-                            <select id="sel-top-traded-skip" onchange="onTopTradedSkipChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
-                                <option value="09:15" class="bg-slate-900 text-slate-200">None (09:15+)</option>
-                                <option value="09:20" class="bg-slate-900 text-slate-200">09:20 (Start 09:21)</option>
-                                <option value="09:30" selected class="bg-slate-900 text-amber-300">09:30 (Start 09:31)</option>
-                                <option value="09:45" class="bg-slate-900 text-slate-200">09:45 (Start 09:46)</option>
-                                <option value="10:00" class="bg-slate-900 text-slate-200">10:00 (Start 10:01)</option>
-                            </select>
-                        </div>
-
-                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
-                            <button type="button" onclick="switchTopTradedView('both')" id="btn-top-traded-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 10 Ask & Bid">Both</button>
-                            <button type="button" onclick="switchTopTradedView('ask')" id="btn-top-traded-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 10 Ask Traded Qty (Aggressive Buys)">Ask (Buys)</button>
-                            <button type="button" onclick="switchTopTradedView('bid')" id="btn-top-traded-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 10 Bid Traded Qty (Aggressive Sells)">Bid (Sells)</button>
-                        </div>
-                        <button type="button" onclick="cleanCorruptedTrades(true)" id="btn-clean-outliers" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Clean / purge network disconnect volume outliers">
-                            <span>🧹</span>
-                        </button>
-                        <button type="button" onclick="toggleTopTradedCard()" id="btn-toggle-top-traded" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Top Traded Qty">
-                            <span id="top-traded-toggle-icon">▲</span>
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Summary Pill Bar --}}
-                <div id="top-traded-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2">
-                    <div class="flex items-center gap-1.5 truncate">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Ask:</span>
-                        <span id="top-traded-peak-ask" class="text-emerald-300 font-bold">--</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 truncate">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                        <span class="text-slate-400 font-sans text-[9px] uppercase font-bold">Peak Bid:</span>
-                        <span id="top-traded-peak-bid" class="text-rose-300 font-bold">--</span>
-                    </div>
-                    <div class="flex items-center gap-1 text-[9px]">
-                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
-                        <span id="top-traded-bias-pill" class="px-1 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400">NEUTRAL</span>
-                    </div>
-                </div>
-
-                {{-- Collapsible Container --}}
-                <div id="top-traded-collapsible" class="transition-all duration-200">
-                    {{-- Grid for Top 10 Ask & Top 10 Bid --}}
-                    <div id="top-traded-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                        
-                        {{-- Top 10 ASK QTY Traded (Green / Aggressive Buy) --}}
-                        <div id="col-top-traded-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 flex flex-col justify-between">
-                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-emerald-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                    <span>TOP 10 ASK (BUY TRADES)</span>
-                                </span>
-                                <span class="text-[9px] text-slate-500">Lifting Offer</span>
-                            </div>
-                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-ask">
-                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Ask volume prints...</div>
-                            </div>
-                        </div>
-
-                        {{-- Top 10 BID QTY Traded (Red / Aggressive Sell) --}}
-                        <div id="col-top-traded-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 flex flex-col justify-between">
-                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-rose-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                    <span>TOP 10 BID (SELL TRADES)</span>
-                                </span>
-                                <span class="text-[9px] text-slate-500">Hitting Bid</span>
-                            </div>
-                            <div class="space-y-1 custom-scrollbar max-h-[220px] overflow-y-auto" id="list-top-traded-bid">
-                                <div class="text-slate-500 text-[10px] py-3 text-center italic">Awaiting Bid volume prints...</div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            {{-- 1.6. Session Accumulated Volume Clusters (Top 5 Ask & Top 5 Bid Price Levels) --}}
-            <div id="today-clusters-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
-                <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base text-amber-400">🎯</span>
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Price Level Aggregation</span>
-                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
-                                <span>TOP 5 ACCUMULATED VOLUME</span>
-                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">CLUSTERS</span>
-                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30" title="Sum of all executed trades grouped by price level across the session">📊 VOLUME PROFILE</span>
-                            </h2>
-                        </div>
-                    </div>
-
-                    {{-- Controls: View Filter & Collapse Toggle --}}
-                    <div class="flex items-center gap-1.5">
-                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9.5px] font-bold">
-                            <button type="button" onclick="switchTodayClustersView('both')" id="btn-cluster-view-both" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Side-by-Side Top 5 Ask & Bid Clusters">Both</button>
-                            <button type="button" onclick="switchTodayClustersView('ask')" id="btn-cluster-view-ask" class="px-2 py-0.5 rounded text-emerald-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Ask (Institutional Demand)">Ask (Buys)</button>
-                            <button type="button" onclick="switchTodayClustersView('bid')" id="btn-cluster-view-bid" class="px-2 py-0.5 rounded text-rose-400 hover:text-white transition cursor-pointer" title="Top 5 Accumulated Bid (Institutional Supply)">Bid (Sells)</button>
-                        </div>
-                        <button type="button" onclick="toggleTodayClustersCard()" id="btn-toggle-today-clusters" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Collapse / Expand Volume Clusters">
-                            <span id="today-clusters-toggle-icon">▲</span>
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Live Summary Bar --}}
-                <div id="today-clusters-summary-bar" class="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-slate-950 border border-slate-800/90 gap-2 flex-wrap">
-                    <div class="flex items-center gap-1 truncate">
-                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">LTP:</span>
-                        <span id="today-clusters-ltp-display" class="font-bold text-cyan-300">₹--</span>
-                    </div>
-                    <div class="flex items-center gap-1 truncate" title="Nearest Accumulated Volume Cluster vs Live Price">
-                        <span class="text-slate-500 font-sans text-[8.5px] uppercase font-bold">Nearest Cluster:</span>
-                        <span id="today-clusters-nearest-text" class="font-bold text-amber-300 truncate max-w-[170px]">Calculating...</span>
-                    </div>
-                    <div class="flex items-center gap-1 text-[9px]">
-                        <span class="text-slate-500 font-sans font-bold">BIAS:</span>
-                        <span id="today-clusters-bias-badge" class="px-1.5 py-0.2 rounded font-black text-[9px] bg-slate-900 text-slate-400 border border-slate-800">NEUTRAL</span>
-                    </div>
-                </div>
-
-                {{-- Collapsible Container --}}
-                <div id="today-clusters-collapsible" class="transition-all duration-200">
-                    <div id="today-clusters-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                        
-                        {{-- Top 5 Accumulated ASK (Green / Buy Clusters) --}}
-                        <div id="today-clusters-col-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 flex flex-col justify-between">
-                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-emerald-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                    <span>TOP 5 ACCUMULATED ASK (BUYS)</span>
-                                </span>
-                                <span class="text-[9px] text-slate-500 font-sans">LTP vs Cluster</span>
-                            </div>
-                            <div class="space-y-1 custom-scrollbar max-h-[170px] overflow-y-auto" id="today-clusters-list-ask">
-                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Ask volume accumulation...</div>
-                            </div>
-                        </div>
-
-                        {{-- Top 5 Accumulated BID (Red / Sell Clusters) --}}
-                        <div id="today-clusters-col-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 flex flex-col justify-between">
-                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-rose-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                    <span>TOP 5 ACCUMULATED BID (SELLS)</span>
-                                </span>
-                                <span class="text-[9px] text-slate-500 font-sans">LTP vs Cluster</span>
-                            </div>
-                            <div class="space-y-1 custom-scrollbar max-h-[170px] overflow-y-auto" id="today-clusters-list-bid">
-                                <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Bid volume accumulation...</div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {{-- Real-Time Flow Intelligence Narrative & Strategy Strip below Top 5 --}}
-                    <div id="clusters-intel-strip" class="mt-2 p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-mono space-y-1">
-                        <div class="flex items-center justify-between text-[10px] pb-1 border-b border-slate-800/80 flex-wrap gap-1">
-                            <span class="font-extrabold text-amber-300 flex items-center gap-1">
-                                <span>🧠</span> FLOW INTELLIGENCE SUMMARY
-                            </span>
-                            <span id="clusters-intel-ratio-tag" class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-300">--</span>
-                        </div>
-                        <p id="clusters-intel-summary-text" class="text-[10.5px] text-slate-200 font-sans leading-relaxed">
-                            Evaluating price level aggregation...
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 2. Interactive Mini-Tabs: Engine Inspector (Journal Default, Alert, Math, Vacuum, JSON) --}}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
-                <div class="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-1.5">
-                    <span class="text-xs sm:text-sm font-black uppercase text-white tracking-wider flex items-center gap-1.5">
-                        <span>⚡ Engine Inspector</span>
-                    </span>
-                    
-                    {{-- Mini Tab Buttons (Journal as 1st Default, Alerts 2nd, Math 3rd, Vacuum 4th, JSON 5th) --}}
-                    <div class="flex items-center gap-1 text-xs flex-wrap">
-                        <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold transition flex items-center gap-1 cursor-pointer">
-                            <span>Journal 📖</span>
-                        </button>
-                        <button onclick="switchMiniTab('mini-alerts')" id="btn-mini-alerts" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition flex items-center gap-1 cursor-pointer">
-                            <span>Alerts ⚡</span>
-                            <span id="badge-alert-count" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">0</span>
-                        </button>
-                        <button onclick="switchMiniTab('mini-trace')" id="btn-mini-trace" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
-                            <span>Math</span>
-                        </button>
-                        <button onclick="switchMiniTab('mini-vacuum')" id="btn-mini-vacuum" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
-                            <span>Vacuum</span>
-                        </button>
-                        <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
-                            <span>JSON</span>
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 1: Today's Opportunity Journal & Outcome Audit (DEFAULT ACTIVE, 2X HEIGHT) --}}
-                <div id="pane-mini-journal" class="mini-tab-pane space-y-2.5 text-xs">
-                    {{-- Performance Scorecard Summary --}}
-                    <div class="grid grid-cols-4 gap-2 text-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">
-                        <div onclick="setJournalFilter('ALL')" class="cursor-pointer hover:bg-slate-900/80 p-1 rounded-lg transition" title="Show All Setups">
-                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Calls</span>
-                            <span id="journal-total-count" class="font-black text-white text-sm sm:text-base">0</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Win Rate</span>
-                            <span id="journal-win-rate" class="font-black text-emerald-400 text-sm sm:text-base">0%</span>
-                        </div>
-                        <div class="p-1 rounded-lg bg-slate-900/40 border border-slate-800/80">
-                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Hit / Stop</span>
-                            <div class="font-black text-sm sm:text-base font-mono flex items-center justify-center gap-1">
-                                <button type="button" id="card-filter-hit" onclick="setJournalFilter('TARGET_HIT')" class="text-emerald-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-emerald-500/20 cursor-pointer" title="Click to filter Target Hits">
-                                    <span id="journal-target-count">0</span>
-                                </button>
-                                <span class="text-slate-500">/</span>
-                                <button type="button" id="card-filter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="text-rose-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-rose-500/20 cursor-pointer" title="Click to filter Stopped Out">
-                                    <span id="journal-stopped-count">0</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Net Pts</span>
-                            <span id="journal-net-pnl" class="font-black text-amber-300 text-sm sm:text-base font-mono">+0.0</span>
-                        </div>
-                    </div>
-
-                    {{-- Filter Pill Bar --}}
-                    <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800/80 pb-1.5 px-0.5 flex-wrap gap-1">
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <span class="font-bold text-slate-200 text-xs mr-1">Filter:</span>
-                            <button type="button" id="btn-jfilter-all" onclick="setJournalFilter('ALL')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition cursor-pointer">
-                                All (<span id="count-jfilter-all">0</span>)
-                            </button>
-                            <button type="button" id="btn-jfilter-hit" onclick="setJournalFilter('TARGET_HIT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-emerald-300 transition cursor-pointer">
-                                🎯 Hits (<span id="count-jfilter-hit">0</span>)
-                            </button>
-                            <button type="button" id="btn-jfilter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-rose-300 transition cursor-pointer">
-                                🛑 Stops (<span id="count-jfilter-stop">0</span>)
-                            </button>
-                            <button type="button" id="btn-jfilter-active" onclick="setJournalFilter('ACTIVE')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-amber-300 transition cursor-pointer">
-                                ⏳ Active (<span id="count-jfilter-active">0</span>)
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="btn-toggle-all-journal" onclick="toggleAllJournalCards()" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold flex items-center gap-1 cursor-pointer text-[10.5px] transition" title="Toggle Show/Hide on all Journal rows">
-                                <span id="label-toggle-all-journal">▼ Expand All</span>
-                            </button>
-                            <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer text-xs transition">
-                                <span>🔄</span>
-                                <span>Refresh</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {{-- Scrollable Signals List (Enlarged Height for Full Multi-Engine Card Viewing with Dark Scrollbar) --}}
-                    <div id="journal-logs-container" class="space-y-2 max-h-[46rem] xl:max-h-[52rem] overflow-y-auto pr-1.5 font-sans custom-scrollbar">
-                        <div class="text-center py-10 text-slate-500 text-xs">
-                            No trade signals logged yet today. Waiting for setup triggers...
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 2: Live Session Alert Feed & Trigger Reason (2X HEIGHT) --}}
-                <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-2 text-xs">
-                    <div class="flex items-center justify-between text-xs pb-1.5 border-b border-slate-800 px-0.5">
-                        <div class="flex items-center gap-2">
-                            <span class="text-slate-300 font-bold uppercase tracking-wider text-xs">Live Alarm Trigger Feed:</span>
-                            <span id="market-status-alert-pill" class="hidden text-[9.5px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏸️ Market Closed · Alarms Paused</span>
-                        </div>
-                        <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[10.5px] font-bold cursor-pointer transition">
-                            Clear Feed
-                        </button>
-                    </div>
-                    <div id="live-alerts-history-container" class="space-y-1.5 overflow-y-auto max-h-[46rem] xl:max-h-[52rem] pr-1.5 custom-scrollbar">
-                        <div class="text-center py-10 text-slate-500 text-xs">
-                            No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 3: Math Trace --}}
-                <div id="pane-mini-trace" class="mini-tab-pane hidden space-y-2 font-mono text-xs">
-                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Numerator (B - A):</span>
-                        <span id="trace-obi-numerator" class="text-white font-bold text-xs sm:text-sm">0</span>
-                    </div>
-                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Denominator (B + A):</span>
-                        <span id="trace-obi-denominator" class="text-white font-bold text-xs sm:text-sm">0</span>
-                    </div>
-                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
-                        <span class="text-slate-400">Raw Ratio:</span>
-                        <span id="trace-obi-raw" class="text-emerald-400 font-bold text-xs sm:text-sm">0.000</span>
-                    </div>
-                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-emerald-500/40">
-                        <span class="text-emerald-300 font-bold">30-Depth OBI:</span>
-                        <span id="trace-obi-final" class="text-emerald-300 font-black text-xs sm:text-sm">0.0%</span>
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 4: Vacuum & Air Pockets --}}
-                <div id="pane-mini-vacuum" class="mini-tab-pane hidden space-y-2 text-xs">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 text-xs">Air Pocket Status:</span>
-                        <span id="vacuum-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-950 text-slate-300 border border-slate-800">NORMAL BOOK</span>
-                    </div>
-                    <div id="vacuum-alert-box" class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300">
-                        No continuous air pocket detected. 30-depth order flow is continuous.
-                    </div>
-                </div>
-
-                {{-- Mini Tab Pane 5: Raw Strategy JSON (Enlarged) --}}
-                <div id="pane-mini-json" class="mini-tab-pane hidden space-y-2">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-slate-300 font-bold">Live Strategy Signals:</span>
-                        <button onclick="refreshStrategySignals()" class="text-indigo-400 hover:text-indigo-300 font-bold cursor-pointer text-xs">
-                            🔄 Refresh
-                        </button>
-                    </div>
-                    <pre id="raw-json-inspector" class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[10.5px] text-emerald-400 font-mono overflow-x-auto max-h-80 custom-scrollbar">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
-                </div>
-            </div>
-
-        </div>
-
-        {{-- ───────────────────── COLUMN 3: NOTIFICATIONS, MICRO-PRICE, CONFLUENCE, OBI & LIQUIDITY WALLS ───────────────────── --}}
-        <div class="lg:col-span-3 space-y-2.5">
-            
-            {{-- 0. Microstructure & Directional Liquidity Alert Banner (Non-Jumping Fixed Placeholder) --}}
-            <div id="liquidity-alert-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <span class="relative flex h-2 w-2">
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <div>
-                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
-                                <span>🛡️ Microstructure Radar</span>
-                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">NORMAL</span>
-                            </span>
-                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
-                                No active block or stack alerts. Order flow stable.
-                            </p>
-                        </div>
-                    </div>
-                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                        MONITORING
-                    </span>
-                </div>
-            </div>
-
-            {{-- 0B. Previous Day Institutional Anchors (Top 5 Ask & Bid Traded Volumes vs Live Stream Price) --}}
+                    {{-- 0B. Previous Day Institutional Anchors (Top 5 Ask & Bid Traded Volumes vs Live Stream Price) --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5" id="pd-anchors-card">
                 {{-- Card Header --}}
                 <div class="flex items-center justify-between flex-wrap gap-1.5 pb-2 border-b border-slate-800/80">
@@ -1042,33 +1072,33 @@
                     <div id="pd-anchors-grid" class="space-y-2 text-xs font-mono">
                         
                         {{-- 1. Top 5 ASK Anchors (Institutional Buying / Demand Zones) --}}
-                        <div id="pd-col-ask" class="bg-slate-950/90 rounded-lg p-2 border border-emerald-900/30 space-y-1">
-                            <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-emerald-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                    <span>TOP 5 PREV ASK (BUY CLUSTERS)</span>
+                        <div id="pd-col-ask" class="bg-slate-950/90 rounded-lg p-2.5 border border-emerald-900/30 space-y-1.5">
+                            <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-extrabold text-emerald-400 flex items-center gap-1.5 tracking-wide truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                                    <span class="truncate">TOP 5 PREV BUYS (DEMAND)</span>
                                 </span>
-                                <span class="text-[8.5px] text-slate-500 font-sans">LTP vs Level</span>
+                                <span class="text-[8.5px] text-slate-400 font-mono shrink-0">vs Live LTP</span>
                             </div>
 
                             {{-- Rows Container --}}
-                            <div class="space-y-1" id="pd-list-ask">
+                            <div class="space-y-1.5 custom-scrollbar max-h-[280px] overflow-y-auto" id="pd-list-ask">
                                 <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Prev Day Ask prints...</div>
                             </div>
                         </div>
 
                         {{-- 2. Top 5 BID Anchors (Institutional Selling / Supply Zones) --}}
-                        <div id="pd-col-bid" class="bg-slate-950/90 rounded-lg p-2 border border-rose-900/30 space-y-1">
-                            <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 text-[10px]">
-                                <span class="font-bold text-rose-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                    <span>TOP 5 PREV BID (SELL CLUSTERS)</span>
+                        <div id="pd-col-bid" class="bg-slate-950/90 rounded-lg p-2.5 border border-rose-900/30 space-y-1.5">
+                            <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800/80 text-[10px]">
+                                <span class="font-extrabold text-rose-400 flex items-center gap-1.5 tracking-wide truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0"></span>
+                                    <span class="truncate">TOP 5 PREV SELLS (SUPPLY)</span>
                                 </span>
-                                <span class="text-[8.5px] text-slate-500 font-sans">LTP vs Level</span>
+                                <span class="text-[8.5px] text-slate-400 font-mono shrink-0">vs Live LTP</span>
                             </div>
 
                             {{-- Rows Container --}}
-                            <div class="space-y-1" id="pd-list-bid">
+                            <div class="space-y-1.5 custom-scrollbar max-h-[280px] overflow-y-auto" id="pd-list-bid">
                                 <div class="text-slate-500 text-[10px] py-2 text-center italic">Awaiting Prev Day Bid prints...</div>
                             </div>
                         </div>
@@ -1077,7 +1107,7 @@
                 </div>
             </div>
 
-            {{-- 1. Real-Time High Probability Confluence Scanner (Moved Below Prev Day Anchors) --}}
+                    {{-- 1. Real-Time High Probability Confluence Scanner (Moved Below Prev Day Anchors) --}}
             <div id="top-recommendation-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl relative overflow-hidden transition-all duration-200">
                 <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <div class="flex items-center gap-2">
@@ -1200,7 +1230,7 @@
                 </div>
             </div>
 
-            {{-- 2. Combined Collapsible Container: Microstructure & Order Book Diagnostics (Default Hidden) --}}
+                    {{-- 2. Combined Collapsible Container: Microstructure & Order Book Diagnostics (Default Hidden) --}}
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5" id="order-book-diagnostics-card">
                 {{-- Header with Show/Hide Toggle --}}
                 <div class="flex items-center justify-between flex-wrap gap-2">
@@ -1463,9 +1493,165 @@
                 </div>
             </div>
 
-        </div>
+                    {{-- 2. Interactive Mini-Tabs: Engine Inspector (Journal Default, Alert, Math, Vacuum, JSON) --}}
+            <div id="engine-inspector-card" class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 flex-wrap gap-1.5">
+                    <span class="text-xs sm:text-sm font-black uppercase text-white tracking-wider flex items-center gap-1.5">
+                        <span>⚡ Engine Inspector</span>
+                    </span>
+                    
+                    {{-- Mini Tab Buttons (Journal as 1st Default, Alerts 2nd, Math 3rd, Vacuum 4th, JSON 5th) --}}
+                    <div class="flex items-center gap-1 text-xs flex-wrap">
+                        <button onclick="switchMiniTab('mini-journal')" id="btn-mini-journal" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold transition flex items-center gap-1 cursor-pointer">
+                            <span>Journal 📖</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-alerts')" id="btn-mini-alerts" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition flex items-center gap-1 cursor-pointer">
+                            <span>Alerts ⚡</span>
+                            <span id="badge-alert-count" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono">0</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-trace')" id="btn-mini-trace" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>Math</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-vacuum')" id="btn-mini-vacuum" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>Vacuum</span>
+                        </button>
+                        <button onclick="switchMiniTab('mini-json')" id="btn-mini-json" class="mini-tab-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:text-white transition cursor-pointer">
+                            <span>JSON</span>
+                        </button>
+                    </div>
+                </div>
 
+                {{-- Mini Tab Pane 1: Today's Opportunity Journal & Outcome Audit (DEFAULT ACTIVE, 2X HEIGHT) --}}
+                <div id="pane-mini-journal" class="mini-tab-pane space-y-2.5 text-xs">
+                    {{-- Performance Scorecard Summary --}}
+                    <div class="grid grid-cols-4 gap-2 text-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-inner">
+                        <div onclick="setJournalFilter('ALL')" class="cursor-pointer hover:bg-slate-900/80 p-1 rounded-lg transition" title="Show All Setups">
+                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Calls</span>
+                            <span id="journal-total-count" class="font-black text-white text-sm sm:text-base">0</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Win Rate</span>
+                            <span id="journal-win-rate" class="font-black text-emerald-400 text-sm sm:text-base">0%</span>
+                        </div>
+                        <div class="p-1 rounded-lg bg-slate-900/40 border border-slate-800/80">
+                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Hit / Stop</span>
+                            <div class="font-black text-sm sm:text-base font-mono flex items-center justify-center gap-1">
+                                <button type="button" id="card-filter-hit" onclick="setJournalFilter('TARGET_HIT')" class="text-emerald-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-emerald-500/20 cursor-pointer" title="Click to filter Target Hits">
+                                    <span id="journal-target-count">0</span>
+                                </button>
+                                <span class="text-slate-500">/</span>
+                                <button type="button" id="card-filter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="text-rose-400 hover:scale-110 transition px-1.5 py-0.2 rounded hover:bg-rose-500/20 cursor-pointer" title="Click to filter Stopped Out">
+                                    <span id="journal-stopped-count">0</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase text-slate-400 font-bold block tracking-wider">Net Pts</span>
+                            <span id="journal-net-pnl" class="font-black text-amber-300 text-sm sm:text-base font-mono">+0.0</span>
+                        </div>
+                    </div>
+
+                    {{-- Filter Pill Bar --}}
+                    <div class="flex items-center justify-between text-xs text-slate-300 border-b border-slate-800/80 pb-1.5 px-0.5 flex-wrap gap-1">
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <span class="font-bold text-slate-200 text-xs mr-1">Filter:</span>
+                            <button type="button" id="btn-jfilter-all" onclick="setJournalFilter('ALL')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition cursor-pointer">
+                                All (<span id="count-jfilter-all">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-hit" onclick="setJournalFilter('TARGET_HIT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-emerald-300 transition cursor-pointer">
+                                🎯 Hits (<span id="count-jfilter-hit">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-stop" onclick="setJournalFilter('STOPPED_OUT')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-rose-300 transition cursor-pointer">
+                                🛑 Stops (<span id="count-jfilter-stop">0</span>)
+                            </button>
+                            <button type="button" id="btn-jfilter-active" onclick="setJournalFilter('ACTIVE')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 text-slate-400 hover:text-amber-300 transition cursor-pointer">
+                                ⏳ Active (<span id="count-jfilter-active">0</span>)
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btn-toggle-all-journal" onclick="toggleAllJournalCards()" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold flex items-center gap-1 cursor-pointer text-[10.5px] transition" title="Toggle Show/Hide on all Journal rows">
+                                <span id="label-toggle-all-journal">▼ Expand All</span>
+                            </button>
+                            <button type="button" onclick="refreshSignalLogs()" class="text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer text-xs transition">
+                                <span>🔄</span>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Scrollable Signals List (Enlarged Height for Full Multi-Engine Card Viewing with Dark Scrollbar) --}}
+                    <div id="journal-logs-container" class="space-y-2 max-h-[46rem] xl:max-h-[52rem] overflow-y-auto pr-1.5 font-sans custom-scrollbar">
+                        <div class="text-center py-10 text-slate-500 text-xs">
+                            No trade signals logged yet today. Waiting for setup triggers...
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 2: Live Session Alert Feed & Trigger Reason (2X HEIGHT) --}}
+                <div id="pane-mini-alerts" class="mini-tab-pane hidden space-y-2 text-xs">
+                    <div class="flex items-center justify-between text-xs pb-1.5 border-b border-slate-800 px-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-300 font-bold uppercase tracking-wider text-xs">Live Alarm Trigger Feed:</span>
+                            <span id="market-status-alert-pill" class="hidden text-[9.5px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏸️ Market Closed · Alarms Paused</span>
+                        </div>
+                        <button type="button" onclick="clearLiveAlertHistory()" class="text-rose-400 hover:text-rose-300 text-[10.5px] font-bold cursor-pointer transition">
+                            Clear Feed
+                        </button>
+                    </div>
+                    <div id="live-alerts-history-container" class="space-y-1.5 overflow-y-auto max-h-[46rem] xl:max-h-[52rem] pr-1.5 custom-scrollbar">
+                        <div class="text-center py-10 text-slate-500 text-xs">
+                            No alarms triggered yet this session. When audio sounds, exact trigger reasons appear here in real-time.
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 3: Math Trace --}}
+                <div id="pane-mini-trace" class="mini-tab-pane hidden space-y-2 font-mono text-xs">
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
+                        <span class="text-slate-400">Numerator (B - A):</span>
+                        <span id="trace-obi-numerator" class="text-white font-bold text-xs sm:text-sm">0</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
+                        <span class="text-slate-400">Denominator (B + A):</span>
+                        <span id="trace-obi-denominator" class="text-white font-bold text-xs sm:text-sm">0</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
+                        <span class="text-slate-400">Raw Ratio:</span>
+                        <span id="trace-obi-raw" class="text-emerald-400 font-bold text-xs sm:text-sm">0.000</span>
+                    </div>
+                    <div class="flex justify-between p-2 rounded-lg bg-slate-950 border border-emerald-500/40">
+                        <span class="text-emerald-300 font-bold">30-Depth OBI:</span>
+                        <span id="trace-obi-final" class="text-emerald-300 font-black text-xs sm:text-sm">0.0%</span>
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 4: Vacuum & Air Pockets --}}
+                <div id="pane-mini-vacuum" class="mini-tab-pane hidden space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 text-xs">Air Pocket Status:</span>
+                        <span id="vacuum-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-950 text-slate-300 border border-slate-800">NORMAL BOOK</span>
+                    </div>
+                    <div id="vacuum-alert-box" class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300">
+                        No continuous air pocket detected. 30-depth order flow is continuous.
+                    </div>
+                </div>
+
+                {{-- Mini Tab Pane 5: Raw Strategy JSON (Enlarged) --}}
+                <div id="pane-mini-json" class="mini-tab-pane hidden space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-300 font-bold">Live Strategy Signals:</span>
+                        <button onclick="refreshStrategySignals()" class="text-indigo-400 hover:text-indigo-300 font-bold cursor-pointer text-xs">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <pre id="raw-json-inspector" class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[10.5px] text-emerald-400 font-mono overflow-x-auto max-h-80 custom-scrollbar">{{ json_encode($strategySignals, JSON_PRETTY_PRINT) }}</pre>
+                </div>
+            </div>
+                </div>
+            </div>
     </div>
+
+</div>
 
     {{-- ════════════════════════ 3. MODAL: LIQUIDITY & STRATEGY ALERT RULES (TABBED ENTERPRISE) ════════════════════════ --}}
     <div id="modal-alert-settings" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3">
@@ -4063,19 +4249,30 @@
                     }
 
                     return `
-                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
-                            <div class="absolute inset-y-0 left-0 bg-emerald-500/15 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-[9px] font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
-                                <span class="text-slate-400 font-mono text-[9px]" title="Latest execution: ${item.lastTime}">${item.lastTime}</span>
+                        <div class="p-1.5 rounded-lg bg-slate-900/95 border border-slate-800/90 hover:bg-slate-800/80 transition relative overflow-hidden group space-y-1">
+                            <div class="absolute inset-y-0 left-0 bg-emerald-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            
+                            {{-- Line 1: Rank, Price, and Distance Badge --}}
+                            <div class="flex items-center justify-between gap-1 z-10 relative">
+                                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
+                                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs' : idx === 1 ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-slate-950 text-slate-400 border border-slate-800'} font-mono shrink-0">#${idx + 1}</span>
+                                    <span class="text-[12px] font-black text-white font-mono tracking-tight shrink-0">₹${item.price.toFixed(2)}</span>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    ${diffBadgeHtml}
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${item.price.toFixed(2)}</span>
-                                <span class="font-black text-emerald-300 font-mono text-[10.5px]">${item.totalQty.toLocaleString()}</span>
-                                <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-800 text-slate-400 font-sans border border-slate-700/60" title="${item.printsCount} trade prints accumulated · Peak single trade: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
-                            </div>
-                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[65px] justify-end">
-                                ${diffBadgeHtml}
+
+                            {{-- Line 2: Volume Quantity, Prints Count, and Time --}}
+                            <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono z-10 relative pt-0.5 border-t border-slate-800/40">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-emerald-300 text-[9.5px]">📊 ${item.totalQty.toLocaleString()} Qty</span>
+                                    <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-950/80 text-slate-400 border border-slate-800 font-sans" title="${item.printsCount} trade prints accumulated · Peak: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-slate-400 shrink-0" title="Latest trade print at ${item.lastTime}">
+                                    <span>⏱️</span>
+                                    <span>${item.lastTime}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -4113,19 +4310,30 @@
                     }
 
                     return `
-                        <div class="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-slate-900/80 border border-slate-800/60 hover:bg-slate-800/80 transition relative overflow-hidden group">
-                            <div class="absolute inset-y-0 left-0 bg-rose-500/15 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-[9px] font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'} w-4">#${idx + 1}</span>
-                                <span class="text-slate-400 font-mono text-[9px]" title="Latest execution: ${item.lastTime}">${item.lastTime}</span>
+                        <div class="p-1.5 rounded-lg bg-slate-900/95 border border-slate-800/90 hover:bg-slate-800/80 transition relative overflow-hidden group space-y-1">
+                            <div class="absolute inset-y-0 left-0 bg-rose-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
+                            
+                            {{-- Line 1: Rank, Price, and Distance Badge --}}
+                            <div class="flex items-center justify-between gap-1 z-10 relative">
+                                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
+                                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs' : idx === 1 ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-slate-950 text-slate-400 border border-slate-800'} font-mono shrink-0">#${idx + 1}</span>
+                                    <span class="text-[12px] font-black text-white font-mono tracking-tight shrink-0">₹${item.price.toFixed(2)}</span>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    ${diffBadgeHtml}
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${item.price.toFixed(2)}</span>
-                                <span class="font-black text-rose-300 font-mono text-[10.5px]">${item.totalQty.toLocaleString()}</span>
-                                <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-800 text-slate-400 font-sans border border-slate-700/60" title="${item.printsCount} trade prints accumulated · Peak single trade: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
-                            </div>
-                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[65px] justify-end">
-                                ${diffBadgeHtml}
+
+                            {{-- Line 2: Volume Quantity, Prints Count, and Time --}}
+                            <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono z-10 relative pt-0.5 border-t border-slate-800/40">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-rose-300 text-[9.5px]">📊 ${item.totalQty.toLocaleString()} Qty</span>
+                                    <span class="px-1 py-0.2 rounded text-[7.5px] bg-slate-950/80 text-slate-400 border border-slate-800 font-sans" title="${item.printsCount} trade prints accumulated · Peak: ${item.maxSingleQty.toLocaleString()} Qty">${item.printsCount}p</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-slate-400 shrink-0" title="Latest trade print at ${item.lastTime}">
+                                    <span>⏱️</span>
+                                    <span>${item.lastTime}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -5021,28 +5229,39 @@
 
                     let diffBadgeHtml = '';
                     if (ltp <= 0) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[8.5px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
                     } else if (absDiff <= 3.5) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
                     } else if (diff > 0) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Holding Above Demand (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Holding Above Demand (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
                     } else {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Demand (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Demand (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
                     }
 
                     return `
-                        <div class="flex items-center justify-between text-[9.5px] px-2 py-1 rounded bg-slate-900/90 border border-slate-800/80 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                        <div class="p-1.5 rounded-lg bg-slate-900/95 border border-slate-800/90 hover:bg-slate-800/80 transition relative overflow-hidden group space-y-1">
                             <div class="absolute inset-y-0 left-0 bg-emerald-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-[9px] font-black ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-200' : 'text-slate-400'} w-3.5">#${idx + 1}</span>
-                                <span class="text-slate-400 font-mono text-[8.5px]">${item.time}</span>
+                            
+                            {{-- Line 1: Rank, Price, and Distance Badge --}}
+                            <div class="flex items-center justify-between gap-1 z-10 relative">
+                                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
+                                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs' : idx === 1 ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-slate-950 text-slate-400 border border-slate-800'} font-mono shrink-0">#${idx + 1}</span>
+                                    <span class="text-[12px] font-black text-white font-mono tracking-tight shrink-0">₹${price.toFixed(2)}</span>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    ${diffBadgeHtml}
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2 z-10 shrink-0">
-                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${price.toFixed(2)}</span>
-                                <span class="font-black text-emerald-300 font-mono text-[9.5px]">${qty.toLocaleString()}</span>
-                            </div>
-                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[70px] justify-end">
-                                ${diffBadgeHtml}
+
+                            {{-- Line 2: Prev Day Volume Quantity and Execution Time --}}
+                            <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono z-10 relative pt-0.5 border-t border-slate-800/40">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-emerald-300 text-[9.5px]">📊 ${qty.toLocaleString()} Qty</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-slate-400 shrink-0" title="Prev day trade execution at ${item.time}">
+                                    <span>⏱️</span>
+                                    <span>${item.time}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -5072,28 +5291,39 @@
 
                     let diffBadgeHtml = '';
                     if (ltp <= 0) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[9px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-bold text-[8.5px] bg-slate-800 text-slate-400">Waiting LTP</span>`;
                     } else if (absDiff <= 3.5) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-amber-500/25 text-amber-300 border border-amber-400/60 animate-pulse" title="Testing Level Right Now (±${absDiff.toFixed(1)} pts)">🎯 AT LEVEL (${diff >= 0 ? '+' : ''}${diff.toFixed(1)})</span>`;
                     } else if (diff > 0) {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Reclaimed Supply (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" title="Reclaimed Supply (+${diff.toFixed(2)} pts)">+${diff.toFixed(1)} pts</span>`;
                     } else {
-                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Supply (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
+                        diffBadgeHtml = `<span class="px-1.5 py-0.2 rounded font-mono font-black text-[8.5px] bg-rose-500/20 text-rose-300 border border-rose-500/40" title="Below Supply (${diff.toFixed(2)} pts)">${diff.toFixed(1)} pts</span>`;
                     }
 
                     return `
-                        <div class="flex items-center justify-between text-[9.5px] px-2 py-1 rounded bg-slate-900/90 border border-slate-800/80 hover:bg-slate-800/80 transition relative overflow-hidden group">
+                        <div class="p-1.5 rounded-lg bg-slate-900/95 border border-slate-800/90 hover:bg-slate-800/80 transition relative overflow-hidden group space-y-1">
                             <div class="absolute inset-y-0 left-0 bg-rose-500/12 pointer-events-none transition-all duration-300" style="width: ${fillPct}%;"></div>
-                            <div class="flex items-center gap-1.5 z-10 shrink-0">
-                                <span class="text-[9px] font-black ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-200' : 'text-slate-400'} w-3.5">#${idx + 1}</span>
-                                <span class="text-slate-400 font-mono text-[8.5px]">${item.time}</span>
+                            
+                            {{-- Line 1: Rank, Price, and Distance Badge --}}
+                            <div class="flex items-center justify-between gap-1 z-10 relative">
+                                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
+                                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded ${idx === 0 ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs' : idx === 1 ? 'bg-slate-800 text-slate-200 border border-slate-700' : 'bg-slate-950 text-slate-400 border border-slate-800'} font-mono shrink-0">#${idx + 1}</span>
+                                    <span class="text-[12px] font-black text-white font-mono tracking-tight shrink-0">₹${price.toFixed(2)}</span>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    ${diffBadgeHtml}
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2 z-10 shrink-0">
-                                <span class="text-slate-200 font-mono font-bold text-[9.5px]">₹${price.toFixed(2)}</span>
-                                <span class="font-black text-rose-300 font-mono text-[9.5px]">${qty.toLocaleString()}</span>
-                            </div>
-                            <div class="flex items-center gap-1 z-10 shrink-0 text-right min-w-[70px] justify-end">
-                                ${diffBadgeHtml}
+
+                            {{-- Line 2: Prev Day Volume Quantity and Execution Time --}}
+                            <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono z-10 relative pt-0.5 border-t border-slate-800/40">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-rose-300 text-[9.5px]">📊 ${qty.toLocaleString()} Qty</span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-slate-400 shrink-0" title="Prev day trade execution at ${item.time}">
+                                    <span>⏱️</span>
+                                    <span>${item.time}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -8939,9 +9169,17 @@
         }
     };
 
+    const spotBasePrice = {{ (float) ($openPrice ?? $spotPrice ?? 0) }};
     function updateSpotUI(spot) {
         const spotEl = document.getElementById('val-spot-price');
+        const changeEl = document.getElementById('val-spot-change');
         if (spotEl) spotEl.textContent = `₹${spot.toFixed(2)}`;
+        if (changeEl && spotBasePrice > 0) {
+            const chg = ((spot - spotBasePrice) / spotBasePrice) * 100;
+            const sign = chg >= 0 ? '+' : '';
+            changeEl.textContent = `${sign}${chg.toFixed(2)}%`;
+            changeEl.className = chg >= 0 ? 'text-[8.5px] font-bold text-emerald-400 font-mono tracking-tight shrink-0' : 'text-[8.5px] font-bold text-rose-400 font-mono tracking-tight shrink-0';
+        }
     }
 
     // ── BOOTSTRAP FLOW INTELLIGENCE FROM PERSISTED DATABASE SNAPSHOT ──
@@ -9036,6 +9274,975 @@
         }
     }
 
+    // ── 15.5. DYNAMIC RESPONSIVE LAYOUT SWITCHER (LANDSCAPE 🖥️ vs PORTRAIT 📱) ──
+    function switchOrderFlowLayout(mode) {
+        if (mode !== 'portrait' && mode !== 'landscape') mode = 'landscape';
+        try {
+            localStorage.setItem('order_flow_layout_mode', mode);
+        } catch (e) {}
+
+        const btnLandscape = document.getElementById('btn-layout-landscape');
+        const btnPortrait = document.getElementById('btn-layout-portrait');
+        const grid = document.getElementById('order-flow-dashboard-grid');
+        const colDom = document.getElementById('col-dom-wrapper');
+        const colIntel = document.getElementById('col-intel-container');
+        const colSignals = document.getElementById('col-signals-container');
+        const domRows = document.getElementById('dom-rows-container');
+
+        // Update button visual styles
+        if (btnLandscape && btnPortrait) {
+            if (mode === 'portrait') {
+                btnPortrait.className = 'px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 bg-indigo-600 text-white font-bold shadow-xs';
+                btnLandscape.className = 'px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 text-slate-400 hover:text-white';
+            } else {
+                btnLandscape.className = 'px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 bg-indigo-600 text-white font-bold shadow-xs';
+                btnPortrait.className = 'px-2 py-0.5 rounded transition cursor-pointer flex items-center gap-1 text-slate-400 hover:text-white';
+            }
+        }
+
+        if (mode === 'portrait') {
+            // ── PORTRAIT MODE: 2 SPACIOUS 50% COLUMNS FOR VERTICAL / ROTATED SCREENS ──
+            if (grid) {
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 items-start';
+            }
+            if (colDom) {
+                colDom.className = 'col-span-1 space-y-2.5';
+            }
+            if (colIntel) {
+                colIntel.className = 'col-span-1 space-y-2.5';
+            }
+            if (colSignals) {
+                colSignals.classList.add('hidden');
+            }
+
+            // Height calibration: Let DOM utilize the generous vertical height of portrait screens
+            if (domRows) {
+                domRows.style.maxHeight = '720px';
+                domRows.style.minHeight = '560px';
+            }
+        } else {
+            // ── LANDSCAPE MODE: BALANCED COLUMNS (DOM + WIDE HERO COCKPIT) FOR WIDE SCREENS ──
+            if (grid) {
+                grid.className = 'grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-start';
+            }
+            if (colDom) {
+                colDom.className = 'lg:col-span-5 xl:col-span-4 space-y-2.5';
+            }
+            if (colIntel) {
+                colIntel.className = 'lg:col-span-7 xl:col-span-8 space-y-2.5';
+            }
+            if (colSignals) {
+                colSignals.classList.add('hidden');
+            }
+
+            if (domRows) {
+                domRows.style.maxHeight = '';
+                domRows.style.minHeight = '';
+            }
+        }
+
+        if (typeof render5mVolumeChart === 'function') {
+            setTimeout(render5mVolumeChart, 80);
+        }
+    }
+    window.switchOrderFlowLayout = switchOrderFlowLayout;
+
+    function initOrderFlowLayout() {
+        try {
+            const saved = localStorage.getItem('order_flow_layout_mode');
+            if (saved === 'portrait' || saved === 'landscape') {
+                switchOrderFlowLayout(saved);
+            } else {
+                // Auto-detect portrait display if viewport height exceeds width
+                const isPortrait = (window.innerHeight > window.innerWidth);
+                switchOrderFlowLayout(isPortrait ? 'portrait' : 'landscape');
+            }
+        } catch (e) {
+            switchOrderFlowLayout('landscape');
+        }
+    }
+
+    // ── 15.6. 5-MINUTE AGGRESSIVE VOLUME & DELTA COCKPIT MODULE ──
+    let v5mState = {
+        data: null,
+        viewMode: localStorage.getItem('order_flow_v5m_view') || 'dual', // 'dual', 'delta', 'table'
+        barMode: localStorage.getItem('order_flow_v5m_barmode') || 'scroll', // 'scroll', 'fit'
+        height: parseInt(localStorage.getItem('order_flow_v5m_height') || '300', 10),
+        alertThresh: parseInt(localStorage.getItem('order_flow_v5m_alert_thresh') || '100000', 10),
+        tableFilter: localStorage.getItem('order_flow_v5m_table_filter') || 'all',
+        refreshInterval: null,
+        userHasScrolled: false
+    };
+
+    function setV5mTableFilter(val) {
+        v5mState.tableFilter = val || 'all';
+        try { localStorage.setItem('order_flow_v5m_table_filter', v5mState.tableFilter); } catch (e) {}
+        const sel = document.getElementById('sel-v5m-table-filter');
+        if (sel && sel.value !== v5mState.tableFilter) sel.value = v5mState.tableFilter;
+        render5mEventsTable();
+    }
+    window.setV5mTableFilter = setV5mTableFilter;
+
+    function setV5mBarMode(mode) {
+        if (mode !== 'scroll' && mode !== 'fit') mode = 'scroll';
+        v5mState.barMode = mode;
+        try { localStorage.setItem('order_flow_v5m_barmode', mode); } catch (e) {}
+
+        const btnScroll = document.getElementById('btn-v5m-scroll');
+        const btnFit = document.getElementById('btn-v5m-fit');
+        if (btnScroll && btnFit) {
+            if (mode === 'scroll') {
+                btnScroll.className = 'px-2 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs';
+                btnFit.className = 'px-2 py-0.5 rounded transition cursor-pointer text-slate-400 hover:text-white';
+            } else {
+                btnScroll.className = 'px-2 py-0.5 rounded transition cursor-pointer text-slate-400 hover:text-white';
+                btnFit.className = 'px-2 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs';
+            }
+        }
+        render5mVolumeChart();
+    }
+    window.setV5mBarMode = setV5mBarMode;
+
+    function setV5mChartHeight(val) {
+        const h = parseInt(val, 10);
+        if (!h || isNaN(h)) return;
+        v5mState.height = h;
+        try { localStorage.setItem('order_flow_v5m_height', String(h)); } catch (e) {}
+
+        const container = document.getElementById('v5m-chart-container');
+        if (container) container.style.height = `${h}px`;
+
+        const sel = document.getElementById('v5m-height-select');
+        if (sel && sel.value !== String(h)) sel.value = String(h);
+
+        render5mVolumeChart();
+    }
+    window.setV5mChartHeight = setV5mChartHeight;
+
+    function initSecondaryIntelDrawer() {
+        try {
+            const saved = localStorage.getItem('order_flow_secondary_collapsed');
+            const shouldCollapse = (saved !== 'false');
+            toggleSecondaryIntelDrawer(!shouldCollapse);
+        } catch (e) {
+            toggleSecondaryIntelDrawer(false);
+        }
+    }
+    window.initSecondaryIntelDrawer = initSecondaryIntelDrawer;
+
+    function toggleSecondaryIntelDrawer(forceOpen) {
+        const body = document.getElementById('secondary-intel-body');
+        const text = document.getElementById('secondary-intel-toggle-text');
+        const icon = document.getElementById('secondary-intel-toggle-icon');
+        if (!body) return;
+
+        let open = (typeof forceOpen === 'boolean') ? forceOpen : body.classList.contains('hidden');
+
+        if (open) {
+            body.classList.remove('hidden');
+            if (text) text.textContent = 'Hide Sections';
+            if (icon) icon.textContent = '▲';
+            try { localStorage.setItem('order_flow_secondary_collapsed', 'false'); } catch (e) {}
+        } else {
+            body.classList.add('hidden');
+            if (text) text.textContent = 'Show Sections';
+            if (icon) icon.textContent = '▼';
+            try { localStorage.setItem('order_flow_secondary_collapsed', 'true'); } catch (e) {}
+        }
+    }
+    window.toggleSecondaryIntelDrawer = toggleSecondaryIntelDrawer;
+
+    function set5mViewMode(mode) {
+        if (mode !== 'dual' && mode !== 'delta' && mode !== 'table') mode = 'dual';
+        v5mState.viewMode = mode;
+        try { localStorage.setItem('order_flow_v5m_view', mode); } catch (e) {}
+
+        const btnDual = document.getElementById('btn-v5m-view-dual');
+        const btnDelta = document.getElementById('btn-v5m-view-delta');
+        const btnTable = document.getElementById('btn-v5m-view-table');
+        const chartWrapper = document.getElementById('v5m-chart-container');
+        const tableWrapper = document.getElementById('v5m-table-container');
+
+        const activeClass = 'px-2 py-0.5 rounded bg-indigo-600 text-white font-bold transition cursor-pointer shadow-xs';
+        const inactiveClass = 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-bold transition cursor-pointer';
+
+        if (btnDual) btnDual.className = (mode === 'dual') ? activeClass : inactiveClass;
+        if (btnDelta) btnDelta.className = (mode === 'delta') ? activeClass : inactiveClass;
+        if (btnTable) btnTable.className = (mode === 'table') ? activeClass : inactiveClass;
+
+        if (chartWrapper && tableWrapper) {
+            if (mode === 'table') {
+                chartWrapper.classList.add('hidden');
+                tableWrapper.classList.remove('hidden');
+            } else {
+                chartWrapper.classList.remove('hidden');
+                tableWrapper.classList.remove('hidden');
+                render5mVolumeChart();
+            }
+        }
+    }
+    window.set5mViewMode = set5mViewMode;
+
+    function on5mAlertThreshChange(val) {
+        const num = parseInt(val, 10) || 100000;
+        v5mState.alertThresh = num;
+        try { localStorage.setItem('order_flow_v5m_alert_thresh', String(num)); } catch (e) {}
+        fetch5mVolumeFlow(true);
+    }
+    window.on5mAlertThreshChange = on5mAlertThreshChange;
+
+    async function fetch5mVolumeFlow(force = false) {
+        try {
+            const dateStr = "{{ $workingDate }}";
+            const sym = state.symbol || 'NIFTY';
+            const thresh = v5mState.alertThresh || 100000;
+
+            const resp = await fetch(`/api/order-flow/5m-volume-flow?date=${dateStr}&symbol=${sym}&alert_threshold=${thresh}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!data || !data.success) return;
+
+            v5mState.data = data;
+
+            // Update CVD Pill
+            const cvdEl = document.getElementById('v5m-cvd-val');
+            if (cvdEl && data.session_cvd !== undefined) {
+                const cvd = data.session_cvd;
+                cvdEl.textContent = `${cvd >= 0 ? '+' : ''}${formatV5mQty(cvd)}`;
+                cvdEl.className = cvd >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+            }
+
+            // Update Live Resting 30-Depth Ratio
+            update5mDepthRatioUI();
+
+            // Render Chart & Table
+            render5mVolumeChart();
+            render5mEventsTable();
+
+        } catch (e) {
+            console.warn('Error fetching 5m volume flow:', e);
+        }
+    }
+    window.fetch5mVolumeFlow = fetch5mVolumeFlow;
+
+    function update5mDepthRatioUI() {
+        const depthEl = document.getElementById('v5m-depth-val');
+        if (!depthEl) return;
+        const tbq = state.depthData?.tbq || state.tbq || 0;
+        const tsq = state.depthData?.tsq || state.tsq || 0;
+        if (tbq > 0 && tsq > 0) {
+            const ratio = (tbq >= tsq) ? (tbq / tsq) : (tsq / tbq);
+            const side = (tbq >= tsq) ? 'Bids' : 'Asks';
+            depthEl.textContent = `${ratio.toFixed(1)}x ${side}`;
+            depthEl.className = (tbq >= tsq) ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+        } else {
+            depthEl.textContent = '1.0x';
+            depthEl.className = 'text-sky-300 font-bold';
+        }
+    }
+
+    function formatV5mQty(qty) {
+        const absQ = Math.abs(qty);
+        if (absQ >= 100000) return (qty / 100000).toFixed(1) + 'L';
+        if (absQ >= 1000) return (qty / 1000).toFixed(1) + 'k';
+        return String(qty);
+    }
+
+    function computeV5mSessionRanks(buckets) {
+        const ranks = {
+            buy: new Map(),
+            sell: new Map(),
+            delta: new Map(),
+            ratio: new Map()
+        };
+        if (!buckets || buckets.length === 0) return ranks;
+
+        // Top 5 Buy Volumes
+        [...buckets]
+            .filter(b => b.buy_qty > 0)
+            .sort((a, b) => b.buy_qty - a.buy_qty)
+            .slice(0, 5)
+            .forEach((b, idx) => ranks.buy.set(b.time, idx + 1));
+
+        // Top 5 Sell Volumes
+        [...buckets]
+            .filter(b => b.sell_qty > 0)
+            .sort((a, b) => b.sell_qty - a.sell_qty)
+            .slice(0, 5)
+            .forEach((b, idx) => ranks.sell.set(b.time, idx + 1));
+
+        // Top 5 Net Delta (by magnitude)
+        [...buckets]
+            .filter(b => Math.abs(b.net_delta) > 0)
+            .sort((a, b) => Math.abs(b.net_delta) - Math.abs(a.net_delta))
+            .slice(0, 5)
+            .forEach((b, idx) => ranks.delta.set(b.time, idx + 1));
+
+        // Top 5 Dominance Ratios (for meaningful candles)
+        [...buckets]
+            .filter(b => (b.buy_qty + b.sell_qty) >= 10000)
+            .sort((a, b) => b.dominance_ratio - a.dominance_ratio)
+            .slice(0, 5)
+            .forEach((b, idx) => ranks.ratio.set(b.time, idx + 1));
+
+        return ranks;
+    }
+
+    function getV5mRankBadge(rank, side = 'neutral') {
+        if (!rank || rank > 5) return '';
+        if (rank === 1) {
+            return `<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-amber-500/30 text-amber-300 border border-amber-400/60 shadow-xs leading-none shrink-0" title="Session #1 Rank">#1</span>`;
+        }
+        if (rank === 2) {
+            return `<span class="px-1 py-0.2 rounded text-[7.5px] font-black bg-cyan-500/25 text-cyan-300 border border-cyan-400/50 shadow-xs leading-none shrink-0" title="Session #2 Rank">#2</span>`;
+        }
+        if (rank === 3) {
+            const col = (side === 'sell') ? 'bg-rose-500/25 text-rose-300 border-rose-400/50' : 'bg-emerald-500/25 text-emerald-300 border-emerald-400/50';
+            return `<span class="px-1 py-0.2 rounded text-[7.5px] font-black ${col} shadow-xs leading-none shrink-0" title="Session #3 Rank">#3</span>`;
+        }
+        return `<span class="px-1 py-0.2 rounded text-[7.5px] font-bold bg-slate-800 text-slate-300 border border-slate-700 leading-none shrink-0" title="Session Top 5 Rank">#${rank}</span>`;
+    }
+
+    function render5mEventsTable() {
+        const tbody = document.getElementById('v5m-table-body');
+        const countEl = document.getElementById('v5m-table-count');
+        if (!tbody || !v5mState.data || !v5mState.data.buckets) return;
+
+        const buckets = v5mState.data.buckets;
+        if (buckets.length === 0) {
+            if (countEl) countEl.textContent = '0 Candles';
+            tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 italic">No trade prints recorded yet today.</td></tr>`;
+            return;
+        }
+
+        const ranks = computeV5mSessionRanks(buckets);
+
+        // Show newest first (reverse chronological)
+        const reversed = [...buckets].reverse();
+        const filter = v5mState.tableFilter || 'all';
+
+        let filtered = reversed;
+        if (filter === 'events_only') {
+            filtered = reversed.filter(b => b.is_alert || (b.event && !b.event.includes('BALANCED CHOP')));
+        } else if (filter === 'buy_only') {
+            filtered = reversed.filter(b => b.dominant_side === 'BUY');
+        } else if (filter === 'sell_only') {
+            filtered = reversed.filter(b => b.dominant_side === 'SELL');
+        } else if (filter === 'top_only') {
+            filtered = reversed.filter(b => ranks.buy.has(b.time) || ranks.sell.has(b.time) || ranks.delta.has(b.time) || ranks.ratio.has(b.time));
+        }
+
+        if (countEl) {
+            countEl.textContent = (filter === 'all') ? `${buckets.length} Candles` : `${filtered.length} / ${buckets.length} Candles`;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 italic">No 5-min candles match current filter (${filter}).</td></tr>`;
+            return;
+        }
+
+        let rowsHtml = '';
+        filtered.forEach(b => {
+            const isAlert = b.is_alert || (b.total_qty >= v5mState.alertThresh);
+            const hasTopRank = ranks.buy.has(b.time) || ranks.sell.has(b.time) || ranks.delta.has(b.time);
+            const rowBg = hasTopRank 
+                ? 'bg-amber-950/15 hover:bg-amber-950/25' 
+                : (isAlert ? 'bg-indigo-950/25 hover:bg-indigo-950/40' : 'hover:bg-slate-900/50');
+            const alertGlow = isAlert ? 'border-l-2 border-l-amber-400 pl-1.5' : (hasTopRank ? 'border-l-2 border-l-cyan-400 pl-1.5' : 'pl-2');
+
+            const netSign = b.net_delta >= 0 ? '+' : '';
+            const netColor = b.net_delta >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            const ratioSide = b.dominant_side;
+            const ratioBadge = (ratioSide === 'BUY') 
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-800' 
+                : 'bg-rose-950 text-rose-300 border-rose-800';
+
+            const buyRank = ranks.buy.get(b.time);
+            const sellRank = ranks.sell.get(b.time);
+            const deltaRank = ranks.delta.get(b.time);
+            const ratioRank = ranks.ratio.get(b.time);
+
+            rowsHtml += `
+                <tr class="transition-colors ${rowBg}">
+                    <td class="py-1.5 ${alertGlow} font-bold text-slate-300 whitespace-nowrap">
+                        ${b.time}
+                        ${isAlert ? '<span class="text-amber-400 ml-0.5" title="Institutional High Volume Wave">⚡</span>' : ''}
+                    </td>
+                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1">
+                            ${getV5mRankBadge(buyRank, 'buy')}
+                            <span class="font-bold text-emerald-400">${formatV5mQty(b.buy_qty)}</span>
+                        </div>
+                        <span class="text-[8px] text-slate-500 font-sans block leading-none text-right">${b.buy_trades} trd</span>
+                    </td>
+                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1">
+                            ${getV5mRankBadge(sellRank, 'sell')}
+                            <span class="font-bold text-rose-400">${formatV5mQty(b.sell_qty)}</span>
+                        </div>
+                        <span class="text-[8px] text-slate-500 font-sans block leading-none text-right">${b.sell_trades} trd</span>
+                    </td>
+                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1">
+                            ${getV5mRankBadge(deltaRank, b.net_delta >= 0 ? 'buy' : 'sell')}
+                            <span class="font-bold ${netColor}">${netSign}${formatV5mQty(b.net_delta)}</span>
+                        </div>
+                    </td>
+                    <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1">
+                            <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold border ${ratioBadge}">
+                                ${b.dominance_ratio}x ${ratioSide}
+                            </span>
+                            ${getV5mRankBadge(ratioRank)}
+                        </div>
+                    </td>
+                    <td class="py-1.5 px-2 whitespace-nowrap">
+                        <span class="px-1.5 py-0.5 rounded text-[8.5px] font-bold border ${b.badge_color}">
+                            ${b.event}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = rowsHtml;
+    }
+
+    function render5mVolumeChart() {
+        const container = document.getElementById('v5m-chart-container');
+        const containerH = v5mState.height || 300;
+        if (container) {
+            container.style.height = `${containerH}px`;
+        }
+
+        const isScroll = (v5mState.barMode !== 'fit');
+        const scrollWrapper = document.getElementById('v5m-chart-scroll-wrapper');
+        const innerWrapper = document.getElementById('v5m-canvas-inner-wrapper');
+        const yAxisRail = document.getElementById('v5m-yaxis-rail');
+        const yAxisCanvas = document.getElementById('chart-5m-yaxis');
+        const canvas = document.getElementById('chart-5m-volume-flow');
+        if (!canvas || !v5mState.data || !v5mState.data.buckets) return;
+
+        const buckets = v5mState.data.buckets;
+        if (buckets.length === 0) return;
+
+        const mode = v5mState.viewMode;
+        const thresh = v5mState.alertThresh || 100000;
+        const ranks = computeV5mSessionRanks(buckets);
+
+        const dpr = window.devicePixelRatio || 1;
+        const availWidth = scrollWrapper ? (scrollWrapper.clientWidth || 700) : 700;
+
+        // Dynamic Sizing for Horizontal Scroll vs Fit View
+        let width = availWidth;
+        if (isScroll) {
+            if (yAxisRail) {
+                yAxisRail.classList.remove('hidden');
+                yAxisRail.style.display = 'block';
+            }
+            // Generous spacing: 50px per candle slot gives Buy/Sell bars 18px each with 14px gap
+            const candleSlotW = (mode === 'delta') ? 42 : 50;
+            const requiredWidth = Math.max(availWidth, buckets.length * candleSlotW + 30);
+            width = requiredWidth;
+
+            if (innerWrapper) {
+                innerWrapper.style.width = `${requiredWidth}px`;
+                innerWrapper.style.minWidth = `${requiredWidth}px`;
+            }
+            canvas.style.width = `${requiredWidth}px`;
+            canvas.style.minWidth = `${requiredWidth}px`;
+            canvas.style.height = '100%';
+
+            if (scrollWrapper) {
+                scrollWrapper.style.overflowX = 'auto';
+                scrollWrapper.style.overflowY = 'hidden';
+                if (!scrollWrapper._wheelBound) {
+                    scrollWrapper._wheelBound = true;
+                    scrollWrapper.addEventListener('wheel', (evt) => {
+                        if (evt.deltaY !== 0 && !evt.shiftKey) {
+                            evt.preventDefault();
+                            scrollWrapper.scrollLeft += evt.deltaY;
+                            v5mState.userHasScrolled = (scrollWrapper.scrollLeft + scrollWrapper.clientWidth < scrollWrapper.scrollWidth - 30);
+                        }
+                    }, { passive: false });
+                    scrollWrapper.addEventListener('scroll', () => {
+                        v5mState.userHasScrolled = (scrollWrapper.scrollLeft + scrollWrapper.clientWidth < scrollWrapper.scrollWidth - 30);
+                    });
+                }
+            }
+        } else {
+            if (yAxisRail) {
+                yAxisRail.classList.add('hidden');
+                yAxisRail.style.display = 'none';
+            }
+            width = availWidth;
+            if (innerWrapper) {
+                innerWrapper.style.width = '100%';
+                innerWrapper.style.minWidth = '100%';
+            }
+            canvas.style.width = '100%';
+            canvas.style.minWidth = '100%';
+            canvas.style.height = '100%';
+
+            if (scrollWrapper) {
+                scrollWrapper.style.overflowX = 'hidden';
+                scrollWrapper.scrollLeft = 0;
+            }
+        }
+
+        const height = containerH;
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+
+        const ctx = canvas.getContext('2d');
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, height);
+
+        const padLeft = isScroll ? 10 : 42;
+        const padRight = 14;
+        const padTop = 26;
+        const padBottom = 24;
+        const plotW = width - padLeft - padRight;
+        const plotH = height - padTop - padBottom;
+
+        if (mode === 'delta') {
+            // ── NET DELTA BARS MODE ──
+            let maxDelta = 10000;
+            buckets.forEach(b => {
+                const a = Math.abs(b.net_delta);
+                if (a > maxDelta) maxDelta = a;
+            });
+            maxDelta = Math.ceil(maxDelta / 20000) * 20000;
+            const zeroY = padTop + (plotH / 2);
+
+            // Render Pinned Left Rail in Scroll Mode
+            if (isScroll && yAxisCanvas) {
+                const railRect = yAxisCanvas.getBoundingClientRect();
+                if (railRect.width > 0 && railRect.height > 0) {
+                    yAxisCanvas.width = Math.round(railRect.width * dpr);
+                    yAxisCanvas.height = Math.round(railRect.height * dpr);
+                    const yCtx = yAxisCanvas.getContext('2d');
+                    yCtx.resetTransform();
+                    yCtx.scale(dpr, dpr);
+                    yCtx.clearRect(0, 0, railRect.width, railRect.height);
+
+                    const rW = railRect.width;
+                    yCtx.textAlign = 'right';
+                    yCtx.textBaseline = 'middle';
+
+                    yCtx.fillStyle = '#34d399';
+                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.fillText(`+${formatV5mQty(maxDelta)}`, rW - 4, padTop + 4);
+
+                    yCtx.fillStyle = '#94a3b8';
+                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.fillText('0', rW - 4, zeroY);
+
+                    yCtx.fillStyle = '#fb7185';
+                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.fillText(`-${formatV5mQty(maxDelta)}`, rW - 4, padTop + plotH - 4);
+                }
+            } else if (!isScroll) {
+                // Main canvas Y-axis labels
+                ctx.fillStyle = '#64748b';
+                ctx.font = 'bold 8.5px monospace';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`+${formatV5mQty(maxDelta)}`, padLeft - 4, padTop + 4);
+                ctx.fillText('0', padLeft - 4, zeroY);
+                ctx.fillText(`-${formatV5mQty(maxDelta)}`, padLeft - 4, padTop + plotH - 4);
+            }
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 4]);
+            [padTop, padTop + (plotH * 0.25), padTop + (plotH * 0.75), padTop + plotH].forEach(yPos => {
+                ctx.beginPath();
+                ctx.moveTo(padLeft, yPos);
+                ctx.lineTo(width - padRight, yPos);
+                ctx.stroke();
+            });
+
+            // Solid Zero line
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, zeroY);
+            ctx.lineTo(width - padRight, zeroY);
+            ctx.stroke();
+
+            const n = buckets.length;
+            const slotW = plotW / Math.max(n, 12);
+            const barW = isScroll ? Math.max(16, slotW * 0.65) : Math.max(4, slotW * 0.7);
+
+            buckets.forEach((b, idx) => {
+                const x = padLeft + (idx * slotW) + (slotW / 2);
+                const delta = b.net_delta;
+                const barH = (Math.abs(delta) / maxDelta) * (plotH / 2);
+
+                const isBull = delta >= 0;
+                const isAlert = Math.abs(delta) >= (thresh / 2);
+                const dRank = ranks.delta.get(b.time);
+
+                ctx.fillStyle = isBull ? (isAlert ? '#10b981' : '#059669') : (isAlert ? '#f43f5e' : '#e11d48');
+                if (isAlert) {
+                    ctx.shadowColor = isBull ? '#10b981' : '#f43f5e';
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+
+                if (isBull) {
+                    ctx.fillRect(x - barW / 2, zeroY - barH, barW, barH);
+                } else {
+                    ctx.fillRect(x - barW / 2, zeroY, barW, barH);
+                }
+                ctx.shadowBlur = 0;
+
+                // Delta Numbers: smart selective rendering to avoid overlap
+                const shouldShowDelta = isScroll 
+                    ? (Math.abs(delta) >= 20000 || isAlert || (dRank && dRank <= 3))
+                    : (isAlert || (dRank && dRank <= 2));
+
+                if (shouldShowDelta) {
+                    ctx.save();
+                    ctx.font = 'bold 9.5px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = '#050811';
+                    ctx.lineWidth = 2.5;
+                    ctx.lineJoin = 'round';
+
+                    const rankTxt = (dRank === 1) ? '👑 ' : (dRank && dRank <= 3 ? `#${dRank} ` : '');
+                    if (isBull) {
+                        const textY = Math.max(padTop - 2, zeroY - barH - 3);
+                        const txt = `${rankTxt}+${formatV5mQty(delta)}`;
+                        ctx.strokeText(txt, x, textY);
+                        ctx.fillStyle = (dRank === 1) ? '#fbbf24' : (isAlert ? '#34d399' : '#10b981');
+                        ctx.fillText(txt, x, textY);
+                    } else {
+                        const textY = Math.min(height - padBottom + 2, zeroY + barH + 10);
+                        const txt = `${rankTxt}-${formatV5mQty(Math.abs(delta))}`;
+                        ctx.strokeText(txt, x, textY);
+                        ctx.fillStyle = (dRank === 1) ? '#fbbf24' : (isAlert ? '#fb7185' : '#f43f5e');
+                        ctx.fillText(txt, x, textY);
+                    }
+                    ctx.restore();
+                }
+
+                // Time label on X axis
+                const showTime = isScroll ? (idx % 2 === 0 || idx === n - 1) : (idx % 4 === 0 || idx === n - 1);
+                if (showTime) {
+                    ctx.fillStyle = (idx === n - 1) ? '#38bdf8' : '#94a3b8';
+                    ctx.font = (idx === n - 1) ? 'bold 9px monospace' : '8.5px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(b.time, x, height - padBottom + 4);
+                }
+            });
+
+        } else {
+            // ── DUAL GREEN (BUY) & RED (SELL) BARS MODE (DEFAULT) ──
+            let maxVol = 50000;
+            buckets.forEach(b => {
+                if (b.buy_qty > maxVol) maxVol = b.buy_qty;
+                if (b.sell_qty > maxVol) maxVol = b.sell_qty;
+            });
+            maxVol = Math.ceil(maxVol / 50000) * 50000;
+
+            // Render Pinned Left Rail in Scroll Mode
+            if (isScroll && yAxisCanvas) {
+                const railRect = yAxisCanvas.getBoundingClientRect();
+                if (railRect.width > 0 && railRect.height > 0) {
+                    yAxisCanvas.width = Math.round(railRect.width * dpr);
+                    yAxisCanvas.height = Math.round(railRect.height * dpr);
+                    const yCtx = yAxisCanvas.getContext('2d');
+                    yCtx.resetTransform();
+                    yCtx.scale(dpr, dpr);
+                    yCtx.clearRect(0, 0, railRect.width, railRect.height);
+
+                    const rW = railRect.width;
+                    yCtx.textAlign = 'right';
+                    yCtx.textBaseline = 'middle';
+
+                    yCtx.fillStyle = '#38bdf8';
+                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.fillText(formatV5mQty(maxVol), rW - 4, padTop + 4);
+
+                    yCtx.fillStyle = '#64748b';
+                    yCtx.font = '8px monospace';
+                    yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.75)), rW - 4, padTop + (plotH * 0.25));
+                    yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.5)), rW - 4, padTop + (plotH * 0.5));
+                    yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.25)), rW - 4, padTop + (plotH * 0.75));
+
+                    yCtx.fillStyle = '#94a3b8';
+                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.fillText('0', rW - 4, padTop + plotH);
+
+                    // Alert threshold indicator on rail
+                    if (thresh < maxVol) {
+                        const threshY = padTop + plotH - ((thresh / maxVol) * plotH);
+                        yCtx.fillStyle = '#f59e0b';
+                        yCtx.font = 'bold 8px monospace';
+                        yCtx.fillText(`⚡${formatV5mQty(thresh)}`, rW - 4, threshY);
+                    }
+                }
+            } else if (!isScroll) {
+                // Main canvas Y-axis labels in fit mode
+                ctx.fillStyle = '#64748b';
+                ctx.font = '8.5px monospace';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatV5mQty(maxVol), padLeft - 4, padTop + 4);
+                ctx.fillText(formatV5mQty(Math.round(maxVol / 2)), padLeft - 4, padTop + (plotH / 2));
+                ctx.fillText('0', padLeft - 4, padTop + plotH);
+            }
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 4]);
+            [padTop, padTop + (plotH * 0.25), padTop + (plotH * 0.5), padTop + (plotH * 0.75)].forEach(yPos => {
+                ctx.beginPath();
+                ctx.moveTo(padLeft, yPos);
+                ctx.lineTo(width - padRight, yPos);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
+
+            // Baseline at 0
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, padTop + plotH);
+            ctx.lineTo(width - padRight, padTop + plotH);
+            ctx.stroke();
+
+            // Threshold reference guide line
+            if (thresh < maxVol) {
+                const threshY = padTop + plotH - ((thresh / maxVol) * plotH);
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(padLeft, threshY);
+                ctx.lineTo(width - padRight, threshY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = 'bold 8.5px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText(`Alert ${formatV5mQty(thresh)}`, width - padRight - 4, threshY - 3);
+            }
+
+            const n = buckets.length;
+            const slotW = plotW / Math.max(n, 12);
+            const singleBarW = isScroll ? Math.max(14, Math.min(22, slotW * 0.42)) : Math.max(2.5, slotW * 0.42);
+            const gap = isScroll ? 2 : 1;
+
+            buckets.forEach((b, idx) => {
+                const centerX = padLeft + (idx * slotW) + (slotW / 2);
+                const buyH = (b.buy_qty / maxVol) * plotH;
+                const sellH = (b.sell_qty / maxVol) * plotH;
+
+                const isMegaBuy = b.buy_qty >= thresh;
+                const isMegaSell = b.sell_qty >= thresh;
+
+                const buyRank = ranks.buy.get(b.time);
+                const sellRank = ranks.sell.get(b.time);
+
+                const buyX = centerX - singleBarW - (gap / 2);
+                const buyY = padTop + plotH - buyH;
+                const sellX = centerX + (gap / 2);
+                const sellY = padTop + plotH - sellH;
+
+                // 1. Buy Bar (Green, Left of pair)
+                ctx.fillStyle = isMegaBuy ? '#10b981' : '#059669';
+                if (isMegaBuy) {
+                    ctx.shadowColor = '#10b981';
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fillRect(buyX, buyY, singleBarW, buyH);
+                ctx.shadowBlur = 0;
+
+                // 2. Sell Bar (Red, Right of pair)
+                ctx.fillStyle = isMegaSell ? '#f43f5e' : '#e11d48';
+                if (isMegaSell) {
+                    ctx.shadowColor = '#f43f5e';
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fillRect(sellX, sellY, singleBarW, sellH);
+                ctx.shadowBlur = 0;
+
+                // Volume Labels on Top of Bars:
+                if (isScroll) {
+                    // In Scroll Mode: 50px slot width allows clear labels for significant or top bars
+                    ctx.save();
+                    ctx.font = 'bold 9px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = '#050811';
+                    ctx.lineWidth = 2.5;
+                    ctx.lineJoin = 'round';
+
+                    // Buy bar label (show if >= 30k, Mega, or top 5 rank)
+                    if (b.buy_qty >= 30000 || isMegaBuy || (buyRank && buyRank <= 5)) {
+                        const bPrefix = (buyRank === 1) ? '👑 ' : (buyRank && buyRank <= 3 ? `#${buyRank} ` : '');
+                        const bTxt = `${bPrefix}${formatV5mQty(b.buy_qty)}`;
+                        const bTopY = (buyY < padTop + 14) ? (buyY + 11) : (buyY - 2);
+                        ctx.textBaseline = 'bottom';
+                        ctx.strokeText(bTxt, buyX + singleBarW / 2, bTopY);
+                        ctx.fillStyle = (buyRank === 1) ? '#fbbf24' : ((buyY < padTop + 14) ? '#ffffff' : (isMegaBuy ? '#34d399' : '#10b981'));
+                        ctx.fillText(bTxt, buyX + singleBarW / 2, bTopY);
+                    }
+
+                    // Sell bar label (show if >= 30k, Mega, or top 5 rank)
+                    if (b.sell_qty >= 30000 || isMegaSell || (sellRank && sellRank <= 5)) {
+                        const sPrefix = (sellRank === 1) ? '👑 ' : (sellRank && sellRank <= 3 ? `#${sellRank} ` : '');
+                        const sTxt = `${sPrefix}${formatV5mQty(b.sell_qty)}`;
+                        const sTopY = (sellY < padTop + 14) ? (sellY + 11) : (sellY - 2);
+                        ctx.textBaseline = 'bottom';
+                        ctx.strokeText(sTxt, sellX + singleBarW / 2, sTopY);
+                        ctx.fillStyle = (sellRank === 1) ? '#fbbf24' : ((sellY < padTop + 14) ? '#ffffff' : (isMegaSell ? '#fb7185' : '#f43f5e'));
+                        ctx.fillText(sTxt, sellX + singleBarW / 2, sTopY);
+                    }
+                    ctx.restore();
+                } else {
+                    // In Fit Mode: ONLY show label on Landmark / Mega bars (> thresh or top 2 in session) to prevent messy collisions!
+                    const isLandmark = isMegaBuy || isMegaSell || (buyRank && buyRank <= 2) || (sellRank && sellRank <= 2);
+                    if (isLandmark) {
+                        ctx.save();
+                        const isBuyDom = b.buy_qty >= b.sell_qty;
+                        const topY = Math.min(buyY, sellY);
+                        const topQty = Math.max(b.buy_qty, b.sell_qty);
+                        const rankVal = isBuyDom ? buyRank : sellRank;
+                        const rankPrefix = (rankVal === 1) ? '👑 ' : (rankVal && rankVal <= 2 ? `#${rankVal} ` : '');
+                        
+                        ctx.font = 'bold 9.5px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.strokeStyle = '#050811';
+                        ctx.lineWidth = 2.5;
+                        ctx.lineJoin = 'round';
+                        const txt = `${rankPrefix}${formatV5mQty(topQty)}`;
+                        const labelY = Math.max(padTop - 2, topY - 2);
+                        ctx.strokeText(txt, centerX, labelY);
+                        ctx.fillStyle = (rankVal === 1) ? '#fbbf24' : (isBuyDom ? '#34d399' : '#fb7185');
+                        ctx.fillText(txt, centerX, labelY);
+                        ctx.restore();
+                    }
+                }
+
+                // X-Axis time label
+                const showTime = isScroll ? (idx % 2 === 0 || idx === n - 1) : (idx % 4 === 0 || idx === n - 1);
+                if (showTime) {
+                    ctx.fillStyle = (idx === n - 1) ? '#38bdf8' : '#94a3b8';
+                    ctx.font = (idx === n - 1) ? 'bold 9px monospace' : '8.5px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(b.time, centerX, height - padBottom + 4);
+                }
+            });
+        }
+
+        // Auto-scroll to latest live candle on initial render
+        if (isScroll && scrollWrapper && !v5mState.userHasScrolled) {
+            setTimeout(() => {
+                scrollWrapper.scrollLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+            }, 30);
+        }
+    }
+
+    function setup5mChartInteractions() {
+        const canvas = document.getElementById('chart-5m-volume-flow');
+        const tooltip = document.getElementById('v5m-chart-tooltip');
+        if (!canvas || !tooltip) return;
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!v5mState.data || !v5mState.data.buckets || v5mState.data.buckets.length === 0) return;
+            const buckets = v5mState.data.buckets;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+
+            const isScroll = (v5mState.barMode !== 'fit');
+            const padLeft = isScroll ? 10 : 42;
+            const padRight = 14;
+            const plotW = rect.width - padLeft - padRight;
+            const slotW = plotW / Math.max(buckets.length, 12);
+
+            const relX = mouseX - padLeft;
+            const idx = Math.floor(relX / slotW);
+
+            if (idx >= 0 && idx < buckets.length) {
+                const b = buckets[idx];
+                tooltip.classList.remove('hidden');
+                tooltip.style.left = `${Math.min(rect.width - 180, Math.max(10, mouseX + 12))}px`;
+                tooltip.style.top = `${Math.min(rect.height - 80, Math.max(10, e.clientY - rect.top - 20))}px`;
+
+                const netSign = b.net_delta >= 0 ? '+' : '';
+                const netColor = b.net_delta >= 0 ? 'text-emerald-400' : 'text-rose-400';
+
+                tooltip.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-0.5 font-bold">
+                        <span class="text-white">${b.time}</span>
+                        <span class="text-[9px] text-amber-300">${b.dominance_ratio}x ${b.dominant_side}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-emerald-400">
+                        <span>Buy Qty:</span> <strong>${formatV5mQty(b.buy_qty)}</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-rose-400">
+                        <span>Sell Qty:</span> <strong>${formatV5mQty(b.sell_qty)}</strong>
+                    </div>
+                    <div class="flex items-center justify-between ${netColor} pt-0.5 border-t border-slate-800/80">
+                        <span>Net Delta:</span> <strong>${netSign}${formatV5mQty(b.net_delta)}</strong>
+                    </div>
+                `;
+            } else {
+                tooltip.classList.add('hidden');
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            tooltip.classList.add('hidden');
+        });
+    }
+
+    function init5mVolumeFlow() {
+        const threshSel = document.getElementById('sel-v5m-alert-thresh');
+        if (threshSel) threshSel.value = String(v5mState.alertThresh);
+
+        const heightSel = document.getElementById('v5m-height-select');
+        if (heightSel) heightSel.value = String(v5mState.height);
+
+        const filterSel = document.getElementById('sel-v5m-table-filter');
+        if (filterSel) filterSel.value = String(v5mState.tableFilter);
+
+        setV5mChartHeight(v5mState.height);
+        setV5mBarMode(v5mState.barMode);
+        set5mViewMode(v5mState.viewMode);
+        setup5mChartInteractions();
+
+        fetch5mVolumeFlow(true);
+
+        if (v5mState.refreshInterval) clearInterval(v5mState.refreshInterval);
+        v5mState.refreshInterval = setInterval(() => {
+            fetch5mVolumeFlow(false);
+        }, 8000);
+
+        window.addEventListener('resize', () => {
+            if (typeof render5mVolumeChart === 'function') {
+                render5mVolumeChart();
+            }
+        });
+    }
+    window.init5mVolumeFlow = init5mVolumeFlow;
+
     // ── 16. EVENT LISTENERS & SETUP ──
     document.addEventListener('DOMContentLoaded', async () => {
         loadAlertSettings();
@@ -9063,6 +10270,15 @@
         }
         if (typeof bootstrapFlowIntelligenceFromDb === 'function') {
             bootstrapFlowIntelligenceFromDb();
+        }
+        if (typeof initSecondaryIntelDrawer === 'function') {
+            initSecondaryIntelDrawer();
+        }
+        if (typeof init5mVolumeFlow === 'function') {
+            init5mVolumeFlow();
+        }
+        if (typeof initOrderFlowLayout === 'function') {
+            initOrderFlowLayout();
         }
 
         const btnLive = document.getElementById('btn-mode-live');

@@ -632,8 +632,17 @@ class NiftyWeightageMonitorController extends Controller
             }
             uasort($sectorAgg, fn($a, $b) => $b['pts'] <=> $a['pts']);
 
+            $candleDurationSec = $interval * 60;
+            $candleStartTs = Carbon::parse("{$date} {$timeStr}:00", 'Asia/Kolkata')->timestamp;
+            $candleEndTs = $candleStartTs + $candleDurationSec;
+            $nowTs = Carbon::now('Asia/Kolkata')->timestamp;
+            $isTodayDate = ($date === Carbon::now('Asia/Kolkata')->toDateString());
+            $isComplete = (!$isTodayDate) || ($nowTs >= $candleEndTs);
+
             $breadthByTime[$timeStr] = [
                 'time'               => $timeStr,
+                'is_complete'        => $isComplete,
+                'status'             => $isComplete ? 'CONFIRMED' : 'IN_PROGRESS',
                 'nifty_open'         => $niftyOpen,
                 'nifty_close'        => $niftyClose,
                 'nifty_move_pts'     => $nCandle['move_pts'],

@@ -88,6 +88,7 @@ class TrendingOiController extends Controller
         $interval   = \App\Services\TimeframeResampler::normalizeInterval($request->input('interval', 5)); // 1, 3, 5, 15, 30, 60, 375
         $customStrikes = $request->input('strikes'); // optional comma separated or array
         $customAtm     = (int) $request->input('atm_strike', 0); // optional manual ATM override
+        $basketMode    = $request->input('basket_mode', 'fixed'); // 'fixed' (locks to morning opening strike) or 'dynamic' (latest spot)
 
         $targetSymbol = ($request->input('symbol') === 'BANKNIFTY' || str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
         $strikeStep   = ($targetSymbol === 'BANKNIFTY') ? 100 : 50;
@@ -133,7 +134,7 @@ class TrendingOiController extends Controller
             Cache::store('file')->forget($cacheKey);
         }
 
-        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $customAtm, $endTime, $skipOpen, $request, $isToday, $targetSymbol, $strikeStep) {
+        $responsePayload = Cache::store('file')->remember($cacheKey, $cacheTtl, function () use ($table, $indexHint, $underlying, $expiry, $date, $interval, $customStrikes, $customAtm, $endTime, $skipOpen, $request, $isToday, $targetSymbol, $strikeStep, $basketMode) {
             // Auto-migration on demand: If this historical date has no records in option_chains_history,
             // automatically migrate this single date from expired_ohlc on-the-fly!
             if (!$isToday && Schema::hasTable('expired_ohlc')) {
@@ -211,15 +212,33 @@ class TrendingOiController extends Controller
             ]);
         }
 
-        // Get latest available snapshot for current spot price & available strikes
+        // Get snapshot for spot price & available strikes (Static 9:15 AM opening ATM vs Dynamic latest spot)
         $latestTimestamp = end($timestamps);
+        $firstTimestamp  = reset($timestamps);
+
+        $spotSnapshotTs = ($basketMode === 'fixed') ? $firstTimestamp : $latestTimestamp;
+        $spotRows = DB::table(DB::raw("{$table}{$indexHint}"))
+            ->where('captured_at', $spotSnapshotTs)
+            ->where('trading_symbol', $targetSymbol)
+            ->where('expiry', $expiry)
+            ->get(['strike_price', 'underlying_spot_price', 'option_type', 'ltp', 'oi']);
+
+        // Fallback to latest snapshot if opening snapshot has no valid spot price
+        if ($spotRows->isEmpty() || !($spotRows->first()->underlying_spot_price > 0)) {
+            $spotRows = DB::table(DB::raw("{$table}{$indexHint}"))
+                ->where('captured_at', $latestTimestamp)
+                ->where('trading_symbol', $targetSymbol)
+                ->where('expiry', $expiry)
+                ->get(['strike_price', 'underlying_spot_price', 'option_type', 'ltp', 'oi']);
+        }
+
         $latestRows = DB::table(DB::raw("{$table}{$indexHint}"))
             ->where('captured_at', $latestTimestamp)
             ->where('trading_symbol', $targetSymbol)
             ->where('expiry', $expiry)
             ->get(['strike_price', 'underlying_spot_price', 'option_type', 'ltp', 'oi']);
 
-        $spot = (float) ($latestRows->first()->underlying_spot_price ?? 0);
+        $spot = (float) ($spotRows->first()->underlying_spot_price ?? 0);
         if ($customAtm > 0) {
             $atmStrike = $customAtm;
         } else {
@@ -653,6 +672,8 @@ class TrendingOiController extends Controller
             'buildup_matrix'         => $buildupMatrix,
             'skip_open'              => $skipOpen,
             'stream_config'          => $streamConfig,
+            'basket_mode'            => $basketMode,
+            'open_atm_strike'        => (int) (round(($spotRows->first()->underlying_spot_price ?? 0) / $strikeStep) * $strikeStep),
         ];
     });
 

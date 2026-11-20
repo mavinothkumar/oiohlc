@@ -1141,13 +1141,23 @@
                         </h3>
 
                         {{-- ⚡ Stream Mode Toggle (Live Stream vs 5 Min) --}}
-                        <div class="flex items-center bg-slate-900/90 p-0.5 rounded border border-slate-700/80 text-[8.5px] font-bold select-none">
+                        <div class="flex items-center bg-slate-900/90 p-0.5 rounded border border-slate-700/80 text-[8.5px] font-bold select-none shrink-0">
                             <button type="button" id="toi-mode-live" onclick="setToiStreamMode('live')" class="px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer bg-emerald-600 text-white shadow-xs" title="Live Webstream via Upstox WebSocket (Real-time OI ticks)">
                                 <span id="toi-stream-dot" class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                                 <span id="toi-stream-label">⚡ Live Stream</span>
                             </button>
                             <button type="button" id="toi-mode-5m" onclick="setToiStreamMode('5m')" class="px-1.5 py-0.5 rounded transition flex items-center gap-1 cursor-pointer text-slate-400 hover:text-white" title="5-Minute Sampled Candles &amp; Polling">
                                 <span>⏱ 5 Min</span>
+                            </button>
+                        </div>
+
+                        {{-- 🎯 ATM Strike Basket Mode Quick Toggle: Static (Morning Open) vs Dynamic (Live Spot) --}}
+                        <div class="flex items-center bg-slate-900/90 p-0.5 rounded border border-slate-700/80 text-[8.5px] font-bold select-none shrink-0" title="ATM Strike Basket Calculation Mode">
+                            <button type="button" id="toi-basket-fixed" onclick="setStrikeBasketMode('fixed')" class="px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer bg-amber-600 text-white shadow-xs" title="Static Morning ATM (Default): Locks strikes to 9:15 AM market opening price all day (Shows true cumulative OI build/unwind)">
+                                <span>⚓ Static</span>
+                            </button>
+                            <button type="button" id="toi-basket-dynamic" onclick="setStrikeBasketMode('dynamic')" class="px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer text-slate-400 hover:text-white" title="Dynamic Floating ATM: Shifts ATM strikes dynamically as market spot rallies/falls">
+                                <span>🚀 Dynamic</span>
                             </button>
                         </div>
                     </div>
@@ -1289,57 +1299,262 @@
                 </div>
             </div>
 
-            <!-- ── ROW 2: OI BUILDUP (HORIZONTAL BAR CHART - ALIGNED WITH ROW 2 OPTIONS) ── -->
-            <div class="cockpit-card p-2 flex flex-col border-amber-900/40 shadow-md">
-                <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-gray-800 flex-nowrap overflow-hidden">
-                    <div class="flex items-center gap-1.5">
-                        <h3 class="text-xs font-bold text-white flex items-center gap-1">🔥 OI Buildup</h3>
-                        <span id="bld-window-badge" class="text-[9px] bg-slate-800 text-sky-300 font-mono font-bold px-1.5 py-0.2 rounded border border-gray-700">
-                            15:20 - 15:25
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-0.5 bg-[#1a1e29] p-0.5 rounded text-[9px] font-bold">
-                        <button type="button" data-tf="5m" class="bld-tf-btn px-1.5 py-0.5 rounded bg-blue-600 text-white cursor-pointer transition">5M</button>
-                        <button type="button" data-tf="15m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">15M</button>
-                        <button type="button" data-tf="30m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">30M</button>
-                        <button type="button" data-tf="today" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">Today</button>
-                    </div>
-                    <div class="flex items-center bg-[#151922] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 ml-1" title="OI Buildup Chart Height">
-                        <span class="text-gray-400 text-[10px] font-bold">H:</span>
-                        <select id="bld-height-select" onchange="setBldChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[11px]" title="Customize OI Buildup Chart Height">
-                            <option value="150" class="bg-[#131722] text-white">150px</option>
-                            <option value="175" class="bg-[#131722] text-white">175px</option>
-                            <option value="195" class="bg-[#131722] text-white">195px</option>
-                            <option value="220" class="bg-[#131722] text-white">220px</option>
-                            <option value="260" class="bg-[#131722] text-white">260px</option>
-                            <option value="300" class="bg-[#131722] text-white">300px</option>
-                        </select>
+            <!-- ── ROW 2: FLOW SYNERGY & OI BUILDUP (TABBED COCKPIT) ── -->
+            <div class="cockpit-card p-2 flex flex-col border-indigo-900/40 shadow-md">
+                <!-- Header with Tab Switcher & Dynamic Controls (Single Line) -->
+                <div class="flex items-center justify-between gap-1 pb-1 mb-1 border-b border-gray-800 flex-nowrap select-none text-[9px] relative z-20">
+                    <!-- Left group: Tabs + Style + Metric + Threshold in one single row -->
+                    <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                        <!-- Tab Switcher (Flow Synergy vs OI Buildup) -->
+                        <div class="flex items-center gap-0.5 bg-[#131722] p-0.5 rounded border border-gray-700/80 shrink-0">
+                            <button type="button" id="tab-btn-synergy" onclick="switchBuildupTab('synergy')" 
+                                class="px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer bg-indigo-600 text-white shadow-xs">
+                                <span>⚡</span>
+                                <span>Synergy</span>
+                            </button>
+                            <button type="button" id="tab-btn-buildup" onclick="switchBuildupTab('buildup')" 
+                                class="px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer text-gray-400 hover:text-white">
+                                <span>🔥</span>
+                                <span>Buildup</span>
+                            </button>
+                        </div>
+
+                        <!-- Dynamic Controls for Flow Synergy Tab -->
+                        <div id="synergy-controls" class="flex items-center gap-1 shrink-0">
+                            <!-- Visual Style Toggle: 📊 Bar | ▦ Matrix -->
+                            <div class="flex items-center bg-[#151922] p-0.5 rounded border border-gray-700/80 text-[8.5px] font-bold" title="Synergy Visual Style">
+                                <button type="button" id="synergy-style-hist" onclick="setSynergyChartStyle('hist')" class="px-1.5 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white" title="Dual Bars around 0 (Default)">📊 Bar</button>
+                                <button type="button" id="synergy-style-matrix" onclick="setSynergyChartStyle('matrix')" class="px-1.5 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white" title="Timeline Barcode Matrix">▦ Matrix</button>
+                            </div>
+
+                            <!-- Metrics Toggle: Both (Weight & Count) | Weight | Count -->
+                            <div class="flex items-center bg-[#151922] p-0.5 rounded border border-gray-700/80 text-[8px] font-bold" title="Stocks Metrics to Display">
+                                <button type="button" id="synergy-metric-both" onclick="setSynergyMetricMode('both')" class="px-1.5 py-0.5 rounded transition cursor-pointer bg-indigo-600 text-white" title="Show Both Weight % and Count %">Wt+Cnt</button>
+                                <button type="button" id="synergy-metric-weight" onclick="setSynergyMetricMode('weight')" class="px-1.5 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white" title="Show Weight % Only">Wt</button>
+                                <button type="button" id="synergy-metric-count" onclick="setSynergyMetricMode('count')" class="px-1.5 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white" title="Show Count % Only">Cnt</button>
+                            </div>
+
+                            <!-- Custom Alert Threshold Selector Popover (Stk Wt, Stk Cnt & Opt Flow) -->
+                            <div class="relative shrink-0" id="synergy-threshold-dropdown-wrap">
+                                <button type="button" id="synergy-threshold-btn" onclick="toggleSynergyThresholdMenu()" 
+                                    class="flex items-center bg-[#151922] hover:bg-[#1a202c] border border-amber-500/50 hover:border-amber-400 rounded px-1.5 py-0.5 gap-1.5 transition cursor-pointer text-[9px] shadow-xs" 
+                                    title="Click to customize Confluence Alert Criteria for Stk Wt, Stk Cnt & Opt Flow">
+                                    <span class="text-amber-400 text-[10px]">⚙️</span>
+                                    <span class="flex items-center gap-1 font-mono text-[9px] font-bold">
+                                        <span class="text-sky-300" title="Strike Weightage Alert Threshold">W:<strong id="th-btn-val-wt">80</strong>%</span>
+                                        <span class="text-teal-300" title="Strike Count Alert Threshold">C:<strong id="th-btn-val-cnt">80</strong>%</span>
+                                        <span class="text-purple-300" title="Option Flow Alert Threshold">O:<strong id="th-btn-val-opt">70</strong>%</span>
+                                    </span>
+                                    <span id="synergy-th-arrow" class="text-amber-300 text-[8px] transition-transform duration-200">▼</span>
+                                </button>
+
+                                <!-- Floating Dropdown Popover Panel -->
+                                <div id="synergy-threshold-popover" class="hidden absolute right-0 top-full mt-1.5 w-72 bg-[#10141e]/98 border border-amber-500/60 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8),0_0_15px_rgba(245,158,11,0.15)] p-3 z-50 space-y-2.5 backdrop-blur-md">
+                                    {{-- Header --}}
+                                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 text-[10px]">
+                                        <div class="flex items-center gap-1.5 font-bold text-amber-300">
+                                            <span>⚙️</span>
+                                            <span>Confluence Alert Criteria (±Threshold)</span>
+                                        </div>
+                                        <button type="button" onclick="toggleSynergyThresholdMenu(false)" class="text-gray-400 hover:text-white font-bold text-xs px-1 py-0.5 rounded hover:bg-slate-800 cursor-pointer">✕</button>
+                                    </div>
+
+                                    {{-- Explanatory hint --}}
+                                    <div class="text-[8.5px] text-gray-400 font-sans leading-tight">
+                                        Set individual criteria for each metric. Enter manually or click <span class="text-amber-300 font-bold">- / +</span> to step by 1 point.
+                                    </div>
+
+                                    {{-- 1. Strike Weightage (Stk Wt) --}}
+                                    <div class="flex items-center justify-between gap-2 p-1.5 rounded bg-[#151922] border border-sky-500/30">
+                                        <div class="flex items-center gap-1.5 text-sky-400 font-bold text-[9.5px] shrink-0" title="Nifty 50 Stocks Weight Dominance">
+                                            <span class="w-2 h-2 rounded-full bg-sky-400 shrink-0"></span>
+                                            <span>Stk Wt (±)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" onclick="stepSynergyThreshold('wt', -1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-sky-700 text-sky-300 font-bold text-xs transition cursor-pointer select-none" title="Decrease Stk Wt by 1 point">-</button>
+                                            <div class="flex items-center bg-[#0d1117] border border-gray-700 rounded px-1.5 py-0.5 focus-within:border-sky-400">
+                                                <input type="number" id="th-input-wt" min="10" max="99" step="1" value="80" oninput="onSynergyThresholdInput('wt', this.value)" class="w-7 text-center bg-transparent text-sky-300 font-mono font-bold text-[11px] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                                <span class="text-gray-400 text-[9px] font-mono">%</span>
+                                            </div>
+                                            <button type="button" onclick="stepSynergyThreshold('wt', 1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-sky-700 text-sky-300 font-bold text-xs transition cursor-pointer select-none" title="Increase Stk Wt by 1 point">+</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- 2. Strike Count (Stk Cnt) --}}
+                                    <div class="flex items-center justify-between gap-2 p-1.5 rounded bg-[#151922] border border-teal-500/30">
+                                        <div class="flex items-center gap-1.5 text-teal-400 font-bold text-[9.5px] shrink-0" title="Nifty 50 Stocks Count Dominance">
+                                            <span class="w-2 h-2 rounded-full bg-teal-400 shrink-0"></span>
+                                            <span>Stk Cnt (±)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" onclick="stepSynergyThreshold('cnt', -1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-teal-700 text-teal-300 font-bold text-xs transition cursor-pointer select-none" title="Decrease Stk Cnt by 1 point">-</button>
+                                            <div class="flex items-center bg-[#0d1117] border border-gray-700 rounded px-1.5 py-0.5 focus-within:border-teal-400">
+                                                <input type="number" id="th-input-cnt" min="10" max="99" step="1" value="80" oninput="onSynergyThresholdInput('cnt', this.value)" class="w-7 text-center bg-transparent text-teal-300 font-mono font-bold text-[11px] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                                <span class="text-gray-400 text-[9px] font-mono">%</span>
+                                            </div>
+                                            <button type="button" onclick="stepSynergyThreshold('cnt', 1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-teal-700 text-teal-300 font-bold text-xs transition cursor-pointer select-none" title="Increase Stk Cnt by 1 point">+</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- 3. Option Flow (Opt Flow) --}}
+                                    <div class="flex items-center justify-between gap-2 p-1.5 rounded bg-[#151922] border border-purple-500/30">
+                                        <div class="flex items-center gap-1.5 text-purple-400 font-bold text-[9.5px] shrink-0" title="Options Flow Dominance">
+                                            <span class="w-2 h-2 rounded-full bg-purple-400 shrink-0"></span>
+                                            <span>Opt Flow (±)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" onclick="stepSynergyThreshold('opt', -1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-purple-700 text-purple-300 font-bold text-xs transition cursor-pointer select-none" title="Decrease Opt Flow by 1 point">-</button>
+                                            <div class="flex items-center bg-[#0d1117] border border-gray-700 rounded px-1.5 py-0.5 focus-within:border-purple-400">
+                                                <input type="number" id="th-input-opt" min="10" max="99" step="1" value="70" oninput="onSynergyThresholdInput('opt', this.value)" class="w-7 text-center bg-transparent text-purple-300 font-mono font-bold text-[11px] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                                <span class="text-gray-400 text-[9px] font-mono">%</span>
+                                            </div>
+                                            <button type="button" onclick="stepSynergyThreshold('opt', 1)" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-purple-700 text-purple-300 font-bold text-xs transition cursor-pointer select-none" title="Increase Opt Flow by 1 point">+</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Quick Presets --}}
+                                    <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between gap-1 text-[8.5px]">
+                                        <span class="text-gray-400 font-bold">Presets:</span>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" onclick="setSynergyThresholdPreset(80, 80, 70)" class="px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 font-mono font-bold transition cursor-pointer" title="Recommended: 80% Stk Wt, 80% Stk Cnt, 70% Opt Flow">80/80/70</button>
+                                            <button type="button" onclick="setSynergyThresholdPreset(75, 75, 75)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-gray-700 font-mono font-bold transition cursor-pointer" title="Equal 75% for all">75/75/75</button>
+                                            <button type="button" onclick="setSynergyThresholdPreset(85, 85, 75)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-gray-700 font-mono font-bold transition cursor-pointer" title="Strict: 85% Stk, 75% Opt">85/85/75</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Controls for Buildup Tab (Hidden by Default) -->
+                        <div id="buildup-controls" class="hidden flex items-center gap-1 shrink-0 flex-nowrap">
+                            <span id="bld-window-badge" class="text-[9px] bg-slate-800 text-sky-300 font-mono font-bold px-1.5 py-0.5 rounded border border-gray-700 whitespace-nowrap shrink-0">
+                                15:20 - 15:25
+                            </span>
+                            <div class="flex items-center gap-0.5 bg-[#1a1e29] p-0.5 rounded text-[9px] font-bold shrink-0">
+                                <button type="button" data-tf="5m" class="bld-tf-btn px-1.5 py-0.5 rounded bg-blue-600 text-white cursor-pointer transition">5M</button>
+                                <button type="button" data-tf="15m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">15M</button>
+                                <button type="button" data-tf="30m" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition">30M</button>
+                                <button type="button" data-tf="today" class="bld-tf-btn px-1.5 py-0.5 rounded text-gray-400 hover:text-white cursor-pointer transition" title="Today">T</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between text-[9px] py-0.5 text-gray-400">
-                    <span id="bld-activity-desc" class="font-semibold text-gray-300">Top 8 Activity (5M)</span>
-                    <div class="flex items-center gap-1.5 text-[8.5px]">
-                        <span class="text-rose-400" title="Short Buildup"><span class="w-1.5 h-1.5 rounded-xs bg-[#dc2626] inline-block"></span> SB</span>
-                        <span class="text-blue-400" title="Short Covering"><span class="w-1.5 h-1.5 rounded-xs bg-[#1e3a8a] inline-block"></span> SC</span>
-                        <span class="text-emerald-400" title="Long Buildup"><span class="w-1.5 h-1.5 rounded-xs bg-[#16a34a] inline-block"></span> LB</span>
-                        <span class="text-yellow-400" title="Long Unwinding"><span class="w-1.5 h-1.5 rounded-xs bg-[#eab308] inline-block"></span> LU</span>
+                <!-- ════ TAB 1 CONTENT: FLOW SYNERGY (STOCKS VS OPTIONS TIMELINE) ════ -->
+                <div id="panel-flow-synergy" class="flex flex-col flex-1">
+                    <!-- Sub-header Micro-Legend & Live Active Verdict (Verdict on Left for Full Visibility) -->
+                    <div class="flex items-center justify-between text-[9px] py-0.5 px-0.5 text-gray-400 border-b border-gray-800/60 mb-1 flex-nowrap overflow-x-auto scrollbar-none gap-2">
+                        <!-- Active Candle Institutional Confluence Verdict (Left Side, Full Space) -->
+                        <div id="synergy-live-verdict" class="flex items-center gap-1 font-mono font-bold text-[9px] text-gray-300 shrink-0" title="Active Candle Institutional Confluence">
+                            <span>Syncing Flow...</span>
+                        </div>
+
+                        <!-- Micro-Legend & Bar View Mode Toggle (Right Side) -->
+                        <div class="flex items-center gap-2 shrink-0 text-[8.5px] ml-auto">
+                            <!-- Bar View Mode Toggle: Scroll vs Fit -->
+                            <div id="synergy-bar-viewmode-container" class="flex items-center bg-[#151922] p-0.5 rounded border border-gray-700/80 mr-1 text-[8px] font-bold">
+                                <button type="button" id="btn-synergy-bar-scroll" onclick="setSynergyBarViewMode('scroll')" class="px-1.5 py-0.2 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs" title="Horizontal Scroll Mode (Generous detailed bars)">↔ Scroll</button>
+                                <button type="button" id="btn-synergy-bar-fit" onclick="setSynergyBarViewMode('fit')" class="px-1.5 py-0.2 rounded transition cursor-pointer text-gray-400 hover:text-white" title="Fit Mode (Squash all candles into current width)">↕ Fit</button>
+                            </div>
+
+                            <!-- Height Selector (Moved down from header to avoid layout overflow) -->
+                            <div class="flex items-center bg-[#151922] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0" title="Card Height">
+                                <span class="text-gray-400 text-[8.5px] font-bold">H:</span>
+                                <select id="bld-height-select" onchange="setBldChartHeight(this.value)" class="bld-height-select bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[9.5px]" title="Customize Chart Height">
+                                    <option value="150" class="bg-[#131722] text-white">150px</option>
+                                    <option value="175" class="bg-[#131722] text-white">175px</option>
+                                    <option value="195" class="bg-[#131722] text-white">195px</option>
+                                    <option value="220" class="bg-[#131722] text-white">220px</option>
+                                    <option value="260" class="bg-[#131722] text-white">260px</option>
+                                    <option value="300" class="bg-[#131722] text-white">300px</option>
+                                </select>
+                            </div>
+
+                            <span class="flex items-center gap-1 text-sky-400 font-semibold" title="Nifty 50 Stocks Weight Dominance (% green if up, % red if down)">
+                                <span class="w-1.5 h-1.5 rounded-xs bg-sky-400 inline-block"></span> Stk Wt
+                            </span>
+                            <span id="synergy-legend-cnt" class="flex items-center gap-1 text-teal-400 font-semibold" title="Nifty 50 Stocks Count Dominance (% green count if up, % red count if down)">
+                                <span class="w-1.5 h-1.5 rounded-xs bg-teal-400 inline-block"></span> Stk Cnt
+                            </span>
+                            <span class="flex items-center gap-1 text-purple-400 font-semibold" title="Options Flow Dominance (% BUY if up, % SELL if down)">
+                                <span class="w-1.5 h-1.5 rounded-xs bg-purple-400 inline-block"></span> Opt Flow
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Chart / Matrix Canvas Wrapper -->
+                    <div id="synergy-chart-wrapper" class="relative w-full flex items-stretch overflow-hidden bg-[#0c1017] rounded-md border border-gray-800/80" style="height: 195px;">
+                        <!-- Fixed Y-Axis Scale Rail on Left (Pinned, Never Scrolls Away) -->
+                        <div id="synergy-yaxis-rail" class="w-10 shrink-0 h-full relative select-none border-r border-gray-800/80 bg-[#0c1017] z-10 block">
+                            <canvas id="chart-synergy-yaxis" class="w-full h-full block"></canvas>
+                        </div>
+
+                        <!-- Horizontally Scrollable Chart Area -->
+                        <div id="synergy-chart-scroll-wrapper" class="flex-1 h-full overflow-x-auto overflow-y-hidden custom-scrollbar relative select-none">
+                            <div id="synergy-canvas-inner-wrapper" class="h-full relative" style="min-width: 100%;">
+                                <canvas id="chart-flow-synergy" class="h-full block"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Matrix / Barcode Strip (Displayed when mode is 'matrix') -->
+                        <div id="synergy-matrix-container" class="hidden absolute inset-0 overflow-x-auto overflow-y-auto scrollbar-thin p-1 bg-[#0f131c] z-20"></div>
+                    </div>
+
+                    <!-- Flow Synergy Session Summary Footer -->
+                    <div class="pt-1 mt-1 border-t border-gray-800 bg-[#181d2a]/80 p-1.5 rounded text-[9.5px] flex items-center justify-between select-none">
+                        <div class="flex items-center gap-2 font-mono text-[9px]">
+                            <span title="Candles where BOTH Stocks & Options broke the Bull Alert Threshold (≥ +75%)">
+                                🔥 Bull Sync: <strong id="synergy-stat-bull" class="text-emerald-400 font-bold">0</strong>
+                            </span>
+                            <span title="Candles where BOTH Stocks & Options broke the Bear Alert Threshold (≤ -75%)">
+                                ⚡ Bear Sync: <strong id="synergy-stat-bear" class="text-rose-400 font-bold">0</strong>
+                            </span>
+                            <span title="Candles with opposing directions (Trap / Divergence)">
+                                ⚠️ Divergent: <strong id="synergy-stat-div" class="text-amber-400 font-bold">0</strong>
+                            </span>
+                        </div>
+                        <span id="synergy-active-time-badge" class="font-mono text-[9px] text-sky-300 font-bold bg-slate-800 px-1.5 py-0.2 rounded border border-gray-700" title="Active Selected Candle Time">09:15</span>
                     </div>
                 </div>
 
-                <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 195px;">
-                    <canvas id="chart-oi-buildup"></canvas>
-                </div>
-
-                <!-- Buildup Summary Footer -->
-                <div class="pt-1 mt-1 border-t border-gray-800 bg-[#181d2a]/80 p-1.5 rounded text-[9.5px] space-y-0.5">
-                    <div class="flex justify-between items-center text-gray-300 font-mono">
-                        <span>CE Net: <strong id="bld-ce-net" class="text-rose-400 font-bold">+0.0 L</strong></span>
-                        <span>PE Net: <strong id="bld-pe-net" class="text-blue-400 font-bold">+0.0 L</strong></span>
+                <!-- ════ TAB 2 CONTENT: OI BUILDUP (HORIZONTAL STRIKE BAR CHART) ════ -->
+                <div id="panel-oi-buildup" class="hidden flex flex-col flex-1">
+                    <div class="flex items-center justify-between text-[9px] py-0.5 text-gray-400">
+                        <span id="bld-activity-desc" class="font-semibold text-gray-300">Top 8 Activity (5M)</span>
+                        <div class="flex items-center gap-1.5 text-[8.5px]">
+                            <!-- Height Selector for Buildup Tab -->
+                            <div class="flex items-center bg-[#151922] border border-gray-700/80 rounded px-1.5 py-0.5 text-xs gap-0.5 shrink-0 mr-1" title="Card Height">
+                                <span class="text-gray-400 text-[8.5px] font-bold">H:</span>
+                                <select onchange="setBldChartHeight(this.value)" class="bld-height-select bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[9.5px]" title="Customize Chart Height">
+                                    <option value="150" class="bg-[#131722] text-white">150px</option>
+                                    <option value="175" class="bg-[#131722] text-white">175px</option>
+                                    <option value="195" class="bg-[#131722] text-white">195px</option>
+                                    <option value="220" class="bg-[#131722] text-white">220px</option>
+                                    <option value="260" class="bg-[#131722] text-white">260px</option>
+                                    <option value="300" class="bg-[#131722] text-white">300px</option>
+                                </select>
+                            </div>
+                            <span class="text-rose-400" title="Short Buildup"><span class="w-1.5 h-1.5 rounded-xs bg-[#dc2626] inline-block"></span> SB</span>
+                            <span class="text-blue-400" title="Short Covering"><span class="w-1.5 h-1.5 rounded-xs bg-[#1e3a8a] inline-block"></span> SC</span>
+                            <span class="text-emerald-400" title="Long Buildup"><span class="w-1.5 h-1.5 rounded-xs bg-[#16a34a] inline-block"></span> LB</span>
+                            <span class="text-yellow-400" title="Long Unwinding"><span class="w-1.5 h-1.5 rounded-xs bg-[#eab308] inline-block"></span> LU</span>
+                        </div>
                     </div>
-                    <div class="text-[9px] text-gray-400 flex justify-between items-center">
-                        <span>Dominant Flow:</span>
-                        <span id="bld-dominant" class="font-bold text-sky-300 text-[9px] truncate max-w-[190px] text-right">---</span>
+
+                    <div id="bld-chart-wrapper" class="relative w-full overflow-hidden" style="height: 195px;">
+                        <canvas id="chart-oi-buildup"></canvas>
+                    </div>
+
+                    <!-- Buildup Summary Footer -->
+                    <div class="pt-1 mt-1 border-t border-gray-800 bg-[#181d2a]/80 p-1.5 rounded text-[9.5px] space-y-0.5">
+                        <div class="flex justify-between items-center text-gray-300 font-mono">
+                            <span>CE Net: <strong id="bld-ce-net" class="text-rose-400 font-bold">+0.0 L</strong></span>
+                            <span>PE Net: <strong id="bld-pe-net" class="text-blue-400 font-bold">+0.0 L</strong></span>
+                        </div>
+                        <div class="text-[9px] text-gray-400 flex justify-between items-center">
+                            <span>Dominant Flow:</span>
+                            <span id="bld-dominant" class="font-bold text-sky-300 text-[9px] truncate max-w-[190px] text-right">---</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1482,6 +1697,18 @@
                             <span>Weight % Only</span>
                         </label>
                     </div>
+                </div>
+
+                <!-- Zero-Repaint: Trigger on Candle Close Only -->
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-[#1a1e29] border border-gray-800 text-xs">
+                    <div>
+                        <span class="font-bold text-white block">Trigger On Candle Close Only (Zero-Repaint)</span>
+                        <span class="text-[10px] text-gray-400">Lock alarms only after candle officially closes (prevents in-progress erasure)</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="alarm-trigger-on-close-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
                 </div>
 
                 <!-- Stocks Chart Markers Toggle -->
@@ -1666,8 +1893,8 @@
                         <span id="cfg-basket-mode-pill" class="text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40">Dynamic Floating</span>
                     </div>
                     <select id="cfg-options-basket-mode" class="w-full bg-[#131722] border border-gray-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer font-medium">
-                        <option value="dynamic" selected>1. 🚀 Dynamic Floating ATM (Auto-tracks Spot ±5 strikes - Recommended for rallies)</option>
-                        <option value="fixed">2. ⚓ Fixed Morning ATM (Locks to 9:15 AM opening strike all day)</option>
+                        <option value="fixed" selected>1. ⚓ Fixed Morning ATM (Locks to 9:15 AM opening strike all day - Default)</option>
+                        <option value="dynamic">2. 🚀 Dynamic Floating ATM (Auto-tracks Spot ±5 strikes - Recommended for rallies)</option>
                     </select>
                     <p class="text-[10px] text-gray-400">
                         Dynamic mode shifts the 11 strikes as NIFTY moves, ensuring ITM/OTM strikes don't skew the breadth score during big trends.
@@ -2601,6 +2828,8 @@
 
         updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
     }
     window.updateTimeframeButtonsUI = updateTimeframeButtonsUI;
 
@@ -2685,6 +2914,7 @@
     const defaultAlarmSettings = {
         masterEnabled: true,
         volume: 1.0,
+        triggerOnClose: true, // Only trigger permanent alarm on confirmed closed candles (zero-repaint)
 
         // 1. NIFTY 50 Stocks Breadth Alert
         stocksAlertEnabled: true,
@@ -2702,7 +2932,7 @@
         optionsShowMarkers: true,
         optionsMarkerMode: 'breach', // 'breach' (≥70% only), 'all' (every candle status), 'off'
         optionsSound: 'pulse',
-        optionsBasketMode: 'dynamic', // 'dynamic' (auto-floating ATM ±5 strikes) or 'fixed' (9:15 AM anchor)
+        optionsBasketMode: 'fixed', // 'fixed' (9:15 AM anchor - Default) or 'dynamic' (auto-floating ATM ±5 strikes)
 
         // 3. High-Probability Confluence Alert (Combined)
         confluenceEnabled: true,
@@ -2738,6 +2968,7 @@
         const saved = localStorage.getItem('nifty_unified_alarm_settings');
         if (saved) {
             alarmSettings = { ...alarmSettings, ...JSON.parse(saved) };
+            if (!alarmSettings.optionsBasketMode) alarmSettings.optionsBasketMode = 'fixed';
             // Auto-heal unreachable options threshold if set > 80% (Options surface rarely hits 80% on 15m+)
             if (alarmSettings.optionsUpThreshold > 80) alarmSettings.optionsUpThreshold = 70;
             if (alarmSettings.optionsDownThreshold > 80) alarmSettings.optionsDownThreshold = 70;
@@ -2767,6 +2998,21 @@
     let oStBearSeries = null;
     let toiChartInstance = null;
     let buildupChartInstance = null;
+
+    // Flow Synergy State (Tabbed Row 2 Cockpit)
+    let currentBuildupTab = localStorage.getItem('nifty_unified_bld_tab') || 'synergy'; // 'synergy' | 'buildup'
+    let synergyChartStyle = localStorage.getItem('nifty_unified_synergy_style') || 'hist'; // 'hist' | 'matrix'
+    if (synergyChartStyle === 'ribbon') {
+        synergyChartStyle = 'hist';
+        try { localStorage.setItem('nifty_unified_synergy_style', 'hist'); } catch (e) {}
+    }
+    let synergyThStkWt = parseInt(localStorage.getItem('nifty_unified_synergy_th_stk_wt') || '80', 10);
+    let synergyThStkCnt = parseInt(localStorage.getItem('nifty_unified_synergy_th_stk_cnt') || '80', 10);
+    let synergyThOptFlow = parseInt(localStorage.getItem('nifty_unified_synergy_th_opt_flow') || '70', 10);
+    let synergyThreshold = synergyThStkWt;
+    let synergyMetricMode = localStorage.getItem('nifty_unified_synergy_metric') || 'both'; // 'both' | 'weight' | 'count'
+    let synergyBarViewMode = localStorage.getItem('nifty_unified_synergy_bar_mode') || 'scroll'; // 'scroll' | 'fit'
+    let flowSynergyChartInstance = null;
 
     // TradingView Style Overlay Settings & Price Lines
     let wFibPriceLines = [];
@@ -3917,10 +4163,16 @@
             ? Number(activeSpot)
             : (trendingOiData.underlying_data?.spot ? Number(trendingOiData.underlying_data.spot) : null);
 
+        const bMode = alarmSettings.optionsBasketMode || 'fixed';
+
         let atmStrike = null;
         if (manualToiAtmStrike !== null && manualToiAtmStrike > 0) {
             atmStrike = manualToiAtmStrike;
+        } else if (bMode === 'fixed' && trendingOiData.atm_strike) {
+            // Static mode: Always anchor to the 9:15 AM morning opening ATM strike returned by API
+            atmStrike = Number(trendingOiData.atm_strike);
         } else if (spotVal && spotVal > 0) {
+            // Dynamic mode: calculate current floating ATM based on live spot
             atmStrike = Math.round(spotVal / strikeStep) * strikeStep;
         } else if (trendingOiData.atm_strike) {
             atmStrike = Number(trendingOiData.atm_strike);
@@ -3965,7 +4217,9 @@
             const isAtm = (atmStrike !== null && s === atmStrike);
             const isManual = (manualToiAtmStrike !== null && s === manualToiAtmStrike);
             if (isAtm) {
-                return `<button type="button" onclick="selectManualAtmStrike(${s})" class="toi-atm-pill px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-[9px] font-mono shadow-[0_0_8px_rgba(251,191,36,0.35)] flex items-center gap-1 shrink-0 ring-1 ring-amber-400/40 whitespace-nowrap cursor-pointer hover:bg-amber-500/30 transition-all" title="${isManual ? 'Manual ATM active. Click to reset to Auto Spot' : 'Active ATM Strike. Click to re-center or pick another'}"><span class="text-amber-400">★</span> ${s.toLocaleString('en-IN')} <span class="text-[7px] ${isManual ? 'bg-amber-300 text-slate-950 font-black' : 'bg-amber-400 text-slate-950 font-black'} px-1 rounded uppercase tracking-wider">${isManual ? 'MANUAL ATM' : 'ATM'}</span></button>`;
+                const atmBadge = isManual ? 'MANUAL' : (bMode === 'fixed' ? 'STATIC' : 'DYNAMIC');
+                const atmBadgeBg = isManual ? 'bg-amber-300 text-slate-950 font-black' : (bMode === 'fixed' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-cyan-400 text-slate-950 font-black');
+                return `<button type="button" onclick="selectManualAtmStrike(${s})" class="toi-atm-pill px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-[9px] font-mono shadow-[0_0_8px_rgba(251,191,36,0.35)] flex items-center gap-1 shrink-0 ring-1 ring-amber-400/40 whitespace-nowrap cursor-pointer hover:bg-amber-500/30 transition-all" title="${isManual ? 'Manual ATM active. Click to reset to Auto' : (bMode === 'fixed' ? 'Static 9:15 AM Market Opening ATM Strike (Locked all day)' : 'Dynamic Floating ATM Strike (Auto-tracks live spot)')}"><span class="text-amber-400">★</span> ${s.toLocaleString('en-IN')} <span class="text-[7px] ${atmBadgeBg} px-1 rounded uppercase tracking-wider">${atmBadge}</span></button>`;
             } else {
                 return `<button type="button" onclick="selectManualAtmStrike(${s})" class="px-1.5 py-0.5 rounded bg-slate-900/90 border border-slate-700/60 text-slate-300 hover:text-amber-300 hover:border-amber-500/60 hover:bg-slate-800 font-semibold text-[9px] font-mono shrink-0 select-none transition-all whitespace-nowrap cursor-pointer" title="Click to set ₹${s.toLocaleString('en-IN')} as ATM Strike & recalibrate Trending OI">${s.toLocaleString('en-IN')}</button>`;
             }
@@ -4015,6 +4269,56 @@
     }
     window.stepManualAtmStrike = stepManualAtmStrike;
 
+    function setStrikeBasketMode(mode) {
+        alarmSettings.optionsBasketMode = mode;
+        try {
+            localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings));
+        } catch (e) {}
+
+        syncStrikeBasketModeUI();
+
+        // Clear manual strike override so mode takes effect
+        manualToiAtmStrike = null;
+        lastRenderedAtmStrike = null;
+
+        // Immediately reload Trending OI and Options Breadth
+        reloadTrendingOiWithInterval(currentTfMinutes || 5);
+        if (typeof reloadChart1Weightage === 'function') reloadChart1Weightage(true);
+        if (typeof reloadChart2Options === 'function') reloadChart2Options(true);
+        if (typeof renderFlowSynergy === 'function') renderFlowSynergy();
+    }
+    window.setStrikeBasketMode = setStrikeBasketMode;
+
+    function syncStrikeBasketModeUI() {
+        const mode = alarmSettings.optionsBasketMode || 'fixed';
+        const btnFixed = document.getElementById('toi-basket-fixed');
+        const btnDynamic = document.getElementById('toi-basket-dynamic');
+        if (btnFixed && btnDynamic) {
+            if (mode === 'fixed') {
+                btnFixed.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer bg-amber-600 text-white shadow-xs';
+                btnDynamic.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer text-slate-400 hover:text-white';
+            } else {
+                btnFixed.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer text-slate-400 hover:text-white';
+                btnDynamic.className = 'px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer bg-cyan-600 text-white shadow-xs';
+            }
+        }
+
+        const oBasketSelect = document.getElementById('cfg-options-basket-mode');
+        if (oBasketSelect && oBasketSelect.value !== mode) {
+            oBasketSelect.value = mode;
+        }
+
+        const oBasketPill = document.getElementById('cfg-basket-mode-pill');
+        if (oBasketPill) {
+            const isDyn = (mode === 'dynamic');
+            oBasketPill.textContent = isDyn ? 'Dynamic Floating' : 'Fixed Morning';
+            oBasketPill.className = isDyn
+                ? 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40'
+                : 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-amber-950 text-amber-300 border border-amber-600/40';
+        }
+    }
+    window.syncStrikeBasketModeUI = syncStrikeBasketModeUI;
+
     function updateTrendingOiDiffBadge(targetIndex = -1) {
         if (!trendingOiData || !trendingOiData.chart) return;
         const chart = trendingOiData.chart;
@@ -4033,7 +4337,8 @@
             ? Number(chart.spot[idx])
             : 0;
 
-        renderTrendingOiStrikes(spotVal > 0 ? spotVal : null);
+        const bMode = alarmSettings.optionsBasketMode || 'fixed';
+        renderTrendingOiStrikes((bMode === 'dynamic' && spotVal > 0) ? spotVal : null);
 
         const diffHero = document.getElementById('toi-bottom-diff-hero');
         const diffPctEl = document.getElementById('toi-bottom-diff-pct') || document.getElementById('toi-bottom-diff-raw');
@@ -5039,6 +5344,8 @@
         } catch(e) {}
         updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
         renderWeightageColumn();
         renderWeightageSuperTrend();
         if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
@@ -5060,6 +5367,8 @@
         } catch(e) {}
         updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
         renderOptionsBreadthColumn();
         renderOptionsSuperTrend();
         if (typeof activeCandleIndex !== 'undefined' && typeof timestampsList !== 'undefined' && timestampsList[activeCandleIndex]) {
@@ -5868,9 +6177,10 @@
             const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
             const currentToiMode = (typeof selectedDate !== 'undefined' && selectedDate === todayStr) ? 'live' : 'history';
             const atmParam = (manualToiAtmStrike !== null && manualToiAtmStrike > 0) ? `&atm_strike=${manualToiAtmStrike}` : '';
-            let resToi = await fetch(`/api/trending-oi/data?mode=${currentToiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
+            const bMode = alarmSettings.optionsBasketMode || 'fixed';
+            let resToi = await fetch(`/api/trending-oi/data?mode=${currentToiMode}&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}&basket_mode=${bMode}`).then(r => r.json());
             if (currentToiMode === 'live' && (!resToi || !resToi.chart || !resToi.chart.labels || resToi.chart.labels.length === 0)) {
-                resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}`).then(r => r.json());
+                resToi = await fetch(`/api/trending-oi/data?mode=history&expiry=${selectedExpiry}&date=${selectedDate}&underlying=NSE_INDEX|Nifty 50&interval=${interval}&lookback=auto&skip_open=0${atmParam}&basket_mode=${bMode}`).then(r => r.json());
             }
             if (resToi && !resToi.error) {
                 trendingOiData = resToi;
@@ -6611,6 +6921,16 @@
         const oBreadth = breadthData?.breadth_by_time?.[timeStr];
         if (!wBreadth && !oBreadth) return;
 
+        // If triggerOnClose is enabled, do not fire alarm modal/audio on an uncompleted forming candle!
+        // Wait until candle closes to guarantee zero repaint & confirmed 50-stock data.
+        if (alarmSettings.triggerOnClose !== false && isLiveMarketOpen()) {
+            const isStkForming = (wBreadth && wBreadth.is_complete === false);
+            const isOptForming = (oBreadth && oBreadth.is_complete === false);
+            if (isStkForming || isOptForming) {
+                return;
+            }
+        }
+
         // Evaluate Stocks Bull/Bear breaches
         const upTh = alarmSettings.stocksUpThreshold || 80;
         const downTh = alarmSettings.stocksDownThreshold || 80;
@@ -7147,10 +7467,16 @@
 
         const el = document.getElementById('bld-chart-wrapper');
         if (el) el.style.height = `${h}px`;
+        const elSyn = document.getElementById('synergy-chart-wrapper');
+        if (elSyn) elSyn.style.height = `${h}px`;
+        document.querySelectorAll('.bld-height-select').forEach(sel => {
+            if (sel && sel.value !== String(h)) sel.value = String(h);
+        });
         const sel = document.getElementById('bld-height-select');
         if (sel && sel.value !== String(h)) sel.value = String(h);
 
         if (buildupChartInstance) buildupChartInstance.resize();
+        if (flowSynergyChartInstance) flowSynergyChartInstance.resize();
     }
     window.setBldChartHeight = setBldChartHeight;
 
@@ -7401,6 +7727,8 @@
         updateTvToolsUI();
         updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
         renderAllChartOverlays();
     }
 
@@ -7408,7 +7736,7 @@
     async function reloadChart1Weightage(isSilent = false) {
         if (!isSilent) document.getElementById('w-chart-loading')?.classList.remove('hidden');
         const minutes = getTfMinutes(wTimeframe);
-        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+        const bMode = alarmSettings.optionsBasketMode || 'fixed';
         try {
             const [stkRes, optRes] = await Promise.all([
                 fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&basis=${wChartBasis}&_t=${Date.now()}`).then(r => r.json()),
@@ -7442,6 +7770,8 @@
             buildMasterTimeline();
             updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
             if (typeof syncActiveCandleIndex === 'function' && typeof activeCandleIndex !== 'undefined') {
                 syncActiveCandleIndex(activeCandleIndex);
             }
@@ -7456,7 +7786,7 @@
     async function reloadChart2Options(isSilent = false) {
         if (!isSilent) document.getElementById('o-chart-loading')?.classList.remove('hidden');
         const minutes = getTfMinutes(oTimeframe);
-        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+        const bMode = alarmSettings.optionsBasketMode || 'fixed';
         try {
             const [stkRes, optRes] = await Promise.all([
                 fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${minutes}&basis=${oChartBasis}&_t=${Date.now()}`).then(r => r.json()),
@@ -7495,6 +7825,8 @@
             buildMasterTimeline();
             updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
             if (typeof syncActiveCandleIndex === 'function' && typeof activeCandleIndex !== 'undefined') {
                 syncActiveCandleIndex(activeCandleIndex);
             }
@@ -7931,7 +8263,7 @@
 
         const wMin = getTfMinutes(wTimeframe);
         const oMin = getTfMinutes(oTimeframe);
-        const bMode = alarmSettings.optionsBasketMode || 'dynamic';
+        const bMode = alarmSettings.optionsBasketMode || 'fixed';
 
         // 1. Fetch Chart 1 Stocks & Options (wTimeframe with wChartBasis)
         const pChart1Stk = fetchJsonSafe(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&basis=${wChartBasis}&_t=${Date.now()}`)
@@ -8078,6 +8410,9 @@
             renderWeightageColumn();
             renderOptionsBreadthColumn();
             applyAllSectionHeights();
+            if (typeof renderFlowSynergy === 'function') {
+                renderFlowSynergy();
+            }
             if (timestampsList && timestampsList.length > 0) {
                 if (isLiveMarketOpen() && !isPlaying) {
                     snapToLiveCandle();
@@ -8086,6 +8421,10 @@
                         ? activeCandleIndex
                         : (timestampsList.length - 1);
                     syncActiveCandleIndex(targetIdx);
+                }
+                // Check alarms: when market is live, check the last completed candle to confirm signals upon close!
+                if (isLiveMarketOpen() && timestampsList.length >= 2) {
+                    checkAlarmConditions(timestampsList[timestampsList.length - 2]);
                 }
                 checkAlarmConditions(timestampsList[timestampsList.length - 1]);
                 updateOverallAndTriggerStats(activeCandleIndex >= 0 ? activeCandleIndex : timestampsList.length - 1);
@@ -8252,8 +8591,11 @@
                         oPct = oBull ? Math.round(oUw) : (oBear ? Math.round(oDw) : 0);
                     }
 
+                    const isLastCandle  = (cIdx === rawCandles.length - 1);
+                    const isCandleLive  = isLastCandle && (isLiveMarketOpen() || (b && b.is_complete === false) || (oB && oB.is_complete === false));
                     const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
                     const openTag       = isOpenCandle ? ' [OPEN]' : '';
+                    const liveTag       = isCandleLive ? ' ⏳LIVE' : '';
 
                     const wHaAnalysis = getCandleHaWickAnalysis(candleTime, false, c.time_str);
                     const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
@@ -8355,7 +8697,7 @@
                             position: confSig.pos,
                             color: confSig.color,
                             shape: confSig.shape,
-                            text: confSig.text + openTag,
+                            text: confSig.text + openTag + liveTag,
                             size: 1,
                         });
                         candleHasMarker = true;
@@ -8368,7 +8710,7 @@
                                 position: stkSig.pos,
                                 color: stkSig.color,
                                 shape: stkSig.shape,
-                                text: stkSig.text + openTag,
+                                text: stkSig.text + openTag + liveTag,
                                 size: 1,
                             });
                             pushedStk = true;
@@ -8384,7 +8726,7 @@
                                     position: optSig.pos,
                                     color: optSig.color,
                                     shape: optSig.shape,
-                                    text: optSig.text + openTag,
+                                    text: optSig.text + openTag + liveTag,
                                     size: 1,
                                 });
                                 candleHasMarker = true;
@@ -8392,15 +8734,26 @@
                         }
                     }
 
-                    if (!candleHasMarker && isOpenCandle) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#38bdf8',
-                            shape: 'arrowDown',
-                            text: 'TODAY',
-                            size: 1,
-                        });
+                    if (!candleHasMarker) {
+                        if (isOpenCandle) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#38bdf8',
+                                shape: 'arrowDown',
+                                text: 'TODAY',
+                                size: 1,
+                            });
+                        } else if (isCandleLive) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#38bdf8',
+                                shape: 'arrowDown',
+                                text: '⏳ LIVE',
+                                size: 1,
+                            });
+                        }
                     }
                 });
             } else {
@@ -8542,11 +8895,14 @@
                         sPct = sBull ? Math.round(sB.green_count_pct) : (sBear ? Math.round(sB.red_count_pct) : 0);
                     }
 
-                    const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
-                    const openTag       = isOpenCandle ? ' [OPEN]' : '';
-
                     const oHaAnalysis = getCandleHaWickAnalysis(candleTime, true, c.time_str);
                     const useOptionsHa = (alarmSettings.optionsHaWickFilter !== false);
+
+                    const isLastCandle  = (cIdx === rawCandles.length - 1);
+                    const isCandleLive  = isLastCandle && (isLiveMarketOpen() || (ob && ob.is_complete === false) || (sB && sB.is_complete === false));
+                    const isOpenCandle  = (cIdx === 0 && yesterdayCandles.length > 0);
+                    const openTag       = isOpenCandle ? ' [OPEN]' : '';
+                    const liveTag       = isCandleLive ? ' ⏳LIVE' : '';
 
                     const wHaAnalysis = showStocks ? getCandleHaWickAnalysis(candleTime, false, c.time_str) : null;
                     const useStocksHa = (alarmSettings.stocksHaWickFilter !== false);
@@ -8643,7 +8999,7 @@
                             position: confSig.pos,
                             color: confSig.color,
                             shape: confSig.shape,
-                            text: confSig.text + openTag,
+                            text: confSig.text + openTag + liveTag,
                             size: 1,
                         });
                         candleHasMarker = true;
@@ -8656,7 +9012,7 @@
                                 position: optSig.pos,
                                 color: optSig.color,
                                 shape: optSig.shape,
-                                text: optSig.text + openTag,
+                                text: optSig.text + openTag + liveTag,
                                 size: 1,
                             });
                             pushedOpt = true;
@@ -8672,7 +9028,7 @@
                                     position: stkSig.pos,
                                     color: stkSig.color,
                                     shape: stkSig.shape,
-                                    text: stkSig.text + openTag,
+                                    text: stkSig.text + openTag + liveTag,
                                     size: 1,
                                 });
                                 candleHasMarker = true;
@@ -8680,15 +9036,26 @@
                         }
                     }
 
-                    if (!candleHasMarker && isOpenCandle) {
-                        markers.push({
-                            time: candleTime,
-                            position: 'aboveBar',
-                            color: '#818cf8',
-                            shape: 'arrowDown',
-                            text: 'TODAY',
-                            size: 1,
-                        });
+                    if (!candleHasMarker) {
+                        if (isOpenCandle) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#818cf8',
+                                shape: 'arrowDown',
+                                text: 'TODAY',
+                                size: 1,
+                            });
+                        } else if (isCandleLive) {
+                            markers.push({
+                                time: candleTime,
+                                position: 'aboveBar',
+                                color: '#a855f7',
+                                shape: 'arrowDown',
+                                text: '⏳ LIVE',
+                                size: 1,
+                            });
+                        }
                     }
                 });
             } else {
@@ -9103,6 +9470,966 @@
             },
             plugins: [inBarLabelsPlugin]
         });
+    }
+
+    // ── 9b. FLOW SYNERGY ENGINE (TAB 1: STOCKS VS OPTIONS TIMELINE CONFLUENCE) ────
+    function switchBuildupTab(tab) {
+        currentBuildupTab = tab;
+        try { localStorage.setItem('nifty_unified_bld_tab', tab); } catch (e) {}
+        syncBuildupTabUI();
+        if (tab === 'synergy') {
+            renderFlowSynergy();
+        } else {
+            renderStrikeBuildupChart();
+        }
+    }
+    window.switchBuildupTab = switchBuildupTab;
+
+    function syncBuildupTabUI() {
+        const btnSyn = document.getElementById('tab-btn-synergy');
+        const btnBld = document.getElementById('tab-btn-buildup');
+        const panSyn = document.getElementById('panel-flow-synergy');
+        const panBld = document.getElementById('panel-oi-buildup');
+        const ctrlSyn = document.getElementById('synergy-controls');
+        const ctrlBld = document.getElementById('buildup-controls');
+
+        if (currentBuildupTab === 'synergy') {
+            if (btnSyn) btnSyn.className = 'px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer bg-indigo-600 text-white shadow-xs';
+            if (btnBld) btnBld.className = 'px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer text-gray-400 hover:text-white';
+            if (panSyn) panSyn.classList.remove('hidden');
+            if (panBld) panBld.classList.add('hidden');
+            if (ctrlSyn) { ctrlSyn.classList.remove('hidden'); ctrlSyn.classList.add('flex'); }
+            if (ctrlBld) { ctrlBld.classList.add('hidden'); ctrlBld.classList.remove('flex'); }
+        } else {
+            if (btnSyn) btnSyn.className = 'px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer text-gray-400 hover:text-white';
+            if (btnBld) btnBld.className = 'px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer bg-amber-600 text-white shadow-xs';
+            if (panSyn) panSyn.classList.add('hidden');
+            if (panBld) panBld.classList.remove('hidden');
+            if (ctrlSyn) { ctrlSyn.classList.add('hidden'); ctrlSyn.classList.remove('flex'); }
+            if (ctrlBld) { ctrlBld.classList.remove('hidden'); ctrlBld.classList.add('flex'); }
+        }
+    }
+    window.syncBuildupTabUI = syncBuildupTabUI;
+
+    function setSynergyChartStyle(style) {
+        synergyChartStyle = style;
+        try { localStorage.setItem('nifty_unified_synergy_style', style); } catch (e) {}
+        syncSynergyControlsUI();
+        renderFlowSynergy();
+    }
+    window.setSynergyChartStyle = setSynergyChartStyle;
+
+    function setSynergyMetricMode(mode) {
+        synergyMetricMode = mode;
+        try { localStorage.setItem('nifty_unified_synergy_metric', mode); } catch (e) {}
+        syncSynergyControlsUI();
+        renderFlowSynergy();
+    }
+    window.setSynergyMetricMode = setSynergyMetricMode;
+
+    function toggleSynergyThresholdMenu(forceState = null) {
+        const popover = document.getElementById('synergy-threshold-popover');
+        const arrow = document.getElementById('synergy-th-arrow');
+        if (!popover) return;
+        const isHidden = popover.classList.contains('hidden');
+        const shouldOpen = forceState !== null ? forceState : isHidden;
+        if (shouldOpen) {
+            popover.classList.remove('hidden');
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+            syncSynergyThresholdInputs();
+        } else {
+            popover.classList.add('hidden');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+    window.toggleSynergyThresholdMenu = toggleSynergyThresholdMenu;
+
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('synergy-threshold-dropdown-wrap');
+        const popover = document.getElementById('synergy-threshold-popover');
+        if (!popover || popover.classList.contains('hidden')) return;
+        if (wrap && !wrap.contains(e.target) && (!e.composedPath || !e.composedPath().includes(wrap))) {
+            toggleSynergyThresholdMenu(false);
+        }
+    });
+
+    function syncSynergyThresholdInputs() {
+        const inWt = document.getElementById('th-input-wt');
+        const inCnt = document.getElementById('th-input-cnt');
+        const inOpt = document.getElementById('th-input-opt');
+        const btnWt = document.getElementById('th-btn-val-wt');
+        const btnCnt = document.getElementById('th-btn-val-cnt');
+        const btnOpt = document.getElementById('th-btn-val-opt');
+
+        if (inWt) inWt.value = synergyThStkWt;
+        if (inCnt) inCnt.value = synergyThStkCnt;
+        if (inOpt) inOpt.value = synergyThOptFlow;
+
+        if (btnWt) btnWt.textContent = synergyThStkWt;
+        if (btnCnt) btnCnt.textContent = synergyThStkCnt;
+        if (btnOpt) btnOpt.textContent = synergyThOptFlow;
+    }
+    window.syncSynergyThresholdInputs = syncSynergyThresholdInputs;
+
+    function onSynergyThresholdInput(type, val) {
+        let num = parseInt(val, 10);
+        if (isNaN(num)) return;
+        num = Math.max(10, Math.min(99, num));
+        applySynergyThresholdVal(type, num);
+    }
+    window.onSynergyThresholdInput = onSynergyThresholdInput;
+
+    function stepSynergyThreshold(type, step) {
+        let current = 75;
+        if (type === 'wt') current = synergyThStkWt;
+        else if (type === 'cnt') current = synergyThStkCnt;
+        else if (type === 'opt') current = synergyThOptFlow;
+
+        const nextVal = Math.max(10, Math.min(99, current + step));
+        applySynergyThresholdVal(type, nextVal);
+    }
+    window.stepSynergyThreshold = stepSynergyThreshold;
+
+    function applySynergyThresholdVal(type, val) {
+        if (type === 'wt') {
+            synergyThStkWt = val;
+            synergyThreshold = val;
+            try { localStorage.setItem('nifty_unified_synergy_th_stk_wt', val); } catch (e) {}
+        } else if (type === 'cnt') {
+            synergyThStkCnt = val;
+            try { localStorage.setItem('nifty_unified_synergy_th_stk_cnt', val); } catch (e) {}
+        } else if (type === 'opt') {
+            synergyThOptFlow = val;
+            try { localStorage.setItem('nifty_unified_synergy_th_opt_flow', val); } catch (e) {}
+        }
+        syncSynergyThresholdInputs();
+        renderFlowSynergy();
+    }
+
+    function setSynergyThresholdPreset(wt, cnt, opt) {
+        synergyThStkWt = wt;
+        synergyThStkCnt = cnt;
+        synergyThOptFlow = opt;
+        synergyThreshold = wt;
+        try {
+            localStorage.setItem('nifty_unified_synergy_th_stk_wt', wt);
+            localStorage.setItem('nifty_unified_synergy_th_stk_cnt', cnt);
+            localStorage.setItem('nifty_unified_synergy_th_opt_flow', opt);
+        } catch (e) {}
+        syncSynergyThresholdInputs();
+        renderFlowSynergy();
+    }
+    window.setSynergyThresholdPreset = setSynergyThresholdPreset;
+
+    function setSynergyThreshold(val) {
+        const num = parseInt(val, 10) || 75;
+        setSynergyThresholdPreset(num, num, num);
+    }
+    window.setSynergyThreshold = setSynergyThreshold;
+
+    function setSynergyBarViewMode(mode) {
+        synergyBarViewMode = mode;
+        try { localStorage.setItem('nifty_unified_synergy_bar_mode', mode); } catch (e) {}
+        syncSynergyControlsUI();
+        renderFlowSynergy();
+    }
+    window.setSynergyBarViewMode = setSynergyBarViewMode;
+
+    function syncSynergyControlsUI() {
+        const styles = ['hist', 'matrix'];
+        styles.forEach(s => {
+            const btn = document.getElementById(`synergy-style-${s}`);
+            if (btn) {
+                if (synergyChartStyle === s) {
+                    btn.className = 'px-1.5 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs';
+                } else {
+                    btn.className = 'px-1.5 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white';
+                }
+            }
+        });
+
+        const metrics = ['both', 'weight', 'count'];
+        metrics.forEach(m => {
+            const btn = document.getElementById(`synergy-metric-${m}`);
+            if (btn) {
+                if (synergyMetricMode === m) {
+                    btn.className = 'px-1.5 py-0.5 rounded transition cursor-pointer bg-indigo-600 text-white shadow-xs';
+                } else {
+                    btn.className = 'px-1.5 py-0.5 rounded transition cursor-pointer text-gray-400 hover:text-white';
+                }
+            }
+        });
+
+        // Bar view mode toggle: Scroll vs Fit
+        const btnScroll = document.getElementById('btn-synergy-bar-scroll');
+        const btnFit = document.getElementById('btn-synergy-bar-fit');
+        const vmContainer = document.getElementById('synergy-bar-viewmode-container');
+        if (vmContainer) {
+            vmContainer.style.display = (synergyChartStyle === 'hist') ? 'flex' : 'none';
+        }
+        if (btnScroll && btnFit) {
+            if (synergyBarViewMode === 'scroll') {
+                btnScroll.className = 'px-1.5 py-0.2 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs';
+                btnFit.className = 'px-1.5 py-0.2 rounded transition cursor-pointer text-gray-400 hover:text-white';
+            } else {
+                btnScroll.className = 'px-1.5 py-0.2 rounded transition cursor-pointer text-gray-400 hover:text-white';
+                btnFit.className = 'px-1.5 py-0.2 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs';
+            }
+        }
+
+        syncSynergyThresholdInputs();
+
+        const legendCnt = document.getElementById('synergy-legend-cnt');
+        if (legendCnt) {
+            legendCnt.style.display = (synergyMetricMode === 'weight') ? 'none' : 'flex';
+        }
+    }
+    window.syncSynergyControlsUI = syncSynergyControlsUI;
+
+    function getSynergyDataPoints() {
+        let times = (timestampsList && timestampsList.length > 0)
+            ? [...timestampsList]
+            : Object.keys(weightageData?.breadth_by_time || {}).sort();
+
+        if (!times || times.length === 0) {
+            const wKeys = Object.keys(weightageData?.breadth_by_time || {});
+            const oKeys = Object.keys(breadthData?.breadth_by_time || {});
+            times = Array.from(new Set([...wKeys, ...oKeys])).sort();
+        }
+
+        if (!times || times.length === 0) return [];
+
+        const points = [];
+
+        times.forEach((t, idx) => {
+            const s = weightageData?.breadth_by_time?.[t];
+            const o = breadthData?.breadth_by_time?.[t] || wBreadthData?.breadth_by_time?.[t];
+
+            // 1. NIFTY 50 STOCKS: Dominant value (highest either green or red)
+            let stkWt = 0;
+            let stkCnt = 0;
+            let stkDominant = 'NEUTRAL';
+
+            if (s) {
+                const gw = Number(s.green_weight || 0);
+                const rw = Number(s.red_weight || 0);
+                const gc = Number(s.green_count_pct || 0);
+                const rc = Number(s.red_count_pct || 0);
+
+                if (gw >= rw) {
+                    stkWt = Math.round(gw);
+                    stkCnt = Math.round(gc);
+                    stkDominant = 'BULL';
+                } else {
+                    stkWt = -Math.round(rw);
+                    stkCnt = -Math.round(rc);
+                    stkDominant = 'BEAR';
+                }
+            }
+
+            // 2. OPTIONS FLOW: Dominant value (highest either BUY or SELL)
+            let optVal = 0;
+            let optDominant = 'NEUTRAL';
+
+            if (o) {
+                const uw = Number(o.up_weight || 0);
+                const dw = Number(o.down_weight || 0);
+                if (uw >= dw) {
+                    optVal = Math.round(uw);
+                    optDominant = 'BULL';
+                } else {
+                    optVal = -Math.round(dw);
+                    optDominant = 'BEAR';
+                }
+            }
+
+            // 3. Confluence / Divergence Classification with Item-Specific Criteria
+            let isStkBull = false;
+            let isStkBear = false;
+            if (synergyMetricMode === 'both') {
+                isStkBull = (stkWt >= synergyThStkWt && stkCnt >= synergyThStkCnt);
+                isStkBear = (stkWt <= -synergyThStkWt && stkCnt <= -synergyThStkCnt);
+            } else if (synergyMetricMode === 'weight') {
+                isStkBull = (stkWt >= synergyThStkWt);
+                isStkBear = (stkWt <= -synergyThStkWt);
+            } else if (synergyMetricMode === 'count') {
+                isStkBull = (stkCnt >= synergyThStkCnt);
+                isStkBear = (stkCnt <= -synergyThStkCnt);
+            }
+
+            const isOptBull = (optVal >= synergyThOptFlow);
+            const isOptBear = (optVal <= -synergyThOptFlow);
+
+            let status = 'NEUTRAL';
+            if (isStkBull && isOptBull) {
+                status = 'BULL_SYNC'; // Both passing Bull Alert Thresholds
+            } else if (isStkBear && isOptBear) {
+                status = 'BEAR_SYNC'; // Both passing Bear Alert Thresholds
+            } else if ((stkWt >= 25 && optVal <= -25) || (stkWt <= -25 && optVal >= 25)) {
+                status = 'DIVERGENT'; // Opposite directions
+            }
+
+            points.push({
+                index: idx,
+                time: t,
+                stkWt,
+                stkCnt,
+                optVal,
+                stkDominant,
+                optDominant,
+                status,
+                sRaw: s,
+                oRaw: o
+            });
+        });
+
+        return points;
+    }
+    window.getSynergyDataPoints = getSynergyDataPoints;
+
+    function renderFlowSynergy() {
+        const points = getSynergyDataPoints();
+        const canvas = document.getElementById('chart-flow-synergy');
+        const matrixContainer = document.getElementById('synergy-matrix-container');
+        if (!canvas && !matrixContainer) return;
+
+        // 1. Session Confluence Summary Counts
+        let bullSyncCount = 0;
+        let bearSyncCount = 0;
+        let divergentCount = 0;
+
+        points.forEach(p => {
+            if (p.status === 'BULL_SYNC') bullSyncCount++;
+            else if (p.status === 'BEAR_SYNC') bearSyncCount++;
+            else if (p.status === 'DIVERGENT') divergentCount++;
+        });
+
+        const bullEl = document.getElementById('synergy-stat-bull');
+        if (bullEl) bullEl.textContent = bullSyncCount;
+        const bearEl = document.getElementById('synergy-stat-bear');
+        if (bearEl) bearEl.textContent = bearSyncCount;
+        const divEl = document.getElementById('synergy-stat-div');
+        if (divEl) divEl.textContent = divergentCount;
+
+        // 2. Active Candle Verdict Header
+        const activeTime = (timestampsList && activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length)
+            ? timestampsList[activeCandleIndex]
+            : (points.length > 0 ? points[points.length - 1].time : '09:15');
+
+        const activePoint = points.find(p => p.time === activeTime) || points[points.length - 1];
+
+        const activeBadge = document.getElementById('synergy-active-time-badge');
+        if (activeBadge) activeBadge.textContent = activeTime;
+
+        const verdictEl = document.getElementById('synergy-live-verdict');
+        if (verdictEl && activePoint) {
+            const sSign = activePoint.stkWt >= 0 ? '+' : '';
+            const oSign = activePoint.optVal >= 0 ? '+' : '';
+            let vText = '';
+            let vClass = 'text-gray-300';
+
+            if (activePoint.status === 'BULL_SYNC') {
+                vText = `🔥 BULL SYNC`;
+                vClass = 'text-emerald-400 font-extrabold animate-pulse';
+            } else if (activePoint.status === 'BEAR_SYNC') {
+                vText = `⚡ BEAR SYNC`;
+                vClass = 'text-rose-400 font-extrabold animate-pulse';
+            } else if (activePoint.status === 'DIVERGENT') {
+                vText = `⚠️ DIVERGENT`;
+                vClass = 'text-amber-400 font-bold';
+            } else {
+                vText = `⚖️ Equilibrium`;
+                vClass = 'text-slate-400';
+            }
+
+            verdictEl.innerHTML = `<span class="text-gray-400">${activeTime}:</span> <span class="text-sky-300">Stk ${sSign}${activePoint.stkWt}%</span> · <span class="text-purple-300">Opt ${oSign}${activePoint.optVal}%</span> · <span class="${vClass}">${vText}</span>`;
+        }
+
+        if (points.length === 0) return;
+
+        // 3. Dispatch to Selected Visual Style
+        if (synergyChartStyle === 'matrix') {
+            if (canvas) canvas.classList.add('hidden');
+            if (matrixContainer) {
+                matrixContainer.classList.remove('hidden');
+                renderSynergyMatrix(points, activeTime);
+            }
+            if (flowSynergyChartInstance) {
+                flowSynergyChartInstance.destroy();
+                flowSynergyChartInstance = null;
+            }
+            return;
+        }
+
+        if (matrixContainer) matrixContainer.classList.add('hidden');
+        if (canvas) canvas.classList.remove('hidden');
+
+        renderSynergyChartJs(points, activeTime);
+    }
+    window.renderFlowSynergy = renderFlowSynergy;
+
+    function renderSynergyChartJs(points, activeTime) {
+        const canvas = document.getElementById('chart-flow-synergy');
+        if (!canvas) return;
+
+        if (flowSynergyChartInstance) {
+            flowSynergyChartInstance.destroy();
+            flowSynergyChartInstance = null;
+        }
+
+        // Show latest candle first on the left, oldest later on the right
+        const displayPoints = [...points].reverse();
+        const labels = displayPoints.map(p => p.time);
+        const datasets = [];
+
+        // Dynamic Sizing for Horizontal Scroll vs Fit View
+        const scrollWrapper = document.getElementById('synergy-chart-scroll-wrapper');
+        const innerWrapper = document.getElementById('synergy-canvas-inner-wrapper');
+        const yAxisRail = document.getElementById('synergy-yaxis-rail');
+        const isScroll = (synergyBarViewMode !== 'fit');
+
+        if (scrollWrapper && innerWrapper) {
+            if (isScroll) {
+                if (yAxisRail) yAxisRail.classList.remove('hidden');
+                const availWidth = scrollWrapper.clientWidth || 700;
+                // 40px per candle in Wt+Cnt mode (gives each bar ~8.5px with clean 10px spacing between candles)
+                const candleWidth = (synergyMetricMode === 'both') ? 40 : 34;
+                const requiredWidth = Math.max(availWidth, displayPoints.length * candleWidth + 24);
+                innerWrapper.style.width = `${requiredWidth}px`;
+                innerWrapper.style.minWidth = '100%';
+                scrollWrapper.style.overflowX = 'auto';
+            } else {
+                if (yAxisRail) yAxisRail.classList.add('hidden');
+                innerWrapper.style.width = '100%';
+                innerWrapper.style.minWidth = '100%';
+                scrollWrapper.style.overflowX = 'hidden';
+            }
+
+            // Bind horizontal mouse-wheel glide
+            if (!scrollWrapper._wheelBound) {
+                scrollWrapper._wheelBound = true;
+                scrollWrapper.addEventListener('wheel', (evt) => {
+                    if (evt.deltaY !== 0 && !evt.shiftKey) {
+                        evt.preventDefault();
+                        scrollWrapper.scrollLeft += evt.deltaY;
+                    }
+                }, { passive: false });
+            }
+        }
+
+        // Dataset 1: Stocks Weight %
+        if (synergyMetricMode === 'both' || synergyMetricMode === 'weight') {
+            const stkWtData = displayPoints.map(p => p.stkWt);
+            const stkWtColors = displayPoints.map(p => p.stkWt >= 0 ? '#38bdf8' : '#f43f5e');
+            datasets.push({
+                type: 'bar',
+                label: 'Stocks Wt %',
+                data: stkWtData,
+                backgroundColor: stkWtColors,
+                borderColor: stkWtColors,
+                borderWidth: 1,
+                borderRadius: 2,
+                barPercentage: (synergyMetricMode === 'both') ? 0.92 : 0.85,
+                categoryPercentage: 0.82,
+            });
+        }
+
+        // Dataset 2: Stocks Count %
+        if (synergyMetricMode === 'both' || synergyMetricMode === 'count') {
+            const stkCntData = displayPoints.map(p => p.stkCnt);
+            const stkCntColors = displayPoints.map(p => p.stkCnt >= 0 ? '#2dd4bf' : '#fb923c');
+            datasets.push({
+                type: 'bar',
+                label: 'Stocks Cnt %',
+                data: stkCntData,
+                backgroundColor: stkCntColors,
+                borderColor: stkCntColors,
+                borderWidth: 1,
+                borderRadius: 2,
+                barPercentage: (synergyMetricMode === 'both') ? 0.92 : 0.85,
+                categoryPercentage: 0.82,
+            });
+        }
+
+        // Dataset 3: Options Flow %
+        const optData = displayPoints.map(p => p.optVal);
+        const optColors = displayPoints.map(p => p.optVal >= 0 ? '#a855f7' : '#e11d48');
+        datasets.push({
+            type: 'bar',
+            label: 'Options Flow %',
+            data: optData,
+            backgroundColor: optColors,
+            borderColor: optColors,
+            borderWidth: 1,
+            borderRadius: 2,
+            barPercentage: (synergyMetricMode === 'both') ? 0.92 : 0.85,
+            categoryPercentage: 0.82,
+        });
+
+        // Custom Plugin for Fixed Left Y-Axis Rail, Threshold Zones, and Prominent Glyphs
+        const synergyPlugin = {
+            id: 'synergyPlugin',
+            afterDraw(chart) {
+                const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
+                if (!y || !x) return;
+
+                // 1. Render Fixed Left Y-Axis Rail Canvas
+                if (isScroll) {
+                    const yAxisCanvas = document.getElementById('chart-synergy-yaxis');
+                    if (yAxisCanvas && chart.scales.y) {
+                        const dpr = window.devicePixelRatio || 1;
+                        const rect = yAxisCanvas.getBoundingClientRect();
+                        if (rect.width > 0 && rect.height > 0) {
+                            if (yAxisCanvas.width !== Math.round(rect.width * dpr) || yAxisCanvas.height !== Math.round(rect.height * dpr)) {
+                                yAxisCanvas.width = Math.round(rect.width * dpr);
+                                yAxisCanvas.height = Math.round(rect.height * dpr);
+                            }
+                            const yCtx = yAxisCanvas.getContext('2d');
+                            yCtx.save();
+                            yCtx.scale(dpr, dpr);
+                            yCtx.clearRect(0, 0, rect.width, rect.height);
+
+                            const yTicks = [100, 50, 0, -50, -100];
+                            yTicks.forEach(val => {
+                                const yPos = chart.scales.y.getPixelForValue(val);
+                                if (yPos >= top - 2 && yPos <= bottom + 2) {
+                                    yCtx.fillStyle = (val === 0) ? '#94a3b8' : (val > 0 ? '#34d399' : '#f43f5e');
+                                    yCtx.font = (val === 0 || Math.abs(val) === 100) ? 'bold 8.5px monospace' : '8px monospace';
+                                    yCtx.textAlign = 'right';
+                                    yCtx.textBaseline = 'middle';
+                                    yCtx.fillText(`${val > 0 ? '+' : ''}${val}%`, rect.width - 4, yPos);
+                                }
+                            });
+
+                            // Threshold indicators on fixed rail
+                            if (synergyThStkWt) {
+                                const yStkBull = chart.scales.y.getPixelForValue(synergyThStkWt);
+                                if (yStkBull >= top && yStkBull <= bottom) {
+                                    yCtx.fillStyle = '#38bdf8';
+                                    yCtx.font = 'bold 7.5px monospace';
+                                    yCtx.textAlign = 'right';
+                                    yCtx.textBaseline = 'middle';
+                                    yCtx.fillText(`W${synergyThStkWt}`, rect.width - 4, yStkBull);
+                                }
+                                const yStkBear = chart.scales.y.getPixelForValue(-synergyThStkWt);
+                                if (yStkBear >= top && yStkBear <= bottom) {
+                                    yCtx.fillStyle = '#f43f5e';
+                                    yCtx.font = 'bold 7.5px monospace';
+                                    yCtx.textAlign = 'right';
+                                    yCtx.textBaseline = 'middle';
+                                    yCtx.fillText(`-W${synergyThStkWt}`, rect.width - 4, yStkBear);
+                                }
+                            }
+                            if (synergyThOptFlow && synergyThOptFlow !== synergyThStkWt) {
+                                const yOptBull = chart.scales.y.getPixelForValue(synergyThOptFlow);
+                                if (yOptBull >= top && yOptBull <= bottom) {
+                                    yCtx.fillStyle = '#c084fc';
+                                    yCtx.font = 'bold 7.5px monospace';
+                                    yCtx.textAlign = 'right';
+                                    yCtx.textBaseline = 'middle';
+                                    yCtx.fillText(`O${synergyThOptFlow}`, rect.width - 4, yOptBull);
+                                }
+                                const yOptBear = chart.scales.y.getPixelForValue(-synergyThOptFlow);
+                                if (yOptBear >= top && yOptBear <= bottom) {
+                                    yCtx.fillStyle = '#e11d48';
+                                    yCtx.font = 'bold 7.5px monospace';
+                                    yCtx.textAlign = 'right';
+                                    yCtx.textBaseline = 'middle';
+                                    yCtx.fillText(`-O${synergyThOptFlow}`, rect.width - 4, yOptBear);
+                                }
+                            }
+                            yCtx.restore();
+                        }
+                    }
+                }
+
+                ctx.save();
+
+                // 2. Faint Zero Center Line
+                const yZero = y.getPixelForValue(0);
+                if (yZero >= top && yZero <= bottom) {
+                    ctx.beginPath();
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+                    ctx.moveTo(left, yZero);
+                    ctx.lineTo(right, yZero);
+                    ctx.stroke();
+                }
+
+                // 3. Bull & Bear Threshold Lines / Zones
+                if (synergyThStkWt === synergyThOptFlow) {
+                    const yBull = y.getPixelForValue(synergyThStkWt);
+                    if (yBull >= top && yBull <= bottom) {
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+                        ctx.fillRect(left, top, right - left, yBull - top);
+
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(52, 211, 153, 0.35)';
+                        ctx.moveTo(left, yBull);
+                        ctx.lineTo(right, yBull);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(52, 211, 153, 0.85)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`+${synergyThStkWt}%`, right - 4, yBull - 3);
+                    }
+
+                    const yBear = y.getPixelForValue(-synergyThStkWt);
+                    if (yBear >= top && yBear <= bottom) {
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.05)';
+                        ctx.fillRect(left, yBear, right - left, bottom - yBear);
+
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(244, 63, 94, 0.35)';
+                        ctx.moveTo(left, yBear);
+                        ctx.lineTo(right, yBear);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.85)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`-${synergyThStkWt}%`, right - 4, yBear + 9);
+                    }
+                } else {
+                    // Stocks Bull Line
+                    const yStkBull = y.getPixelForValue(synergyThStkWt);
+                    if (yStkBull >= top && yStkBull <= bottom) {
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+                        ctx.moveTo(left, yStkBull);
+                        ctx.lineTo(right, yStkBull);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Stk +${synergyThStkWt}%`, right - 4, yStkBull - 3);
+                    }
+
+                    // Options Bull Line
+                    const yOptBull = y.getPixelForValue(synergyThOptFlow);
+                    if (yOptBull >= top && yOptBull <= bottom) {
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+                        ctx.moveTo(left, yOptBull);
+                        ctx.lineTo(right, yOptBull);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(192, 132, 252, 0.9)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Opt +${synergyThOptFlow}%`, right - 4, yOptBull - 3);
+                    }
+
+                    // Stocks Bear Line
+                    const yStkBear = y.getPixelForValue(-synergyThStkWt);
+                    if (yStkBear >= top && yStkBear <= bottom) {
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+                        ctx.moveTo(left, yStkBear);
+                        ctx.lineTo(right, yStkBear);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.9)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Stk -${synergyThStkWt}%`, right - 4, yStkBear + 9);
+                    }
+
+                    // Options Bear Line
+                    const yOptBear = y.getPixelForValue(-synergyThOptFlow);
+                    if (yOptBear >= top && yOptBear <= bottom) {
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(225, 29, 72, 0.4)';
+                        ctx.moveTo(left, yOptBear);
+                        ctx.lineTo(right, yOptBear);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(225, 29, 72, 0.9)';
+                        ctx.font = 'bold 8px monospace';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`Opt -${synergyThOptFlow}%`, right - 4, yOptBear + 9);
+                    }
+                }
+                ctx.setLineDash([]);
+
+                // 4. Confluence Glyphs (Bull Sync in Green, Bear Sync in Red, Divergent with amber badge)
+                displayPoints.forEach((p, i) => {
+                    const xPos = x.getPixelForTick(i);
+                    if (xPos < left || xPos > right) return;
+
+                    if (p.status === 'BULL_SYNC') {
+                        // Green Badge + Green Up Triangle at top
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+                        ctx.beginPath();
+                        ctx.arc(xPos, top + 11, 7.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#10b981';
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#10b981';
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('▲', xPos, top + 11);
+                    } else if (p.status === 'BEAR_SYNC') {
+                        // Red Badge + Red Down Triangle at bottom
+                        ctx.fillStyle = 'rgba(244, 63, 94, 0.25)';
+                        ctx.beginPath();
+                        ctx.arc(xPos, bottom - 11, 7.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.lineWidth = 1.2;
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#f43f5e';
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('▼', xPos, bottom - 11);
+                    } else if (p.status === 'DIVERGENT') {
+                        // Amber badge placed at bottom area without colliding with bars
+                        const yDiv = bottom - 11;
+                        ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
+                        ctx.beginPath();
+                        ctx.arc(xPos, yDiv, 7, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.font = 'bold 8.5px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('⚠️', xPos, yDiv);
+                    }
+                });
+
+                // 5. Vertical Indicator Line & Highlight Pill for Active/Current Time
+                const activeIdx = displayPoints.findIndex(p => p.time === activeTime);
+                if (activeIdx !== -1) {
+                    const xPos = x.getPixelForTick(activeIdx);
+                    if (xPos >= left && xPos <= right) {
+                        // Soft highlight column band
+                        const colWidth = isScroll ? 34 : Math.max(12, Math.min(26, (right - left) / displayPoints.length));
+                        ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+                        ctx.fillRect(xPos - colWidth / 2, top, colWidth, bottom - top);
+
+                        // Sharp luminous vertical indicator line
+                        ctx.beginPath();
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.moveTo(xPos, top);
+                        ctx.lineTo(xPos, bottom);
+                        ctx.stroke();
+
+                        // Top Active Time Pill Badge
+                        const pillText = `▼ ${activeTime}`;
+                        ctx.font = 'bold 8.5px monospace';
+                        const pillW = ctx.measureText(pillText).width + 8;
+                        const pillH = 14;
+                        const pillX = Math.max(left, Math.min(right - pillW, xPos - pillW / 2));
+                        const pillY = top + 1;
+
+                        ctx.fillStyle = '#0284c7';
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(pillX, pillY, pillW, pillH, 3);
+                        } else {
+                            ctx.rect(pillX, pillY, pillW, pillH);
+                        }
+                        ctx.fill();
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH / 2);
+                    }
+                }
+
+                ctx.restore();
+            }
+        };
+
+        flowSynergyChartInstance = new Chart(canvas, {
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            plugins: [synergyPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 9, family: 'monospace', weight: isScroll ? 'bold' : 'normal' },
+                            color: (ctx) => {
+                                const idx = ctx.index;
+                                const p = displayPoints[idx];
+                                return (p && p.time === activeTime) ? '#38bdf8' : '#9ca3af';
+                            },
+                            maxRotation: 0,
+                            autoSkip: !isScroll,
+                            maxTicksLimit: isScroll ? undefined : 14
+                        }
+                    },
+                    y: {
+                        min: -100,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(55, 65, 81, 0.25)',
+                            drawBorder: false,
+                            drawTicks: false
+                        },
+                        ticks: {
+                            display: !isScroll,
+                            font: { size: 8, family: 'monospace' },
+                            color: '#9ca3af',
+                            stepSize: 50,
+                            callback: v => `${v}%`
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111827',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        titleFont: { size: 10, weight: 'bold', family: 'monospace' },
+                        bodyFont: { size: 9, family: 'monospace' },
+                        callbacks: {
+                            title: (items) => {
+                                const p = displayPoints[items[0].dataIndex];
+                                if (!p) return '';
+                                const vLabel = p.status === 'BULL_SYNC' ? '🔥 Bull Sync' : p.status === 'BEAR_SYNC' ? '⚡ Bear Sync' : p.status === 'DIVERGENT' ? '⚠️ Divergent (Trap)' : 'Equilibrium';
+                                return `${p.time} • ${vLabel}`;
+                            },
+                            label: (context) => {
+                                const val = context.raw;
+                                const sign = val >= 0 ? '+' : '';
+                                return ` ${context.dataset.label}: ${sign}${val}%`;
+                            }
+                        }
+                    }
+                },
+                onClick: (evt, elements) => {
+                    if (elements && elements.length > 0) {
+                        const displayIdx = elements[0].index;
+                        const targetPoint = displayPoints[displayIdx];
+                        if (targetPoint && typeof syncActiveCandleIndex === 'function') {
+                            syncActiveCandleIndex(targetPoint.index);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderSynergyMatrix(points, activeTime) {
+        const container = document.getElementById('synergy-matrix-container');
+        if (!container) return;
+
+        // Show latest candle first on the left, oldest later on the right
+        const displayPoints = [...points].reverse();
+
+        let html = `
+            <table class="min-w-full text-center border-collapse font-mono select-none">
+                <thead>
+                    <tr class="text-[8.5px] text-gray-400 border-b border-gray-800">
+                        <th class="p-1 text-left sticky left-0 bg-[#0f131c] z-10 w-14">Time</th>
+        `;
+
+        displayPoints.forEach(p => {
+            const isAct = (p.time === activeTime);
+            html += `<th class="px-1.5 py-0.5 cursor-pointer hover:bg-slate-800 ${isAct ? 'bg-sky-950 text-sky-300 font-black border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${p.time}</th>`;
+        });
+
+        html += `</tr></thead><tbody>`;
+
+        // Row 1: Stock Weight %
+        html += `<tr class="border-b border-gray-850 text-[9px]"><td class="p-1 text-left sticky left-0 bg-[#0f131c] z-10 font-bold text-sky-400">Stk Wt</td>`;
+        displayPoints.forEach(p => {
+            const isAct = (p.time === activeTime);
+            const sign = p.stkWt >= 0 ? '+' : '';
+            const cls = p.stkWt >= 0 ? 'text-emerald-400' : 'text-rose-400';
+            html += `<td class="px-1 py-0.5 cursor-pointer hover:bg-slate-800 ${cls} ${isAct ? 'bg-sky-950/50 font-bold border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${sign}${p.stkWt}%</td>`;
+        });
+        html += `</tr>`;
+
+        // Row 2: Stock Count %
+        if (synergyMetricMode !== 'weight') {
+            html += `<tr class="border-b border-gray-850 text-[9px]"><td class="p-1 text-left sticky left-0 bg-[#0f131c] z-10 font-bold text-teal-400">Stk Cnt</td>`;
+            displayPoints.forEach(p => {
+                const isAct = (p.time === activeTime);
+                const sign = p.stkCnt >= 0 ? '+' : '';
+                const cls = p.stkCnt >= 0 ? 'text-emerald-400' : 'text-orange-400';
+                html += `<td class="px-1 py-0.5 cursor-pointer hover:bg-slate-800 ${cls} ${isAct ? 'bg-sky-950/50 font-bold border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${sign}${p.stkCnt}%</td>`;
+            });
+            html += `</tr>`;
+        }
+
+        // Row 3: Options Flow %
+        html += `<tr class="border-b border-gray-850 text-[9px]"><td class="p-1 text-left sticky left-0 bg-[#0f131c] z-10 font-bold text-purple-400">Opt Flow</td>`;
+        displayPoints.forEach(p => {
+            const isAct = (p.time === activeTime);
+            const sign = p.optVal >= 0 ? '+' : '';
+            const cls = p.optVal >= 0 ? 'text-purple-300' : 'text-rose-400';
+            html += `<td class="px-1 py-0.5 cursor-pointer hover:bg-slate-800 ${cls} ${isAct ? 'bg-sky-950/50 font-bold border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${sign}${p.optVal}%</td>`;
+        });
+        html += `</tr>`;
+
+        // Row 4: Synergy Verdict Icon (Bigger, Bull in Green, Bear in Red)
+        html += `<tr class="text-[9px]"><td class="p-1 text-left sticky left-0 bg-[#0f131c] z-10 font-bold text-gray-400">Verdict</td>`;
+        displayPoints.forEach(p => {
+            const isAct = (p.time === activeTime);
+            let badge = '<span class="text-slate-500 text-[10px]" title="Equilibrium">⚖️</span>';
+            if (p.status === 'BULL_SYNC') {
+                badge = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-950/80 border border-emerald-500/60 shadow-[0_0_6px_rgba(16,185,129,0.4)]" title="Bull Sync (StkWt ≥+${synergyThStkWt}%, StkCnt ≥+${synergyThStkCnt}%, Opt ≥+${synergyThOptFlow}%)">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.527.82-1.17 1.942-1.632 3.31a8.47 8.47 0 00-.73 2.766c-.143.19-.313.364-.51.514-.99.754-1.25 1.956-1.25 3.037 0 3.298 2.684 5.975 6 5.975s6-2.677 6-5.975c0-2.316-1.31-4.225-2.73-5.59a11.2 11.2 0 00-2.876-2.096zm-1.898 9.387c.22.25.474.469.754.65.626.405 1.344.61 2.072.61 1.706 0 3.09-1.384 3.09-3.09 0-1.096-.582-2.07-1.472-2.92a9.664 9.664 0 00-2.228-1.585 1 1 0 00-1.378.895c0 .324-.038.647-.113.96a6.83 6.83 0 01-1.314 2.48z" clip-rule="evenodd"/>
+                    </svg>
+                </span>`;
+            } else if (p.status === 'BEAR_SYNC') {
+                badge = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-950/80 border border-rose-500/60 shadow-[0_0_6px_rgba(244,63,94,0.4)]" title="Bear Sync (StkWt ≤-${synergyThStkWt}%, StkCnt ≤-${synergyThStkCnt}%, Opt ≤-${synergyThOptFlow}%)">
+                    <svg class="w-3.5 h-3.5 text-rose-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                    </svg>
+                </span>`;
+            } else if (p.status === 'DIVERGENT') {
+                badge = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-950/60 border border-amber-500/40" title="Divergent">
+                    <svg class="w-3 h-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                    </svg>
+                </span>`;
+            }
+            html += `<td class="px-1 py-1 cursor-pointer hover:bg-slate-800 ${isAct ? 'bg-sky-950/50 border-x border-sky-500/50' : ''}" onclick="syncActiveCandleIndex(${p.index})">${badge}</td>`;
+        });
+        html += `</tr></tbody></table>`;
+
+        container.innerHTML = html;
     }
 
     // ── 10. Synchronized Master Timeline ──────────────────────────────────────────
@@ -9805,6 +11132,11 @@
         // Update overall Bull/Bear picture and Trigger Strength
         updateOverallAndTriggerStats(index);
         updateDriverDiagnosis(timeStr);
+
+        // Update Flow Synergy Cockpit Tab
+        if (typeof renderFlowSynergy === 'function') {
+            renderFlowSynergy();
+        }
     }
     window.syncActiveCandleIndex = syncActiveCandleIndex;
 
@@ -9892,6 +11224,19 @@
         // 2. Chart 1 Deck 1: NIFTY 50 STOCKS (wTimeframe)
         const bStk = (resolvedTime ? stkData.breadth_by_time?.[resolvedTime] : null)
                   || (timeStr ? stkData.breadth_by_time?.[timeStr] : null);
+
+        if (candle) {
+            const wTfSuffix = (wTimeframe === '1D') ? '1-Day candle' : `${wTimeframe} candle`;
+            const wStatTimeEl = document.getElementById('w-stat-time');
+            if (wStatTimeEl) {
+                const isForming = (bStk && bStk.is_complete === false);
+                const tag = isForming
+                    ? '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE FORMING</span>'
+                    : '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">CONFIRMED</span>';
+                wStatTimeEl.innerHTML = `${candle.time_str} - ${wTfSuffix} ${tag}`;
+            }
+        }
+
         if (bStk) {
             const ptsEl = document.getElementById('w-stat-pts');
             if (ptsEl) {
@@ -10034,15 +11379,19 @@
                     atmEl.textContent = '₹' + Number(atm).toLocaleString('en-IN');
                 }
 
+                const totOptBsk = bOpt.basket_count || ((bOpt.up_count || 0) + (bOpt.down_count || 0) + (bOpt.flat_count || 0)) || 11;
+                const optUpPct = (bOpt.up_count_pct !== undefined) ? bOpt.up_count_pct : Math.round(((bOpt.up_count || 0) / totOptBsk) * 100);
+                const optDnPct = (bOpt.down_count_pct !== undefined) ? bOpt.down_count_pct : Math.round(((bOpt.down_count || 0) / totOptBsk) * 100);
+
                 const optGRatio = document.getElementById('w-opt-stat-green-ratio');
-                if (optGRatio) optGRatio.textContent = `${bOpt.up_weight}%`;
+                if (optGRatio) optGRatio.textContent = `${optUpPct}%`;
                 const optGWt = document.getElementById('w-opt-stat-green-wt');
                 if (optGWt) optGWt.textContent = `${bOpt.up_weight}% Wt`;
                 const optGCnt = document.getElementById('w-opt-stat-green-cnt');
                 if (optGCnt) optGCnt.textContent = bOpt.up_count;
 
                 const optRRatio = document.getElementById('w-opt-stat-red-ratio');
-                if (optRRatio) optRRatio.textContent = `${bOpt.down_weight}%`;
+                if (optRRatio) optRRatio.textContent = `${optDnPct}%`;
                 const optRWt = document.getElementById('w-opt-stat-red-wt');
                 if (optRWt) optRWt.textContent = `${bOpt.down_weight}% Wt`;
                 const optRCnt = document.getElementById('w-opt-stat-red-cnt');
@@ -10069,15 +11418,19 @@
                 const optPrevRDelta = document.getElementById('w-opt-prev-red-delta');
 
                 if (bOptPrev) {
-                    if (optPrevGVal) optPrevGVal.textContent = `${bOptPrev.up_weight}% (${bOptPrev.up_count} strk)`;
+                    const prevTotBsk = bOptPrev.basket_count || ((bOptPrev.up_count || 0) + (bOptPrev.down_count || 0) + (bOptPrev.flat_count || 0)) || 11;
+                    const prevUpPct = (bOptPrev.up_count_pct !== undefined) ? bOptPrev.up_count_pct : Math.round(((bOptPrev.up_count || 0) / prevTotBsk) * 100);
+                    const prevDnPct = (bOptPrev.down_count_pct !== undefined) ? bOptPrev.down_count_pct : Math.round(((bOptPrev.down_count || 0) / prevTotBsk) * 100);
+
+                    if (optPrevGVal) optPrevGVal.textContent = `${prevUpPct}% (${bOptPrev.up_count} strk)`;
                     if (optPrevGDelta) {
-                        const d = formatDeltaMicroFooter(bOpt.up_weight, bOptPrev.up_weight, true);
+                        const d = formatDeltaMicroFooter(optUpPct, prevUpPct, true);
                         optPrevGDelta.textContent = d.deltaText;
                         optPrevGDelta.className = `font-bold ${d.deltaClass}`;
                     }
-                    if (optPrevRVal) optPrevRVal.textContent = `${bOptPrev.down_weight}% (${bOptPrev.down_count} strk)`;
+                    if (optPrevRVal) optPrevRVal.textContent = `${prevDnPct}% (${bOptPrev.down_count} strk)`;
                     if (optPrevRDelta) {
-                        const d = formatDeltaMicroFooter(bOpt.down_weight, bOptPrev.down_weight, false);
+                        const d = formatDeltaMicroFooter(optDnPct, prevDnPct, false);
                         optPrevRDelta.textContent = d.deltaText;
                         optPrevRDelta.className = `font-bold ${d.deltaClass}`;
                     }
@@ -10126,7 +11479,15 @@
             document.getElementById('o-chart-time').textContent = candle.time_str;
             const oTfSuffix = (oTimeframe === '1D') ? '1-Day candle' : `${oTimeframe} candle`;
             const oStatTimeEl = document.getElementById('o-stat-time');
-            if (oStatTimeEl) oStatTimeEl.textContent = `${candle.time_str} - ${oTfSuffix}`;
+            if (oStatTimeEl) {
+                const bOptCheck = (resolvedTime ? optData.breadth_by_time?.[resolvedTime] : null)
+                               || (timeStr ? optData.breadth_by_time?.[timeStr] : null);
+                const isForming = (bOptCheck && bOptCheck.is_complete === false);
+                const tag = isForming
+                    ? '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE FORMING</span>'
+                    : '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">CONFIRMED</span>';
+                oStatTimeEl.innerHTML = `${candle.time_str} - ${oTfSuffix} ${tag}`;
+            }
 
             if (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0) {
                 const cTime = Number(candle.time || candle.timestamp);
@@ -10280,15 +11641,19 @@
                 atmValEl.textContent = '₹' + Number(atm).toLocaleString('en-IN');
             }
 
+            const totOptBsk = bOpt.basket_count || ((bOpt.up_count || 0) + (bOpt.down_count || 0) + (bOpt.flat_count || 0)) || 11;
+            const optUpPct = (bOpt.up_count_pct !== undefined) ? bOpt.up_count_pct : Math.round(((bOpt.up_count || 0) / totOptBsk) * 100);
+            const optDnPct = (bOpt.down_count_pct !== undefined) ? bOpt.down_count_pct : Math.round(((bOpt.down_count || 0) / totOptBsk) * 100);
+
             const gRatio = document.getElementById('o-stat-green-ratio');
-            if (gRatio) gRatio.textContent = `${bOpt.up_weight}%`;
+            if (gRatio) gRatio.textContent = `${optUpPct}%`;
             const gWt = document.getElementById('o-stat-green-wt');
             if (gWt) gWt.textContent = `${bOpt.up_weight}% Wt`;
             const gCnt = document.getElementById('o-stat-green-cnt');
             if (gCnt) gCnt.textContent = bOpt.up_count;
 
             const rRatio = document.getElementById('o-stat-red-ratio');
-            if (rRatio) rRatio.textContent = `${bOpt.down_weight}%`;
+            if (rRatio) rRatio.textContent = `${optDnPct}%`;
             const rWt = document.getElementById('o-stat-red-wt');
             if (rWt) rWt.textContent = `${bOpt.down_weight}% Wt`;
             const rCnt = document.getElementById('o-stat-red-cnt');
@@ -10316,15 +11681,19 @@
             const oOptPrevRDelta = document.getElementById('o-opt-prev-red-delta');
 
             if (bOptPrev) {
-                if (oOptPrevGVal) oOptPrevGVal.textContent = `${bOptPrev.up_weight}% (${bOptPrev.up_count} strk)`;
+                const prevTotBsk = bOptPrev.basket_count || ((bOptPrev.up_count || 0) + (bOptPrev.down_count || 0) + (bOptPrev.flat_count || 0)) || 11;
+                const prevUpPct = (bOptPrev.up_count_pct !== undefined) ? bOptPrev.up_count_pct : Math.round(((bOptPrev.up_count || 0) / prevTotBsk) * 100);
+                const prevDnPct = (bOptPrev.down_count_pct !== undefined) ? bOptPrev.down_count_pct : Math.round(((bOptPrev.down_count || 0) / prevTotBsk) * 100);
+
+                if (oOptPrevGVal) oOptPrevGVal.textContent = `${prevUpPct}% (${bOptPrev.up_count} strk)`;
                 if (oOptPrevGDelta) {
-                    const d = formatDeltaMicroFooter(bOpt.up_weight, bOptPrev.up_weight, true);
+                    const d = formatDeltaMicroFooter(optUpPct, prevUpPct, true);
                     oOptPrevGDelta.textContent = d.deltaText;
                     oOptPrevGDelta.className = `font-bold ${d.deltaClass}`;
                 }
-                if (oOptPrevRVal) oOptPrevRVal.textContent = `${bOptPrev.down_weight}% (${bOptPrev.down_count} strk)`;
+                if (oOptPrevRVal) oOptPrevRVal.textContent = `${prevDnPct}% (${bOptPrev.down_count} strk)`;
                 if (oOptPrevRDelta) {
-                    const d = formatDeltaMicroFooter(bOpt.down_weight, bOptPrev.down_weight, false);
+                    const d = formatDeltaMicroFooter(optDnPct, prevDnPct, false);
                     oOptPrevRDelta.textContent = d.deltaText;
                     oOptPrevRDelta.className = `font-bold ${d.deltaClass}`;
                 }
@@ -10813,6 +12182,9 @@
         const toiHeightSel = document.getElementById('toi-height-select');
         if (toiHeightSel) toiHeightSel.value = String(currentToiHeight);
 
+        document.querySelectorAll('.bld-height-select').forEach(sel => {
+            if (sel) sel.value = String(currentBldHeight);
+        });
         const bldHeightSel = document.getElementById('bld-height-select');
         if (bldHeightSel) bldHeightSel.value = String(currentBldHeight);
 
@@ -11028,6 +12400,9 @@
             document.body.classList.toggle('zen-mode');
             setTimeout(() => {
                 applyAllSectionHeights();
+            if (typeof renderFlowSynergy === 'function') {
+                renderFlowSynergy();
+            }
             }, 100);
         });
 
@@ -11295,6 +12670,7 @@
         document.getElementById('btn-save-alarm-settings')?.addEventListener('click', () => {
             alarmSettings.masterEnabled = document.getElementById('alarm-active-toggle').checked;
             alarmSettings.volume = (parseInt(document.getElementById('alarm-volume-slider').value, 10)) / 100.0;
+            alarmSettings.triggerOnClose = document.getElementById('alarm-trigger-on-close-toggle')?.checked !== false;
 
             // 1. Stocks settings
             alarmSettings.stocksAlertEnabled = document.getElementById('stocks-alert-enabled').checked;
@@ -11311,9 +12687,10 @@
             alarmSettings.optionsDownThreshold = parseInt(document.getElementById('options-down-input').value, 10) || 70;
             alarmSettings.optionsShowMarkers = document.getElementById('options-show-markers-toggle').checked;
             alarmSettings.optionsSound = document.getElementById('options-sound-select').value;
-            const prevBasketMode = alarmSettings.optionsBasketMode || 'dynamic';
-            alarmSettings.optionsBasketMode = document.getElementById('cfg-options-basket-mode')?.value || 'dynamic';
+            const prevBasketMode = alarmSettings.optionsBasketMode || 'fixed';
+            alarmSettings.optionsBasketMode = document.getElementById('cfg-options-basket-mode')?.value || 'fixed';
             const basketModeChanged = (prevBasketMode !== alarmSettings.optionsBasketMode);
+            if (typeof syncStrikeBasketModeUI === 'function') syncStrikeBasketModeUI();
 
             // 3. Confluence settings
             alarmSettings.confluenceEnabled = document.getElementById('cfg-confluence-enabled').checked;
@@ -11457,7 +12834,10 @@
         if (mC2Stk) mC2Stk.checked = (alarmSettings.chart2ShowStocks === true);
         const mC2Opt = document.getElementById('modal-c2-show-options-toggle');
         if (mC2Opt) mC2Opt.checked = (alarmSettings.chart2ShowOptions !== false);
-const sMarkers = document.getElementById('stocks-show-markers-toggle');
+        const trigCloseToggle = document.getElementById('alarm-trigger-on-close-toggle');
+        if (trigCloseToggle) trigCloseToggle.checked = alarmSettings.triggerOnClose !== false;
+
+        const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (sMarkers) sMarkers.checked = alarmSettings.stocksShowMarkers !== false;
 
         const sSnd = document.getElementById('stocks-sound-select');
@@ -11484,15 +12864,16 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         if (oSnd) oSnd.value = alarmSettings.optionsSound || 'pulse';
 
         const oBasketSelect = document.getElementById('cfg-options-basket-mode');
-        if (oBasketSelect) oBasketSelect.value = alarmSettings.optionsBasketMode || 'dynamic';
+        if (oBasketSelect) oBasketSelect.value = alarmSettings.optionsBasketMode || 'fixed';
         const oBasketPill = document.getElementById('cfg-basket-mode-pill');
         if (oBasketPill) {
-            const isDyn = (alarmSettings.optionsBasketMode !== 'fixed');
+            const isDyn = (alarmSettings.optionsBasketMode === 'dynamic');
             oBasketPill.textContent = isDyn ? 'Dynamic Floating' : 'Fixed Morning';
             oBasketPill.className = isDyn
                 ? 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40'
                 : 'text-[9px] px-1.5 py-0.2 rounded font-mono bg-gray-800 text-gray-300 border border-gray-600';
         }
+        if (typeof syncStrikeBasketModeUI === 'function') syncStrikeBasketModeUI();
 
         // 3. Confluence settings
         const confToggle = document.getElementById('cfg-confluence-enabled');
@@ -11597,6 +12978,7 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
     }
 
     function syncAlarmToolbarUI() {
+        if (typeof syncStrikeBasketModeUI === 'function') syncStrikeBasketModeUI();
         const label = document.getElementById('alarm-toolbar-label');
         const icon = document.getElementById('alarm-bell-icon');
         const btn = document.getElementById('btn-quick-alarm');
@@ -11945,6 +13327,8 @@ const sMarkers = document.getElementById('stocks-show-markers-toggle');
         updateTvToolsUI();
         updateCandleStyleUI();
         updateChartBasisUI();
+        syncBuildupTabUI();
+        syncSynergyControlsUI();
         const toiStrikesList = document.getElementById('toi-strikes-list');
         if (toiStrikesList) {
             toiStrikesList.addEventListener('wheel', (evt) => {
