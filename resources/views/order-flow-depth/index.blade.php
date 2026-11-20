@@ -663,6 +663,12 @@
                             </select>
                         </div>
 
+                        {{-- 5M Volume Audio Alert Toggle & Test --}}
+                        <button type="button" id="btn-v5m-sound-toggle" onclick="toggleV5mSound()" class="flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-500/50 text-amber-300 hover:text-white font-bold transition cursor-pointer shadow-xs" title="5-Min Volume Alert Audio (Click to test chime or toggle)">
+                            <span id="v5m-sound-icon">🔔</span>
+                            <span id="v5m-sound-label">Audio ON</span>
+                        </button>
+
                         <button type="button" onclick="fetch5mVolumeFlow(true)" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Refresh 5M Volume Flow">
                             🔄
                         </button>
@@ -728,6 +734,40 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Instant Sync: Restore Persistent 5M Cockpit Height & Settings with Zero Flicker --}}
+            <script>
+                (function() {
+                    try {
+                        const h = localStorage.getItem('order_flow_v5m_height');
+                        if (h) {
+                            const c = document.getElementById('v5m-chart-container');
+                            if (c) c.style.height = h + 'px';
+                            const sel = document.getElementById('v5m-height-select');
+                            if (sel) sel.value = h;
+                        }
+                        const thresh = localStorage.getItem('order_flow_v5m_alert_thresh');
+                        if (thresh) {
+                            const tSel = document.getElementById('sel-v5m-alert-thresh');
+                            if (tSel) tSel.value = thresh;
+                        }
+                        const filter = localStorage.getItem('order_flow_v5m_table_filter');
+                        if (filter) {
+                            const fSel = document.getElementById('sel-v5m-table-filter');
+                            if (fSel) fSel.value = filter;
+                        }
+                        const sound = localStorage.getItem('order_flow_v5m_sound_enabled');
+                        if (sound === 'false') {
+                            const icon = document.getElementById('v5m-sound-icon');
+                            const label = document.getElementById('v5m-sound-label');
+                            const btn = document.getElementById('btn-v5m-sound-toggle');
+                            if (icon) icon.textContent = '🔕';
+                            if (label) label.textContent = 'Audio Muted';
+                            if (btn) btn.className = 'flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-slate-500 hover:text-slate-300 font-bold transition cursor-pointer';
+                        }
+                    } catch(e) {}
+                })();
+            </script>
 
             {{-- 3. Watched Primary Panels: Top 5 Accumulated Clusters & Highest Traded Footprint --}}
 
@@ -2504,6 +2544,9 @@
             </div>
         </div>
     </div>
+
+    {{-- Floating Notification Toast Portal for 5M Volume & High Confluence Alarms --}}
+    <div id="v5m-toast-portal" class="fixed top-5 right-5 z-[9999] pointer-events-none flex flex-col gap-2 max-w-sm sm:max-w-md w-full"></div>
 
 </div>
 
@@ -6310,7 +6353,7 @@
             } else if (_sharedAudioCtx.state === 'suspended') {
                 _sharedAudioCtx.resume().catch(() => {});
             }
-        }, { passive: true, once: true });
+        }, { passive: true });
     });
 
     function playSynthesizedAlert(profile = 'crystal', side = 'BUY') {
@@ -6318,9 +6361,20 @@
             const ctx = getAudioCtx();
             if (!ctx) return;
             if (ctx.state === 'suspended') {
-                ctx.resume().catch(() => {});
-                return; // Don't trigger browser autoplay warning until user interacts
+                ctx.resume().then(() => {
+                    executeSynthesizedSound(ctx, profile, side);
+                }).catch(() => {});
+                return;
             }
+            executeSynthesizedSound(ctx, profile, side);
+        } catch(e) {
+            console.warn('Audio alert error:', e);
+        }
+    }
+
+    function executeSynthesizedSound(ctx, profile = 'crystal', side = 'BUY') {
+        try {
+            if (!ctx || ctx.state !== 'running') return;
             const now = ctx.currentTime;
             const isBuy = (side === 'BUY');
 
@@ -9409,9 +9463,59 @@
         height: parseInt(localStorage.getItem('order_flow_v5m_height') || '300', 10),
         alertThresh: parseInt(localStorage.getItem('order_flow_v5m_alert_thresh') || '100000', 10),
         tableFilter: localStorage.getItem('order_flow_v5m_table_filter') || 'all',
+        soundEnabled: localStorage.getItem('order_flow_v5m_sound_enabled') !== 'false',
+        alertedCandles: null,
         refreshInterval: null,
         userHasScrolled: false
     };
+
+    function toggleV5mSound(forcedState) {
+        if (typeof forcedState === 'boolean') {
+            v5mState.soundEnabled = forcedState;
+        } else {
+            v5mState.soundEnabled = !v5mState.soundEnabled;
+        }
+        try {
+            localStorage.setItem('order_flow_v5m_sound_enabled', String(v5mState.soundEnabled));
+        } catch (e) {}
+
+        updateV5mSoundUI();
+
+        // If toggled ON, immediately test play audio to unlock AudioContext & confirm to user
+        if (v5mState.soundEnabled) {
+            playSynthesizedAlert(alertSettings.soundProfile || 'crystal', 'BUY');
+            show5mVolumeAlertToast({
+                time: 'TEST',
+                dominant_side: 'BUY',
+                buy_qty: 150000,
+                sell_qty: 30000,
+                net_delta: 120000,
+                dominance_ratio: '5.0',
+                badge_color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                event: '🔊 AUDIO ALERT TEST VERIFIED'
+            }, v5mState.alertThresh, true);
+        }
+    }
+    window.toggleV5mSound = toggleV5mSound;
+
+    function updateV5mSoundUI() {
+        const btn = document.getElementById('btn-v5m-sound-toggle');
+        const icon = document.getElementById('v5m-sound-icon');
+        const label = document.getElementById('v5m-sound-label');
+        if (!btn) return;
+        if (v5mState.soundEnabled) {
+            btn.className = 'flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-500/50 text-amber-300 hover:text-white font-bold transition cursor-pointer shadow-xs';
+            if (icon) icon.textContent = '🔔';
+            if (label) label.textContent = 'Audio ON';
+            btn.title = '5M Volume Alert Audio is ACTIVE (Click to test sound or toggle OFF)';
+        } else {
+            btn.className = 'flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-slate-500 hover:text-slate-300 font-bold transition cursor-pointer';
+            if (icon) icon.textContent = '🔕';
+            if (label) label.textContent = 'Audio Muted';
+            btn.title = '5M Volume Alert Audio is MUTED (Click to activate)';
+        }
+    }
+    window.updateV5mSoundUI = updateV5mSoundUI;
 
     function setV5mTableFilter(val) {
         v5mState.tableFilter = val || 'all';
@@ -9526,6 +9630,7 @@
         const num = parseInt(val, 10) || 100000;
         v5mState.alertThresh = num;
         try { localStorage.setItem('order_flow_v5m_alert_thresh', String(num)); } catch (e) {}
+        v5mState.alertedCandles = null;
         fetch5mVolumeFlow(true);
     }
     window.on5mAlertThreshChange = on5mAlertThreshChange;
@@ -9554,6 +9659,9 @@
             // Update Live Resting 30-Depth Ratio
             update5mDepthRatioUI();
 
+            // Check and trigger audio & pop-up toast alerts for surging 5M candles
+            check5mVolumeAlerts(data.buckets, thresh);
+
             // Render Chart & Table
             render5mVolumeChart();
             render5mEventsTable();
@@ -9563,6 +9671,145 @@
         }
     }
     window.fetch5mVolumeFlow = fetch5mVolumeFlow;
+
+    function check5mVolumeAlerts(buckets, thresh) {
+        if (!buckets || buckets.length === 0) return;
+
+        // Initialize set on first run and record historical past candles so we don't spam audio on page load
+        if (!v5mState.alertedCandles) {
+            v5mState.alertedCandles = new Set();
+            buckets.forEach(b => {
+                const isAlert = b.is_alert || (b.total_qty >= thresh) || (b.buy_qty >= thresh) || (b.sell_qty >= thresh);
+                if (isAlert) {
+                    v5mState.alertedCandles.add(`${b.time}_${thresh}`);
+                }
+            });
+            v5mState.initialLoadDone = true;
+            return;
+        }
+
+        // Check active / recent 2 candles (current live candle + recently closed)
+        const checkCount = Math.min(2, buckets.length);
+        for (let i = buckets.length - checkCount; i < buckets.length; i++) {
+            const b = buckets[i];
+            const isAlert = b.is_alert || (b.total_qty >= thresh) || (b.buy_qty >= thresh) || (b.sell_qty >= thresh);
+            if (!isAlert) continue;
+
+            const alertKey = `${b.time}_${thresh}`;
+            if (!v5mState.alertedCandles.has(alertKey)) {
+                v5mState.alertedCandles.add(alertKey);
+                trigger5mVolumeAlert(b, thresh);
+            }
+        }
+    }
+
+    function trigger5mVolumeAlert(b, thresh) {
+        const isBuy = (b.dominant_side === 'BUY');
+        const domSide = isBuy ? 'BUY' : 'SELL';
+
+        // 1. Audio Alarm (respects 5M audio toggle, master toggle, and alertSettings)
+        const isSoundOn = (v5mState.soundEnabled !== false && state.soundEnabled !== false && alertSettings.soundEnabled !== false);
+        if (isSoundOn) {
+            playSynthesizedAlert(alertSettings.soundProfile || 'crystal', domSide);
+        }
+
+        // 2. High-Visibility Pop-up Toast Alert
+        show5mVolumeAlertToast(b, thresh, false);
+
+        // 3. Record in Alert Feed History Stream
+        if (typeof recordAlertEvent === 'function') {
+            recordAlertEvent({
+                type: '5M_VOLUME_SURGE',
+                side: domSide,
+                title: `⚡ 5M Surge: ${formatV5mQty(Math.max(b.buy_qty, b.sell_qty))} ${domSide}`,
+                details: `Time ${b.time} · Buy: ${formatV5mQty(b.buy_qty)} | Sell: ${formatV5mQty(b.sell_qty)} | Net: ${b.net_delta >= 0 ? '+' : ''}${formatV5mQty(b.net_delta)} | ${b.event}`,
+                guidance: `⚡ ${b.dominance_ratio}x ${domSide} Dominance`,
+                sound: alertSettings.soundProfile || 'crystal'
+            });
+        }
+    }
+
+    function show5mVolumeAlertToast(candle, thresh, isTest = false) {
+        const portal = document.getElementById('v5m-toast-portal');
+        if (!portal) return;
+
+        const isBuy = (candle.dominant_side === 'BUY');
+        const sideColor = isBuy ? 'text-emerald-400' : 'text-rose-400';
+        const sideBorder = isBuy ? 'border-emerald-500/80 shadow-emerald-950/40' : 'border-rose-500/80 shadow-rose-950/40';
+        const beaconBg = isBuy ? 'bg-emerald-400' : 'bg-rose-500';
+
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto rounded-xl p-3 border-2 ${sideBorder} bg-slate-950/95 shadow-2xl backdrop-blur-md transition-all duration-300 transform -translate-y-2 opacity-0 flex flex-col gap-2 ring-1 ring-amber-400/40`;
+        
+        toast.innerHTML = `
+            <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-2.5 w-2.5 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${beaconBg} opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 ${beaconBg}"></span>
+                    </span>
+                    <span class="text-xs font-black tracking-wide text-amber-300">
+                        ${isTest ? '🔊 5-MIN AUDIO TEST' : '⚡ 5-MIN VOLUME EXPLOSION'}
+                    </span>
+                    <span class="font-mono text-[10px] font-bold text-slate-300 bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
+                        ${candle.time}
+                    </span>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-white text-sm px-1 font-bold cursor-pointer transition" title="Dismiss Alert">&times;</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[10.5px] font-mono">
+                <div>
+                    <span class="text-slate-500 text-[9px] uppercase font-sans block font-bold">Market Buys</span>
+                    <span class="font-bold text-emerald-400 text-sm">${formatV5mQty(candle.buy_qty)}</span>
+                    <span class="text-[8px] text-slate-500 font-sans block">${candle.buy_trades || ''} trades</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 text-[9px] uppercase font-sans block font-bold">Market Sells</span>
+                    <span class="font-bold text-rose-400 text-sm">${formatV5mQty(candle.sell_qty)}</span>
+                    <span class="text-[8px] text-slate-500 font-sans block">${candle.sell_trades || ''} trades</span>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono border-t border-slate-800/80 pt-1.5 gap-1 flex-wrap">
+                <div class="flex items-center gap-1.5">
+                    <span class="font-bold ${sideColor}">${candle.dominance_ratio}x ${candle.dominant_side}</span>
+                    <span class="text-slate-600">|</span>
+                    <span class="font-bold ${candle.net_delta >= 0 ? 'text-emerald-300' : 'text-rose-300'}">
+                        ${candle.net_delta >= 0 ? '+' : ''}${formatV5mQty(candle.net_delta)} Net
+                    </span>
+                </div>
+                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-bold border ${candle.badge_color || 'bg-slate-900 text-slate-300 border-slate-800'}">
+                    ${candle.event}
+                </span>
+            </div>
+        `;
+
+        const closeBtn = toast.querySelector('button');
+        const dismissToast = () => {
+            toast.style.transform = 'translateY(-10px) scale(0.95)';
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        };
+        if (closeBtn) closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            dismissToast();
+        };
+
+        toast.onclick = () => {
+            const cockpit = document.getElementById('flow-5m-cockpit-card');
+            if (cockpit) cockpit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        portal.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateY(0) scale(1)';
+            toast.style.opacity = '1';
+        });
+
+        setTimeout(dismissToast, isTest ? 5000 : 8500);
+    }
 
     function update5mDepthRatioUI() {
         const depthEl = document.getElementById('v5m-depth-val');
@@ -9779,9 +10026,9 @@
                 yAxisRail.classList.remove('hidden');
                 yAxisRail.style.display = 'block';
             }
-            // Generous spacing: 50px per candle slot gives Buy/Sell bars 18px each with 14px gap
-            const candleSlotW = (mode === 'delta') ? 42 : 50;
-            const requiredWidth = Math.max(availWidth, buckets.length * candleSlotW + 30);
+            // Generous spacing: 68px per candle slot gives Buy/Sell bars 22px each with comfortable 20px gap between candle pairs
+            const candleSlotW = (mode === 'delta') ? 56 : 68;
+            const requiredWidth = Math.max(availWidth, buckets.length * candleSlotW + 40);
             width = requiredWidth;
 
             if (innerWrapper) {
@@ -9844,6 +10091,62 @@
         const padBottom = 24;
         const plotW = width - padLeft - padRight;
         const plotH = height - padTop - padBottom;
+        const n = buckets.length;
+        const slotW = plotW / Math.max(n, 12);
+
+        // ── COMPUTE SPACIOUS TIME LABELS (15-MIN / 30-MIN INTERVALS WITH NO COLLISION) ──
+        const minLabelSpacing = isScroll ? 110 : 85;
+        let lastLabelX = -999;
+        const timeLabelsToDraw = [];
+
+        buckets.forEach((b, idx) => {
+            const centerX = padLeft + (idx * slotW) + (slotW / 2);
+            const isFirst = (idx === 0);
+
+            // In Scroll mode: target standard 15m intervals (:00, :15, :30, :45)
+            // In Fit mode: target standard 30m intervals (:00, :30) or 15m if spacious
+            const isQuarterHour = b.time.endsWith(':00') || b.time.endsWith(':15') || b.time.endsWith(':30') || b.time.endsWith(':45');
+            const isHalfHour = b.time.endsWith(':00') || b.time.endsWith(':30');
+            const isCandidate = isScroll ? isQuarterHour : (plotW > 1100 ? isQuarterHour : isHalfHour);
+
+            if (isFirst || isCandidate) {
+                if (centerX - lastLabelX >= minLabelSpacing) {
+                    timeLabelsToDraw.push({ idx, time: b.time, x: centerX, isLive: false, isMajor: b.time.endsWith(':00') });
+                    lastLabelX = centerX;
+                }
+            }
+        });
+
+        // Always ensure latest (live) candle has its clear timestamp
+        if (n > 0) {
+            const lastCandle = buckets[n - 1];
+            const lastX = padLeft + ((n - 1) * slotW) + (slotW / 2);
+            if (timeLabelsToDraw.length > 0) {
+                const prevLabel = timeLabelsToDraw[timeLabelsToDraw.length - 1];
+                if (lastX - prevLabel.x < (isScroll ? 75 : 55)) {
+                    // Prevent crowding: if previous is not a major hour mark, remove it in favor of live candle
+                    if (!prevLabel.isMajor) {
+                        timeLabelsToDraw.pop();
+                    }
+                }
+            }
+            if (timeLabelsToDraw.length === 0 || timeLabelsToDraw[timeLabelsToDraw.length - 1].idx !== n - 1) {
+                timeLabelsToDraw.push({ idx: n - 1, time: lastCandle.time, x: lastX, isLive: true, isMajor: false });
+            }
+        }
+
+        // Draw vertical time grid lines behind bars
+        ctx.save();
+        timeLabelsToDraw.forEach(item => {
+            ctx.strokeStyle = item.isMajor ? 'rgba(56, 189, 248, 0.16)' : 'rgba(51, 65, 85, 0.35)';
+            ctx.lineWidth = item.isMajor ? 1.2 : 0.8;
+            ctx.setLineDash(item.isMajor ? [4, 4] : [2, 4]);
+            ctx.beginPath();
+            ctx.moveTo(item.x, padTop);
+            ctx.lineTo(item.x, padTop + plotH);
+            ctx.stroke();
+        });
+        ctx.restore();
 
         if (mode === 'delta') {
             // ── NET DELTA BARS MODE ──
@@ -9913,8 +10216,6 @@
             ctx.lineTo(width - padRight, zeroY);
             ctx.stroke();
 
-            const n = buckets.length;
-            const slotW = plotW / Math.max(n, 12);
             const barW = isScroll ? Math.max(16, slotW * 0.65) : Math.max(4, slotW * 0.7);
 
             buckets.forEach((b, idx) => {
@@ -9969,16 +10270,6 @@
                         ctx.fillText(txt, x, textY);
                     }
                     ctx.restore();
-                }
-
-                // Time label on X axis
-                const showTime = isScroll ? (idx % 2 === 0 || idx === n - 1) : (idx % 4 === 0 || idx === n - 1);
-                if (showTime) {
-                    ctx.fillStyle = (idx === n - 1) ? '#38bdf8' : '#94a3b8';
-                    ctx.font = (idx === n - 1) ? 'bold 9px monospace' : '8.5px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(b.time, x, height - padBottom + 4);
                 }
             });
 
@@ -10077,10 +10368,8 @@
                 ctx.fillText(`Alert ${formatV5mQty(thresh)}`, width - padRight - 4, threshY - 3);
             }
 
-            const n = buckets.length;
-            const slotW = plotW / Math.max(n, 12);
-            const singleBarW = isScroll ? Math.max(14, Math.min(22, slotW * 0.42)) : Math.max(2.5, slotW * 0.42);
-            const gap = isScroll ? 2 : 1;
+            const singleBarW = isScroll ? Math.max(16, Math.min(22, slotW * 0.38)) : Math.max(2.5, slotW * 0.42);
+            const gap = isScroll ? 4 : 1;
 
             buckets.forEach((b, idx) => {
                 const centerX = padLeft + (idx * slotW) + (slotW / 2);
@@ -10122,7 +10411,7 @@
 
                 // Volume Labels on Top of Bars:
                 if (isScroll) {
-                    // In Scroll Mode: 50px slot width allows clear labels for significant or top bars
+                    // In Scroll Mode: 68px slot width allows clear labels for significant or top bars
                     ctx.save();
                     ctx.font = 'bold 9px monospace';
                     ctx.textAlign = 'center';
@@ -10130,22 +10419,35 @@
                     ctx.lineWidth = 2.5;
                     ctx.lineJoin = 'round';
 
-                    // Buy bar label (show if >= 30k, Mega, or top 5 rank)
-                    if (b.buy_qty >= 30000 || isMegaBuy || (buyRank && buyRank <= 5)) {
+                    const showBuyLabel = (b.buy_qty >= 30000 || isMegaBuy || (buyRank && buyRank <= 5));
+                    const showSellLabel = (b.sell_qty >= 30000 || isMegaSell || (sellRank && sellRank <= 5));
+
+                    let bTopY = (buyY < padTop + 14) ? (buyY + 11) : (buyY - 2);
+                    let sTopY = (sellY < padTop + 14) ? (sellY + 11) : (sellY - 2);
+
+                    // Stagger labels if both are shown and heights are close to prevent overlap
+                    if (showBuyLabel && showSellLabel && Math.abs(bTopY - sTopY) < 12) {
+                        if (b.buy_qty >= b.sell_qty) {
+                            sTopY += 10;
+                        } else {
+                            bTopY += 10;
+                        }
+                    }
+
+                    // Buy bar label
+                    if (showBuyLabel) {
                         const bPrefix = (buyRank === 1) ? '👑 ' : (buyRank && buyRank <= 3 ? `#${buyRank} ` : '');
                         const bTxt = `${bPrefix}${formatV5mQty(b.buy_qty)}`;
-                        const bTopY = (buyY < padTop + 14) ? (buyY + 11) : (buyY - 2);
                         ctx.textBaseline = 'bottom';
                         ctx.strokeText(bTxt, buyX + singleBarW / 2, bTopY);
                         ctx.fillStyle = (buyRank === 1) ? '#fbbf24' : ((buyY < padTop + 14) ? '#ffffff' : (isMegaBuy ? '#34d399' : '#10b981'));
                         ctx.fillText(bTxt, buyX + singleBarW / 2, bTopY);
                     }
 
-                    // Sell bar label (show if >= 30k, Mega, or top 5 rank)
-                    if (b.sell_qty >= 30000 || isMegaSell || (sellRank && sellRank <= 5)) {
+                    // Sell bar label
+                    if (showSellLabel) {
                         const sPrefix = (sellRank === 1) ? '👑 ' : (sellRank && sellRank <= 3 ? `#${sellRank} ` : '');
                         const sTxt = `${sPrefix}${formatV5mQty(b.sell_qty)}`;
-                        const sTopY = (sellY < padTop + 14) ? (sellY + 11) : (sellY - 2);
                         ctx.textBaseline = 'bottom';
                         ctx.strokeText(sTxt, sellX + singleBarW / 2, sTopY);
                         ctx.fillStyle = (sellRank === 1) ? '#fbbf24' : ((sellY < padTop + 14) ? '#ffffff' : (isMegaSell ? '#fb7185' : '#f43f5e'));
@@ -10177,18 +10479,43 @@
                         ctx.restore();
                     }
                 }
-
-                // X-Axis time label
-                const showTime = isScroll ? (idx % 2 === 0 || idx === n - 1) : (idx % 4 === 0 || idx === n - 1);
-                if (showTime) {
-                    ctx.fillStyle = (idx === n - 1) ? '#38bdf8' : '#94a3b8';
-                    ctx.font = (idx === n - 1) ? 'bold 9px monospace' : '8.5px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(b.time, centerX, height - padBottom + 4);
-                }
             });
         }
+
+        // ── DRAW TIME LABELS & BASELINE TICKS AT BOTTOM OF CHART ──
+        timeLabelsToDraw.forEach(item => {
+            ctx.save();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = item.isLive ? '#38bdf8' : (item.isMajor ? '#60a5fa' : '#475569');
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(item.x, padTop + plotH);
+            ctx.lineTo(item.x, padTop + plotH + 4);
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            if (item.isLive) {
+                ctx.font = 'bold 9px monospace';
+                const textWidth = ctx.measureText(item.time).width;
+                ctx.fillStyle = 'rgba(14, 165, 233, 0.22)';
+                ctx.fillRect(item.x - textWidth / 2 - 3, height - padBottom + 3, textWidth + 6, 12);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(item.x - textWidth / 2 - 3, height - padBottom + 3, textWidth + 6, 12);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText(item.time, item.x, height - padBottom + 4);
+            } else if (item.isMajor) {
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = 'bold 9px monospace';
+                ctx.fillText(item.time, item.x, height - padBottom + 4);
+            } else {
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '8.5px monospace';
+                ctx.fillText(item.time, item.x, height - padBottom + 4);
+            }
+            ctx.restore();
+        });
 
         // Auto-scroll to latest live candle on initial render
         if (isScroll && scrollWrapper && !v5mState.userHasScrolled) {
@@ -10262,6 +10589,7 @@
         const filterSel = document.getElementById('sel-v5m-table-filter');
         if (filterSel) filterSel.value = String(v5mState.tableFilter);
 
+        updateV5mSoundUI();
         setV5mChartHeight(v5mState.height);
         setV5mBarMode(v5mState.barMode);
         set5mViewMode(v5mState.viewMode);
@@ -10328,8 +10656,17 @@
         const soundBtn = document.getElementById('btn-sound-toggle');
         const soundIcon = document.getElementById('sound-icon');
         if (soundBtn) {
+            const masterSound = localStorage.getItem('order_flow_sound_enabled');
+            if (masterSound !== null) {
+                state.soundEnabled = (masterSound !== 'false');
+            }
+            if (soundIcon) soundIcon.textContent = state.soundEnabled ? '🔔' : '🔕';
+
             soundBtn.addEventListener('click', () => {
                 state.soundEnabled = !state.soundEnabled;
+                try {
+                    localStorage.setItem('order_flow_sound_enabled', String(state.soundEnabled));
+                } catch(e) {}
                 if (soundIcon) soundIcon.textContent = state.soundEnabled ? '🔔' : '🔕';
             });
         }
