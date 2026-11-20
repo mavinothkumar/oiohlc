@@ -100,7 +100,7 @@
                     <span class="text-[10px] {{ !empty($isHistorical) ? 'text-cyan-300 font-black' : 'text-slate-400' }} uppercase font-bold">Date:</span>
                     <input type="date" id="sel-session-date" value="{{ $workingDate }}" max="{{ $todayDate ?? date('Y-m-d') }}" onchange="switchSessionDate(this.value)" class="bg-transparent text-[11px] {{ !empty($isHistorical) ? 'text-cyan-300 font-black' : 'text-slate-200 font-bold' }} font-mono focus:outline-none cursor-pointer">
                     @if(!empty($isHistorical))
-                        <a href="{{ route('order-flow.depth') }}" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-cyan-950 text-cyan-300 hover:text-white border border-cyan-700 shrink-0" title="Click to return to Live Today session">
+                        <a href="{{ route('order-flow-depth.index') }}" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-cyan-950 text-cyan-300 hover:text-white border border-cyan-700 shrink-0" title="Click to return to Live Today session">
                             LIVE ↩
                         </a>
                     @endif
