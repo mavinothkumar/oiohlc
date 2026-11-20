@@ -1256,6 +1256,11 @@ class OrderFlowStrategyController extends Controller
         $minTradeQty = (int) $request->input('min_qty', 0);
         $alertThreshold = (int) $request->input('alert_threshold', 100000); // 100k contracts default
 
+        // Ensure generous buffer for GROUP_CONCAT to safely extract candle Open & Close
+        try {
+            DB::statement("SET SESSION group_concat_max_len = 1000000");
+        } catch (\Throwable $e) {}
+
         // Query grouped by 5-minute time bucket (300 seconds)
         $query = "
             SELECT 
@@ -1266,7 +1271,9 @@ class OrderFlowStrategyController extends Controller
                 COUNT(CASE WHEN side = 'BID' THEN 1 END) AS sell_trades,
                 SUM(CASE WHEN side = 'ASK' THEN quantity ELSE -quantity END) AS net_delta,
                 MIN(price) AS low_price,
-                MAX(price) AS high_price
+                MAX(price) AS high_price,
+                SUBSTRING_INDEX(GROUP_CONCAT(price ORDER BY trade_time ASC, id ASC SEPARATOR ','), ',', 1) AS open_price,
+                SUBSTRING_INDEX(GROUP_CONCAT(price ORDER BY trade_time DESC, id DESC SEPARATOR ','), ',', 1) AS close_price
             FROM order_flow_traded_volumes
             WHERE trade_date = ? AND symbol = ?
         ";
@@ -1346,6 +1353,45 @@ class OrderFlowStrategyController extends Controller
                 $eventShort = 'BATTLE';
             }
 
+            $openPrice = (float) ($row->open_price ?? $row->low_price);
+            $closePrice = (float) ($row->close_price ?? $row->high_price);
+            $lowPrice = (float) $row->low_price;
+            $highPrice = (float) $row->high_price;
+            $priceChange = round($closePrice - $openPrice, 2);
+            $priceRange = round($highPrice - $lowPrice, 2);
+
+            // Wyckoff / Order Flow Effort vs Result (Divergence & Absorption)
+            $dynamics = 'NORMAL';
+            $dynamicsTag = '';
+            $dynamicsColor = '';
+
+            if ($tot >= 25000) {
+                if ($delta <= -15000 && $priceChange >= 1.0) {
+                    // Heavy aggressive sell volume but price CLOSED UP: Buyers absorbed all selling!
+                    $dynamics = 'BULL_ABSORPTION';
+                    $dynamicsTag = '🛡️ Bull Absorption (Passive Bids)';
+                    $dynamicsColor = 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50';
+                } elseif ($delta >= 15000 && $priceChange <= -1.0) {
+                    // Heavy aggressive buy volume but price CLOSED DOWN: Sellers absorbed all buying!
+                    $dynamics = 'BEAR_ABSORPTION';
+                    $dynamicsTag = '🧱 Bear Absorption (Passive Asks)';
+                    $dynamicsColor = 'text-rose-300 bg-rose-950/80 border-rose-500/50';
+                } elseif ($tot >= $alertThreshold && abs($priceChange) <= 3.5 && $priceRange <= 12.0) {
+                    // Huge volume compressed into tiny range: Pressure coiling
+                    $dynamics = 'VOL_COMPRESSION';
+                    $dynamicsTag = '⚡ Volume Coiling (Breakout Prep)';
+                    $dynamicsColor = 'text-amber-300 bg-amber-950/80 border-amber-500/50';
+                } elseif ($delta >= 35000 && $priceChange >= 8.0) {
+                    $dynamics = 'BULL_EXPANSION';
+                    $dynamicsTag = '🚀 Bull Trend Expansion';
+                    $dynamicsColor = 'text-teal-300 bg-teal-950/80 border-teal-500/50';
+                } elseif ($delta <= -35000 && $priceChange <= -8.0) {
+                    $dynamics = 'BEAR_EXPANSION';
+                    $dynamicsTag = '💥 Bear Trend Expansion';
+                    $dynamicsColor = 'text-orange-300 bg-orange-950/80 border-orange-500/50';
+                }
+            }
+
             $buckets[] = [
                 'time' => $row->time_bucket,
                 'buy_qty' => $buy,
@@ -1363,8 +1409,15 @@ class OrderFlowStrategyController extends Controller
                 'event_short' => $eventShort,
                 'badge_color' => $badgeColor,
                 'is_alert' => $isAlert || ($tot >= $alertThreshold),
-                'low_price' => (float) $row->low_price,
-                'high_price' => (float) $row->high_price,
+                'open_price' => $openPrice,
+                'close_price' => $closePrice,
+                'low_price' => $lowPrice,
+                'high_price' => $highPrice,
+                'price_change' => $priceChange,
+                'price_range' => $priceRange,
+                'dynamics' => $dynamics,
+                'dynamics_tag' => $dynamicsTag,
+                'dynamics_color' => $dynamicsColor,
             ];
         }
 

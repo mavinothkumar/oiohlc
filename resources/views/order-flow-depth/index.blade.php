@@ -704,30 +704,32 @@
                                 <select id="sel-v5m-table-filter" onchange="setV5mTableFilter(this.value)" class="bg-transparent text-cyan-300 font-mono font-bold text-[9px] focus:outline-none cursor-pointer">
                                     <option value="all" class="bg-slate-900 text-slate-200">All Candles</option>
                                     <option value="events_only" class="bg-slate-900 text-amber-300">⚡ Institutional Only</option>
+                                    <option value="absorption_only" class="bg-slate-900 text-teal-300">🛡️ Absorptions Only</option>
                                     <option value="buy_only" class="bg-slate-900 text-emerald-400">🟢 Buy Dominant</option>
                                     <option value="sell_only" class="bg-slate-900 text-rose-400">🔴 Sell Dominant</option>
                                     <option value="top_only" class="bg-slate-900 text-yellow-300">🏆 Top 5 Ranked</option>
                                 </select>
                             </div>
-                            <span id="v5m-table-count" class="font-mono text-slate-500">0 Candles</span>
+                            <span id="v5m-table-count" class="font-mono text-slate-500 font-bold">0 Candles</span>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto overflow-y-auto max-h-[380px] custom-scrollbar rounded-lg border border-slate-800/80 bg-slate-950/90 select-none">
-                        <table class="w-full text-left border-collapse text-[10px] font-mono">
-                            <thead class="sticky top-0 bg-slate-950 text-slate-400 uppercase text-[9px] border-b border-slate-800 z-10">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[420px] custom-scrollbar rounded-lg border border-slate-800/80 bg-slate-950/90 select-none">
+                        <table class="w-full text-left border-collapse text-xs font-mono">
+                            <thead class="sticky top-0 bg-slate-950 text-slate-300 uppercase text-[10px] font-bold border-b border-slate-800 z-10">
                                 <tr>
-                                    <th class="py-1 px-2">Window</th>
-                                    <th class="py-1 px-2 text-right text-emerald-400">Market Buy (Ask)</th>
-                                    <th class="py-1 px-2 text-right text-rose-400">Market Sell (Bid)</th>
-                                    <th class="py-1 px-2 text-right">Net Delta</th>
-                                    <th class="py-1 px-2 text-center">Ratio</th>
-                                    <th class="py-1 px-2">Dominance &amp; Institutional Event</th>
+                                    <th class="py-1.5 px-2.5">Window</th>
+                                    <th class="py-1.5 px-2.5 text-right text-emerald-400">Market Buy (Ask)</th>
+                                    <th class="py-1.5 px-2.5 text-right text-rose-400">Market Sell (Bid)</th>
+                                    <th class="py-1.5 px-2.5 text-right">Net Delta</th>
+                                    <th class="py-1.5 px-2.5 text-center">Ratio</th>
+                                    <th class="py-1.5 px-2.5 text-center text-amber-300">Price Move (OHLC)</th>
+                                    <th class="py-1.5 px-2.5">Dominance &amp; Effort vs Result (Absorption)</th>
                                 </tr>
                             </thead>
                             <tbody id="v5m-table-body" class="divide-y divide-slate-800/40">
                                 <tr>
-                                    <td colspan="6" class="py-4 text-center text-slate-500 italic">Syncing 5-minute trade prints...</td>
+                                    <td colspan="7" class="py-4 text-center text-slate-500 italic">Syncing 5-minute trade prints...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -9897,7 +9899,7 @@
         const buckets = v5mState.data.buckets;
         if (buckets.length === 0) {
             if (countEl) countEl.textContent = '0 Candles';
-            tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 italic">No trade prints recorded yet today.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-500 italic">No trade prints recorded yet today.</td></tr>`;
             return;
         }
 
@@ -9910,6 +9912,8 @@
         let filtered = reversed;
         if (filter === 'events_only') {
             filtered = reversed.filter(b => b.is_alert || (b.event && !b.event.includes('BALANCED CHOP')));
+        } else if (filter === 'absorption_only') {
+            filtered = reversed.filter(b => b.dynamics && b.dynamics !== 'NORMAL');
         } else if (filter === 'buy_only') {
             filtered = reversed.filter(b => b.dominant_side === 'BUY');
         } else if (filter === 'sell_only') {
@@ -9923,7 +9927,7 @@
         }
 
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 italic">No 5-min candles match current filter (${filter}).</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-500 italic">No 5-min candles match current filter (${filter}).</td></tr>`;
             return;
         }
 
@@ -9931,10 +9935,15 @@
         filtered.forEach(b => {
             const isAlert = b.is_alert || (b.total_qty >= v5mState.alertThresh);
             const hasTopRank = ranks.buy.has(b.time) || ranks.sell.has(b.time) || ranks.delta.has(b.time);
-            const rowBg = hasTopRank 
-                ? 'bg-amber-950/15 hover:bg-amber-950/25' 
-                : (isAlert ? 'bg-indigo-950/25 hover:bg-indigo-950/40' : 'hover:bg-slate-900/50');
-            const alertGlow = isAlert ? 'border-l-2 border-l-amber-400 pl-1.5' : (hasTopRank ? 'border-l-2 border-l-cyan-400 pl-1.5' : 'pl-2');
+            const hasAbsorption = (b.dynamics && b.dynamics !== 'NORMAL');
+            const rowBg = hasAbsorption 
+                ? 'bg-teal-950/20 hover:bg-teal-950/30' 
+                : (hasTopRank 
+                    ? 'bg-amber-950/15 hover:bg-amber-950/25' 
+                    : (isAlert ? 'bg-indigo-950/25 hover:bg-indigo-950/40' : 'hover:bg-slate-900/50'));
+            const alertGlow = hasAbsorption
+                ? 'border-l-2 border-l-teal-400 pl-2'
+                : (isAlert ? 'border-l-2 border-l-amber-400 pl-2' : (hasTopRank ? 'border-l-2 border-l-cyan-400 pl-2' : 'pl-2.5'));
 
             const netSign = b.net_delta >= 0 ? '+' : '';
             const netColor = b.net_delta >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -9948,44 +9957,65 @@
             const deltaRank = ranks.delta.get(b.time);
             const ratioRank = ranks.ratio.get(b.time);
 
+            // Price Movement OHLC format
+            const pDiff = (b.price_change !== undefined && b.price_change !== null) ? Number(b.price_change) : 0;
+            const pSign = pDiff > 0 ? '+' : '';
+            const pColor = pDiff > 0 ? 'text-emerald-400' : (pDiff < 0 ? 'text-rose-400' : 'text-slate-400');
+            const oPrice = (b.open_price !== undefined && b.open_price > 0) ? `₹${Number(b.open_price).toFixed(1)}` : '--';
+            const cPrice = (b.close_price !== undefined && b.close_price > 0) ? `₹${Number(b.close_price).toFixed(1)}` : '--';
+            const pRange = (b.price_range !== undefined && b.price_range > 0) ? `${Number(b.price_range).toFixed(1)}p` : '0p';
+
             rowsHtml += `
                 <tr class="transition-colors ${rowBg}">
-                    <td class="py-1.5 ${alertGlow} font-bold text-slate-300 whitespace-nowrap">
+                    <td class="py-2 ${alertGlow} font-black text-xs sm:text-sm text-slate-200 whitespace-nowrap">
                         ${b.time}
                         ${isAlert ? '<span class="text-amber-400 ml-0.5" title="Institutional High Volume Wave">⚡</span>' : ''}
                     </td>
-                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                    <td class="py-2 px-2.5 text-right whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1">
                             ${getV5mRankBadge(buyRank, 'buy')}
-                            <span class="font-bold text-emerald-400">${formatV5mQty(b.buy_qty)}</span>
+                            <span class="font-extrabold text-xs sm:text-sm text-emerald-400">${formatV5mQty(b.buy_qty)}</span>
                         </div>
-                        <span class="text-[8px] text-slate-500 font-sans block leading-none text-right">${b.buy_trades} trd</span>
+                        <span class="text-[9.5px] text-slate-400 font-sans block leading-none text-right font-medium">${b.buy_trades} trd</span>
                     </td>
-                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                    <td class="py-2 px-2.5 text-right whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1">
                             ${getV5mRankBadge(sellRank, 'sell')}
-                            <span class="font-bold text-rose-400">${formatV5mQty(b.sell_qty)}</span>
+                            <span class="font-extrabold text-xs sm:text-sm text-rose-400">${formatV5mQty(b.sell_qty)}</span>
                         </div>
-                        <span class="text-[8px] text-slate-500 font-sans block leading-none text-right">${b.sell_trades} trd</span>
+                        <span class="text-[9.5px] text-slate-400 font-sans block leading-none text-right font-medium">${b.sell_trades} trd</span>
                     </td>
-                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
+                    <td class="py-2 px-2.5 text-right whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1">
                             ${getV5mRankBadge(deltaRank, b.net_delta >= 0 ? 'buy' : 'sell')}
-                            <span class="font-bold ${netColor}">${netSign}${formatV5mQty(b.net_delta)}</span>
+                            <span class="font-extrabold text-xs sm:text-sm ${netColor}">${netSign}${formatV5mQty(b.net_delta)}</span>
                         </div>
                     </td>
-                    <td class="py-1.5 px-2 text-center whitespace-nowrap">
+                    <td class="py-2 px-2.5 text-center whitespace-nowrap">
                         <div class="inline-flex items-center gap-1">
-                            <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold border ${ratioBadge}">
+                            <span class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono font-black border ${ratioBadge}">
                                 ${b.dominance_ratio}x ${ratioSide}
                             </span>
                             ${getV5mRankBadge(ratioRank)}
                         </div>
                     </td>
-                    <td class="py-1.5 px-2 whitespace-nowrap">
-                        <span class="px-1.5 py-0.5 rounded text-[8.5px] font-bold border ${b.badge_color}">
-                            ${b.event}
-                        </span>
+                    <td class="py-2 px-2.5 text-center whitespace-nowrap">
+                        <div class="flex flex-col items-center justify-center">
+                            <span class="font-black text-xs sm:text-sm ${pColor}">${pSign}${pDiff.toFixed(2)} pts</span>
+                            <span class="text-[9.5px] text-slate-400 font-mono tracking-tight block">O: ${oPrice} · C: ${cPrice} <span class="text-slate-500">(${pRange})</span></span>
+                        </div>
+                    </td>
+                    <td class="py-2 px-2.5 whitespace-nowrap">
+                        <div class="flex flex-col gap-1 items-start">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${b.badge_color}">
+                                ${b.event}
+                            </span>
+                            ${b.dynamics_tag ? `
+                                <span class="px-2 py-0.5 rounded text-[9.5px] font-black border ${b.dynamics_color} animate-in fade-in">
+                                    ${b.dynamics_tag}
+                                </span>
+                            ` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -10087,8 +10117,8 @@
 
         const padLeft = isScroll ? 10 : 42;
         const padRight = 14;
-        const padTop = 26;
-        const padBottom = 24;
+        const padTop = 32;
+        const padBottom = 26;
         const plotW = width - padLeft - padRight;
         const plotH = height - padTop - padBottom;
         const n = buckets.length;
@@ -10174,21 +10204,21 @@
                     yCtx.textBaseline = 'middle';
 
                     yCtx.fillStyle = '#34d399';
-                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.font = 'bold 10px monospace';
                     yCtx.fillText(`+${formatV5mQty(maxDelta)}`, rW - 4, padTop + 4);
 
                     yCtx.fillStyle = '#94a3b8';
-                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.font = 'bold 10px monospace';
                     yCtx.fillText('0', rW - 4, zeroY);
 
                     yCtx.fillStyle = '#fb7185';
-                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.font = 'bold 10px monospace';
                     yCtx.fillText(`-${formatV5mQty(maxDelta)}`, rW - 4, padTop + plotH - 4);
                 }
             } else if (!isScroll) {
                 // Main canvas Y-axis labels
                 ctx.fillStyle = '#64748b';
-                ctx.font = 'bold 8.5px monospace';
+                ctx.font = 'bold 10px monospace';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(`+${formatV5mQty(maxDelta)}`, padLeft - 4, padTop + 4);
@@ -10242,6 +10272,16 @@
                 }
                 ctx.shadowBlur = 0;
 
+                // Price Move & Dynamics Icon
+                const pDiff = (b.price_change !== undefined && b.price_change !== null) ? Number(b.price_change) : 0;
+                const pSign = pDiff > 0 ? '+' : '';
+                let dynIcon = '';
+                if (b.dynamics === 'BULL_ABSORPTION') dynIcon = '🛡️';
+                else if (b.dynamics === 'BEAR_ABSORPTION') dynIcon = '🧱';
+                else if (b.dynamics === 'VOL_COMPRESSION') dynIcon = '⚡';
+                else if (b.dynamics === 'BULL_EXPANSION') dynIcon = '🚀';
+                else if (b.dynamics === 'BEAR_EXPANSION') dynIcon = '💥';
+
                 // Delta Numbers: smart selective rendering to avoid overlap
                 const shouldShowDelta = isScroll 
                     ? (Math.abs(delta) >= 20000 || isAlert || (dRank && dRank <= 3))
@@ -10249,25 +10289,43 @@
 
                 if (shouldShowDelta) {
                     ctx.save();
-                    ctx.font = 'bold 9.5px monospace';
+                    ctx.font = 'bold 11.5px monospace';
                     ctx.textAlign = 'center';
                     ctx.strokeStyle = '#050811';
-                    ctx.lineWidth = 2.5;
+                    ctx.lineWidth = 3;
                     ctx.lineJoin = 'round';
 
                     const rankTxt = (dRank === 1) ? '👑 ' : (dRank && dRank <= 3 ? `#${dRank} ` : '');
                     if (isBull) {
-                        const textY = Math.max(padTop - 2, zeroY - barH - 3);
-                        const txt = `${rankTxt}+${formatV5mQty(delta)}`;
+                        const textY = Math.max(padTop - 2, zeroY - barH - 4);
+                        const txt = `${rankTxt}+${formatV5mQty(delta)} ${dynIcon}`;
                         ctx.strokeText(txt, x, textY);
                         ctx.fillStyle = (dRank === 1) ? '#fbbf24' : (isAlert ? '#34d399' : '#10b981');
                         ctx.fillText(txt, x, textY);
+
+                        // Price move subtext
+                        if (isScroll) {
+                            ctx.font = 'bold 10px monospace';
+                            const pTxt = `${pSign}${pDiff.toFixed(1)}p`;
+                            ctx.strokeText(pTxt, x, textY - 12);
+                            ctx.fillStyle = pDiff >= 0 ? '#34d399' : '#fb7185';
+                            ctx.fillText(pTxt, x, textY - 12);
+                        }
                     } else {
-                        const textY = Math.min(height - padBottom + 2, zeroY + barH + 10);
-                        const txt = `${rankTxt}-${formatV5mQty(Math.abs(delta))}`;
+                        const textY = Math.min(height - padBottom + 2, zeroY + barH + 12);
+                        const txt = `${rankTxt}-${formatV5mQty(Math.abs(delta))} ${dynIcon}`;
                         ctx.strokeText(txt, x, textY);
                         ctx.fillStyle = (dRank === 1) ? '#fbbf24' : (isAlert ? '#fb7185' : '#f43f5e');
                         ctx.fillText(txt, x, textY);
+
+                        // Price move subtext
+                        if (isScroll) {
+                            ctx.font = 'bold 10px monospace';
+                            const pTxt = `${pSign}${pDiff.toFixed(1)}p`;
+                            ctx.strokeText(pTxt, x, textY + 11);
+                            ctx.fillStyle = pDiff >= 0 ? '#34d399' : '#fb7185';
+                            ctx.fillText(pTxt, x, textY + 11);
+                        }
                     }
                     ctx.restore();
                 }
@@ -10298,31 +10356,31 @@
                     yCtx.textBaseline = 'middle';
 
                     yCtx.fillStyle = '#38bdf8';
-                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.font = 'bold 10px monospace';
                     yCtx.fillText(formatV5mQty(maxVol), rW - 4, padTop + 4);
 
                     yCtx.fillStyle = '#64748b';
-                    yCtx.font = '8px monospace';
+                    yCtx.font = 'bold 9px monospace';
                     yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.75)), rW - 4, padTop + (plotH * 0.25));
                     yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.5)), rW - 4, padTop + (plotH * 0.5));
                     yCtx.fillText(formatV5mQty(Math.round(maxVol * 0.25)), rW - 4, padTop + (plotH * 0.75));
 
                     yCtx.fillStyle = '#94a3b8';
-                    yCtx.font = 'bold 8.5px monospace';
+                    yCtx.font = 'bold 10px monospace';
                     yCtx.fillText('0', rW - 4, padTop + plotH);
 
                     // Alert threshold indicator on rail
                     if (thresh < maxVol) {
                         const threshY = padTop + plotH - ((thresh / maxVol) * plotH);
                         yCtx.fillStyle = '#f59e0b';
-                        yCtx.font = 'bold 8px monospace';
+                        yCtx.font = 'bold 9px monospace';
                         yCtx.fillText(`⚡${formatV5mQty(thresh)}`, rW - 4, threshY);
                     }
                 }
             } else if (!isScroll) {
                 // Main canvas Y-axis labels in fit mode
                 ctx.fillStyle = '#64748b';
-                ctx.font = '8.5px monospace';
+                ctx.font = 'bold 10px monospace';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(formatV5mQty(maxVol), padLeft - 4, padTop + 4);
@@ -10363,7 +10421,7 @@
                 ctx.setLineDash([]);
 
                 ctx.fillStyle = '#f59e0b';
-                ctx.font = 'bold 8.5px monospace';
+                ctx.font = 'bold 9.5px monospace';
                 ctx.textAlign = 'right';
                 ctx.fillText(`Alert ${formatV5mQty(thresh)}`, width - padRight - 4, threshY - 3);
             }
@@ -10409,28 +10467,38 @@
                 ctx.fillRect(sellX, sellY, singleBarW, sellH);
                 ctx.shadowBlur = 0;
 
+                // Price Move & Effort vs Result (Absorption / Expansion)
+                const pDiff = (b.price_change !== undefined && b.price_change !== null) ? Number(b.price_change) : 0;
+                const pSign = pDiff > 0 ? '+' : '';
+                let dynIcon = '';
+                if (b.dynamics === 'BULL_ABSORPTION') dynIcon = '🛡️';
+                else if (b.dynamics === 'BEAR_ABSORPTION') dynIcon = '🧱';
+                else if (b.dynamics === 'VOL_COMPRESSION') dynIcon = '⚡';
+                else if (b.dynamics === 'BULL_EXPANSION') dynIcon = '🚀';
+                else if (b.dynamics === 'BEAR_EXPANSION') dynIcon = '💥';
+
                 // Volume Labels on Top of Bars:
                 if (isScroll) {
-                    // In Scroll Mode: 68px slot width allows clear labels for significant or top bars
+                    // In Scroll Mode: 68px slot width allows bold, large, high-contrast labels
                     ctx.save();
-                    ctx.font = 'bold 9px monospace';
+                    ctx.font = 'bold 11.5px monospace';
                     ctx.textAlign = 'center';
                     ctx.strokeStyle = '#050811';
-                    ctx.lineWidth = 2.5;
+                    ctx.lineWidth = 3;
                     ctx.lineJoin = 'round';
 
                     const showBuyLabel = (b.buy_qty >= 30000 || isMegaBuy || (buyRank && buyRank <= 5));
                     const showSellLabel = (b.sell_qty >= 30000 || isMegaSell || (sellRank && sellRank <= 5));
 
-                    let bTopY = (buyY < padTop + 14) ? (buyY + 11) : (buyY - 2);
-                    let sTopY = (sellY < padTop + 14) ? (sellY + 11) : (sellY - 2);
+                    let bTopY = (buyY < padTop + 20) ? (buyY + 14) : (buyY - 3);
+                    let sTopY = (sellY < padTop + 20) ? (sellY + 14) : (sellY - 3);
 
                     // Stagger labels if both are shown and heights are close to prevent overlap
-                    if (showBuyLabel && showSellLabel && Math.abs(bTopY - sTopY) < 12) {
+                    if (showBuyLabel && showSellLabel && Math.abs(bTopY - sTopY) < 14) {
                         if (b.buy_qty >= b.sell_qty) {
-                            sTopY += 10;
+                            sTopY += 13;
                         } else {
-                            bTopY += 10;
+                            bTopY += 13;
                         }
                     }
 
@@ -10440,7 +10508,7 @@
                         const bTxt = `${bPrefix}${formatV5mQty(b.buy_qty)}`;
                         ctx.textBaseline = 'bottom';
                         ctx.strokeText(bTxt, buyX + singleBarW / 2, bTopY);
-                        ctx.fillStyle = (buyRank === 1) ? '#fbbf24' : ((buyY < padTop + 14) ? '#ffffff' : (isMegaBuy ? '#34d399' : '#10b981'));
+                        ctx.fillStyle = (buyRank === 1) ? '#fbbf24' : ((buyY < padTop + 20) ? '#ffffff' : (isMegaBuy ? '#34d399' : '#10b981'));
                         ctx.fillText(bTxt, buyX + singleBarW / 2, bTopY);
                     }
 
@@ -10450,9 +10518,22 @@
                         const sTxt = `${sPrefix}${formatV5mQty(b.sell_qty)}`;
                         ctx.textBaseline = 'bottom';
                         ctx.strokeText(sTxt, sellX + singleBarW / 2, sTopY);
-                        ctx.fillStyle = (sellRank === 1) ? '#fbbf24' : ((sellY < padTop + 14) ? '#ffffff' : (isMegaSell ? '#fb7185' : '#f43f5e'));
+                        ctx.fillStyle = (sellRank === 1) ? '#fbbf24' : ((sellY < padTop + 20) ? '#ffffff' : (isMegaSell ? '#fb7185' : '#f43f5e'));
                         ctx.fillText(sTxt, sellX + singleBarW / 2, sTopY);
                     }
+
+                    // Price Movement Header above candle pair:
+                    const minBarY = Math.min(buyY, sellY);
+                    const pTxt = `${dynIcon ? dynIcon + ' ' : ''}${pSign}${pDiff.toFixed(1)}p`;
+                    const pY = (minBarY < padTop + 30) ? (padTop - 2) : (minBarY - 16);
+                    ctx.font = 'bold 10.5px monospace';
+                    ctx.textBaseline = 'bottom';
+                    ctx.strokeText(pTxt, centerX, pY);
+                    ctx.fillStyle = (b.dynamics && b.dynamics.includes('ABSORPTION')) 
+                        ? '#38bdf8' 
+                        : (pDiff > 0 ? '#34d399' : (pDiff < 0 ? '#fb7185' : '#94a3b8'));
+                    ctx.fillText(pTxt, centerX, pY);
+
                     ctx.restore();
                 } else {
                     // In Fit Mode: ONLY show label on Landmark / Mega bars (> thresh or top 2 in session) to prevent messy collisions!
@@ -10465,14 +10546,14 @@
                         const rankVal = isBuyDom ? buyRank : sellRank;
                         const rankPrefix = (rankVal === 1) ? '👑 ' : (rankVal && rankVal <= 2 ? `#${rankVal} ` : '');
                         
-                        ctx.font = 'bold 9.5px monospace';
+                        ctx.font = 'bold 11.5px monospace';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'bottom';
                         ctx.strokeStyle = '#050811';
-                        ctx.lineWidth = 2.5;
+                        ctx.lineWidth = 3;
                         ctx.lineJoin = 'round';
-                        const txt = `${rankPrefix}${formatV5mQty(topQty)}`;
-                        const labelY = Math.max(padTop - 2, topY - 2);
+                        const txt = `${rankPrefix}${formatV5mQty(topQty)} (${pSign}${pDiff.toFixed(1)}p ${dynIcon})`;
+                        const labelY = Math.max(padTop - 2, topY - 3);
                         ctx.strokeText(txt, centerX, labelY);
                         ctx.fillStyle = (rankVal === 1) ? '#fbbf24' : (isBuyDom ? '#34d399' : '#fb7185');
                         ctx.fillText(txt, centerX, labelY);
@@ -10496,23 +10577,23 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             if (item.isLive) {
-                ctx.font = 'bold 9px monospace';
+                ctx.font = 'bold 10.5px monospace';
                 const textWidth = ctx.measureText(item.time).width;
                 ctx.fillStyle = 'rgba(14, 165, 233, 0.22)';
-                ctx.fillRect(item.x - textWidth / 2 - 3, height - padBottom + 3, textWidth + 6, 12);
+                ctx.fillRect(item.x - textWidth / 2 - 4, height - padBottom + 2, textWidth + 8, 14);
                 ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
                 ctx.lineWidth = 1;
-                ctx.strokeRect(item.x - textWidth / 2 - 3, height - padBottom + 3, textWidth + 6, 12);
+                ctx.strokeRect(item.x - textWidth / 2 - 4, height - padBottom + 2, textWidth + 8, 14);
                 ctx.fillStyle = '#38bdf8';
-                ctx.fillText(item.time, item.x, height - padBottom + 4);
+                ctx.fillText(item.time, item.x, height - padBottom + 3);
             } else if (item.isMajor) {
                 ctx.fillStyle = '#cbd5e1';
-                ctx.font = 'bold 9px monospace';
-                ctx.fillText(item.time, item.x, height - padBottom + 4);
+                ctx.font = 'bold 10px monospace';
+                ctx.fillText(item.time, item.x, height - padBottom + 3);
             } else {
                 ctx.fillStyle = '#94a3b8';
-                ctx.font = '8.5px monospace';
-                ctx.fillText(item.time, item.x, height - padBottom + 4);
+                ctx.font = 'bold 9.5px monospace';
+                ctx.fillText(item.time, item.x, height - padBottom + 3);
             }
             ctx.restore();
         });
@@ -10548,26 +10629,49 @@
             if (idx >= 0 && idx < buckets.length) {
                 const b = buckets[idx];
                 tooltip.classList.remove('hidden');
-                tooltip.style.left = `${Math.min(rect.width - 180, Math.max(10, mouseX + 12))}px`;
-                tooltip.style.top = `${Math.min(rect.height - 80, Math.max(10, e.clientY - rect.top - 20))}px`;
+                tooltip.style.left = `${Math.min(rect.width - 220, Math.max(10, mouseX + 12))}px`;
+                tooltip.style.top = `${Math.min(rect.height - 110, Math.max(10, e.clientY - rect.top - 20))}px`;
 
                 const netSign = b.net_delta >= 0 ? '+' : '';
                 const netColor = b.net_delta >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
+                const pDiff = (b.price_change !== undefined && b.price_change !== null) ? Number(b.price_change) : 0;
+                const pSign = pDiff > 0 ? '+' : '';
+                const pColor = pDiff > 0 ? 'text-emerald-400' : (pDiff < 0 ? 'text-rose-400' : 'text-slate-400');
+                const oPrice = (b.open_price !== undefined && b.open_price > 0) ? `₹${Number(b.open_price).toFixed(2)}` : '--';
+                const cPrice = (b.close_price !== undefined && b.close_price > 0) ? `₹${Number(b.close_price).toFixed(2)}` : '--';
+                const hPrice = (b.high_price !== undefined && b.high_price > 0) ? `₹${Number(b.high_price).toFixed(2)}` : '--';
+                const lPrice = (b.low_price !== undefined && b.low_price > 0) ? `₹${Number(b.low_price).toFixed(2)}` : '--';
+
                 tooltip.innerHTML = `
-                    <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-0.5 font-bold">
-                        <span class="text-white">${b.time}</span>
-                        <span class="text-[9px] text-amber-300">${b.dominance_ratio}x ${b.dominant_side}</span>
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-1 font-bold">
+                        <span class="text-white text-xs">${b.time}</span>
+                        <span class="text-[9.5px] text-amber-300 font-mono">${b.dominance_ratio}x ${b.dominant_side}</span>
                     </div>
-                    <div class="flex items-center justify-between text-emerald-400">
-                        <span>Buy Qty:</span> <strong>${formatV5mQty(b.buy_qty)}</strong>
+                    <div class="flex items-center justify-between text-emerald-400 text-xs">
+                        <span>Buy Qty:</span> <strong class="font-mono">${formatV5mQty(b.buy_qty)}</strong>
                     </div>
-                    <div class="flex items-center justify-between text-rose-400">
-                        <span>Sell Qty:</span> <strong>${formatV5mQty(b.sell_qty)}</strong>
+                    <div class="flex items-center justify-between text-rose-400 text-xs">
+                        <span>Sell Qty:</span> <strong class="font-mono">${formatV5mQty(b.sell_qty)}</strong>
                     </div>
-                    <div class="flex items-center justify-between ${netColor} pt-0.5 border-t border-slate-800/80">
-                        <span>Net Delta:</span> <strong>${netSign}${formatV5mQty(b.net_delta)}</strong>
+                    <div class="flex items-center justify-between ${netColor} text-xs pt-0.5 border-t border-slate-800/80">
+                        <span>Net Delta:</span> <strong class="font-mono">${netSign}${formatV5mQty(b.net_delta)}</strong>
                     </div>
+                    <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                        <span class="text-slate-400">Price Move:</span>
+                        <strong class="${pColor} font-mono">${pSign}${pDiff.toFixed(2)} pts</strong>
+                    </div>
+                    <div class="text-[9.5px] text-slate-400 font-mono tracking-tight pt-0.5">
+                        O: ${oPrice} · C: ${cPrice}<br>
+                        H: ${hPrice} · L: ${lPrice} (R: ${b.price_range || 0}p)
+                    </div>
+                    ${b.dynamics_tag ? `
+                        <div class="mt-1 pt-1 border-t border-slate-800">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-black border ${b.dynamics_color} block text-center">
+                                ${b.dynamics_tag}
+                            </span>
+                        </div>
+                    ` : ''}
                 `;
             } else {
                 tooltip.classList.add('hidden');
