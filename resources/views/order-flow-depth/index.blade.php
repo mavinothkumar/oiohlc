@@ -95,6 +95,17 @@
                     </select>
                 </div>
 
+                {{-- Session Date Selector (Supports Historical Day Replay) --}}
+                <div class="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border {{ !empty($isHistorical) ? 'border-cyan-500/60 shadow-sm shadow-cyan-500/20' : 'border-slate-800' }} text-xs">
+                    <span class="text-[10px] {{ !empty($isHistorical) ? 'text-cyan-300 font-black' : 'text-slate-400' }} uppercase font-bold">Date:</span>
+                    <input type="date" id="sel-session-date" value="{{ $workingDate }}" max="{{ $todayDate ?? date('Y-m-d') }}" onchange="switchSessionDate(this.value)" class="bg-transparent text-[11px] {{ !empty($isHistorical) ? 'text-cyan-300 font-black' : 'text-slate-200 font-bold' }} font-mono focus:outline-none cursor-pointer">
+                    @if(!empty($isHistorical))
+                        <a href="{{ route('order-flow.depth') }}" class="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-cyan-950 text-cyan-300 hover:text-white border border-cyan-700 shrink-0" title="Click to return to Live Today session">
+                            LIVE ↩
+                        </a>
+                    @endif
+                </div>
+
                 {{-- Active Instrument to Stream 30-Depth --}}
                 <div class="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-xs">
                     <span class="text-[10px] text-amber-400 uppercase font-bold">Stream Target:</span>
@@ -3529,6 +3540,8 @@
     // ── 2. GLOBAL APP STATE ──
     const state = {
         symbol: "NIFTY",
+        workingDate: "{{ $workingDate }}",
+        isHistorical: {{ !empty($isHistorical) ? 'true' : 'false' }},
         expiry: "{{ $selectedExpiry }}",
         indexKey: "{{ $indexKey }}",
         contracts: @json($contracts),
@@ -3855,6 +3868,7 @@
     }
 
     function recordTradedVolumePrint(side, price, qty, timeStr = null) {
+        if (state.isHistorical) return; // Prevent live ticks from overwriting historical day sessions
         const parsedQty = parseInt(qty);
         const parsedPrice = parseFloat(price);
         // Ignore retail noise ticks (< 500 qty) and network disconnect volume spikes (> 35,000 qty)
@@ -5488,10 +5502,17 @@
 
     // ── 5. UPSTOX WEBSOCKET CONNECTION ──
     async function connectWebSocket() {
-        if (state.feedMode !== 'live') return;
-
         const statusDot = document.getElementById('feed-status-dot');
         const statusText = document.getElementById('feed-status-text');
+
+        if (state.isHistorical) {
+            console.log('📜 Historical session loaded ({{ $workingDate }}). Skipping live WebSocket feed.');
+            if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-cyan-400';
+            if (statusText) statusText.textContent = 'Historical Session ({{ $workingDate }})';
+            return;
+        }
+
+        if (state.feedMode !== 'live') return;
 
         if (statusDot) statusDot.className = 'h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse';
         if (statusText) statusText.textContent = 'Authorizing...';
@@ -9563,6 +9584,14 @@
         render5mVolumeChart();
     }
     window.setV5mChartHeight = setV5mChartHeight;
+
+    function switchSessionDate(date) {
+        if (!date) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('date', date);
+        window.location.href = url.toString();
+    }
+    window.switchSessionDate = switchSessionDate;
 
     function initSecondaryIntelDrawer() {
         try {

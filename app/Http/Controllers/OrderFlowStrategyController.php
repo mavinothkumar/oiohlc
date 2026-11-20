@@ -39,21 +39,29 @@ class OrderFlowStrategyController extends Controller
         // Exclusively NIFTY 50 & Nifty Futures
         $symbol = 'NIFTY';
 
-        // 1. Resolve working date
-        $workingDay = null;
-        if (Schema::hasTable('nse_working_days')) {
-            $workingDay = DB::table('nse_working_days')
-                ->where('current', 1)
-                ->first();
-
-            if (! $workingDay) {
+        // 1. Resolve working date (respect user query param ?date=YYYY-MM-DD if provided)
+        $requestedDate = $request->input('date');
+        if ($requestedDate && preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedDate)) {
+            $workingDate = $requestedDate;
+        } else {
+            $workingDay = null;
+            if (Schema::hasTable('nse_working_days')) {
                 $workingDay = DB::table('nse_working_days')
-                    ->where('working_date', '<=', Carbon::today('Asia/Kolkata')->format('Y-m-d'))
-                    ->orderBy('working_date', 'desc')
+                    ->where('current', 1)
                     ->first();
+
+                if (! $workingDay) {
+                    $workingDay = DB::table('nse_working_days')
+                        ->where('working_date', '<=', Carbon::today('Asia/Kolkata')->format('Y-m-d'))
+                        ->orderBy('working_date', 'desc')
+                        ->first();
+                }
             }
+            $workingDate = $workingDay ? $workingDay->working_date : Carbon::today('Asia/Kolkata')->format('Y-m-d');
         }
-        $workingDate = $workingDay ? $workingDay->working_date : Carbon::today('Asia/Kolkata')->format('Y-m-d');
+
+        $todayDate = Carbon::today('Asia/Kolkata')->format('Y-m-d');
+        $isHistorical = ($workingDate !== $todayDate);
 
         // 2. Resolve expiries
         $expiries = collect();
@@ -275,6 +283,8 @@ class OrderFlowStrategyController extends Controller
         return view('order-flow-depth.index', [
             'symbol' => $symbol,
             'workingDate' => $workingDate,
+            'todayDate' => $todayDate,
+            'isHistorical' => $isHistorical,
             'prevTradingDate' => $prevTradingDate,
             'prevTopAsk' => $prevTopAsk,
             'prevTopBid' => $prevTopBid,
