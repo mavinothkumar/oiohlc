@@ -350,6 +350,14 @@
                     <span class="whitespace-nowrap">Nifty Multi-TF</span>
                 </a>
 
+                <!-- Nifty 50 Participation Engine (Directional Strength & Timeframe Alignment) -->
+                <a href="{{ route('nifty.participation.engine') }}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.participation.*') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-indigo-500/30' }}"
+                   title="NIFTY 50 Directional Strength & Market Participation Engine">
+                    <span class="text-xs">⚡</span>
+                    <span class="whitespace-nowrap">Participation Engine</span>
+                </a>
+
                 <!-- Bank Nifty Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D) -->
                 <a href="{{ route('banknifty.multi.timeframe.monitor') }}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('banknifty.multi.timeframe.monitor') ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30' }}"

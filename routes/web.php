@@ -363,6 +363,10 @@ Route::get('/nifty-market-command', [\App\Http\Controllers\NiftyUnifiedMonitorCo
 // Multi-Timeframe Unified Monitor (1m, 3m, 5m, 15m, 30m, 60m, 1D)
 Route::get('/nifty-multi-timeframe-monitor', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index'])->name('nifty.multi.timeframe.monitor');
 Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index']);
+
+// Nifty 50 Participation Engine & Directional Strength Monitor (4 Pillars: Breadth, Strength, Momentum, Consistency)
+Route::get('/nifty-participation-engine', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'index'])->name('nifty.participation.engine');
+Route::get('/api/nifty-participation-engine/data', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'getData'])->name('api.nifty.participation.engine.data');
 Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/api/multi-timeframe/order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getOrderFlowLevels'])->name('api.multi-timeframe.order-flow-levels');
 Route::get('/api/multi-timeframe/multi-day-order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getMultiDayOrderFlowLevels'])->name('api.multi-timeframe.multi-day-order-flow-levels');
