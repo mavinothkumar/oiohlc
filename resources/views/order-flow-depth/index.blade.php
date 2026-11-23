@@ -361,27 +361,144 @@
                         {{-- ───────────────────── COLUMN 2: RIGHT SIDE (RADAR + ACCUMULATED VOLUME + HIGHEST TRADED) ───────────────────── --}}
         <div id="col-intel-container" class="lg:col-span-7 xl:col-span-8 space-y-2.5">
             
-            {{-- 1. Microstructure Radar Alert Banner --}}
-            {{-- 0. Microstructure & Directional Liquidity Alert Banner (Non-Jumping Fixed Placeholder) --}}
-            <div id="liquidity-alert-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <span class="relative flex h-2 w-2">
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <div>
-                            <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
-                                <span>🛡️ Microstructure Radar</span>
-                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">NORMAL</span>
+            {{-- 1. MICROSTRUCTURE RADAR (30%) + SESSION ORDER FLOW DOMINANCE (70%) --}}
+            @php
+                $initBuyQty = (int) ($sessionTotals['buy_qty'] ?? 0);
+                $initSellQty = (int) ($sessionTotals['sell_qty'] ?? 0);
+                $initBuyTrd = (int) ($sessionTotals['buy_trades'] ?? 0);
+                $initSellTrd = (int) ($sessionTotals['sell_trades'] ?? 0);
+                $initTotVol = $initBuyQty + $initSellQty;
+                $initTotTrd = $initBuyTrd + $initSellTrd;
+                $initNetDelta = $initBuyQty - $initSellQty;
+                $initBuyPct = $initTotVol > 0 ? round(($initBuyQty / $initTotVol) * 100, 1) : 50.0;
+                $initSellPct = $initTotVol > 0 ? round(($initSellQty / $initTotVol) * 100, 1) : 50.0;
+                $initRatio = $initSellQty > 0 ? round($initBuyQty / $initSellQty, 2) : ($initBuyQty > 0 ? 99.0 : 1.0);
+                $initSellRatio = $initBuyQty > 0 ? round($initSellQty / $initBuyQty, 2) : ($initSellQty > 0 ? 99.0 : 1.0);
+
+                $fmtInitQty = function($q) {
+                    $abs = abs($q);
+                    if ($abs >= 10000000) return number_format($q / 10000000, 2) . 'Cr';
+                    if ($abs >= 100000) return number_format($q / 100000, 1) . 'L';
+                    if ($abs >= 1000) return number_format($q / 1000, 1) . 'k';
+                    return number_format($q);
+                };
+            @endphp
+            <div class="grid grid-cols-1 lg:grid-cols-10 gap-2.5 items-stretch">
+                {{-- Col 1 (30% width): Microstructure & Directional Liquidity Alert Banner --}}
+                <div class="lg:col-span-3 xl:col-span-3 flex flex-col justify-stretch">
+                    <div id="liquidity-alert-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300 h-full flex flex-col justify-between">
+                        <div class="flex items-center justify-between gap-1">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="relative flex h-2 w-2 shrink-0">
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <div class="min-w-0">
+                                    <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
+                                        <span class="truncate">🛡️ Radar</span>
+                                        <span class="text-[7.5px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono shrink-0">NORMAL</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <span class="text-[7.5px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800 shrink-0">
+                                ACTIVE
                             </span>
-                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
+                        </div>
+                        <div class="my-auto py-1">
+                            <p class="text-[9px] text-slate-400 font-sans leading-tight line-clamp-2">
                                 No active block or stack alerts. Order flow stable.
                             </p>
                         </div>
+                        <div class="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[8px] text-slate-500 font-mono">
+                            <span>Tape Monitor</span>
+                            <span class="text-emerald-400 font-bold">● Clean</span>
+                        </div>
                     </div>
-                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                        MONITORING
-                    </span>
+                </div>
+
+                {{-- Col 2 (70% width): Session Overall Dominance Radar (Left-to-Right Dual Comparison Charts) --}}
+                <div class="lg:col-span-7 xl:col-span-7 flex flex-col justify-stretch">
+                    <div id="session-dominance-radar" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/60 rounded-xl p-2.5 shadow-xl transition-all duration-300 h-full flex flex-col justify-between gap-1.5">
+                        {{-- Top Header: Title & Dynamic Market Dominance Verdict Pill --}}
+                        <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-800/80">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-sm shrink-0">📊</span>
+                                <div class="min-w-0">
+                                    <h3 class="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 flex-wrap leading-tight">
+                                        <span>SESSION ORDER FLOW DOMINANCE</span>
+                                        <span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">09:15 → NOW</span>
+                                    </h3>
+                                </div>
+                            </div>
+
+                            {{-- Dynamic Dominance Verdict Pill --}}
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <div id="session-dominance-pill" class="px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 {{ $initBuyQty > $initSellQty * 1.15 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-500/20' : ($initSellQty > $initBuyQty * 1.15 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-xs shadow-rose-500/20' : 'bg-slate-950 text-slate-400 border-slate-800') }}">
+                                    @if ($initBuyQty > $initSellQty * 1.15)
+                                        <span>🟢 BUYERS DOMINANT</span> <span class="text-emerald-200 font-sans text-[8px] font-bold">({{ number_format($initRatio, 2) }}x · +{{ $fmtInitQty($initNetDelta) }})</span>
+                                    @elseif ($initSellQty > $initBuyQty * 1.15)
+                                        <span>🔴 SELLERS DOMINANT</span> <span class="text-rose-200 font-sans text-[8px] font-bold">({{ number_format($initSellRatio, 2) }}x · {{ $fmtInitQty($initNetDelta) }})</span>
+                                    @else
+                                        <span>⚖️ BALANCED TAPE</span> <span class="text-slate-400 font-sans text-[8px]">({{ number_format($initBuyPct, 0) }}% vs {{ number_format($initSellPct, 0) }}%)</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Dual Left-to-Right Horizontal Progress Charts --}}
+                        <div class="space-y-1.5 py-0.5">
+                            {{-- 1. TOTAL BUY (ASK / Lifting Offer) --}}
+                            <div class="space-y-0.5">
+                                <div class="flex items-center justify-between text-[10px] font-mono leading-tight">
+                                    <span class="flex items-center gap-1.5 font-bold text-emerald-400">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                                        <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL BUY (ASK)</span>
+                                    </span>
+                                    <span class="text-slate-300 text-[9.5px] sm:text-[10px]">
+                                        <strong id="session-buy-vol" class="font-black text-emerald-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initBuyQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
+                                        <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-buy-pct" class="text-emerald-400 font-bold">{{ number_format($initBuyPct, 1) }}%</strong>)</span>
+                                        <span class="text-slate-600 font-sans mx-0.5">·</span>
+                                        <strong id="session-buy-trades" class="text-slate-200 font-bold">{{ number_format($initBuyTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
+                                    </span>
+                                </div>
+                                <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
+                                    <div id="session-buy-bar" class="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 rounded-full transition-all duration-500 relative shadow-xs shadow-emerald-500/20" style="width: {{ max(2, min(100, $initBuyPct)) }}%;"></div>
+                                </div>
+                            </div>
+
+                            {{-- 2. TOTAL SELL (BID / Hitting Bid) --}}
+                            <div class="space-y-0.5">
+                                <div class="flex items-center justify-between text-[10px] font-mono leading-tight">
+                                    <span class="flex items-center gap-1.5 font-bold text-rose-400">
+                                        <span class="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
+                                        <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL SELL (BID)</span>
+                                    </span>
+                                    <span class="text-slate-300 text-[9.5px] sm:text-[10px]">
+                                        <strong id="session-sell-vol" class="font-black text-rose-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initSellQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
+                                        <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-sell-pct" class="text-rose-400 font-bold">{{ number_format($initSellPct, 1) }}%</strong>)</span>
+                                        <span class="text-slate-600 font-sans mx-0.5">·</span>
+                                        <strong id="session-sell-trades" class="text-slate-200 font-bold">{{ number_format($initSellTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
+                                    </span>
+                                </div>
+                                <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
+                                    <div id="session-sell-bar" class="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-pink-500 rounded-full transition-all duration-500 relative shadow-xs shadow-rose-500/20" style="width: {{ max(2, min(100, $initSellPct)) }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Bottom Summary Micro-Strip: Totals, Delta & Order Dominance Ratio --}}
+                        <div class="flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono pt-1 border-t border-slate-800/80 text-slate-400 flex-wrap gap-1">
+                            <div class="flex items-center gap-1.5">
+                                <span>TOTAL VOL: <strong id="session-total-vol" class="text-slate-200 font-bold">{{ $fmtInitQty($initTotVol) }}</strong></span>
+                                <span class="text-slate-700">|</span>
+                                <span>TOTAL TRADES: <strong id="session-total-trades" class="text-slate-200 font-bold">{{ number_format($initTotTrd) }}</strong></span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span>NET CVD: <strong id="session-net-delta" class="{{ $initNetDelta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold' }}">{{ ($initNetDelta >= 0 ? '+' : '') . $fmtInitQty($initNetDelta) }}</strong></span>
+                                <span class="text-slate-700">|</span>
+                                <span>VOL RATIO: <strong id="session-ratio-val" class="{{ $initBuyQty >= $initSellQty ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold' }}">{{ number_format($initBuyQty >= $initSellQty ? $initRatio : $initSellRatio, 2) }}x {{ $initBuyQty >= $initSellQty ? 'BUY' : 'SELL' }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -3702,6 +3819,103 @@
     }
     window.cleanCorruptedTrades = cleanCorruptedTrades;
 
+    // ── SESSION CUMULATIVE VOLUME & DOMINANCE RADAR (70% COLUMN) ──
+    window.sessionDominanceState = {
+        buyQty: {{ (int) ($sessionTotals['buy_qty'] ?? 0) }},
+        sellQty: {{ (int) ($sessionTotals['sell_qty'] ?? 0) }},
+        buyTrades: {{ (int) ($sessionTotals['buy_trades'] ?? 0) }},
+        sellTrades: {{ (int) ($sessionTotals['sell_trades'] ?? 0) }},
+    };
+
+    function updateSessionCumulativeRadar(data = null) {
+        if (data) {
+            if (data.total_buy_qty !== undefined) sessionDominanceState.buyQty = parseInt(data.total_buy_qty) || 0;
+            if (data.total_sell_qty !== undefined) sessionDominanceState.sellQty = parseInt(data.total_sell_qty) || 0;
+            if (data.total_buy_trades !== undefined) sessionDominanceState.buyTrades = parseInt(data.total_buy_trades) || 0;
+            if (data.total_sell_trades !== undefined) sessionDominanceState.sellTrades = parseInt(data.total_sell_trades) || 0;
+        }
+
+        const bQty = sessionDominanceState.buyQty || 0;
+        const sQty = sessionDominanceState.sellQty || 0;
+        const bTrades = sessionDominanceState.buyTrades || 0;
+        const sTrades = sessionDominanceState.sellTrades || 0;
+
+        const totalVol = bQty + sQty;
+        const totalTrades = bTrades + sTrades;
+        const netDelta = bQty - sQty;
+
+        const buyPct = totalVol > 0 ? (bQty / totalVol * 100) : 50;
+        const sellPct = totalVol > 0 ? (sQty / totalVol * 100) : 50;
+
+        const ratio = sQty > 0 ? (bQty / sQty) : (bQty > 0 ? 99.0 : 1.0);
+        const sellRatio = bQty > 0 ? (sQty / bQty) : (sQty > 0 ? 99.0 : 1.0);
+
+        // Helper for quantity formatting
+        const fmtQty = (q) => {
+            const absQ = Math.abs(q);
+            if (absQ >= 10000000) return (q / 10000000).toFixed(2) + 'Cr';
+            if (absQ >= 100000) return (q / 100000).toFixed(1) + 'L';
+            if (absQ >= 1000) return (q / 1000).toFixed(1) + 'k';
+            return q.toLocaleString();
+        };
+
+        // Update Buy Stats
+        const buyVolEl = document.getElementById('session-buy-vol');
+        const buyPctEl = document.getElementById('session-buy-pct');
+        const buyTradesEl = document.getElementById('session-buy-trades');
+        const buyBarEl = document.getElementById('session-buy-bar');
+
+        if (buyVolEl) buyVolEl.textContent = fmtQty(bQty);
+        if (buyPctEl) buyPctEl.textContent = `${buyPct.toFixed(1)}%`;
+        if (buyTradesEl) buyTradesEl.textContent = bTrades.toLocaleString();
+        if (buyBarEl) buyBarEl.style.width = `${Math.min(100, Math.max(2, buyPct))}%`;
+
+        // Update Sell Stats
+        const sellVolEl = document.getElementById('session-sell-vol');
+        const sellPctEl = document.getElementById('session-sell-pct');
+        const sellTradesEl = document.getElementById('session-sell-trades');
+        const sellBarEl = document.getElementById('session-sell-bar');
+
+        if (sellVolEl) sellVolEl.textContent = fmtQty(sQty);
+        if (sellPctEl) sellPctEl.textContent = `${sellPct.toFixed(1)}%`;
+        if (sellTradesEl) sellTradesEl.textContent = sTrades.toLocaleString();
+        if (sellBarEl) sellBarEl.style.width = `${Math.min(100, Math.max(2, sellPct))}%`;
+
+        // Update Summary Strip
+        const totVolEl = document.getElementById('session-total-vol');
+        const totTradesEl = document.getElementById('session-total-trades');
+        const netDeltaEl = document.getElementById('session-net-delta');
+        const ratioValEl = document.getElementById('session-ratio-val');
+
+        if (totVolEl) totVolEl.textContent = fmtQty(totalVol);
+        if (totTradesEl) totTradesEl.textContent = totalTrades.toLocaleString();
+        if (netDeltaEl) {
+            netDeltaEl.textContent = `${netDelta >= 0 ? '+' : ''}${fmtQty(netDelta)}`;
+            netDeltaEl.className = netDelta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+        }
+        if (ratioValEl) {
+            const domRatio = bQty >= sQty ? ratio : sellRatio;
+            ratioValEl.textContent = `${domRatio.toFixed(2)}x ${bQty >= sQty ? 'BUY' : 'SELL'}`;
+            ratioValEl.className = bQty >= sQty ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+        }
+
+        // Update Dominance Verdict Pill
+        const pillEl = document.getElementById('session-dominance-pill');
+        if (pillEl) {
+            if (bQty > sQty * 1.15) {
+                pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-500/20';
+                pillEl.innerHTML = `<span>🟢 BUYERS DOMINANT</span> <span class="text-emerald-200 font-sans text-[8px] font-bold">(${ratio.toFixed(2)}x · +${fmtQty(netDelta)})</span>`;
+            } else if (sQty > bQty * 1.15) {
+                pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-xs shadow-rose-500/20';
+                pillEl.innerHTML = `<span>🔴 SELLERS DOMINANT</span> <span class="text-rose-200 font-sans text-[8px] font-bold">(${sellRatio.toFixed(2)}x · ${fmtQty(netDelta)})</span>`;
+            } else {
+                pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-slate-950 text-slate-300 border-slate-800';
+                pillEl.innerHTML = `<span>⚖️ BALANCED TAPE</span> <span class="text-slate-400 font-sans text-[8px]">(${buyPct.toFixed(0)}% vs ${sellPct.toFixed(0)}%)</span>`;
+            }
+        }
+    }
+    window.updateSessionCumulativeRadar = updateSessionCumulativeRadar;
+
     function initTopTradedVolume() {
         const workingDate = "{{ $workingDate }}";
         const savedSkip = localStorage.getItem('order_flow_skip_open_time');
@@ -3900,6 +4114,16 @@
 
         // 💾 Persist Trade Print to MySQL Database for Historical Backtesting
         queueTradedVolumeForDbSync(newItem);
+
+        // Update Live Session Dominance Radar (70% column)
+        if (normSide === 'ASK') {
+            sessionDominanceState.buyQty = (sessionDominanceState.buyQty || 0) + parsedQty;
+            sessionDominanceState.buyTrades = (sessionDominanceState.buyTrades || 0) + 1;
+        } else {
+            sessionDominanceState.sellQty = (sessionDominanceState.sellQty || 0) + parsedQty;
+            sessionDominanceState.sellTrades = (sessionDominanceState.sellTrades || 0) + 1;
+        }
+        updateSessionCumulativeRadar();
 
         renderTopTradedVolumeUI();
     }
@@ -5971,26 +6195,32 @@
         if (!banner) return;
 
         function renderAlertPlaceholder(msg = 'No active block or stack alerts. Order flow stable.', status = 'NORMAL') {
-            banner.className = 'bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300';
+            banner.className = 'bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-xl transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <span class="relative flex h-2 w-2">
+                <div class="flex items-center justify-between gap-1">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="relative flex h-2 w-2 shrink-0">
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        <div>
+                        <div class="min-w-0">
                             <span class="text-[10px] font-black uppercase text-slate-300 tracking-wider flex items-center gap-1">
-                                <span>🛡️ Microstructure Radar</span>
-                                <span class="text-[8px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono">${status}</span>
+                                <span class="truncate">🛡️ Radar</span>
+                                <span class="text-[7.5px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-1 py-0.2 rounded font-mono shrink-0">${status}</span>
                             </span>
-                            <p class="text-[9px] text-slate-400 font-sans mt-0.5 leading-tight">
-                                ${msg}
-                            </p>
                         </div>
                     </div>
-                    <span class="text-[8px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                        MONITORING
+                    <span class="text-[7.5px] text-emerald-400 font-mono font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800 shrink-0">
+                        ACTIVE
                     </span>
+                </div>
+                <div class="my-auto py-1">
+                    <p class="text-[9px] text-slate-400 font-sans leading-tight line-clamp-2">
+                        ${msg}
+                    </p>
+                </div>
+                <div class="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[8px] text-slate-500 font-mono">
+                    <span>Tape Monitor</span>
+                    <span class="text-emerald-400 font-bold">● Clean</span>
                 </div>
             `;
         }
@@ -6046,28 +6276,28 @@
         const soundProfileLabel = getSoundProfileLabel(alertSettings.soundProfile || 'crystal');
 
         if (alertType === 'STACK_BUY') {
-            banner.className = 'bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 border-2 border-emerald-500/80 rounded-xl p-2.5 shadow-xl shadow-emerald-500/15 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 border-2 border-emerald-500/80 rounded-xl p-2.5 shadow-xl shadow-emerald-500/15 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">🚀</span>
-                        <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                            BULLISH STACK (${bidStack.count} LEVELS)
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">🚀</span>
+                        <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider truncate">
+                            BULL STACK (${bidStack.count}L)
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight">
-                        ${bidStack.count} Bid Levels · ${bidStack.totalQty.toLocaleString()} Qty
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight truncate">
+                        ${bidStack.count} Levels · ${bidStack.totalQty.toLocaleString()} Qty
                     </p>
-                    <span class="text-[9px] text-slate-400 font-mono">₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}</span>
+                    <span class="text-[9px] text-slate-400 font-mono block truncate">₹${bidStack.lowP.toFixed(2)} - ₹${bidStack.highP.toFixed(2)}</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40 truncate">
                         ⚡ DIRECTION: GO LONG
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bull)</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
 
@@ -6107,28 +6337,28 @@
             }
 
         } else if (alertType === 'STACK_SELL') {
-            banner.className = 'bg-gradient-to-br from-rose-950 via-slate-900 to-slate-950 border-2 border-rose-500/80 rounded-xl p-2.5 shadow-xl shadow-rose-500/15 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-rose-950 via-slate-900 to-slate-950 border-2 border-rose-500/80 rounded-xl p-2.5 shadow-xl shadow-rose-500/15 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">🩸</span>
-                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
-                            BEARISH STACK (${askStack.count} LEVELS)
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">🩸</span>
+                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider truncate">
+                            BEAR STACK (${askStack.count}L)
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
-                        ${askStack.count} Ask Levels · ${askStack.totalQty.toLocaleString()} Qty
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-rose-300 text-xs font-mono leading-tight truncate">
+                        ${askStack.count} Levels · ${askStack.totalQty.toLocaleString()} Qty
                     </p>
-                    <span class="text-[9px] text-slate-400 font-mono">₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}</span>
+                    <span class="text-[9px] text-slate-400 font-mono block truncate">₹${askStack.lowP.toFixed(2)} - ₹${askStack.highP.toFixed(2)}</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40 truncate">
                         ⚡ DIRECTION: GO SHORT
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Bear)</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
 
@@ -6168,28 +6398,28 @@
             }
 
         } else if (alertType === 'BLOCK_BUY') {
-            banner.className = 'bg-gradient-to-br from-amber-950/90 via-slate-900 to-slate-950 border-2 border-amber-400/90 rounded-xl p-2.5 shadow-xl shadow-amber-400/20 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-amber-950/90 via-slate-900 to-slate-950 border-2 border-amber-400/90 rounded-xl p-2.5 shadow-xl shadow-amber-400/20 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">⚡</span>
-                        <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">⚡</span>
+                        <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wider truncate">
                             BID BLOCK (LVL ${heavyBidBlock.level})
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-amber-300 text-xs font-mono leading-tight">
-                        ${heavyBidBlock.qty.toLocaleString()} Qty at ₹${heavyBidBlock.price.toFixed(2)}
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-amber-300 text-xs font-mono leading-tight truncate">
+                        ${heavyBidBlock.qty.toLocaleString()} Qty @ ₹${heavyBidBlock.price.toFixed(2)}
                     </p>
-                    <span class="text-[9px] text-slate-400 font-mono">Resting Buy Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
+                    <span class="text-[9px] text-slate-400 font-mono block truncate">Resting Buy Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
-                        🛡️ STRONG SUPPORT WALL
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40 truncate">
+                        🛡️ SUPPORT WALL
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
 
@@ -6230,28 +6460,28 @@
             }
 
         } else if (alertType === 'BLOCK_SELL') {
-            banner.className = 'bg-gradient-to-br from-amber-950/90 via-slate-900 to-slate-950 border-2 border-rose-400/90 rounded-xl p-2.5 shadow-xl shadow-rose-400/20 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-orange-950/90 via-slate-900 to-slate-950 border-2 border-orange-400/90 rounded-xl p-2.5 shadow-xl shadow-orange-400/20 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">⚡</span>
-                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">🚧</span>
+                        <span class="px-1.5 py-0.2 rounded bg-orange-400 text-slate-950 font-black text-[9px] uppercase tracking-wider truncate">
                             ASK BLOCK (LVL ${heavyAskBlock.level})
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
-                        ${heavyAskBlock.qty.toLocaleString()} Qty at ₹${heavyAskBlock.price.toFixed(2)}
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-orange-300 text-xs font-mono leading-tight truncate">
+                        ${heavyAskBlock.qty.toLocaleString()} Qty @ ₹${heavyAskBlock.price.toFixed(2)}
                     </p>
-                    <span class="text-[9px] text-slate-400 font-mono">Resting Sell Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
+                    <span class="text-[9px] text-slate-400 font-mono block truncate">Resting Supply Wall (≥${parseInt(alertSettings.singleThreshold).toLocaleString()})</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
-                        🚧 STRONG RESISTANCE WALL
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40 truncate">
+                        🚧 SUPPLY WALL
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel}</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
 
@@ -6292,54 +6522,54 @@
             }
         } else if (alertType === 'MARKET_BUY') {
             const mo = activeMarketOrder || state.activeMarketOrderAlert;
-            banner.className = 'bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 border-2 border-emerald-400/90 rounded-xl p-2.5 shadow-xl shadow-emerald-500/20 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 border-2 border-emerald-400/90 rounded-xl p-2.5 shadow-xl shadow-emerald-500/20 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">💥</span>
-                        <span class="px-1.5 py-0.2 rounded bg-emerald-400 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">💥</span>
+                        <span class="px-1.5 py-0.2 rounded bg-emerald-400 text-slate-950 font-black text-[9px] uppercase tracking-wider truncate">
                             MARKET BUY SWEEP
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight">
-                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty Executed @ ₹${mo ? mo.price.toFixed(2) : '--'}
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-emerald-300 text-xs font-mono leading-tight truncate">
+                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty @ ₹${mo ? mo.price.toFixed(2) : '--'}
                     </p>
-                    <span class="text-[9px] text-slate-300 font-mono">Aggressive Buyer Lifting Offer (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
+                    <span class="text-[9px] text-slate-300 font-mono block truncate">Lifting Offer (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40">
-                        ⚡ DIRECTION: BULLISH MOMENTUM
+                    <span class="text-emerald-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-emerald-500/40 truncate">
+                        ⚡ BULLISH MOMENTUM
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Tape Sweep)</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
         } else if (alertType === 'MARKET_SELL') {
             const mo = activeMarketOrder || state.activeMarketOrderAlert;
-            banner.className = 'bg-gradient-to-br from-rose-950 via-pink-950 to-slate-950 border-2 border-rose-400/90 rounded-xl p-2.5 shadow-xl shadow-rose-500/20 text-white space-y-1.5 transition-all duration-300';
+            banner.className = 'bg-gradient-to-br from-rose-950 via-pink-950 to-slate-950 border-2 border-rose-400/90 rounded-xl p-2.5 shadow-xl shadow-rose-500/20 text-white transition-all duration-300 h-full flex flex-col justify-between';
             banner.innerHTML = `
                 <div class="flex items-center justify-between gap-1">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="text-sm">🩸</span>
-                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-sm shrink-0">🩸</span>
+                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider truncate">
                             MARKET SELL DUMP
                         </span>
                     </div>
-                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer" title="Dismiss Alert">✕</button>
+                    <button onclick="dismissAlertBanner()" class="text-slate-400 hover:text-white px-1.5 py-0.2 rounded text-[10px] bg-slate-950 border border-slate-800 cursor-pointer shrink-0" title="Dismiss Alert">✕</button>
                 </div>
-                <div>
-                    <p class="font-black text-rose-300 text-xs font-mono leading-tight">
-                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty Executed @ ₹${mo ? mo.price.toFixed(2) : '--'}
+                <div class="my-auto py-0.5">
+                    <p class="font-black text-rose-300 text-xs font-mono leading-tight truncate">
+                        ${mo ? mo.qty.toLocaleString() : 'Trade'} Qty @ ₹${mo ? mo.price.toFixed(2) : '--'}
                     </p>
-                    <span class="text-[9px] text-slate-300 font-mono">Aggressive Seller Hitting Bid (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
+                    <span class="text-[9px] text-slate-300 font-mono block truncate">Hitting Bid (≥${parseInt(alertSettings.marketOrderThreshold).toLocaleString()})</span>
                 </div>
                 <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-800/80 text-[8.5px]">
-                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40">
-                        ⚡ DIRECTION: BEARISH MOMENTUM
+                    <span class="text-rose-300 font-bold bg-slate-950 px-1.5 py-0.2 rounded border border-rose-500/40 truncate">
+                        ⚡ BEARISH MOMENTUM
                     </span>
-                    <span class="text-amber-300/90 font-mono">🔊 ${soundProfileLabel} (Tape Dump)</span>
+                    <span class="text-amber-300/90 font-mono text-[8px] shrink-0">🔊 ${soundProfileLabel}</span>
                 </div>
             `;
         } else {
@@ -9691,6 +9921,9 @@
             render5mVolumeChart();
             render5mEventsTable();
 
+            // Update Session Cumulative Flow & Dominance Radar (70% column)
+            updateSessionCumulativeRadar(data);
+
         } catch (e) {
             console.warn('Error fetching 5m volume flow:', e);
         }
@@ -10770,6 +11003,9 @@
         }
         if (typeof init5mVolumeFlow === 'function') {
             init5mVolumeFlow();
+        }
+        if (typeof updateSessionCumulativeRadar === 'function') {
+            updateSessionCumulativeRadar();
         }
         if (typeof initOrderFlowLayout === 'function') {
             initOrderFlowLayout();

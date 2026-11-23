@@ -364,12 +364,17 @@ Route::get('/nifty-market-command', [\App\Http\Controllers\NiftyUnifiedMonitorCo
 Route::get('/nifty-multi-timeframe-monitor', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index'])->name('nifty.multi.timeframe.monitor');
 Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'index']);
 
+// Multi-Timeframe Unified Monitor Version 2 (Backtest Bar Replay & High-Probability Trade Engine)
+Route::get('/nifty-multi-timeframe-monitor-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'index'])->name('nifty.multi.timeframe.monitor.v2');
+Route::get('/api/multi-timeframe-v2/option-snapshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'getOptionSnapshot'])->name('api.multi-timeframe-v2.option-snapshot');
+
 // Nifty 50 Participation Engine & Directional Strength Monitor (4 Pillars: Breadth, Strength, Momentum, Consistency)
 Route::get('/nifty-participation-engine', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'index'])->name('nifty.participation.engine');
 Route::get('/api/nifty-participation-engine/data', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'getData'])->name('api.nifty.participation.engine.data');
 Route::get('/api/nifty-unified/quant-levels', [\App\Http\Controllers\NiftyUnifiedMonitorController::class, 'getQuantLevels'])->name('api.nifty.unified.quant-levels');
 Route::get('/api/multi-timeframe/order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getOrderFlowLevels'])->name('api.multi-timeframe.order-flow-levels');
 Route::get('/api/multi-timeframe/multi-day-order-flow-levels', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'getMultiDayOrderFlowLevels'])->name('api.multi-timeframe.multi-day-order-flow-levels');
+Route::get('/api/multi-timeframe/day-ai-diagnosis', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'downloadDayAiDiagnosis'])->name('api.multi-timeframe.day-ai-diagnosis');
 Route::post('/api/multi-timeframe/save-screenshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorController::class, 'saveScreenshot'])->name('api.multi-timeframe.save-screenshot');
 Route::get('/nifty-unified-backtest', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'index'])->name('nifty.unified.backtest');
 Route::post('/api/nifty-unified-backtest/run', [\App\Http\Controllers\UnifiedBreadthBacktestController::class, 'run'])->name('api.nifty.unified.backtest.run');

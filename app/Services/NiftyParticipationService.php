@@ -56,6 +56,7 @@ class NiftyParticipationService
             // Fetch yesterday's candles for seamless context
             $prevTradingDate = $this->getPreviousTradingDate($date);
             $yesterdayNiftyPrimary = $this->loadNiftyCandles($prevTradingDate, $intervalPrimary, $basis, false, false, '15:30', true, false);
+            $yesterdayNiftySecondary = $this->loadNiftyCandles($prevTradingDate, $intervalSecondary, $basis, false, false, '15:30', true, false);
 
             // 3. Load all 50 constituent stock quotes
             $stockBucketsPrimary = $this->loadStockBuckets($date, $intervalPrimary, $constituents);
@@ -91,14 +92,18 @@ class NiftyParticipationService
                 $intervalSecondary
             );
 
-            // 7. Divergence Engine (Index Price slope vs Participation Score slope)
+            // 7. 30-Depth Order Flow Microstructure (Nifty Futures Traded Volumes & Net Delta)
+            $orderFlow30Depth = $this->fetchOrderFlow30Depth($date, 'NIFTY');
+
+            // 8. Divergence & Absorption Engine (Macro 50-Stock Participation + Micro 30-Depth Order Flow)
             $divergenceEngine = $this->evaluateDivergenceEngine(
                 $niftyCandlesPrimary,
                 $primaryData['timeline'],
-                $consistencyEngine['composite_scores']
+                $consistencyEngine['composite_scores'],
+                $orderFlow30Depth
             );
 
-            // 8. Session Summary Stats
+            // 9. Session Summary Stats
             $latestPrimaryCandle = !empty($niftyCandlesPrimary) ? end($niftyCandlesPrimary) : null;
             $firstPrimaryCandle = !empty($niftyCandlesPrimary) ? $niftyCandlesPrimary[0] : null;
 
@@ -131,10 +136,12 @@ class NiftyParticipationService
                 'nifty_candles_p'     => $niftyCandlesPrimary,
                 'nifty_candles_s'     => $niftyCandlesSecondary,
                 'yesterday_candles_p' => $yesterdayNiftyPrimary,
+                'yesterday_candles_s' => $yesterdayNiftySecondary,
                 'primary'             => $primaryData,
                 'secondary'           => $secondaryData,
                 'consistency'         => $consistencyEngine,
                 'divergence'          => $divergenceEngine,
+                'order_flow_depth'    => $orderFlow30Depth,
                 'constituents_master' => $constituents,
             ];
         });
@@ -572,12 +579,62 @@ class NiftyParticipationService
     }
 
     /**
-     * Divergence Diagnostic Engine: Detects divergences between Nifty Index Price slope & Participation Score slope.
+     * Fetch 30-Depth Order Flow (Traded Volumes, Net Delta, CVD) grouped by 5-minute buckets.
+     */
+    protected function fetchOrderFlow30Depth(string $date, string $symbol = 'NIFTY'): array
+    {
+        if (!Schema::hasTable('order_flow_traded_volumes')) {
+            return [];
+        }
+
+        try {
+            $rows = DB::select("
+                SELECT 
+                    DATE_FORMAT(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(CONCAT(trade_date, ' ', trade_time)) / 300) * 300), '%H:%i') AS time_bucket,
+                    SUM(CASE WHEN side = 'ASK' THEN quantity ELSE 0 END) AS buy_qty,
+                    SUM(CASE WHEN side = 'BID' THEN quantity ELSE 0 END) AS sell_qty,
+                    SUM(CASE WHEN side = 'ASK' THEN quantity ELSE -quantity END) AS net_delta,
+                    COUNT(*) as trade_count
+                FROM order_flow_traded_volumes
+                WHERE trade_date = ? AND symbol = ?
+                GROUP BY time_bucket
+                ORDER BY time_bucket ASC
+            ", [$date, $symbol]);
+
+            $result = [];
+            $runningCvd = 0;
+            foreach ($rows as $r) {
+                $delta = (int)$r->net_delta;
+                $buy = (int)$r->buy_qty;
+                $sell = (int)$r->sell_qty;
+                $runningCvd += $delta;
+
+                $result[$r->time_bucket] = [
+                    'time'        => $r->time_bucket,
+                    'buy_qty'     => $buy,
+                    'sell_qty'    => $sell,
+                    'total_qty'   => $buy + $sell,
+                    'delta'       => $delta,
+                    'cvd'         => $runningCvd,
+                    'trade_count' => (int)$r->trade_count,
+                ];
+            }
+            return $result;
+        } catch (\Throwable $e) {
+            Log::warning("NiftyParticipationService: fetchOrderFlow30Depth error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Divergence & Absorption Diagnostic Engine: Combines Macro 50-Constituent Breadth slope
+     * with Micro 30-Depth Order Flow Delta to pinpoint institutional traps and absorptions.
      */
     protected function evaluateDivergenceEngine(
         array $niftyCandles,
         array $primaryTimeline,
-        array $compositeScores
+        array $compositeScores,
+        array $orderFlowDepth = []
     ): array {
         $divergenceTimeline = [];
         $candlesByTime = [];
@@ -593,11 +650,23 @@ class NiftyParticipationService
 
             if ($i < 2 || !$curCandle) {
                 $divergenceTimeline[$t] = [
-                    'time'        => $t,
-                    'type'        => 'NO_DIVERGENCE',
-                    'badge'       => 'Normal Alignment',
-                    'color'       => 'gray',
-                    'description' => 'Baseline market structure establishing.',
+                    'time'            => $t,
+                    'type'            => 'NO_DIVERGENCE',
+                    'badge'           => 'Normal Alignment',
+                    'color'           => 'gray',
+                    'description'     => 'Baseline market structure establishing.',
+                    'price_slope'     => 0.0,
+                    'score_slope'     => 0.0,
+                    'is_of_confirmed' => false,
+                    'order_flow'      => [
+                        'has_data'    => false,
+                        'delta'       => 0,
+                        'buy_qty'     => 0,
+                        'sell_qty'    => 0,
+                        'total_qty'   => 0,
+                        'cvd'         => 0,
+                        'dynamics'    => 'NORMAL',
+                    ],
                 ];
                 continue;
             }
@@ -610,41 +679,123 @@ class NiftyParticipationService
             $priceSlope = ($prev3Candle) ? ((float)$curCandle['close'] - (float)$prev3Candle['open']) : 0.0;
             $scoreSlope = $curScore - $prev3Score;
 
+            $curBreadth = $primaryTimeline[$t] ?? null;
+            $netBreadth = $curBreadth ? (int)($curBreadth['net_breadth'] ?? 0) : 0;
+            $vwapPct = $curBreadth ? (float)($curBreadth['vwap_participation_pct'] ?? 50.0) : 50.0;
+            $candleChg = ((float)$curCandle['close'] - (float)$curCandle['open']);
+
+            $of = $orderFlowDepth[$t] ?? null;
+            $hasOf = ($of !== null && ($of['total_qty'] ?? 0) > 0);
+            $delta = $of ? (int)$of['delta'] : 0;
+            $cvd = $of ? (int)$of['cvd'] : 0;
+
+            // Macro Regime Classification for Strict Regime Immunity
+            $isMacroBull = ($curScore >= 60.0 || $netBreadth >= 12 || $vwapPct >= 65.0);
+            $isMacroBear = ($curScore <= 40.0 || $netBreadth <= -12 || $vwapPct <= 35.0);
+
+            // Micro 30-Depth Absorption Checks:
+            // Bull Absorption: Massive sell volume (-20k+ delta) hitting bids, yet price held flat or closed green
+            $isMicroBullAbsorb = $hasOf && ($delta <= -20000 && $candleChg >= -1.5);
+            // Bear Absorption / Trap: Massive buy volume (+20k+ delta) hitting asks, yet price stalled/fell (ask wall absorption)
+            $isMicroBearAbsorb = $hasOf && ($delta >= 20000 && $candleChg <= 1.5);
+
             $divType = 'NO_DIVERGENCE';
             $badge = 'Confirmed Agreement';
             $color = 'emerald';
             $desc = 'Price and constituent participation moving synchronously.';
+            $isOfConfirmed = false;
 
-            if ($priceSlope > 15.0 && $scoreSlope < -8.0) {
-                $divType = 'BEARISH_DIVERGENCE_WARNING';
-                $badge = '⚠️ Exhaustion / Heavyweight Masking';
-                $color = 'amber';
-                $desc = "Nifty price is rising (+{$priceSlope} pts) while constituent participation is deteriorating (-{$scoreSlope} pts).";
-            } elseif ($priceSlope < -15.0 && $scoreSlope > 8.0) {
-                $divType = 'BULLISH_DIVERGENCE_WARNING';
-                $badge = '⚡ Institutional Absorption / Defense';
-                $color = 'cyan';
-                $desc = "Nifty price is dropping ({$priceSlope} pts) while constituent participation is quietly improving (+{$scoreSlope} pts).";
-            } elseif ($priceSlope > 15.0 && $scoreSlope > 5.0) {
-                $divType = 'CONFIRMED_RALLY';
-                $badge = '🚀 Broad-Based Rally Confirmed';
-                $color = 'emerald';
-                $desc = 'Price gains supported by expanding constituent participation and relative strength.';
-            } elseif ($priceSlope < -15.0 && $scoreSlope < -5.0) {
-                $divType = 'CONFIRMED_SELLOFF';
-                $badge = '💥 Broad-Based Selloff Confirmed';
-                $color = 'rose';
-                $desc = 'Price drop confirmed by expanding negative constituent participation and weak VWAP.';
+            // 1. Bullish Absorption / Institutional Defense
+            // REGIME IMMUNITY: Never flag absorption during an aggressive Macro Bear waterfall selloff
+            if (!$isMacroBear) {
+                // Case A: Price flushed down (-15 pts), BUT 50-stock breadth held strong (>= 50% above VWAP, positive net breadth)
+                if ($priceSlope < -15.0 && ($scoreSlope >= 5.0 || ($netBreadth >= 10 && $vwapPct >= 55.0))) {
+                    $divType = 'BULLISH_DIVERGENCE_WARNING';
+                    $badge = '⚡ Institutional Absorption / Defense';
+                    $color = 'cyan';
+                    $desc = "Nifty price dipped ({$priceSlope} pts) while 50-stock breadth held firm ({$vwapPct}% above VWAP).";
+                    $isOfConfirmed = $isMicroBullAbsorb;
+                    if ($isMicroBullAbsorb) {
+                        $badge = '⚡ 30-Depth Bull Absorption';
+                        $formattedDelta = number_format(abs($delta));
+                        $desc = "Smart money absorbed {$formattedDelta} sell contracts at limit bids; 50-stock breadth held strong.";
+                    }
+                } elseif ($isMicroBullAbsorb && ($curScore >= 45.0 && $netBreadth >= 0)) {
+                    // Case B: Micro Order Flow Absorption at support
+                    $divType = 'BULLISH_DIVERGENCE_WARNING';
+                    $badge = '⚡ 30-Depth Bull Absorption';
+                    $color = 'cyan';
+                    $formattedDelta = number_format(abs($delta));
+                    $desc = "Smart money absorbed {$formattedDelta} aggressive sell contracts at limit bids; equities holding.";
+                    $isOfConfirmed = true;
+                }
             }
 
+            // 2. Bearish Trap / Exhaustion Ask Wall
+            // REGIME IMMUNITY: Never flag a trap during a confirmed Macro Bull trend (Score >= 60, Net >= 12, VWAP >= 65%)
+            if ($divType === 'NO_DIVERGENCE' && !$isMacroBull) {
+                // Case A: Price rose (+15 pts), BUT 50-stock breadth is ROTTEN / FAILING (Score <= 52, Net <= 5, VWAP <= 50%)
+                if ($priceSlope > 15.0 && ($scoreSlope <= -5.0 || ($netBreadth <= 5 && $vwapPct <= 50.0))) {
+                    $divType = 'BEARISH_DIVERGENCE_WARNING';
+                    $badge = '⚠️ Exhaustion / Heavyweight Masking';
+                    $color = 'amber';
+                    $desc = "Nifty price pushed up (+{$priceSlope} pts) while constituent participation deteriorated (-{$scoreSlope} pts).";
+                    $isOfConfirmed = $isMicroBearAbsorb;
+                    if ($isMicroBearAbsorb) {
+                        $badge = '⚠️ 30-Depth Ask Wall Trap';
+                        $formattedDelta = number_format(abs($delta));
+                        $desc = "Aggressive retail buying (+{$formattedDelta} Δ) absorbed by limit ask walls; broad equities failing.";
+                    }
+                } elseif ($isMicroBearAbsorb && ($curScore <= 55.0 && $netBreadth <= 5)) {
+                    // Case B: Micro Order Flow Ask Wall at resistance
+                    $divType = 'BEARISH_DIVERGENCE_WARNING';
+                    $badge = '⚠️ 30-Depth Ask Wall Trap';
+                    $color = 'amber';
+                    $formattedDelta = number_format(abs($delta));
+                    $desc = "Aggressive retail buying (+{$formattedDelta} Δ) absorbed by institutional limit ask walls.";
+                    $isOfConfirmed = true;
+                }
+            }
+
+            // 3. Directional Confirmations
+            if ($divType === 'NO_DIVERGENCE') {
+                if ($priceSlope > 15.0 && $scoreSlope > 5.0) {
+                    $divType = 'CONFIRMED_RALLY';
+                    $badge = '🚀 Broad-Based Rally Confirmed';
+                    $color = 'emerald';
+                    $desc = 'Price gains supported by expanding constituent participation and relative strength.';
+                } elseif ($priceSlope < -15.0 && $scoreSlope < -5.0) {
+                    $divType = 'CONFIRMED_SELLOFF';
+                    $badge = '💥 Broad-Based Selloff Confirmed';
+                    $color = 'rose';
+                    $desc = 'Price drop confirmed by expanding negative constituent participation and weak VWAP.';
+                }
+            }
+
+            $orderFlowDynamics = 'NORMAL';
+            if ($isMicroBullAbsorb) $orderFlowDynamics = 'BULL_ABSORPTION';
+            elseif ($isMicroBearAbsorb) $orderFlowDynamics = 'BEAR_TRAP';
+            elseif ($delta >= 25000) $orderFlowDynamics = 'BULL_EXPANSION';
+            elseif ($delta <= -25000) $orderFlowDynamics = 'BEAR_EXPANSION';
+
             $divergenceTimeline[$t] = [
-                'time'        => $t,
-                'type'        => $divType,
-                'badge'       => $badge,
-                'color'       => $color,
-                'description' => $desc,
-                'price_slope' => round($priceSlope, 1),
-                'score_slope' => round($scoreSlope, 1),
+                'time'            => $t,
+                'type'            => $divType,
+                'badge'           => $badge,
+                'color'           => $color,
+                'description'     => $desc,
+                'price_slope'     => round($priceSlope, 1),
+                'score_slope'     => round($scoreSlope, 1),
+                'is_of_confirmed' => $isOfConfirmed,
+                'order_flow'      => [
+                    'has_data'    => $hasOf,
+                    'delta'       => $delta,
+                    'buy_qty'     => $of['buy_qty'] ?? 0,
+                    'sell_qty'    => $of['sell_qty'] ?? 0,
+                    'total_qty'   => $of['total_qty'] ?? 0,
+                    'cvd'         => $cvd,
+                    'dynamics'    => $orderFlowDynamics,
+                ],
             ];
         }
 

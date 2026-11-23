@@ -163,7 +163,22 @@
             </div>
 
             <!-- Reload / Auto-Refresh -->
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1.5">
+                <!-- Auto-Refresh Selector & Live Countdown Badge -->
+                <div class="flex items-center bg-gray-900 border border-gray-700 rounded px-2 py-1 gap-1.5 text-xs font-mono" title="Auto-Refresh Interval (Pulls fresh 5m/15m candles & participation data)">
+                    <span class="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase">
+                        <span id="auto-refresh-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Auto:
+                    </span>
+                    <select id="auto-refresh-select" class="bg-transparent text-emerald-400 font-mono font-bold text-xs focus:outline-none cursor-pointer">
+                        <option value="15" selected class="bg-gray-900 text-emerald-300">15s</option>
+                        <option value="30" class="bg-gray-900 text-emerald-300">30s</option>
+                        <option value="60" class="bg-gray-900 text-emerald-300">1m</option>
+                        <option value="0" class="bg-gray-900 text-gray-400">Off</option>
+                    </select>
+                    <span id="auto-refresh-countdown" class="text-[10px] font-bold text-emerald-400 min-w-[20px] text-right">15s</span>
+                </div>
+
                 <button type="button" id="btn-reload" title="Refresh Engine Data" class="p-1.5 bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white transition">
                     <svg id="reload-spinner" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </button>
@@ -218,6 +233,14 @@
 
                 <!-- Canvas Wrapper -->
                 <div id="chart-primary-container" class="w-full relative rounded overflow-hidden" style="height: 480px;">
+                    <!-- Session Break Vertical Line -->
+                    <div id="chart1-day-separator" class="day-separator pointer-events-none absolute top-0 bottom-[26px] z-10 hidden" style="width: 1px;">
+                        <div class="h-full border-l-2 border-dashed border-sky-400/80 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></div>
+                        <div class="absolute top-2 -translate-x-1/2 flex items-center gap-1.5 bg-[#0d1322]/95 text-sky-300 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full border border-sky-500/50 shadow-xl whitespace-nowrap select-none">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="chart1-day-sep-label">TODAY</span>
+                        </div>
+                    </div>
                     <div id="chart-primary-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
                         Loading Primary Candlestick Chart...
@@ -259,6 +282,14 @@
 
                 <!-- Canvas Wrapper -->
                 <div id="chart-secondary-container" class="w-full relative rounded overflow-hidden" style="height: 480px;">
+                    <!-- Session Break Vertical Line -->
+                    <div id="chart2-day-separator" class="day-separator pointer-events-none absolute top-0 bottom-[26px] z-10 hidden" style="width: 1px;">
+                        <div class="h-full border-l-2 border-dashed border-purple-400/80 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                        <div class="absolute top-2 -translate-x-1/2 flex items-center gap-1.5 bg-[#0d1322]/95 text-purple-300 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full border border-purple-500/50 shadow-xl whitespace-nowrap select-none">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="chart2-day-sep-label">TODAY</span>
+                        </div>
+                    </div>
                     <div id="chart-secondary-loading" class="absolute inset-0 bg-[#131722] flex items-center justify-center text-xs text-gray-400 z-10">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
                         Loading 15m Candlestick Chart...
@@ -327,11 +358,11 @@
                         <strong id="trade-sl-val" class="text-xs text-rose-400 block mt-0.5">--</strong>
                     </div>
                     <div class="p-1.5 rounded bg-gray-900/70 border border-emerald-900/40">
-                        <span class="text-[8.5px] text-emerald-300 uppercase font-semibold block">Target 1</span>
+                        <span class="text-[8.5px] text-emerald-300 uppercase font-semibold block">Target 1 (+50)</span>
                         <strong id="trade-tp1-val" class="text-xs text-emerald-400 block mt-0.5">--</strong>
                     </div>
                     <div class="p-1.5 rounded bg-gray-900/70 border border-indigo-900/40">
-                        <span class="text-[8.5px] text-indigo-300 uppercase font-semibold block">Target 2 / RR</span>
+                        <span class="text-[8.5px] text-indigo-300 uppercase font-semibold block">Target 2 (+80)</span>
                         <strong id="trade-tp2-val" class="text-xs text-indigo-300 block mt-0.5">--</strong>
                     </div>
                 </div>
@@ -339,14 +370,15 @@
                 <!-- Key Reasons & Confluence Checklist -->
                 <div class="mt-2 pt-1.5 border-t border-gray-800/80 space-y-1">
                     <div class="text-[9.5px] text-gray-400 uppercase font-bold flex justify-between">
-                        <span>Confluence Checklist</span>
-                        <span id="checklist-summary" class="text-gray-300 font-mono">0 / 4 Met</span>
+                        <span>Confluence Checklist (5 Pillars)</span>
+                        <span id="checklist-summary" class="text-gray-300 font-mono">0 / 5 Met</span>
                     </div>
                     <div id="confluence-bullets" class="grid grid-cols-2 gap-1 text-[10px] font-mono">
                         <div id="check-breadth" class="flex items-center gap-1 text-gray-500">⚪ Breadth Extreme</div>
                         <div id="check-vwap" class="flex items-center gap-1 text-gray-500">⚪ VWAP Dominance</div>
                         <div id="check-tf" class="flex items-center gap-1 text-gray-500">⚪ 5m &amp; 15m Aligned</div>
                         <div id="check-div" class="flex items-center gap-1 text-gray-500">⚪ Divergence Clean</div>
+                        <div id="check-of" class="flex items-center gap-1 text-gray-500 col-span-2">⚪ 30-Depth Order Flow Clean</div>
                     </div>
                 </div>
             </div>
@@ -549,6 +581,41 @@
                             Price and constituent participation are moving synchronously in the same direction.
                         </p>
                     </div>
+
+                    <!-- 30-Depth Order Flow Microstructure Card -->
+                    <div id="pane-of-card" class="p-3 rounded bg-gray-900/80 border border-indigo-900/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                                <span>🌊</span>
+                                <span>30-Depth Futures Microstructure</span>
+                            </span>
+                            <span id="pane-of-dynamics-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-gray-800 text-gray-300">
+                                NORMAL
+                            </span>
+                        </div>
+
+                        <!-- 3-Way Order Flow Metrics (Delta, Buy Qty, Sell Qty, CVD) -->
+                        <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
+                            <div class="p-1.5 rounded bg-gray-900 border border-gray-800">
+                                <span class="text-[8.5px] text-gray-400 uppercase block">5m Delta</span>
+                                <strong id="pane-of-delta" class="text-xs font-black text-gray-200">0</strong>
+                            </div>
+                            <div class="p-1.5 rounded bg-gray-900 border border-gray-800">
+                                <span class="text-[8.5px] text-gray-400 uppercase block">Buy vs Sell</span>
+                                <div class="text-[9.5px] font-bold text-gray-300 truncate">
+                                    <span id="pane-of-buy" class="text-emerald-400">0</span> / <span id="pane-of-sell" class="text-rose-400">0</span>
+                                </div>
+                            </div>
+                            <div class="p-1.5 rounded bg-gray-900 border border-gray-800">
+                                <span class="text-[8.5px] text-gray-400 uppercase block">Session CVD</span>
+                                <strong id="pane-of-cvd" class="text-xs font-black text-indigo-300">0</strong>
+                            </div>
+                        </div>
+
+                        <p id="pane-of-desc" class="text-[10px] text-gray-400 leading-relaxed font-mono">
+                            Aggressive order flow &amp; passive limit absorption tracking.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- TAB 3: 50 CONSTITUENTS REAL-TIME INSPECTOR TABLE (MOVED HERE!) -->
@@ -719,6 +786,29 @@
                 <span class="text-[9.5px] text-gray-500">Requires at least 65% constituents trading above VWAP.</span>
             </div>
 
+            <!-- Signal Clarity & Chart Marker Display Mode -->
+            <div class="p-2.5 rounded bg-gray-900 border border-gray-800 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-gray-200 text-xs">🎯 Chart Marker Display Mode:</span>
+                </div>
+                <select id="select-display-mode" class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-indigo-300 font-bold focus:outline-none">
+                    <option value="high_conviction">🛡️ Trend Entries + High-Conviction Structural Traps (Recommended)</option>
+                    <option value="trend_only">🎯 Actionable Trend Entries Only (BUY CE / BUY PE Only - Zero Noise)</option>
+                    <option value="all_signals">🔬 Full Diagnostic (Show All Signals &amp; Micro Delta)</option>
+                </select>
+                <span class="text-[9.5px] text-gray-500 block">Switch to "Actionable Trend Entries Only" to trade clean 50–80 pt trend moves with zero trap dots on the chart.</span>
+            </div>
+
+            <!-- Signal Cooldown / Holding Period -->
+            <div>
+                <div class="flex justify-between items-center text-gray-300 text-xs">
+                    <span>Signal Cooldown / Holding Period:</span>
+                    <strong id="setting-cooldown-val" class="text-indigo-300 font-bold">8 Bars (40 mins)</strong>
+                </div>
+                <input id="slider-cooldown-bars" type="range" min="4" max="14" value="8" step="1" class="w-full h-2 bg-gray-800 rounded accent-indigo-500 mt-1 cursor-pointer">
+                <span class="text-[9.5px] text-gray-500">Locks signal after an entry to let the 50–80 pt trend run without triggering noise on every bar.</span>
+            </div>
+
             <!-- 6 SELECTABLE AUDIO SOUND PRESETS -->
             <div class="p-2.5 rounded bg-gray-900 border border-gray-800 space-y-2">
                 <div class="flex items-center justify-between">
@@ -784,6 +874,7 @@
 <script>
     // ════════════ GLOBAL ENGINE & THRESHOLD STATE ════════════
     let selectedDate = "{{ $selectedDate }}";
+    const TODAY_DATE = "{{ $todayStr }}";
     let primaryTf = {{ $primaryTimeframe }};
     let secondaryTf = {{ $secondaryTimeframe }};
     let activeBasis = "{{ $basis }}";
@@ -803,6 +894,8 @@
         requireTfConfirm: true,
         blockDivergence: true,
         onlyFreshTriggers: true,
+        chartDisplayMode: 'high_conviction',
+        signalCooldownBars: 8,
         enableAudio: true,
         audioSound: 'chime',
         audioVolume: 50,
@@ -865,6 +958,7 @@
         initControls();
         initSettingsModal();
         initLightweightCharts();
+        initAutoRefresh();
         loadEngineData();
     });
 
@@ -1091,6 +1185,8 @@
         const slBear = document.getElementById('slider-bear-score');
         const slNet = document.getElementById('slider-net-breadth');
         const slVwap = document.getElementById('slider-vwap-pct');
+        const selDispMode = document.getElementById('select-display-mode');
+        const slCooldown = document.getElementById('slider-cooldown-bars');
         const selSound = document.getElementById('select-audio-sound');
         const slVol = document.getElementById('slider-audio-volume');
         const chkTf = document.getElementById('toggle-tf-confirm');
@@ -1103,6 +1199,12 @@
             if (slBear) slBear.value = userSettings.bearScoreTh;
             if (slNet) slNet.value = userSettings.minNetBreadth;
             if (slVwap) slVwap.value = userSettings.minVwapPct;
+            if (selDispMode) {
+                let modeVal = userSettings.chartDisplayMode || 'high_conviction';
+                if (modeVal === 'all_micro') modeVal = 'all_signals';
+                selDispMode.value = modeVal;
+            }
+            if (slCooldown) slCooldown.value = userSettings.signalCooldownBars || 8;
             if (selSound) selSound.value = userSettings.audioSound || 'chime';
             if (slVol) slVol.value = userSettings.audioVolume || 50;
             if (chkTf) chkTf.checked = userSettings.requireTfConfirm;
@@ -1114,7 +1216,13 @@
             document.getElementById('setting-bear-score-val').textContent = `≤ ${userSettings.bearScoreTh}`;
             document.getElementById('setting-net-breadth-val').textContent = `± ${userSettings.minNetBreadth}`;
             document.getElementById('setting-vwap-pct-val').textContent = `≥ ${userSettings.minVwapPct}%`;
-            document.getElementById('active-threshold-badge').textContent = `≥${userSettings.bullScoreTh} / ≤${userSettings.bearScoreTh}`;
+            document.getElementById('setting-cooldown-val').textContent = `${userSettings.signalCooldownBars || 8} Bars (${(userSettings.signalCooldownBars || 8) * 5} mins)`;
+
+            let modeBadge = '🛡️ High-Conviction';
+            const curMode = userSettings.chartDisplayMode || 'high_conviction';
+            if (curMode === 'trend_only') modeBadge = '🎯 Zero Noise';
+            else if (curMode === 'all_signals' || curMode === 'all_micro') modeBadge = '🔬 Full Diagnostic';
+            document.getElementById('active-threshold-badge').textContent = `≥${userSettings.bullScoreTh} / ≤${userSettings.bearScoreTh} • ${modeBadge}`;
         }
 
         btnOpen?.addEventListener('click', () => {
@@ -1128,6 +1236,10 @@
         slBear?.addEventListener('input', (e) => document.getElementById('setting-bear-score-val').textContent = `≤ ${e.target.value}`);
         slNet?.addEventListener('input', (e) => document.getElementById('setting-net-breadth-val').textContent = `± ${e.target.value}`);
         slVwap?.addEventListener('input', (e) => document.getElementById('setting-vwap-pct-val').textContent = `≥ ${e.target.value}%`);
+        slCooldown?.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            document.getElementById('setting-cooldown-val').textContent = `${val} Bars (${val * 5} mins)`;
+        });
 
         btnTestSound?.addEventListener('click', () => {
             const snd = selSound ? selSound.value : 'chime';
@@ -1140,6 +1252,8 @@
             userSettings.bearScoreTh = parseInt(slBear.value);
             userSettings.minNetBreadth = parseInt(slNet.value);
             userSettings.minVwapPct = parseInt(slVwap.value);
+            userSettings.chartDisplayMode = selDispMode ? selDispMode.value : 'high_conviction';
+            userSettings.signalCooldownBars = slCooldown ? parseInt(slCooldown.value) : 8;
             userSettings.audioSound = selSound ? selSound.value : 'chime';
             userSettings.audioVolume = slVol ? parseInt(slVol.value) : 50;
             userSettings.requireTfConfirm = chkTf.checked;
@@ -1194,13 +1308,26 @@
             grid: { vertLines: { color: '#1a2234' }, horzLines: { color: '#1a2234' } },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             rightPriceScale: { borderColor: '#1f293d' },
-            timeScale: { borderColor: '#1f293d', timeVisible: true, secondsVisible: false },
+            timeScale: {
+                borderColor: '#1f293d',
+                timeVisible: true,
+                secondsVisible: false,
+                barSpacing: 10,
+                minBarSpacing: 3,
+                fixLeftEdge: false,
+                fixRightEdge: false,
+            },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+            handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
         });
 
         candleSeriesPrimary = chartPrimary.addCandlestickSeries({
             upColor: '#10b981', downColor: '#ef4444', borderVisible: false,
             wickUpColor: '#10b981', wickDownColor: '#ef4444'
         });
+
+        chartPrimary.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+        chartPrimary.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
 
         // 2. Secondary Timeframe Candlestick Chart (15m Full Width)
         chartSecondary = LightweightCharts.createChart(sContainer, {
@@ -1209,13 +1336,26 @@
             grid: { vertLines: { color: '#1a2234' }, horzLines: { color: '#1a2234' } },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             rightPriceScale: { borderColor: '#1f293d' },
-            timeScale: { borderColor: '#1f293d', timeVisible: true, secondsVisible: false },
+            timeScale: {
+                borderColor: '#1f293d',
+                timeVisible: true,
+                secondsVisible: false,
+                barSpacing: 10,
+                minBarSpacing: 3,
+                fixLeftEdge: false,
+                fixRightEdge: false,
+            },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+            handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
         });
 
         candleSeriesSecondary = chartSecondary.addCandlestickSeries({
             upColor: '#a855f7', downColor: '#f43f5e', borderVisible: false,
             wickUpColor: '#a855f7', wickDownColor: '#f43f5e'
         });
+
+        chartSecondary.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
+        chartSecondary.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
 
         // 3. Participation Oscillator & Historical Trace Chart (Right Column, Height: 210px)
         chartOscillator = LightweightCharts.createChart(oContainer, {
@@ -1224,7 +1364,17 @@
             grid: { vertLines: { color: '#1a2234' }, horzLines: { color: '#1a2234' } },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             rightPriceScale: { borderColor: '#1f293d', scaleMargins: { top: 0.1, bottom: 0.1 } },
-            timeScale: { borderColor: '#1f293d', timeVisible: true, secondsVisible: false },
+            timeScale: {
+                borderColor: '#1f293d',
+                timeVisible: true,
+                secondsVisible: false,
+                barSpacing: 10,
+                minBarSpacing: 3,
+                fixLeftEdge: false,
+                fixRightEdge: false,
+            },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+            handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
         });
 
         // Add Extreme Bands as horizontal price lines on Oscillator
@@ -1304,23 +1454,86 @@
         });
     }
 
+    // ════════════ AUTO-REFRESH & POLLING ════════════
+    let autoRefreshSec = parseInt(localStorage.getItem('nifty_pe_autorefresh_sec') || '15');
+    let autoRefreshRemaining = autoRefreshSec;
+    let autoRefreshTimer = null;
+
+    function initAutoRefresh() {
+        const select = document.getElementById('auto-refresh-select');
+        if (select) {
+            select.value = autoRefreshSec.toString();
+            select.addEventListener('change', (e) => {
+                autoRefreshSec = parseInt(e.target.value) || 0;
+                localStorage.setItem('nifty_pe_autorefresh_sec', autoRefreshSec.toString());
+                autoRefreshRemaining = autoRefreshSec;
+                updateAutoRefreshUI();
+            });
+        }
+
+        updateAutoRefreshUI();
+
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        autoRefreshTimer = setInterval(() => {
+            // Only count down if auto-refresh is active, viewing today, and not playing historical replay
+            if (autoRefreshSec <= 0 || isPlaying || (selectedDate && selectedDate !== TODAY_DATE)) {
+                updateAutoRefreshUI();
+                return;
+            }
+
+            autoRefreshRemaining--;
+            if (autoRefreshRemaining <= 0) {
+                autoRefreshRemaining = autoRefreshSec;
+                loadEngineData(false, true);
+            }
+            updateAutoRefreshUI();
+        }, 1000);
+    }
+
+    function updateAutoRefreshUI() {
+        const countdown = document.getElementById('auto-refresh-countdown');
+        const dot = document.getElementById('auto-refresh-dot');
+        if (!countdown || !dot) return;
+
+        if (selectedDate && selectedDate !== TODAY_DATE) {
+            countdown.textContent = 'Hist';
+            countdown.className = 'text-[10px] font-bold text-gray-500 min-w-[20px] text-right';
+            dot.className = 'w-1.5 h-1.5 rounded-full bg-gray-600';
+        } else if (autoRefreshSec <= 0) {
+            countdown.textContent = 'Off';
+            countdown.className = 'text-[10px] font-bold text-gray-500 min-w-[20px] text-right';
+            dot.className = 'w-1.5 h-1.5 rounded-full bg-gray-600';
+        } else if (isPlaying) {
+            countdown.textContent = 'Pause';
+            countdown.className = 'text-[10px] font-bold text-amber-400 min-w-[20px] text-right';
+            dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+        } else {
+            countdown.textContent = `${autoRefreshRemaining}s`;
+            countdown.className = 'text-[10px] font-bold text-emerald-400 min-w-[20px] text-right';
+            dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+        }
+    }
+
     // ════════════ FETCH DATA FROM API ════════════
-    async function loadEngineData(isForceRefresh = false) {
-        document.getElementById('chart-primary-loading')?.classList.remove('hidden');
-        document.getElementById('chart-oscillator-loading')?.classList.remove('hidden');
-        document.getElementById('chart-secondary-loading')?.classList.remove('hidden');
+    async function loadEngineData(isForceRefresh = false, isBackgroundAuto = false) {
+        if (!isBackgroundAuto) {
+            document.getElementById('chart-primary-loading')?.classList.remove('hidden');
+            document.getElementById('chart-oscillator-loading')?.classList.remove('hidden');
+            document.getElementById('chart-secondary-loading')?.classList.remove('hidden');
+        }
         const spinner = document.getElementById('reload-spinner');
         if (spinner) spinner.classList.add('animate-spin');
 
         try {
-            const refreshParam = isForceRefresh ? '&refresh=1' : '';
+            const refreshParam = (isForceRefresh || isBackgroundAuto) ? '&refresh=1' : '';
             const res = await fetch(`/api/nifty-participation-engine/data?date=${selectedDate}&tf1=${primaryTf}&tf2=${secondaryTf}&basis=${activeBasis}${refreshParam}&_t=${Date.now()}`);
             const data = await res.json();
 
             if (data && data.success) {
+                const wasAtLatest = timestampsList.length === 0 || activeTimeIndex >= timestampsList.length - 1;
                 engineData = data;
                 renderSessionHeader();
-                renderAllCharts();
+                renderAllCharts(isBackgroundAuto);
                 evaluateAndRenderSignalMarkers();
 
                 timestampsList = Object.keys(data.primary?.timeline || {});
@@ -1331,16 +1544,22 @@
                     document.getElementById('slider-end-time').textContent = timestampsList[timestampsList.length - 1];
                 }
 
-                // Snap to latest completed candle
-                const targetIdx = timestampsList.length > 0 ? timestampsList.length - 1 : 0;
-                syncActiveIndex(targetIdx);
+                // If user was viewing latest candle or initial load, snap to newest candle
+                if (wasAtLatest || !isBackgroundAuto) {
+                    const targetIdx = timestampsList.length > 0 ? timestampsList.length - 1 : 0;
+                    syncActiveIndex(targetIdx);
+                } else {
+                    syncActiveIndex(activeTimeIndex);
+                }
             }
         } catch (err) {
             console.error('Failed to load participation engine data:', err);
         } finally {
-            document.getElementById('chart-primary-loading')?.classList.add('hidden');
-            document.getElementById('chart-oscillator-loading')?.classList.add('hidden');
-            document.getElementById('chart-secondary-loading')?.classList.add('hidden');
+            if (!isBackgroundAuto) {
+                document.getElementById('chart-primary-loading')?.classList.add('hidden');
+                document.getElementById('chart-oscillator-loading')?.classList.add('hidden');
+                document.getElementById('chart-secondary-loading')?.classList.add('hidden');
+            }
             if (spinner) spinner.classList.remove('animate-spin');
         }
     }
@@ -1378,37 +1597,190 @@
         document.getElementById('chart2-label').textContent = `NIFTY 50 (${secondaryTf}m Broader Structure)`;
     }
 
+    // ════════════ HELPER: ADJUST CHART TIMESCALE (MATCHING NIFTY MULTI-TF) ════════════
+    function adjustChartTimeScale(chart, todayCandles, yesterdayCandles = [], tf = 5) {
+        if (!chart || !todayCandles || todayCandles.length === 0) return;
+
+        const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
+        const tCount = todayCandles.length;
+        const tfNum = parseInt(tf) || 5;
+        const tfBarsMap = { 1: 375, 3: 125, 5: 75, 15: 25, 30: 13, 60: 7, 375: 1 };
+        const sessionBars = tfBarsMap[tfNum] || (tfNum === 15 ? 25 : 75);
+
+        // Anchor start at 0 so yesterday's afternoon context sits on the left
+        const fromIndex = 0;
+        // Total range shows yesterday's bars + today's full session (sessionBars) + 5 bars buffer
+        const toIndex = yCount + Math.max(sessionBars, tCount + 5);
+
+        requestAnimationFrame(() => {
+            try {
+                chart.timeScale().applyOptions({
+                    minBarSpacing: 3,
+                    fixLeftEdge: false,
+                    fixRightEdge: false,
+                });
+
+                chart.timeScale().setVisibleLogicalRange({
+                    from: fromIndex,
+                    to: toIndex,
+                });
+                updateDaySeparators();
+            } catch (e) {
+                console.warn('adjustChartTimeScale warning:', e);
+            }
+        });
+    }
+
+    function updateDaySeparators() {
+        const isLiveDate = (selectedDate === TODAY_DATE);
+        const labelText = isLiveDate ? 'TODAY' : selectedDate;
+
+        // Chart 1 Day Separator
+        const sep1 = document.getElementById('chart1-day-separator');
+        const cont1 = document.getElementById('chart-primary-container');
+        if (chartPrimary && sep1 && cont1) {
+            try {
+                const timeTd = window._chart1TodayFirstTime;
+                const timeYd = window._chart1YesterdayLastTime;
+                let x = null;
+                const barSpacing = (typeof chartPrimary.timeScale?.().options === 'function' ? chartPrimary.timeScale().options().barSpacing : 10) || 10;
+
+                if (timeTd && timeYd) {
+                    const xTd = chartPrimary.timeScale().timeToCoordinate(timeTd);
+                    const xYd = chartPrimary.timeScale().timeToCoordinate(timeYd);
+                    if (xTd !== null && xYd !== null) x = (xTd + xYd) / 2;
+                    else if (xTd !== null) x = xTd - (barSpacing / 2);
+                    else if (xYd !== null) x = xYd + (barSpacing / 2);
+                } else if (timeTd) {
+                    const xTd = chartPrimary.timeScale().timeToCoordinate(timeTd);
+                    if (xTd !== null) x = xTd - (barSpacing / 2);
+                }
+
+                const maxW = cont1.clientWidth || 99999;
+                if (x !== null && !isNaN(x) && x >= 0 && x <= maxW) {
+                    sep1.style.left = `${Math.round(x)}px`;
+                    const lbl = document.getElementById('chart1-day-sep-label');
+                    if (lbl) lbl.textContent = labelText;
+                    sep1.classList.remove('hidden');
+                } else {
+                    sep1.classList.add('hidden');
+                }
+            } catch (e) {
+                sep1.classList.add('hidden');
+            }
+        }
+
+        // Chart 2 Day Separator
+        const sep2 = document.getElementById('chart2-day-separator');
+        const cont2 = document.getElementById('chart-secondary-container');
+        if (chartSecondary && sep2 && cont2) {
+            try {
+                const timeTd = window._chart2TodayFirstTime;
+                const timeYd = window._chart2YesterdayLastTime;
+                let x = null;
+                const barSpacing = (typeof chartSecondary.timeScale?.().options === 'function' ? chartSecondary.timeScale().options().barSpacing : 10) || 10;
+
+                if (timeTd && timeYd) {
+                    const xTd = chartSecondary.timeScale().timeToCoordinate(timeTd);
+                    const xYd = chartSecondary.timeScale().timeToCoordinate(timeYd);
+                    if (xTd !== null && xYd !== null) x = (xTd + xYd) / 2;
+                    else if (xTd !== null) x = xTd - (barSpacing / 2);
+                    else if (xYd !== null) x = xYd + (barSpacing / 2);
+                } else if (timeTd) {
+                    const xTd = chartSecondary.timeScale().timeToCoordinate(timeTd);
+                    if (xTd !== null) x = xTd - (barSpacing / 2);
+                }
+
+                const maxW = cont2.clientWidth || 99999;
+                if (x !== null && !isNaN(x) && x >= 0 && x <= maxW) {
+                    sep2.style.left = `${Math.round(x)}px`;
+                    const lbl = document.getElementById('chart2-day-sep-label');
+                    if (lbl) lbl.textContent = labelText;
+                    sep2.classList.remove('hidden');
+                } else {
+                    sep2.classList.add('hidden');
+                }
+            } catch (e) {
+                sep2.classList.add('hidden');
+            }
+        }
+    }
+
     // ════════════ RENDER CHARTS & THE HISTORICAL TRACE ════════════
-    function renderAllCharts() {
+    function renderAllCharts(isBackgroundAuto = false) {
         if (!engineData) return;
 
-        // 1. Primary Candlestick Series
-        const primaryCandles = (engineData.nifty_candles_p || []).map(c => ({
-            time: Number(c.timestamp),
+        // 1. Primary Candlestick Series (combining yesterday context + today)
+        const todayCandlesP = (engineData.nifty_candles_p || []).map(c => ({
+            time: Number(c.timestamp || c.time),
             open: Number(c.open),
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
-        }));
-        if (candleSeriesPrimary && primaryCandles.length > 0) {
-            candleSeriesPrimary.setData(primaryCandles);
-            chartPrimary.timeScale().fitContent();
-        }
+            time_str: c.time_str,
+        })).filter(c => c.time && !isNaN(c.time));
 
-        // 2. Secondary Candlestick Series
-        const secondaryCandles = (engineData.nifty_candles_s || []).map(c => ({
-            time: Number(c.timestamp),
+        const firstTodayTimeP = todayCandlesP[0]?.time || 0;
+        const rawYesterdayP = (engineData.yesterday_candles_p || []).map(c => ({
+            time: Number(c.timestamp || c.time),
             open: Number(c.open),
             high: Number(c.high),
             low: Number(c.low),
             close: Number(c.close),
-        }));
-        if (candleSeriesSecondary && secondaryCandles.length > 0) {
-            candleSeriesSecondary.setData(secondaryCandles);
-            chartSecondary.timeScale().fitContent();
+            time_str: c.time_str,
+        })).filter(c => c.time && !isNaN(c.time) && (firstTodayTimeP === 0 || c.time < firstTodayTimeP));
+
+        // Keep last 10 candles of yesterday for clean afternoon context (matching multi-timeframe monitor)
+        const yesterdayCandlesP = rawYesterdayP.slice(-10);
+
+        window._chart1TodayFirstTime = todayCandlesP[0]?.time;
+        window._chart1YesterdayLastTime = yesterdayCandlesP[yesterdayCandlesP.length - 1]?.time;
+
+        const allPrimaryCandles = [...yesterdayCandlesP, ...todayCandlesP];
+
+        if (candleSeriesPrimary && allPrimaryCandles.length > 0) {
+            candleSeriesPrimary.setData(allPrimaryCandles);
+            if (!isBackgroundAuto) {
+                adjustChartTimeScale(chartPrimary, todayCandlesP, yesterdayCandlesP, primaryTf);
+            }
         }
 
-        // 3. Historical Trace Oscillator Series (Using primaryCandles directly for rock-solid timestamps)
+        // 2. Secondary Candlestick Series (combining yesterday context + today)
+        const todayCandlesS = (engineData.nifty_candles_s || []).map(c => ({
+            time: Number(c.timestamp || c.time),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+            time_str: c.time_str,
+        })).filter(c => c.time && !isNaN(c.time));
+
+        const firstTodayTimeS = todayCandlesS[0]?.time || 0;
+        const rawYesterdayS = (engineData.yesterday_candles_s || []).map(c => ({
+            time: Number(c.timestamp || c.time),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+            time_str: c.time_str,
+        })).filter(c => c.time && !isNaN(c.time) && (firstTodayTimeS === 0 || c.time < firstTodayTimeS));
+
+        // Keep last 6 candles of yesterday for 15m
+        const yesterdayCandlesS = rawYesterdayS.slice(-6);
+
+        window._chart2TodayFirstTime = todayCandlesS[0]?.time;
+        window._chart2YesterdayLastTime = yesterdayCandlesS[yesterdayCandlesS.length - 1]?.time;
+
+        const allSecondaryCandles = [...yesterdayCandlesS, ...todayCandlesS];
+
+        if (candleSeriesSecondary && allSecondaryCandles.length > 0) {
+            candleSeriesSecondary.setData(allSecondaryCandles);
+            if (!isBackgroundAuto) {
+                adjustChartTimeScale(chartSecondary, todayCandlesS, yesterdayCandlesS, secondaryTf);
+            }
+        }
+
+        // 3. Historical Trace Oscillator Series (Using today's candles)
         const timeline = engineData.primary?.timeline || {};
         const alignment = engineData.consistency?.alignment_timeline || {};
 
@@ -1416,12 +1788,12 @@
         const netBreadthPoints = [];
         const vwapPoints = [];
 
-        (engineData.nifty_candles_p || []).forEach(c => {
+        todayCandlesP.forEach(c => {
             const t = c.time_str;
             const b = timeline[t];
             const a = alignment[t];
-            const ts = Number(c.timestamp);
-            if (!ts) return;
+            const ts = Number(c.time || c.timestamp);
+            if (!ts || isNaN(ts)) return;
 
             const score = a ? Number(a.composite_score) : (b ? Math.round(50 + b.net_breadth) : 50);
             scorePoints.push({ time: ts, value: score });
@@ -1441,8 +1813,12 @@
         }
         if (oscLineVwap && vwapPoints.length > 0) {
             oscLineVwap.setData(vwapPoints);
+        }
+        if (chartOscillator && scorePoints.length > 0) {
             chartOscillator.timeScale().fitContent();
         }
+
+        setTimeout(updateDaySeparators, 60);
     }
 
     // ════════════ EVALUATE & PLOT HIGH-CONFIDENCE SIGNAL MARKERS (5M & 15M) ════════════
@@ -1457,8 +1833,16 @@
         // 1. Plot Primary 5m Chart Markers
         if (candleSeriesPrimary) {
             const markers = [];
-            let last5mSignalState = 'NEUTRAL'; // 'BULL', 'BEAR', 'TRAP', 'ABSORB', 'NEUTRAL'
-            let barsSince5mSignal = 999;
+            let lastTradeDirection = null; // 'BULL' or 'BEAR'
+            let barsSinceLastEntry = 999;
+            let barsSinceLastDiv = 999;
+
+            const cooldownBars = Number(userSettings.signalCooldownBars) || 8;
+            const displayMode = userSettings.chartDisplayMode || 'high_conviction';
+            const isFullDiagnostic = (displayMode === 'all_signals' || displayMode === 'all_micro');
+            const isTrendOnly = (displayMode === 'trend_only');
+            // In Full Diagnostic, allow tight 2-bar spacing so user can inspect every qualified pulse
+            const effectiveCooldown = isFullDiagnostic ? 2 : cooldownBars;
 
             primaryCandles.forEach(c => {
                 const t = c.time_str;
@@ -1482,11 +1866,21 @@
                 const isBullSignal = (score >= userSettings.bullScoreTh) && (net >= userSettings.minNetBreadth) && (vwap >= userSettings.minVwapPct) && tfBullOk && !isBullDivTrap;
                 const isBearSignal = (score <= userSettings.bearScoreTh) && (net <= -userSettings.minNetBreadth) && (vwap <= (100 - userSettings.minVwapPct)) && tfBearOk && !isBearDivTrap;
 
-                barsSince5mSignal++;
+                barsSinceLastEntry++;
+                barsSinceLastDiv++;
+
+                // Determine if a divergence qualifies as a High-Conviction Structural event
+                let isHighConvictionDiv = false;
+                if (div) {
+                    const hasOf = Boolean(div.is_of_confirmed);
+                    const ofDelta = Math.abs(div.order_flow?.delta || 0);
+                    const priceSlope = Math.abs(div.price_slope || 0);
+                    isHighConvictionDiv = hasOf || (ofDelta >= 25000 && priceSlope >= 20.0);
+                }
 
                 if (isBullSignal) {
-                    const isFresh = (last5mSignalState !== 'BULL') || (barsSince5mSignal >= 6);
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
+                    const canEnter = (lastTradeDirection !== 'BULL') || (barsSinceLastEntry >= effectiveCooldown);
+                    if (!userSettings.onlyFreshTriggers || canEnter) {
                         markers.push({
                             time: Number(c.timestamp),
                             position: 'belowBar',
@@ -1494,12 +1888,12 @@
                             shape: 'arrowUp',
                             text: `BUY CE (${Math.round(score)})`,
                         });
-                        barsSince5mSignal = 0;
+                        barsSinceLastEntry = 0;
+                        lastTradeDirection = 'BULL';
                     }
-                    last5mSignalState = 'BULL';
                 } else if (isBearSignal) {
-                    const isFresh = (last5mSignalState !== 'BEAR') || (barsSince5mSignal >= 6);
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
+                    const canEnter = (lastTradeDirection !== 'BEAR') || (barsSinceLastEntry >= effectiveCooldown);
+                    if (!userSettings.onlyFreshTriggers || canEnter) {
                         markers.push({
                             time: Number(c.timestamp),
                             position: 'aboveBar',
@@ -1507,35 +1901,42 @@
                             shape: 'arrowDown',
                             text: `BUY PE (${Math.round(score)})`,
                         });
-                        barsSince5mSignal = 0;
+                        barsSinceLastEntry = 0;
+                        lastTradeDirection = 'BEAR';
                     }
-                    last5mSignalState = 'BEAR';
-                } else if (isBullDivTrap) {
-                    const isFresh = (last5mSignalState !== 'TRAP');
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
-                        markers.push({
-                            time: Number(c.timestamp),
-                            position: 'aboveBar',
-                            color: '#f59e0b',
-                            shape: 'circle',
-                            text: `TRAP ⚠️`,
-                        });
+                }
+
+                // Plot Traps / Absorptions according to Display Mode
+                if (!isTrendOnly) {
+                    if (isBullDivTrap) {
+                        const shouldShow = isFullDiagnostic || (isHighConvictionDiv && barsSinceLastDiv >= 4);
+                        if (shouldShow) {
+                            const deltaK = (div && div.order_flow && div.order_flow.delta) ? Math.round(div.order_flow.delta / 1000) : 0;
+                            const deltaTag = Math.abs(deltaK) >= 10 ? ` (+${deltaK}k Δ)` : '';
+                            markers.push({
+                                time: Number(c.timestamp),
+                                position: 'aboveBar',
+                                color: '#f59e0b',
+                                shape: 'circle',
+                                text: `TRAP ⚠️${deltaTag}`,
+                            });
+                            barsSinceLastDiv = 0;
+                        }
+                    } else if (isBearDivTrap) {
+                        const shouldShow = isFullDiagnostic || (isHighConvictionDiv && barsSinceLastDiv >= 4);
+                        if (shouldShow) {
+                            const deltaK = (div && div.order_flow && div.order_flow.delta) ? Math.round(div.order_flow.delta / 1000) : 0;
+                            const deltaTag = Math.abs(deltaK) >= 10 ? ` (${deltaK}k Δ)` : '';
+                            markers.push({
+                                time: Number(c.timestamp),
+                                position: 'belowBar',
+                                color: '#06b6d4',
+                                shape: 'circle',
+                                text: `ABSORB ⚡${deltaTag}`,
+                            });
+                            barsSinceLastDiv = 0;
+                        }
                     }
-                    last5mSignalState = 'TRAP';
-                } else if (isBearDivTrap) {
-                    const isFresh = (last5mSignalState !== 'ABSORB');
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
-                        markers.push({
-                            time: Number(c.timestamp),
-                            position: 'belowBar',
-                            color: '#06b6d4',
-                            shape: 'circle',
-                            text: `ABSORB ⚡`,
-                        });
-                    }
-                    last5mSignalState = 'ABSORB';
-                } else {
-                    last5mSignalState = 'NEUTRAL';
                 }
             });
 
@@ -1547,8 +1948,8 @@
             const secondaryCandles = engineData.nifty_candles_s || [];
             const secondaryTimeline = engineData.secondary?.timeline || {};
             const secondaryMarkers = [];
-            let last15mSignalState = 'NEUTRAL'; // 'BULL', 'BEAR', 'NEUTRAL'
-            let barsSince15mSignal = 999;
+            let last15mTradeDirection = null; // 'BULL' or 'BEAR'
+            let barsSince15mEntry = 999;
 
             secondaryCandles.forEach(sc => {
                 const st = sc.time_str;
@@ -1564,11 +1965,14 @@
                 const is15mBull = (sNet >= userSettings.minNetBreadth) && (sVwap >= userSettings.minVwapPct);
                 const is15mBear = (sNet <= -userSettings.minNetBreadth) && (sVwap <= (100 - userSettings.minVwapPct));
 
-                barsSince15mSignal++;
+                barsSince15mEntry++;
+
+                // On 15M broader structure, prevent arrow spam by enforcing higher cooldown (8 bars = 2 hrs) or pure trend reversal
+                const cooldown15m = Math.max(8, Number(userSettings.signalCooldownBars) || 8);
 
                 if (is15mBull) {
-                    const isFresh = (last15mSignalState !== 'BULL') || (barsSince15mSignal >= 4);
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
+                    const canEnter = (last15mTradeDirection !== 'BULL') || (barsSince15mEntry >= cooldown15m);
+                    if (!userSettings.onlyFreshTriggers || canEnter) {
                         secondaryMarkers.push({
                             time: sTs,
                             position: 'belowBar',
@@ -1576,12 +1980,12 @@
                             shape: 'arrowUp',
                             text: `15M BUY CE (+${sNet})`,
                         });
-                        barsSince15mSignal = 0;
+                        barsSince15mEntry = 0;
+                        last15mTradeDirection = 'BULL';
                     }
-                    last15mSignalState = 'BULL';
                 } else if (is15mBear) {
-                    const isFresh = (last15mSignalState !== 'BEAR') || (barsSince15mSignal >= 4);
-                    if (!userSettings.onlyFreshTriggers || isFresh) {
+                    const canEnter = (last15mTradeDirection !== 'BEAR') || (barsSince15mEntry >= cooldown15m);
+                    if (!userSettings.onlyFreshTriggers || canEnter) {
                         secondaryMarkers.push({
                             time: sTs,
                             position: 'aboveBar',
@@ -1589,11 +1993,9 @@
                             shape: 'arrowDown',
                             text: `15M BUY PE (${sNet})`,
                         });
-                        barsSince15mSignal = 0;
+                        barsSince15mEntry = 0;
+                        last15mTradeDirection = 'BEAR';
                     }
-                    last15mSignalState = 'BEAR';
-                } else {
-                    last15mSignalState = 'NEUTRAL';
                 }
             });
 
@@ -1745,6 +2147,53 @@
             } else {
                 divCard.className = 'p-3 rounded bg-gray-900/80 border border-gray-800 space-y-1';
             }
+
+            // Populate 30-Depth Microstructure Card
+            if (div.order_flow) {
+                const of = div.order_flow;
+                const deltaEl = document.getElementById('pane-of-delta');
+                const buyEl = document.getElementById('pane-of-buy');
+                const sellEl = document.getElementById('pane-of-sell');
+                const cvdEl = document.getElementById('pane-of-cvd');
+                const dynEl = document.getElementById('pane-of-dynamics-badge');
+                const descEl = document.getElementById('pane-of-desc');
+
+                if (deltaEl) {
+                    const sign = of.delta > 0 ? '+' : '';
+                    deltaEl.textContent = `${sign}${of.delta.toLocaleString()} Δ`;
+                    deltaEl.className = of.delta > 0 ? 'text-xs font-black text-emerald-400' : (of.delta < 0 ? 'text-xs font-black text-rose-400' : 'text-xs font-black text-gray-300');
+                }
+                if (buyEl) buyEl.textContent = of.buy_qty.toLocaleString();
+                if (sellEl) sellEl.textContent = of.sell_qty.toLocaleString();
+                if (cvdEl) {
+                    const cvdSign = of.cvd > 0 ? '+' : '';
+                    cvdEl.textContent = `${cvdSign}${of.cvd.toLocaleString()}`;
+                    cvdEl.className = of.cvd > 0 ? 'text-xs font-black text-emerald-400' : (of.cvd < 0 ? 'text-xs font-black text-rose-400' : 'text-xs font-black text-indigo-300');
+                }
+                if (dynEl) {
+                    dynEl.textContent = of.dynamics.replace(/_/g, ' ');
+                    if (of.dynamics === 'BULL_ABSORPTION') {
+                        dynEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/60 animate-pulse';
+                    } else if (of.dynamics === 'BEAR_TRAP') {
+                        dynEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/60 animate-pulse';
+                    } else if (of.dynamics === 'BULL_EXPANSION') {
+                        dynEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/60';
+                    } else if (of.dynamics === 'BEAR_EXPANSION') {
+                        dynEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/60';
+                    } else {
+                        dynEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-gray-800 text-gray-400';
+                    }
+                }
+                if (descEl) {
+                    if (of.dynamics === 'BULL_ABSORPTION') {
+                        descEl.innerHTML = `<span class="text-cyan-300 font-bold">Passive Limit Bids Absorbing Market Sellers:</span> Smart money accumulating every sell order at bid depth.`;
+                    } else if (of.dynamics === 'BEAR_TRAP') {
+                        descEl.innerHTML = `<span class="text-amber-300 font-bold">Passive Limit Asks Absorbing Market Buyers:</span> Institutional ask walls absorbing retail breakout chase.`;
+                    } else {
+                        descEl.textContent = `Order Flow tracking: Total volume ${of.total_qty.toLocaleString()} contracts.`;
+                    }
+                }
+            }
         }
 
         renderConstituentsTable();
@@ -1771,32 +2220,43 @@
         const isBullDivClean = !div || div.type !== 'BEARISH_DIVERGENCE_WARNING';
         const isBearDivClean = !div || div.type !== 'BULLISH_DIVERGENCE_WARNING';
 
+        // 30-Depth Order Flow Microstructure check
+        const of = (div && div.order_flow) ? div.order_flow : null;
+        const isOfClean = !of || (score >= 50 ? of.dynamics !== 'BEAR_TRAP' : of.dynamics !== 'BULL_ABSORPTION');
+
         let metCount = 0;
         let isBullTrigger = false;
         let isBearTrigger = false;
-        let isTrapCondition = false;
 
         if (score >= 50) {
             if (isBreadthBull) metCount++;
             if (isVwapBull) metCount++;
             if (isTfAlignedBull) metCount++;
             if (isBullDivClean) metCount++;
-            isBullTrigger = (metCount >= 3 && isBreadthBull);
-            isTrapCondition = !isBullDivClean;
+            if (isOfClean) metCount++;
+            isBullTrigger = (metCount >= 4 && isBreadthBull && isBullDivClean);
         } else {
             if (isBreadthBear) metCount++;
             if (isVwapBear) metCount++;
             if (isTfAlignedBear) metCount++;
             if (isBearDivClean) metCount++;
-            isBearTrigger = (metCount >= 3 && isBreadthBear);
-            isTrapCondition = !isBearDivClean;
+            if (isOfClean) metCount++;
+            isBearTrigger = (metCount >= 4 && isBreadthBear && isBearDivClean);
         }
 
-        document.getElementById('checklist-summary').textContent = `${metCount} / 4 Met`;
+        document.getElementById('checklist-summary').textContent = `${metCount} / 5 Met`;
         updateCheckItem('check-breadth', (isBreadthBull || isBreadthBear), 'Breadth Extreme Met');
         updateCheckItem('check-vwap', (isVwapBull || isVwapBear), 'VWAP Dominance Met');
         updateCheckItem('check-tf', (isTfAlignedBull || isTfAlignedBear), '5m & 15m Aligned');
         updateCheckItem('check-div', (score >= 50 ? isBullDivClean : isBearDivClean), 'Divergence Clean');
+        
+        let ofLabel = '30-Depth Clean';
+        if (of && of.has_data) {
+            if (of.dynamics === 'BULL_ABSORPTION') ofLabel = '30-Depth Bull Absorption ⚡';
+            else if (of.dynamics === 'BEAR_TRAP') ofLabel = '30-Depth Ask Wall Trap ⚠️';
+            else if (of.dynamics === 'BULL_EXPANSION' || of.dynamics === 'BEAR_EXPANSION') ofLabel = '30-Depth Flow Aligned 🚀';
+        }
+        updateCheckItem('check-of', isOfClean, ofLabel);
 
         const atmStrike = Math.round(spotPrice / 50) * 50;
 
@@ -1807,17 +2267,16 @@
             actionEl.innerHTML = `<span class="text-emerald-400">🚀 BUY CALL (CE)</span>`;
             contractEl.textContent = `NIFTY ${atmStrike} CE`;
 
-            const candleLow = Number(candle.low || (spotPrice - 25));
-            const sl = Math.round(candleLow - 15);
-            const riskPts = Math.round(spotPrice - sl);
-            const tp1 = Math.round(spotPrice + 60);
-            const tp2 = Math.round(spotPrice + 120);
-            const rr = riskPts > 0 ? (60 / riskPts).toFixed(1) : '1:2.0';
+            const candleLow = Number(candle.low || (spotPrice - 20));
+            const sl = Math.round(candleLow - 5);
+            const riskPts = Math.max(10, Math.round(spotPrice - sl));
+            const tp1 = Math.round(spotPrice + 50);
+            const tp2 = Math.round(spotPrice + 80);
 
             document.getElementById('trade-entry-spot').textContent = `₹${spotPrice.toFixed(1)}`;
             document.getElementById('trade-sl-val').textContent = `₹${sl} (-${riskPts})`;
-            document.getElementById('trade-tp1-val').textContent = `₹${tp1} (+60)`;
-            document.getElementById('trade-tp2-val').textContent = `₹${tp2} (1:${rr})`;
+            document.getElementById('trade-tp1-val').textContent = `₹${tp1} (+50)`;
+            document.getElementById('trade-tp2-val').textContent = `₹${tp2} (+80)`;
 
             triggerAlertAudio();
         } else if (isBearTrigger) {
@@ -1827,25 +2286,35 @@
             actionEl.innerHTML = `<span class="text-rose-400">💥 BUY PUT (PE)</span>`;
             contractEl.textContent = `NIFTY ${atmStrike} PE`;
 
-            const candleHigh = Number(candle.high || (spotPrice + 25));
-            const sl = Math.round(candleHigh + 15);
-            const riskPts = Math.round(sl - spotPrice);
-            const tp1 = Math.round(spotPrice - 60);
-            const tp2 = Math.round(spotPrice - 120);
-            const rr = riskPts > 0 ? (60 / riskPts).toFixed(1) : '1:2.0';
+            const candleHigh = Number(candle.high || (spotPrice + 20));
+            const sl = Math.round(candleHigh + 5);
+            const riskPts = Math.max(10, Math.round(sl - spotPrice));
+            const tp1 = Math.round(spotPrice - 50);
+            const tp2 = Math.round(spotPrice - 80);
 
             document.getElementById('trade-entry-spot').textContent = `₹${spotPrice.toFixed(1)}`;
             document.getElementById('trade-sl-val').textContent = `₹${sl} (-${riskPts})`;
-            document.getElementById('trade-tp1-val').textContent = `₹${tp1} (-60)`;
-            document.getElementById('trade-tp2-val').textContent = `₹${tp2} (1:${rr})`;
+            document.getElementById('trade-tp1-val').textContent = `₹${tp1} (-50)`;
+            document.getElementById('trade-tp2-val').textContent = `₹${tp2} (-80)`;
 
             triggerAlertAudio();
-        } else if (isTrapCondition) {
+        } else if (div && div.type === 'BULLISH_DIVERGENCE_WARNING') {
+            heroCard.className = 'cockpit-card p-3 shadow-xl border-2 transition-all duration-300 bg-gradient-to-br from-[#131722] via-[#09222b] to-[#111624] glow-cyan';
+            confBadge.textContent = (div.is_of_confirmed || (of && of.dynamics === 'BULL_ABSORPTION')) ? '30-DEPTH BULL ABSORPTION' : 'INST ABSORPTION';
+            confBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-black bg-cyan-950 text-cyan-300 border border-cyan-500/80 animate-pulse';
+            actionEl.innerHTML = `<span class="text-cyan-400">⚡ INSTITUTIONAL ABSORPTION</span>`;
+            contractEl.textContent = 'DO NOT SHORT / PREPARE CE';
+
+            document.getElementById('trade-entry-spot').textContent = `₹${spotPrice.toFixed(1)}`;
+            document.getElementById('trade-sl-val').textContent = '--';
+            document.getElementById('trade-tp1-val').textContent = '--';
+            document.getElementById('trade-tp2-val').textContent = '--';
+        } else if (div && div.type === 'BEARISH_DIVERGENCE_WARNING') {
             heroCard.className = 'cockpit-card p-3 shadow-xl border-2 transition-all duration-300 bg-gradient-to-br from-[#131722] via-[#261e10] to-[#111624] glow-amber';
-            confBadge.textContent = 'DIVERGENCE TRAP';
+            confBadge.textContent = (div.is_of_confirmed || (of && of.dynamics === 'BEAR_TRAP')) ? '30-DEPTH ASK WALL TRAP' : 'DIVERGENCE TRAP';
             confBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-black bg-amber-950 text-amber-300 border border-amber-500/80';
             actionEl.innerHTML = `<span class="text-amber-400">⚠️ CAUTION / TRAP</span>`;
-            contractEl.textContent = 'DO NOT CHASE';
+            contractEl.textContent = 'DO NOT CHASE CE';
 
             document.getElementById('trade-entry-spot').textContent = `₹${spotPrice.toFixed(1)}`;
             document.getElementById('trade-sl-val').textContent = '--';

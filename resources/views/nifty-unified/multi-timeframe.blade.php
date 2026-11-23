@@ -183,6 +183,17 @@
             </button>
         </div>
 
+        <!-- Whole Day AI Diagnosis Download Section -->
+        <div class="relative flex items-center bg-[#1a1e29] border border-purple-500/50 hover:border-purple-400 rounded px-1 py-0.5 shadow-inner shrink-0 transition" title="Download Whole Day Market Data & Forensic Diagnosis for AI (ChatGPT / Claude / Gemini)">
+            <button id="btn-day-ai-download" type="button" onclick="downloadWholeDayAiData('md')" title="Download Whole Day Market Autopsy (.md) for AI Analysis" class="px-2 py-0.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
+                <span id="btn-day-ai-icon">📥</span>
+                <span id="btn-day-ai-text">Day AI Data</span>
+            </button>
+            <button id="btn-day-ai-dropdown" type="button" onclick="toggleDayAiMenu(event)" title="Options: Markdown (.md), JSON (.json), Copy to Clipboard, or On-Screen Preview" class="px-1.5 py-0.5 text-purple-300 hover:text-white border-l border-purple-500/40 text-[9px] font-bold cursor-pointer">
+                ▼
+            </button>
+        </div>
+
         <!-- Print / Screenshot Export Section -->
         <div class="flex items-center bg-[#1a1e29] border border-amber-500/40 hover:border-amber-500/70 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Save full page screenshot (PNG) to D:\OneDrive - Buffercode\0iohlc">
             <button id="btn-print-page" type="button" onclick="captureAndSavePageScreenshot()" title="Take full page screenshot & save to D:\OneDrive - Buffercode\0iohlc" class="px-2 py-0.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
@@ -2669,7 +2680,261 @@
         </div>
     </div>
 
+    <!-- Fixed Dropdown Menu for Day AI Data (Positioned dynamically via getBoundingClientRect, immune to overflow) -->
+    <div id="day-ai-menu" class="hidden fixed z-[999999] bg-[#131722] border border-purple-500/70 rounded-md shadow-2xl py-1 px-1 text-[11px] font-mono min-w-[220px] backdrop-blur-md">
+        <button type="button" onclick="downloadWholeDayAiData('md')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-950/70 text-purple-200 rounded flex items-center gap-2 cursor-pointer transition">
+            <span>📄</span> <span>Download Markdown (.md)</span>
+        </button>
+        <button type="button" onclick="downloadWholeDayAiData('json')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-950/70 text-purple-200 rounded flex items-center gap-2 cursor-pointer transition">
+            <span>📦</span> <span>Download Full JSON (.json)</span>
+        </button>
+        <button type="button" onclick="copyDayAiDataToClipboard()" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-950/70 text-purple-200 rounded flex items-center gap-2 cursor-pointer transition border-t border-gray-800 mt-1 pt-1">
+            <span>📋</span> <span>Copy Full MD to Clipboard</span>
+        </button>
+        <button type="button" onclick="openDayAiDiagnosisModal()" class="w-full text-left px-2.5 py-1.5 hover:bg-indigo-950/70 text-indigo-200 rounded flex items-center gap-2 cursor-pointer transition border-t border-gray-800 mt-1 pt-1 font-bold">
+            <span>👁️</span> <span>Preview Market Autopsy</span>
+        </button>
+    </div>
+
+    <!-- On-Screen Market Autopsy & Diagnosis Modal -->
+    <div id="day-ai-modal" class="hidden fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-[#131722] border border-purple-500/60 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden text-gray-200 font-sans">
+            <!-- Header -->
+            <div class="px-4 py-3 bg-[#1a1e29] border-b border-gray-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📊</span>
+                    <div>
+                        <h3 class="font-bold text-sm text-purple-300">NIFTY 50 Whole Day Market Autopsy & AI Data</h3>
+                        <p class="text-[10px] text-gray-400 font-mono" id="day-ai-modal-date-subtitle">Session Diagnosis</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="copyDayAiDataToClipboard()" class="px-2.5 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded text-xs font-mono font-bold flex items-center gap-1 cursor-pointer">
+                        <span>📋</span> <span>Copy MD</span>
+                    </button>
+                    <button type="button" onclick="downloadWholeDayAiData('md')" class="px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 text-white rounded text-xs font-mono font-bold flex items-center gap-1 cursor-pointer">
+                        <span>📥</span> <span>Download .md</span>
+                    </button>
+                    <button type="button" onclick="downloadWholeDayAiData('json')" class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-mono font-bold flex items-center gap-1 cursor-pointer">
+                        <span>📦</span> <span>JSON</span>
+                    </button>
+                    <button type="button" onclick="closeDayAiDiagnosisModal()" class="p-1 text-gray-400 hover:text-white rounded cursor-pointer text-base leading-none">
+                        &times;
+                    </button>
+                </div>
+            </div>
+            <!-- Body -->
+            <div class="p-4 overflow-y-auto space-y-4 font-mono text-xs select-text bg-[#0b0e14]" id="day-ai-modal-content">
+                <div class="text-center py-8 text-gray-400">Loading comprehensive session data...</div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+// Standalone Bulletproof Day AI Data Controller (Global Scope)
+(function() {
+    function getActiveDate() {
+        const dateInput = document.getElementById('date-select');
+        if (dateInput && dateInput.value && dateInput.value.trim() !== '') {
+            return dateInput.value.trim();
+        }
+        return window.selectedTradingDate || '{{ $selectedDate }}';
+    }
+
+    function getActiveExpiry() {
+        const expirySelect = document.getElementById('expiry-select');
+        if (expirySelect && expirySelect.value && expirySelect.value.trim() !== '') {
+            return expirySelect.value.trim();
+        }
+        return '';
+    }
+
+    function escapeHtml(str) {
+        return (str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showDayAiToast(msg) {
+        let toast = document.getElementById('day-ai-toast-notification');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'day-ai-toast-notification';
+            toast.className = 'fixed bottom-5 right-5 z-[9999999] flex items-center gap-2.5 px-4 py-2.5 bg-[#0e131f]/95 border border-purple-500/70 rounded-lg shadow-2xl text-xs font-mono text-gray-200 backdrop-blur-md transition-all duration-300 transform translate-y-10 opacity-0';
+            document.body.appendChild(toast);
+        }
+
+        toast.innerHTML = `
+            <span class="text-lg">🤖</span>
+            <div class="flex flex-col">
+                <span class="font-bold text-purple-400">Day AI Diagnosis</span>
+                <span class="text-[10px] text-gray-300">${escapeHtml(msg)}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.classList.add('opacity-0', 'translate-y-10')" class="ml-2 text-gray-400 hover:text-white cursor-pointer">&times;</button>
+        `;
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            toast.classList.add('opacity-100', 'translate-y-0');
+        });
+
+        setTimeout(() => {
+            if (toast) {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }
+        }, 5000);
+    }
+    window.showDayAiToast = showDayAiToast;
+
+    window.toggleDayAiMenu = function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const menu = document.getElementById('day-ai-menu');
+        const btn = document.getElementById('btn-day-ai-dropdown') || document.getElementById('btn-day-ai-download');
+        if (!menu || !btn) return;
+
+        if (menu.classList.contains('hidden')) {
+            const rect = btn.getBoundingClientRect();
+            menu.style.top = (rect.bottom + 6) + 'px';
+            menu.style.left = Math.max(10, (rect.right - 220)) + 'px';
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
+    };
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('day-ai-menu');
+        const btnDropdown = document.getElementById('btn-day-ai-dropdown');
+        if (menu && !menu.classList.contains('hidden')) {
+            if (!menu.contains(e.target) && e.target !== btnDropdown && (!btnDropdown || !btnDropdown.contains(e.target))) {
+                menu.classList.add('hidden');
+            }
+        }
+    });
+
+    window.downloadWholeDayAiData = function(format = 'md') {
+        const menu = document.getElementById('day-ai-menu');
+        if (menu) menu.classList.add('hidden');
+
+        const activeDate = getActiveDate();
+        const activeExpiry = getActiveExpiry();
+
+        const btn = document.getElementById('btn-day-ai-download');
+        const btnIcon = document.getElementById('btn-day-ai-icon');
+        const btnText = document.getElementById('btn-day-ai-text');
+
+        if (btnText) btnText.textContent = 'Downloading...';
+        if (btnIcon) btnIcon.textContent = '⏳';
+
+        const url = `/api/multi-timeframe/day-ai-diagnosis?date=${encodeURIComponent(activeDate)}&expiry=${encodeURIComponent(activeExpiry)}&format=${format}&download=1`;
+        
+        window.location.href = url;
+
+        setTimeout(() => {
+            if (btnText) btnText.textContent = 'Day AI Data';
+            if (btnIcon) btnIcon.textContent = '📥';
+            showDayAiToast(`Downloading ${format.toUpperCase()} day autopsy data for ${activeDate}...`);
+        }, 1200);
+    };
+
+    window.copyDayAiDataToClipboard = async function() {
+        const menu = document.getElementById('day-ai-menu');
+        if (menu) menu.classList.add('hidden');
+
+        const activeDate = getActiveDate();
+        const activeExpiry = getActiveExpiry();
+
+        const btn = document.getElementById('btn-day-ai-download');
+        const btnIcon = document.getElementById('btn-day-ai-icon');
+        const btnText = document.getElementById('btn-day-ai-text');
+
+        if (btnText) btnText.textContent = 'Fetching...';
+        if (btnIcon) btnIcon.textContent = '⏳';
+
+        try {
+            const res = await fetch(`/api/multi-timeframe/day-ai-diagnosis?date=${encodeURIComponent(activeDate)}&expiry=${encodeURIComponent(activeExpiry)}&format=md&download=0`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const md = await res.text();
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(md);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = md;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            if (btnText) btnText.textContent = 'Copied MD ✓';
+            if (btnIcon) btnIcon.textContent = '📋';
+            showDayAiToast('Whole Day Markdown copied to clipboard! Paste directly into ChatGPT, Claude, or Gemini.');
+        } catch (err) {
+            console.error('Failed to copy MD:', err);
+            showDayAiToast('Failed to copy. Try clicking Download instead.');
+        } finally {
+            setTimeout(() => {
+                if (btnText) btnText.textContent = 'Day AI Data';
+                if (btnIcon) btnIcon.textContent = '📥';
+            }, 2000);
+        }
+    };
+
+    window.openDayAiDiagnosisModal = async function() {
+        const menu = document.getElementById('day-ai-menu');
+        if (menu) menu.classList.add('hidden');
+
+        const modal = document.getElementById('day-ai-modal');
+        const modalContent = document.getElementById('day-ai-modal-content');
+        const dateSubtitle = document.getElementById('day-ai-modal-date-subtitle');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+
+        const activeDate = getActiveDate();
+        const activeExpiry = getActiveExpiry();
+
+        if (dateSubtitle) {
+            dateSubtitle.textContent = `Date: ${activeDate} | Expiry: ${activeExpiry || 'Auto-Detected'}`;
+        }
+
+        if (modalContent) {
+            modalContent.innerHTML = '<div class="text-center py-12 text-purple-300 font-mono"><span class="inline-block animate-spin text-2xl mr-2">⏳</span> Loading Market Autopsy & Data Engine...</div>';
+        }
+
+        try {
+            const res = await fetch(`/api/multi-timeframe/day-ai-diagnosis?date=${encodeURIComponent(activeDate)}&expiry=${encodeURIComponent(activeExpiry)}&format=md&download=0`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const md = await res.text();
+            
+            if (modalContent) {
+                modalContent.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-gray-200 select-all p-2 bg-[#080b11] rounded border border-gray-800">${escapeHtml(md)}</pre>`;
+            }
+        } catch (err) {
+            if (modalContent) {
+                modalContent.innerHTML = `<div class="p-4 bg-rose-950/50 border border-rose-500/50 rounded text-rose-300">Error loading diagnosis data: ${escapeHtml(err.message)}</div>`;
+            }
+        }
+    };
+
+    window.closeDayAiDiagnosisModal = function() {
+        const modal = document.getElementById('day-ai-modal');
+        if (modal) modal.classList.add('hidden');
+    };
+})();
+</script>
 @endsection
 
 @push('scripts')

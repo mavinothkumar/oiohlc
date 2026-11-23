@@ -280,6 +280,45 @@ class OrderFlowStrategyController extends Controller
             $prevTopBid = $dedupTop(OrderFlowTradedVolume::forDate($prevTradingDate)->forSymbol($symbol)->bid());
         }
 
+        // Session Cumulative Totals for Overall Market Dominance Radar
+        $sessionTotals = [
+            'buy_qty'      => 0,
+            'sell_qty'     => 0,
+            'buy_trades'   => 0,
+            'sell_trades'  => 0,
+            'total_volume' => 0,
+            'total_trades' => 0,
+            'net_delta'    => 0,
+            'ratio'        => 1.0,
+        ];
+        if (Schema::hasTable('order_flow_traded_volumes')) {
+            $stRow = DB::table('order_flow_traded_volumes')
+                ->where('trade_date', $workingDate)
+                ->where('symbol', $symbol)
+                ->selectRaw("
+                    SUM(CASE WHEN side = 'ASK' THEN quantity ELSE 0 END) as buy_qty,
+                    SUM(CASE WHEN side = 'BID' THEN quantity ELSE 0 END) as sell_qty,
+                    COUNT(CASE WHEN side = 'ASK' THEN 1 END) as buy_trades,
+                    COUNT(CASE WHEN side = 'BID' THEN 1 END) as sell_trades
+                ")
+                ->first();
+
+            if ($stRow) {
+                $bQty = (int) ($stRow->buy_qty ?? 0);
+                $sQty = (int) ($stRow->sell_qty ?? 0);
+                $bTrd = (int) ($stRow->buy_trades ?? 0);
+                $sTrd = (int) ($stRow->sell_trades ?? 0);
+                $sessionTotals['buy_qty']      = $bQty;
+                $sessionTotals['sell_qty']     = $sQty;
+                $sessionTotals['buy_trades']   = $bTrd;
+                $sessionTotals['sell_trades']  = $sTrd;
+                $sessionTotals['total_volume'] = $bQty + $sQty;
+                $sessionTotals['total_trades'] = $bTrd + $sTrd;
+                $sessionTotals['net_delta']    = $bQty - $sQty;
+                $sessionTotals['ratio']        = $sQty > 0 ? round($bQty / $sQty, 2) : ($bQty > 0 ? 99.0 : 1.0);
+            }
+        }
+
         return view('order-flow-depth.index', [
             'symbol' => $symbol,
             'workingDate' => $workingDate,
@@ -299,6 +338,7 @@ class OrderFlowStrategyController extends Controller
             'strategySignals' => $strategySignals,
             'sessionAlertsAsk' => $sessionAskRecords,
             'sessionAlertsBid' => $sessionBidRecords,
+            'sessionTotals' => $sessionTotals,
         ]);
     }
 
@@ -1301,6 +1341,8 @@ class OrderFlowStrategyController extends Controller
         $buckets = [];
         $totalBuy = 0;
         $totalSell = 0;
+        $totalBuyTrades = 0;
+        $totalSellTrades = 0;
         $runningCvd = 0;
         $peakBucket = null;
         $maxBucketVol = 0;
@@ -1308,11 +1350,15 @@ class OrderFlowStrategyController extends Controller
         foreach ($rawBuckets as $row) {
             $buy = (int) $row->buy_qty;
             $sell = (int) $row->sell_qty;
+            $bTrd = (int) $row->buy_trades;
+            $sTrd = (int) $row->sell_trades;
             $tot = $buy + $sell;
             $delta = (int) $row->net_delta;
             $runningCvd += $delta;
             $totalBuy += $buy;
             $totalSell += $sell;
+            $totalBuyTrades += $bTrd;
+            $totalSellTrades += $sTrd;
 
             if ($tot > $maxBucketVol) {
                 $maxBucketVol = $tot;
@@ -1440,6 +1486,10 @@ class OrderFlowStrategyController extends Controller
             'alert_threshold' => $alertThreshold,
             'total_buy_qty' => $totalBuy,
             'total_sell_qty' => $totalSell,
+            'total_buy_trades' => $totalBuyTrades,
+            'total_sell_trades' => $totalSellTrades,
+            'total_trades' => $totalBuyTrades + $totalSellTrades,
+            'total_volume' => $totalBuy + $totalSell,
             'session_cvd' => $runningCvd,
             'session_ratio' => $sessionRatio,
             'peak_bucket' => $peakBucket,

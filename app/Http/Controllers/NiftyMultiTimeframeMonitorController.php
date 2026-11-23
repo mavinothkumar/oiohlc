@@ -534,4 +534,53 @@ class NiftyMultiTimeframeMonitorController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Comprehensive Day AI Diagnosis Download (Markdown / JSON)
+     * Provides full session autopsy data for any LLM (ChatGPT, Claude, Gemini).
+     */
+    public function downloadDayAiDiagnosis(Request $request)
+    {
+        $date = $request->input('date', Carbon::today('Asia/Kolkata')->toDateString());
+        $expiry = $request->input('expiry', null);
+        $format = strtolower($request->input('format', 'md'));
+        $download = $request->boolean('download', true);
+
+        try {
+            $diagnosisService = app(\App\Services\NiftyDayAiDiagnosisService::class);
+            $data = $diagnosisService->getDiagnosisData($date, $expiry);
+
+            if ($format === 'json') {
+                $jsonStr = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                if ($download) {
+                    return response()->streamDownload(function () use ($jsonStr) {
+                        echo $jsonStr;
+                    }, "nifty-day-diagnosis-{$date}.json", [
+                        'Content-Type' => 'application/json; charset=utf-8',
+                    ]);
+                }
+                return response()->json($data);
+            }
+
+            // Default to Markdown
+            $markdown = $diagnosisService->generateMarkdownReport($data);
+
+            if ($download) {
+                return response()->streamDownload(function () use ($markdown) {
+                    echo $markdown;
+                }, "nifty-day-diagnosis-{$date}.md", [
+                    'Content-Type' => 'text/markdown; charset=utf-8',
+                ]);
+            }
+
+            return response($markdown, 200, [
+                'Content-Type' => 'text/plain; charset=utf-8',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
