@@ -385,9 +385,180 @@
                 </div>
             </div>
 
-            {{-- 2. MASSIVE HERO: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT --}}
+            {{-- 2. 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT --}}
+            <div id="flow-5m-cockpit-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/50 rounded-xl p-3 shadow-xl space-y-2.5 relative transition-all duration-200">
+                {{-- Header Row --}}
+                <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base text-cyan-400">⚡</span>
+                        <div>
+                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">5-Min Tape Momentum &amp; Volume Delta</span>
+                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                                <span>5-MIN AGGRESSIVE VOLUME &amp; DELTA</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">REAL-TIME TAPE</span>
+                            </h2>
+                        </div>
+                    </div>
 
-            {{-- 2. Top 5 Accumulated Volume Clusters (Price Level Aggregation) --}}
+                    {{-- Live Pills & Controls --}}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        {{-- Live CVD Badge --}}
+                        <div id="v5m-cvd-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Cumulative Volume Delta (Total Market Buys minus Market Sells)">
+                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">CVD:</span>
+                            <span id="v5m-cvd-val" class="text-emerald-400">+0.0k</span>
+                        </div>
+
+                        {{-- Live Resting Depth Ratio (TBQ vs TSQ) --}}
+                        <div id="v5m-depth-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Resting Limit Order Book Imbalance (30-Depth TBQ vs TSQ)">
+                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">30D:</span>
+                            <span id="v5m-depth-val" class="text-sky-300">1.0x</span>
+                        </div>
+
+                        {{-- View Style Toggle: Dual Bars | Net Delta | Table --}}
+                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
+                            <button type="button" onclick="set5mViewMode('dual')" id="btn-v5m-view-dual" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Dual Green/Red Bars">📊 Bars</button>
+                            <button type="button" onclick="set5mViewMode('delta')" id="btn-v5m-view-delta" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Net Delta Bars">📈 Delta</button>
+                            <button type="button" onclick="set5mViewMode('table')" id="btn-v5m-view-table" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Data Table Focus">📋 Table</button>
+                        </div>
+
+                        {{-- Bar View Mode: Scroll vs Fit --}}
+                        <div id="v5m-bar-viewmode-container" class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
+                            <button type="button" id="btn-v5m-scroll" onclick="setV5mBarMode('scroll')" class="px-2 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs" title="Horizontal Scroll Mode (Generous detailed bars)">↔ Scroll</button>
+                            <button type="button" id="btn-v5m-fit" onclick="setV5mBarMode('fit')" class="px-2 py-0.5 rounded transition cursor-pointer text-slate-400 hover:text-white" title="Fit Mode (Squash all bars into view)">↕ Fit</button>
+                        </div>
+
+                        {{-- Chart Height Selector --}}
+                        <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-xs gap-1 shrink-0" title="Chart Height">
+                            <span class="text-slate-400 text-[8.5px] font-bold">H:</span>
+                            <select id="v5m-height-select" onchange="setV5mChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[9.5px]" title="Customize Chart Height">
+                                <option value="220" class="bg-slate-900 text-white">220px</option>
+                                <option value="260" class="bg-slate-900 text-white">260px</option>
+                                <option value="300" selected class="bg-slate-900 text-amber-300">300px</option>
+                                <option value="360" class="bg-slate-900 text-white">360px</option>
+                                <option value="420" class="bg-slate-900 text-white">420px</option>
+                            </select>
+                        </div>
+
+                        {{-- Volume Alert Threshold Filter --}}
+                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Highlight bars with volume exceeding this threshold">
+                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Alert:</span>
+                            <select id="sel-v5m-alert-thresh" onchange="on5mAlertThreshChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
+                                <option value="50000" class="bg-slate-900 text-slate-200">&gt; 50k</option>
+                                <option value="100000" selected class="bg-slate-900 text-amber-300">&gt; 100k (Rec)</option>
+                                <option value="150000" class="bg-slate-900 text-slate-200">&gt; 150k</option>
+                                <option value="200000" class="bg-slate-900 text-slate-200">&gt; 200k (Strict)</option>
+                            </select>
+                        </div>
+
+                        {{-- 5M Volume Audio Alert Toggle & Test --}}
+                        <button type="button" id="btn-v5m-sound-toggle" onclick="toggleV5mSound()" class="flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-500/50 text-amber-300 hover:text-white font-bold transition cursor-pointer shadow-xs" title="5-Min Volume Alert Audio (Click to test chime or toggle)">
+                            <span id="v5m-sound-icon">🔔</span>
+                            <span id="v5m-sound-label">Audio ON</span>
+                        </button>
+
+                        <button type="button" onclick="fetch5mVolumeFlow(true)" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Refresh 5M Volume Flow">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Interactive Canvas Chart Wrapper with Pinned Rail & Scrollable Body --}}
+                <div id="v5m-chart-container" class="relative w-full flex items-stretch overflow-hidden bg-[#0a0d14] rounded-lg border border-slate-800/90" style="height: 300px;">
+                    <!-- Fixed Y-Axis Scale Rail on Left (Pinned, Never Scrolls Away in Scroll mode) -->
+                    <div id="v5m-yaxis-rail" class="w-12 shrink-0 h-full relative select-none border-r border-slate-800/80 bg-[#0a0d14] z-10 block">
+                        <canvas id="chart-5m-yaxis" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Horizontally Scrollable Chart Area -->
+                    <div id="v5m-chart-scroll-wrapper" class="flex-1 h-full overflow-x-auto overflow-y-hidden custom-scrollbar relative select-none">
+                        <div id="v5m-canvas-inner-wrapper" class="h-full relative" style="min-width: 100%;">
+                            <canvas id="chart-5m-volume-flow" class="h-full block cursor-crosshair"></canvas>
+                            <div id="v5m-chart-tooltip" class="hidden absolute pointer-events-none bg-slate-950/95 border border-slate-700 rounded-lg p-2 text-[10px] font-mono text-slate-200 shadow-xl z-30 space-y-0.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 5-Minute Flow & Events Data Table (User's Favorite Proof Table) --}}
+                <div id="v5m-table-container" class="space-y-1">
+                    <div class="flex items-center justify-between text-[9.5px] font-bold px-1 text-slate-400">
+                        <span class="uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                            <span>📋</span> SESSION 5-MIN TAPE FLOW WITH INSTITUTIONAL EVENTS
+                        </span>
+                        <div class="flex items-center gap-2">
+                            {{-- Mini Event Filter --}}
+                            <div class="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[8.5px]" title="Filter 5M Tape Rows">
+                                <span class="text-slate-500 font-bold uppercase text-[8px]">Filter:</span>
+                                <select id="sel-v5m-table-filter" onchange="setV5mTableFilter(this.value)" class="bg-transparent text-cyan-300 font-mono font-bold text-[9px] focus:outline-none cursor-pointer">
+                                    <option value="all" class="bg-slate-900 text-slate-200">All Candles</option>
+                                    <option value="events_only" class="bg-slate-900 text-amber-300">⚡ Institutional Only</option>
+                                    <option value="absorption_only" class="bg-slate-900 text-teal-300">🛡️ Absorptions Only</option>
+                                    <option value="buy_only" class="bg-slate-900 text-emerald-400">🟢 Buy Dominant</option>
+                                    <option value="sell_only" class="bg-slate-900 text-rose-400">🔴 Sell Dominant</option>
+                                    <option value="top_only" class="bg-slate-900 text-yellow-300">🏆 Top 5 Ranked</option>
+                                </select>
+                            </div>
+                            <span id="v5m-table-count" class="font-mono text-slate-500 font-bold">0 Candles</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto overflow-y-auto max-h-[420px] custom-scrollbar rounded-lg border border-slate-800/80 bg-slate-950/90 select-none">
+                        <table class="w-full text-left border-collapse text-xs font-mono">
+                            <thead class="sticky top-0 bg-slate-950 text-slate-300 uppercase text-[10px] font-bold border-b border-slate-800 z-10">
+                                <tr>
+                                    <th class="py-1.5 px-2.5">Window</th>
+                                    <th class="py-1.5 px-2.5 text-right text-emerald-400">Market Buy (Ask)</th>
+                                    <th class="py-1.5 px-2.5 text-right text-rose-400">Market Sell (Bid)</th>
+                                    <th class="py-1.5 px-2.5 text-right">Net Delta</th>
+                                    <th class="py-1.5 px-2.5 text-center">Ratio</th>
+                                    <th class="py-1.5 px-2.5 text-center text-amber-300">Price Move (OHLC)</th>
+                                    <th class="py-1.5 px-2.5">Dominance &amp; Effort vs Result (Absorption)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="v5m-table-body" class="divide-y divide-slate-800/40">
+                                <tr>
+                                    <td colspan="7" class="py-4 text-center text-slate-500 italic">Syncing 5-minute trade prints...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Instant Sync: Restore Persistent 5M Cockpit Height & Settings with Zero Flicker --}}
+            <script>
+                (function() {
+                    try {
+                        const h = localStorage.getItem('order_flow_v5m_height');
+                        if (h) {
+                            const c = document.getElementById('v5m-chart-container');
+                            if (c) c.style.height = h + 'px';
+                            const sel = document.getElementById('v5m-height-select');
+                            if (sel) sel.value = h;
+                        }
+                        const thresh = localStorage.getItem('order_flow_v5m_alert_thresh');
+                        if (thresh) {
+                            const tSel = document.getElementById('sel-v5m-alert-thresh');
+                            if (tSel) tSel.value = thresh;
+                        }
+                        const filter = localStorage.getItem('order_flow_v5m_table_filter');
+                        if (filter) {
+                            const fSel = document.getElementById('sel-v5m-table-filter');
+                            if (fSel) fSel.value = filter;
+                        }
+                        const sound = localStorage.getItem('order_flow_v5m_sound_enabled');
+                        if (sound === 'false') {
+                            const icon = document.getElementById('v5m-sound-icon');
+                            const label = document.getElementById('v5m-sound-label');
+                            const btn = document.getElementById('btn-v5m-sound-toggle');
+                            if (icon) icon.textContent = '🔕';
+                            if (label) label.textContent = 'Audio Muted';
+                            if (btn) btn.className = 'flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-slate-500 hover:text-slate-300 font-bold transition cursor-pointer';
+                        }
+                    } catch(e) {}
+                })();
+            </script>
+
+            {{-- 3. Top 5 Accumulated Volume Clusters (Price Level Aggregation) --}}
             {{-- 1.6. Session Accumulated Volume Clusters (Top 5 Ask & Top 5 Bid Price Levels) --}}
             <div id="today-clusters-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-3 shadow-xl space-y-2 relative transition-all duration-200">
                 <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-800/80">
@@ -606,187 +777,10 @@
         <div id="col-signals-container" class="hidden"></div>
     </div>
 
-    {{-- ════════════════════════ 2B. FULL-WIDTH LOWER SECTION: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT ════════════════════════ --}}
-    <div id="fullwidth-5m-flow-container" class="w-full space-y-2.5 mt-2.5">
-        {{-- 1. MASSIVE FULL-WIDTH: 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT --}}
-        {{-- ════════════════════════ 5-MIN AGGRESSIVE VOLUME & DELTA COCKPIT ════════════════════════ --}}
-            <div id="flow-5m-cockpit-card" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/50 rounded-xl p-3 shadow-xl space-y-2.5 relative transition-all duration-200">
-                {{-- Header Row --}}
-                <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-800/80">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base text-cyan-400">⚡</span>
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider block">5-Min Tape Momentum &amp; Volume Delta</span>
-                            <h2 class="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5 flex-wrap">
-                                <span>5-MIN AGGRESSIVE VOLUME &amp; DELTA</span>
-                                <span class="px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">REAL-TIME TAPE</span>
-                            </h2>
-                        </div>
-                    </div>
-
-                    {{-- Live Pills & Controls --}}
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        {{-- Live CVD Badge --}}
-                        <div id="v5m-cvd-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Cumulative Volume Delta (Total Market Buys minus Market Sells)">
-                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">CVD:</span>
-                            <span id="v5m-cvd-val" class="text-emerald-400">+0.0k</span>
-                        </div>
-
-                        {{-- Live Resting Depth Ratio (TBQ vs TSQ) --}}
-                        <div id="v5m-depth-pill" class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-black bg-slate-950 border border-slate-800 text-slate-300" title="Resting Limit Order Book Imbalance (30-Depth TBQ vs TSQ)">
-                            <span class="text-slate-500 font-sans text-[8.5px] font-bold">30D:</span>
-                            <span id="v5m-depth-val" class="text-sky-300">1.0x</span>
-                        </div>
-
-                        {{-- View Style Toggle: Dual Bars | Net Delta | Table --}}
-                        <div class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
-                            <button type="button" onclick="set5mViewMode('dual')" id="btn-v5m-view-dual" class="px-2 py-0.5 rounded bg-indigo-600 text-white transition cursor-pointer" title="Dual Green/Red Bars">📊 Bars</button>
-                            <button type="button" onclick="set5mViewMode('delta')" id="btn-v5m-view-delta" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Net Delta Bars">📈 Delta</button>
-                            <button type="button" onclick="set5mViewMode('table')" id="btn-v5m-view-table" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition cursor-pointer" title="Data Table Focus">📋 Table</button>
-                        </div>
-
-                        {{-- Bar View Mode: Scroll vs Fit --}}
-                        <div id="v5m-bar-viewmode-container" class="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-bold">
-                            <button type="button" id="btn-v5m-scroll" onclick="setV5mBarMode('scroll')" class="px-2 py-0.5 rounded transition cursor-pointer bg-sky-600 text-white shadow-xs" title="Horizontal Scroll Mode (Generous detailed bars)">↔ Scroll</button>
-                            <button type="button" id="btn-v5m-fit" onclick="setV5mBarMode('fit')" class="px-2 py-0.5 rounded transition cursor-pointer text-slate-400 hover:text-white" title="Fit Mode (Squash all bars into view)">↕ Fit</button>
-                        </div>
-
-                        {{-- Chart Height Selector --}}
-                        <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-xs gap-1 shrink-0" title="Chart Height">
-                            <span class="text-slate-400 text-[8.5px] font-bold">H:</span>
-                            <select id="v5m-height-select" onchange="setV5mChartHeight(this.value)" class="bg-transparent text-amber-300 font-mono font-bold focus:outline-none cursor-pointer text-[9.5px]" title="Customize Chart Height">
-                                <option value="220" class="bg-slate-900 text-white">220px</option>
-                                <option value="260" class="bg-slate-900 text-white">260px</option>
-                                <option value="300" selected class="bg-slate-900 text-amber-300">300px</option>
-                                <option value="360" class="bg-slate-900 text-white">360px</option>
-                                <option value="420" class="bg-slate-900 text-white">420px</option>
-                            </select>
-                        </div>
-
-                        {{-- Volume Alert Threshold Filter --}}
-                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" title="Highlight bars with volume exceeding this threshold">
-                            <span class="text-slate-400 font-bold uppercase text-[8.5px]">Alert:</span>
-                            <select id="sel-v5m-alert-thresh" onchange="on5mAlertThreshChange(this.value)" class="bg-transparent text-amber-300 font-mono font-bold text-[9.5px] focus:outline-none cursor-pointer">
-                                <option value="50000" class="bg-slate-900 text-slate-200">&gt; 50k</option>
-                                <option value="100000" selected class="bg-slate-900 text-amber-300">&gt; 100k (Rec)</option>
-                                <option value="150000" class="bg-slate-900 text-slate-200">&gt; 150k</option>
-                                <option value="200000" class="bg-slate-900 text-slate-200">&gt; 200k (Strict)</option>
-                            </select>
-                        </div>
-
-                        {{-- 5M Volume Audio Alert Toggle & Test --}}
-                        <button type="button" id="btn-v5m-sound-toggle" onclick="toggleV5mSound()" class="flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-500/50 text-amber-300 hover:text-white font-bold transition cursor-pointer shadow-xs" title="5-Min Volume Alert Audio (Click to test chime or toggle)">
-                            <span id="v5m-sound-icon">🔔</span>
-                            <span id="v5m-sound-label">Audio ON</span>
-                        </button>
-
-                        <button type="button" onclick="fetch5mVolumeFlow(true)" class="px-1.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Refresh 5M Volume Flow">
-                            🔄
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Interactive Canvas Chart Wrapper with Pinned Rail & Scrollable Body --}}
-                <div id="v5m-chart-container" class="relative w-full flex items-stretch overflow-hidden bg-[#0a0d14] rounded-lg border border-slate-800/90" style="height: 300px;">
-                    <!-- Fixed Y-Axis Scale Rail on Left (Pinned, Never Scrolls Away in Scroll mode) -->
-                    <div id="v5m-yaxis-rail" class="w-12 shrink-0 h-full relative select-none border-r border-slate-800/80 bg-[#0a0d14] z-10 block">
-                        <canvas id="chart-5m-yaxis" class="w-full h-full block"></canvas>
-                    </div>
-
-                    <!-- Horizontally Scrollable Chart Area -->
-                    <div id="v5m-chart-scroll-wrapper" class="flex-1 h-full overflow-x-auto overflow-y-hidden custom-scrollbar relative select-none">
-                        <div id="v5m-canvas-inner-wrapper" class="h-full relative" style="min-width: 100%;">
-                            <canvas id="chart-5m-volume-flow" class="h-full block cursor-crosshair"></canvas>
-                            <div id="v5m-chart-tooltip" class="hidden absolute pointer-events-none bg-slate-950/95 border border-slate-700 rounded-lg p-2 text-[10px] font-mono text-slate-200 shadow-xl z-30 space-y-0.5"></div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- 5-Minute Flow & Events Data Table (User's Favorite Proof Table) --}}
-                <div id="v5m-table-container" class="space-y-1">
-                    <div class="flex items-center justify-between text-[9.5px] font-bold px-1 text-slate-400">
-                        <span class="uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                            <span>📋</span> SESSION 5-MIN TAPE FLOW WITH INSTITUTIONAL EVENTS
-                        </span>
-                        <div class="flex items-center gap-2">
-                            {{-- Mini Event Filter --}}
-                            <div class="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-[8.5px]" title="Filter 5M Tape Rows">
-                                <span class="text-slate-500 font-bold uppercase text-[8px]">Filter:</span>
-                                <select id="sel-v5m-table-filter" onchange="setV5mTableFilter(this.value)" class="bg-transparent text-cyan-300 font-mono font-bold text-[9px] focus:outline-none cursor-pointer">
-                                    <option value="all" class="bg-slate-900 text-slate-200">All Candles</option>
-                                    <option value="events_only" class="bg-slate-900 text-amber-300">⚡ Institutional Only</option>
-                                    <option value="absorption_only" class="bg-slate-900 text-teal-300">🛡️ Absorptions Only</option>
-                                    <option value="buy_only" class="bg-slate-900 text-emerald-400">🟢 Buy Dominant</option>
-                                    <option value="sell_only" class="bg-slate-900 text-rose-400">🔴 Sell Dominant</option>
-                                    <option value="top_only" class="bg-slate-900 text-yellow-300">🏆 Top 5 Ranked</option>
-                                </select>
-                            </div>
-                            <span id="v5m-table-count" class="font-mono text-slate-500 font-bold">0 Candles</span>
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto overflow-y-auto max-h-[420px] custom-scrollbar rounded-lg border border-slate-800/80 bg-slate-950/90 select-none">
-                        <table class="w-full text-left border-collapse text-xs font-mono">
-                            <thead class="sticky top-0 bg-slate-950 text-slate-300 uppercase text-[10px] font-bold border-b border-slate-800 z-10">
-                                <tr>
-                                    <th class="py-1.5 px-2.5">Window</th>
-                                    <th class="py-1.5 px-2.5 text-right text-emerald-400">Market Buy (Ask)</th>
-                                    <th class="py-1.5 px-2.5 text-right text-rose-400">Market Sell (Bid)</th>
-                                    <th class="py-1.5 px-2.5 text-right">Net Delta</th>
-                                    <th class="py-1.5 px-2.5 text-center">Ratio</th>
-                                    <th class="py-1.5 px-2.5 text-center text-amber-300">Price Move (OHLC)</th>
-                                    <th class="py-1.5 px-2.5">Dominance &amp; Effort vs Result (Absorption)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="v5m-table-body" class="divide-y divide-slate-800/40">
-                                <tr>
-                                    <td colspan="7" class="py-4 text-center text-slate-500 italic">Syncing 5-minute trade prints...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Instant Sync: Restore Persistent 5M Cockpit Height & Settings with Zero Flicker --}}
-            <script>
-                (function() {
-                    try {
-                        const h = localStorage.getItem('order_flow_v5m_height');
-                        if (h) {
-                            const c = document.getElementById('v5m-chart-container');
-                            if (c) c.style.height = h + 'px';
-                            const sel = document.getElementById('v5m-height-select');
-                            if (sel) sel.value = h;
-                        }
-                        const thresh = localStorage.getItem('order_flow_v5m_alert_thresh');
-                        if (thresh) {
-                            const tSel = document.getElementById('sel-v5m-alert-thresh');
-                            if (tSel) tSel.value = thresh;
-                        }
-                        const filter = localStorage.getItem('order_flow_v5m_table_filter');
-                        if (filter) {
-                            const fSel = document.getElementById('sel-v5m-table-filter');
-                            if (fSel) fSel.value = filter;
-                        }
-                        const sound = localStorage.getItem('order_flow_v5m_sound_enabled');
-                        if (sound === 'false') {
-                            const icon = document.getElementById('v5m-sound-icon');
-                            const label = document.getElementById('v5m-sound-label');
-                            const btn = document.getElementById('btn-v5m-sound-toggle');
-                            if (icon) icon.textContent = '🔕';
-                            if (label) label.textContent = 'Audio Muted';
-                            if (btn) btn.className = 'flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800 text-slate-500 hover:text-slate-300 font-bold transition cursor-pointer';
-                        }
-                    } catch(e) {}
-                })();
-            </script>
-
-            {{-- 3. Watched Primary Panels: Top 5 Accumulated Clusters & Highest Traded Footprint --}}
-
-        {{-- 2. Single Collapsible Drawer for Secondary Sections --}}
-        {{-- 4. Single Collapsible Drawer for Secondary Sections --}}
-            <div id="secondary-intel-drawer" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 shadow-lg space-y-2.5">
+    {{-- ════════════════════════ LOWER SECTION: SECONDARY INTELLIGENCE & DIAGNOSTICS DRAWER ════════════════════════ --}}
+    <div id="fullwidth-secondary-container" class="w-full space-y-2.5 mt-2.5">
+        {{-- Single Collapsible Drawer for Secondary Sections --}}
+        <div id="secondary-intel-drawer" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 shadow-lg space-y-2.5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <span class="text-sm">🔍</span>
