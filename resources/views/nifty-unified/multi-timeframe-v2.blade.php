@@ -15885,8 +15885,7 @@
                             }
                         }
                     }
-                }
-            } else {
+                } else {
                     const startTime = tradeEngineConfig.startTime || '09:35';
                     const endTime = tradeEngineConfig.endTime || '14:45';
                     const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
@@ -17091,7 +17090,6 @@
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
             }
         }
-    }
     }
     window.updateEntryMatrixUI = updateEntryMatrixUI;
 
