@@ -350,11 +350,11 @@ class AutoTradingV2Engine
                     }
                 }
 
-                // F1: Trailed SL or Signal Candle SL Hit
+                // F1: Trailed SL or Signal Candle SL Hit (Candle-Close Basis)
                 if (!$exitTriggered) {
-                    if (($isBull && $cLow <= $currentTrade['current_sl']) || (!$isBull && $cHigh >= $currentTrade['current_sl'])) {
+                    if (($isBull && $cClose < $currentTrade['current_sl']) || (!$isBull && $cClose > $currentTrade['current_sl'])) {
                         $exitTriggered = true;
-                        $exitPrice = $currentTrade['current_sl'];
+                        $exitPrice = $cClose;
                         $exitReason = $currentTrade['is_stagnation_trailed']
                             ? "Stagnation 1:1 Trailed SL Hit ({$stagBuffer}pt Buffer)"
                             : ($currentTrade['t2_hit'] ? 'Trailed SL at T1 Hit (Profit Secured)' : ($currentTrade['t1_hit'] ? 'Trailed SL at Cost Hit (Breakeven Locked)' : 'Signal Candle Base SL Hit'));

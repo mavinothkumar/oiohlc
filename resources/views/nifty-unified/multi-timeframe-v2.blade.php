@@ -15038,11 +15038,11 @@
                     }
                 }
 
-                // F1: Signal Candle SL or Trailed SL (including Stagnation 1:1 Trailed SL)
+                // F1: Signal Candle SL or Trailed SL (Candle-Close Basis)
                 if (!exitTriggered && (tradeEngineConfig.f1_sl || currentTrade.slType === 'STAGNATION_1TO1_TRAIL')) {
-                    if ((isBull && cLow <= currentTrade.currentSl) || (!isBull && cHigh >= currentTrade.currentSl)) {
+                    if ((isBull && cClose < currentTrade.currentSl) || (!isBull && cClose > currentTrade.currentSl)) {
                         exitTriggered = true;
-                        exitPrice = currentTrade.currentSl;
+                        exitPrice = cClose;
                         exitReason = (currentTrade.slType === 'STAGNATION_1TO1_TRAIL')
                             ? `Stagnation 1:1 Trailed SL Hit (${stagBuffer}pt Buffer)`
                             : (currentTrade.t2Hit ? 'Trailed SL at T1 Hit (Profit Secured)' : (currentTrade.t1Hit ? 'Trailed SL at Cost Hit (Breakeven Locked)' : 'Signal Candle Base SL Hit'));
