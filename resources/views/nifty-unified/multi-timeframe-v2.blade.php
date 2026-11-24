@@ -3284,10 +3284,10 @@
 
     <!-- Drawer Body (Collapsible / Expandable with Customizable Height) -->
     <div id="trade-drawer-body" class="p-2 overflow-y-auto bg-[#090d16] flex flex-col gap-2" style="height: 440px; max-height: 440px;">
-        <!-- Main Top Row: Active Trade Card, Dynamic Entry Matrix & Dynamic Exit Matrix -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 shrink-0">
-            <!-- Left Panel (4 cols): Active Trade & M2M P&L Cockpit -->
-            <div class="lg:col-span-12 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
+        <!-- Main Top Row: Active Trade Card, Dynamic Entry Matrix & Dynamic Exit Matrix (Split into 3 Equal Columns) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 shrink-0">
+            <!-- Left Panel: Active Trade & M2M P&L Cockpit -->
+            <div class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
                 <div id="active-trade-card">
                     <!-- Trade Action & Strategy Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800">
@@ -3387,8 +3387,8 @@
                 </div>
             </div>
 
-            <!-- Middle Panel (4 cols): Dynamic Multi-Factor Entry Matrix Checklist Table -->
-            <div id="entry-matrix-card" class="lg:col-span-6 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
+            <!-- Middle Panel: Dynamic Multi-Factor Entry Matrix Checklist Table -->
+            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
                         <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1">
@@ -3504,8 +3504,8 @@
                 </div>
             </div>
 
-            <!-- Right Panel (4 cols): Dynamic Multi-Factor Exit Matrix Checklist Table -->
-            <div id="exit-matrix-card" class="lg:col-span-6 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
+            <!-- Right Panel: Dynamic Multi-Factor Exit Matrix Checklist Table -->
+            <div id="exit-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
                         <span class="text-xs font-black tracking-wide text-purple-300 flex items-center gap-1">
@@ -3660,8 +3660,12 @@
                     <button type="button" onclick="filterTelemetryLogs('intrade')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-sky-300 cursor-pointer" data-filter="intrade">In-Trade</button>
                 </div>
 
-                <!-- Right: Action to Open Full-Page Report -->
+                <!-- Right: Action to Open Full-Page Report & Backtest Dashboard -->
                 <div class="flex items-center gap-1.5">
+                    <a href="{{ route('automated.trading.backtest') }}" target="_blank" class="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Automated Trading Engine Multi-Day Performance Analytics & Backtest">
+                        <span>🚀 Backtest Analytics</span>
+                        <span>↗</span>
+                    </a>
                     <a id="btn-open-full-report" href="{{ route('nifty.trade.telemetry.v2', ['date' => $selectedDate, 'expiry' => $selectedExpiry]) }}" target="_blank" class="px-2 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Full-Page 5-Minute Session Forensics Report in New Tab">
                         <span>📊 Full 5M Report</span>
                         <span>↗</span>

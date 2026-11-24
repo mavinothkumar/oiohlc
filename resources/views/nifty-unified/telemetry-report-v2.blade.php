@@ -73,6 +73,10 @@
             <a href="{{ route('nifty.multi.timeframe.monitor.v2', ['date' => $selectedDate, 'expiry' => $selectedExpiry]) }}" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold rounded text-xs border border-slate-700 flex items-center gap-1 transition">
                 <span>🎯 Back to Cockpit</span>
             </a>
+
+            <a href="{{ route('automated.trading.backtest') }}" class="px-3 py-1 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 font-bold rounded text-xs border border-emerald-700/60 flex items-center gap-1 transition">
+                <span>🚀 Backtest Analytics</span>
+            </a>
         </form>
     </div>
 

@@ -369,6 +369,11 @@ Route::get('/nifty-multi-timeframe-monitor-v2', [\App\Http\Controllers\NiftyMult
 Route::get('/nifty-trade-telemetry-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'telemetryReport'])->name('nifty.trade.telemetry.v2');
 Route::get('/api/multi-timeframe-v2/option-snapshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'getOptionSnapshot'])->name('api.multi-timeframe-v2.option-snapshot');
 
+// Automated Trading Engine (V2 Backtest & Multi-Day Performance Analytics)
+Route::get('/automated-trading-backtest', [\App\Http\Controllers\AutoTradingBacktestController::class, 'index'])->name('automated.trading.backtest');
+Route::get('/api/automated-trading-backtest/forensics/{date}', [\App\Http\Controllers\AutoTradingBacktestController::class, 'dayForensics'])->name('api.automated.trading.forensics');
+Route::post('/api/automated-trading-backtest/run', [\App\Http\Controllers\AutoTradingBacktestController::class, 'runRecalculation'])->name('api.automated.trading.run');
+
 // Nifty 50 Participation Engine & Directional Strength Monitor (4 Pillars: Breadth, Strength, Momentum, Consistency)
 Route::get('/nifty-participation-engine', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'index'])->name('nifty.participation.engine');
 Route::get('/api/nifty-participation-engine/data', [\App\Http\Controllers\NiftyParticipationEngineController::class, 'getData'])->name('api.nifty.participation.engine.data');

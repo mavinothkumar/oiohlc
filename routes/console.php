@@ -222,3 +222,12 @@ Schedule::command('ohlc:sync-banknifty')
 //Schedule::command('app:testing')
 //        ->timezone('Asia/Kolkata')
 //        ->appendOutputTo(storage_path('logs/testing.log'));
+
+// High-Probability Automated Trading Engine: Daily Session Backtest & Performance Logging at Market Close
+Schedule::command('trade:auto-engine-backtest --days=1')
+        ->weekdays()
+        ->at('15:45')
+        ->timezone('Asia/Kolkata')
+        ->runInBackground()
+        ->appendOutputTo(storage_path('logs/auto-trade-v2-daily.log'));
+
