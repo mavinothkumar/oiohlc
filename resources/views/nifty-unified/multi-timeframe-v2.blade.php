@@ -133,46 +133,6 @@
             </div>
         </div>
 
-        <!-- Center: Master Unified Timeline Dropdown & Replay Controller -->
-        <div class="flex items-center gap-1.5 bg-[#1a1e29] border border-gray-700/90 rounded px-1.5 py-0.5 shadow-inner shrink-0">
-            <!-- Timeline Candle Time Dropdown -->
-            <div class="flex items-center bg-sky-950/80 border border-sky-500/50 rounded px-1.5 py-0.5 text-xs gap-1 shrink-0" title="Select Candle Time">
-                <span class="text-sky-400 font-bold text-[10px]">⏰</span>
-                <select id="master-time-select" onchange="syncActiveCandleIndex(parseInt(this.value, 10))" class="bg-transparent text-sky-300 font-mono font-bold text-[11px] focus:outline-none cursor-pointer">
-                    <option value="0">09:15</option>
-                </select>
-                <span id="master-time-badge" class="hidden">09:15</span>
-                <input id="master-slider" type="range" min="0" max="74" value="0" class="hidden">
-            </div>
-
-            <!-- Stepper buttons -->
-            <div class="flex items-center gap-0.5 border-l border-gray-700 pl-1">
-                <button id="btn-step-start" title="First candle (09:15)" class="p-0.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
-                </button>
-                <button id="btn-step-prev" title="Previous 5m candle (← Key)" class="p-0.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <button id="btn-play-pause" title="Play / Pause Replay" class="px-1.5 py-0.2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded text-[10px] flex items-center gap-0.5 transition shadow-xs cursor-pointer">
-                    <span id="play-icon">▶</span>
-                    <span id="play-text" class="hidden md:inline">Play</span>
-                </button>
-                <button id="btn-step-next" title="Next 5m candle (→ Key)" class="p-0.5 hover:bg-gray-700 rounded text-gray-300 hover:text-white transition cursor-pointer">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <button id="btn-snap-live" title="Snap to Latest Live Candle" class="px-1.5 py-0.2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition cursor-pointer">
-                    <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span>
-                    <span>LIVE</span>
-                </button>
-                <!-- True Bar Replay Mode Toggle (Combined with HL Beacon) -->
-                <button id="btn-toggle-bar-replay" type="button" onclick="toggleBarReplayMode()" title="Toggle True Bar Replay: Hides future candles and steps bar-by-bar with live beacon [Hotkey: B]" class="px-1.5 py-0.2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition cursor-pointer border border-slate-700">
-                    <span id="bar-replay-icon">⏪</span>
-                    <span class="hidden lg:inline">Bar Replay:</span>
-                    <span id="bar-replay-badge" class="font-mono text-gray-400">OFF</span>
-                </button>
-            </div>
-        </div>
-
         <!-- High-Probability Trade Engine & Dynamic Exit Cockpit -->
         <div class="flex items-center bg-[#1a1e29] border border-emerald-500/50 hover:border-emerald-400 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Toggle High-Probability Trade Cockpit & Dynamic Exit Matrix">
             <button id="btn-toggle-trade-drawer" type="button" onclick="toggleTradeDrawer()" class="px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1.5 transition shadow-xs cursor-pointer tracking-wide">
@@ -340,22 +300,70 @@
         $lvlS3 = $quantPlaybook['levels'][6]['price'] ?? null;
         $hasQuant = !empty($quantPlaybook) && !empty($quantPlaybook['levels']);
     @endphp
-    <div id="quant-strip-container" class="cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar border-indigo-900/40 bg-[#0d121f] text-[11px] font-mono shrink-0">
-        <div class="flex items-center gap-1.5 shrink-0">
-            <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 tracking-wider">
-                📐 QUANT LEVELS (SPOT)
-            </span>
-            <button type="button" onclick="toggleQuantPriceLines()" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border transition flex items-center gap-1 bg-indigo-950/90 border-indigo-500/60 hover:bg-indigo-900 cursor-pointer text-indigo-200" title="Toggle Quant Price Lines on both Charts">
-                <span class="text-[9.5px]">Chart Lines:</span>
-                <span id="strip-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
-            </button>
-            <span class="text-[10px] text-slate-400 font-sans hidden sm:inline" title="Calibrated to Nifty 50 Cash/Spot Index">
-                Calibrated to Nifty 50 Spot:
-            </span>
+    <div id="quant-strip-container" class="cockpit-card px-2.5 py-1 shadow-md flex items-center justify-between gap-3 overflow-x-auto custom-scrollbar border-indigo-900/40 bg-[#0d121f] text-[11px] font-mono shrink-0 min-h-[40px]">
+        <!-- 1. Left: Master Unified Timeline Dropdown & Replay Controller (Anchored to Left) -->
+        <div class="flex items-center gap-1.5 bg-[#141b2d] border border-sky-500/40 rounded px-2 py-0.5 shadow-inner shrink-0">
+            <!-- Timeline Candle Time Dropdown -->
+            <div class="flex items-center bg-sky-950/90 border border-sky-500/60 rounded px-2 py-0.5 text-xs gap-1 shrink-0" title="Select Candle Time">
+                <span class="text-sky-400 font-bold text-xs">⏰</span>
+                <select id="master-time-select" onchange="syncActiveCandleIndex(parseInt(this.value, 10))" class="bg-transparent text-sky-300 font-mono font-bold text-xs focus:outline-none cursor-pointer">
+                    <option value="0">09:15</option>
+                </select>
+                <span id="master-time-badge" class="hidden">09:15</span>
+                <input id="master-slider" type="range" min="0" max="74" value="0" class="hidden">
+            </div>
+
+            <!-- Stepper Navigation Controls with Safe Margins & Sizing -->
+            <div class="flex items-center border-l border-gray-700/80 pl-1.5 gap-1.5">
+                <!-- Jump to First Candle (09:15) -->
+                <button id="btn-step-start" title="First candle (09:15)" class="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition cursor-pointer border border-transparent hover:border-gray-600">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                </button>
+
+                <!-- Backward Button (Comfortable size, clear separation) -->
+                <button id="btn-step-prev" title="Previous 5m candle (← Key)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-sky-300 hover:text-white font-bold rounded border border-slate-600/90 shadow-xs flex items-center gap-1 transition cursor-pointer text-xs select-none">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                    <span class="hidden sm:inline font-mono">Prev</span>
+                </button>
+
+                <!-- Dedicated Buffer Gap to Prevent Accidental Play Clicks (12px) -->
+                <div class="w-3"></div>
+
+                <!-- Play / Pause Button (Centrally isolated) -->
+                <button id="btn-play-pause" title="Play / Pause Replay (Spacebar)" class="px-3.5 py-1 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded shadow-xs flex items-center gap-1.5 transition cursor-pointer text-xs select-none">
+                    <span id="play-icon">▶</span>
+                    <span id="play-text">Play</span>
+                </button>
+
+                <!-- Dedicated Buffer Gap to Prevent Accidental Play Clicks (12px) -->
+                <div class="w-3"></div>
+
+                <!-- Forward Button (Comfortable size, clear separation) -->
+                <button id="btn-step-next" title="Next 5m candle (→ Key)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 active:scale-95 text-sky-300 hover:text-white font-bold rounded border border-slate-600/90 shadow-xs flex items-center gap-1 transition cursor-pointer text-xs select-none">
+                    <span class="hidden sm:inline font-mono">Next</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <!-- Divider -->
+                <div class="border-l border-gray-700/80 h-5 mx-1"></div>
+
+                <!-- Snap to Live -->
+                <button id="btn-snap-live" title="Snap to Latest Live Candle" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded text-[10px] flex items-center gap-1.5 transition cursor-pointer shadow-xs">
+                    <span class="w-2 h-2 rounded-full bg-white live-dot"></span>
+                    <span>LIVE</span>
+                </button>
+
+                <!-- Bar Replay Toggle -->
+                <button id="btn-toggle-bar-replay" type="button" onclick="toggleBarReplayMode()" title="Toggle True Bar Replay: Hides future candles and steps bar-by-bar [Hotkey: B]" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded text-[10px] flex items-center gap-1 transition cursor-pointer border border-slate-600 shadow-xs">
+                    <span id="bar-replay-icon">⏪</span>
+                    <span class="hidden md:inline">Bar Replay:</span>
+                    <span id="bar-replay-badge" class="font-mono text-gray-400">OFF</span>
+                </button>
+            </div>
         </div>
 
+        <!-- 2. Center: Candle Close Remaining Time Countdown Badge (Dual Chart 1 & Chart 2 Remaining Time) -->
         <div class="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
-            <!-- Candle Close Remaining Time Countdown Badge (Dual Chart 1 & Chart 2 Remaining Time) -->
             <div id="candle-timer-container" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/70 border border-amber-500/60 shadow-md shrink-0 cursor-default" title="Time remaining until active candle closes for Chart 1 & Chart 2">
                 <span class="flex h-2 w-2 relative shrink-0">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -375,16 +383,26 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0 text-[10px] text-slate-400 font-sans hidden lg:flex">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span id="quant-lbl-bull-above" class="text-emerald-300 font-semibold">Bull Above {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
-            <span class="text-slate-600">·</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-            <span id="quant-lbl-bear-below" class="text-rose-300 font-semibold">Bear Below {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
-            <span class="text-slate-600">·</span>
-            <span class="text-slate-400 text-[10px]">Sync:</span>
-            <span id="quant-last-sync-time" class="font-mono text-sky-300 font-bold text-[10px]" title="Quant Levels Last Sync Time">{{ \Carbon\Carbon::now('Asia/Kolkata')->format('H:i:s') }}</span>
-            <a id="quant-link-report" href="{{ route('order-flow-depth.report', ['date' => $selectedDate]) }}" target="_blank" class="ml-1 text-sky-400 hover:text-sky-300 underline font-mono text-[9.5px]">Full Report &rarr;</a>
+        <!-- 3. Right: Institutional Quant Levels -->
+        <div class="flex items-center gap-2 shrink-0">
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 tracking-wider">
+                📐 QUANT LEVELS (SPOT)
+            </span>
+            <button type="button" onclick="toggleQuantPriceLines()" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border transition flex items-center gap-1 bg-indigo-950/90 border-indigo-500/60 hover:bg-indigo-900 cursor-pointer text-indigo-200" title="Toggle Quant Price Lines on both Charts">
+                <span class="text-[9.5px]">Chart Lines:</span>
+                <span id="strip-quant-lines-status-badge" class="font-mono text-emerald-400 font-extrabold">ON</span>
+            </button>
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-sans hidden lg:flex">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span id="quant-lbl-bull-above" class="text-emerald-300 font-semibold">Bull Above {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
+                <span class="text-slate-600">·</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                <span id="quant-lbl-bear-below" class="text-rose-300 font-semibold">Bear Below {{ $lvlP ? '₹' . number_format($lvlP, 0) : '--' }}</span>
+                <span class="text-slate-600">·</span>
+                <span class="text-slate-400 text-[10px]">Sync:</span>
+                <span id="quant-last-sync-time" class="font-mono text-sky-300 font-bold text-[10px]" title="Quant Levels Last Sync Time">{{ \Carbon\Carbon::now('Asia/Kolkata')->format('H:i:s') }}</span>
+                <a id="quant-link-report" href="{{ route('order-flow-depth.report', ['date' => $selectedDate]) }}" target="_blank" class="ml-1 text-sky-400 hover:text-sky-300 underline font-mono text-[9.5px]">Full Report &rarr;</a>
+            </div>
         </div>
     </div>
 
