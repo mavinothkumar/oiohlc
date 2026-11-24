@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class AutoTradingV2Engine
 {
@@ -119,30 +120,71 @@ class AutoTradingV2Engine
         // 3. Fetch Trending OI Data
         $trendingOiSnapshots = [];
         try {
-            $toiReq = new Request(['date' => $date, 'mode' => 'historical']);
-            $toiRes = $this->trendingOiController->getData($toiReq);
-            $toiData = is_array($toiRes) ? $toiRes : ($toiRes instanceof \Illuminate\Http\JsonResponse ? $toiRes->getData(true) : null);
-            if (!empty($toiData['chart']['labels'])) {
-                $labels = $toiData['chart']['labels'];
-                $callOi = $toiData['chart']['call_oi'] ?? [];
-                $putOi = $toiData['chart']['put_oi'] ?? [];
-                $diffOi = $toiData['chart']['diff_oi'] ?? [];
+            $expiry = null;
 
-                foreach ($labels as $lIdx => $lTime) {
-                    $cVal = (float)($callOi[$lIdx] ?? 0);
-                    $pVal = (float)($putOi[$lIdx] ?? 0);
-                    $dVal = (float)($diffOi[$lIdx] ?? 0);
-                    $tot = $cVal + $pVal;
-                    $diffPct = $tot > 0 ? (($pVal - $cVal) / $tot) * 100 : 0;
-                    $trendingOiSnapshots[$lTime] = [
-                        'diffPct' => round($diffPct, 1),
-                        'callOi'  => $cVal,
-                        'putOi'   => $pVal,
-                        'diffOi'  => $dVal,
-                    ];
+            // For historical sessions, resolve the active expiry recorded in option_chains_history for that day
+            if (Schema::hasTable('option_chains_history')) {
+                $pastExpiries = DB::table('option_chains_history')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('captured_at', '>=', "{$date} 09:00:00")
+                    ->where('captured_at', '<=', "{$date} 15:35:00")
+                    ->distinct()
+                    ->orderBy('expiry')
+                    ->pluck('expiry')
+                    ->toArray();
+
+                foreach ($pastExpiries as $exp) {
+                    if ($exp >= $date) {
+                        $expiry = $exp;
+                        break;
+                    }
+                }
+                if (!$expiry && !empty($pastExpiries)) {
+                    $expiry = $pastExpiries[0];
+                }
+            }
+
+            // Fallback for live / upcoming sessions
+            if (!$expiry && Schema::hasTable('nse_expiries')) {
+                $expiry = DB::table('nse_expiries')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('instrument_type', 'OPT')
+                    ->where('expiry_date', '>=', $date)
+                    ->orderBy('expiry_date')
+                    ->value('expiry_date');
+            }
+
+            if ($expiry) {
+                $toiReq = new Request([
+                    'date'   => $date,
+                    'expiry' => $expiry,
+                    'mode'   => 'historical',
+                ]);
+                $toiRes = $this->trendingOiController->getData($toiReq);
+                $toiData = is_array($toiRes) ? $toiRes : ($toiRes instanceof \Illuminate\Http\JsonResponse ? $toiRes->getData(true) : null);
+                if (!empty($toiData['chart']['labels'])) {
+                    $labels = $toiData['chart']['labels'];
+                    $callOi = $toiData['chart']['call_oi'] ?? [];
+                    $putOi = $toiData['chart']['put_oi'] ?? [];
+                    $diffOi = $toiData['chart']['diff_oi'] ?? [];
+
+                    foreach ($labels as $lIdx => $lTime) {
+                        $cVal = (float)($callOi[$lIdx] ?? 0);
+                        $pVal = (float)($putOi[$lIdx] ?? 0);
+                        $dVal = (float)($diffOi[$lIdx] ?? 0);
+                        $tot = $cVal + $pVal;
+                        $diffPct = $tot > 0 ? (($pVal - $cVal) / $tot) * 100 : 0;
+                        $trendingOiSnapshots[$lTime] = [
+                            'diffPct' => round($diffPct, 1),
+                            'callOi'  => $cVal,
+                            'putOi'   => $pVal,
+                            'diffOi'  => $dVal,
+                        ];
+                    }
                 }
             }
         } catch (\Throwable $e) {
+            Log::warning("AutoTradingV2Engine: Trending OI error for {$date}: " . $e->getMessage());
             $trendingOiSnapshots = [];
         }
 
@@ -607,7 +649,13 @@ class AutoTradingV2Engine
             $daySummary
         );
 
-        // 2. Update or create each individual trade
+        // 2. Remove any obsolete trades for this date not present in current calculation
+        $currentUids = array_column($dayTrades, 'trade_uid');
+        AutoTradeV2Trade::where('date', $date)
+            ->whereNotIn('trade_uid', $currentUids)
+            ->delete();
+
+        // 3. Update or create each individual trade
         foreach ($dayTrades as $tr) {
             $uid = $tr['trade_uid'];
             AutoTradeV2Trade::updateOrCreate(

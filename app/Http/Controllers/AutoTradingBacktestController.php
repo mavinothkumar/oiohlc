@@ -40,6 +40,12 @@ class AutoTradingBacktestController extends Controller
         } elseif ($rangePreset === '30d') {
             $fromDate = $nowKolkata->copy()->subDays(30)->toDateString();
             $toDate = $todayStr;
+        } elseif ($rangePreset === '90d') {
+            $fromDate = $nowKolkata->copy()->subDays(90)->toDateString();
+            $toDate = $todayStr;
+        } elseif ($rangePreset === '1y') {
+            $fromDate = $nowKolkata->copy()->subYear()->toDateString();
+            $toDate = $todayStr;
         } elseif ($rangePreset === 'this_month') {
             $fromDate = $nowKolkata->copy()->startOfMonth()->toDateString();
             $toDate = $todayStr;

@@ -151,6 +151,8 @@
                 <!-- Preset Quick Buttons -->
                 <div class="flex items-center gap-1 bg-[#141b2e] p-0.5 rounded border border-gray-800">
                     <a href="{{ route('automated.trading.backtest', ['range' => 'all']) }}" class="px-2 py-1 rounded {{ $rangePreset === 'all' && !$fromDate ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">All ({{ $totalDays }}D)</a>
+                    <a href="{{ route('automated.trading.backtest', ['range' => '1y']) }}" class="px-2 py-1 rounded {{ $rangePreset === '1y' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">1 Year</a>
+                    <a href="{{ route('automated.trading.backtest', ['range' => '90d']) }}" class="px-2 py-1 rounded {{ $rangePreset === '90d' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">90D</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => '30d']) }}" class="px-2 py-1 rounded {{ $rangePreset === '30d' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">30D</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => '7d']) }}" class="px-2 py-1 rounded {{ $rangePreset === '7d' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">7D</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => 'this_month']) }}" class="px-2 py-1 rounded {{ $rangePreset === 'this_month' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">This Month</a>
