@@ -166,6 +166,14 @@
             </button>
         </div>
 
+        <!-- Automated Trading Engine Backtest Link -->
+        <div class="flex items-center bg-[#1a1e29] border border-cyan-500/40 hover:border-cyan-400 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Open Automated Trading Engine Multi-Day Backtest & Performance Analytics">
+            <a href="{{ route('automated.trading.backtest') }}" target="_blank" class="px-2 py-0.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">
+                <span>🤖</span>
+                <span>Auto Backtest</span>
+            </a>
+        </div>
+
         <!-- Default Settings Reset Section -->
         <div class="flex items-center bg-[#1a1e29] border border-indigo-500/40 hover:border-indigo-500/70 rounded px-1.5 py-0.5 shadow-inner shrink-0 transition" title="Default Cockpit Layout & Thresholds">
             <button id="btn-reset-default" type="button" onclick="resetToDefaultSettings()" title="Reset to Default Settings (5m Stocks, 15m Options HA, OF Fut Sup/Rest, Breach, Wick Off, Live)" class="px-2 py-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1 transition shadow-xs cursor-pointer tracking-wide">

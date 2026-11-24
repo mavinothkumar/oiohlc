@@ -19,7 +19,8 @@
 
     $isStrategiesActive = request()->routeIs([
         'trading-journal.*', 'quant-strategy.*', 'test.trading-simulator*', 'nifty.option.trader',
-        'backtest.*', 'backtests.*', 'strangle.profit', 'entries.*', 'nifty.unified.backtest'
+        'backtest.*', 'backtests.*', 'strangle.profit', 'entries.*', 'nifty.unified.backtest',
+        'automated.trading.*', 'nifty.trade.telemetry.*'
     ]);
 
     $isToolsActive = request()->routeIs([
@@ -104,6 +105,13 @@
                                             Multi-TF V2
                                         </span>
                                         <span class="text-[9px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100 px-1 py-0.2 rounded">New</span>
+                                    </a>
+                                    <a href="{{ route('automated.trading.backtest') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-emerald-700">
+                                            <span>🤖</span>
+                                            Auto Backtest
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">V2 Engine</span>
                                     </a>
                                     <a href="{{ route('nifty.participation.engine') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-white/80 transition">
                                         <span class="font-medium flex items-center gap-1.5">
@@ -302,6 +310,13 @@
                                         <span class="font-medium">High-Probability Quant</span>
                                         <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded">80%+ Target</span>
                                     </a>
+                                    <a href="{{ route('automated.trading.backtest') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/50 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-emerald-700">
+                                            <span>🤖</span>
+                                            Automated Trading Backtest
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">V2 Engine</span>
+                                    </a>
                                     <a href="{{ route('test.trading-simulator') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-slate-50 transition">
                                         <span class="font-medium">Trading Simulator</span>
                                         <span class="text-[10px] text-slate-400">Paper Trade</span>
@@ -428,6 +443,14 @@
                     <span class="whitespace-nowrap">V2</span>
                 </a>
 
+                <!-- 3. Automated Trading Backtest (V2 Engine) -->
+                <a href="{{ route('automated.trading.backtest') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('automated.trading.*') ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-emerald-300' }}"
+                   title="Automated Trading Engine Multi-Day Performance Analytics & Backtest">
+                    <span class="text-xs">🤖</span>
+                    <span class="whitespace-nowrap">Auto Backtest</span>
+                </a>
+
                 <!-- 3. 30-Depth Order Flow Confluence Radar -->
                 <a href="{{ route('order-flow-depth.index') }}"
                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('order-flow-depth.*') ? 'bg-amber-500 text-white border-amber-500 ring-1 ring-amber-300 shadow-xs' : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-200 hover:border-amber-300' }}"
@@ -497,7 +520,7 @@
         <div class="space-y-3">
             
             <!-- Cherry-Picked Quick Trading Pills in Mobile -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2 border-b border-slate-100">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pb-2 border-b border-slate-100">
                 <a href="{{ route('nifty.multi.timeframe.monitor') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 text-white text-xs font-bold shadow-xs">
                     <span>⏱️</span>
                     <span>Nifty Multi-TF</span>
@@ -505,6 +528,10 @@
                 <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-xs">
                     <span>🚀</span>
                     <span>V2</span>
+                </a>
+                <a href="{{ route('automated.trading.backtest') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow-xs">
+                    <span>🤖</span>
+                    <span>Auto Backtest</span>
                 </a>
                 <a href="{{ route('order-flow-depth.index') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-semibold shadow-xs">
                     <span>30-Depth</span>
@@ -529,6 +556,7 @@
                     <a href="{{ route('nifty.unified.monitor') }}" class="block py-1 text-indigo-600 font-bold">⚡ Unified Cockpit (Flagship)</a>
                     <a href="{{ route('nifty.multi.timeframe.monitor') }}" class="block py-1 text-sky-700 font-bold">⏱️ Nifty Multi-TF</a>
                     <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}" class="block py-1 text-sky-700 font-bold">🚀 Multi-TF V2</a>
+                    <a href="{{ route('automated.trading.backtest') }}" class="block py-1 text-emerald-700 font-bold">🤖 Auto Trading Backtest (V2)</a>
                     <a href="{{ route('nifty.participation.engine') }}" class="block py-1 text-indigo-600 font-semibold">⚡ Participation Engine</a>
                     <a href="{{ route('banknifty.multi.timeframe.monitor') }}" class="block py-1 text-emerald-700 font-semibold">🏦 Bank Nifty Multi-TF</a>
                     <a href="{{ route('live.straddle.radar') }}" class="block py-1 text-rose-600 font-bold">🔴 Straddle Radar 🔔</a>
@@ -605,6 +633,7 @@
                     <a href="{{ route('nifty.option.trader') }}" class="block py-1 text-emerald-700 font-bold">🎯 NIFTY Option Trader (0Click Desk)</a>
                     <a href="{{ route('trading-journal.index') }}" class="block py-1 text-indigo-600 font-bold">⚡ Live Trade &amp; Journal</a>
                     <a href="{{ route('quant-strategy.index') }}" class="block py-1 text-emerald-700 font-semibold">⚡ High-Probability Quant (80%+)</a>
+                    <a href="{{ route('automated.trading.backtest') }}" class="block py-1 text-emerald-700 font-bold">🤖 Auto Trading Backtest (V2)</a>
                     <a href="{{ route('test.trading-simulator') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Trading Simulator</a>
                     <a href="{{ route('test.trading-simulator.report') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Simulator Performance Report</a>
                     <a href="{{ route('entries.index') }}" class="block py-1 text-slate-700 hover:text-indigo-600">Trade Entries &amp; P&amp;L Log</a>
