@@ -3017,7 +3017,7 @@
 
     <!-- Quick Settings Dropdown Overlay -->
     <div id="trade-settings-panel" class="hidden bg-[#0e1424] border-b border-gray-700 p-2 text-xs">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-5xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2.5 max-w-6xl mx-auto">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-sky-400 mb-1 flex items-center gap-1">
@@ -3031,6 +3031,29 @@
                 <div class="text-[10px] text-gray-400 mt-1">Recommended: Auto ensures highest statistical edge.</div>
             </div>
 
+            <!-- Lots & Sizing Setup -->
+            <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
+                <div class="font-bold text-amber-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">📦 Lots &amp; Quantity:</span>
+                    <span id="cfg-total-qty-badge" class="text-[9.5px] font-mono px-1 py-0.2 bg-amber-950 text-amber-300 rounded border border-amber-700/60 font-bold">195 QTY</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Entry Lots:</span>
+                        <select id="trade-cfg-lots" onchange="updateTradeConfig('entryLots', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="3" selected>3 Lots (T1, T2, T3)</option>
+                            <option value="2">2 Lots (T1, T2)</option>
+                            <option value="1">1 Lot (Trail)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Lot Size (Qty):</span>
+                        <input id="trade-cfg-lot-size" type="number" min="1" value="65" onchange="updateTradeConfig('lotSize', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-center text-white text-xs">
+                    </div>
+                </div>
+                <div class="text-[9.5px] text-gray-400 mt-1">Nifty Lot Size is 65. 3 Lots: 1 lot booked at T1, 1 at T2, 1 at T3.</div>
+            </div>
+
             <!-- Target R:R Multipliers -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-emerald-400 mb-1 flex items-center gap-1">
@@ -3038,15 +3061,15 @@
                 </div>
                 <div class="grid grid-cols-3 gap-1 text-[11px] font-mono">
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T1 (50%):</span>
+                        <span class="text-gray-400 text-[9.5px]">T1:</span>
                         <input id="trade-cfg-t1-rr" type="number" step="0.1" value="1.2" onchange="updateTradeConfig('t1Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T2 (30%):</span>
+                        <span class="text-gray-400 text-[9.5px]">T2:</span>
                         <input id="trade-cfg-t2-rr" type="number" step="0.1" value="2.2" onchange="updateTradeConfig('t2Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T3 (20%):</span>
+                        <span class="text-gray-400 text-[9.5px]">T3:</span>
                         <input id="trade-cfg-t3-rr" type="number" step="0.1" value="3.2" onchange="updateTradeConfig('t3Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                 </div>
@@ -3131,16 +3154,21 @@
                     <!-- Live M2M P&L Big Display -->
                     <div class="bg-gradient-to-r from-[#12192c] to-[#18233c] p-2.5 rounded-lg border border-sky-500/30 flex items-center justify-between mb-2 shadow-xs">
                         <div>
-                            <span class="text-[10px] text-gray-400 block font-semibold tracking-wider">NET P&amp;L (1 LOT / 75 QTY)</span>
+                            <span id="at-lots-summary" class="text-[10px] text-gray-400 block font-semibold tracking-wider">NET P&amp;L (3 LOTS / 195 QTY @ 65/LOT)</span>
                             <div class="flex items-baseline gap-2">
-                                <span id="at-pnl-rupees" class="text-xl font-black text-emerald-400 font-mono">+₹2,662.50</span>
-                                <span id="at-pnl-points" class="text-xs font-bold text-emerald-300 font-mono">(+35.5 pts)</span>
+                                <span id="at-pnl-rupees" class="text-xl font-black text-emerald-400 font-mono">+₹0.00</span>
+                                <span id="at-pnl-points" class="text-xs font-bold text-emerald-300 font-mono">(+0.0 pts)</span>
+                            </div>
+                            <div class="text-[9.5px] font-mono text-gray-400 mt-0.5 flex items-center gap-2">
+                                <span>Booked: <span id="at-pnl-booked" class="text-emerald-300 font-bold">₹0</span> (<span id="at-lots-booked">0</span> Lots)</span>
+                                <span>&bull;</span>
+                                <span>Open: <span id="at-pnl-open" class="text-sky-300 font-bold">₹0</span> (<span id="at-lots-open">3</span> Lots)</span>
                             </div>
                         </div>
                         <div class="text-right text-[10px] font-mono space-y-0.5">
-                            <div><span class="text-gray-400">MFE (Peak):</span> <span id="at-mfe" class="text-emerald-300 font-bold">+42.0 pts</span></div>
-                            <div><span class="text-gray-400">MAE (Drawdown):</span> <span id="at-mae" class="text-rose-300 font-bold">-4.5 pts</span></div>
-                            <div><span class="text-gray-400">Current Spot:</span> <span id="at-curr-spot" class="text-cyan-300 font-bold">24,240.00</span></div>
+                            <div><span class="text-gray-400">MFE (Peak):</span> <span id="at-mfe" class="text-emerald-300 font-bold">+0.0 pts</span></div>
+                            <div><span class="text-gray-400">MAE (Drawdown):</span> <span id="at-mae" class="text-rose-300 font-bold">-0.0 pts</span></div>
+                            <div><span class="text-gray-400">Current Spot:</span> <span id="at-curr-spot" class="text-cyan-300 font-bold">--</span></div>
                         </div>
                     </div>
 
@@ -3154,24 +3182,24 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 1 (50% Lots):</span>
+                            <span class="text-gray-400">Target 1:</span>
                             <div class="flex items-center gap-1.5">
-                                <span id="at-t1-val" class="font-bold text-white">24,230.00 (+45 pts)</span>
-                                <span id="at-t1-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300">🎯 HIT &bull; SL to Cost</span>
+                                <span id="at-t1-val" class="font-bold text-white">--</span>
+                                <span id="at-t1-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Book 1 Lot</span>
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 2 (30% Lots):</span>
+                            <span class="text-gray-400">Target 2:</span>
                             <div class="flex items-center gap-1.5">
-                                <span id="at-t2-val" class="font-bold text-white">24,275.00 (+90 pts)</span>
-                                <span id="at-t2-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">⏳ 35 pts away</span>
+                                <span id="at-t2-val" class="font-bold text-white">--</span>
+                                <span id="at-t2-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Book 1 Lot</span>
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 3 (20% Runner):</span>
+                            <span class="text-gray-400">Target 3:</span>
                             <div class="flex items-center gap-1.5">
-                                <span id="at-t3-val" class="font-bold text-white">24,320.00 (+135 pts)</span>
-                                <span id="at-t3-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">PENDING</span>
+                                <span id="at-t3-val" class="font-bold text-white">--</span>
+                                <span id="at-t3-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Runner Lot</span>
                             </div>
                         </div>
                     </div>
@@ -14204,6 +14232,8 @@
     // ══════════════════════════════════════════════════════════════════════════════
     let tradeEngineConfig = {
         strategyMode: 'auto', // 'auto' | 'force_sell' | 'force_buy'
+        entryLots: 3,         // 1, 2, or 3 lots
+        lotSize: 65,          // Nifty lot size is 65
         t1Rr: 1.2,
         t2Rr: 2.2,
         t3Rr: 3.2,
@@ -14228,11 +14258,65 @@
         tradePriceLines = [];
     }
 
+    function updateTradeSettingsBadges() {
+        const totalQtyBadge = document.getElementById('cfg-total-qty-badge');
+        const lots = Number(tradeEngineConfig.entryLots) || 3;
+        const lotSize = Number(tradeEngineConfig.lotSize) || 65;
+        if (totalQtyBadge) {
+            totalQtyBadge.textContent = `${lots * lotSize} QTY`;
+        }
+    }
+
+    function syncTradeSettingsInputs() {
+        try {
+            const saved = localStorage.getItem('trade_engine_v2_cfg');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                tradeEngineConfig = { ...tradeEngineConfig, ...parsed };
+            }
+        } catch (e) {}
+
+        const modeSel = document.getElementById('trade-cfg-strategy-mode');
+        if (modeSel && tradeEngineConfig.strategyMode) modeSel.value = tradeEngineConfig.strategyMode;
+        const lotsSel = document.getElementById('trade-cfg-lots');
+        if (lotsSel && tradeEngineConfig.entryLots) lotsSel.value = String(tradeEngineConfig.entryLots);
+        const lotSizeInp = document.getElementById('trade-cfg-lot-size');
+        if (lotSizeInp && tradeEngineConfig.lotSize) lotSizeInp.value = String(tradeEngineConfig.lotSize);
+        const t1Inp = document.getElementById('trade-cfg-t1-rr');
+        if (t1Inp && tradeEngineConfig.t1Rr) t1Inp.value = String(tradeEngineConfig.t1Rr);
+        const t2Inp = document.getElementById('trade-cfg-t2-rr');
+        if (t2Inp && tradeEngineConfig.t2Rr) t2Inp.value = String(tradeEngineConfig.t2Rr);
+        const t3Inp = document.getElementById('trade-cfg-t3-rr');
+        if (t3Inp && tradeEngineConfig.t3Rr) t3Inp.value = String(tradeEngineConfig.t3Rr);
+
+        const factorMap = {
+            'cfg-factor-sl': 'f1_sl',
+            'cfg-factor-yd-sr': 'f2_yd_sr',
+            'cfg-factor-td-sr': 'f3_td_sr',
+            'cfg-factor-reverse': 'f4_reverse',
+            'cfg-factor-depth': 'f5_depth',
+            'cfg-factor-greeks': 'f6_greeks',
+        };
+        Object.entries(factorMap).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && typeof tradeEngineConfig[key] === 'boolean') {
+                el.checked = tradeEngineConfig[key];
+            }
+        });
+
+        const histTxt = document.getElementById('trade-history-mode-text');
+        if (histTxt) histTxt.textContent = (tradeEngineConfig.historyMode === 'all') ? 'All Trades' : 'Active Only';
+
+        updateTradeSettingsBadges();
+    }
+    window.syncTradeSettingsInputs = syncTradeSettingsInputs;
+
     function updateTradeConfig(key, value) {
         tradeEngineConfig[key] = value;
         try {
             localStorage.setItem('trade_engine_v2_cfg', JSON.stringify(tradeEngineConfig));
         } catch (e) {}
+        updateTradeSettingsBadges();
         if (timestampsList && timestampsList.length > 0 && activeCandleIndex >= 0) {
             runHighProbabilityTradeEngine(activeCandleIndex, timestampsList[activeCandleIndex]);
         }
@@ -14246,6 +14330,27 @@
         updateTradeConfig('historyMode', tradeEngineConfig.historyMode);
     }
     window.toggleTradeHistoryMode = toggleTradeHistoryMode;
+
+    function calcOptPriceAndPoints(trade, spotPrice, candleIdx) {
+        const isBull = (trade.direction === 'BULL');
+        const favorableSpotMove = isBull ? (spotPrice - trade.entrySpot) : (trade.entrySpot - spotPrice);
+        const deltaEst = (trade.action === 'BUY') ? 0.52 : 0.35;
+        const elapsedCandles = Math.max(0, candleIdx - trade.entryIndex);
+        const thetaDecay = Math.min(25.0, elapsedCandles * 0.35);
+
+        let curOptPrice, ptsGain;
+        if (trade.action === 'BUY') {
+            ptsGain = (favorableSpotMove * deltaEst) - thetaDecay;
+            curOptPrice = Math.max(1.0, Math.round((trade.entryOptPrice + ptsGain) * 10) / 10);
+            ptsGain = Math.round((curOptPrice - trade.entryOptPrice) * 10) / 10;
+        } else {
+            // Option Selling: Premium decays as market moves favorably and theta passes
+            ptsGain = (favorableSpotMove * deltaEst) + thetaDecay;
+            curOptPrice = Math.max(1.0, Math.round((trade.entryOptPrice - ptsGain) * 10) / 10);
+            ptsGain = Math.round((trade.entryOptPrice - curOptPrice) * 10) / 10;
+        }
+        return { optPrice: curOptPrice, pointsGain: ptsGain };
+    }
 
     function runHighProbabilityTradeEngine(upToIndex, curTimeStr) {
         const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
@@ -14273,38 +14378,63 @@
                 const cClose = Number(candle.close);
                 const isBull = (currentTrade.direction === 'BULL');
 
-                // M2M update
-                currentTrade.currentSpot = cClose;
-                const spotDiff = isBull ? (cClose - currentTrade.entrySpot) : (currentTrade.entrySpot - cClose);
-                const deltaEst = (currentTrade.action === 'BUY') ? 0.52 : 0.35;
-                const optChange = (currentTrade.action === 'BUY') ? (spotDiff * deltaEst) : (-spotDiff * deltaEst);
-                currentTrade.currentOptPrice = Math.max(1.0, Math.round((currentTrade.entryOptPrice + optChange) * 10) / 10);
-                currentTrade.pnlPoints = Math.round(optChange * 10) / 10;
-                currentTrade.pnlRupees = Math.round(currentTrade.pnlPoints * 75);
-                currentTrade.mfePoints = Math.max(currentTrade.mfePoints, currentTrade.pnlPoints);
-                currentTrade.maePoints = Math.min(currentTrade.maePoints, currentTrade.pnlPoints);
-
-                // Multi-Target Partial Exits
+                // Check Multi-Target Hits & Partial Bookings
+                // Target 1
                 if (!currentTrade.t1Hit) {
                     if ((isBull && cHigh >= currentTrade.t1) || (!isBull && cLow <= currentTrade.t1)) {
                         currentTrade.t1Hit = true;
-                        currentTrade.currentSl = currentTrade.entrySpot; // Trail SL to Cost
+                        // Partial book 1 lot if user entered with >= 2 lots
+                        if (currentTrade.openLots > 1) {
+                            const t1Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t1, i);
+                            const t1GainRs = Math.round(1 * t1Calc.pointsGain * currentTrade.lotSize);
+                            currentTrade.bookedLots += 1;
+                            currentTrade.openLots -= 1;
+                            currentTrade.bookedPnlRupees += t1GainRs;
+                            currentTrade.t1PnlRs = t1GainRs;
+                        }
+                        currentTrade.currentSl = currentTrade.entrySpot; // Trail SL to Cost Breakeven
                         currentTrade.slType = 'COST_BREAKEVEN';
                     }
                 }
+
+                // Target 2
                 if (currentTrade.t1Hit && !currentTrade.t2Hit) {
                     if ((isBull && cHigh >= currentTrade.t2) || (!isBull && cLow <= currentTrade.t2)) {
                         currentTrade.t2Hit = true;
+                        // Partial book 1 lot if still > 1 lot open
+                        if (currentTrade.openLots > 1) {
+                            const t2Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t2, i);
+                            const t2GainRs = Math.round(1 * t2Calc.pointsGain * currentTrade.lotSize);
+                            currentTrade.bookedLots += 1;
+                            currentTrade.openLots -= 1;
+                            currentTrade.bookedPnlRupees += t2GainRs;
+                            currentTrade.t2PnlRs = t2GainRs;
+                        }
                         currentTrade.currentSl = currentTrade.t1; // Trail SL to T1
                         currentTrade.slType = 'TRAILED_TO_T1';
                     }
                 }
+
+                // Target 3
                 if (currentTrade.t2Hit && !currentTrade.t3Hit) {
                     if ((isBull && cHigh >= currentTrade.t3) || (!isBull && cLow <= currentTrade.t3)) {
                         currentTrade.t3Hit = true;
+                        // Book remaining runner lots
+                        const t3Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t3, i);
+                        const t3GainRs = Math.round(currentTrade.openLots * t3Calc.pointsGain * currentTrade.lotSize);
+                        currentTrade.bookedPnlRupees += t3GainRs;
+                        currentTrade.t3PnlRs = t3GainRs;
+                        currentTrade.bookedLots += currentTrade.openLots;
+                        currentTrade.openLots = 0;
+                        currentTrade.openPnlRupees = 0;
+                        currentTrade.pnlRupees = currentTrade.bookedPnlRupees;
+                        currentTrade.pnlPoints = Math.round((currentTrade.pnlRupees / (currentTrade.entryLots * currentTrade.lotSize)) * 10) / 10;
+                        currentTrade.currentSpot = currentTrade.t3;
+                        currentTrade.currentOptPrice = t3Calc.optPrice;
+
                         currentTrade.status = 'TARGET_HIT';
                         currentTrade.exitTime = tStr;
-                        currentTrade.exitSpot = cClose;
+                        currentTrade.exitSpot = currentTrade.t3;
                         currentTrade.exitReason = 'Target 3 Hit! Complete profit booked.';
                         sessionTrades.push({ ...currentTrade });
                         currentTrade = null;
@@ -14312,15 +14442,27 @@
                     }
                 }
 
-                // Check Exit Factors
+                // M2M update on candle close
+                currentTrade.currentSpot = cClose;
+                const m2mCalc = calcOptPriceAndPoints(currentTrade, cClose, i);
+                currentTrade.currentOptPrice = m2mCalc.optPrice;
+                currentTrade.openPnlRupees = Math.round(currentTrade.openLots * m2mCalc.pointsGain * currentTrade.lotSize);
+                currentTrade.pnlRupees = currentTrade.bookedPnlRupees + currentTrade.openPnlRupees;
+                currentTrade.pnlPoints = Math.round((currentTrade.pnlRupees / (currentTrade.entryLots * currentTrade.lotSize)) * 10) / 10;
+                currentTrade.mfePoints = Math.max(currentTrade.mfePoints, m2mCalc.pointsGain);
+                currentTrade.maePoints = Math.min(currentTrade.maePoints, m2mCalc.pointsGain);
+
+                // Exit Factor Checks
                 let exitTriggered = false;
                 let exitReason = null;
+                let exitPrice = cClose;
 
-                // F1: SL / Trailed SL
+                // F1: Signal Candle SL or Trailed SL
                 if (tradeEngineConfig.f1_sl) {
                     if ((isBull && cLow <= currentTrade.currentSl) || (!isBull && cHigh >= currentTrade.currentSl)) {
                         exitTriggered = true;
-                        exitReason = currentTrade.t1Hit ? 'Trailed Stop Loss Hit (Profit Locked)' : 'Signal Candle Base SL Hit';
+                        exitPrice = currentTrade.currentSl;
+                        exitReason = currentTrade.t2Hit ? 'Trailed SL at T1 Hit (Profit Secured)' : (currentTrade.t1Hit ? 'Trailed SL at Cost Hit (Breakeven Locked)' : 'Signal Candle Base SL Hit');
                     }
                 }
 
@@ -14336,6 +14478,7 @@
                             const crossedOver = isBull ? (cClose < Number(prevC.low)) : (cClose > Number(prevC.high));
                             if (crossedOver) {
                                 exitTriggered = true;
+                                exitPrice = cClose;
                                 exitReason = isBull ? 'Opposing Bear Signal Crossover Exit' : 'Opposing Bull Signal Crossover Exit';
                             }
                         }
@@ -14343,9 +14486,20 @@
                 }
 
                 if (exitTriggered) {
+                    if (currentTrade.openLots > 0) {
+                        const exitCalc = calcOptPriceAndPoints(currentTrade, exitPrice, i);
+                        const exitGainRs = Math.round(currentTrade.openLots * exitCalc.pointsGain * currentTrade.lotSize);
+                        currentTrade.bookedPnlRupees += exitGainRs;
+                        currentTrade.bookedLots += currentTrade.openLots;
+                        currentTrade.openLots = 0;
+                        currentTrade.openPnlRupees = 0;
+                        currentTrade.pnlRupees = currentTrade.bookedPnlRupees;
+                        currentTrade.pnlPoints = Math.round((currentTrade.pnlRupees / (currentTrade.entryLots * currentTrade.lotSize)) * 10) / 10;
+                        currentTrade.currentOptPrice = exitCalc.optPrice;
+                    }
                     currentTrade.status = currentTrade.t1Hit ? 'PARTIAL_PROFIT_EXIT' : 'STOPPED_OUT';
                     currentTrade.exitTime = tStr;
-                    currentTrade.exitSpot = cClose;
+                    currentTrade.exitSpot = exitPrice;
                     currentTrade.exitReason = exitReason;
                     sessionTrades.push({ ...currentTrade });
                     currentTrade = null;
@@ -14438,6 +14592,8 @@
                     const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
 
                     const entryOptPrice = (action === 'BUY') ? 135.0 : 85.0;
+                    const entryLots = Number(tradeEngineConfig.entryLots) || 3;
+                    const lotSize = Number(tradeEngineConfig.lotSize) || 65;
 
                     currentTrade = {
                         id: `T_${nextCandle.time_str}`,
@@ -14455,16 +14611,25 @@
                         entryOptPrice: entryOptPrice,
                         currentSpot: entrySpot,
                         currentOptPrice: entryOptPrice,
+                        entryLots: entryLots,
+                        lotSize: lotSize,
+                        openLots: entryLots,
+                        bookedLots: 0,
+                        bookedPnlRupees: 0,
+                        openPnlRupees: 0,
                         baseSl: baseSl,
                         currentSl: baseSl,
                         slType: 'SIGNAL_CANDLE_SL',
                         riskPts: riskPts,
                         t1: t1,
                         t1Hit: false,
+                        t1PnlRs: 0,
                         t2: t2,
                         t2Hit: false,
+                        t2PnlRs: 0,
                         t3: t3,
                         t3Hit: false,
+                        t3PnlRs: 0,
                         pnlPoints: 0,
                         pnlRupees: 0,
                         mfePoints: 0,
@@ -14505,19 +14670,19 @@
                 lineWidth: 2,
                 lineStyle: 0, // Solid
                 axisLabelVisible: true,
-                title: `ENTRY: ${trade.action} ${trade.strike} ${trade.optType} @ ${trade.entrySpot}`,
+                title: `ENTRY: ${trade.action} ${trade.strike} ${trade.optType} (${trade.entryLots}L) @ ${trade.entrySpot}`,
             });
             tradePriceLines.push(entryLine);
 
             // 2. SL Line (Rose)
-            const slTitle = trade.t1Hit ? `TRAILED SL: ${trade.currentSl}` : `SL: ${trade.currentSl} (Signal Low/High)`;
+            const slLabel = (trade.slType === 'TRAILED_TO_T1') ? `TRAILED SL: ${trade.currentSl} (at T1)` : (trade.t1Hit ? `TRAILED SL: ${trade.currentSl} (Cost Breakeven)` : `SL: ${trade.currentSl} (Signal Low/High)`);
             const slLine = wCandleSeries.createPriceLine({
                 price: trade.currentSl,
                 color: '#f43f5e',
                 lineWidth: 2,
                 lineStyle: 2, // Dashed
                 axisLabelVisible: true,
-                title: slTitle,
+                title: slLabel,
             });
             tradePriceLines.push(slLine);
 
@@ -14528,7 +14693,7 @@
                 lineWidth: trade.t1Hit ? 2 : 1,
                 lineStyle: trade.t1Hit ? 0 : 1, // Dotted
                 axisLabelVisible: true,
-                title: `T1: ${trade.t1} (50% Exit) ${trade.t1Hit ? '🎯 HIT' : ''}`,
+                title: `T1: ${trade.t1} (1 Lot Partial) ${trade.t1Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t1Line);
 
@@ -14538,7 +14703,7 @@
                 lineWidth: trade.t2Hit ? 2 : 1,
                 lineStyle: trade.t2Hit ? 0 : 1,
                 axisLabelVisible: true,
-                title: `T2: ${trade.t2} (30% Exit) ${trade.t2Hit ? '🎯 HIT' : ''}`,
+                title: `T2: ${trade.t2} (1 Lot Partial) ${trade.t2Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t2Line);
 
@@ -14548,7 +14713,7 @@
                 lineWidth: 1,
                 lineStyle: 1,
                 axisLabelVisible: true,
-                title: `T3: ${trade.t3} (20% Runner)`,
+                title: `T3: ${trade.t3} (Runner Lot) ${trade.t3Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t3Line);
         }
@@ -14573,7 +14738,7 @@
             const pnlSign = (trade.pnlPoints >= 0) ? '+' : '';
 
             if (headerBadge) {
-                headerBadge.textContent = `${trade.action} ${trade.strike} ${trade.optType}`;
+                headerBadge.textContent = `${trade.action} ${trade.strike} ${trade.optType} (${trade.openLots}/${trade.entryLots}L)`;
                 headerBadge.className = isBull
                     ? 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 font-mono font-bold border border-emerald-600/60'
                     : 'px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300 font-mono font-bold border border-rose-600/60';
@@ -14596,7 +14761,7 @@
                     : 'px-1.5 py-0.2 rounded bg-slate-800 text-gray-300 border border-slate-700';
             }
             if (sT3) sT3.textContent = `T3: ${trade.t3}`;
-            if (sSl) sSl.textContent = `SL: ${trade.currentSl} ${trade.t1Hit ? '(Cost)' : ''}`;
+            if (sSl) sSl.textContent = `SL: ${trade.currentSl} ${(trade.slType === 'TRAILED_TO_T1') ? '(T1)' : (trade.t1Hit ? '(Cost)' : '')}`;
 
             if (activeCard) activeCard.classList.remove('hidden');
             if (noActiveCard) noActiveCard.classList.add('hidden');
@@ -14625,6 +14790,12 @@
             const atCurrOpt = document.getElementById('at-curr-opt');
             if (atCurrOpt) atCurrOpt.textContent = `₹${trade.currentOptPrice.toFixed(2)}`;
 
+            // Lots breakdown & Net P&L
+            const atLotsSummary = document.getElementById('at-lots-summary');
+            if (atLotsSummary) {
+                atLotsSummary.textContent = `NET P&L (${trade.entryLots} LOTS / ${trade.entryLots * trade.lotSize} QTY @ ${trade.lotSize}/LOT)`;
+            }
+
             const atPnlRs = document.getElementById('at-pnl-rupees');
             if (atPnlRs) {
                 atPnlRs.textContent = `${pnlSign}₹${trade.pnlRupees.toLocaleString('en-IN')}`;
@@ -14636,6 +14807,25 @@
                 atPnlPts.textContent = `(${pnlSign}${trade.pnlPoints.toFixed(1)} pts)`;
                 atPnlPts.className = `text-xs font-bold font-mono ${pnlColor}`;
             }
+
+            const atPnlBooked = document.getElementById('at-pnl-booked');
+            if (atPnlBooked) {
+                atPnlBooked.textContent = `₹${trade.bookedPnlRupees.toLocaleString('en-IN')}`;
+                atPnlBooked.className = (trade.bookedPnlRupees >= 0) ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+            }
+
+            const atLotsBooked = document.getElementById('at-lots-booked');
+            if (atLotsBooked) atLotsBooked.textContent = trade.bookedLots;
+
+            const atPnlOpen = document.getElementById('at-pnl-open');
+            if (atPnlOpen) {
+                const openSign = (trade.openPnlRupees >= 0) ? '+' : '';
+                atPnlOpen.textContent = `${openSign}₹${trade.openPnlRupees.toLocaleString('en-IN')}`;
+                atPnlOpen.className = (trade.openPnlRupees >= 0) ? 'text-sky-300 font-bold' : 'text-rose-300 font-bold';
+            }
+
+            const atLotsOpen = document.getElementById('at-lots-open');
+            if (atLotsOpen) atLotsOpen.textContent = trade.openLots;
 
             const atMfe = document.getElementById('at-mfe');
             if (atMfe) atMfe.textContent = `+${trade.mfePoints.toFixed(1)} pts`;
@@ -14650,15 +14840,23 @@
             if (atSlVal) atSlVal.textContent = trade.currentSl.toFixed(2);
 
             const atSlBadge = document.getElementById('at-sl-badge');
-            if (atSlBadge) atSlBadge.textContent = trade.t1Hit ? 'Cost Breakeven' : 'Signal Low/High';
+            if (atSlBadge) {
+                atSlBadge.textContent = (trade.slType === 'TRAILED_TO_T1') ? 'Trailed to T1' : (trade.t1Hit ? 'Cost Breakeven' : 'Base SL');
+                atSlBadge.className = trade.t1Hit ? 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold' : 'px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300';
+            }
 
             const atT1Val = document.getElementById('at-t1-val');
             if (atT1Val) atT1Val.textContent = `${trade.t1.toFixed(2)} (+${Math.abs(trade.t1 - trade.entrySpot).toFixed(1)} pts)`;
 
             const atT1Badge = document.getElementById('at-t1-badge');
             if (atT1Badge) {
-                atT1Badge.textContent = trade.t1Hit ? '🎯 HIT • SL to Cost' : '50% Lots Partial';
-                atT1Badge.className = trade.t1Hit ? 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold' : 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                if (trade.t1Hit) {
+                    atT1Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${trade.t1PnlRs.toLocaleString('en-IN')})` : '🎯 T1 HIT • SL to Cost';
+                    atT1Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+                } else {
+                    atT1Badge.textContent = trade.entryLots > 1 ? 'Book 1 Lot (SL to Cost)' : 'SL to Cost';
+                    atT1Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                }
             }
 
             const atT2Val = document.getElementById('at-t2-val');
@@ -14666,12 +14864,28 @@
 
             const atT2Badge = document.getElementById('at-t2-badge');
             if (atT2Badge) {
-                atT2Badge.textContent = trade.t2Hit ? '🎯 HIT • SL to T1' : '30% Lots Partial';
-                atT2Badge.className = trade.t2Hit ? 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold' : 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                if (trade.t2Hit) {
+                    atT2Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${trade.t2PnlRs.toLocaleString('en-IN')})` : '🎯 T2 HIT • SL to T1';
+                    atT2Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+                } else {
+                    atT2Badge.textContent = trade.entryLots >= 3 ? 'Book 1 Lot (SL to T1)' : (trade.entryLots === 2 ? 'Book 1 Lot (Exit)' : 'SL to T1');
+                    atT2Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                }
             }
 
             const atT3Val = document.getElementById('at-t3-val');
             if (atT3Val) atT3Val.textContent = `${trade.t3.toFixed(2)} (+${Math.abs(trade.t3 - trade.entrySpot).toFixed(1)} pts)`;
+
+            const atT3Badge = document.getElementById('at-t3-badge');
+            if (atT3Badge) {
+                if (trade.t3Hit) {
+                    atT3Badge.textContent = `🎯 RUNNER BOOKED (+₹${trade.t3PnlRs.toLocaleString('en-IN')})`;
+                    atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+                } else {
+                    atT3Badge.textContent = 'Runner Lot';
+                    atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                }
+            }
 
         } else {
             // Standby / No Active Trade
@@ -14707,7 +14921,7 @@
                     return `
                         <tr class="hover:bg-slate-800/40">
                             <td class="py-1 px-1 text-gray-400">${tr.id}</td>
-                            <td class="py-1 px-1 font-bold ${tr.direction === 'BULL' ? 'text-emerald-300' : 'text-rose-300'}">${tr.action} ${tr.optType}</td>
+                            <td class="py-1 px-1 font-bold ${tr.direction === 'BULL' ? 'text-emerald-300' : 'text-rose-300'}">${tr.action} ${tr.optType} (${tr.entryLots}L)</td>
                             <td class="py-1 px-1 text-white">${tr.strike}</td>
                             <td class="py-1 px-1 text-gray-300">${tr.entryTime}</td>
                             <td class="py-1 px-1 text-gray-200">${Number(tr.entrySpot).toFixed(1)}</td>
@@ -14746,7 +14960,7 @@
         const f1Status = document.getElementById('fm-f1-status');
         const f1Action = document.getElementById('fm-f1-action');
 
-        if (f1Anchor) f1Anchor.textContent = `${trade.currentSl.toFixed(2)} (${trade.t1Hit ? 'Cost' : 'Base'})`;
+        if (f1Anchor) f1Anchor.textContent = `${trade.currentSl.toFixed(2)} (${(trade.slType === 'TRAILED_TO_T1') ? 'T1' : (trade.t1Hit ? 'Cost' : 'Base')})`;
         if (f1Dist) f1Dist.textContent = (slDist >= 0) ? `+${slDist.toFixed(1)} pts safe` : `${slDist.toFixed(1)} pts breached!`;
         if (f1Status) {
             f1Status.innerHTML = (slDist >= 0)
@@ -14818,6 +15032,21 @@
             f3Action.className = (tdDist <= 10) ? 'py-1.5 px-1.5 text-right font-bold text-amber-400' : 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
         }
 
+        // F4: Reverse Signal Cross
+        const f4Anchor = document.getElementById('fm-f4-anchor');
+        const f4Dist = document.getElementById('fm-f4-dist');
+        const f4Status = document.getElementById('fm-f4-status');
+        const f4Action = document.getElementById('fm-f4-action');
+        if (f4Anchor) f4Anchor.textContent = 'Opposing Signal Barrier';
+        if (f4Dist) f4Dist.textContent = isBull ? 'Clean Bull Trend' : 'Clean Bear Trend';
+        if (f4Status) {
+            f4Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAR</span>`;
+        }
+        if (f4Action) {
+            f4Action.textContent = 'NO REVERSE';
+            f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+        }
+
         // F5: 30-Depth Volume Flow
         const spread = orderFlowLevelsData?.basis_spread || 0;
         const f5Anchor = document.getElementById('fm-f5-anchor');
@@ -14835,6 +15064,24 @@
         if (f5Action) {
             f5Action.textContent = spreadSupportive ? 'FLOW ALIGNED' : 'MONITOR BASIS';
             f5Action.className = spreadSupportive ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-amber-400';
+        }
+
+        // F6: Theta & Greeks
+        const f6Anchor = document.getElementById('fm-f6-anchor');
+        const f6Dist = document.getElementById('fm-f6-dist');
+        const f6Status = document.getElementById('fm-f6-status');
+        const f6Action = document.getElementById('fm-f6-action');
+        const isSell = (trade.action === 'SELL');
+        if (f6Anchor) f6Anchor.textContent = isSell ? `Theta: +₹${(trade.lotSize * 0.35).toFixed(1)}/lot/5m` : `Theta: -₹${(trade.lotSize * 0.35).toFixed(1)}/lot/5m`;
+        if (f6Dist) f6Dist.textContent = isSell ? 'Delta: ~0.35 • Theta Decay Favorable' : 'Delta: ~0.52 • Momentum Required';
+        if (f6Status) {
+            f6Status.innerHTML = isSell
+                ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 THETA GAIN</span>`
+                : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-800">🔵 ACTIVE DELTA</span>`;
+        }
+        if (f6Action) {
+            f6Action.textContent = isSell ? 'TIME DECAY BENEFIT' : 'TARGET MOMENTUM';
+            f6Action.className = isSell ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-sky-400';
         }
 
         // Summary Badge
@@ -15007,6 +15254,7 @@
         setupCandleCloseCountdown();
         setupOiBuildup5mSync();
         setupTradeModalDrag();
+        syncTradeSettingsInputs();
         updateBarReplayUI();
         toggleTradeDrawerExpand(true);
         updateToiLegendUI();
