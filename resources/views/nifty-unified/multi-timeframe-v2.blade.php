@@ -109,7 +109,11 @@
         #trade-cfg-strategy-mode,
         #trade-cfg-strategy-mode option,
         #trade-cfg-lots,
-        #trade-cfg-lots option {
+        #trade-cfg-lots option,
+        #trade-cfg-oi-veto-threshold,
+        #trade-cfg-oi-veto-threshold option,
+        #trade-cfg-oi-squeeze-threshold,
+        #trade-cfg-oi-squeeze-threshold option {
             color-scheme: dark !important;
             background-color: #101626 !important;
             color: #e2e8f0 !important;
@@ -3069,7 +3073,7 @@
 
     <!-- Quick Settings Dropdown Overlay -->
     <div id="trade-settings-panel" class="hidden bg-[#0e1424] border-b border-gray-700 p-2 text-xs">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-2.5 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 max-w-7xl mx-auto">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-sky-400 mb-1 flex items-center gap-1">
@@ -3079,6 +3083,7 @@
                     <option value="auto" selected>Auto (Strike only ➔ Option Sell | Confluence ➔ Option Buy)</option>
                     <option value="force_sell">Always Option Selling (99% Sell OTM/ATM PE/CE)</option>
                     <option value="force_buy">Always Option Buying (Buy ATM/OTM CE/PE)</option>
+                    <option value="combo">Dual Combo (Synthetic: Sell PE + Buy CE on Bull / Sell CE + Buy PE on Bear)</option>
                 </select>
                 <div class="text-[10px] text-gray-400 mt-1">Recommended: Auto ensures highest statistical edge.</div>
             </div>
@@ -3128,6 +3133,37 @@
                 <div class="text-[10px] text-gray-400 mt-1">T1 trails SL to Cost; T2 trails SL to T1.</div>
             </div>
 
+            <!-- Trending OI Entry Filter Setup -->
+            <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
+                <div class="font-bold text-cyan-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">📊 Trending OI Filter:</span>
+                    <label class="flex items-center gap-1 cursor-pointer text-[10px]">
+                        <input type="checkbox" id="trade-cfg-oi-filter-enabled" checked onchange="updateTradeConfig('oiFilterEnabled', this.checked)" class="accent-cyan-500">
+                        <span class="text-cyan-300 font-bold">Active</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Opposing Veto:</span>
+                        <select id="trade-cfg-oi-veto-threshold" onchange="updateTradeConfig('oiVetoThreshold', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="20">≥ 20% Opposed</option>
+                            <option value="25" selected>≥ 25% Opposed</option>
+                            <option value="30">≥ 30% Opposed</option>
+                            <option value="35">≥ 35% Opposed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Squeeze Zone:</span>
+                        <select id="trade-cfg-oi-squeeze-threshold" onchange="updateTradeConfig('oiSqueezeThreshold', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="10">≤ 10% Tight</option>
+                            <option value="15" selected>≤ 15% Tight</option>
+                            <option value="20">≤ 20% Tight</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-[9.5px] text-gray-400 mt-1">Blocks opposing walls; triggers Squeeze Breakout when tight.</div>
+            </div>
+
             <!-- Exit Factors Toggles -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-purple-400 mb-1 flex items-center gap-1">
@@ -3172,11 +3208,14 @@
                 <div id="active-trade-card">
                     <!-- Trade Action & Strategy Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800">
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                             <span id="at-action-badge" class="px-2 py-0.5 rounded text-[11px] font-black tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-600/60">
                                 🟢 BUY CALL
                             </span>
                             <span id="at-instrument" class="font-mono font-bold text-xs text-white">NIFTY 24200 CE</span>
+                            <span id="at-setup-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+                                🎯 STANDARD
+                            </span>
                         </div>
                         <span id="at-status-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-sky-950 text-sky-300 border border-sky-800">
                             ACTIVE
@@ -3398,6 +3437,7 @@
                         <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px]">
                             <th class="py-1 px-1">ID</th>
                             <th class="py-1 px-1">Type</th>
+                            <th class="py-1 px-1">Setup / OI Skew</th>
                             <th class="py-1 px-1">Strike</th>
                             <th class="py-1 px-1">Entry Time</th>
                             <th class="py-1 px-1">Entry Spot</th>
@@ -3411,7 +3451,7 @@
                     </thead>
                     <tbody id="trade-history-tbody" class="divide-y divide-gray-800/40">
                         <tr>
-                            <td colspan="11" class="text-center py-2 text-gray-500">No trades completed yet in this session.</td>
+                            <td colspan="12" class="text-center py-2 text-gray-500">No trades completed yet in this session.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -14283,7 +14323,7 @@
     // HIGH-PROBABILITY TRADE ENGINE & DYNAMIC EXIT MATRIX (v2)
     // ══════════════════════════════════════════════════════════════════════════════
     let tradeEngineConfig = {
-        strategyMode: 'auto', // 'auto' | 'force_sell' | 'force_buy'
+        strategyMode: 'auto', // 'auto' | 'force_sell' | 'force_buy' | 'combo'
         entryLots: 3,         // 1, 2, or 3 lots
         lotSize: 65,          // Nifty lot size is 65
         t1Rr: 1.2,
@@ -14296,6 +14336,9 @@
         f5_depth: true,
         f6_greeks: true,
         historyMode: 'active', // 'active' | 'all'
+        oiFilterEnabled: true, // Enable Trending OI filter
+        oiVetoThreshold: 25,   // Opposing OI Diff % to Veto entry (e.g. 25%)
+        oiSqueezeThreshold: 15 // Squeeze Breakout Zone % (e.g. 15%)
     };
 
     let activeTrade = null;
@@ -14341,6 +14384,19 @@
         const t3Inp = document.getElementById('trade-cfg-t3-rr');
         if (t3Inp && tradeEngineConfig.t3Rr) t3Inp.value = String(tradeEngineConfig.t3Rr);
 
+        const oiFiltEl = document.getElementById('trade-cfg-oi-filter-enabled');
+        if (oiFiltEl && typeof tradeEngineConfig.oiFilterEnabled === 'boolean') {
+            oiFiltEl.checked = tradeEngineConfig.oiFilterEnabled;
+        }
+        const oiVetoSel = document.getElementById('trade-cfg-oi-veto-threshold');
+        if (oiVetoSel && tradeEngineConfig.oiVetoThreshold) {
+            oiVetoSel.value = String(tradeEngineConfig.oiVetoThreshold);
+        }
+        const oiSqzSel = document.getElementById('trade-cfg-oi-squeeze-threshold');
+        if (oiSqzSel && tradeEngineConfig.oiSqueezeThreshold) {
+            oiSqzSel.value = String(tradeEngineConfig.oiSqueezeThreshold);
+        }
+
         const factorMap = {
             'cfg-factor-sl': 'f1_sl',
             'cfg-factor-yd-sr': 'f2_yd_sr',
@@ -14383,20 +14439,65 @@
     }
     window.toggleTradeHistoryMode = toggleTradeHistoryMode;
 
+    function getTrendingOiSnapshotAtTime(timeStr) {
+        if (!trendingOiData || !trendingOiData.chart || !trendingOiData.chart.labels) return null;
+        const chart = trendingOiData.chart;
+        const labels = chart.labels;
+        if (!labels || labels.length === 0) return null;
+
+        let idx = labels.indexOf(timeStr);
+        if (idx === -1) {
+            for (let j = labels.length - 1; j >= 0; j--) {
+                if (labels[j] <= timeStr) {
+                    idx = j;
+                    break;
+                }
+            }
+        }
+        if (idx === -1) idx = 0;
+        if (idx < 0 || idx >= labels.length) return null;
+
+        const ceVal = (chart.call_oi && chart.call_oi[idx] !== undefined) ? Number(chart.call_oi[idx]) : 0;
+        const peVal = (chart.put_oi && chart.put_oi[idx] !== undefined) ? Number(chart.put_oi[idx]) : 0;
+        const diff = (chart.sentiment && chart.sentiment[idx] !== undefined) ? Number(chart.sentiment[idx]) : (peVal - ceVal);
+        const maxOi = Math.max(Math.abs(peVal), Math.abs(ceVal));
+        const totalOi = Math.abs(peVal) + Math.abs(ceVal);
+        const diffPctVal = maxOi > 0 ? ((diff / maxOi) * 100) : 0;
+        const skewPctVal = totalOi > 0 ? ((diff / totalOi) * 100) : 0;
+
+        return {
+            idx,
+            time: labels[idx],
+            ceVal,
+            peVal,
+            diff,
+            maxOi,
+            totalOi,
+            diffPctVal, // > 0: Put OI dominant (bullish floor); < 0: Call OI dominant (bearish wall)
+            skewPctVal
+        };
+    }
+
     function calcOptPriceAndPoints(trade, spotPrice, candleIdx) {
         const isBull = (trade.direction === 'BULL');
         const favorableSpotMove = isBull ? (spotPrice - trade.entrySpot) : (trade.entrySpot - spotPrice);
-        const deltaEst = (trade.action === 'BUY') ? 0.52 : 0.35;
         const elapsedCandles = Math.max(0, candleIdx - trade.entryIndex);
         const thetaDecay = Math.min(25.0, elapsedCandles * 0.35);
 
         let curOptPrice, ptsGain;
-        if (trade.action === 'BUY') {
+        if (trade.action === 'COMBO') {
+            // Dual Combo: Sell OTM + Buy ATM (Combined Delta ~ 0.90, net theta resilience)
+            ptsGain = (favorableSpotMove * 0.90) + (thetaDecay * 0.2);
+            curOptPrice = Math.max(1.0, Math.round((trade.entryOptPrice + ptsGain) * 10) / 10);
+            ptsGain = Math.round((curOptPrice - trade.entryOptPrice) * 10) / 10;
+        } else if (trade.action === 'BUY') {
+            const deltaEst = 0.52;
             ptsGain = (favorableSpotMove * deltaEst) - thetaDecay;
             curOptPrice = Math.max(1.0, Math.round((trade.entryOptPrice + ptsGain) * 10) / 10);
             ptsGain = Math.round((curOptPrice - trade.entryOptPrice) * 10) / 10;
         } else {
             // Option Selling: Premium decays as market moves favorably and theta passes
+            const deltaEst = 0.35;
             ptsGain = (favorableSpotMove * deltaEst) + thetaDecay;
             curOptPrice = Math.max(1.0, Math.round((trade.entryOptPrice - ptsGain) * 10) / 10);
             ptsGain = Math.round((trade.entryOptPrice - curOptPrice) * 10) / 10;
@@ -14416,6 +14517,7 @@
 
         sessionTrades = [];
         let currentTrade = null;
+        let lastVetoedSignal = null;
 
         // Traverse session from open candle (0) up to current replay/live boundary
         for (let i = 0; i <= upToIndex; i++) {
@@ -14595,6 +14697,71 @@
                 else if (isStkBear) { triggeredDirection = 'BEAR'; isConf = false; }
 
                 if (triggeredDirection) {
+                    let setupType = 'STANDARD';
+                    let setupBadge = '🎯 STANDARD';
+                    let setupReason = 'Breadth confirmation trigger';
+                    let oiDiffPct = 0;
+                    let isVetoed = false;
+                    let vetoReason = '';
+
+                    const oiSnap = getTrendingOiSnapshotAtTime(tStr);
+                    if (oiSnap) {
+                        oiDiffPct = oiSnap.diffPctVal;
+                    }
+
+                    if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
+                        const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+                        const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+
+                        if (triggeredDirection === 'BULL') {
+                            // Bull signal: oiDiffPct < 0 means Call writing dominates (overhead resistance ceiling)
+                            if (oiDiffPct <= -vetoTh) {
+                                isVetoed = true;
+                                vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
+                            } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                setupType = 'SQUEEZE_BREAKOUT';
+                                setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakout Expansion`;
+                            } else if (oiDiffPct >= 20.0) {
+                                setupType = 'GRADE_A_CONFLUENCE';
+                                setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                setupReason = `Breadth + Put Support Floor (+${oiDiffPct.toFixed(1)}%) Aligned`;
+                            } else {
+                                setupType = 'STANDARD';
+                                setupBadge = '🎯 STANDARD';
+                                setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                            }
+                        } else {
+                            // Bear signal: oiDiffPct > 0 means Put writing dominates (support floor below)
+                            if (oiDiffPct >= vetoTh) {
+                                isVetoed = true;
+                                vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
+                            } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                setupType = 'SQUEEZE_BREAKOUT';
+                                setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakdown Expansion`;
+                            } else if (oiDiffPct <= -20.0) {
+                                setupType = 'GRADE_A_CONFLUENCE';
+                                setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                setupReason = `Breadth + Call Writing Ceiling (${oiDiffPct.toFixed(1)}%) Aligned`;
+                            } else {
+                                setupType = 'STANDARD';
+                                setupBadge = '🎯 STANDARD';
+                                setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                            }
+                        }
+                    }
+
+                    if (isVetoed) {
+                        lastVetoedSignal = {
+                            time: tStr,
+                            direction: triggeredDirection,
+                            reason: vetoReason,
+                            oiDiffPct: oiDiffPct
+                        };
+                        continue;
+                    }
+
                     // Entry executes on the OPEN of NEXT candle (i + 1)!
                     const nextCandle = rawCandles[i + 1];
                     const entrySpot = Number(nextCandle.open);
@@ -14605,7 +14772,8 @@
                     let optType = null;
 
                     if (triggeredDirection === 'BULL') {
-                        if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
+                        if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
+                        else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
                         else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
                         else {
                             // Auto: Strike only -> Sell PE; Confluence -> Buy CE
@@ -14614,7 +14782,8 @@
                             optType = isConf ? 'CE' : 'PE';
                         }
                     } else {
-                        if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
+                        if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
+                        else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
                         else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
                         else {
                             // Auto: Strike only -> Sell CE; Confluence -> Buy PE
@@ -14630,6 +14799,10 @@
                     if (strategy === 'SELL_PE') strike = atmStrike - 100;
                     if (strategy === 'SELL_CE') strike = atmStrike + 100;
 
+                    let instrument = `NIFTY ${strike} ${optType}`;
+                    if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
+                    if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
+
                     // Base SL = Signal Candle Low (for Bull) or High (for Bear)
                     const baseSl = (triggeredDirection === 'BULL') ? Number(candle.low) : Number(candle.high);
                     const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
@@ -14643,7 +14816,7 @@
                     const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
                     const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
 
-                    const entryOptPrice = (action === 'BUY') ? 135.0 : 85.0;
+                    const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
                     const entryLots = Number(tradeEngineConfig.entryLots) || 3;
                     const lotSize = Number(tradeEngineConfig.lotSize) || 65;
 
@@ -14651,10 +14824,15 @@
                         id: `T_${nextCandle.time_str}`,
                         status: 'ACTIVE',
                         direction: triggeredDirection,
+                        setupType: setupType,
+                        setupBadge: setupBadge,
+                        setupReason: setupReason,
+                        oiDiffPct: oiDiffPct,
                         isConf: isConf,
                         strategy: strategy,
                         action: action,
                         optType: optType,
+                        instrument: instrument,
                         strike: strike,
                         signalTime: candle.time_str,
                         entryTime: nextCandle.time_str,
@@ -14703,7 +14881,7 @@
         activeTrade = currentTrade;
 
         // Update UI Cockpit, Matrix & Chart Price Lines
-        updateTradeCockpitUI(activeTrade, sessionTrades);
+        updateTradeCockpitUI(activeTrade, sessionTrades, lastVetoedSignal);
         updateExitMatrixUI(activeTrade);
         updateTradePriceLines(activeTrade);
     }
@@ -14771,7 +14949,7 @@
         }
     }
 
-    function updateTradeCockpitUI(trade, allTrades) {
+    function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null) {
         const headerBadge = document.getElementById('header-trade-status-badge');
         const headerPill = document.getElementById('trade-header-pill');
         const headerPillText = document.getElementById('trade-header-pill-text');
@@ -14797,7 +14975,7 @@
             }
 
             if (headerPillText) {
-                headerPillText.textContent = `${trade.action} ${trade.strike} ${trade.optType} @ ${trade.entryTime} | P&L: ${pnlSign}₹${trade.pnlRupees.toLocaleString('en-IN')} (${pnlSign}${trade.pnlPoints} pts)`;
+                headerPillText.textContent = `${trade.action} ${trade.strike} ${trade.optType} @ ${trade.entryTime} [${trade.setupBadge || 'STANDARD'}] | P&L: ${pnlSign}₹${trade.pnlRupees.toLocaleString('en-IN')} (${pnlSign}${trade.pnlPoints} pts)`;
             }
 
             if (sT1) {
@@ -14828,7 +15006,19 @@
             }
 
             const atInst = document.getElementById('at-instrument');
-            if (atInst) atInst.textContent = `NIFTY ${trade.strike} ${trade.optType}`;
+            if (atInst) atInst.textContent = trade.instrument || `NIFTY ${trade.strike} ${trade.optType}`;
+
+            const atSetupBadge = document.getElementById('at-setup-badge');
+            if (atSetupBadge) {
+                atSetupBadge.textContent = trade.setupBadge || '🎯 STANDARD';
+                if (trade.setupType === 'SQUEEZE_BREAKOUT') {
+                    atSetupBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-600/70 shadow-[0_0_8px_rgba(245,158,11,0.2)]';
+                } else if (trade.setupType === 'GRADE_A_CONFLUENCE') {
+                    atSetupBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-600/70 shadow-[0_0_8px_rgba(6,182,212,0.2)]';
+                } else {
+                    atSetupBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700';
+                }
+            }
 
             const atEntryTime = document.getElementById('at-entry-time');
             if (atEntryTime) atEntryTime.textContent = trade.entryTime;
@@ -14946,7 +15136,11 @@
                 headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-900/80 text-emerald-300 font-mono';
             }
             if (headerPillText) {
-                headerPillText.textContent = 'STANDBY: Scanning 80%+ Breadth Signals...';
+                if (lastVetoedSignal && lastVetoedSignal.time) {
+                    headerPillText.textContent = `STANDBY: ${lastVetoedSignal.direction} signal at ${lastVetoedSignal.time} vetoed (${lastVetoedSignal.reason})`;
+                } else {
+                    headerPillText.textContent = 'STANDBY: Scanning 80%+ Breadth Signals...';
+                }
             }
             if (sT1) sT1.textContent = 'T1: --';
             if (sT2) sT2.textContent = 'T2: --';
@@ -14964,16 +15158,23 @@
 
         if (histTbody) {
             if (allTrades.length === 0) {
-                histTbody.innerHTML = `<tr><td colspan="11" class="text-center py-2 text-gray-500">No completed trades yet in this session.</td></tr>`;
+                histTbody.innerHTML = `<tr><td colspan="12" class="text-center py-2 text-gray-500">No completed trades yet in this session.</td></tr>`;
             } else {
                 histTbody.innerHTML = allTrades.map(tr => {
                     const isWin = tr.pnlPoints >= 0;
                     const pnlClass = isWin ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
                     const sign = isWin ? '+' : '';
+                    let setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-slate-300">Standard</span>';
+                    if (tr.setupType === 'SQUEEZE_BREAKOUT') {
+                        setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-amber-950 text-amber-300 border border-amber-700/60 font-bold">🚀 Squeeze</span>';
+                    } else if (tr.setupType === 'GRADE_A_CONFLUENCE') {
+                        setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-cyan-950 text-cyan-300 border border-cyan-700/60 font-bold">🌟 Grade A+</span>';
+                    }
                     return `
                         <tr class="hover:bg-slate-800/40">
                             <td class="py-1 px-1 text-gray-400">${tr.id}</td>
                             <td class="py-1 px-1 font-bold ${tr.direction === 'BULL' ? 'text-emerald-300' : 'text-rose-300'}">${tr.action} ${tr.optType} (${tr.entryLots}L)</td>
+                            <td class="py-1 px-1">${setupPill} <span class="text-[9px] text-gray-400">(${tr.oiDiffPct >= 0 ? '+' : ''}${Number(tr.oiDiffPct || 0).toFixed(0)}%)</span></td>
                             <td class="py-1 px-1 text-white">${tr.strike}</td>
                             <td class="py-1 px-1 text-gray-300">${tr.entryTime}</td>
                             <td class="py-1 px-1 text-gray-200">${Number(tr.entrySpot).toFixed(1)}</td>
