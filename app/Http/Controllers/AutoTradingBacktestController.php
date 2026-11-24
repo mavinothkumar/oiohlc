@@ -34,6 +34,7 @@ class AutoTradingBacktestController extends Controller
         $directionFilter = $request->input('direction', 'all');
         $exitFilter = $request->input('exit_category', 'all');
         $sessionFilter = $request->input('session_window', 'all');
+        $modeFilter = $request->input('mode', 'SELLING');
 
         $nowKolkata = Carbon::now('Asia/Kolkata');
         $todayStr = $nowKolkata->toDateString();
@@ -59,9 +60,10 @@ class AutoTradingBacktestController extends Controller
         }
 
         // Query Days
-        $hasTradeFilters = ($setupFilter !== 'all' || $oiFilter !== 'all' || $directionFilter !== 'all' || $exitFilter !== 'all' || $sessionFilter !== 'all');
+        $hasTradeFilters = ($setupFilter !== 'all' || $oiFilter !== 'all' || $directionFilter !== 'all' || $exitFilter !== 'all' || $sessionFilter !== 'all' || $modeFilter !== 'all');
 
-        $daysQuery = AutoTradeV2Day::with(['trades' => function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter) {
+        $daysQuery = AutoTradeV2Day::with(['trades' => function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter, $modeFilter) {
+            if ($modeFilter !== 'all') $q->where('trade_mode', $modeFilter);
             if ($setupFilter !== 'all') $q->where('setup_type', $setupFilter);
             if ($oiFilter !== 'all') $q->where('entry_oi_sentiment', $oiFilter);
             if ($directionFilter !== 'all') $q->where('direction', $directionFilter);
@@ -80,7 +82,8 @@ class AutoTradingBacktestController extends Controller
             $daysQuery->where('day_status', $statusFilter);
         }
         if ($hasTradeFilters) {
-            $daysQuery->whereHas('trades', function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter) {
+            $daysQuery->whereHas('trades', function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter, $modeFilter) {
+                if ($modeFilter !== 'all') $q->where('trade_mode', $modeFilter);
                 if ($setupFilter !== 'all') $q->where('setup_type', $setupFilter);
                 if ($oiFilter !== 'all') $q->where('entry_oi_sentiment', $oiFilter);
                 if ($directionFilter !== 'all') $q->where('direction', $directionFilter);
@@ -91,8 +94,18 @@ class AutoTradingBacktestController extends Controller
 
         $days = $daysQuery->get();
 
+        // Calculate dynamic per-day metrics aligned with active filters and mode
+        foreach ($days as $day) {
+            $dayTrades = $day->trades;
+            $day->computed_trades_count = $dayTrades->count();
+            $day->computed_net_rs = $dayTrades->sum('pnl_rupees');
+            $day->computed_net_pts = $dayTrades->sum('pnl_points');
+            $day->computed_status = $dayTrades->count() === 0 ? 'NO_TRADE' : ($day->computed_net_rs > 500 ? 'WIN' : ($day->computed_net_rs < -500 ? 'LOSS' : 'SCRATCH'));
+        }
+
         // Query All Trades in Range for KPI Calculations
         $tradesQuery = AutoTradeV2Trade::query();
+        if ($modeFilter !== 'all') $tradesQuery->where('trade_mode', $modeFilter);
         if ($fromDate) $tradesQuery->where('date', '>=', $fromDate);
         if ($toDate) $tradesQuery->where('date', '<=', $toDate);
         if ($setupFilter !== 'all') $tradesQuery->where('setup_type', $setupFilter);
@@ -104,10 +117,10 @@ class AutoTradingBacktestController extends Controller
 
         // Calculate Global KPI Stats
         $totalDays = $days->count();
-        $tradedDays = $days->where('total_trades', '>', 0)->count();
-        $winDays = $days->where('day_status', 'WIN')->count();
-        $lossDays = $days->where('day_status', 'LOSS')->count();
-        $noTradeDays = $days->where('day_status', 'NO_TRADE')->count();
+        $tradedDays = $days->where('computed_trades_count', '>', 0)->count();
+        $winDays = $days->where('computed_status', 'WIN')->count();
+        $lossDays = $days->where('computed_status', 'LOSS')->count();
+        $noTradeDays = $days->where('computed_status', 'NO_TRADE')->count();
 
         $totalTrades = $trades->count();
         $winTrades = $trades->where('pnl_rupees', '>', 0)->count();
@@ -144,16 +157,16 @@ class AutoTradingBacktestController extends Controller
         // Monthly Breakdown
         $monthlyStats = [];
         foreach ($days->groupBy(fn($d) => $d->date->format('Y-m')) as $month => $mDays) {
-            $mTradesCount = $mDays->sum('total_trades');
-            $mWins = $mDays->where('day_status', 'WIN')->count();
-            $mLosses = $mDays->where('day_status', 'LOSS')->count();
-            $mNetRs = $mDays->sum('net_pnl_rupees');
-            $mNetPts = $mDays->sum('net_points');
+            $mTradesCount = $mDays->sum('computed_trades_count');
+            $mWins = $mDays->where('computed_status', 'WIN')->count();
+            $mLosses = $mDays->where('computed_status', 'LOSS')->count();
+            $mNetRs = $mDays->sum('computed_net_rs');
+            $mNetPts = $mDays->sum('computed_net_pts');
 
             $monthlyStats[$month] = [
                 'month_name'   => Carbon::createFromFormat('Y-m', $month)->format('F Y'),
                 'total_days'   => $mDays->count(),
-                'traded_days'  => $mDays->where('total_trades', '>', 0)->count(),
+                'traded_days'  => $mDays->where('computed_trades_count', '>', 0)->count(),
                 'win_days'     => $mWins,
                 'loss_days'    => $mLosses,
                 'total_trades' => $mTradesCount,
@@ -166,17 +179,17 @@ class AutoTradingBacktestController extends Controller
         // Weekly Breakdown
         $weeklyStats = [];
         foreach ($days->groupBy(fn($d) => $d->date->format('Y') . '-W' . $d->date->format('W')) as $weekKey => $wDays) {
-            $wNetRs = $wDays->sum('net_pnl_rupees');
-            $wNetPts = $wDays->sum('net_points');
-            $wWins = $wDays->where('day_status', 'WIN')->count();
-            $wLosses = $wDays->where('day_status', 'LOSS')->count();
+            $wNetRs = $wDays->sum('computed_net_rs');
+            $wNetPts = $wDays->sum('computed_net_pts');
+            $wWins = $wDays->where('computed_status', 'WIN')->count();
+            $wLosses = $wDays->where('computed_status', 'LOSS')->count();
             $weeklyStats[$weekKey] = [
                 'week_label'   => 'Week ' . substr($weekKey, -2) . ' (' . $wDays->last()->date->format('d M') . ' - ' . $wDays->first()->date->format('d M') . ')',
                 'net_rupees'   => $wNetRs,
                 'net_points'   => $wNetPts,
                 'win_days'     => $wWins,
                 'loss_days'    => $wLosses,
-                'total_trades' => $wDays->sum('total_trades'),
+                'total_trades' => $wDays->sum('computed_trades_count'),
             ];
         }
 
@@ -215,6 +228,7 @@ class AutoTradingBacktestController extends Controller
             'directionFilter'  => $directionFilter,
             'exitFilter'       => $exitFilter,
             'sessionFilter'    => $sessionFilter,
+            'modeFilter'       => $modeFilter,
         ]);
     }
 

@@ -10309,8 +10309,15 @@
 
         updateTrendingOiDiffBadge();
 
-        // ROW 2: OI Buildup
-        renderStrikeBuildupChart();
+        // If an active timeline candle is selected or bar replay is running, immediately sync & slice chart to that candle
+        const activeSyncTime = currentActiveCandleTimeStr 
+            || (timestampsList && typeof activeCandleIndex === 'number' && activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length ? timestampsList[activeCandleIndex] : null);
+        if (activeSyncTime) {
+            sliceTrendingOiChartToTime(activeSyncTime);
+            renderStrikeBuildupChart(activeSyncTime);
+        } else {
+            renderStrikeBuildupChart();
+        }
     }
 
     // ── 8b. Dynamically Slice Trending OI & Sentiment Chart to Active Candle Time ─

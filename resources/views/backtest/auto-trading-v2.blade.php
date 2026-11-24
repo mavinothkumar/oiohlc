@@ -238,6 +238,29 @@
                     </select>
                 </div>
 
+                <!-- Trade Mode (Option Selling vs Buying) -->
+                <div class="flex items-center gap-1 bg-[#0b101d] px-2 py-0.5 rounded-lg border border-gray-700/80 shadow-inner">
+                    <span class="text-[11px] font-bold text-gray-400">Mode:</span>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="mode" value="SELLING" onchange="this.form.submit()" class="hidden" {{ ($modeFilter ?? 'SELLING') === 'SELLING' ? 'checked' : '' }}>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold transition flex items-center gap-1 {{ ($modeFilter ?? 'SELLING') === 'SELLING' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white' }}">
+                            🛡️ Option Selling
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="mode" value="BUYING" onchange="this.form.submit()" class="hidden" {{ ($modeFilter ?? 'SELLING') === 'BUYING' ? 'checked' : '' }}>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold transition flex items-center gap-1 {{ ($modeFilter ?? 'SELLING') === 'BUYING' ? 'bg-amber-600 text-white shadow' : 'text-gray-400 hover:text-white' }}">
+                            🚀 Option Buying
+                        </span>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="mode" value="all" onchange="this.form.submit()" class="hidden" {{ ($modeFilter ?? 'SELLING') === 'all' ? 'checked' : '' }}>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold transition flex items-center gap-1 {{ ($modeFilter ?? 'SELLING') === 'all' ? 'bg-sky-600 text-white shadow' : 'text-gray-400 hover:text-white' }}">
+                            ⚡ All
+                        </span>
+                    </label>
+                </div>
+
                 <div class="flex items-center gap-1.5 ml-auto">
                     <button type="submit" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-xs cursor-pointer">Apply Filters</button>
                     <a href="{{ route('automated.trading.backtest') }}" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 transition">Reset</a>
@@ -355,7 +378,13 @@
                     </thead>
                     <tbody class="divide-y divide-gray-800/80">
                         @forelse($days as $day)
-                            <tr class="{{ $loop->even ? 'bg-[#0a0f1d]' : 'bg-[#101728]' }} hover:bg-[#162036] transition-colors border-l-4 {{ $day->day_status === 'WIN' ? 'border-l-emerald-500' : ($day->day_status === 'LOSS' ? 'border-l-rose-500' : ($day->day_status === 'SCRATCH' ? 'border-l-amber-500' : 'border-l-slate-700')) }}">
+                            @php
+                                $dStatus = $day->computed_status ?? $day->day_status;
+                                $dTradesCount = $day->computed_trades_count ?? $day->total_trades;
+                                $dNetPts = $day->computed_net_pts ?? $day->net_points;
+                                $dNetRs = $day->computed_net_rs ?? $day->net_pnl_rupees;
+                            @endphp
+                            <tr class="{{ $loop->even ? 'bg-[#0a0f1d]' : 'bg-[#101728]' }} hover:bg-[#162036] transition-colors border-l-4 {{ $dStatus === 'WIN' ? 'border-l-emerald-500' : ($dStatus === 'LOSS' ? 'border-l-rose-500' : ($dStatus === 'SCRATCH' ? 'border-l-amber-500' : 'border-l-slate-700')) }}">
                                 <!-- Date & Day of Week -->
                                 <td class="py-3 px-3 font-bold whitespace-nowrap">
                                     <div class="inline-flex flex-col items-start px-2 py-1 rounded bg-[#151e32] border border-gray-700/70 shadow-xs">
@@ -378,8 +407,8 @@
 
                                 <!-- Total Trades -->
                                 <td class="py-3 px-2.5 text-center">
-                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-black shadow-xs {{ $day->total_trades > 0 ? 'bg-sky-950/80 text-sky-300 border border-sky-700' : 'bg-gray-900/60 text-gray-500 border border-gray-800' }}">
-                                        {{ $day->total_trades }}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-black shadow-xs {{ $dTradesCount > 0 ? 'bg-sky-950/80 text-sky-300 border border-sky-700' : 'bg-gray-900/60 text-gray-500 border border-gray-800' }}">
+                                        {{ $dTradesCount }}
                                     </span>
                                 </td>
 
@@ -412,6 +441,9 @@
                                                             </span>
                                                             <span class="px-1.5 py-0.2 rounded text-[9.5px] font-black {{ $tr->direction === 'BULL' ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700' }}">
                                                                 {{ $tr->direction === 'BULL' ? '🟢 BULL' : '🔴 BEAR' }} {{ $tr->action }}
+                                                            </span>
+                                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold {{ ($tr->trade_mode ?? 'SELLING') === 'SELLING' ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-amber-950 text-amber-300 border border-amber-800' }}">
+                                                                {{ ($tr->trade_mode ?? 'SELLING') === 'SELLING' ? '🛡️ SELLER' : '🚀 BUYER' }}
                                                             </span>
                                                             <span class="font-black text-white text-[11.5px]">{{ $tr->instrument }}</span>
                                                             <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
@@ -461,22 +493,22 @@
                                 </td>
 
                                 <!-- Net Points -->
-                                <td class="py-3 px-2.5 text-right font-black {{ $day->net_points >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
-                                    {{ $day->net_points >= 0 ? '+' : '' }}{{ number_format($day->net_points, 1) }}
+                                <td class="py-3 px-2.5 text-right font-black {{ $dNetPts >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
+                                    {{ $dNetPts >= 0 ? '+' : '' }}{{ number_format($dNetPts, 1) }}
                                 </td>
 
                                 <!-- Net P&L (₹) -->
-                                <td class="py-3 px-2.5 text-right font-black {{ $day->net_pnl_rupees >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
-                                    {{ $day->net_pnl_rupees >= 0 ? '+' : '' }}₹{{ number_format($day->net_pnl_rupees) }}
+                                <td class="py-3 px-2.5 text-right font-black {{ $dNetRs >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
+                                    {{ $dNetRs >= 0 ? '+' : '' }}₹{{ number_format($dNetRs) }}
                                 </td>
 
                                 <!-- Day Status -->
                                 <td class="py-2.5 px-2.5 text-center">
-                                    @if($day->day_status === 'WIN')
+                                    @if($dStatus === 'WIN')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700 shadow-xs">🟢 WIN</span>
-                                    @elseif($day->day_status === 'LOSS')
+                                    @elseif($dStatus === 'LOSS')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-700 shadow-xs">🔴 LOSS</span>
-                                    @elseif($day->day_status === 'SCRATCH')
+                                    @elseif($dStatus === 'SCRATCH')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700 shadow-xs">🟡 SCRATCH</span>
                                     @else
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-900 text-gray-500 border border-gray-800">⚪ STANDBY</span>
