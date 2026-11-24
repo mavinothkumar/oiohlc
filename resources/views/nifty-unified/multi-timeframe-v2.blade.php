@@ -14917,6 +14917,7 @@
     };
 
     let activeTrade = null;
+    let activePendingBreakout = null;
     let sessionTrades = [];
     let tradePriceLines = [];
     let currentTradeDrawerTab = 'trades';
