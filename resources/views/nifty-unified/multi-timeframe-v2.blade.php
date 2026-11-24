@@ -106,8 +106,11 @@
         /* Dark Theme Select Dropdown Options */
         #trade-drawer-height-select,
         #trade-drawer-height-select option,
+        #trade-cfg-strategy-mode,
         #trade-cfg-strategy-mode option,
+        #trade-cfg-lots,
         #trade-cfg-lots option {
+            color-scheme: dark !important;
             background-color: #101626 !important;
             color: #e2e8f0 !important;
         }
@@ -3019,17 +3022,17 @@
             <!-- Height Presets Dropdown -->
             <div class="flex items-center bg-[#151c2e] border border-gray-700 hover:border-sky-500/60 rounded px-1.5 py-0.5 text-[9.5px] font-mono gap-1 transition" title="Adjust Drawer Height (Persisted in Local Storage)">
                 <span class="text-sky-400 font-bold">↕ H:</span>
-                <select id="trade-drawer-height-select" onchange="setTradeDrawerHeight(this.value)" class="bg-[#101626] text-sky-200 font-bold focus:outline-none cursor-pointer text-[10px] rounded px-0.5 border border-gray-700/60">
-                    <option value="280" class="bg-[#101626] text-white">280px</option>
-                    <option value="340" class="bg-[#101626] text-white">340px</option>
-                    <option value="400" class="bg-[#101626] text-white">400px</option>
-                    <option value="440" selected class="bg-[#101626] text-white">440px</option>
-                    <option value="500" class="bg-[#101626] text-white">500px</option>
-                    <option value="580" class="bg-[#101626] text-white">580px</option>
-                    <option value="660" class="bg-[#101626] text-white">660px</option>
-                    <option value="760" class="bg-[#101626] text-white">760px</option>
-                    <option value="850" class="bg-[#101626] text-white">850px</option>
-                    <option value="custom" class="bg-[#101626] text-sky-300">Custom</option>
+                <select id="trade-drawer-height-select" onchange="setTradeDrawerHeight(this.value)" class="bg-[#101626] text-sky-200 font-bold focus:outline-none cursor-pointer text-[10px] rounded px-0.5 border border-gray-700/60" style="color-scheme: dark; background-color: #101626; color: #bae6fd;">
+                    <option value="280" style="background-color: #101626; color: #ffffff;">280px</option>
+                    <option value="340" style="background-color: #101626; color: #ffffff;">340px</option>
+                    <option value="400" style="background-color: #101626; color: #ffffff;">400px</option>
+                    <option value="440" selected style="background-color: #101626; color: #ffffff;">440px</option>
+                    <option value="500" style="background-color: #101626; color: #ffffff;">500px</option>
+                    <option value="580" style="background-color: #101626; color: #ffffff;">580px</option>
+                    <option value="660" style="background-color: #101626; color: #ffffff;">660px</option>
+                    <option value="760" style="background-color: #101626; color: #ffffff;">760px</option>
+                    <option value="850" style="background-color: #101626; color: #ffffff;">850px</option>
+                    <option value="custom" style="background-color: #101626; color: #7dd3fc;">Custom</option>
                 </select>
             </div>
 
@@ -3161,9 +3164,9 @@
     </div>
 
     <!-- Drawer Body (Collapsible / Expandable with Customizable Height) -->
-    <div id="trade-drawer-body" class="p-2 overflow-y-auto bg-[#090d16] flex flex-col gap-2" style="max-height: 440px;">
+    <div id="trade-drawer-body" class="p-2 overflow-y-auto bg-[#090d16] flex flex-col gap-2" style="height: 440px; max-height: 440px;">
         <!-- Main Top Row: Active Trade Card & Exit Matrix -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 shrink-0">
             <!-- Left Panel (5 cols): Active Trade & M2M P&L Cockpit -->
             <div class="lg:col-span-5 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
                 <div id="active-trade-card">
@@ -3381,15 +3384,15 @@
         </div>
 
         <!-- Bottom Row: Day Trade History Table (When "Show All Trades" is toggled or for forensic review) -->
-        <div id="trade-history-section" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2 shadow-inner">
-            <div class="flex items-center justify-between pb-1 border-b border-gray-800 mb-1">
+        <div id="trade-history-section" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2 shadow-inner flex-1 flex flex-col min-h-[110px]">
+            <div class="flex items-center justify-between pb-1 border-b border-gray-800 mb-1 shrink-0">
                 <span class="text-xs font-bold text-gray-300 flex items-center gap-1">
                     <span>📜 Session Trade Logs &amp; Forensics:</span>
                     <span id="trade-history-count" class="text-[9.5px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400">0 Trades</span>
                 </span>
                 <span class="text-[9.5px] text-gray-500 font-mono">Full Trade Progression History</span>
             </div>
-            <div class="overflow-x-auto max-h-[140px] overflow-y-auto">
+            <div class="overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
                 <table class="w-full text-left font-mono text-[10px]">
                     <thead>
                         <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px]">
@@ -15220,6 +15223,12 @@
             drawer.style.bottom = 'auto';
             drawer.style.right = 'auto';
 
+            const body = document.getElementById('trade-drawer-body');
+            if (body) {
+                body.style.height = 'calc(100% - 40px)';
+                body.style.maxHeight = 'none';
+            }
+
             if (header) header.style.cursor = 'move';
             if (undockIcon) undockIcon.textContent = '⏬';
             if (undockText) undockText.textContent = 'Dock Back';
@@ -15235,6 +15244,8 @@
             drawer.style.height = 'auto';
             drawer.style.minWidth = 'auto';
             drawer.style.minHeight = 'auto';
+
+            initTradeDrawerHeight();
 
             if (header) header.style.cursor = 'default';
             if (undockIcon) undockIcon.textContent = '⧉';
@@ -15260,7 +15271,11 @@
         const numVal = parseInt(heightVal, 10);
         if (isNaN(numVal) || numVal < 150) return;
 
-        body.style.maxHeight = `${numVal}px`;
+        const maxAllowed = Math.max(300, window.innerHeight - 80);
+        const effectiveHeight = Math.min(numVal, maxAllowed);
+
+        body.style.height = `${effectiveHeight}px`;
+        body.style.maxHeight = `${effectiveHeight}px`;
 
         if (heightSelect) {
             let matched = false;
@@ -15306,7 +15321,7 @@
             if (isTradeDrawerUndocked) return;
             isResizing = true;
             startY = e.clientY;
-            startHeight = body.offsetHeight || parseInt(body.style.maxHeight, 10) || 440;
+            startHeight = body.offsetHeight || parseInt(body.style.height, 10) || 440;
             document.body.style.userSelect = 'none';
             document.body.style.cursor = 'ns-resize';
             if (!isTradeDrawerExpanded) toggleTradeDrawerExpand(true);
@@ -15315,7 +15330,7 @@
         document.addEventListener('mousemove', (e) => {
             if (!isResizing || isTradeDrawerUndocked) return;
             const deltaY = startY - e.clientY; // dragging up increases height
-            const maxAllowed = Math.max(300, window.innerHeight - 100);
+            const maxAllowed = Math.max(300, window.innerHeight - 80);
             const newHeight = Math.min(Math.max(200, Math.round(startHeight + deltaY)), maxAllowed);
             setTradeDrawerHeight(newHeight, false);
         });
@@ -15325,7 +15340,7 @@
                 isResizing = false;
                 document.body.style.userSelect = '';
                 document.body.style.cursor = '';
-                const finalH = body.offsetHeight || parseInt(body.style.maxHeight, 10) || 440;
+                const finalH = body.offsetHeight || parseInt(body.style.height, 10) || 440;
                 try {
                     localStorage.setItem('trade_drawer_docked_height', String(finalH));
                 } catch (e) {}
