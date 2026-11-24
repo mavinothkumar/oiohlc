@@ -556,7 +556,7 @@
                             <!-- Enterprise Active Candle Highlight Overlay (Beacon & Reticle) -->
                             <div id="w-candle-highlight" class="pointer-events-none absolute top-0 bottom-[26px] z-[15] hidden" style="left: 0;">
                                 <div id="w-candle-highlight-beam" class="absolute top-0 bottom-0 pointer-events-none"></div>
-                                <div id="w-candle-highlight-laser" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="w-candle-highlight-laser" class="hidden"></div>
                                 <div id="w-candle-highlight-reticle" class="absolute pointer-events-none"></div>
                                 <div id="w-candle-highlight-pill" class="absolute top-1.5 pointer-events-none"></div>
                                 <div id="w-candle-highlight-bot" class="absolute bottom-1 pointer-events-none"></div>
@@ -937,7 +937,7 @@
                             <!-- Enterprise Active Candle Highlight Overlay (Beacon & Reticle) -->
                             <div id="o-candle-highlight" class="pointer-events-none absolute top-0 bottom-[26px] z-[15] hidden" style="left: 0;">
                                 <div id="o-candle-highlight-beam" class="absolute top-0 bottom-0 pointer-events-none"></div>
-                                <div id="o-candle-highlight-laser" class="absolute top-0 bottom-0 pointer-events-none"></div>
+                                <div id="o-candle-highlight-laser" class="hidden"></div>
                                 <div id="o-candle-highlight-reticle" class="absolute pointer-events-none"></div>
                                 <div id="o-candle-highlight-pill" class="absolute top-1.5 pointer-events-none"></div>
                                 <div id="o-candle-highlight-bot" class="absolute bottom-1 pointer-events-none"></div>
@@ -9144,9 +9144,9 @@
         const candleGlow = isBull ? 'rgba(16, 185, 129, 0.6)' : 'rgba(244, 63, 94, 0.6)';
         const themeColor = isOptionsChart ? '#a855f7' : '#38bdf8';
         const themeBg = isOptionsChart 
-            ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.35) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(168, 85, 247, 0.35) 100%)'
-            : 'linear-gradient(180deg, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0.08) 50%, rgba(56, 189, 248, 0.35) 100%)';
-        const themeBorder = isOptionsChart ? 'rgba(168, 85, 247, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+            ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0.02) 50%, rgba(168, 85, 247, 0.08) 100%)'
+            : 'linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.02) 50%, rgba(56, 189, 248, 0.08) 100%)';
+        const themeBorder = isOptionsChart ? 'rgba(168, 85, 247, 0.35)' : 'rgba(56, 189, 248, 0.35)';
 
         // Position root container
         rootEl.style.left = `${Math.round(x)}px`;
@@ -9154,7 +9154,7 @@
         rootEl.style.bottom = '26px';
         rootEl.classList.remove('hidden');
 
-        // 1. Translucent Spotlight Beam
+        // 1. Translucent Spotlight Beam (Soft, lighter background so the candle stays polished)
         const beamEl = document.getElementById(`${prefix}-candle-highlight-beam`);
         if (beamEl) {
             beamEl.style.position = 'absolute';
@@ -9163,32 +9163,26 @@
             beamEl.style.left = `${-Math.round(colWidth / 2)}px`;
             beamEl.style.width = `${colWidth}px`;
             beamEl.style.background = themeBg;
-            beamEl.style.borderLeft = `1.5px dashed ${themeBorder}`;
-            beamEl.style.borderRight = `1.5px dashed ${themeBorder}`;
-            beamEl.style.boxShadow = `0 0 15px ${isOptionsChart ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.25)'}`;
+            beamEl.style.borderLeft = `1px dashed ${themeBorder}`;
+            beamEl.style.borderRight = `1px dashed ${themeBorder}`;
+            beamEl.style.boxShadow = `0 0 8px ${isOptionsChart ? 'rgba(168, 85, 247, 0.06)' : 'rgba(56, 189, 248, 0.06)'}`;
         }
 
-        // 2. High-Tech Center Laser Line
+        // 2. Center Laser Line (Disabled: removed so it doesn't override the candle wick)
         const laserEl = document.getElementById(`${prefix}-candle-highlight-laser`);
         if (laserEl) {
-            laserEl.style.position = 'absolute';
-            laserEl.style.top = '0px';
-            laserEl.style.bottom = '0px';
-            laserEl.style.left = '0px';
-            laserEl.style.width = '2px';
-            laserEl.style.background = themeColor;
-            laserEl.style.boxShadow = `0 0 10px ${themeColor}, 0 0 20px ${themeColor}`;
+            laserEl.style.display = 'none';
         }
 
-        // 3. Viewfinder Reticle Frame around Candle
+        // 3. Viewfinder Reticle Frame around Candle (Clean border with no heavy inset glow)
         const reticleEl = document.getElementById(`${prefix}-candle-highlight-reticle`);
         if (reticleEl) {
             const yH = series.priceToCoordinate(candle.high);
             const yL = series.priceToCoordinate(candle.low);
             if (yH !== null && yL !== null && !isNaN(yH) && !isNaN(yL)) {
-                const top = Math.min(yH, yL) - 4;
-                const height = Math.max(Math.abs(yL - yH) + 8, 8);
-                const rWidth = colWidth + 6;
+                const top = Math.min(yH, yL) - 3;
+                const height = Math.max(Math.abs(yL - yH) + 6, 6);
+                const rWidth = colWidth + 4;
                 const rLeft = -Math.round(rWidth / 2);
 
                 reticleEl.style.position = 'absolute';
@@ -9196,17 +9190,17 @@
                 reticleEl.style.left = `${rLeft}px`;
                 reticleEl.style.width = `${rWidth}px`;
                 reticleEl.style.height = `${Math.round(height)}px`;
-                reticleEl.style.border = `2px solid ${candleColor}`;
-                reticleEl.style.borderRadius = '4px';
-                reticleEl.style.boxShadow = `0 0 16px ${candleGlow}, inset 0 0 8px ${candleGlow}`;
+                reticleEl.style.border = `1.5px solid ${candleColor}`;
+                reticleEl.style.borderRadius = '3px';
+                reticleEl.style.boxShadow = `0 0 8px ${candleGlow}`;
                 reticleEl.style.display = 'block';
 
                 // Military/HUD Corner Targeting Brackets
                 reticleEl.innerHTML = `
-                    <div style="position: absolute; top: -3px; left: -3px; width: 6px; height: 6px; border-top: 2px solid #ffffff; border-left: 2px solid #ffffff;"></div>
-                    <div style="position: absolute; top: -3px; right: -3px; width: 6px; height: 6px; border-top: 2px solid #ffffff; border-right: 2px solid #ffffff;"></div>
-                    <div style="position: absolute; bottom: -3px; left: -3px; width: 6px; height: 6px; border-bottom: 2px solid #ffffff; border-left: 2px solid #ffffff;"></div>
-                    <div style="position: absolute; bottom: -3px; right: -3px; width: 6px; height: 6px; border-bottom: 2px solid #ffffff; border-right: 2px solid #ffffff;"></div>
+                    <div style="position: absolute; top: -2px; left: -2px; width: 5px; height: 5px; border-top: 1.5px solid #ffffff; border-left: 1.5px solid #ffffff;"></div>
+                    <div style="position: absolute; top: -2px; right: -2px; width: 5px; height: 5px; border-top: 1.5px solid #ffffff; border-right: 1.5px solid #ffffff;"></div>
+                    <div style="position: absolute; bottom: -2px; left: -2px; width: 5px; height: 5px; border-bottom: 1.5px solid #ffffff; border-left: 1.5px solid #ffffff;"></div>
+                    <div style="position: absolute; bottom: -2px; right: -2px; width: 5px; height: 5px; border-bottom: 1.5px solid #ffffff; border-right: 1.5px solid #ffffff;"></div>
                 `;
             } else {
                 reticleEl.style.display = 'none';
