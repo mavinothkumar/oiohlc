@@ -150,7 +150,7 @@
             <form action="{{ route('automated.trading.backtest') }}" method="GET" class="flex flex-wrap items-center gap-2.5 text-xs font-mono">
                 <!-- Preset Quick Buttons -->
                 <div class="flex items-center gap-1 bg-[#141b2e] p-0.5 rounded border border-gray-800">
-                    <a href="{{ route('automated.trading.backtest', ['range' => 'all']) }}" class="px-2 py-1 rounded {{ $rangePreset === 'all' && !$fromDate ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">All ({{ $totalDays }}D)</a>
+                    <a href="{{ route('automated.trading.backtest', ['range' => 'all']) }}" class="px-2 py-1 rounded {{ $rangePreset === 'all' && !$fromDate ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">All ({{ $totalDays }} Days)</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => '1y']) }}" class="px-2 py-1 rounded {{ $rangePreset === '1y' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">1 Year</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => '90d']) }}" class="px-2 py-1 rounded {{ $rangePreset === '90d' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">90D</a>
                     <a href="{{ route('automated.trading.backtest', ['range' => '30d']) }}" class="px-2 py-1 rounded {{ $rangePreset === '30d' ? 'bg-sky-600 text-white font-bold' : 'text-gray-400 hover:text-white' }}">30D</a>
@@ -198,61 +198,69 @@
         <!-- 4. Monthly & Weekly Performance Rollups -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
             <!-- Monthly Aggregation (7 cols) -->
-            <div class="lg:col-span-7 bg-[#0e1424] border border-gray-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div class="flex items-center justify-between pb-2 border-b border-gray-800 mb-2">
+            <div class="lg:col-span-7 bg-[#0e1424] border border-gray-800 rounded-xl p-3.5 shadow-md flex flex-col">
+                <div class="flex items-center justify-between pb-2 border-b border-gray-800 mb-2.5">
                     <span class="text-xs font-black tracking-wide text-sky-400 font-mono flex items-center gap-1.5">
                         <span>📅 MONTHLY PERFORMANCE ROLLUP</span>
+                        <span class="px-1.5 py-0.2 rounded text-[9.5px] bg-sky-950 text-sky-300 border border-sky-800">{{ count($monthlyStats) }} Months</span>
                     </span>
                     <span class="text-[10px] text-gray-500 font-mono">Aggregated Net P&amp;L</span>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    @forelse($monthlyStats as $mKey => $mStat)
-                        <div class="bg-[#141b2e] border border-gray-800 rounded-lg p-2.5 font-mono text-xs flex flex-col justify-between shadow-xs">
-                            <div class="flex items-center justify-between pb-1 border-b border-gray-800">
-                                <span class="font-bold text-white">{{ $mStat['month_name'] }}</span>
-                                <span class="px-1.5 py-0.2 rounded text-[9.5px] {{ $mStat['net_rupees'] >= 0 ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700' }}">
-                                    {{ $mStat['win_rate'] }}% Win
-                                </span>
+                <div class="overflow-y-auto max-h-[310px] pr-1.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        @forelse($monthlyStats as $mKey => $mStat)
+                            <div class="bg-[#141b2e] border border-gray-800 rounded-lg p-2.5 font-mono text-xs flex flex-col justify-between shadow-xs hover:border-gray-700 transition">
+                                <div class="flex items-center justify-between pb-1 border-b border-gray-800">
+                                    <span class="font-bold text-white text-[11.5px]">{{ $mStat['month_name'] }}</span>
+                                    <span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold {{ $mStat['net_rupees'] >= 0 ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700' }}">
+                                        {{ $mStat['win_rate'] }}% Win
+                                    </span>
+                                </div>
+                                <div class="my-2">
+                                    <span class="text-base font-black block {{ $mStat['net_rupees'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
+                                        {{ $mStat['net_rupees'] >= 0 ? '+' : '' }}₹{{ number_format($mStat['net_rupees'], 0) }}
+                                    </span>
+                                    <span class="text-[10.5px] text-gray-400">
+                                        {{ $mStat['net_points'] >= 0 ? '+' : '' }}{{ number_format($mStat['net_points'], 1) }} pts
+                                    </span>
+                                </div>
+                                <div class="text-[10px] text-gray-500 flex justify-between border-t border-gray-800/60 pt-1">
+                                    <span>{{ $mStat['total_trades'] }} Trades ({{ $mStat['traded_days'] }}D)</span>
+                                    <span><strong class="text-emerald-400">{{ $mStat['win_days'] }}W</strong> / <strong class="text-rose-400">{{ $mStat['loss_days'] }}L</strong></span>
+                                </div>
                             </div>
-                            <div class="my-2">
-                                <span class="text-lg font-black block {{ $mStat['net_rupees'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
-                                    {{ $mStat['net_rupees'] >= 0 ? '+' : '' }}₹{{ number_format($mStat['net_rupees'], 0) }}
-                                </span>
-                                <span class="text-[10.5px] text-gray-400">
-                                    {{ $mStat['net_points'] >= 0 ? '+' : '' }}{{ number_format($mStat['net_points'], 1) }} pts
-                                </span>
-                            </div>
-                            <div class="text-[10px] text-gray-500 flex justify-between border-t border-gray-800/60 pt-1">
-                                <span>{{ $mStat['total_trades'] }} Trades ({{ $mStat['traded_days'] }} Days)</span>
-                                <span><strong class="text-emerald-400">{{ $mStat['win_days'] }}W</strong> / <strong class="text-rose-400">{{ $mStat['loss_days'] }}L</strong></span>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="col-span-3 text-center py-4 text-gray-500 font-mono text-xs">No monthly data available.</div>
-                    @endforelse
+                        @empty
+                            <div class="col-span-3 text-center py-4 text-gray-500 font-mono text-xs">No monthly data available.</div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
 
             <!-- Weekly Aggregation (5 cols) -->
-            <div class="lg:col-span-5 bg-[#0e1424] border border-gray-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div class="flex items-center justify-between pb-2 border-b border-gray-800 mb-2">
+            <div class="lg:col-span-5 bg-[#0e1424] border border-gray-800 rounded-xl p-3.5 shadow-md flex flex-col">
+                <div class="flex items-center justify-between pb-2 border-b border-gray-800 mb-2.5">
                     <span class="text-xs font-black tracking-wide text-indigo-400 font-mono flex items-center gap-1.5">
                         <span>🗓️ WEEKLY DRILL-DOWN</span>
+                        <span class="px-1.5 py-0.2 rounded text-[9.5px] bg-indigo-950 text-indigo-300 border border-indigo-800">{{ count($weeklyStats) }} Weeks</span>
                     </span>
                     <span class="text-[10px] text-gray-500 font-mono">Week-by-Week Progress</span>
                 </div>
-                <div class="overflow-y-auto max-h-[145px] divide-y divide-gray-800/60 pr-1 text-xs font-mono">
+                <div class="overflow-y-auto max-h-[310px] pr-1.5 space-y-1.5 font-mono text-xs">
                     @forelse($weeklyStats as $wKey => $wStat)
-                        <div class="py-1.5 flex items-center justify-between">
-                            <div>
-                                <span class="text-white font-bold block">{{ $wStat['week_label'] }}</span>
-                                <span class="text-[10px] text-gray-500">{{ $wStat['total_trades'] }} trades &bull; {{ $wStat['win_days'] }}W / {{ $wStat['loss_days'] }}L</span>
+                        <div class="bg-[#141b2e] border border-gray-800/90 hover:border-gray-700/80 rounded-lg p-2.5 flex items-center justify-between shadow-xs transition">
+                            <div class="space-y-0.5">
+                                <span class="text-white font-bold block text-[11.5px]">{{ $wStat['week_label'] }}</span>
+                                <span class="text-[10px] text-gray-400">
+                                    {{ $wStat['total_trades'] }} trades &bull; 
+                                    <strong class="text-emerald-400">{{ $wStat['win_days'] }}W</strong> / 
+                                    <strong class="text-rose-400">{{ $wStat['loss_days'] }}L</strong>
+                                </span>
                             </div>
                             <div class="text-right">
-                                <span class="font-bold {{ $wStat['net_rupees'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
+                                <span class="font-black text-[12px] block {{ $wStat['net_rupees'] >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
                                     {{ $wStat['net_rupees'] >= 0 ? '+' : '' }}₹{{ number_format($wStat['net_rupees'], 0) }}
                                 </span>
-                                <span class="text-[10px] block text-gray-400">
+                                <span class="text-[10px] text-gray-400 font-medium">
                                     {{ $wStat['net_points'] >= 0 ? '+' : '' }}{{ number_format($wStat['net_points'], 1) }} pts
                                 </span>
                             </div>
