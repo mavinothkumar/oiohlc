@@ -102,6 +102,15 @@
             zoom: var(--cockpit-scale, 1.15);
             transition: zoom 0.15s ease-in-out;
         }
+
+        /* Dark Theme Select Dropdown Options */
+        #trade-drawer-height-select,
+        #trade-drawer-height-select option,
+        #trade-cfg-strategy-mode option,
+        #trade-cfg-lots option {
+            background-color: #101626 !important;
+            color: #e2e8f0 !important;
+        }
     </style>
 @endpush
 
@@ -3010,17 +3019,17 @@
             <!-- Height Presets Dropdown -->
             <div class="flex items-center bg-[#151c2e] border border-gray-700 hover:border-sky-500/60 rounded px-1.5 py-0.5 text-[9.5px] font-mono gap-1 transition" title="Adjust Drawer Height (Persisted in Local Storage)">
                 <span class="text-sky-400 font-bold">↕ H:</span>
-                <select id="trade-drawer-height-select" onchange="setTradeDrawerHeight(this.value)" class="bg-transparent text-sky-200 font-bold focus:outline-none cursor-pointer text-[10px]">
-                    <option value="280">280px</option>
-                    <option value="340">340px</option>
-                    <option value="400">400px</option>
-                    <option value="440" selected>440px</option>
-                    <option value="500">500px</option>
-                    <option value="580">580px</option>
-                    <option value="660">660px</option>
-                    <option value="760">760px</option>
-                    <option value="850">850px</option>
-                    <option value="custom">Custom</option>
+                <select id="trade-drawer-height-select" onchange="setTradeDrawerHeight(this.value)" class="bg-[#101626] text-sky-200 font-bold focus:outline-none cursor-pointer text-[10px] rounded px-0.5 border border-gray-700/60">
+                    <option value="280" class="bg-[#101626] text-white">280px</option>
+                    <option value="340" class="bg-[#101626] text-white">340px</option>
+                    <option value="400" class="bg-[#101626] text-white">400px</option>
+                    <option value="440" selected class="bg-[#101626] text-white">440px</option>
+                    <option value="500" class="bg-[#101626] text-white">500px</option>
+                    <option value="580" class="bg-[#101626] text-white">580px</option>
+                    <option value="660" class="bg-[#101626] text-white">660px</option>
+                    <option value="760" class="bg-[#101626] text-white">760px</option>
+                    <option value="850" class="bg-[#101626] text-white">850px</option>
+                    <option value="custom" class="bg-[#101626] text-sky-300">Custom</option>
                 </select>
             </div>
 
