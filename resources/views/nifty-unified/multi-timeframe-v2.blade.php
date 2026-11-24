@@ -117,7 +117,11 @@
         #trade-cfg-stagnation-mins,
         #trade-cfg-stagnation-mins option,
         #trade-cfg-stagnation-action,
-        #trade-cfg-stagnation-action option {
+        #trade-cfg-stagnation-action option,
+        #trade-cfg-start-time,
+        #trade-cfg-start-time option,
+        #trade-cfg-end-time,
+        #trade-cfg-end-time option {
             color-scheme: dark !important;
             background-color: #101626 !important;
             color: #e2e8f0 !important;
@@ -3077,7 +3081,7 @@
 
     <!-- Quick Settings Dropdown Overlay -->
     <div id="trade-settings-panel" class="hidden bg-[#0e1424] border-b border-gray-700 p-2 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 max-w-full mx-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 max-w-full mx-1">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-sky-400 mb-1 flex items-center gap-1">
@@ -3203,6 +3207,42 @@
                 <div class="text-[9px] text-gray-400 mt-1">45m flat ➔ trails 1 pt for 1 pt move, limiting risk.</div>
             </div>
 
+            <!-- Trading Window Filter Setup -->
+            <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
+                <div class="font-bold text-sky-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">⏰ Trading Window:</span>
+                    <label class="flex items-center gap-1 cursor-pointer text-[10px]">
+                        <input type="checkbox" id="trade-cfg-time-filter-enabled" checked onchange="updateTradeConfig('timeFilterEnabled', this.checked)" class="accent-sky-500">
+                        <span class="text-sky-300 font-bold">Active</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Start Time:</span>
+                        <select id="trade-cfg-start-time" onchange="updateTradeConfig('startTime', this.value)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="09:20">09:20</option>
+                            <option value="09:25">09:25</option>
+                            <option value="09:30">09:30</option>
+                            <option value="09:35" selected>09:35 (Rec)</option>
+                            <option value="09:40">09:40</option>
+                            <option value="09:45">09:45</option>
+                            <option value="10:00">10:00</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">End Time:</span>
+                        <select id="trade-cfg-end-time" onchange="updateTradeConfig('endTime', this.value)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="14:15">14:15</option>
+                            <option value="14:30">14:30</option>
+                            <option value="14:45" selected>14:45 (Rec)</option>
+                            <option value="15:00">15:00</option>
+                            <option value="15:10">15:10</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-[9px] text-gray-400 mt-1">No trades first 15-20m (pre-09:35) or after 14:45 cutoff.</div>
+            </div>
+
             <!-- Exit Factors Toggles -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-purple-400 mb-1 flex items-center gap-1">
@@ -3244,10 +3284,10 @@
 
     <!-- Drawer Body (Collapsible / Expandable with Customizable Height) -->
     <div id="trade-drawer-body" class="p-2 overflow-y-auto bg-[#090d16] flex flex-col gap-2" style="height: 440px; max-height: 440px;">
-        <!-- Main Top Row: Active Trade Card & Exit Matrix -->
+        <!-- Main Top Row: Active Trade Card, Dynamic Entry Matrix & Dynamic Exit Matrix -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 shrink-0">
-            <!-- Left Panel (5 cols): Active Trade & M2M P&L Cockpit -->
-            <div class="lg:col-span-5 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
+            <!-- Left Panel (4 cols): Active Trade & M2M P&L Cockpit -->
+            <div class="lg:col-span-12 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
                 <div id="active-trade-card">
                     <!-- Trade Action & Strategy Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800">
@@ -3347,8 +3387,125 @@
                 </div>
             </div>
 
-            <!-- Right Panel (7 cols): Dynamic Multi-Factor Exit Matrix Checklist Table -->
-            <div class="lg:col-span-7 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
+            <!-- Middle Panel (4 cols): Dynamic Multi-Factor Entry Matrix Checklist Table -->
+            <div id="entry-matrix-card" class="lg:col-span-6 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
+                        <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1">
+                            <span>⚡ DYNAMIC MULTI-FACTOR ENTRY MATRIX</span>
+                        </span>
+                        <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span> • Entry Screener</span>
+                    </div>
+
+                    <!-- Checklist Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-[10.5px]">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-800 text-[9.5px] uppercase">
+                                    <th class="py-1 px-1.5">Factor</th>
+                                    <th class="py-1 px-1.5">Criteria / Threshold</th>
+                                    <th class="py-1 px-1.5">Active Candle State</th>
+                                    <th class="py-1 px-1.5">Status</th>
+                                    <th class="py-1 px-1.5 text-right">Verdict</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entry-matrix-tbody" class="divide-y divide-gray-800/60">
+                                <!-- Factor 1: Session Time Window -->
+                                <tr id="row-em-time">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">1️⃣</span>
+                                        <span>Session Time</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-indigo-300" id="em-f1-criteria">09:35 – 14:45</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f1-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f1-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f1-action">STANDBY</td>
+                                </tr>
+
+                                <!-- Factor 2: Stock Breadth Surge -->
+                                <tr id="row-em-breadth">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">2️⃣</span>
+                                        <span>Stock Breadth</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f2-criteria">≥ 80% Count &amp; Wt</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f2-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f2-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ NEUTRAL</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f2-action">AWAITING SURGE</td>
+                                </tr>
+
+                                <!-- Factor 3: Options Order Flow -->
+                                <tr id="row-em-options">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">3️⃣</span>
+                                        <span>Options Flow</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f3-criteria">≥ 70% Flow Wt</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f3-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f3-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ BALANCED</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f3-action">FLOW MIXED</td>
+                                </tr>
+
+                                <!-- Factor 4: Trending OI Wall Veto -->
+                                <tr id="row-em-oi-veto">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">4️⃣</span>
+                                        <span>OI Wall Veto</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-purple-300" id="em-f4-criteria">&lt; 25% Opposed</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f4-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f4-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ CLEAR</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f4-action">NO RESISTANCE</td>
+                                </tr>
+
+                                <!-- Factor 5: Squeeze Equilibrium -->
+                                <tr id="row-em-squeeze">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">5️⃣</span>
+                                        <span>OI Squeeze</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-emerald-300" id="em-f5-criteria">≤ 15% Tight Band</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f5-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f5-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ WIDE</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f5-action">NORMAL SPREAD</td>
+                                </tr>
+
+                                <!-- Factor 6: Futures 30-Depth Flow -->
+                                <tr id="row-em-depth">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">6️⃣</span>
+                                        <span>30-Depth Flow</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-cyan-300" id="em-f6-criteria">Basis &amp; Delta</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f6-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f6-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STABLE</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f6-action">NEUTRAL</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-2 pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] font-mono text-gray-400">
+                    <span>⚡ Evaluates all 6 entry criteria at each 5M candle close.</span>
+                    <span id="entry-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
+                </div>
+            </div>
+
+            <!-- Right Panel (4 cols): Dynamic Multi-Factor Exit Matrix Checklist Table -->
+            <div id="exit-matrix-card" class="lg:col-span-6 xl:col-span-4 bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
                         <span class="text-xs font-black tracking-wide text-purple-300 flex items-center gap-1">
@@ -14448,7 +14605,10 @@
         stagnationEnabled: true,
         stagnationMins: 45,
         stagnationAction: 'trail_1to1', // 'trail_1to1' | 'square_off'
-        stagnationTrailBuffer: 5        // Buffer in points for 1:1 trail
+        stagnationTrailBuffer: 5,       // Buffer in points for 1:1 trail
+        startTime: '09:35',            // Trading scan starts at 09:35 (skips first 15-20 mins)
+        endTime: '14:45',              // No new trade entries after 14:45
+        timeFilterEnabled: true        // Master toggle for trading window filter
     };
 
     let activeTrade = null;
@@ -14525,6 +14685,19 @@
         const stagBufInp = document.getElementById('trade-cfg-stagnation-buffer');
         if (stagBufInp && tradeEngineConfig.stagnationTrailBuffer) {
             stagBufInp.value = String(tradeEngineConfig.stagnationTrailBuffer);
+        }
+
+        const timeFiltEl = document.getElementById('trade-cfg-time-filter-enabled');
+        if (timeFiltEl && typeof tradeEngineConfig.timeFilterEnabled === 'boolean') {
+            timeFiltEl.checked = tradeEngineConfig.timeFilterEnabled;
+        }
+        const startEl = document.getElementById('trade-cfg-start-time');
+        if (startEl && tradeEngineConfig.startTime) {
+            startEl.value = tradeEngineConfig.startTime;
+        }
+        const endEl = document.getElementById('trade-cfg-end-time');
+        if (endEl && tradeEngineConfig.endTime) {
+            endEl.value = tradeEngineConfig.endTime;
         }
 
         const factorMap = {
@@ -14989,63 +15162,77 @@
                     let isVetoed = false;
                     let vetoReason = '';
 
-                    if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
-                        const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
-                        const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+                    const startTime = tradeEngineConfig.startTime || '09:35';
+                    const endTime = tradeEngineConfig.endTime || '14:45';
+                    const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+                    const isPreOpen = timeFilterActive && (tStr < startTime);
+                    const isPostCutoff = timeFilterActive && (tStr > endTime);
 
-                        if (triggeredDirection === 'BULL') {
-                            if (oiDiffPct <= -vetoTh) {
-                                isVetoed = true;
-                                vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
-                            } else if (Math.abs(oiDiffPct) <= sqzTh) {
-                                setupType = 'SQUEEZE_BREAKOUT';
-                                setupBadge = '🚀 SQUEEZE BREAKOUT';
-                                setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakout Expansion`;
-                            } else if (oiDiffPct >= 20.0) {
-                                setupType = 'GRADE_A_CONFLUENCE';
-                                setupBadge = '🌟 GRADE A+ CONFLUENCE';
-                                setupReason = `Breadth + Put Support Floor (+${oiDiffPct.toFixed(1)}%) Aligned`;
+                    if (isPreOpen || isPostCutoff) {
+                        candleState = 'TIME_FILTER';
+                        const timeLabel = isPreOpen ? `Pre-${startTime} Opening Noise Window` : `Post-${endTime} Session Cutoff Window`;
+                        verdictBadgeHtml = isPreOpen
+                            ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ PRE-09:35 NOISE</span>'
+                            : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                        diagnosticReason = `⏰ ${triggeredDirection} signal formed at ${tStr}, but blocked by ${timeLabel} filter. No new trades allowed outside ${startTime}–${endTime}.`;
+                    } else {
+                        if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
+                            const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+                            const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+
+                            if (triggeredDirection === 'BULL') {
+                                if (oiDiffPct <= -vetoTh) {
+                                    isVetoed = true;
+                                    vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
+                                } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                    setupType = 'SQUEEZE_BREAKOUT';
+                                    setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                    setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakout Expansion`;
+                                } else if (oiDiffPct >= 20.0) {
+                                    setupType = 'GRADE_A_CONFLUENCE';
+                                    setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                    setupReason = `Breadth + Put Support Floor (+${oiDiffPct.toFixed(1)}%) Aligned`;
+                                } else {
+                                    setupType = 'STANDARD';
+                                    setupBadge = '🎯 STANDARD';
+                                    setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                }
                             } else {
-                                setupType = 'STANDARD';
-                                setupBadge = '🎯 STANDARD';
-                                setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                if (oiDiffPct >= vetoTh) {
+                                    isVetoed = true;
+                                    vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
+                                } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                    setupType = 'SQUEEZE_BREAKOUT';
+                                    setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                    setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakdown Expansion`;
+                                } else if (oiDiffPct <= -20.0) {
+                                    setupType = 'GRADE_A_CONFLUENCE';
+                                    setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                    setupReason = `Breadth + Call Writing Ceiling (${oiDiffPct.toFixed(1)}%) Aligned`;
+                                } else {
+                                    setupType = 'STANDARD';
+                                    setupBadge = '🎯 STANDARD';
+                                    setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                }
+                            }
+                        }
+
+                        if (isVetoed) {
+                            candleState = 'VETOED';
+                            verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
+                            diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
+
+                            lastVetoedSignal = {
+                                time: tStr,
+                                direction: triggeredDirection,
+                                reason: vetoReason,
+                                oiDiffPct: oiDiffPct
+                            };
+                            if (i <= upToIndex) {
+                                vetoedSignalAtReplay = { ...lastVetoedSignal };
                             }
                         } else {
-                            if (oiDiffPct >= vetoTh) {
-                                isVetoed = true;
-                                vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
-                            } else if (Math.abs(oiDiffPct) <= sqzTh) {
-                                setupType = 'SQUEEZE_BREAKOUT';
-                                setupBadge = '🚀 SQUEEZE BREAKOUT';
-                                setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakdown Expansion`;
-                            } else if (oiDiffPct <= -20.0) {
-                                setupType = 'GRADE_A_CONFLUENCE';
-                                setupBadge = '🌟 GRADE A+ CONFLUENCE';
-                                setupReason = `Breadth + Call Writing Ceiling (${oiDiffPct.toFixed(1)}%) Aligned`;
-                            } else {
-                                setupType = 'STANDARD';
-                                setupBadge = '🎯 STANDARD';
-                                setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
-                            }
-                        }
-                    }
-
-                    if (isVetoed) {
-                        candleState = 'VETOED';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
-                        diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
-
-                        lastVetoedSignal = {
-                            time: tStr,
-                            direction: triggeredDirection,
-                            reason: vetoReason,
-                            oiDiffPct: oiDiffPct
-                        };
-                        if (i <= upToIndex) {
-                            vetoedSignalAtReplay = { ...lastVetoedSignal };
-                        }
-                    } else {
-                        // Entry executes on OPEN of next candle (i + 1)
+                            // Entry executes on OPEN of next candle (i + 1)
                         const nextCandle = rawCandles[i + 1];
                         const entrySpot = Number(nextCandle.open);
                         const mode = tradeEngineConfig.strategyMode || 'auto';
@@ -15150,7 +15337,23 @@
                         diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                     }
                 } else {
-                    if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
+                    const startTime = tradeEngineConfig.startTime || '09:35';
+                    const endTime = tradeEngineConfig.endTime || '14:45';
+                    const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+
+                    if (i === 0) {
+                        candleState = 'MARKET_OPEN';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-sky-400 border border-sky-800">⚪ MARKET OPEN</span>';
+                        diagnosticReason = `Market open bar (09:15). Establishing baseline S/R levels and institutional positioning.`;
+                    } else if (timeFilterActive && tStr < startTime) {
+                        candleState = 'STANDBY';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-bold">⏰ PRE-09:35 NOISE</span>';
+                        diagnosticReason = `Pre-${startTime} Opening Window: Market settling first 15–20 minutes volatility. No trades taken.`;
+                    } else if (timeFilterActive && tStr > endTime) {
+                        candleState = 'STANDBY';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                        diagnosticReason = `Post-${endTime} Session Cutoff: Late afternoon session closed for new entries. Capital protected.`;
+                    } else if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
                         candleState = 'NEAR_MISS';
                         verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-950/70 text-yellow-300 border border-yellow-700/50">🟡 NEAR-MISS (70%+)</span>';
                         diagnosticReason = `Sub-threshold impulse: Bull ${stkBullCount}% / Bear ${stkBearCount}%. Did not cross the 80% threshold required for disciplined entry.`;
@@ -15158,10 +15361,6 @@
                         candleState = 'DIVERGENCE';
                         verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-orange-950/70 text-orange-300 border border-orange-700/50">🟠 FLOW DIVERGENCE</span>';
                         diagnosticReason = `Divergence: Stock Breadth leans ${stkBullCount > stkBearCount ? 'Bull' : 'Bear'} while Options Flow leans opposite. Trade blocked to avoid whipsaws.`;
-                    } else if (i === 0) {
-                        candleState = 'MARKET_OPEN';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-sky-400 border border-sky-800">⚪ MARKET OPEN</span>';
-                        diagnosticReason = `Market open bar (09:15). Establishing baseline S/R levels and institutional positioning.`;
                     } else {
                         candleState = 'STANDBY';
                         verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ STANDBY (RANGE)</span>';
@@ -15200,6 +15399,7 @@
         // Update UI Cockpit, Matrix & Chart Price Lines
         updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal);
         updateExitMatrixUI(activeTrade);
+        updateEntryMatrixUI(upToIndex);
         updateTradePriceLines(activeTrade);
         renderTelemetryTable();
     }
@@ -15857,6 +16057,278 @@
             }
         }
     }
+    window.updateExitMatrixUI = updateExitMatrixUI;
+
+    function updateEntryMatrixUI(candleIdx) {
+        const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
+        if (!rawCandles || rawCandles.length === 0) return;
+
+        let targetIdx = (typeof candleIdx === 'number' && candleIdx >= 0) ? candleIdx : (activeCandleIndex >= 0 ? activeCandleIndex : rawCandles.length - 1);
+        if (targetIdx >= rawCandles.length) targetIdx = rawCandles.length - 1;
+
+        const candle = rawCandles[targetIdx];
+        const timeBadge = document.getElementById('em-candle-time');
+        const summaryBadge = document.getElementById('entry-engine-summary-badge');
+        if (!candle) {
+            if (timeBadge) timeBadge.textContent = '--:--';
+            if (summaryBadge) {
+                summaryBadge.textContent = 'AWAITING CANDLE DATA';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
+            }
+            return;
+        }
+
+        const tStr = candle.time_str;
+        if (timeBadge) timeBadge.textContent = tStr;
+
+        const startTime = tradeEngineConfig.startTime || '09:35';
+        const endTime = tradeEngineConfig.endTime || '14:45';
+        const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+
+        const b = weightageData?.breadth_by_time?.[tStr];
+        const oB = breadthData?.breadth_by_time?.[tStr];
+        const oiSnap = getTrendingOiSnapshotAtTime(tStr);
+
+        let stkBullCount = b ? Number(b.green_count_pct || 0) : 0;
+        let stkBearCount = b ? Number(b.red_count_pct || 0) : 0;
+        let stkBullWt = b ? Number(b.green_weight || 0) : 0;
+        let stkBearWt = b ? Number(b.red_weight || 0) : 0;
+
+        let optUpWt = oB ? Number(oB.up_weight || 0) : 0;
+        let optDownWt = oB ? Number(oB.down_weight || 0) : 0;
+
+        let oiDiffPct = oiSnap ? oiSnap.diffPctVal : 0;
+
+        // 1. Session Time
+        const f1Crit = document.getElementById('em-f1-criteria');
+        const f1State = document.getElementById('em-f1-state');
+        const f1Status = document.getElementById('em-f1-status');
+        const f1Action = document.getElementById('em-f1-action');
+
+        if (f1Crit) f1Crit.textContent = `${startTime} – ${endTime}`;
+        if (f1State) f1State.textContent = tStr;
+
+        let isTimeAllowed = true;
+        if (timeFilterActive) {
+            if (tStr < startTime) {
+                isTimeAllowed = false;
+                if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ NOISE</span>';
+                if (f1Action) {
+                    f1Action.textContent = `STANDBY (PRE-${startTime})`;
+                    f1Action.className = 'py-1.5 px-1.5 text-right font-bold text-indigo-300';
+                }
+            } else if (tStr > endTime) {
+                isTimeAllowed = false;
+                if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🛑 CUTOFF</span>';
+                if (f1Action) {
+                    f1Action.textContent = `CUTOFF (POST-${endTime})`;
+                    f1Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-300';
+                }
+            } else {
+                if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 OPEN</span>';
+                if (f1Action) {
+                    f1Action.textContent = 'SESSION VALID';
+                    f1Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+                }
+            }
+        } else {
+            if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 OFF</span>';
+            if (f1Action) {
+                f1Action.textContent = 'TIME FILTER OFF';
+                f1Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        }
+
+        // 2. Stock Breadth
+        const f2Crit = document.getElementById('em-f2-criteria');
+        const f2State = document.getElementById('em-f2-state');
+        const f2Status = document.getElementById('em-f2-status');
+        const f2Action = document.getElementById('em-f2-action');
+
+        const sBull = (stkBullCount >= 80 && stkBullWt >= 80);
+        const sBear = (stkBearCount >= 80 && stkBearWt >= 80);
+
+        if (f2State) {
+            f2State.innerHTML = (stkBullCount > stkBearCount)
+                ? `<span class="text-emerald-400">${stkBullCount}% Cnt / ${stkBullWt}% Wt</span>`
+                : (stkBearCount > stkBullCount
+                    ? `<span class="text-rose-400">${stkBearCount}% Cnt / ${stkBearWt}% Wt</span>`
+                    : `<span class="text-gray-400">${stkBullCount}% / ${stkBearCount}%</span>`);
+        }
+
+        if (sBull) {
+            if (f2Status) f2Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 BULL SURGE</span>';
+            if (f2Action) {
+                f2Action.textContent = 'BUY / CALL BIAS';
+                f2Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        } else if (sBear) {
+            if (f2Status) f2Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold">🔴 BEAR SURGE</span>';
+            if (f2Action) {
+                f2Action.textContent = 'SELL / PUT BIAS';
+                f2Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+            }
+        } else {
+            if (f2Status) f2Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ NEUTRAL</span>';
+            if (f2Action) {
+                f2Action.textContent = 'AWAITING 80% SURGE';
+                f2Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // 3. Options Flow
+        const f3State = document.getElementById('em-f3-state');
+        const f3Status = document.getElementById('em-f3-status');
+        const f3Action = document.getElementById('em-f3-action');
+
+        if (f3State) {
+            f3State.innerHTML = (optUpWt >= 70)
+                ? `<span class="text-emerald-400 font-bold">Call ${optUpWt}% Wt</span>`
+                : (optDownWt >= 70
+                    ? `<span class="text-rose-400 font-bold">Put ${optDownWt}% Wt</span>`
+                    : `<span class="text-gray-400">Call ${optUpWt}% / Put ${optDownWt}%</span>`);
+        }
+
+        if (optUpWt >= 70) {
+            if (f3Status) f3Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 CALL FLOW</span>';
+            if (f3Action) {
+                f3Action.textContent = 'CALL CONFLUENCE';
+                f3Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        } else if (optDownWt >= 70) {
+            if (f3Status) f3Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold">🔴 PUT FLOW</span>';
+            if (f3Action) {
+                f3Action.textContent = 'PUT CONFLUENCE';
+                f3Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+            }
+        } else {
+            if (f3Status) f3Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ BALANCED</span>';
+            if (f3Action) {
+                f3Action.textContent = 'FLOW BALANCED';
+                f3Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // 4. Trending OI Wall Veto
+        const f4Crit = document.getElementById('em-f4-criteria');
+        const f4State = document.getElementById('em-f4-state');
+        const f4Status = document.getElementById('em-f4-status');
+        const f4Action = document.getElementById('em-f4-action');
+
+        const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+        if (f4Crit) f4Crit.textContent = `< ${vetoTh}% Opposed`;
+
+        const isBullBias = sBull || (stkBullCount > stkBearCount);
+        const isBearBias = sBear || (stkBearCount > stkBullCount);
+        const isBullVetoed = (sBull && oiDiffPct <= -vetoTh);
+        const isBearVetoed = (sBear && oiDiffPct >= vetoTh);
+
+        if (f4State) {
+            f4State.innerHTML = (oiDiffPct >= 0)
+                ? `<span class="text-emerald-400">+${oiDiffPct.toFixed(1)}% (Put Support)</span>`
+                : `<span class="text-rose-400">${oiDiffPct.toFixed(1)}% (Call Resist)</span>`;
+        }
+
+        if (isBullVetoed || isBearVetoed) {
+            if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VETO WALL</span>';
+            if (f4Action) {
+                f4Action.textContent = 'TRAP DETECTED - VETO';
+                f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+            }
+        } else if ((sBull && oiDiffPct >= 20) || (sBear && oiDiffPct <= -20)) {
+            if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 ALIGNED</span>';
+            if (f4Action) {
+                f4Action.textContent = 'STRONG FLOOR/CEIL';
+                f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        } else {
+            if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ CLEAR</span>';
+            if (f4Action) {
+                f4Action.textContent = 'NO OI RESISTANCE';
+                f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // 5. OI Squeeze
+        const f5Crit = document.getElementById('em-f5-criteria');
+        const f5State = document.getElementById('em-f5-state');
+        const f5Status = document.getElementById('em-f5-status');
+        const f5Action = document.getElementById('em-f5-action');
+
+        const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+        if (f5Crit) f5Crit.textContent = `≤ ${sqzTh}% Tight`;
+
+        const isSqueeze = Math.abs(oiDiffPct) <= sqzTh;
+        if (f5State) {
+            f5State.innerHTML = `<span class="${isSqueeze ? 'text-amber-300 font-bold' : 'text-gray-400'}">Spread: ${Math.abs(oiDiffPct).toFixed(1)}%</span>`;
+        }
+
+        if (isSqueeze) {
+            if (f5Status) f5Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">⚡ SQUEEZE</span>';
+            if (f5Action) {
+                f5Action.textContent = 'BREAKOUT EXPANSION';
+                f5Action.className = 'py-1.5 px-1.5 text-right font-bold text-amber-300';
+            }
+        } else {
+            if (f5Status) f5Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ NORMAL</span>';
+            if (f5Action) {
+                f5Action.textContent = 'WIDE SPREAD';
+                f5Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // 6. 30-Depth Flow
+        const f6State = document.getElementById('em-f6-state');
+        const f6Status = document.getElementById('em-f6-status');
+        const f6Action = document.getElementById('em-f6-action');
+        const basisVal = (typeof basisData !== 'undefined' && basisData?.current_basis !== undefined) 
+            ? Number(basisData.current_basis) : 0;
+
+        if (f6State) f6State.textContent = `Basis: ${basisVal >= 0 ? '+' : ''}${basisVal.toFixed(1)} pts`;
+        if (basisVal > 0) {
+            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 PREMIUM</span>';
+            if (f6Action) {
+                f6Action.textContent = 'FLOW BULLISH';
+                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        } else if (basisVal < -10) {
+            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800">🔴 DISCOUNT</span>';
+            if (f6Action) {
+                f6Action.textContent = 'BASIS CONTRACTION';
+                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+            }
+        } else {
+            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STABLE</span>';
+            if (f6Action) {
+                f6Action.textContent = 'DELTA NEUTRAL';
+                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // Bottom Summary Badge
+        if (summaryBadge) {
+            if (activeTrade && activeTrade.status === 'ACTIVE') {
+                summaryBadge.textContent = `IN ACTIVE TRADE: ${activeTrade.action} ${activeTrade.strike} ${activeTrade.optType}`;
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-600';
+            } else if (!isTimeAllowed) {
+                summaryBadge.textContent = (tStr < startTime) ? `STANDBY (PRE-${startTime} NOISE)` : `STANDBY (POST-${endTime} CUTOFF)`;
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-indigo-950 text-indigo-300 border border-indigo-700';
+            } else if (isBullVetoed || isBearVetoed) {
+                summaryBadge.textContent = 'VETOED: OPPOSING OI WALL';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
+            } else if (sBull && !isBullVetoed) {
+                summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKOUT READY' : '🟢 BULL SIGNAL: CRITERIA MET';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
+            } else if (sBear && !isBearVetoed) {
+                summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKDOWN READY' : '🔴 BEAR SIGNAL: CRITERIA MET';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
+            } else {
+                summaryBadge.textContent = 'SCANNING FOR 80% BREADTH SURGE';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
+            }
+        }
+    }
+    window.updateEntryMatrixUI = updateEntryMatrixUI;
 
     // ══════════════════════════════════════════════════════════════════════════════
     // DOCKED & UNDOCKED (DRAGGABLE & RESIZABLE) DRAWER CONTROLS

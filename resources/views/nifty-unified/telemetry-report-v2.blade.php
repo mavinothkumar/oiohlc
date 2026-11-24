@@ -394,79 +394,103 @@
                 else if (sBear && !oBull) dir = 'BEAR';
 
                 if (dir && i < rawCandles.length - 1) {
-                    let isVetoed = false;
-                    let vetoMsg = '';
-                    let setup = 'STANDARD';
+                    const isPreOpen = (tStr < '09:35');
+                    const isPostCutoff = (tStr > '14:45');
 
-                    if (dir === 'BULL') {
-                        if (oiDiffPct <= -25) {
-                            isVetoed = true;
-                            vetoMsg = `Opposing Call Writing Wall (${Math.abs(oiDiffPct).toFixed(1)}%) overhead`;
-                        } else if (Math.abs(oiDiffPct) <= 15) {
-                            setup = 'SQUEEZE_BREAKOUT';
-                        } else if (oiDiffPct >= 20) {
-                            setup = 'GRADE_A_CONFLUENCE';
-                        }
+                    if (isPreOpen || isPostCutoff) {
+                        candleState = 'TIME_FILTER';
+                        verdictBadge = isPreOpen
+                            ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ PRE-09:35 NOISE</span>'
+                            : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                        verdictText = isPreOpen ? 'Pre-09:35 Window' : 'Post-14:45 Cutoff';
+                        diagnosticReason = isPreOpen
+                            ? `⏰ ${dir} signal formed at ${tStr}, but blocked by Pre-09:35 Opening Noise filter. No trading first 15-20 minutes.`
+                            : `⏰ ${dir} signal formed at ${tStr}, but blocked by Post-14:45 Session Cutoff filter. No new trades allowed.`;
                     } else {
-                        if (oiDiffPct >= 25) {
-                            isVetoed = true;
-                            vetoMsg = `Opposing Put Writing Floor (+${oiDiffPct.toFixed(1)}%) below`;
-                        } else if (Math.abs(oiDiffPct) <= 15) {
-                            setup = 'SQUEEZE_BREAKOUT';
-                        } else if (oiDiffPct <= -20) {
-                            setup = 'GRADE_A_CONFLUENCE';
+                        let isVetoed = false;
+                        let vetoMsg = '';
+                        let setup = 'STANDARD';
+
+                        if (dir === 'BULL') {
+                            if (oiDiffPct <= -25) {
+                                isVetoed = true;
+                                vetoMsg = `Opposing Call Writing Wall (${Math.abs(oiDiffPct).toFixed(1)}%) overhead`;
+                            } else if (Math.abs(oiDiffPct) <= 15) {
+                                setup = 'SQUEEZE_BREAKOUT';
+                            } else if (oiDiffPct >= 20) {
+                                setup = 'GRADE_A_CONFLUENCE';
+                            }
+                        } else {
+                            if (oiDiffPct >= 25) {
+                                isVetoed = true;
+                                vetoMsg = `Opposing Put Writing Floor (+${oiDiffPct.toFixed(1)}%) below`;
+                            } else if (Math.abs(oiDiffPct) <= 15) {
+                                setup = 'SQUEEZE_BREAKOUT';
+                            } else if (oiDiffPct <= -20) {
+                                setup = 'GRADE_A_CONFLUENCE';
+                            }
                         }
-                    }
 
-                    if (isVetoed) {
-                        vetoCount++;
-                        candleState = 'VETOED';
-                        verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
-                        verdictText = 'Vetoed by OI Wall';
-                        diagnosticReason = `${dir} impulse reached 80% breadth, but rejected due to ${vetoMsg}. Protected from false breakout.`;
-                    } else {
-                        if (setup === 'SQUEEZE_BREAKOUT') squeezeCount++;
-                        candleState = 'ENTRY_TRIGGERED';
-                        verdictBadge = (setup === 'SQUEEZE_BREAKOUT')
-                            ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-600/70 font-bold">🚀 SQUEEZE BREAKOUT</span>'
-                            : (setup === 'GRADE_A_CONFLUENCE'
-                                ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-600/70 font-bold">🌟 GRADE A+ CONFLUENCE</span>'
-                                : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700 font-bold">🎯 TRADE ENTRY</span>');
-                        verdictText = `${dir} Entry Queued`;
-                        diagnosticReason = `High-probability ${dir} signal validated. OI Skew: ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%. Order executed at open of next candle (${rawCandles[i+1].time_str}).`;
+                        if (isVetoed) {
+                            vetoCount++;
+                            candleState = 'VETOED';
+                            verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
+                            verdictText = 'Vetoed by OI Wall';
+                            diagnosticReason = `${dir} impulse reached 80% breadth, but rejected due to ${vetoMsg}. Protected from false breakout.`;
+                        } else {
+                            if (setup === 'SQUEEZE_BREAKOUT') squeezeCount++;
+                            candleState = 'ENTRY_TRIGGERED';
+                            verdictBadge = (setup === 'SQUEEZE_BREAKOUT')
+                                ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-600/70 font-bold">🚀 SQUEEZE BREAKOUT</span>'
+                                : (setup === 'GRADE_A_CONFLUENCE'
+                                    ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-600/70 font-bold">🌟 GRADE A+ CONFLUENCE</span>'
+                                    : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700 font-bold">🎯 TRADE ENTRY</span>');
+                            verdictText = `${dir} Entry Queued`;
+                            diagnosticReason = `High-probability ${dir} signal validated. OI Skew: ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%. Order executed at open of next candle (${rawCandles[i+1].time_str}).`;
 
-                        // Instantiate trade for subsequent candles
-                        const nextOpen = Number(rawCandles[i+1].open);
-                        const atmStrike = Math.round(nextOpen / 100) * 100;
-                        const baseSl = (dir === 'BULL') ? cLow : cHigh;
-                        const riskPts = Math.max(Math.abs(nextOpen - baseSl), 20.0);
-                        currentTrade = {
-                            id: `T_${rawCandles[i+1].time_str}`,
-                            direction: dir,
-                            action: 'SELL',
-                            optType: (dir === 'BULL') ? 'PE' : 'CE',
-                            strike: (dir === 'BULL') ? atmStrike - 100 : atmStrike + 100,
-                            entryIndex: i + 1,
-                            entrySpot: nextOpen,
-                            entryOptPrice: 85.0,
-                            currentSl: baseSl,
-                            baseSl: baseSl,
-                            riskPts: riskPts,
-                            t1: (dir === 'BULL') ? nextOpen + (riskPts * 1.2) : nextOpen - (riskPts * 1.2),
-                            t2: (dir === 'BULL') ? nextOpen + (riskPts * 2.2) : nextOpen - (riskPts * 2.2),
-                            t3: (dir === 'BULL') ? nextOpen + (riskPts * 3.2) : nextOpen - (riskPts * 3.2),
-                            t1Hit: false,
-                            t2Hit: false,
-                            t3Hit: false,
-                            entryLots: 3,
-                            openLots: 3,
-                            lotSize: 65,
-                            bookedPnlRupees: 0
-                        };
+                            // Instantiate trade for subsequent candles
+                            const nextOpen = Number(rawCandles[i+1].open);
+                            const atmStrike = Math.round(nextOpen / 100) * 100;
+                            const baseSl = (dir === 'BULL') ? cLow : cHigh;
+                            const riskPts = Math.max(Math.abs(nextOpen - baseSl), 20.0);
+                            currentTrade = {
+                                id: `T_${rawCandles[i+1].time_str}`,
+                                direction: dir,
+                                action: 'SELL',
+                                optType: (dir === 'BULL') ? 'PE' : 'CE',
+                                strike: (dir === 'BULL') ? atmStrike - 100 : atmStrike + 100,
+                                entryIndex: i + 1,
+                                entrySpot: nextOpen,
+                                entryOptPrice: 85.0,
+                                currentSl: baseSl,
+                                baseSl: baseSl,
+                                riskPts: riskPts,
+                                t1: (dir === 'BULL') ? nextOpen + (riskPts * 1.2) : nextOpen - (riskPts * 1.2),
+                                t2: (dir === 'BULL') ? nextOpen + (riskPts * 2.2) : nextOpen - (riskPts * 2.2),
+                                t3: (dir === 'BULL') ? nextOpen + (riskPts * 3.2) : nextOpen - (riskPts * 3.2),
+                                t1Hit: false,
+                                t2Hit: false,
+                                t3Hit: false,
+                                entryLots: 3,
+                                openLots: 3,
+                                lotSize: 65,
+                                bookedPnlRupees: 0
+                            };
+                        }
                     }
                 } else {
                     // Check near-miss or balanced standby
-                    if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
+                    if (tStr < '09:35') {
+                        candleState = 'STANDBY';
+                        verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-bold">⏰ PRE-09:35 NOISE</span>';
+                        verdictText = 'Opening Window';
+                        diagnosticReason = 'Pre-09:35 Opening Window: Market settling first 15–20 minutes volatility. No trades taken.';
+                    } else if (tStr > '14:45') {
+                        candleState = 'STANDBY';
+                        verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                        verdictText = 'Session Cutoff';
+                        diagnosticReason = 'Post-14:45 Session Cutoff: Late afternoon session closed for new entries. Capital protected.';
+                    } else if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
                         nearMissCount++;
                         candleState = 'NEAR_MISS';
                         verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-950/70 text-yellow-300 border border-yellow-700/50">🟡 NEAR-MISS (70%+)</span>';
