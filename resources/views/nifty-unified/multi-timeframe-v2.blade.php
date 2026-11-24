@@ -584,6 +584,9 @@
                                 <button type="button" onclick="cycleWeightageSuperTrendMode()" id="w-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
                                     ST
                                 </button>
+                                <button type="button" onclick="toggleWeightageVwapMode()" id="w-tv-vwap" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs" title="Thick VWAP Line (On / Off)">
+                                    VW
+                                </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
                                 <button type="button" onclick="clearWeightageManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Weightage Chart">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -964,6 +967,9 @@
                                 </button>
                                 <button type="button" onclick="cycleOptionsSuperTrendMode()" id="o-tv-st" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 font-mono text-[9px] font-black cursor-pointer" title="SuperTrend Indicator (10,3 / 10,2 / Off)">
                                     ST
+                                </button>
+                                <button type="button" onclick="toggleOptionsVwapMode()" id="o-tv-vwap" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs" title="Thick VWAP Line (On / Off)">
+                                    VW
                                 </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
                                 <button type="button" onclick="clearOptionsManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Options Chart">
@@ -3093,7 +3099,7 @@
 
     <!-- Quick Settings Dropdown Overlay -->
     <div id="trade-settings-panel" class="hidden bg-[#0e1424] border-b border-gray-700 p-2 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 max-w-full mx-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 max-w-full mx-1">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-sky-400 mb-1 flex items-center justify-between">
@@ -3269,6 +3275,52 @@
                     </div>
                 </div>
                 <div class="text-[9px] text-gray-400 mt-1">No trades first 15-20m (pre-09:35) or after 14:45 cutoff.</div>
+            </div>
+
+            <!-- Active Entry Factors Toggles -->
+            <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
+                <div class="font-bold text-sky-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">⚡ Active Entry Checks:</span>
+                    <button type="button" onclick="toggleAllEntryFactors()" class="text-[9px] text-gray-400 hover:text-white underline cursor-pointer">Toggle</button>
+                </div>
+                <div class="grid grid-cols-2 gap-1 text-[10px]">
+                    <label class="flex items-center gap-1 cursor-pointer" title="F1: Session Time (09:35 - 14:45)">
+                        <input type="checkbox" id="cfg-entry-f1-time" checked onchange="updateTradeConfig('entry_f1_time', this.checked)" class="accent-sky-500">
+                        <span>F1: Time Window</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F2: Stock Breadth (> 18/12 Count & Wt)">
+                        <input type="checkbox" id="cfg-entry-f2-breadth" checked onchange="updateTradeConfig('entry_f2_breadth', this.checked)" class="accent-sky-500">
+                        <span>F2: Stock Breadth</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F3: Options Flow (≥ 70% Flow Str)">
+                        <input type="checkbox" id="cfg-entry-f3-options" checked onchange="updateTradeConfig('entry_f3_options', this.checked)" class="accent-sky-500">
+                        <span>F3: Options Flow</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F4: OI Wall Veto (< 20-25% Opposed)">
+                        <input type="checkbox" id="cfg-entry-f4-oi-veto" checked onchange="updateTradeConfig('entry_f4_oi_veto', this.checked)" class="accent-sky-500">
+                        <span>F4: OI Wall Veto</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F5: OI Squeeze Breakout (≤ 15% Tight)">
+                        <input type="checkbox" id="cfg-entry-f5-squeeze" checked onchange="updateTradeConfig('entry_f5_squeeze', this.checked)" class="accent-sky-500">
+                        <span>F5: OI Squeeze</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F6: 30-Depth Flow Ratio & Delta">
+                        <input type="checkbox" id="cfg-entry-f6-depth" checked onchange="updateTradeConfig('entry_f6_depth', this.checked)" class="accent-sky-500">
+                        <span>F6: 30-Depth Flow</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F7: Breakout Confirmation (i+1 H/L Break)">
+                        <input type="checkbox" id="cfg-entry-f7-breakout" checked onchange="updateTradeConfig('entry_f7_breakout', this.checked)" class="accent-sky-500">
+                        <span>F7: Breakout Conf</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer" title="F8: Daily Session Cap (Max 2 Trades)">
+                        <input type="checkbox" id="cfg-entry-f8-daily-cap" checked onchange="updateTradeConfig('entry_f8_daily_cap', this.checked)" class="accent-sky-500">
+                        <span>F8: Daily Cap (2/2)</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer col-span-2" title="F9: VWAP Trend Filter (Bull >= VWAP / Bear <= VWAP)">
+                        <input type="checkbox" id="cfg-entry-f9-vwap" checked onchange="updateTradeConfig('entry_f9_vwap', this.checked)" class="accent-fuchsia-500">
+                        <span class="text-fuchsia-300 font-bold">F9: VWAP Trend Filter</span>
+                    </label>
+                </div>
             </div>
 
             <!-- Exit Factors Toggles -->
@@ -3622,13 +3674,27 @@
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="em-f8-action">READY</td>
                                 </tr>
+
+                                <!-- Factor 9: VWAP Trend Filter -->
+                                <tr id="row-em-vwap">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">9️⃣</span>
+                                        <span>VWAP Trend Filter</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-fuchsia-300" id="em-f9-criteria">Bull ≥ VWAP / Bear ≤ VWAP</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f9-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f9-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f9-action">STANDBY</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <div class="mt-2 pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] font-mono text-gray-400">
-                    <span>⚡ Evaluates all 8 entry &amp; breakout confirmation criteria at each 5M candle close.</span>
+                    <span>⚡ Evaluates all 9 entry &amp; breakout confirmation criteria at each 5M candle close.</span>
                     <span id="entry-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
                 </div>
             </div>
@@ -4176,10 +4242,12 @@
     let wCandleSeries = null;
     let wStBullSeries = null;
     let wStBearSeries = null;
+    let wVwapSeries = null;
     let oChart = null;
     let oCandleSeries = null;
     let oStBullSeries = null;
     let oStBearSeries = null;
+    let oVwapSeries = null;
     let toiChartInstance = null;
     let buildupChartInstance = null;
 
@@ -4207,12 +4275,14 @@
     // Decoupled TradingView Dock & Overlay Settings per chart
     let wTvSettings = {
         superTrend: localStorage.getItem('nifty_unified_w_st_mode') || 'off', // 'off', '10_3', '10_2'
+        vwap: localStorage.getItem('nifty_unified_w_vwap_mode') || 'on', // 'on', 'off'
         fibMode: localStorage.getItem('nifty_unified_w_fib_mode') || 'off', // 'off', 'auto', 'manual'
         manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_w_manual_fib') || 'null'),
         manualHLines: JSON.parse(localStorage.getItem('nifty_unified_w_manual_hlines') || '[]'),
     };
     let oTvSettings = {
         superTrend: localStorage.getItem('nifty_unified_o_st_mode') || 'off', // 'off', '10_3', '10_2'
+        vwap: localStorage.getItem('nifty_unified_o_vwap_mode') || 'on', // 'on', 'off'
         fibMode: localStorage.getItem('nifty_unified_o_fib_mode') || 'off', // 'off', 'auto', 'manual'
         manualFibPoints: JSON.parse(localStorage.getItem('nifty_unified_o_manual_fib') || 'null'),
         manualHLines: JSON.parse(localStorage.getItem('nifty_unified_o_manual_hlines') || '[]'),
@@ -6714,6 +6784,26 @@
     }
     window.cycleSuperTrendMode = cycleSuperTrendMode;
 
+    function toggleWeightageVwapMode() {
+        wTvSettings.vwap = (wTvSettings.vwap === 'off') ? 'on' : 'off';
+        try {
+            localStorage.setItem('nifty_unified_w_vwap_mode', wTvSettings.vwap);
+        } catch(e){}
+        updateTvToolsUI();
+        renderWeightageVwap();
+    }
+    window.toggleWeightageVwapMode = toggleWeightageVwapMode;
+
+    function toggleOptionsVwapMode() {
+        oTvSettings.vwap = (oTvSettings.vwap === 'off') ? 'on' : 'off';
+        try {
+            localStorage.setItem('nifty_unified_o_vwap_mode', oTvSettings.vwap);
+        } catch(e){}
+        updateTvToolsUI();
+        renderOptionsVwap();
+    }
+    window.toggleOptionsVwapMode = toggleOptionsVwapMode;
+
     function cycleWeightageFibMode() {
         let cur = wTvSettings.fibMode;
         let next = 'off';
@@ -7019,22 +7109,26 @@
         const wBtnHline = document.getElementById('w-tv-hline');
         const wBtnFib = document.getElementById('w-tv-fib');
         const wBtnSt = document.getElementById('w-tv-st');
+        const wBtnVwap = document.getElementById('w-tv-vwap');
 
         if (wBtnPointer) wBtnPointer.className = (wActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
         if (wBtnHline) wBtnHline.className = (wActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
         if (wBtnFib) wBtnFib.className = (wActiveTvTool === 'fib_manual' || wTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (wBtnSt) wBtnSt.className = (wTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+        if (wBtnVwap) wBtnVwap.className = (wTvSettings.vwap !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs' : toolClasses.inactive;
 
         // Row 2 dock
         const oBtnPointer = document.getElementById('o-tv-pointer');
         const oBtnHline = document.getElementById('o-tv-hline');
         const oBtnFib = document.getElementById('o-tv-fib');
         const oBtnSt = document.getElementById('o-tv-st');
+        const oBtnVwap = document.getElementById('o-tv-vwap');
 
         if (oBtnPointer) oBtnPointer.className = (oActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
         if (oBtnHline) oBtnHline.className = (oActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
         if (oBtnFib) oBtnFib.className = (oActiveTvTool === 'fib_manual' || oTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (oBtnSt) oBtnSt.className = (oTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
+        if (oBtnVwap) oBtnVwap.className = (oTvSettings.vwap !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs' : toolClasses.inactive;
 
         updateTvHint();
     }
@@ -7167,6 +7261,74 @@
     function renderSuperTrendOverlays() {
         renderWeightageSuperTrend();
         renderOptionsSuperTrend();
+    }
+
+    // ── Intraday Volume-Weighted Average Price (VWAP) Calculation ──
+    function calculateIntradayVwap(candles) {
+        if (!candles || candles.length === 0) return [];
+        let cumTpVol = 0;
+        let cumVol = 0;
+        const vwapPoints = [];
+
+        for (let i = 0; i < candles.length; i++) {
+            const c = candles[i];
+            const high = Number(c.high);
+            const low = Number(c.low);
+            const close = Number(c.close);
+            const vol = (Number(c.volume) > 0) ? Number(c.volume) : 1;
+            const tp = (high + low + close) / 3;
+
+            cumTpVol += (tp * vol);
+            cumVol += vol;
+
+            const vwap = cumVol > 0 ? (cumTpVol / cumVol) : close;
+            const timeVal = Number(c.time || c.timestamp);
+
+            vwapPoints.push({
+                time: timeVal,
+                value: Math.round(vwap * 100) / 100
+            });
+        }
+        return vwapPoints;
+    }
+
+    function renderWeightageVwap() {
+        if (!wVwapSeries) return;
+        if (wTvSettings.vwap === 'off') {
+            wVwapSeries.setData([]);
+            return;
+        }
+        const allCandles = (wCandleStyle === 'heikin_ashi' && window._unifiedHaCandles && window._unifiedHaCandles.length > 0)
+            ? window._unifiedHaCandles
+            : (window._unifiedAllCandles || (weightageData?.candles || weightageData?.nifty_candles) || []);
+        if (!allCandles || allCandles.length === 0) {
+            wVwapSeries.setData([]);
+            return;
+        }
+        const vwapData = calculateIntradayVwap(allCandles);
+        wVwapSeries.setData(vwapData);
+    }
+
+    function renderOptionsVwap() {
+        if (!oVwapSeries) return;
+        if (oTvSettings.vwap === 'off') {
+            oVwapSeries.setData([]);
+            return;
+        }
+        const allCandles = (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0)
+            ? window._unifiedOptionsHaCandles
+            : (window._unifiedOptionsCandles || (breadthData?.candles || breadthData?.nifty_candles) || []);
+        if (!allCandles || allCandles.length === 0) {
+            oVwapSeries.setData([]);
+            return;
+        }
+        const vwapData = calculateIntradayVwap(allCandles);
+        oVwapSeries.setData(vwapData);
+    }
+
+    function renderVwapOverlays() {
+        renderWeightageVwap();
+        renderOptionsVwap();
     }
 
     // ── Fibonacci Retracement Rendering ──
@@ -7340,12 +7502,14 @@
 
     function renderWeightageOverlays() {
         renderWeightageSuperTrend();
+        renderWeightageVwap();
         renderWeightageFibonacci();
         renderWeightageManualHLines();
     }
 
     function renderOptionsOverlays() {
         renderOptionsSuperTrend();
+        renderOptionsVwap();
         renderOptionsFibonacci();
         renderOptionsManualHLines();
     }
@@ -8774,6 +8938,16 @@
                 crosshairMarkerVisible: false,
             });
 
+            // VWAP Line Series (Thick Vibrant Fuchsia Line)
+            wVwapSeries = wChart.addLineSeries({
+                color: '#d946ef',
+                lineWidth: 3,
+                priceLineVisible: true,
+                lastValueVisible: true,
+                crosshairMarkerVisible: true,
+                title: 'VWAP',
+            });
+
             wChart.subscribeClick(param => {
                 if (wActiveTvTool === 'hline') {
                     if (param && param.point) {
@@ -8849,6 +9023,16 @@
                 priceLineVisible: false,
                 lastValueVisible: false,
                 crosshairMarkerVisible: false,
+            });
+
+            // VWAP Line Series (Thick Vibrant Fuchsia Line)
+            oVwapSeries = oChart.addLineSeries({
+                color: '#d946ef',
+                lineWidth: 3,
+                priceLineVisible: true,
+                lastValueVisible: true,
+                crosshairMarkerVisible: true,
+                title: 'VWAP',
             });
 
             oChart.subscribeClick(param => {
@@ -14911,6 +15095,15 @@
         f5_depth: true,
         f6_greeks: true,
         f7_stagnation: true,
+        entry_f1_time: true,
+        entry_f2_breadth: true,
+        entry_f3_options: true,
+        entry_f4_oi_veto: true,
+        entry_f5_squeeze: true,
+        entry_f6_depth: true,
+        entry_f7_breakout: true,
+        entry_f8_daily_cap: true,
+        entry_f9_vwap: true,
         historyMode: 'active', // 'active' | 'all'
         oiFilterEnabled: true, // Enable Trending OI filter
         oiVetoThreshold: 25,   // Opposing OI Diff % to Veto entry (e.g. 25%)
@@ -15040,12 +15233,45 @@
             }
         });
 
+        const entryFactorMap = {
+            'cfg-entry-f1-time': 'entry_f1_time',
+            'cfg-entry-f2-breadth': 'entry_f2_breadth',
+            'cfg-entry-f3-options': 'entry_f3_options',
+            'cfg-entry-f4-oi-veto': 'entry_f4_oi_veto',
+            'cfg-entry-f5-squeeze': 'entry_f5_squeeze',
+            'cfg-entry-f6-depth': 'entry_f6_depth',
+            'cfg-entry-f7-breakout': 'entry_f7_breakout',
+            'cfg-entry-f8-daily-cap': 'entry_f8_daily_cap',
+            'cfg-entry-f9-vwap': 'entry_f9_vwap',
+        };
+        Object.entries(entryFactorMap).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && typeof tradeEngineConfig[key] === 'boolean') {
+                el.checked = tradeEngineConfig[key];
+            }
+        });
+
         const histTxt = document.getElementById('trade-history-mode-text');
         if (histTxt) histTxt.textContent = (tradeEngineConfig.historyMode === 'all') ? 'All Trades' : 'Active Only';
 
         updateTradeSettingsBadges();
     }
     window.syncTradeSettingsInputs = syncTradeSettingsInputs;
+
+    function toggleAllEntryFactors() {
+        const keys = ['entry_f1_time', 'entry_f2_breadth', 'entry_f3_options', 'entry_f4_oi_veto', 'entry_f5_squeeze', 'entry_f6_depth', 'entry_f7_breakout', 'entry_f8_daily_cap', 'entry_f9_vwap'];
+        const anyOff = keys.some(k => tradeEngineConfig[k] === false);
+        const newState = anyOff;
+        keys.forEach(k => {
+            tradeEngineConfig[k] = newState;
+        });
+        syncTradeSettingsInputs();
+        try { localStorage.setItem('trade_engine_v2_cfg', JSON.stringify(tradeEngineConfig)); } catch (e) {}
+        if (timestampsList && timestampsList.length > 0 && activeCandleIndex >= 0) {
+            runHighProbabilityTradeEngine(activeCandleIndex, timestampsList[activeCandleIndex]);
+        }
+    }
+    window.toggleAllEntryFactors = toggleAllEntryFactors;
 
     function updateTradeConfig(key, value) {
         tradeEngineConfig[key] = value;
@@ -15202,7 +15428,7 @@
         let pendingBreakout = null;
         let executedSignalsCount = 0;
         const maxDailyLimit = (Number(tradeEngineConfig.maxDailyTrades) !== undefined && !isNaN(Number(tradeEngineConfig.maxDailyTrades))) ? Number(tradeEngineConfig.maxDailyTrades) : 2;
-        const requireBreakout = (tradeEngineConfig.breakoutConfirmed !== false);
+        const requireBreakout = (tradeEngineConfig.entry_f7_breakout !== false && tradeEngineConfig.breakoutConfirmed !== false);
         const telemetryLogs = [];
 
         let activeTradeAtReplay = null;
@@ -15210,6 +15436,9 @@
         let pendingBreakoutAtReplay = null;
         let executedTradesAtReplay = 0;
         let replaySessionTrades = [];
+        let runningCumTpVol = 0;
+        let runningCumVol = 0;
+        let lastCalculatedVwap = 0;
 
         for (let i = 0; i < rawCandles.length; i++) {
             const candle = rawCandles[i];
@@ -15219,6 +15448,14 @@
             const cHigh = Number(candle.high);
             const cLow = Number(candle.low);
             const cClose = Number(candle.close);
+
+            // Cumulative Intraday VWAP Calculation
+            const cVol = (Number(candle.volume) > 0) ? Number(candle.volume) : 1;
+            const cTp = (cHigh + cLow + cClose) / 3;
+            runningCumTpVol += (cTp * cVol);
+            runningCumVol += cVol;
+            const curVwap = runningCumVol > 0 ? (runningCumTpVol / runningCumVol) : cClose;
+            if (i === upToIndex) lastCalculatedVwap = curVwap;
 
             const b = weightageData?.breadth_by_time?.[tStr];
             const oB = breadthData?.breadth_by_time?.[tStr];
@@ -15684,6 +15921,7 @@
                 else if (isStkBear) { triggeredDirection = 'BEAR'; isConf = false; }
 
                 if (triggeredDirection) {
+                    const isSessionLocked = (tradeEngineConfig.entry_f8_daily_cap !== false && maxDailyLimit > 0 && executedSignalsCount >= maxDailyLimit);
                     if (isSessionLocked) {
                         candleState = 'DAILY_CAP_LOCKED';
                         verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-amber-400 border border-amber-600/70 font-bold">🛑 2/2 DAILY CAP</span>';
@@ -15697,7 +15935,7 @@
 
                         const startTime = tradeEngineConfig.startTime || '09:35';
                         const endTime = tradeEngineConfig.endTime || '14:45';
-                        const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+                        const timeFilterActive = (tradeEngineConfig.entry_f1_time !== false && tradeEngineConfig.timeFilterEnabled !== false);
                         const isPreOpen = timeFilterActive && (tStr < startTime);
                         const isPostCutoff = timeFilterActive && (tStr > endTime);
 
@@ -15709,7 +15947,7 @@
                                 : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
                             diagnosticReason = `⏰ ${triggeredDirection} signal formed at ${tStr}, but blocked by ${timeLabel} filter. No new trades allowed outside ${startTime}–${endTime}.`;
                         } else {
-                            if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
+                            if (tradeEngineConfig.entry_f4_oi_veto !== false && tradeEngineConfig.oiFilterEnabled && oiSnap) {
                                 const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
                                 const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
 
@@ -15747,6 +15985,17 @@
                                         setupBadge = '🎯 STANDARD';
                                         setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
                                     }
+                                }
+                            }
+
+                            // VWAP Trend Alignment Filter Check (Factor 9)
+                            if (!isVetoed && tradeEngineConfig.entry_f9_vwap !== false) {
+                                if (triggeredDirection === 'BULL' && cClose < curVwap) {
+                                    isVetoed = true;
+                                    vetoReason = `Blocked by VWAP: Spot (${cClose.toFixed(1)}) is BELOW VWAP (${curVwap.toFixed(1)})`;
+                                } else if (triggeredDirection === 'BEAR' && cClose > curVwap) {
+                                    isVetoed = true;
+                                    vetoReason = `Blocked by VWAP: Spot (${cClose.toFixed(1)}) is ABOVE VWAP (${curVwap.toFixed(1)})`;
                                 }
                             }
 
@@ -15960,7 +16209,7 @@
         // Update UI Cockpit, Matrix & Chart Price Lines
         updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal, activePendingBreakout, executedTradesAtReplay);
         updateExitMatrixUI(activeTrade);
-        updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay);
+        updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap);
         updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
     }
@@ -16765,7 +17014,7 @@
     }
     window.updateExitMatrixUI = updateExitMatrixUI;
 
-    function updateEntryMatrixUI(candleIdx, pendingBreakout = null, executedTradesCount = 0) {
+    function updateEntryMatrixUI(candleIdx, pendingBreakout = null, executedTradesCount = 0, currentVwap = null) {
         const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
         if (!rawCandles || rawCandles.length === 0) return;
 
@@ -16789,7 +17038,7 @@
 
         const startTime = tradeEngineConfig.startTime || '09:35';
         const endTime = tradeEngineConfig.endTime || '14:45';
-        const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+        const timeFilterActive = tradeEngineConfig.entry_f1_time !== false && tradeEngineConfig.timeFilterEnabled !== false;
 
         const b = weightageData?.breadth_by_time?.[tStr];
         const oB = breadthData?.breadth_by_time?.[tStr];
@@ -16805,6 +17054,20 @@
 
         let oiDiffPct = oiSnap ? oiSnap.diffPctVal : 0;
 
+        // Resolve or Calculate VWAP up to targetIdx
+        let vwapVal = currentVwap;
+        if (!vwapVal || vwapVal <= 0) {
+            let cumTpVol = 0, cumVol = 0;
+            for (let k = 0; k <= targetIdx; k++) {
+                const rc = rawCandles[k];
+                const rVol = (Number(rc.volume) > 0) ? Number(rc.volume) : 1;
+                const rTp = (Number(rc.high) + Number(rc.low) + Number(rc.close)) / 3;
+                cumTpVol += (rTp * rVol);
+                cumVol += rVol;
+            }
+            vwapVal = cumVol > 0 ? (cumTpVol / cumVol) : Number(candle.close);
+        }
+
         // 1. Session Time
         const f1Crit = document.getElementById('em-f1-criteria');
         const f1State = document.getElementById('em-f1-state');
@@ -16815,7 +17078,13 @@
         if (f1State) f1State.textContent = tStr;
 
         let isTimeAllowed = true;
-        if (timeFilterActive) {
+        if (tradeEngineConfig.entry_f1_time === false) {
+            if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ BYPASS</span>';
+            if (f1Action) {
+                f1Action.textContent = 'BYPASSED';
+                f1Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-500';
+            }
+        } else if (timeFilterActive) {
             if (tStr < startTime) {
                 isTimeAllowed = false;
                 if (f1Status) f1Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ NOISE</span>';
@@ -16935,7 +17204,13 @@
                 : `<span class="text-rose-400">${oiDiffPct.toFixed(1)}% (Call Resist)</span>`;
         }
 
-        if (isBullVetoed || isBearVetoed) {
+        if (tradeEngineConfig.entry_f4_oi_veto === false) {
+            if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ BYPASS</span>';
+            if (f4Action) {
+                f4Action.textContent = 'BYPASSED';
+                f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-500';
+            }
+        } else if (isBullVetoed || isBearVetoed) {
             if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VETO WALL</span>';
             if (f4Action) {
                 f4Action.textContent = 'TRAP DETECTED - VETO';
@@ -17018,7 +17293,14 @@
         const f7Action = document.getElementById('em-f7-action');
 
         if (f7Crit) f7Crit.textContent = 'High/Low Break (i+1)';
-        if (pendingBreakout) {
+        if (tradeEngineConfig.entry_f7_breakout === false) {
+            if (f7State) f7State.textContent = 'Bypassed (Immediate)';
+            if (f7Status) f7Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ BYPASS</span>';
+            if (f7Action) {
+                f7Action.textContent = 'IMMEDIATE ENTRY';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-500';
+            }
+        } else if (pendingBreakout) {
             const isBull = (pendingBreakout.direction === 'BULL');
             if (f7State) f7State.innerHTML = `<span class="text-amber-400 font-bold">${isBull ? 'High ≥ ' : 'Low ≤ '}${pendingBreakout.triggerPrice.toFixed(2)}</span>`;
             if (f7Status) f7Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold animate-pulse">⚡ AWAITING</span>';
@@ -17056,7 +17338,13 @@
         if (f8Crit) f8Crit.textContent = maxTrades > 0 ? `≤ ${maxTrades} Trades / Day` : 'No Limit';
         if (f8State) f8State.innerHTML = `<span class="${(maxTrades > 0 && executedTradesCount >= maxTrades) ? 'text-rose-400 font-bold' : 'text-gray-300'}">${executedTradesCount} / ${maxTrades > 0 ? maxTrades : '∞'} Executed</span>`;
 
-        if (maxTrades > 0 && executedTradesCount >= maxTrades) {
+        if (tradeEngineConfig.entry_f8_daily_cap === false) {
+            if (f8Status) f8Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ BYPASS</span>';
+            if (f8Action) {
+                f8Action.textContent = 'BYPASSED';
+                f8Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-500';
+            }
+        } else if (maxTrades > 0 && executedTradesCount >= maxTrades) {
             if (f8Status) f8Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🛑 CAP REACHED</span>';
             if (f8Action) {
                 f8Action.textContent = 'KILL-SWITCH LOCKED';
@@ -17071,6 +17359,81 @@
             }
         }
 
+        // 9. VWAP Trend Alignment
+        const f9Crit = document.getElementById('em-f9-criteria');
+        const f9State = document.getElementById('em-f9-state');
+        const f9Status = document.getElementById('em-f9-status');
+        const f9Action = document.getElementById('em-f9-action');
+
+        if (f9Crit) f9Crit.textContent = 'Bull ≥ VWAP / Bear ≤ VWAP';
+
+        const cClose = Number(candle.close);
+        const isVwapBypassed = tradeEngineConfig.entry_f9_vwap === false;
+        let isVwapBullSafe = false;
+        let isVwapBearSafe = false;
+
+        if (isVwapBypassed) {
+            if (f9State) f9State.innerHTML = '<span class="text-gray-500">Filter Bypassed (OFF)</span>';
+            if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ BYPASS</span>';
+            if (f9Action) {
+                f9Action.textContent = 'BYPASSED';
+                f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-500';
+            }
+        } else if (vwapVal > 0 && cClose > 0) {
+            const vwapDiff = cClose - vwapVal;
+            const diffPct = (vwapDiff / vwapVal) * 100;
+            const isAbove = vwapDiff >= 0;
+            isVwapBullSafe = isAbove;
+            isVwapBearSafe = !isAbove;
+
+            if (f9State) {
+                f9State.innerHTML = isAbove
+                    ? `<span class="text-emerald-400 font-bold">+${vwapDiff.toFixed(1)} pts (${diffPct.toFixed(2)}% Above VWAP)</span>`
+                    : `<span class="text-rose-400 font-bold">${vwapDiff.toFixed(1)} pts (${Math.abs(diffPct).toFixed(2)}% Below VWAP)</span>`;
+            }
+
+            if (isBullBias && isAbove) {
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 BULL ALIGNED</span>';
+                if (f9Action) {
+                    f9Action.textContent = 'SPOT ≥ VWAP (VALID)';
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+                }
+            } else if (isBearBias && !isAbove) {
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 BEAR ALIGNED</span>';
+                if (f9Action) {
+                    f9Action.textContent = 'SPOT ≤ VWAP (VALID)';
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+                }
+            } else if (isBullBias && !isAbove) {
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VWAP VETO</span>';
+                if (f9Action) {
+                    f9Action.textContent = 'BULL TRAP (BELOW VWAP)';
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+                }
+            } else if (isBearBias && isAbove) {
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VWAP VETO</span>';
+                if (f9Action) {
+                    f9Action.textContent = 'BEAR TRAP (ABOVE VWAP)';
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+                }
+            } else {
+                if (f9Status) f9Status.innerHTML = isAbove
+                    ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-emerald-400 border border-emerald-800/60">ABOVE VWAP</span>'
+                    : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-rose-400 border border-rose-800/60">BELOW VWAP</span>';
+                if (f9Action) {
+                    f9Action.textContent = isAbove ? 'BULL PREFERRED' : 'BEAR PREFERRED';
+                    f9Action.className = isAbove ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+                }
+            }
+        } else {
+            if (f9State) f9State.innerHTML = '<span class="text-gray-400">Calculating...</span>';
+            if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>';
+            if (f9Action) {
+                f9Action.textContent = 'STANDBY';
+                f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
         // Bottom Summary Badge
         if (summaryBadge) {
             if (activeTrade && activeTrade.status === 'ACTIVE') {
@@ -17079,19 +17442,22 @@
             } else if (pendingBreakout) {
                 summaryBadge.textContent = `⚡ AWAITING BREAKOUT CONFIRMATION: ${pendingBreakout.direction} (${pendingBreakout.triggerPrice.toFixed(2)})`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-950 text-amber-300 border border-amber-600 animate-pulse';
-            } else if (maxTrades > 0 && executedTradesCount >= maxTrades) {
+            } else if (tradeEngineConfig.entry_f8_daily_cap !== false && maxTrades > 0 && executedTradesCount >= maxTrades) {
                 summaryBadge.textContent = `🛑 SESSION CAP LOCKED: ${executedTradesCount}/${maxTrades} TRADES COMPLETED`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
-            } else if (!isTimeAllowed) {
+            } else if (tradeEngineConfig.entry_f1_time !== false && !isTimeAllowed) {
                 summaryBadge.textContent = (tStr < startTime) ? `STANDBY (PRE-${startTime} NOISE)` : `STANDBY (POST-${endTime} CUTOFF)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-indigo-950 text-indigo-300 border border-indigo-700';
-            } else if (isBullVetoed || isBearVetoed) {
+            } else if (tradeEngineConfig.entry_f4_oi_veto !== false && (isBullVetoed || isBearVetoed)) {
                 summaryBadge.textContent = 'VETOED: OPPOSING OI WALL';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
-            } else if (sBull && !isBullVetoed) {
+            } else if (!isVwapBypassed && ((sBull && !isVwapBullSafe) || (sBear && !isVwapBearSafe))) {
+                summaryBadge.textContent = '⛔ VETOED: SPOT COUNTER-TREND TO VWAP';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
+            } else if (sBull && (tradeEngineConfig.entry_f4_oi_veto === false || !isBullVetoed)) {
                 summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKOUT READY' : '🟢 BULL SIGNAL: CRITERIA MET';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
-            } else if (sBear && !isBearVetoed) {
+            } else if (sBear && (tradeEngineConfig.entry_f4_oi_veto === false || !isBearVetoed)) {
                 summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKDOWN READY' : '🔴 BEAR SIGNAL: CRITERIA MET';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
             } else {

@@ -53,6 +53,7 @@ class AutoTradingV2Engine
             't1Rr'                  => 1.2,
             't2Rr'                  => 2.2,
             't3Rr'                  => 3.2,
+            'vwapFilterEnabled'     => true,
         ], $customConfig);
 
         $totalDays = count($dates);
@@ -200,6 +201,8 @@ class AutoTradingV2Engine
         $niftyHigh = -999999;
         $niftyLow = 999999;
         $niftyClose = null;
+        $cumTpVol = 0.0;
+        $cumVol = 0.0;
 
         $count = count($rawCandles);
         for ($i = 0; $i < $count; $i++) {
@@ -209,6 +212,13 @@ class AutoTradingV2Engine
             $cHigh = (float)$candle['high'];
             $cLow = (float)$candle['low'];
             $cClose = (float)$candle['close'];
+
+            // Cumulative Intraday VWAP calculation
+            $cVol = (isset($candle['volume']) && (float)$candle['volume'] > 0) ? (float)$candle['volume'] : 1.0;
+            $cTp = ($cHigh + $cLow + $cClose) / 3.0;
+            $cumTpVol += ($cTp * $cVol);
+            $cumVol += $cVol;
+            $curVwap = $cumVol > 0 ? ($cumTpVol / $cumVol) : $cClose;
 
             if ($i === 0) $niftyOpen = $cOpen;
             $niftyHigh = max($niftyHigh, $cHigh);
@@ -478,6 +488,17 @@ class AutoTradingV2Engine
                                 }
                             }
 
+                            // VWAP Trend Alignment Filter (Factor 9)
+                            if (!$isVetoed && !empty($config['vwapFilterEnabled'])) {
+                                if ($triggeredDirection === 'BULL' && $cClose < $curVwap) {
+                                    $isVetoed = true;
+                                    $vetoReason = "Spot price (" . number_format($cClose, 1) . ") is BELOW VWAP (" . number_format($curVwap, 1) . ")";
+                                } elseif ($triggeredDirection === 'BEAR' && $cClose > $curVwap) {
+                                    $isVetoed = true;
+                                    $vetoReason = "Spot price (" . number_format($cClose, 1) . ") is ABOVE VWAP (" . number_format($curVwap, 1) . ")";
+                                }
+                            }
+
                             if ($isVetoed) {
                                 $candleState = 'VETOED';
                                 $verdictBadge = '⛔ VETOED TRAP';
@@ -583,6 +604,7 @@ class AutoTradingV2Engine
                                         'entry_oi_sentiment'      => $oiSentiment,
                                         'entry_stock_breadth_pct' => $entryBreadth,
                                         'entry_options_flow_pct'  => $entryFlow,
+                                        'entry_vwap'              => round($curVwap, 1),
                                         'session_window'          => $sessWindow,
                                         'is_stagnation_trailed'   => false,
                                     ];
@@ -637,6 +659,7 @@ class AutoTradingV2Engine
                                         'entry_oi_sentiment'      => $oiSentiment,
                                         'entry_stock_breadth_pct' => $entryBreadth,
                                         'entry_options_flow_pct'  => $entryFlow,
+                                        'entry_vwap'              => round($curVwap, 1),
                                         'session_window'          => $sessWindow,
                                         'is_stagnation_trailed'   => false,
                                     ];
