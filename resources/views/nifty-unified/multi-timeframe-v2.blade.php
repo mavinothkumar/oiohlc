@@ -15336,7 +15336,8 @@
                         verdictBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[9px] ${badgeColor} border font-bold">${setupBadge}</span>`;
                         diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                     }
-                } else {
+                }
+            } else {
                     const startTime = tradeEngineConfig.startTime || '09:35';
                     const endTime = tradeEngineConfig.endTime || '14:45';
                     const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
