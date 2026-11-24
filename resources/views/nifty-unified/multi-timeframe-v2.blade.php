@@ -3422,16 +3422,41 @@
             </div>
         </div>
 
-        <!-- Bottom Row: Day Trade History Table (When "Show All Trades" is toggled or for forensic review) -->
+        <!-- Bottom Row: Day Trade History & 5M Telemetry Decision Logs -->
         <div id="trade-history-section" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2 shadow-inner flex-1 flex flex-col min-h-[110px]">
-            <div class="flex items-center justify-between pb-1 border-b border-gray-800 mb-1 shrink-0">
-                <span class="text-xs font-bold text-gray-300 flex items-center gap-1">
-                    <span>📜 Session Trade Logs &amp; Forensics:</span>
-                    <span id="trade-history-count" class="text-[9.5px] font-mono px-1 py-0.2 rounded bg-slate-800 text-sky-400">0 Trades</span>
-                </span>
-                <span class="text-[9.5px] text-gray-500 font-mono">Full Trade Progression History</span>
+            <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 shrink-0 flex-wrap gap-2">
+                <!-- Left: Tabs Toggle -->
+                <div class="flex items-center gap-1 bg-[#090d16] p-0.5 rounded border border-gray-800 text-[10px] font-mono font-bold">
+                    <button id="tab-btn-trades" type="button" onclick="switchTradeDrawerTab('trades')" class="px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 shadow-xs flex items-center gap-1.5 cursor-pointer transition">
+                        <span>📜 Session Completed Trades</span>
+                        <span id="trade-history-count" class="text-[9px] px-1 py-0.1 rounded bg-sky-900/80 text-sky-200">0 Trades</span>
+                    </button>
+                    <button id="tab-btn-telemetry" type="button" onclick="switchTradeDrawerTab('telemetry')" class="px-2 py-0.5 rounded text-gray-400 hover:text-gray-200 flex items-center gap-1.5 cursor-pointer transition">
+                        <span>⏱️ 5M Candle Decision Log</span>
+                        <span id="trade-telemetry-count" class="text-[9px] px-1 py-0.1 rounded bg-slate-800 text-gray-300">0 / 75</span>
+                    </button>
+                </div>
+
+                <!-- Center: Telemetry Filters (Active only when telemetry tab is active) -->
+                <div id="telemetry-filters" class="hidden flex items-center gap-1 text-[9.5px] font-mono">
+                    <span class="text-gray-500 text-[9px]">FILTER:</span>
+                    <button type="button" onclick="filterTelemetryLogs('all')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 cursor-pointer" data-filter="all">All (75)</button>
+                    <button type="button" onclick="filterTelemetryLogs('trades')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-white cursor-pointer" data-filter="trades">Trades &amp; Exits</button>
+                    <button type="button" onclick="filterTelemetryLogs('vetoed')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-amber-300 cursor-pointer" data-filter="vetoed">⛔ Vetoed</button>
+                    <button type="button" onclick="filterTelemetryLogs('intrade')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-sky-300 cursor-pointer" data-filter="intrade">In-Trade</button>
+                </div>
+
+                <!-- Right: Action to Open Full-Page Report -->
+                <div class="flex items-center gap-1.5">
+                    <a id="btn-open-full-report" href="{{ route('nifty.trade.telemetry.v2', ['date' => $selectedDate, 'expiry' => $selectedExpiry]) }}" target="_blank" class="px-2 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Full-Page 5-Minute Session Forensics Report in New Tab">
+                        <span>📊 Full 5M Report</span>
+                        <span>↗</span>
+                    </a>
+                </div>
             </div>
-            <div class="overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
+
+            <!-- Tab Content 1: Completed Trades Table -->
+            <div id="tab-content-trades" class="overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
                 <table class="w-full text-left font-mono text-[10px]">
                     <thead>
                         <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px]">
@@ -3452,6 +3477,29 @@
                     <tbody id="trade-history-tbody" class="divide-y divide-gray-800/40">
                         <tr>
                             <td colspan="12" class="text-center py-2 text-gray-500">No trades completed yet in this session.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab Content 2: 5-Minute Candle Decision & Telemetry Log Table -->
+            <div id="tab-content-telemetry" class="hidden overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
+                <table class="w-full text-left font-mono text-[10px]">
+                    <thead>
+                        <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px] sticky top-0 bg-[#0f1422] z-10">
+                            <th class="py-1 px-1.5 w-16">Time</th>
+                            <th class="py-1 px-1.5 w-20">Spot</th>
+                            <th class="py-1 px-1.5 w-36">Stock Breadth</th>
+                            <th class="py-1 px-1.5 w-24">Options Flow</th>
+                            <th class="py-1 px-1.5 w-32">Trending OI Skew</th>
+                            <th class="py-1 px-1.5 w-44">Decision &amp; Verdict</th>
+                            <th class="py-1 px-1.5">Telemetry Diagnostics &amp; Reason</th>
+                            <th class="py-1 px-1.5 text-right w-20">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trade-telemetry-tbody" class="divide-y divide-gray-800/40">
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-gray-500">Loading 5-minute telemetry logs...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -14344,6 +14392,9 @@
     let activeTrade = null;
     let sessionTrades = [];
     let tradePriceLines = [];
+    let currentTradeDrawerTab = 'trades';
+    let currentTelemetryFilter = 'all';
+    window._sessionTelemetryLogs = [];
 
     function clearTradePriceLines() {
         if (!wCandleSeries || tradePriceLines.length === 0) return;
@@ -14518,26 +14569,84 @@
         sessionTrades = [];
         let currentTrade = null;
         let lastVetoedSignal = null;
+        const telemetryLogs = [];
 
-        // Traverse session from open candle (0) up to current replay/live boundary
-        for (let i = 0; i <= upToIndex; i++) {
+        let activeTradeAtReplay = null;
+        let vetoedSignalAtReplay = null;
+        let replaySessionTrades = [];
+
+        for (let i = 0; i < rawCandles.length; i++) {
             const candle = rawCandles[i];
             if (!candle) continue;
             const tStr = candle.time_str;
+            const cOpen = Number(candle.open);
+            const cHigh = Number(candle.high);
+            const cLow = Number(candle.low);
+            const cClose = Number(candle.close);
+
+            const b = weightageData?.breadth_by_time?.[tStr];
+            const oB = breadthData?.breadth_by_time?.[tStr];
+            const oiSnap = getTrendingOiSnapshotAtTime(tStr);
+
+            let stkBullCount = b ? Number(b.green_count_pct || 0) : 0;
+            let stkBearCount = b ? Number(b.red_count_pct || 0) : 0;
+            let stkBullWt = b ? Number(b.green_weight || 0) : 0;
+            let stkBearWt = b ? Number(b.red_weight || 0) : 0;
+
+            let optUpWt = oB ? Number(oB.up_weight || 0) : 0;
+            let optDownWt = oB ? Number(oB.down_weight || 0) : 0;
+
+            let oiDiffPct = oiSnap ? oiSnap.diffPctVal : 0;
+
+            let breadthHtml = '';
+            if (stkBullCount >= 80 && stkBullWt >= 80) {
+                breadthHtml = `<span class="text-emerald-400 font-bold">🟢 ${stkBullCount}% (${stkBullWt}%)</span>`;
+            } else if (stkBearCount >= 80 && stkBearWt >= 80) {
+                breadthHtml = `<span class="text-rose-400 font-bold">🔴 ${stkBearCount}% (${stkBearWt}%)</span>`;
+            } else if (stkBullCount > stkBearCount) {
+                breadthHtml = `<span class="text-emerald-300/80">🟢 ${stkBullCount}% (${stkBullWt}%)</span>`;
+            } else if (stkBearCount > stkBullCount) {
+                breadthHtml = `<span class="text-rose-300/80">🔴 ${stkBearCount}% (${stkBearWt}%)</span>`;
+            } else {
+                breadthHtml = `<span class="text-gray-400">⚖️ ${stkBullCount}% / ${stkBearCount}%</span>`;
+            }
+
+            let optionsFlowHtml = '';
+            if (optUpWt >= 70) {
+                optionsFlowHtml = `<span class="text-emerald-400 font-bold">Call ${optUpWt}%</span>`;
+            } else if (optDownWt >= 70) {
+                optionsFlowHtml = `<span class="text-rose-400 font-bold">Put ${optDownWt}%</span>`;
+            } else if (optUpWt > optDownWt) {
+                optionsFlowHtml = `<span class="text-emerald-300/70">Call ${optUpWt}%</span>`;
+            } else if (optDownWt > optUpWt) {
+                optionsFlowHtml = `<span class="text-rose-300/70">Put ${optDownWt}%</span>`;
+            } else {
+                optionsFlowHtml = `<span class="text-gray-400">⚖️ Mixed</span>`;
+            }
+
+            let oiSkewHtml = '';
+            if (oiDiffPct >= 20) {
+                oiSkewHtml = `<span class="text-emerald-400 font-bold">+${oiDiffPct.toFixed(1)}% Put Wall</span>`;
+            } else if (oiDiffPct <= -20) {
+                oiSkewHtml = `<span class="text-rose-400 font-bold">${oiDiffPct.toFixed(1)}% Call Wall</span>`;
+            } else if (Math.abs(oiDiffPct) <= 15) {
+                oiSkewHtml = `<span class="text-amber-300 font-bold">⚡ ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}% Sqz</span>`;
+            } else {
+                oiSkewHtml = `<span class="text-gray-400">${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%</span>`;
+            }
+
+            let candleState = 'STANDBY';
+            let verdictBadgeHtml = '';
+            let diagnosticReason = '';
 
             // 1. If currently in a trade, evaluate progression on candle i
             if (currentTrade) {
-                const cHigh = Number(candle.high);
-                const cLow = Number(candle.low);
-                const cClose = Number(candle.close);
                 const isBull = (currentTrade.direction === 'BULL');
 
                 // Check Multi-Target Hits & Partial Bookings
-                // Target 1
                 if (!currentTrade.t1Hit) {
                     if ((isBull && cHigh >= currentTrade.t1) || (!isBull && cLow <= currentTrade.t1)) {
                         currentTrade.t1Hit = true;
-                        // Partial book 1 lot if user entered with >= 2 lots
                         if (currentTrade.openLots > 1) {
                             const t1Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t1, i);
                             const t1GainRs = Math.round(1 * t1Calc.pointsGain * currentTrade.lotSize);
@@ -14546,16 +14655,17 @@
                             currentTrade.bookedPnlRupees += t1GainRs;
                             currentTrade.t1PnlRs = t1GainRs;
                         }
-                        currentTrade.currentSl = currentTrade.entrySpot; // Trail SL to Cost Breakeven
+                        currentTrade.currentSl = currentTrade.entrySpot;
                         currentTrade.slType = 'COST_BREAKEVEN';
+                        candleState = 'TARGET_HIT';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 1 HIT</span>';
+                        diagnosticReason = `Target 1 hit at ${currentTrade.t1.toFixed(1)}. 1 Lot partial booked (+₹${currentTrade.t1PnlRs.toLocaleString('en-IN')}). Trailed SL shifted to Cost Breakeven (${currentTrade.entrySpot.toFixed(1)}).`;
                     }
                 }
 
-                // Target 2
-                if (currentTrade.t1Hit && !currentTrade.t2Hit) {
+                if (currentTrade.t1Hit && !currentTrade.t2Hit && candleState !== 'TARGET_HIT') {
                     if ((isBull && cHigh >= currentTrade.t2) || (!isBull && cLow <= currentTrade.t2)) {
                         currentTrade.t2Hit = true;
-                        // Partial book 1 lot if still > 1 lot open
                         if (currentTrade.openLots > 1) {
                             const t2Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t2, i);
                             const t2GainRs = Math.round(1 * t2Calc.pointsGain * currentTrade.lotSize);
@@ -14564,16 +14674,17 @@
                             currentTrade.bookedPnlRupees += t2GainRs;
                             currentTrade.t2PnlRs = t2GainRs;
                         }
-                        currentTrade.currentSl = currentTrade.t1; // Trail SL to T1
+                        currentTrade.currentSl = currentTrade.t1;
                         currentTrade.slType = 'TRAILED_TO_T1';
+                        candleState = 'TARGET_HIT';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 2 HIT</span>';
+                        diagnosticReason = `Target 2 hit at ${currentTrade.t2.toFixed(1)}. 1 Lot partial booked (+₹${currentTrade.t2PnlRs.toLocaleString('en-IN')}). Trailed SL locked at Target 1 (${currentTrade.t1.toFixed(1)}).`;
                     }
                 }
 
-                // Target 3
-                if (currentTrade.t2Hit && !currentTrade.t3Hit) {
+                if (currentTrade.t2Hit && !currentTrade.t3Hit && candleState !== 'TARGET_HIT') {
                     if ((isBull && cHigh >= currentTrade.t3) || (!isBull && cLow <= currentTrade.t3)) {
                         currentTrade.t3Hit = true;
-                        // Book remaining runner lots
                         const t3Calc = calcOptPriceAndPoints(currentTrade, currentTrade.t3, i);
                         const t3GainRs = Math.round(currentTrade.openLots * t3Calc.pointsGain * currentTrade.lotSize);
                         currentTrade.bookedPnlRupees += t3GainRs;
@@ -14585,13 +14696,38 @@
                         currentTrade.pnlPoints = Math.round((currentTrade.pnlRupees / (currentTrade.entryLots * currentTrade.lotSize)) * 10) / 10;
                         currentTrade.currentSpot = currentTrade.t3;
                         currentTrade.currentOptPrice = t3Calc.optPrice;
-
                         currentTrade.status = 'TARGET_HIT';
                         currentTrade.exitTime = tStr;
                         currentTrade.exitSpot = currentTrade.t3;
                         currentTrade.exitReason = 'Target 3 Hit! Complete profit booked.';
+
+                        candleState = 'TARGET_HIT';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">🎯 T3 FULL PROFIT</span>';
+                        diagnosticReason = `Runner Target 3 hit at ${currentTrade.t3.toFixed(1)}. Complete profit booked (+₹${currentTrade.pnlRupees.toLocaleString('en-IN')}, +${currentTrade.pnlPoints.toFixed(1)} pts). Position closed.`;
+
                         sessionTrades.push({ ...currentTrade });
+                        if (i <= upToIndex) {
+                            replaySessionTrades.push({ ...currentTrade });
+                        }
                         currentTrade = null;
+
+                        if (i === upToIndex) {
+                            activeTradeAtReplay = null;
+                            if (lastVetoedSignal) vetoedSignalAtReplay = { ...lastVetoedSignal };
+                        }
+
+                        telemetryLogs.push({
+                            candleIndex: i,
+                            time: tStr,
+                            spot: cClose,
+                            breadthHtml,
+                            optionsFlowHtml,
+                            oiSkewHtml,
+                            state: candleState,
+                            verdictBadgeHtml,
+                            diagnosticReason,
+                            isFuture: (i > upToIndex)
+                        });
                         continue;
                     }
                 }
@@ -14611,7 +14747,6 @@
                 let exitReason = null;
                 let exitPrice = cClose;
 
-                // F1: Signal Candle SL or Trailed SL
                 if (tradeEngineConfig.f1_sl) {
                     if ((isBull && cLow <= currentTrade.currentSl) || (!isBull && cHigh >= currentTrade.currentSl)) {
                         exitTriggered = true;
@@ -14620,10 +14755,8 @@
                     }
                 }
 
-                // F4: Reverse Signal Cross
                 if (!exitTriggered && tradeEngineConfig.f4_reverse && i > 0) {
                     const prevC = rawCandles[i - 1];
-                    const b = weightageData?.breadth_by_time?.[tStr];
                     if (b) {
                         const oppStk = isBull
                             ? (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh)
@@ -14655,17 +14788,48 @@
                     currentTrade.exitTime = tStr;
                     currentTrade.exitSpot = exitPrice;
                     currentTrade.exitReason = exitReason;
+
+                    candleState = 'STOP_LOSS';
+                    verdictBadgeHtml = currentTrade.t1Hit
+                        ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ TRAILED SL EXIT</span>'
+                        : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🔴 STOPPED OUT</span>';
+                    diagnosticReason = `${exitReason} at ${exitPrice.toFixed(1)}. Session P&L: ${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts (₹${currentTrade.pnlRupees.toLocaleString('en-IN')}).`;
+
                     sessionTrades.push({ ...currentTrade });
+                    if (i <= upToIndex) {
+                        replaySessionTrades.push({ ...currentTrade });
+                    }
                     currentTrade = null;
+
+                    if (i === upToIndex) {
+                        activeTradeAtReplay = null;
+                        if (lastVetoedSignal) vetoedSignalAtReplay = { ...lastVetoedSignal };
+                    }
+
+                    telemetryLogs.push({
+                        candleIndex: i,
+                        time: tStr,
+                        spot: cClose,
+                        breadthHtml,
+                        optionsFlowHtml,
+                        oiSkewHtml,
+                        state: candleState,
+                        verdictBadgeHtml,
+                        diagnosticReason,
+                        isFuture: (i > upToIndex)
+                    });
                     continue;
                 }
-            }
 
-            // 2. If NO active trade, scan for entry signals formed on candle i
-            if (!currentTrade && i < rawCandles.length - 1) {
-                const b = weightageData?.breadth_by_time?.[tStr];
-                const oB = breadthData?.breadth_by_time?.[tStr];
+                if (candleState !== 'TARGET_HIT') {
+                    candleState = 'IN_TRADE_HOLD';
+                    const distSl = isBull ? (cClose - currentTrade.currentSl) : (currentTrade.currentSl - cClose);
+                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
+                    diagnosticReason = `Holding ${currentTrade.action} ${currentTrade.strike} ${currentTrade.optType} (${currentTrade.openLots}L). Spot: ${cClose.toFixed(1)} (${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts, ₹${currentTrade.pnlRupees.toLocaleString('en-IN')}). SL safe (${distSl.toFixed(1)} pts buffer).`;
+                }
 
+            } else if (i < rawCandles.length - 1) {
+                // 2. If NO active trade, scan for entry signals formed on candle i
                 let sBull = false, sBear = false;
                 if (b) {
                     if (sTrig === 'both') {
@@ -14677,11 +14841,8 @@
                     }
                 }
 
-                let oBull = false, oBear = false;
-                if (oB) {
-                    oBull = (Number(oB.up_weight || 0) >= oUpTh);
-                    oBear = (Number(oB.down_weight || 0) >= oDownTh);
-                }
+                let oBull = (optUpWt >= oUpTh);
+                let oBear = (optDownWt >= oDownTh);
 
                 const isConfBull = sBull && oBull;
                 const isConfBear = sBear && oBear;
@@ -14700,21 +14861,14 @@
                     let setupType = 'STANDARD';
                     let setupBadge = '🎯 STANDARD';
                     let setupReason = 'Breadth confirmation trigger';
-                    let oiDiffPct = 0;
                     let isVetoed = false;
                     let vetoReason = '';
-
-                    const oiSnap = getTrendingOiSnapshotAtTime(tStr);
-                    if (oiSnap) {
-                        oiDiffPct = oiSnap.diffPctVal;
-                    }
 
                     if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
                         const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
                         const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
 
                         if (triggeredDirection === 'BULL') {
-                            // Bull signal: oiDiffPct < 0 means Call writing dominates (overhead resistance ceiling)
                             if (oiDiffPct <= -vetoTh) {
                                 isVetoed = true;
                                 vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
@@ -14732,7 +14886,6 @@
                                 setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
                             }
                         } else {
-                            // Bear signal: oiDiffPct > 0 means Put writing dominates (support floor below)
                             if (oiDiffPct >= vetoTh) {
                                 isVetoed = true;
                                 vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
@@ -14753,137 +14906,177 @@
                     }
 
                     if (isVetoed) {
+                        candleState = 'VETOED';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
+                        diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
+
                         lastVetoedSignal = {
                             time: tStr,
                             direction: triggeredDirection,
                             reason: vetoReason,
                             oiDiffPct: oiDiffPct
                         };
-                        continue;
-                    }
-
-                    // Entry executes on the OPEN of NEXT candle (i + 1)!
-                    const nextCandle = rawCandles[i + 1];
-                    const entrySpot = Number(nextCandle.open);
-                    const mode = tradeEngineConfig.strategyMode || 'auto';
-
-                    let strategy = null;
-                    let action = null;
-                    let optType = null;
-
-                    if (triggeredDirection === 'BULL') {
-                        if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
-                        else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
-                        else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
-                        else {
-                            // Auto: Strike only -> Sell PE; Confluence -> Buy CE
-                            strategy = isConf ? 'BUY_CE' : 'SELL_PE';
-                            action = isConf ? 'BUY' : 'SELL';
-                            optType = isConf ? 'CE' : 'PE';
+                        if (i <= upToIndex) {
+                            vetoedSignalAtReplay = { ...lastVetoedSignal };
                         }
                     } else {
-                        if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
-                        else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
-                        else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
-                        else {
-                            // Auto: Strike only -> Sell CE; Confluence -> Buy PE
-                            strategy = isConf ? 'BUY_PE' : 'SELL_CE';
-                            action = isConf ? 'BUY' : 'SELL';
-                            optType = isConf ? 'PE' : 'CE';
+                        // Entry executes on OPEN of next candle (i + 1)
+                        const nextCandle = rawCandles[i + 1];
+                        const entrySpot = Number(nextCandle.open);
+                        const mode = tradeEngineConfig.strategyMode || 'auto';
+
+                        let strategy = null, action = null, optType = null;
+                        if (triggeredDirection === 'BULL') {
+                            if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
+                            else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
+                            else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
+                            else {
+                                strategy = isConf ? 'BUY_CE' : 'SELL_PE';
+                                action = isConf ? 'BUY' : 'SELL';
+                                optType = isConf ? 'CE' : 'PE';
+                            }
+                        } else {
+                            if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
+                            else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
+                            else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
+                            else {
+                                strategy = isConf ? 'BUY_PE' : 'SELL_CE';
+                                action = isConf ? 'BUY' : 'SELL';
+                                optType = isConf ? 'PE' : 'CE';
+                            }
                         }
+
+                        const atmStrike = Math.round(entrySpot / 100) * 100;
+                        let strike = atmStrike;
+                        if (strategy === 'SELL_PE') strike = atmStrike - 100;
+                        if (strategy === 'SELL_CE') strike = atmStrike + 100;
+
+                        let instrument = `NIFTY ${strike} ${optType}`;
+                        if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
+                        if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
+
+                        const baseSl = (triggeredDirection === 'BULL') ? Number(candle.low) : Number(candle.high);
+                        const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
+
+                        const t1Pts = Math.round(riskPts * (tradeEngineConfig.t1Rr || 1.2) * 10) / 10;
+                        const t2Pts = Math.round(riskPts * (tradeEngineConfig.t2Rr || 2.2) * 10) / 10;
+                        const t3Pts = Math.round(riskPts * (tradeEngineConfig.t3Rr || 3.2) * 10) / 10;
+
+                        const t1 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t1Pts) * 10) / 10 : Math.round((entrySpot - t1Pts) * 10) / 10;
+                        const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
+                        const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
+
+                        const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
+                        const entryLots = Number(tradeEngineConfig.entryLots) || 3;
+                        const lotSize = Number(tradeEngineConfig.lotSize) || 65;
+
+                        currentTrade = {
+                            id: `T_${nextCandle.time_str}`,
+                            status: 'ACTIVE',
+                            direction: triggeredDirection,
+                            setupType: setupType,
+                            setupBadge: setupBadge,
+                            setupReason: setupReason,
+                            oiDiffPct: oiDiffPct,
+                            isConf: isConf,
+                            strategy: strategy,
+                            action: action,
+                            optType: optType,
+                            instrument: instrument,
+                            strike: strike,
+                            signalTime: candle.time_str,
+                            entryTime: nextCandle.time_str,
+                            entryIndex: i + 1,
+                            entrySpot: entrySpot,
+                            entryOptPrice: entryOptPrice,
+                            currentSpot: entrySpot,
+                            currentOptPrice: entryOptPrice,
+                            entryLots: entryLots,
+                            lotSize: lotSize,
+                            openLots: entryLots,
+                            bookedLots: 0,
+                            bookedPnlRupees: 0,
+                            openPnlRupees: 0,
+                            baseSl: baseSl,
+                            currentSl: baseSl,
+                            slType: 'SIGNAL_CANDLE_SL',
+                            riskPts: riskPts,
+                            t1: t1,
+                            t1Hit: false,
+                            t1PnlRs: 0,
+                            t2: t2,
+                            t2Hit: false,
+                            t2PnlRs: 0,
+                            t3: t3,
+                            t3Hit: false,
+                            t3PnlRs: 0,
+                            pnlPoints: 0,
+                            pnlRupees: 0,
+                            mfePoints: 0,
+                            maePoints: 0,
+                            exitTime: null,
+                            exitSpot: null,
+                            exitReason: null,
+                        };
+
+                        candleState = 'TRADE_ENTRY';
+                        const badgeColor = (setupType === 'SQUEEZE_BREAKOUT') ? 'bg-amber-950 text-amber-300 border-amber-600/70' : (setupType === 'GRADE_A_CONFLUENCE' ? 'bg-cyan-950 text-cyan-300 border-cyan-600/70' : 'bg-emerald-950 text-emerald-300 border-emerald-600/70');
+                        verdictBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[9px] ${badgeColor} border font-bold">${setupBadge}</span>`;
+                        diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                     }
-
-                    // Strike Selection (Round 100 multiples)
-                    const atmStrike = Math.round(entrySpot / 100) * 100;
-                    let strike = atmStrike;
-                    if (strategy === 'SELL_PE') strike = atmStrike - 100;
-                    if (strategy === 'SELL_CE') strike = atmStrike + 100;
-
-                    let instrument = `NIFTY ${strike} ${optType}`;
-                    if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
-                    if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
-
-                    // Base SL = Signal Candle Low (for Bull) or High (for Bear)
-                    const baseSl = (triggeredDirection === 'BULL') ? Number(candle.low) : Number(candle.high);
-                    const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
-
-                    // Targets (1.2R, 2.2R, 3.2R)
-                    const t1Pts = Math.round(riskPts * (tradeEngineConfig.t1Rr || 1.2) * 10) / 10;
-                    const t2Pts = Math.round(riskPts * (tradeEngineConfig.t2Rr || 2.2) * 10) / 10;
-                    const t3Pts = Math.round(riskPts * (tradeEngineConfig.t3Rr || 3.2) * 10) / 10;
-
-                    const t1 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t1Pts) * 10) / 10 : Math.round((entrySpot - t1Pts) * 10) / 10;
-                    const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
-                    const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
-
-                    const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
-                    const entryLots = Number(tradeEngineConfig.entryLots) || 3;
-                    const lotSize = Number(tradeEngineConfig.lotSize) || 65;
-
-                    currentTrade = {
-                        id: `T_${nextCandle.time_str}`,
-                        status: 'ACTIVE',
-                        direction: triggeredDirection,
-                        setupType: setupType,
-                        setupBadge: setupBadge,
-                        setupReason: setupReason,
-                        oiDiffPct: oiDiffPct,
-                        isConf: isConf,
-                        strategy: strategy,
-                        action: action,
-                        optType: optType,
-                        instrument: instrument,
-                        strike: strike,
-                        signalTime: candle.time_str,
-                        entryTime: nextCandle.time_str,
-                        entryIndex: i + 1,
-                        entrySpot: entrySpot,
-                        entryOptPrice: entryOptPrice,
-                        currentSpot: entrySpot,
-                        currentOptPrice: entryOptPrice,
-                        entryLots: entryLots,
-                        lotSize: lotSize,
-                        openLots: entryLots,
-                        bookedLots: 0,
-                        bookedPnlRupees: 0,
-                        openPnlRupees: 0,
-                        baseSl: baseSl,
-                        currentSl: baseSl,
-                        slType: 'SIGNAL_CANDLE_SL',
-                        riskPts: riskPts,
-                        t1: t1,
-                        t1Hit: false,
-                        t1PnlRs: 0,
-                        t2: t2,
-                        t2Hit: false,
-                        t2PnlRs: 0,
-                        t3: t3,
-                        t3Hit: false,
-                        t3PnlRs: 0,
-                        pnlPoints: 0,
-                        pnlRupees: 0,
-                        mfePoints: 0,
-                        maePoints: 0,
-                        exitTime: null,
-                        exitSpot: null,
-                        exitReason: null,
-                    };
-
-                    // If entry is executed at this exact replay step, register it
-                    if (i + 1 > upToIndex) {
-                        // Entry scheduled for next candle not yet reached in replay
-                        currentTrade = null;
+                } else {
+                    if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
+                        candleState = 'NEAR_MISS';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-950/70 text-yellow-300 border border-yellow-700/50">🟡 NEAR-MISS (70%+)</span>';
+                        diagnosticReason = `Sub-threshold impulse: Bull ${stkBullCount}% / Bear ${stkBearCount}%. Did not cross the 80% threshold required for disciplined entry.`;
+                    } else if ((stkBullCount > 60 && optDownWt > 60) || (stkBearCount > 60 && optUpWt > 60)) {
+                        candleState = 'DIVERGENCE';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-orange-950/70 text-orange-300 border border-orange-700/50">🟠 FLOW DIVERGENCE</span>';
+                        diagnosticReason = `Divergence: Stock Breadth leans ${stkBullCount > stkBearCount ? 'Bull' : 'Bear'} while Options Flow leans opposite. Trade blocked to avoid whipsaws.`;
+                    } else if (i === 0) {
+                        candleState = 'MARKET_OPEN';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-sky-400 border border-sky-800">⚪ MARKET OPEN</span>';
+                        diagnosticReason = `Market open bar (09:15). Establishing baseline S/R levels and institutional positioning.`;
+                    } else {
+                        candleState = 'STANDBY';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ STANDBY (RANGE)</span>';
+                        diagnosticReason = `Market Equilibrium / Range: Stocks Bull ${stkBullCount}% vs Bear ${stkBearCount}%, OI Skew ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%. No edge detected.`;
                     }
                 }
+            } else {
+                candleState = 'STANDBY';
+                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ SESSION CLOSE</span>';
+                diagnosticReason = `Market approaching session close. No new trades initiated.`;
             }
+
+            if (i === upToIndex) {
+                activeTradeAtReplay = currentTrade ? { ...currentTrade } : null;
+                if (lastVetoedSignal) vetoedSignalAtReplay = { ...lastVetoedSignal };
+            }
+
+            telemetryLogs.push({
+                candleIndex: i,
+                time: tStr,
+                spot: cClose,
+                breadthHtml,
+                optionsFlowHtml,
+                oiSkewHtml,
+                state: candleState,
+                verdictBadgeHtml,
+                diagnosticReason,
+                isFuture: (i > upToIndex)
+            });
         }
 
-        activeTrade = currentTrade;
+        activeTrade = activeTradeAtReplay;
+        sessionTrades = replaySessionTrades.length > 0 ? replaySessionTrades : sessionTrades.filter(t => t.entryIndex <= upToIndex);
+        window._sessionTelemetryLogs = telemetryLogs;
 
         // Update UI Cockpit, Matrix & Chart Price Lines
-        updateTradeCockpitUI(activeTrade, sessionTrades, lastVetoedSignal);
+        updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal);
         updateExitMatrixUI(activeTrade);
         updateTradePriceLines(activeTrade);
+        renderTelemetryTable();
     }
     window.runHighProbabilityTradeEngine = runHighProbabilityTradeEngine;
 
@@ -15191,7 +15384,137 @@
                 }).join('');
             }
         }
+
+        const btnRep = document.getElementById('btn-open-full-report');
+        if (btnRep) {
+            btnRep.href = `{{ route('nifty.trade.telemetry.v2') }}?date=${selectedDate}&expiry=${selectedExpiry}`;
+        }
     }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // 5-MINUTE CANDLE TELEMETRY LOGS & TAB SWITCHER
+    // ══════════════════════════════════════════════════════════════════════════════
+    function switchTradeDrawerTab(tabName) {
+        currentTradeDrawerTab = tabName;
+        const tabBtnTrades = document.getElementById('tab-btn-trades');
+        const tabBtnTelemetry = document.getElementById('tab-btn-telemetry');
+        const contentTrades = document.getElementById('tab-content-trades');
+        const contentTelemetry = document.getElementById('tab-content-telemetry');
+        const filterSection = document.getElementById('telemetry-filters');
+
+        if (tabName === 'trades') {
+            if (tabBtnTrades) {
+                tabBtnTrades.className = 'px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 shadow-xs flex items-center gap-1.5 cursor-pointer transition font-bold';
+            }
+            if (tabBtnTelemetry) {
+                tabBtnTelemetry.className = 'px-2 py-0.5 rounded text-gray-400 hover:text-gray-200 flex items-center gap-1.5 cursor-pointer transition';
+            }
+            if (contentTrades) contentTrades.classList.remove('hidden');
+            if (contentTelemetry) contentTelemetry.classList.add('hidden');
+            if (filterSection) filterSection.classList.add('hidden');
+        } else {
+            if (tabBtnTrades) {
+                tabBtnTrades.className = 'px-2 py-0.5 rounded text-gray-400 hover:text-gray-200 flex items-center gap-1.5 cursor-pointer transition';
+            }
+            if (tabBtnTelemetry) {
+                tabBtnTelemetry.className = 'px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 shadow-xs flex items-center gap-1.5 cursor-pointer transition font-bold';
+            }
+            if (contentTrades) contentTrades.classList.add('hidden');
+            if (contentTelemetry) contentTelemetry.classList.remove('hidden');
+            if (filterSection) filterSection.classList.remove('hidden');
+            renderTelemetryTable();
+        }
+    }
+    window.switchTradeDrawerTab = switchTradeDrawerTab;
+
+    function filterTelemetryLogs(filterType) {
+        currentTelemetryFilter = filterType;
+        document.querySelectorAll('.telemetry-filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filterType) {
+                btn.className = 'telemetry-filter-btn px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 cursor-pointer font-bold';
+            } else {
+                btn.className = 'telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-white cursor-pointer';
+            }
+        });
+        renderTelemetryTable();
+    }
+    window.filterTelemetryLogs = filterTelemetryLogs;
+
+    function jumpToTelemetryCandle(timeOrIndex) {
+        let idx = -1;
+        if (typeof timeOrIndex === 'number') {
+            idx = timeOrIndex;
+        } else if (typeof timeOrIndex === 'string') {
+            idx = timestampsList.indexOf(timeOrIndex);
+        }
+        if (idx >= 0 && idx < timestampsList.length) {
+            syncActiveCandleIndex(idx);
+        }
+    }
+    window.jumpToTelemetryCandle = jumpToTelemetryCandle;
+
+    function renderTelemetryTable() {
+        const tbody = document.getElementById('trade-telemetry-tbody');
+        const countBadge = document.getElementById('trade-telemetry-count');
+        if (!tbody) return;
+
+        const logs = window._sessionTelemetryLogs || [];
+        if (countBadge) {
+            const evaluatedCount = logs.filter(l => !l.isFuture).length;
+            countBadge.textContent = `${evaluatedCount} / ${logs.length || 75}`;
+        }
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Generating 5-minute telemetry logs...</td></tr>`;
+            return;
+        }
+
+        const filtered = logs.filter(log => {
+            if (currentTelemetryFilter === 'all') return true;
+            if (currentTelemetryFilter === 'trades') {
+                return ['TRADE_ENTRY', 'IN_TRADE_HOLD', 'TARGET_HIT', 'STOP_LOSS'].includes(log.state);
+            }
+            if (currentTelemetryFilter === 'vetoed') {
+                return log.state === 'VETOED';
+            }
+            if (currentTelemetryFilter === 'intrade') {
+                return ['IN_TRADE_HOLD', 'TARGET_HIT'].includes(log.state);
+            }
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">No telemetry logs match the "${currentTelemetryFilter}" filter.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(log => {
+            const isCurrentActive = (activeCandleIndex === log.candleIndex);
+            const rowBg = isCurrentActive ? 'bg-sky-950/60 border-l-2 border-l-sky-400' : 'hover:bg-slate-800/40';
+            const futureClass = log.isFuture ? 'opacity-40 italic' : '';
+
+            return `
+                <tr class="${rowBg} ${futureClass} transition" ${isCurrentActive ? 'data-active-row="true"' : ''}>
+                    <td class="py-1 px-1.5 font-bold ${isCurrentActive ? 'text-sky-300' : 'text-gray-300'}">
+                        ${log.time}
+                        ${isCurrentActive ? '<span class="text-[8px] text-cyan-400 ml-1 font-bold">● NOW</span>' : ''}
+                    </td>
+                    <td class="py-1 px-1.5 text-gray-200">${log.spot ? Number(log.spot).toFixed(1) : '--'}</td>
+                    <td class="py-1 px-1.5">${log.breadthHtml || '--'}</td>
+                    <td class="py-1 px-1.5">${log.optionsFlowHtml || '--'}</td>
+                    <td class="py-1 px-1.5">${log.oiSkewHtml || '--'}</td>
+                    <td class="py-1 px-1.5">${log.verdictBadgeHtml || log.state}</td>
+                    <td class="py-1 px-1.5 text-gray-300 text-[9.5px] leading-snug">${log.diagnosticReason || '--'}</td>
+                    <td class="py-1 px-1.5 text-right">
+                        <button type="button" onclick="jumpToTelemetryCandle('${log.time}')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-sky-900 text-sky-300 border border-slate-700 hover:border-sky-600 text-[9px] cursor-pointer transition" title="Jump Replay & Timeline to ${log.time}">
+                            🎯 Jump
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    window.renderTelemetryTable = renderTelemetryTable;
 
     function updateExitMatrixUI(trade) {
         if (!trade || trade.status !== 'ACTIVE') {

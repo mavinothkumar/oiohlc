@@ -366,6 +366,7 @@ Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonito
 
 // Multi-Timeframe Unified Monitor Version 2 (Backtest Bar Replay & High-Probability Trade Engine)
 Route::get('/nifty-multi-timeframe-monitor-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'index'])->name('nifty.multi.timeframe.monitor.v2');
+Route::get('/nifty-trade-telemetry-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'telemetryReport'])->name('nifty.trade.telemetry.v2');
 Route::get('/api/multi-timeframe-v2/option-snapshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'getOptionSnapshot'])->name('api.multi-timeframe-v2.option-snapshot');
 
 // Nifty 50 Participation Engine & Directional Strength Monitor (4 Pillars: Breadth, Strength, Momentum, Consistency)

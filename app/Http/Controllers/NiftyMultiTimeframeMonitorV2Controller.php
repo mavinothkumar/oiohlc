@@ -177,6 +177,16 @@ class NiftyMultiTimeframeMonitorV2Controller extends NiftyMultiTimeframeMonitorC
     }
 
     /**
+     * Dedicated Full-Page 5-Minute Candle Decision & Telemetry Forensics Report
+     */
+    public function telemetryReport(Request $request): View
+    {
+        $view = $this->index($request);
+        $data = $view->getData();
+        return view('nifty-unified.telemetry-report-v2', $data);
+    }
+
+    /**
      * API to fetch Option Chain & Greeks snapshot at a specific candle time.
      * Used by the High-Probability Trade Engine for accurate strike selection, pricing & M2M tracking.
      */
