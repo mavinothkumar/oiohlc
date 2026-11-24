@@ -162,7 +162,7 @@
             <button id="btn-toggle-trade-drawer" type="button" onclick="toggleTradeDrawer()" class="px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded text-[9.5px] flex items-center gap-1.5 transition shadow-xs cursor-pointer tracking-wide">
                 <span>🎯</span>
                 <span>Trade Cockpit</span>
-                <span id="header-trade-status-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-900/80 text-emerald-300 font-mono">STANDBY</span>
+                <span id="header-trade-status-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-900/80 text-emerald-300 font-mono">STANDBY (0/2)</span>
             </button>
         </div>
 
@@ -3015,6 +3015,10 @@
             <div id="trade-header-pill" class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 border border-slate-700 text-slate-300">
                 <span id="trade-header-pill-text">STANDBY: Scanning 80%+ Breadth Signals...</span>
             </div>
+            <div id="trade-header-daily-cap" class="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 border border-slate-700 text-slate-300" title="Max 2 Trades per session kill-switch to avoid overtrading churn">
+                <span class="text-amber-400">🛡️ CAP:</span>
+                <span id="trade-daily-cap-text" class="text-sky-300">0/2 TRADES</span>
+            </div>
         </div>
 
         <!-- Center: 3-Target Progress Stepper -->
@@ -3084,61 +3088,77 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2 max-w-full mx-1">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
-                <div class="font-bold text-sky-400 mb-1 flex items-center gap-1">
-                    <span>⚡ Strategy Preference:</span>
+                <div class="font-bold text-sky-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">⚡ Strategy Preference:</span>
                 </div>
                 <select id="trade-cfg-strategy-mode" onchange="updateTradeConfig('strategyMode', this.value)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-2 py-1 text-xs text-white focus:outline-none">
                     <option value="auto" selected>Auto (Strike only ➔ Option Sell | Confluence ➔ Option Buy)</option>
-                    <option value="force_sell">Always Option Selling (99% Sell OTM/ATM PE/CE)</option>
+                    <option value="force_sell">Always Option Selling (Sell OTM/ATM PE/CE)</option>
                     <option value="force_buy">Always Option Buying (Buy ATM/OTM CE/PE)</option>
                     <option value="combo">Dual Combo (Synthetic: Sell PE + Buy CE on Bull / Sell CE + Buy PE on Bear)</option>
                 </select>
-                <div class="text-[10px] text-gray-400 mt-1">Recommended: Auto ensures highest statistical edge.</div>
+                <div class="mt-1 flex items-center justify-between text-[10px]">
+                    <label class="flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" id="trade-cfg-breakout-confirmed" checked onchange="updateTradeConfig('breakoutConfirmed', this.checked)" class="accent-emerald-500">
+                        <span class="text-emerald-300 font-bold">⚡ Breakout Confirm</span>
+                    </label>
+                    <span class="text-gray-400 text-[9px]">Candle i+1 break</span>
+                </div>
             </div>
 
             <!-- Lots & Sizing Setup -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-amber-400 mb-1 flex items-center justify-between">
-                    <span class="flex items-center gap-1">📦 Lots &amp; Quantity:</span>
+                    <span class="flex items-center gap-1">📦 Lots &amp; Daily Cap:</span>
                     <span id="cfg-total-qty-badge" class="text-[9.5px] font-mono px-1 py-0.2 bg-amber-950 text-amber-300 rounded border border-amber-700/60 font-bold">195 QTY</span>
                 </div>
-                <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                <div class="grid grid-cols-3 gap-1 text-[11px] font-mono">
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">Entry Lots:</span>
-                        <select id="trade-cfg-lots" onchange="updateTradeConfig('entryLots', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
-                            <option value="3" selected>3 Lots (T1, T2, T3)</option>
-                            <option value="2">2 Lots (T1, T2)</option>
-                            <option value="1">1 Lot (Trail)</option>
+                        <span class="text-gray-400 text-[9px]">Lots:</span>
+                        <select id="trade-cfg-lots" onchange="updateTradeConfig('entryLots', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-white text-xs">
+                            <option value="3" selected>3 Lots</option>
+                            <option value="2">2 Lots</option>
+                            <option value="1">1 Lot</option>
                         </select>
                     </div>
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">Lot Size (Qty):</span>
-                        <input id="trade-cfg-lot-size" type="number" min="1" value="65" onchange="updateTradeConfig('lotSize', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-center text-white text-xs">
+                        <span class="text-gray-400 text-[9px]">Lot Size:</span>
+                        <input id="trade-cfg-lot-size" type="number" min="1" value="65" onchange="updateTradeConfig('lotSize', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white text-xs">
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9px]">Daily Cap:</span>
+                        <select id="trade-cfg-max-trades" onchange="updateTradeConfig('maxDailyTrades', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-white text-xs">
+                            <option value="1">1/Day</option>
+                            <option value="2" selected>2/Day (Rec)</option>
+                            <option value="3">3/Day</option>
+                            <option value="0">No Limit</option>
+                        </select>
                     </div>
                 </div>
-                <div class="text-[9.5px] text-gray-400 mt-1">Nifty Lot Size is 65. 3 Lots: 1 lot booked at T1, 1 at T2, 1 at T3.</div>
+                <div class="text-[9.5px] text-gray-400 mt-1">Nifty 65 Qty/Lot. Max 2 trades/day stops overtrading churn.</div>
             </div>
 
             <!-- Target R:R Multipliers -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
-                <div class="font-bold text-emerald-400 mb-1 flex items-center gap-1">
-                    <span>🎯 Multi-Target Partial Exits:</span>
+                <div class="font-bold text-emerald-400 mb-1 flex items-center justify-between">
+                    <span class="flex items-center gap-1">🎯 Multi-Target R:R:</span>
+                    <span class="text-[9px] text-emerald-300 font-mono">1.0R T1 Scalp</span>
                 </div>
                 <div class="grid grid-cols-3 gap-1 text-[11px] font-mono">
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T1:</span>
-                        <input id="trade-cfg-t1-rr" type="number" step="0.1" value="1.2" onchange="updateTradeConfig('t1Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
+                        <span class="text-gray-400 text-[9.5px]">T1 (Lock):</span>
+                        <input id="trade-cfg-t1-rr" type="number" step="0.1" value="1.0" onchange="updateTradeConfig('t1Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T2:</span>
-                        <input id="trade-cfg-t2-rr" type="number" step="0.1" value="2.2" onchange="updateTradeConfig('t2Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
+                        <span class="text-gray-400 text-[9.5px]">T2 (Partial):</span>
+                        <input id="trade-cfg-t2-rr" type="number" step="0.1" value="2.0" onchange="updateTradeConfig('t2Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                     <div>
-                        <span class="text-gray-400 text-[9.5px]">T3:</span>
-                        <input id="trade-cfg-t3-rr" type="number" step="0.1" value="3.2" onchange="updateTradeConfig('t3Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
+                        <span class="text-gray-400 text-[9.5px]">T3 (Runner):</span>
+                        <input id="trade-cfg-t3-rr" type="number" step="0.1" value="3.0" onchange="updateTradeConfig('t3Rr', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white">
                     </div>
                 </div>
-                <div class="text-[10px] text-gray-400 mt-1">T1 trails SL to Cost; T2 trails SL to T1.</div>
+                <div class="text-[10px] text-gray-400 mt-1">T1 (1.0R) locks SL to Cost; T2 (2.0R) locks SL to T1.</div>
             </div>
 
             <!-- Trending OI Entry Filter Setup -->
@@ -3288,6 +3308,29 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 shrink-0">
             <!-- Left Panel: Active Trade & M2M P&L Cockpit -->
             <div class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 flex flex-col justify-between shadow-inner">
+                <!-- Pending Breakout Confirmation Card -->
+                <div id="pending-breakout-card" class="hidden bg-[#181d11] border-2 border-amber-500/80 rounded-lg p-2.5 mb-2 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-amber-500/40">
+                        <span class="font-black text-xs text-amber-300 flex items-center gap-1.5 animate-pulse">
+                            <span>⚡ AWAITING BREAKOUT CONFIRMATION</span>
+                        </span>
+                        <span id="pb-setup-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700">🚀 SQUEEZE BREAKOUT</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 my-2 text-[10.5px] font-mono">
+                        <div class="bg-[#12160d] p-1.5 rounded border border-amber-900/60">
+                            <span class="text-gray-400 text-[9px] block">BREAKOUT TRIGGER SPOT</span>
+                            <span id="pb-trigger-spot" class="text-amber-400 font-bold text-sm">--</span>
+                        </div>
+                        <div class="bg-[#12160d] p-1.5 rounded border border-amber-900/60">
+                            <span class="text-gray-400 text-[9px] block">BASE STOP LOSS</span>
+                            <span id="pb-base-sl" class="text-rose-400 font-bold text-sm">--</span>
+                        </div>
+                    </div>
+                    <div class="text-[9.5px] text-amber-200/90 leading-relaxed font-sans bg-amber-950/40 p-1.5 rounded border border-amber-900/50">
+                        🛡️ <strong>Rule 1 Active:</strong> Signal formed at <span id="pb-signal-time" class="font-bold text-white">--</span>. The <em>next candle</em> must break trigger level (<span id="pb-trigger-label" class="font-bold text-white">--</span>) to confirm institutional momentum. If price fails to break, trade will be <strong>REJECTED</strong> to prevent false breakout whipsaws!
+                    </div>
+                </div>
+
                 <div id="active-trade-card">
                     <!-- Trade Action & Strategy Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800">
@@ -3346,6 +3389,56 @@
                         </div>
                     </div>
 
+                    <!-- Dual Contract Recommendation Card: Option Selling vs Option Buying -->
+                    <div class="mb-2 bg-[#121929] p-2 rounded-lg border border-slate-800">
+                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 text-[10px]">
+                            <span class="font-bold text-sky-400 flex items-center gap-1">
+                                <span>⚖️ DUAL CONTRACT COMPARISON</span>
+                            </span>
+                            <div class="flex items-center gap-1 font-mono text-[9px]">
+                                <button type="button" onclick="setDualLegView('dual')" id="btn-leg-dual" class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 font-bold cursor-pointer">Both</button>
+                                <button type="button" onclick="setDualLegView('sell')" id="btn-leg-sell" class="px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Seller</button>
+                                <button type="button" onclick="setDualLegView('buy')" id="btn-leg-buy" class="px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Buyer</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5 mt-1.5 text-[10px] font-mono">
+                            <!-- Option Selling Leg Card -->
+                            <div id="card-leg-seller" class="bg-[#151c2e] p-1.5 rounded border border-emerald-900/50 hover:border-emerald-500/50 transition">
+                                <div class="flex items-center justify-between text-[9px] mb-1">
+                                    <span class="font-bold text-emerald-300">🛡️ SELLING LEG</span>
+                                    <span id="at-sell-decay-rate" class="text-emerald-400 text-[8.5px]">+₹23/5m</span>
+                                </div>
+                                <div id="at-sell-instrument" class="font-bold text-white text-[10.5px]">SELL 25500 PE</div>
+                                <div class="flex items-center justify-between text-[9px] text-gray-400 mt-0.5">
+                                    <span>Entry: <span id="at-sell-entry" class="text-amber-300">₹85.0</span></span>
+                                    <span>LTP: <span id="at-sell-curr" class="text-emerald-300">₹58.5</span></span>
+                                </div>
+                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold">
+                                    <span class="text-gray-400 text-[8.5px]">P&L (Δ 0.35):</span>
+                                    <span id="at-sell-pnl" class="text-emerald-400">+₹5,167 (+26.5p)</span>
+                                </div>
+                            </div>
+
+                            <!-- Option Buying Leg Card -->
+                            <div id="card-leg-buyer" class="bg-[#151c2e] p-1.5 rounded border border-sky-900/50 hover:border-sky-500/50 transition">
+                                <div class="flex items-center justify-between text-[9px] mb-1">
+                                    <span class="font-bold text-sky-300">🚀 BUYING LEG</span>
+                                    <span class="text-sky-400 text-[8.5px]">Gamma Pop</span>
+                                </div>
+                                <div id="at-buy-instrument" class="font-bold text-white text-[10.5px]">BUY 25600 CE</div>
+                                <div class="flex items-center justify-between text-[9px] text-gray-400 mt-0.5">
+                                    <span>Entry: <span id="at-buy-entry" class="text-amber-300">₹135.0</span></span>
+                                    <span>LTP: <span id="at-buy-curr" class="text-emerald-300">₹156.0</span></span>
+                                </div>
+                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold">
+                                    <span class="text-gray-400 text-[8.5px]">P&L (Δ 0.52):</span>
+                                    <span id="at-buy-pnl" class="text-emerald-400">+₹4,095 (+21.0p)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 3 Targets Breakdown & Trailing SL -->
                     <div class="bg-[#141b2c] p-2 rounded border border-gray-800 text-[10.5px] font-mono space-y-1">
                         <div class="flex items-center justify-between">
@@ -3380,10 +3473,10 @@
                 </div>
 
                 <!-- Empty State when no active trade -->
-                <div id="no-active-trade-card" class="hidden text-center py-8 text-gray-400 font-mono text-xs">
+                <div id="no-active-trade-card" class="text-center py-8 text-gray-400 font-mono text-xs">
                     <span class="text-2xl block mb-2">🔭</span>
                     <div>No active trade running.</div>
-                    <div class="text-[10px] text-gray-500 mt-1">Scanning market data for 80%+ stock &amp; option breadth triggers...</div>
+                    <div id="no-active-trade-subtext" class="text-[10px] text-gray-500 mt-1">Scanning market data for 80%+ stock &amp; option breadth triggers...</div>
                 </div>
             </div>
 
@@ -3493,13 +3586,41 @@
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f6-action">NEUTRAL</td>
                                 </tr>
+
+                                <!-- Factor 7: Signal Breakout Trigger -->
+                                <tr id="row-em-breakout">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">7️⃣</span>
+                                        <span>Breakout Confirm</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f7-criteria">High/Low Break (i+1)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f7-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f7-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f7-action">STANDBY</td>
+                                </tr>
+
+                                <!-- Factor 8: Daily Session Cap -->
+                                <tr id="row-em-daily-cap">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">8️⃣</span>
+                                        <span>Daily Session Cap</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f8-criteria">≤ 2 Trades / Day</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f8-state">0 / 2 Executed</td>
+                                    <td class="py-1.5 px-1.5" id="em-f8-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 OPEN</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="em-f8-action">READY</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <div class="mt-2 pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] font-mono text-gray-400">
-                    <span>⚡ Evaluates all 6 entry criteria at each 5M candle close.</span>
+                    <span>⚡ Evaluates all 8 entry &amp; breakout confirmation criteria at each 5M candle close.</span>
                     <span id="entry-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
                 </div>
             </div>
@@ -14769,9 +14890,12 @@
         strategyMode: 'auto', // 'auto' | 'force_sell' | 'force_buy' | 'combo'
         entryLots: 3,         // 1, 2, or 3 lots
         lotSize: 65,          // Nifty lot size is 65
-        t1Rr: 1.2,
-        t2Rr: 2.2,
-        t3Rr: 3.2,
+        t1Rr: 1.0,            // 1.0R Quick Scalp Lock (proven highest win rate & profit)
+        t2Rr: 2.0,            // 2.0R Partial Lock
+        t3Rr: 3.0,            // 3.0R Full Runner
+        maxDailyTrades: 2,    // Max 2 trades per session kill-switch
+        breakoutConfirmed: true, // Require next candle breakout confirmation
+        dualLegView: 'dual',  // 'dual' | 'sell' | 'buy'
         f1_sl: true,
         f2_yd_sr: true,
         f3_td_sr: true,
@@ -14837,6 +14961,16 @@
         if (t2Inp && tradeEngineConfig.t2Rr) t2Inp.value = String(tradeEngineConfig.t2Rr);
         const t3Inp = document.getElementById('trade-cfg-t3-rr');
         if (t3Inp && tradeEngineConfig.t3Rr) t3Inp.value = String(tradeEngineConfig.t3Rr);
+
+        const maxTradesSel = document.getElementById('trade-cfg-max-trades');
+        if (maxTradesSel && tradeEngineConfig.maxDailyTrades !== undefined) {
+            maxTradesSel.value = String(tradeEngineConfig.maxDailyTrades);
+        }
+
+        const boConfEl = document.getElementById('trade-cfg-breakout-confirmed');
+        if (boConfEl && typeof tradeEngineConfig.breakoutConfirmed === 'boolean') {
+            boConfEl.checked = tradeEngineConfig.breakoutConfirmed;
+        }
 
         const oiFiltEl = document.getElementById('trade-cfg-oi-filter-enabled');
         if (oiFiltEl && typeof tradeEngineConfig.oiFilterEnabled === 'boolean') {
@@ -14924,6 +15058,59 @@
     }
     window.toggleTradeHistoryMode = toggleTradeHistoryMode;
 
+    function setDualLegView(mode) {
+        tradeEngineConfig.dualLegView = mode;
+        const btnDual = document.getElementById('btn-leg-dual');
+        const btnSell = document.getElementById('btn-leg-sell');
+        const btnBuy = document.getElementById('btn-leg-buy');
+        const cardSell = document.getElementById('card-leg-seller');
+        const cardBuy = document.getElementById('card-leg-buyer');
+
+        if (btnDual) btnDual.className = (mode === 'dual') ? 'px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 font-bold cursor-pointer' : 'px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer';
+        if (btnSell) btnSell.className = (mode === 'sell') ? 'px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-bold cursor-pointer' : 'px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer';
+        if (btnBuy) btnBuy.className = (mode === 'buy') ? 'px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/60 font-bold cursor-pointer' : 'px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer';
+
+        if (cardSell) cardSell.style.display = (mode === 'buy') ? 'none' : 'block';
+        if (cardBuy) cardBuy.style.display = (mode === 'sell') ? 'none' : 'block';
+    }
+    window.setDualLegView = setDualLegView;
+
+    function calcLegMetrics(direction, entrySpot, currentSpot, candleIdx, entryIndex) {
+        const isBull = (direction === 'BULL');
+        const favorableSpotMove = isBull ? (currentSpot - entrySpot) : (entrySpot - currentSpot);
+        const elapsedCandles = Math.max(0, candleIdx - entryIndex);
+        const thetaDecay = Math.min(25.0, elapsedCandles * 0.35);
+
+        // Selling Leg
+        const sellDelta = 0.35;
+        const sellPtsGain = (favorableSpotMove * sellDelta) + thetaDecay;
+        const sellEntryOpt = 85.0;
+        const sellCurOpt = Math.max(1.0, Math.round((sellEntryOpt - sellPtsGain) * 10) / 10);
+        const sellPtsFinal = Math.round((sellEntryOpt - sellCurOpt) * 10) / 10;
+
+        // Buying Leg
+        const buyDelta = 0.52;
+        const buyPtsGain = (favorableSpotMove * buyDelta) - thetaDecay;
+        const buyEntryOpt = 135.0;
+        const buyCurOpt = Math.max(1.0, Math.round((buyEntryOpt + buyPtsGain) * 10) / 10);
+        const buyPtsFinal = Math.round((buyCurOpt - buyEntryOpt) * 10) / 10;
+
+        return {
+            seller: {
+                entryOpt: sellEntryOpt,
+                curOpt: sellCurOpt,
+                pts: sellPtsFinal,
+                thetaRate: '+₹22.8/5m'
+            },
+            buyer: {
+                entryOpt: buyEntryOpt,
+                curOpt: buyCurOpt,
+                pts: buyPtsFinal,
+                thetaRate: '-₹22.8/5m'
+            }
+        };
+    }
+
     function getTrendingOiSnapshotAtTime(timeStr) {
         if (!trendingOiData || !trendingOiData.chart || !trendingOiData.chart.labels) return null;
         const chart = trendingOiData.chart;
@@ -15003,10 +15190,16 @@
         sessionTrades = [];
         let currentTrade = null;
         let lastVetoedSignal = null;
+        let pendingBreakout = null;
+        let executedSignalsCount = 0;
+        const maxDailyLimit = (Number(tradeEngineConfig.maxDailyTrades) !== undefined && !isNaN(Number(tradeEngineConfig.maxDailyTrades))) ? Number(tradeEngineConfig.maxDailyTrades) : 2;
+        const requireBreakout = (tradeEngineConfig.breakoutConfirmed !== false);
         const telemetryLogs = [];
 
         let activeTradeAtReplay = null;
         let vetoedSignalAtReplay = null;
+        let pendingBreakoutAtReplay = null;
+        let executedTradesAtReplay = 0;
         let replaySessionTrades = [];
 
         for (let i = 0; i < rawCandles.length; i++) {
@@ -15072,6 +15265,124 @@
             let candleState = 'STANDBY';
             let verdictBadgeHtml = '';
             let diagnosticReason = '';
+
+            // 0. If pendingBreakout was set on candle i-1, check confirmation on candle i
+            if (!currentTrade && pendingBreakout && pendingBreakout.signalIndex === i - 1) {
+                const isBull = (pendingBreakout.direction === 'BULL');
+                const isConfirmed = isBull ? (cHigh >= pendingBreakout.triggerPrice) : (cLow <= pendingBreakout.triggerPrice);
+
+                if (isConfirmed) {
+                    const entrySpot = isBull ? Math.max(cOpen, pendingBreakout.triggerPrice) : Math.min(cOpen, pendingBreakout.triggerPrice);
+                    const mode = tradeEngineConfig.strategyMode || 'auto';
+
+                    let strategy = null, action = null, optType = null;
+                    if (pendingBreakout.direction === 'BULL') {
+                        if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
+                        else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
+                        else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
+                        else {
+                            strategy = pendingBreakout.isConf ? 'BUY_CE' : 'SELL_PE';
+                            action = pendingBreakout.isConf ? 'BUY' : 'SELL';
+                            optType = pendingBreakout.isConf ? 'CE' : 'PE';
+                        }
+                    } else {
+                        if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
+                        else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
+                        else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
+                        else {
+                            strategy = pendingBreakout.isConf ? 'BUY_PE' : 'SELL_CE';
+                            action = pendingBreakout.isConf ? 'BUY' : 'SELL';
+                            optType = pendingBreakout.isConf ? 'PE' : 'CE';
+                        }
+                    }
+
+                    const atmStrike = Math.round(entrySpot / 100) * 100;
+                    let strike = atmStrike;
+                    if (strategy === 'SELL_PE') strike = atmStrike - 100;
+                    if (strategy === 'SELL_CE') strike = atmStrike + 100;
+
+                    let instrument = `NIFTY ${strike} ${optType}`;
+                    if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
+                    if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
+
+                    const baseSl = pendingBreakout.baseSl;
+                    const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
+
+                    const t1Pts = Math.round(riskPts * (tradeEngineConfig.t1Rr || 1.0) * 10) / 10;
+                    const t2Pts = Math.round(riskPts * (tradeEngineConfig.t2Rr || 2.0) * 10) / 10;
+                    const t3Pts = Math.round(riskPts * (tradeEngineConfig.t3Rr || 3.0) * 10) / 10;
+
+                    const t1 = isBull ? Math.round((entrySpot + t1Pts) * 10) / 10 : Math.round((entrySpot - t1Pts) * 10) / 10;
+                    const t2 = isBull ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
+                    const t3 = isBull ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
+
+                    const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
+                    const entryLots = Number(tradeEngineConfig.entryLots) || 3;
+                    const lotSize = Number(tradeEngineConfig.lotSize) || 65;
+
+                    executedSignalsCount++;
+
+                    currentTrade = {
+                        id: `T_${candle.time_str}`,
+                        status: 'ACTIVE',
+                        direction: pendingBreakout.direction,
+                        setupType: pendingBreakout.setupType,
+                        setupBadge: pendingBreakout.setupBadge,
+                        setupReason: pendingBreakout.setupReason,
+                        oiDiffPct: pendingBreakout.oiDiffPct,
+                        isConf: pendingBreakout.isConf,
+                        strategy: strategy,
+                        action: action,
+                        optType: optType,
+                        instrument: instrument,
+                        strike: strike,
+                        atmStrike: atmStrike,
+                        signalTime: pendingBreakout.time,
+                        entryTime: candle.time_str,
+                        entryIndex: i,
+                        entrySpot: entrySpot,
+                        entryOptPrice: entryOptPrice,
+                        currentSpot: entrySpot,
+                        currentOptPrice: entryOptPrice,
+                        entryLots: entryLots,
+                        lotSize: lotSize,
+                        openLots: entryLots,
+                        bookedLots: 0,
+                        bookedPnlRupees: 0,
+                        openPnlRupees: 0,
+                        baseSl: baseSl,
+                        currentSl: baseSl,
+                        slType: 'SIGNAL_CANDLE_SL',
+                        riskPts: riskPts,
+                        t1: t1,
+                        t1Hit: false,
+                        t1PnlRs: 0,
+                        t2: t2,
+                        t2Hit: false,
+                        t2PnlRs: 0,
+                        t3: t3,
+                        t3Hit: false,
+                        t3PnlRs: 0,
+                        pnlPoints: 0,
+                        pnlRupees: 0,
+                        mfePoints: 0,
+                        maePoints: 0,
+                        exitTime: null,
+                        exitSpot: null,
+                        exitReason: null,
+                    };
+
+                    candleState = 'CONFIRMED_BREAKOUT';
+                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold">🟢 CONFIRMED BREAKOUT</span>';
+                    diagnosticReason = `🟢 Breakout confirmed on candle ${tStr}! High/Low breached trigger ${pendingBreakout.triggerPrice.toFixed(1)}. Entered ${action} ${strike} ${optType} @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)} (1.0R lock), SL: ${baseSl.toFixed(1)}.`;
+                    pendingBreakout = null;
+                } else {
+                    candleState = 'BREAKOUT_REJECTED';
+                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⚠️ BREAKOUT REJECTED</span>';
+                    diagnosticReason = `⚠️ Breakout failed at ${tStr}: ${isBull ? 'High ' + cHigh.toFixed(1) : 'Low ' + cLow.toFixed(1)} failed to break trigger ${pendingBreakout.triggerPrice.toFixed(1)}. Whipsaw trade avoided!`;
+                    pendingBreakout = null;
+                }
+            }
 
             // 1. If currently in a trade, evaluate progression on candle i
             if (currentTrade) {
@@ -15175,6 +15486,31 @@
                 currentTrade.pnlPoints = Math.round((currentTrade.pnlRupees / (currentTrade.entryLots * currentTrade.lotSize)) * 10) / 10;
                 currentTrade.mfePoints = Math.max(currentTrade.mfePoints, m2mCalc.pointsGain);
                 currentTrade.maePoints = Math.min(currentTrade.maePoints, m2mCalc.pointsGain);
+
+                // Calculate Dual Leg Metrics (Seller vs Buyer)
+                const legMetrics = calcLegMetrics(currentTrade.direction, currentTrade.entrySpot, cClose, i, currentTrade.entryIndex);
+                currentTrade.sellerLeg = {
+                    action: 'SELL',
+                    strike: isBull ? ((currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100) - 100) : ((currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100) + 100),
+                    optType: isBull ? 'PE' : 'CE',
+                    entryOpt: legMetrics.seller.entryOpt,
+                    curOpt: legMetrics.seller.curOpt,
+                    pnlPoints: legMetrics.seller.pts,
+                    pnlRupees: Math.round(legMetrics.seller.pts * currentTrade.entryLots * currentTrade.lotSize),
+                    delta: 0.35,
+                    thetaRate: legMetrics.seller.thetaRate
+                };
+                currentTrade.buyerLeg = {
+                    action: 'BUY',
+                    strike: currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100,
+                    optType: isBull ? 'CE' : 'PE',
+                    entryOpt: legMetrics.buyer.entryOpt,
+                    curOpt: legMetrics.buyer.curOpt,
+                    pnlPoints: legMetrics.buyer.pts,
+                    pnlRupees: Math.round(legMetrics.buyer.pts * currentTrade.entryLots * currentTrade.lotSize),
+                    delta: 0.52,
+                    thetaRate: legMetrics.buyer.thetaRate
+                };
 
                 // Track Peak Spot in Trade (High for Bull / Low for Bear)
                 currentTrade.peakSpot = currentTrade.peakSpot !== undefined
@@ -15307,7 +15643,9 @@
                     }
                 }
 
-            } else if (i < rawCandles.length - 1) {
+            } else if (i < rawCandles.length - 1 && candleState !== 'CONFIRMED_BREAKOUT' && candleState !== 'BREAKOUT_REJECTED') {
+                const isSessionLocked = (maxDailyLimit > 0 && executedSignalsCount >= maxDailyLimit);
+
                 // 2. If NO active trade, scan for entry signals formed on candle i
                 let sBull = false, sBear = false;
                 if (b) {
@@ -15337,185 +15675,215 @@
                 else if (isStkBear) { triggeredDirection = 'BEAR'; isConf = false; }
 
                 if (triggeredDirection) {
-                    let setupType = 'STANDARD';
-                    let setupBadge = '🎯 STANDARD';
-                    let setupReason = 'Breadth confirmation trigger';
-                    let isVetoed = false;
-                    let vetoReason = '';
-
-                    const startTime = tradeEngineConfig.startTime || '09:35';
-                    const endTime = tradeEngineConfig.endTime || '14:45';
-                    const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
-                    const isPreOpen = timeFilterActive && (tStr < startTime);
-                    const isPostCutoff = timeFilterActive && (tStr > endTime);
-
-                    if (isPreOpen || isPostCutoff) {
-                        candleState = 'TIME_FILTER';
-                        const timeLabel = isPreOpen ? `Pre-${startTime} Opening Noise Window` : `Post-${endTime} Session Cutoff Window`;
-                        verdictBadgeHtml = isPreOpen
-                            ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ PRE-09:35 NOISE</span>'
-                            : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
-                        diagnosticReason = `⏰ ${triggeredDirection} signal formed at ${tStr}, but blocked by ${timeLabel} filter. No new trades allowed outside ${startTime}–${endTime}.`;
+                    if (isSessionLocked) {
+                        candleState = 'DAILY_CAP_LOCKED';
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-amber-400 border border-amber-600/70 font-bold">🛑 2/2 DAILY CAP</span>';
+                        diagnosticReason = `🛑 ${triggeredDirection} impulse formed at ${tStr}, but blocked by Daily Session Cap (${executedSignalsCount}/${maxDailyLimit} trades taken). Session locked to protect daily capital and prevent overtrading.`;
                     } else {
-                        if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
-                            const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
-                            const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+                        let setupType = 'STANDARD';
+                        let setupBadge = '🎯 STANDARD';
+                        let setupReason = 'Breadth confirmation trigger';
+                        let isVetoed = false;
+                        let vetoReason = '';
 
-                            if (triggeredDirection === 'BULL') {
-                                if (oiDiffPct <= -vetoTh) {
-                                    isVetoed = true;
-                                    vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
-                                } else if (Math.abs(oiDiffPct) <= sqzTh) {
-                                    setupType = 'SQUEEZE_BREAKOUT';
-                                    setupBadge = '🚀 SQUEEZE BREAKOUT';
-                                    setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakout Expansion`;
-                                } else if (oiDiffPct >= 20.0) {
-                                    setupType = 'GRADE_A_CONFLUENCE';
-                                    setupBadge = '🌟 GRADE A+ CONFLUENCE';
-                                    setupReason = `Breadth + Put Support Floor (+${oiDiffPct.toFixed(1)}%) Aligned`;
+                        const startTime = tradeEngineConfig.startTime || '09:35';
+                        const endTime = tradeEngineConfig.endTime || '14:45';
+                        const timeFilterActive = tradeEngineConfig.timeFilterEnabled !== false;
+                        const isPreOpen = timeFilterActive && (tStr < startTime);
+                        const isPostCutoff = timeFilterActive && (tStr > endTime);
+
+                        if (isPreOpen || isPostCutoff) {
+                            candleState = 'TIME_FILTER';
+                            const timeLabel = isPreOpen ? `Pre-${startTime} Opening Noise Window` : `Post-${endTime} Session Cutoff Window`;
+                            verdictBadgeHtml = isPreOpen
+                                ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700 font-bold">⏰ PRE-09:35 NOISE</span>'
+                                : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                            diagnosticReason = `⏰ ${triggeredDirection} signal formed at ${tStr}, but blocked by ${timeLabel} filter. No new trades allowed outside ${startTime}–${endTime}.`;
+                        } else {
+                            if (tradeEngineConfig.oiFilterEnabled && oiSnap) {
+                                const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+                                const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+
+                                if (triggeredDirection === 'BULL') {
+                                    if (oiDiffPct <= -vetoTh) {
+                                        isVetoed = true;
+                                        vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
+                                    } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                        setupType = 'SQUEEZE_BREAKOUT';
+                                        setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakout Expansion`;
+                                    } else if (oiDiffPct >= 20.0) {
+                                        setupType = 'GRADE_A_CONFLUENCE';
+                                        setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                        setupReason = `Breadth + Put Support Floor (+${oiDiffPct.toFixed(1)}%) Aligned`;
+                                    } else {
+                                        setupType = 'STANDARD';
+                                        setupBadge = '🎯 STANDARD';
+                                        setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                    }
                                 } else {
-                                    setupType = 'STANDARD';
-                                    setupBadge = '🎯 STANDARD';
-                                    setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                    if (oiDiffPct >= vetoTh) {
+                                        isVetoed = true;
+                                        vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
+                                    } else if (Math.abs(oiDiffPct) <= sqzTh) {
+                                        setupType = 'SQUEEZE_BREAKOUT';
+                                        setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakdown Expansion`;
+                                    } else if (oiDiffPct <= -20.0) {
+                                        setupType = 'GRADE_A_CONFLUENCE';
+                                        setupBadge = '🌟 GRADE A+ CONFLUENCE';
+                                        setupReason = `Breadth + Call Writing Ceiling (${oiDiffPct.toFixed(1)}%) Aligned`;
+                                    } else {
+                                        setupType = 'STANDARD';
+                                        setupBadge = '🎯 STANDARD';
+                                        setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                    }
                                 }
+                            }
+
+                            if (isVetoed) {
+                                candleState = 'VETOED';
+                                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
+                                diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
+
+                                lastVetoedSignal = {
+                                    time: tStr,
+                                    direction: triggeredDirection,
+                                    reason: vetoReason,
+                                    oiDiffPct: oiDiffPct
+                                };
+                                if (i <= upToIndex) {
+                                    vetoedSignalAtReplay = { ...lastVetoedSignal };
+                                }
+                            } else if (requireBreakout) {
+                                // Rule 1: Awaiting breakout confirmation on candle i+1
+                                const triggerPrice = (triggeredDirection === 'BULL') ? cHigh : cLow;
+                                const baseSl = (triggeredDirection === 'BULL') ? cLow : cHigh;
+                                pendingBreakout = {
+                                    signalIndex: i,
+                                    direction: triggeredDirection,
+                                    time: tStr,
+                                    triggerPrice: triggerPrice,
+                                    baseSl: baseSl,
+                                    setupType: setupType,
+                                    setupBadge: setupBadge,
+                                    setupReason: setupReason,
+                                    isConf: isConf,
+                                    oiDiffPct: oiDiffPct
+                                };
+
+                                candleState = 'AWAITING_BREAKOUT';
+                                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold animate-pulse">⚡ AWAITING BREAKOUT</span>';
+                                diagnosticReason = `⚡ ${setupBadge} formed at ${tStr}! Awaiting candle i+1 breakout above/below ${triggerPrice.toFixed(1)} to confirm entry. SL anchor: ${baseSl.toFixed(1)}.`;
                             } else {
-                                if (oiDiffPct >= vetoTh) {
-                                    isVetoed = true;
-                                    vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
-                                } else if (Math.abs(oiDiffPct) <= sqzTh) {
-                                    setupType = 'SQUEEZE_BREAKOUT';
-                                    setupBadge = '🚀 SQUEEZE BREAKOUT';
-                                    setupReason = `Tight OI Equilibrium (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%) ➔ Breakdown Expansion`;
-                                } else if (oiDiffPct <= -20.0) {
-                                    setupType = 'GRADE_A_CONFLUENCE';
-                                    setupBadge = '🌟 GRADE A+ CONFLUENCE';
-                                    setupReason = `Breadth + Call Writing Ceiling (${oiDiffPct.toFixed(1)}%) Aligned`;
+                                // Immediate entry mode (without waiting for breakout)
+                                const nextCandle = rawCandles[i + 1];
+                                const entrySpot = Number(nextCandle.open);
+                                const mode = tradeEngineConfig.strategyMode || 'auto';
+
+                                let strategy = null, action = null, optType = null;
+                                if (triggeredDirection === 'BULL') {
+                                    if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
+                                    else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
+                                    else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
+                                    else {
+                                        strategy = isConf ? 'BUY_CE' : 'SELL_PE';
+                                        action = isConf ? 'BUY' : 'SELL';
+                                        optType = isConf ? 'CE' : 'PE';
+                                    }
                                 } else {
-                                    setupType = 'STANDARD';
-                                    setupBadge = '🎯 STANDARD';
-                                    setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
+                                    if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
+                                    else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
+                                    else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
+                                    else {
+                                        strategy = isConf ? 'BUY_PE' : 'SELL_CE';
+                                        action = isConf ? 'BUY' : 'SELL';
+                                        optType = isConf ? 'PE' : 'CE';
+                                    }
                                 }
+
+                                const atmStrike = Math.round(entrySpot / 100) * 100;
+                                let strike = atmStrike;
+                                if (strategy === 'SELL_PE') strike = atmStrike - 100;
+                                if (strategy === 'SELL_CE') strike = atmStrike + 100;
+
+                                let instrument = `NIFTY ${strike} ${optType}`;
+                                if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
+                                if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
+
+                                const baseSl = (triggeredDirection === 'BULL') ? Number(candle.low) : Number(candle.high);
+                                const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
+
+                                const t1Pts = Math.round(riskPts * (tradeEngineConfig.t1Rr || 1.0) * 10) / 10;
+                                const t2Pts = Math.round(riskPts * (tradeEngineConfig.t2Rr || 2.0) * 10) / 10;
+                                const t3Pts = Math.round(riskPts * (tradeEngineConfig.t3Rr || 3.0) * 10) / 10;
+
+                                const t1 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t1Pts) * 10) / 10 : Math.round((entrySpot - t1Pts) * 10) / 10;
+                                const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
+                                const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
+
+                                const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
+                                const entryLots = Number(tradeEngineConfig.entryLots) || 3;
+                                const lotSize = Number(tradeEngineConfig.lotSize) || 65;
+
+                                executedSignalsCount++;
+
+                                currentTrade = {
+                                    id: `T_${nextCandle.time_str}`,
+                                    status: 'ACTIVE',
+                                    direction: triggeredDirection,
+                                    setupType: setupType,
+                                    setupBadge: setupBadge,
+                                    setupReason: setupReason,
+                                    oiDiffPct: oiDiffPct,
+                                    isConf: isConf,
+                                    strategy: strategy,
+                                    action: action,
+                                    optType: optType,
+                                    instrument: instrument,
+                                    strike: strike,
+                                    atmStrike: atmStrike,
+                                    signalTime: candle.time_str,
+                                    entryTime: nextCandle.time_str,
+                                    entryIndex: i + 1,
+                                    entrySpot: entrySpot,
+                                    entryOptPrice: entryOptPrice,
+                                    currentSpot: entrySpot,
+                                    currentOptPrice: entryOptPrice,
+                                    entryLots: entryLots,
+                                    lotSize: lotSize,
+                                    openLots: entryLots,
+                                    bookedLots: 0,
+                                    bookedPnlRupees: 0,
+                                    openPnlRupees: 0,
+                                    baseSl: baseSl,
+                                    currentSl: baseSl,
+                                    slType: 'SIGNAL_CANDLE_SL',
+                                    riskPts: riskPts,
+                                    t1: t1,
+                                    t1Hit: false,
+                                    t1PnlRs: 0,
+                                    t2: t2,
+                                    t2Hit: false,
+                                    t2PnlRs: 0,
+                                    t3: t3,
+                                    t3Hit: false,
+                                    t3PnlRs: 0,
+                                    pnlPoints: 0,
+                                    pnlRupees: 0,
+                                    mfePoints: 0,
+                                    maePoints: 0,
+                                    exitTime: null,
+                                    exitSpot: null,
+                                    exitReason: null,
+                                };
+
+                                candleState = 'TRADE_ENTRY';
+                                const badgeColor = (setupType === 'SQUEEZE_BREAKOUT') ? 'bg-amber-950 text-amber-300 border-amber-600/70' : (setupType === 'GRADE_A_CONFLUENCE' ? 'bg-cyan-950 text-cyan-300 border-cyan-600/70' : 'bg-emerald-950 text-emerald-300 border-emerald-600/70');
+                                verdictBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[9px] ${badgeColor} border font-bold">${setupBadge}</span>`;
+                                diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                             }
                         }
-
-                        if (isVetoed) {
-                            candleState = 'VETOED';
-                            verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
-                            diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
-
-                            lastVetoedSignal = {
-                                time: tStr,
-                                direction: triggeredDirection,
-                                reason: vetoReason,
-                                oiDiffPct: oiDiffPct
-                            };
-                            if (i <= upToIndex) {
-                                vetoedSignalAtReplay = { ...lastVetoedSignal };
-                            }
-                        } else {
-                            // Entry executes on OPEN of next candle (i + 1)
-                        const nextCandle = rawCandles[i + 1];
-                        const entrySpot = Number(nextCandle.open);
-                        const mode = tradeEngineConfig.strategyMode || 'auto';
-
-                        let strategy = null, action = null, optType = null;
-                        if (triggeredDirection === 'BULL') {
-                            if (mode === 'combo') { strategy = 'COMBO_BULL'; action = 'COMBO'; optType = '3 PE SELL + 3 CE BUY'; }
-                            else if (mode === 'force_sell') { strategy = 'SELL_PE'; action = 'SELL'; optType = 'PE'; }
-                            else if (mode === 'force_buy') { strategy = 'BUY_CE'; action = 'BUY'; optType = 'CE'; }
-                            else {
-                                strategy = isConf ? 'BUY_CE' : 'SELL_PE';
-                                action = isConf ? 'BUY' : 'SELL';
-                                optType = isConf ? 'CE' : 'PE';
-                            }
-                        } else {
-                            if (mode === 'combo') { strategy = 'COMBO_BEAR'; action = 'COMBO'; optType = '3 CE SELL + 3 PE BUY'; }
-                            else if (mode === 'force_sell') { strategy = 'SELL_CE'; action = 'SELL'; optType = 'CE'; }
-                            else if (mode === 'force_buy') { strategy = 'BUY_PE'; action = 'BUY'; optType = 'PE'; }
-                            else {
-                                strategy = isConf ? 'BUY_PE' : 'SELL_CE';
-                                action = isConf ? 'BUY' : 'SELL';
-                                optType = isConf ? 'PE' : 'CE';
-                            }
-                        }
-
-                        const atmStrike = Math.round(entrySpot / 100) * 100;
-                        let strike = atmStrike;
-                        if (strategy === 'SELL_PE') strike = atmStrike - 100;
-                        if (strategy === 'SELL_CE') strike = atmStrike + 100;
-
-                        let instrument = `NIFTY ${strike} ${optType}`;
-                        if (strategy === 'COMBO_BULL') instrument = `NIFTY ${strike - 100} PE (SELL) + ${strike} CE (BUY)`;
-                        if (strategy === 'COMBO_BEAR') instrument = `NIFTY ${strike + 100} CE (SELL) + ${strike} PE (BUY)`;
-
-                        const baseSl = (triggeredDirection === 'BULL') ? Number(candle.low) : Number(candle.high);
-                        const riskPts = Math.max(Math.abs(entrySpot - baseSl), 20.0);
-
-                        const t1Pts = Math.round(riskPts * (tradeEngineConfig.t1Rr || 1.2) * 10) / 10;
-                        const t2Pts = Math.round(riskPts * (tradeEngineConfig.t2Rr || 2.2) * 10) / 10;
-                        const t3Pts = Math.round(riskPts * (tradeEngineConfig.t3Rr || 3.2) * 10) / 10;
-
-                        const t1 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t1Pts) * 10) / 10 : Math.round((entrySpot - t1Pts) * 10) / 10;
-                        const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
-                        const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
-
-                        const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
-                        const entryLots = Number(tradeEngineConfig.entryLots) || 3;
-                        const lotSize = Number(tradeEngineConfig.lotSize) || 65;
-
-                        currentTrade = {
-                            id: `T_${nextCandle.time_str}`,
-                            status: 'ACTIVE',
-                            direction: triggeredDirection,
-                            setupType: setupType,
-                            setupBadge: setupBadge,
-                            setupReason: setupReason,
-                            oiDiffPct: oiDiffPct,
-                            isConf: isConf,
-                            strategy: strategy,
-                            action: action,
-                            optType: optType,
-                            instrument: instrument,
-                            strike: strike,
-                            signalTime: candle.time_str,
-                            entryTime: nextCandle.time_str,
-                            entryIndex: i + 1,
-                            entrySpot: entrySpot,
-                            entryOptPrice: entryOptPrice,
-                            currentSpot: entrySpot,
-                            currentOptPrice: entryOptPrice,
-                            entryLots: entryLots,
-                            lotSize: lotSize,
-                            openLots: entryLots,
-                            bookedLots: 0,
-                            bookedPnlRupees: 0,
-                            openPnlRupees: 0,
-                            baseSl: baseSl,
-                            currentSl: baseSl,
-                            slType: 'SIGNAL_CANDLE_SL',
-                            riskPts: riskPts,
-                            t1: t1,
-                            t1Hit: false,
-                            t1PnlRs: 0,
-                            t2: t2,
-                            t2Hit: false,
-                            t2PnlRs: 0,
-                            t3: t3,
-                            t3Hit: false,
-                            t3PnlRs: 0,
-                            pnlPoints: 0,
-                            pnlRupees: 0,
-                            mfePoints: 0,
-                            maePoints: 0,
-                            exitTime: null,
-                            exitSpot: null,
-                            exitReason: null,
-                        };
-
-                        candleState = 'TRADE_ENTRY';
-                        const badgeColor = (setupType === 'SQUEEZE_BREAKOUT') ? 'bg-amber-950 text-amber-300 border-amber-600/70' : (setupType === 'GRADE_A_CONFLUENCE' ? 'bg-cyan-950 text-cyan-300 border-cyan-600/70' : 'bg-emerald-950 text-emerald-300 border-emerald-600/70');
-                        verdictBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[9px] ${badgeColor} border font-bold">${setupBadge}</span>`;
-                        diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                     }
                 }
             } else {
@@ -15557,6 +15925,8 @@
 
             if (i === upToIndex) {
                 activeTradeAtReplay = currentTrade ? { ...currentTrade } : null;
+                pendingBreakoutAtReplay = pendingBreakout ? { ...pendingBreakout } : null;
+                executedTradesAtReplay = executedSignalsCount;
                 if (lastVetoedSignal) vetoedSignalAtReplay = { ...lastVetoedSignal };
             }
 
@@ -15575,21 +15945,47 @@
         }
 
         activeTrade = activeTradeAtReplay;
+        activePendingBreakout = pendingBreakoutAtReplay;
         sessionTrades = replaySessionTrades.length > 0 ? replaySessionTrades : sessionTrades.filter(t => t.entryIndex <= upToIndex);
         window._sessionTelemetryLogs = telemetryLogs;
 
         // Update UI Cockpit, Matrix & Chart Price Lines
-        updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal);
+        updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal, activePendingBreakout, executedTradesAtReplay);
         updateExitMatrixUI(activeTrade);
-        updateEntryMatrixUI(upToIndex);
-        updateTradePriceLines(activeTrade);
+        updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay);
+        updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
     }
     window.runHighProbabilityTradeEngine = runHighProbabilityTradeEngine;
 
-    function updateTradePriceLines(trade) {
+    function updateTradePriceLines(trade, pendingBreakout = null) {
         clearTradePriceLines();
         if (!wCandleSeries) return;
+
+        // 1. Pending Breakout Trigger & Base SL Lines
+        if (pendingBreakout && (!trade || trade.status !== 'ACTIVE')) {
+            const isBull = (pendingBreakout.direction === 'BULL');
+            const trigLine = wCandleSeries.createPriceLine({
+                price: pendingBreakout.triggerPrice,
+                color: '#f59e0b', // Amber
+                lineWidth: 2,
+                lineStyle: 2, // Dashed
+                axisLabelVisible: true,
+                title: `⚡ BREAKOUT TRIGGER: ${pendingBreakout.triggerPrice.toFixed(2)} (${isBull ? 'Break Above' : 'Break Below'} to Confirm)`,
+            });
+            tradePriceLines.push(trigLine);
+
+            const baseSlLine = wCandleSeries.createPriceLine({
+                price: pendingBreakout.baseSl,
+                color: '#f43f5e', // Rose
+                lineWidth: 2,
+                lineStyle: 2, // Dashed
+                axisLabelVisible: true,
+                title: `BASE SL: ${pendingBreakout.baseSl.toFixed(2)} (${isBull ? 'Signal Low' : 'Signal High'})`,
+            });
+            tradePriceLines.push(baseSlLine);
+            return;
+        }
 
         if (trade && trade.status === 'ACTIVE') {
             const isBull = (trade.direction === 'BULL');
@@ -15600,19 +15996,21 @@
                 lineWidth: 2,
                 lineStyle: 0, // Solid
                 axisLabelVisible: true,
-                title: `ENTRY: ${trade.action} ${trade.strike} ${trade.optType} (${trade.entryLots}L) @ ${trade.entrySpot}`,
+                title: `ENTRY: ${trade.action} ${trade.strike} ${trade.optType} (${trade.openLots || trade.entryLots}/${trade.entryLots}L) @ ${trade.entrySpot.toFixed(2)}`,
             });
             tradePriceLines.push(entryLine);
 
-            // 2. SL Line (Rose / Amber / Green)
-            let slLabel = (trade.slType === 'TRAILED_TO_T1') ? `TRAILED SL: ${trade.currentSl} (at T1)` : (trade.t1Hit ? `TRAILED SL: ${trade.currentSl} (Cost Breakeven)` : `SL: ${trade.currentSl} (Signal Low/High)`);
+            // 2. SL Line (Rose / Amber / Green / Cyan)
+            let slLabel = `SL: ${trade.currentSl.toFixed(2)} (Signal Low/High)`;
             let slColor = '#f43f5e';
-            if (trade.slType === 'STAGNATION_1TO1_TRAIL') {
-                slLabel = `STAGNATION 1:1 SL: ${trade.currentSl} (${tradeEngineConfig.stagnationTrailBuffer || 5}pt buffer)`;
-                slColor = '#f59e0b';
-            } else if (trade.slType === 'TRAILED_TO_T1') {
+            if (trade.slType === 'TRAILED_TO_T1') {
+                slLabel = `TRAILED SL: ${trade.currentSl.toFixed(2)} (Locked at T1)`;
                 slColor = '#10b981';
+            } else if (trade.slType === 'STAGNATION_1TO1_TRAIL') {
+                slLabel = `STAGNATION 1:1 SL: ${trade.currentSl.toFixed(2)} (${tradeEngineConfig.stagnationTrailBuffer || 5}pt buffer)`;
+                slColor = '#f59e0b';
             } else if (trade.t1Hit) {
+                slLabel = `TRAILED SL: ${trade.currentSl.toFixed(2)} (Cost Breakeven Locked)`;
                 slColor = '#06b6d4';
             }
             const slLine = wCandleSeries.createPriceLine({
@@ -15625,45 +16023,69 @@
             });
             tradePriceLines.push(slLine);
 
-            // 3. Targets (Emerald)
+            // 3. Targets (1.0R Quick Scalp, 2.0R Partial, 3.0R Full Runner)
+            const t1Dist = Math.abs(trade.t1 - trade.entrySpot).toFixed(1);
             const t1Line = wCandleSeries.createPriceLine({
                 price: trade.t1,
                 color: trade.t1Hit ? '#10b981' : '#34d399',
                 lineWidth: trade.t1Hit ? 2 : 1,
                 lineStyle: trade.t1Hit ? 0 : 1, // Dotted
                 axisLabelVisible: true,
-                title: `T1: ${trade.t1} (1 Lot Partial) ${trade.t1Hit ? '🎯 HIT' : ''}`,
+                title: `🎯 T1: ${trade.t1.toFixed(2)} (+${t1Dist}p | 1.0R Scalp Lock) ${trade.t1Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t1Line);
 
+            const t2Dist = Math.abs(trade.t2 - trade.entrySpot).toFixed(1);
             const t2Line = wCandleSeries.createPriceLine({
                 price: trade.t2,
                 color: trade.t2Hit ? '#10b981' : '#34d399',
                 lineWidth: trade.t2Hit ? 2 : 1,
                 lineStyle: trade.t2Hit ? 0 : 1,
                 axisLabelVisible: true,
-                title: `T2: ${trade.t2} (1 Lot Partial) ${trade.t2Hit ? '🎯 HIT' : ''}`,
+                title: `🎯 T2: ${trade.t2.toFixed(2)} (+${t2Dist}p | 2.0R Profit) ${trade.t2Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t2Line);
 
+            const t3Dist = Math.abs(trade.t3 - trade.entrySpot).toFixed(1);
             const t3Line = wCandleSeries.createPriceLine({
                 price: trade.t3,
                 color: '#10b981',
                 lineWidth: 1,
                 lineStyle: 1,
                 axisLabelVisible: true,
-                title: `T3: ${trade.t3} (Runner Lot) ${trade.t3Hit ? '🎯 HIT' : ''}`,
+                title: `🎯 T3: ${trade.t3.toFixed(2)} (+${t3Dist}p | 3.0R Runner) ${trade.t3Hit ? '🎯 HIT' : ''}`,
             });
             tradePriceLines.push(t3Line);
         }
     }
 
-    function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null) {
+    function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null, pendingBreakout = null, executedTradesCount = 0) {
         const headerBadge = document.getElementById('header-trade-status-badge');
         const headerPill = document.getElementById('trade-header-pill');
         const headerPillText = document.getElementById('trade-header-pill-text');
         const activeCard = document.getElementById('active-trade-card');
         const noActiveCard = document.getElementById('no-active-trade-card');
+        const pendingCard = document.getElementById('pending-breakout-card');
+
+        // Daily Cap Tracker Pills
+        const headerDailyCap = document.getElementById('trade-header-daily-cap');
+        const maxTrades = Number(tradeEngineConfig.maxDailyTrades) || 0;
+        const isCapReached = (maxTrades > 0 && executedTradesCount >= maxTrades);
+
+        if (headerDailyCap) {
+            if (maxTrades > 0) {
+                headerDailyCap.classList.remove('hidden');
+                if (isCapReached) {
+                    headerDailyCap.textContent = `🛑 ${executedTradesCount}/${maxTrades} CAP: LOCKED`;
+                    headerDailyCap.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/70 shadow-[0_0_8px_rgba(244,63,94,0.3)] animate-pulse';
+                } else {
+                    headerDailyCap.textContent = `${executedTradesCount}/${maxTrades} TRADES`;
+                    headerDailyCap.className = 'px-1.5 py-0.2 rounded text-[8.5px] font-mono font-bold bg-slate-800 text-sky-300 border border-slate-700';
+                }
+            } else {
+                headerDailyCap.classList.add('hidden');
+            }
+        }
 
         // Header Steppers
         const sT1 = document.getElementById('step-t1');
@@ -15671,7 +16093,49 @@
         const sT3 = document.getElementById('step-t3');
         const sSl = document.getElementById('step-sl');
 
-        if (trade && trade.status === 'ACTIVE') {
+        // State 1: Pending Breakout Confirmation
+        if (pendingBreakout && (!trade || trade.status !== 'ACTIVE')) {
+            const isBull = (pendingBreakout.direction === 'BULL');
+            if (pendingCard) {
+                pendingCard.classList.remove('hidden');
+                const pbSetup = document.getElementById('pb-setup-badge');
+                if (pbSetup) {
+                    pbSetup.textContent = pendingBreakout.setupBadge || (pendingBreakout.setupType === 'SQUEEZE_BREAKOUT' ? '🚀 SQUEEZE BREAKOUT' : '🌟 GRADE A+');
+                    pbSetup.className = isBull
+                        ? 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700'
+                        : 'px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-700';
+                }
+                const pbTrig = document.getElementById('pb-trigger-spot');
+                if (pbTrig) pbTrig.textContent = `${pendingBreakout.triggerPrice.toFixed(2)} (${isBull ? 'High' : 'Low'})`;
+                const pbSl = document.getElementById('pb-base-sl');
+                if (pbSl) pbSl.textContent = pendingBreakout.baseSl.toFixed(2);
+                const pbTime = document.getElementById('pb-signal-time');
+                if (pbTime) pbTime.textContent = pendingBreakout.signalTime;
+                const pbLabel = document.getElementById('pb-trigger-label');
+                if (pbLabel) pbLabel.textContent = `${isBull ? 'High ≥ ' : 'Low ≤ '}${pendingBreakout.triggerPrice.toFixed(2)}`;
+            }
+            if (activeCard) activeCard.classList.add('hidden');
+            if (noActiveCard) noActiveCard.classList.add('hidden');
+
+            if (headerBadge) {
+                headerBadge.textContent = `⚡ PENDING ${pendingBreakout.direction}`;
+                headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-amber-950 text-amber-300 font-mono font-bold border border-amber-500/80 animate-pulse';
+            }
+            if (headerPillText) {
+                headerPillText.textContent = `⚡ PENDING BREAKOUT: ${pendingBreakout.direction} at ${pendingBreakout.signalTime} | Trigger: ${pendingBreakout.triggerPrice.toFixed(2)} (${isBull ? 'High' : 'Low'}) | SL: ${pendingBreakout.baseSl.toFixed(2)}`;
+            }
+
+            if (sT1) sT1.textContent = 'T1: AWAIT';
+            if (sT2) sT2.textContent = 'T2: AWAIT';
+            if (sT3) sT3.textContent = 'T3: AWAIT';
+            if (sSl) sSl.textContent = `SL: ${pendingBreakout.baseSl.toFixed(1)}`;
+        }
+        // State 2: Active Trade in Flight
+        else if (trade && trade.status === 'ACTIVE') {
+            if (pendingCard) pendingCard.classList.add('hidden');
+            if (activeCard) activeCard.classList.remove('hidden');
+            if (noActiveCard) noActiveCard.classList.add('hidden');
+
             const isBull = (trade.direction === 'BULL');
             const pnlColor = (trade.pnlPoints >= 0) ? 'text-emerald-400' : 'text-rose-400';
             const pnlSign = (trade.pnlPoints >= 0) ? '+' : '';
@@ -15688,22 +16152,19 @@
             }
 
             if (sT1) {
-                sT1.textContent = `T1: ${trade.t1} ${trade.t1Hit ? '🎯' : ''}`;
+                sT1.textContent = `T1: ${trade.t1.toFixed(1)} ${trade.t1Hit ? '🎯' : ''}`;
                 sT1.className = trade.t1Hit
                     ? 'px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold'
                     : 'px-1.5 py-0.2 rounded bg-slate-800 text-gray-300 border border-slate-700';
             }
             if (sT2) {
-                sT2.textContent = `T2: ${trade.t2} ${trade.t2Hit ? '🎯' : ''}`;
+                sT2.textContent = `T2: ${trade.t2.toFixed(1)} ${trade.t2Hit ? '🎯' : ''}`;
                 sT2.className = trade.t2Hit
                     ? 'px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold'
                     : 'px-1.5 py-0.2 rounded bg-slate-800 text-gray-300 border border-slate-700';
             }
-            if (sT3) sT3.textContent = `T3: ${trade.t3}`;
-            if (sSl) sSl.textContent = `SL: ${trade.currentSl} ${(trade.slType === 'TRAILED_TO_T1') ? '(T1)' : (trade.t1Hit ? '(Cost)' : '')}`;
-
-            if (activeCard) activeCard.classList.remove('hidden');
-            if (noActiveCard) noActiveCard.classList.add('hidden');
+            if (sT3) sT3.textContent = `T3: ${trade.t3.toFixed(1)}`;
+            if (sSl) sSl.textContent = `SL: ${trade.currentSl.toFixed(1)} ${(trade.slType === 'TRAILED_TO_T1') ? '(T1)' : (trade.t1Hit ? '(Cost)' : '')}`;
 
             // Populate Active Card
             const actBadge = document.getElementById('at-action-badge');
@@ -15787,13 +16248,59 @@
             const atCurrSpot = document.getElementById('at-curr-spot');
             if (atCurrSpot) atCurrSpot.textContent = Number(trade.currentSpot).toFixed(2);
 
+            // Dual Contract Comparison (Seller vs Buyer)
+            if (trade.sellerLeg) {
+                const sellInst = document.getElementById('at-sell-instrument');
+                if (sellInst) sellInst.textContent = `${trade.sellerLeg.action} ${trade.sellerLeg.strike} ${trade.sellerLeg.optType}`;
+                const sellDecay = document.getElementById('at-sell-decay-rate');
+                if (sellDecay) sellDecay.textContent = trade.sellerLeg.thetaRate || '+₹23/5m';
+                const sellEntry = document.getElementById('at-sell-entry');
+                if (sellEntry) sellEntry.textContent = `₹${trade.sellerLeg.entryOpt.toFixed(1)}`;
+                const sellCurr = document.getElementById('at-sell-curr');
+                if (sellCurr) sellCurr.textContent = `₹${trade.sellerLeg.curOpt.toFixed(1)}`;
+                const sellPnl = document.getElementById('at-sell-pnl');
+                if (sellPnl) {
+                    const sPnlSign = (trade.sellerLeg.pnlPoints >= 0) ? '+' : '';
+                    const sPnlColor = (trade.sellerLeg.pnlPoints >= 0) ? 'text-emerald-400' : 'text-rose-400';
+                    sellPnl.textContent = `${sPnlSign}₹${trade.sellerLeg.pnlRupees.toLocaleString('en-IN')} (${sPnlSign}${trade.sellerLeg.pnlPoints.toFixed(1)}p)`;
+                    sellPnl.className = `font-bold ${sPnlColor}`;
+                }
+            }
+            if (trade.buyerLeg) {
+                const buyInst = document.getElementById('at-buy-instrument');
+                if (buyInst) buyInst.textContent = `${trade.buyerLeg.action} ${trade.buyerLeg.strike} ${trade.buyerLeg.optType}`;
+                const buyEntry = document.getElementById('at-buy-entry');
+                if (buyEntry) buyEntry.textContent = `₹${trade.buyerLeg.entryOpt.toFixed(1)}`;
+                const buyCurr = document.getElementById('at-buy-curr');
+                if (buyCurr) buyCurr.textContent = `₹${trade.buyerLeg.curOpt.toFixed(1)}`;
+                const buyPnl = document.getElementById('at-buy-pnl');
+                if (buyPnl) {
+                    const bPnlSign = (trade.buyerLeg.pnlPoints >= 0) ? '+' : '';
+                    const bPnlColor = (trade.buyerLeg.pnlPoints >= 0) ? 'text-emerald-400' : 'text-rose-400';
+                    buyPnl.textContent = `${bPnlSign}₹${trade.buyerLeg.pnlRupees.toLocaleString('en-IN')} (${bPnlSign}${trade.buyerLeg.pnlPoints.toFixed(1)}p)`;
+                    buyPnl.className = `font-bold ${bPnlColor}`;
+                }
+            }
+
+            // Stop Loss & Trailing Badges
             const atSlVal = document.getElementById('at-sl-val');
             if (atSlVal) atSlVal.textContent = trade.currentSl.toFixed(2);
 
             const atSlBadge = document.getElementById('at-sl-badge');
             if (atSlBadge) {
-                atSlBadge.textContent = (trade.slType === 'TRAILED_TO_T1') ? 'Trailed to T1' : (trade.t1Hit ? 'Cost Breakeven' : 'Base SL');
-                atSlBadge.className = trade.t1Hit ? 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold' : 'px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300';
+                if (trade.slType === 'TRAILED_TO_T1') {
+                    atSlBadge.textContent = 'Trailed to T1 (+20p)';
+                    atSlBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+                } else if (trade.slType === 'STAGNATION_1TO1_TRAIL') {
+                    atSlBadge.textContent = 'Stagnation 1:1 Trailed';
+                    atSlBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-amber-950 text-amber-300 border border-amber-700 font-bold';
+                } else if (trade.t1Hit) {
+                    atSlBadge.textContent = 'Cost Breakeven Locked';
+                    atSlBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-cyan-950 text-cyan-300 border border-cyan-700 font-bold';
+                } else {
+                    atSlBadge.textContent = 'Base SL';
+                    atSlBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300 border border-rose-700';
+                }
             }
 
             const atT1Val = document.getElementById('at-t1-val');
@@ -15802,10 +16309,10 @@
             const atT1Badge = document.getElementById('at-t1-badge');
             if (atT1Badge) {
                 if (trade.t1Hit) {
-                    atT1Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${trade.t1PnlRs.toLocaleString('en-IN')})` : '🎯 T1 HIT • SL to Cost';
+                    atT1Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${(trade.t1PnlRs || 0).toLocaleString('en-IN')})` : '🎯 T1 HIT • SL to Cost';
                     atT1Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
                 } else {
-                    atT1Badge.textContent = trade.entryLots > 1 ? 'Book 1 Lot (SL to Cost)' : 'SL to Cost';
+                    atT1Badge.textContent = trade.entryLots > 1 ? 'Book 1 Lot (1.0R Scalp)' : '1.0R Scalp Lock';
                     atT1Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
                 }
             }
@@ -15816,10 +16323,10 @@
             const atT2Badge = document.getElementById('at-t2-badge');
             if (atT2Badge) {
                 if (trade.t2Hit) {
-                    atT2Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${trade.t2PnlRs.toLocaleString('en-IN')})` : '🎯 T2 HIT • SL to T1';
+                    atT2Badge.textContent = trade.entryLots > 1 ? `🎯 1 LOT BOOKED (+₹${(trade.t2PnlRs || 0).toLocaleString('en-IN')})` : '🎯 T2 HIT • SL to T1';
                     atT2Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
                 } else {
-                    atT2Badge.textContent = trade.entryLots >= 3 ? 'Book 1 Lot (SL to T1)' : (trade.entryLots === 2 ? 'Book 1 Lot (Exit)' : 'SL to T1');
+                    atT2Badge.textContent = trade.entryLots >= 3 ? 'Book 1 Lot (2.0R Profit)' : (trade.entryLots === 2 ? 'Book 1 Lot (Exit)' : '2.0R Profit');
                     atT2Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
                 }
             }
@@ -15830,22 +16337,34 @@
             const atT3Badge = document.getElementById('at-t3-badge');
             if (atT3Badge) {
                 if (trade.t3Hit) {
-                    atT3Badge.textContent = `🎯 RUNNER BOOKED (+₹${trade.t3PnlRs.toLocaleString('en-IN')})`;
+                    atT3Badge.textContent = `🎯 RUNNER BOOKED (+₹${(trade.t3PnlRs || 0).toLocaleString('en-IN')})`;
                     atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
                 } else {
-                    atT3Badge.textContent = 'Runner Lot';
+                    atT3Badge.textContent = 'Runner Lot (3.0R)';
                     atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
                 }
             }
 
-        } else {
-            // Standby / No Active Trade
+        }
+        // State 3: Standby / No Active Trade
+        else {
+            if (pendingCard) pendingCard.classList.add('hidden');
+            if (activeCard) activeCard.classList.add('hidden');
+            if (noActiveCard) noActiveCard.classList.remove('hidden');
+
             if (headerBadge) {
-                headerBadge.textContent = 'STANDBY';
-                headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-900/80 text-emerald-300 font-mono';
+                if (isCapReached) {
+                    headerBadge.textContent = `🛑 CAP (${executedTradesCount}/${maxTrades})`;
+                    headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300 font-mono font-bold border border-rose-700/60';
+                } else {
+                    headerBadge.textContent = `STANDBY (${executedTradesCount}/${maxTrades || '∞'})`;
+                    headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-900/80 text-emerald-300 font-mono';
+                }
             }
             if (headerPillText) {
-                if (lastVetoedSignal && lastVetoedSignal.time) {
+                if (isCapReached) {
+                    headerPillText.textContent = `🛑 SESSION CAP LOCKED: ${executedTradesCount}/${maxTrades} trades completed today. Kill-switch active to preserve profit.`;
+                } else if (lastVetoedSignal && lastVetoedSignal.time) {
                     headerPillText.textContent = `STANDBY: ${lastVetoedSignal.direction} signal at ${lastVetoedSignal.time} vetoed (${lastVetoedSignal.reason})`;
                 } else {
                     headerPillText.textContent = 'STANDBY: Scanning 80%+ Breadth Signals...';
@@ -15855,9 +16374,6 @@
             if (sT2) sT2.textContent = 'T2: --';
             if (sT3) sT3.textContent = 'T3: --';
             if (sSl) sSl.textContent = 'SL: --';
-
-            if (activeCard) activeCard.classList.add('hidden');
-            if (noActiveCard) noActiveCard.classList.remove('hidden');
         }
 
         // Populate Trade History Table
@@ -16241,7 +16757,7 @@
     }
     window.updateExitMatrixUI = updateExitMatrixUI;
 
-    function updateEntryMatrixUI(candleIdx) {
+    function updateEntryMatrixUI(candleIdx, pendingBreakout = null, executedTradesCount = 0) {
         const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
         if (!rawCandles || rawCandles.length === 0) return;
 
@@ -16487,11 +17003,77 @@
             }
         }
 
+        // 7. Signal Candle Breakout Confirmation
+        const f7Crit = document.getElementById('em-f7-criteria');
+        const f7State = document.getElementById('em-f7-state');
+        const f7Status = document.getElementById('em-f7-status');
+        const f7Action = document.getElementById('em-f7-action');
+
+        if (f7Crit) f7Crit.textContent = 'High/Low Break (i+1)';
+        if (pendingBreakout) {
+            const isBull = (pendingBreakout.direction === 'BULL');
+            if (f7State) f7State.innerHTML = `<span class="text-amber-400 font-bold">${isBull ? 'High ≥ ' : 'Low ≤ '}${pendingBreakout.triggerPrice.toFixed(2)}</span>`;
+            if (f7Status) f7Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold animate-pulse">⚡ AWAITING</span>';
+            if (f7Action) {
+                f7Action.textContent = 'WATCH BREAKOUT';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-amber-300';
+            }
+        } else if (activeTrade && activeTrade.status === 'ACTIVE') {
+            if (f7State) f7State.innerHTML = `<span class="text-emerald-400 font-bold">Confirmed @ ${activeTrade.entrySpot.toFixed(2)}</span>`;
+            if (f7Status) f7Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 CONFIRMED</span>';
+            if (f7Action) {
+                f7Action.textContent = 'IN POSITION';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        } else {
+            if (f7State) f7State.textContent = tradeEngineConfig.breakoutConfirmed ? 'Trigger Armed' : 'Bypassed (OFF)';
+            if (f7Status) {
+                f7Status.innerHTML = tradeEngineConfig.breakoutConfirmed
+                    ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-sky-400 border border-sky-800">🛡️ ARMED</span>'
+                    : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-500 border border-slate-700">⚪ OFF</span>';
+            }
+            if (f7Action) {
+                f7Action.textContent = 'STANDBY';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
+        }
+
+        // 8. Daily Session Cap
+        const f8Crit = document.getElementById('em-f8-criteria');
+        const f8State = document.getElementById('em-f8-state');
+        const f8Status = document.getElementById('em-f8-status');
+        const f8Action = document.getElementById('em-f8-action');
+
+        const maxTrades = Number(tradeEngineConfig.maxDailyTrades) || 0;
+        if (f8Crit) f8Crit.textContent = maxTrades > 0 ? `≤ ${maxTrades} Trades / Day` : 'No Limit';
+        if (f8State) f8State.innerHTML = `<span class="${(maxTrades > 0 && executedTradesCount >= maxTrades) ? 'text-rose-400 font-bold' : 'text-gray-300'}">${executedTradesCount} / ${maxTrades > 0 ? maxTrades : '∞'} Executed</span>`;
+
+        if (maxTrades > 0 && executedTradesCount >= maxTrades) {
+            if (f8Status) f8Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🛑 CAP REACHED</span>';
+            if (f8Action) {
+                f8Action.textContent = 'KILL-SWITCH LOCKED';
+                f8Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+            }
+        } else {
+            if (f8Status) f8Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 OPEN</span>';
+            if (f8Action) {
+                const rem = maxTrades > 0 ? (maxTrades - executedTradesCount) : '∞';
+                f8Action.textContent = `${rem} SLOTS AVAIL`;
+                f8Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
+        }
+
         // Bottom Summary Badge
         if (summaryBadge) {
             if (activeTrade && activeTrade.status === 'ACTIVE') {
                 summaryBadge.textContent = `IN ACTIVE TRADE: ${activeTrade.action} ${activeTrade.strike} ${activeTrade.optType}`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-600';
+            } else if (pendingBreakout) {
+                summaryBadge.textContent = `⚡ AWAITING BREAKOUT CONFIRMATION: ${pendingBreakout.direction} (${pendingBreakout.triggerPrice.toFixed(2)})`;
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-950 text-amber-300 border border-amber-600 animate-pulse';
+            } else if (maxTrades > 0 && executedTradesCount >= maxTrades) {
+                summaryBadge.textContent = `🛑 SESSION CAP LOCKED: ${executedTradesCount}/${maxTrades} TRADES COMPLETED`;
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
             } else if (!isTimeAllowed) {
                 summaryBadge.textContent = (tStr < startTime) ? `STANDBY (PRE-${startTime} NOISE)` : `STANDBY (POST-${endTime} CUTOFF)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-indigo-950 text-indigo-300 border border-indigo-700';
@@ -16509,6 +17091,7 @@
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
             }
         }
+    }
     }
     window.updateEntryMatrixUI = updateEntryMatrixUI;
 
