@@ -295,76 +295,83 @@
                             <th class="py-2 px-2.5 text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-800/70">
+                    <tbody class="divide-y divide-gray-800/80">
                         @forelse($days as $day)
-                            <tr class="hover:bg-[#141b2e]/50 transition">
+                            <tr class="{{ $loop->even ? 'bg-[#0a0f1d]' : 'bg-[#101728]' }} hover:bg-[#162036] transition-colors border-l-4 {{ $day->day_status === 'WIN' ? 'border-l-emerald-500' : ($day->day_status === 'LOSS' ? 'border-l-rose-500' : ($day->day_status === 'SCRATCH' ? 'border-l-amber-500' : 'border-l-slate-700')) }}">
                                 <!-- Date & Day of Week -->
-                                <td class="py-2.5 px-2.5 font-bold text-white whitespace-nowrap">
-                                    <div class="text-sm">{{ $day->date->format('Y-m-d') }}</div>
-                                    <div class="text-[10px] text-gray-400 font-normal">{{ $day->date->format('l') }}</div>
+                                <td class="py-3 px-3 font-bold whitespace-nowrap">
+                                    <div class="inline-flex flex-col items-start px-2 py-1 rounded bg-[#151e32] border border-gray-700/70 shadow-xs">
+                                        <div class="text-[13px] font-black text-white tracking-wide">{{ $day->date->format('Y-m-d') }}</div>
+                                        <div class="text-[10px] text-sky-400 font-semibold uppercase tracking-wider">{{ $day->date->format('l') }}</div>
+                                    </div>
                                 </td>
 
                                 <!-- Nifty Spot -->
-                                <td class="py-2.5 px-2.5 text-gray-300 text-[11px] whitespace-nowrap">
+                                <td class="py-3 px-2.5 text-gray-300 text-[11px] whitespace-nowrap">
                                     @if($day->nifty_open)
-                                        <div><span class="text-gray-500">O:</span> {{ number_format($day->nifty_open, 1) }} &bull; <span class="text-gray-500">C:</span> {{ number_format($day->nifty_close, 1) }}</div>
-                                        <div><span class="text-gray-500">H:</span> {{ number_format($day->nifty_high, 1) }} &bull; <span class="text-gray-500">L:</span> {{ number_format($day->nifty_low, 1) }}</div>
+                                        <div class="space-y-0.5">
+                                            <div><span class="text-gray-500 font-medium">O:</span> <span class="font-bold text-gray-200">{{ number_format($day->nifty_open, 1) }}</span> &bull; <span class="text-gray-500 font-medium">C:</span> <span class="font-bold text-gray-200">{{ number_format($day->nifty_close, 1) }}</span></div>
+                                            <div><span class="text-gray-500 font-medium">H:</span> <span class="text-emerald-400 font-medium">{{ number_format($day->nifty_high, 1) }}</span> &bull; <span class="text-gray-500 font-medium">L:</span> <span class="text-rose-400 font-medium">{{ number_format($day->nifty_low, 1) }}</span></div>
+                                        </div>
                                     @else
                                         <span class="text-gray-500">--</span>
                                     @endif
                                 </td>
 
                                 <!-- Total Trades -->
-                                <td class="py-2.5 px-2.5 text-center">
-                                    <span class="px-2 py-0.5 rounded text-[10.5px] font-bold {{ $day->total_trades > 0 ? 'bg-sky-950 text-sky-300 border border-sky-800' : 'bg-gray-900 text-gray-500' }}">
+                                <td class="py-3 px-2.5 text-center">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-black shadow-xs {{ $day->total_trades > 0 ? 'bg-sky-950/80 text-sky-300 border border-sky-700' : 'bg-gray-900/60 text-gray-500 border border-gray-800' }}">
                                         {{ $day->total_trades }}
                                     </span>
                                 </td>
 
                                 <!-- Executions & Setup Forensics -->
-                                <td class="py-2.5 px-2.5 min-w-[340px]">
+                                <td class="py-3 px-2.5 min-w-[360px]">
                                     @if($day->trades->isNotEmpty())
-                                        <div class="space-y-1.5">
+                                        <div class="space-y-2">
                                             @foreach($day->trades as $tr)
-                                                <div class="bg-[#121828] border border-gray-800/80 rounded p-1.5 text-[11px] space-y-1">
-                                                    <div class="flex items-center justify-between flex-wrap gap-1">
-                                                        <div class="flex items-center gap-1.5">
-                                                            <span class="px-1.5 py-0.1 rounded text-[9.5px] font-bold {{ $tr->direction === 'BULL' ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700' }}">
+                                                <div class="bg-[#141d30] border {{ $tr->pnl_rupees >= 0 ? 'border-emerald-900/60' : 'border-rose-900/60' }} rounded-md p-2 text-[11px] space-y-1.5 shadow-sm">
+                                                    <div class="flex items-center justify-between flex-wrap gap-1.5">
+                                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-gray-800 text-gray-300 border border-gray-700">
+                                                                #{{ $loop->iteration }}
+                                                            </span>
+                                                            <span class="px-1.5 py-0.2 rounded text-[9.5px] font-black {{ $tr->direction === 'BULL' ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-rose-950 text-rose-300 border border-rose-700' }}">
                                                                 {{ $tr->direction === 'BULL' ? '🟢 BULL' : '🔴 BEAR' }} {{ $tr->action }}
                                                             </span>
-                                                            <span class="font-bold text-white">{{ $tr->instrument }}</span>
-                                                            <span class="px-1 py-0.1 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-800">
+                                                            <span class="font-black text-white text-[11.5px]">{{ $tr->instrument }}</span>
+                                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
                                                                 {{ $tr->setup_type }}
                                                             </span>
                                                         </div>
-                                                        <span class="font-black font-mono {{ $tr->pnl_rupees >= 0 ? 'text-emerald-400' : 'text-rose-400' }}">
+                                                        <span class="font-black font-mono text-[11.5px] px-1.5 py-0.5 rounded {{ $tr->pnl_rupees >= 0 ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/80' : 'bg-rose-950/60 text-rose-300 border border-rose-800/80' }}">
                                                             {{ $tr->pnl_rupees >= 0 ? '+' : '' }}₹{{ number_format($tr->pnl_rupees) }} ({{ $tr->pnl_points >= 0 ? '+' : '' }}{{ $tr->pnl_points }}p)
                                                         </span>
                                                     </div>
-                                                    <div class="text-[10px] text-gray-400 flex items-center justify-between flex-wrap gap-1">
-                                                        <span><strong>Entry:</strong> {{ $tr->entry_time }} @ {{ number_format($tr->entry_spot, 1) }}</span>
-                                                        <span><strong>Exit:</strong> {{ $tr->exit_time }} @ {{ number_format($tr->exit_spot, 1) }}</span>
+                                                    <div class="text-[10px] text-gray-300 flex items-center justify-between flex-wrap gap-1 bg-[#0f1626] px-2 py-1 rounded border border-gray-800/60">
+                                                        <span><strong class="text-sky-400">Entry:</strong> {{ $tr->entry_time }} @ {{ number_format($tr->entry_spot, 1) }}</span>
+                                                        <span><strong class="text-amber-400">Exit:</strong> {{ $tr->exit_time }} @ {{ number_format($tr->exit_spot, 1) }}</span>
                                                     </div>
-                                                    <div class="text-[9.5px] text-gray-400 border-t border-gray-800/50 pt-0.5">
-                                                        <strong class="text-amber-300/90">Exit Reason:</strong> {{ $tr->exit_reason }}
+                                                    <div class="text-[10px] text-gray-400 pt-0.5">
+                                                        <span class="text-amber-300/90 font-bold">Exit Reason:</span> {{ $tr->exit_reason }}
                                                     </div>
                                                 </div>
                                             @endforeach
                                         </div>
                                     @else
-                                        <div class="text-gray-500 text-[11px] italic">
+                                        <div class="text-gray-500 text-[11px] italic py-1">
                                             {{ $day->summary_reason ?: 'No high-probability trigger met. Standby.' }}
                                         </div>
                                     @endif
                                 </td>
 
                                 <!-- Net Points -->
-                                <td class="py-2.5 px-2.5 text-right font-bold {{ $day->net_points >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm">
+                                <td class="py-3 px-2.5 text-right font-black {{ $day->net_points >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
                                     {{ $day->net_points >= 0 ? '+' : '' }}{{ number_format($day->net_points, 1) }}
                                 </td>
 
                                 <!-- Net P&L (₹) -->
-                                <td class="py-2.5 px-2.5 text-right font-black {{ $day->net_pnl_rupees >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm">
+                                <td class="py-3 px-2.5 text-right font-black {{ $day->net_pnl_rupees >= 0 ? 'text-emerald-400' : 'text-rose-400' }} text-sm whitespace-nowrap">
                                     {{ $day->net_pnl_rupees >= 0 ? '+' : '' }}₹{{ number_format($day->net_pnl_rupees) }}
                                 </td>
 

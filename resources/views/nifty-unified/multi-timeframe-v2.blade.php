@@ -10313,6 +10313,56 @@
         renderStrikeBuildupChart();
     }
 
+    // ── 8b. Dynamically Slice Trending OI & Sentiment Chart to Active Candle Time ─
+    function sliceTrendingOiChartToTime(timeStr = null) {
+        if (!toiChartInstance || !trendingOiData?.chart?.labels) return;
+        const chartData = trendingOiData.chart;
+        const fullLabels = chartData.labels || [];
+        const fullCallOi = chartData.call_oi || [];
+        const fullPutOi = chartData.put_oi || [];
+        const fullSentiment = chartData.sentiment || [];
+        const fullSpot = chartData.spot || [];
+
+        if (!timeStr) {
+            // Restore full available series
+            toiChartInstance.data.labels = [...fullLabels];
+            if (toiChartInstance.data.datasets[0]) toiChartInstance.data.datasets[0].data = [...fullCallOi];
+            if (toiChartInstance.data.datasets[1]) toiChartInstance.data.datasets[1].data = [...fullPutOi];
+            if (toiChartInstance.data.datasets[2]) toiChartInstance.data.datasets[2].data = [...fullSentiment];
+            if (toiChartInstance.data.datasets[3]) toiChartInstance.data.datasets[3].data = [...fullSpot];
+            toiChartInstance.update('none');
+            updateTrendingOiDiffBadge(fullLabels.length - 1);
+            return;
+        }
+
+        const cleanTime = String(timeStr).slice(0, 5);
+        let matchIdx = -1;
+        for (let i = 0; i < fullLabels.length; i++) {
+            const l = String(fullLabels[i]).slice(0, 5);
+            if (l <= cleanTime) {
+                matchIdx = i;
+            } else {
+                break;
+            }
+        }
+
+        if (matchIdx === -1 && fullLabels.length > 0) {
+            matchIdx = 0;
+        }
+
+        if (matchIdx >= 0) {
+            const sliceCount = matchIdx + 1;
+            toiChartInstance.data.labels = fullLabels.slice(0, sliceCount);
+            if (toiChartInstance.data.datasets[0]) toiChartInstance.data.datasets[0].data = fullCallOi.slice(0, sliceCount);
+            if (toiChartInstance.data.datasets[1]) toiChartInstance.data.datasets[1].data = fullPutOi.slice(0, sliceCount);
+            if (toiChartInstance.data.datasets[2]) toiChartInstance.data.datasets[2].data = fullSentiment.slice(0, sliceCount);
+            if (toiChartInstance.data.datasets[3]) toiChartInstance.data.datasets[3].data = fullSpot.slice(0, sliceCount);
+            toiChartInstance.update('none');
+            updateTrendingOiDiffBadge(matchIdx);
+        }
+    }
+    window.sliceTrendingOiChartToTime = sliceTrendingOiChartToTime;
+
     // ── 9a. Resolve 5-Minute Strike OI Buildup for Any Given Timestamp ─────────────
     function get5mBuildupForTime(timeStr) {
         if (!trendingOiData) return null;
@@ -10407,19 +10457,144 @@
     }
     window.get5mBuildupForTime = get5mBuildupForTime;
 
+    // ── 9b. Resolve Multi-Timeframe / Cumulative Buildup Up to Active Candle Time ─
+    function getWindowBuildupForTime(timeStr, tf = 'today') {
+        if (!trendingOiData) return null;
+        const matrix = trendingOiData.buildup_matrix;
+        if (!matrix || !matrix.columns || !matrix.rows || matrix.rows.length === 0) return null;
+
+        const cleanTime = timeStr ? String(timeStr).slice(0, 5) : '';
+        // matrix.columns are sorted recent to old: ['15:39', '15:31', ..., '09:21']
+        const matchingCols = matrix.columns.filter(c => !cleanTime || c <= cleanTime);
+        if (matchingCols.length === 0) return null;
+
+        let activeCols = matchingCols;
+        if (tf === '15m') {
+            activeCols = matchingCols.slice(0, Math.min(3, matchingCols.length));
+        } else if (tf === '30m') {
+            activeCols = matchingCols.slice(0, Math.min(6, matchingCols.length));
+        }
+
+        const startCol = activeCols[activeCols.length - 1];
+        const endCol = activeCols[0];
+
+        const items = [];
+        let totalCeChg = 0;
+        let totalPeChg = 0;
+
+        matrix.rows.forEach(r => {
+            let sumDiffOi = 0;
+            let sumDiffLtp = 0;
+            let hasData = false;
+            let latestType = null;
+            let latestName = null;
+            let latestColor = null;
+
+            activeCols.forEach(col => {
+                const cell = r.cells ? r.cells[col] : null;
+                if (cell && cell.diff_oi !== undefined) {
+                    sumDiffOi += Number(cell.diff_oi || 0);
+                    sumDiffLtp += Number(cell.diff_ltp || 0);
+                    hasData = true;
+                    if (!latestType && cell.type) {
+                        latestType = cell.type;
+                        latestName = cell.name;
+                        latestColor = cell.color;
+                    }
+                }
+            });
+
+            if (hasData && sumDiffOi !== 0) {
+                const isCe = (r.option_type === 'CE');
+                if (isCe) {
+                    totalCeChg += sumDiffOi;
+                } else {
+                    totalPeChg += sumDiffOi;
+                }
+
+                let bColor = latestColor;
+                let bType = latestType || 'LU';
+                let bName = latestName || 'Unwinding';
+                if (!bColor) {
+                    if (sumDiffOi > 0 && sumDiffLtp <= 0) {
+                        bColor = '#dc2626'; bType = 'SB'; bName = 'Short Buildup';
+                    } else if (sumDiffOi < 0 && sumDiffLtp >= 0) {
+                        bColor = '#1e3a8a'; bType = 'SC'; bName = 'Short Covering';
+                    } else if (sumDiffOi > 0 && sumDiffLtp > 0) {
+                        bColor = '#16a34a'; bType = 'LB'; bName = 'Long Buildup';
+                    } else {
+                        bColor = '#eab308'; bType = 'LU'; bName = 'Long Unwinding';
+                    }
+                }
+
+                const absDiffLakh = Math.abs(sumDiffOi / 100000);
+                const diffLakh = (sumDiffOi / 100000).toFixed(1);
+
+                items.push({
+                    strike: r.strike_price,
+                    option_type: r.option_type,
+                    label: `${r.strike_price} ${r.option_type}`,
+                    buildup_type: bType,
+                    buildup_name: bName,
+                    diff_oi: sumDiffOi,
+                    abs_diff_oi: Math.abs(sumDiffOi),
+                    diff_oi_val_lakh: Number(absDiffLakh.toFixed(2)),
+                    diff_oi_lakh: (sumDiffOi >= 0 ? '+' : '') + diffLakh + ' L',
+                    diff_ltp: (sumDiffLtp >= 0 ? '+' : '') + sumDiffLtp.toFixed(1),
+                    bar_color: bColor
+                });
+            }
+        });
+
+        if (items.length === 0) return null;
+
+        items.sort((a, b) => b.abs_diff_oi - a.abs_diff_oi);
+
+        let dominant = 'Dual Flow (Equilibrium)';
+        if (totalCeChg > totalPeChg * 1.35) {
+            dominant = 'Call Writing Dominant (Ceiling Resistance)';
+        } else if (totalPeChg > totalCeChg * 1.35) {
+            dominant = 'Put Writing Dominant (Floor Support)';
+        }
+
+        const ceLakh = (totalCeChg / 100000).toFixed(1);
+        const peLakh = (totalPeChg / 100000).toFixed(1);
+
+        const tfLabels = { '15m': '15M', '30m': '30M', 'today': 'Today' };
+        const winLabel = (tf === 'today')
+            ? `Market Open – ${endCol} (Today)`
+            : `${startCol} – ${endCol} (${tfLabels[tf] || tf})`;
+
+        return {
+            window_label: winLabel,
+            top_items: items.slice(0, 8),
+            summary: {
+                total_ce_chg_lakh: (totalCeChg >= 0 ? '+' : '') + ceLakh + ' L',
+                total_pe_chg_lakh: (totalPeChg >= 0 ? '+' : '') + peLakh + ' L',
+                dominant: dominant
+            }
+        };
+    }
+    window.getWindowBuildupForTime = getWindowBuildupForTime;
+
     // ── 9. Render OI Buildup (Row 2 of Column 2) ──────────────────────────────────
     function renderStrikeBuildupChart(targetTime = null) {
         if (!trendingOiData?.strike_buildup) return;
         const bldData = trendingOiData.strike_buildup;
         let tfData = bldData[activeBuildupTf] || bldData['5m'] || bldData;
 
-        // If 5m view, resolve the completed 5-min candle buildup (latest or selected time)
-        if (activeBuildupTf === '5m') {
-            const reqTime = targetTime || ((timestampsList && activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length) ? timestampsList[activeCandleIndex] : null);
-            if (reqTime) {
+        // Resolve active time if targetTime provided or active candle selected
+        const reqTime = targetTime || ((timestampsList && activeCandleIndex >= 0 && activeCandleIndex < timestampsList.length) ? timestampsList[activeCandleIndex] : null);
+        if (reqTime) {
+            if (activeBuildupTf === '5m') {
                 const histData = get5mBuildupForTime(reqTime);
                 if (histData) {
                     tfData = histData;
+                }
+            } else if (typeof getWindowBuildupForTime === 'function') {
+                const winData = getWindowBuildupForTime(reqTime, activeBuildupTf);
+                if (winData) {
+                    tfData = winData;
                 }
             }
         }
@@ -12815,29 +12990,15 @@
 
     function syncTrendingOiCursor(index, timeStr) {
         if (!trendingOiData) return;
-        if (activeBuildupTf === '5m') {
-            const badge = document.getElementById('bld-window-badge');
-            if (badge) badge.textContent = `${timeStr} (5M)`;
+
+        // 1. Sync Strike Buildup Chart to the active candle time
+        if (typeof renderStrikeBuildupChart === 'function') {
             renderStrikeBuildupChart(timeStr);
         }
-        if (trendingOiData.chart && trendingOiData.chart.labels) {
-            const labels = trendingOiData.chart.labels;
-            const cleanTime = timeStr ? String(timeStr).slice(0, 5) : '';
-            let matchIdx = -1;
-            for (let i = labels.length - 1; i >= 0; i--) {
-                const l = String(labels[i] || '').slice(0, 5);
-                if (l === cleanTime) {
-                    matchIdx = i;
-                    break;
-                }
-            }
-            if (matchIdx !== -1) {
-                updateTrendingOiDiffBadge(matchIdx);
-            } else if (index >= 0 && index < labels.length) {
-                updateTrendingOiDiffBadge(index);
-            } else {
-                updateTrendingOiDiffBadge();
-            }
+
+        // 2. Slice and sync Trending OI & Sentiment line chart up to the active candle time
+        if (typeof sliceTrendingOiChartToTime === 'function') {
+            sliceTrendingOiChartToTime(timeStr);
         }
     }
 
@@ -14558,6 +14719,14 @@
                 }
             }
         }
+
+        // 3. Sync Trending OI & Strike Buildup to Replay Slice Time
+        if (typeof sliceTrendingOiChartToTime === 'function') {
+            sliceTrendingOiChartToTime(curTimeStr);
+        }
+        if (typeof renderStrikeBuildupChart === 'function') {
+            renderStrikeBuildupChart(curTimeStr);
+        }
     }
 
     function restoreFullDayCandles() {
@@ -14576,6 +14745,13 @@
                 if (window._oCandleMarkers) oCandleSeries.setMarkers(window._oCandleMarkers);
                 if (oChart) adjustChartTimeScale(oChart, window._unifiedOptionsTodayCandles, window._unifiedOptionsYesterdayCandles, oTimeframe);
             } catch (e) {}
+        }
+        // Restore full Trending OI and Strike Buildup
+        if (typeof sliceTrendingOiChartToTime === 'function') {
+            sliceTrendingOiChartToTime(null);
+        }
+        if (typeof renderStrikeBuildupChart === 'function') {
+            renderStrikeBuildupChart(null);
         }
     }
 

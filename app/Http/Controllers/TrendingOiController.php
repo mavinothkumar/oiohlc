@@ -1676,15 +1676,15 @@ class TrendingOiController extends Controller
             return ['columns' => [], 'rows' => [], 'total_strikes' => 0, 'skip_open' => $skipOpen];
         }
 
-        // 1. Sample 5-minute timestamps
+        // 1. Sample 5-minute timestamps (group into 5-minute buckets)
         $ts5mList = [];
-        $lastMinute = -1;
+        $lastBucket = null;
         foreach ($timestamps as $ts) {
             $c = Carbon::parse($ts);
-            $m = (int) $c->format('i');
-            if ($m % 5 === 0 && $m !== $lastMinute) {
+            $bucket = $c->format('Y-m-d H:') . sprintf('%02d', floor((int)$c->format('i') / 5) * 5);
+            if ($bucket !== $lastBucket) {
                 $ts5mList[] = $ts;
-                $lastMinute = $m;
+                $lastBucket = $bucket;
             }
         }
         if (!empty($timestamps) && !in_array(end($timestamps), $ts5mList)) {
