@@ -2974,6 +2974,11 @@
 <!-- Docked at bottom by default; Undockable into draggable & resizable modal    -->
 <!-- ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="trade-cockpit-drawer" class="fixed bottom-0 left-0 right-0 z-[60] bg-[#0b0f19]/95 backdrop-blur-md border-t border-sky-500/40 shadow-2xl transition-all duration-200 flex flex-col font-sans">
+    <!-- Top Drag-to-Resize Bar (Docked Mode) -->
+    <div id="trade-drawer-resize-bar" class="w-full h-2 bg-gradient-to-r from-transparent via-sky-500/40 to-transparent hover:via-sky-400 active:via-sky-300 cursor-ns-resize transition flex items-center justify-center select-none group" title="Click & Drag vertically to resize Trade Cockpit Drawer Height (Saved automatically)">
+        <div class="w-16 h-1 bg-sky-400/60 group-hover:bg-white rounded-full transition-all"></div>
+    </div>
+
     <!-- Header Handle / Toolbar -->
     <div id="trade-drawer-header" class="flex items-center justify-between px-3 py-1.5 bg-[#101626] border-b border-gray-800 select-none cursor-default">
         <!-- Left: Status & Trade Pill -->
@@ -3000,8 +3005,25 @@
             <span id="step-sl" class="px-1.5 py-0.2 rounded bg-rose-950/60 text-rose-300 border border-rose-800/60">SL: --</span>
         </div>
 
-        <!-- Right: Actions (Pop-out, History, Settings, Minimize, Close) -->
+        <!-- Right: Actions (Height Presets, Pop-out, History, Settings, Minimize, Close) -->
         <div class="flex items-center gap-1.5 shrink-0 text-xs">
+            <!-- Height Presets Dropdown -->
+            <div class="flex items-center bg-[#151c2e] border border-gray-700 hover:border-sky-500/60 rounded px-1.5 py-0.5 text-[9.5px] font-mono gap-1 transition" title="Adjust Drawer Height (Persisted in Local Storage)">
+                <span class="text-sky-400 font-bold">↕ H:</span>
+                <select id="trade-drawer-height-select" onchange="setTradeDrawerHeight(this.value)" class="bg-transparent text-sky-200 font-bold focus:outline-none cursor-pointer text-[10px]">
+                    <option value="280">280px</option>
+                    <option value="340">340px</option>
+                    <option value="400">400px</option>
+                    <option value="440" selected>440px</option>
+                    <option value="500">500px</option>
+                    <option value="580">580px</option>
+                    <option value="660">660px</option>
+                    <option value="760">760px</option>
+                    <option value="850">850px</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+
             <!-- Show All vs Active Only Toggle -->
             <button id="btn-toggle-trade-history-mode" type="button" onclick="toggleTradeHistoryMode()" title="Toggle: Show Recent Active Trade Only vs Show All Trades of the Day" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9.5px] font-semibold border border-slate-700 flex items-center gap-1 cursor-pointer transition">
                 <span id="trade-history-mode-icon">🔄</span>
@@ -3129,8 +3151,8 @@
         </div>
     </div>
 
-    <!-- Drawer Body (Collapsible / Expandable) -->
-    <div id="trade-drawer-body" class="p-2 overflow-y-auto max-h-[380px] bg-[#090d16] flex flex-col gap-2">
+    <!-- Drawer Body (Collapsible / Expandable with Customizable Height) -->
+    <div id="trade-drawer-body" class="p-2 overflow-y-auto bg-[#090d16] flex flex-col gap-2" style="max-height: 440px;">
         <!-- Main Top Row: Active Trade Card & Exit Matrix -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-2">
             <!-- Left Panel (5 cols): Active Trade & M2M P&L Cockpit -->
@@ -15218,6 +15240,90 @@
     }
     window.toggleTradeSettingsPanel = toggleTradeSettingsPanel;
 
+    // ══════════════════════════════════════════════════════════════════════════════
+    // DRAWER HEIGHT CONTROLS & PERSISTENCE
+    // ══════════════════════════════════════════════════════════════════════════════
+    function setTradeDrawerHeight(heightVal, isUserAction = true) {
+        const body = document.getElementById('trade-drawer-body');
+        const heightSelect = document.getElementById('trade-drawer-height-select');
+        if (!body) return;
+
+        const numVal = parseInt(heightVal, 10);
+        if (isNaN(numVal) || numVal < 150) return;
+
+        body.style.maxHeight = `${numVal}px`;
+
+        if (heightSelect) {
+            let matched = false;
+            for (let i = 0; i < heightSelect.options.length; i++) {
+                if (parseInt(heightSelect.options[i].value, 10) === numVal) {
+                    heightSelect.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                heightSelect.value = 'custom';
+            }
+        }
+
+        if (isUserAction) {
+            try {
+                localStorage.setItem('trade_drawer_docked_height', String(numVal));
+            } catch (e) {}
+        }
+    }
+    window.setTradeDrawerHeight = setTradeDrawerHeight;
+
+    function initTradeDrawerHeight() {
+        let savedHeight = '440';
+        try {
+            const stored = localStorage.getItem('trade_drawer_docked_height');
+            if (stored && parseInt(stored, 10) >= 150) savedHeight = stored;
+        } catch (e) {}
+        setTradeDrawerHeight(savedHeight, false);
+    }
+
+    function setupTradeDrawerResizeDrag() {
+        const resizeBar = document.getElementById('trade-drawer-resize-bar');
+        const body = document.getElementById('trade-drawer-body');
+        if (!resizeBar || !body) return;
+
+        let isResizing = false;
+        let startY = 0;
+        let startHeight = 0;
+
+        resizeBar.addEventListener('mousedown', (e) => {
+            if (isTradeDrawerUndocked) return;
+            isResizing = true;
+            startY = e.clientY;
+            startHeight = body.offsetHeight || parseInt(body.style.maxHeight, 10) || 440;
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'ns-resize';
+            if (!isTradeDrawerExpanded) toggleTradeDrawerExpand(true);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing || isTradeDrawerUndocked) return;
+            const deltaY = startY - e.clientY; // dragging up increases height
+            const maxAllowed = Math.max(300, window.innerHeight - 100);
+            const newHeight = Math.min(Math.max(200, Math.round(startHeight + deltaY)), maxAllowed);
+            setTradeDrawerHeight(newHeight, false);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+                const finalH = body.offsetHeight || parseInt(body.style.maxHeight, 10) || 440;
+                try {
+                    localStorage.setItem('trade_drawer_docked_height', String(finalH));
+                } catch (e) {}
+            }
+        });
+    }
+
     // Draggable Window Handler for Undocked Mode
     let isDraggingTradeModal = false;
     let dragStartX = 0, dragStartY = 0;
@@ -15272,6 +15378,8 @@
         setupCandleCloseCountdown();
         setupOiBuildup5mSync();
         setupTradeModalDrag();
+        initTradeDrawerHeight();
+        setupTradeDrawerResizeDrag();
         syncTradeSettingsInputs();
         updateBarReplayUI();
         toggleTradeDrawerExpand(true);
