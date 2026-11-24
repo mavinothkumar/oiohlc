@@ -70,11 +70,92 @@
                         </svg>
                     </button>
 
-                    <!-- Comprehensive 4-Column Dropdown Panel -->
-                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out absolute left-0 top-full pt-1.5 z-50 w-[1120px] max-w-[95vw]">
-                        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-5 ring-1 ring-black/5 grid grid-cols-4 gap-4 text-left max-h-[85vh] overflow-y-auto">
+                    <!-- Comprehensive 5-Column Dropdown Panel -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-150 ease-out absolute left-0 top-full pt-1.5 z-50 w-[1380px] max-w-[96vw]">
+                        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-5 ring-1 ring-black/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-left max-h-[85vh] overflow-y-auto">
                             
-                            <!-- COLUMN 1: MONITORS & COCKPITS -->
+                            <!-- COLUMN 1: TOP IDEAS -->
+                            <div class="space-y-1 bg-gradient-to-b from-amber-50/50 to-slate-50/30 p-2.5 rounded-xl border border-amber-200/60">
+                                <div class="flex items-center gap-1.5 pb-2 mb-2 border-b border-amber-200/60 text-[11px] font-black text-amber-700 uppercase tracking-wider">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                    Top Ideas
+                                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1 py-0.2 rounded">Core</span>
+                                </div>
+                                <div class="space-y-0.5">
+                                    <a href="{{ route('nifty.unified.monitor') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                                            Unified Cockpit
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded">Flagship</span>
+                                    </a>
+                                    <a href="{{ route('nifty.multi.timeframe.monitor') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-sky-600 hover:bg-white/80 transition">
+                                        <span class="font-medium flex items-center gap-1.5">
+                                            <span>⏱️</span>
+                                            Nifty Multi-TF
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-sky-700 bg-sky-50 px-1 py-0.2 rounded">Multi-TF</span>
+                                    </a>
+                                    <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-sky-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-sky-700">
+                                            <span>🚀</span>
+                                            Multi-TF V2
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100 px-1 py-0.2 rounded">New</span>
+                                    </a>
+                                    <a href="{{ route('nifty.participation.engine') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-white/80 transition">
+                                        <span class="font-medium flex items-center gap-1.5">
+                                            <span>⚡</span>
+                                            Participation Engine
+                                        </span>
+                                        <span class="text-[10px] text-slate-400">Strength</span>
+                                    </a>
+                                    <a href="{{ route('banknifty.multi.timeframe.monitor') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-white/80 transition">
+                                        <span class="font-medium flex items-center gap-1.5">
+                                            <span>🏦</span>
+                                            Bank Nifty Multi-TF
+                                        </span>
+                                        <span class="text-[10px] text-slate-400">BankNifty</span>
+                                    </a>
+                                    <a href="{{ route('live.straddle.radar') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-rose-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-rose-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            Straddle Radar
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-1 py-0.2 rounded">Live 🔔</span>
+                                    </a>
+                                    <a href="{{ route('expiry.oi.volume.analysis') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-purple-600 hover:bg-white/80 transition">
+                                        <span class="font-medium">Expiry Day-over-Day</span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-1 py-0.2 rounded">Radar</span>
+                                    </a>
+                                    <a href="{{ route('order-flow-depth.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-amber-600 hover:bg-white/80 transition">
+                                        <span class="font-medium">30-Depth Radar</span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-1 py-0.2 rounded">Live Flow</span>
+                                    </a>
+                                    <a href="{{ route('gamma-blast.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-fuchsia-600 hover:bg-white/80 transition">
+                                        <span class="font-medium">Gamma Blast Radar</span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-fuchsia-700 bg-fuchsia-50 px-1 py-0.2 rounded">Scalping</span>
+                                    </a>
+                                    <a href="{{ route('nifty.option.trader') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-emerald-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            🎯 Option Trader
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded">0Click Desk</span>
+                                    </a>
+                                    <a href="{{ route('trading-journal.index') }}" class="group/item flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-700 hover:text-indigo-600 hover:bg-white/80 transition">
+                                        <span class="font-bold flex items-center gap-1.5 text-indigo-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                            Live Trade &amp; Journal
+                                        </span>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded">Live P&amp;L</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 2: MONITORS & COCKPITS -->
                             <div class="space-y-1">
                                 <div class="flex items-center gap-1.5 pb-2 mb-2 border-b border-slate-100 text-[11px] font-black text-indigo-600 uppercase tracking-wider">
                                     <svg class="w-3.5 h-3.5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -331,18 +412,7 @@
             ════════════════════════════════════════════════════════════════════ -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-                <!-- 1. Unified Cockpit (Flagship 3-in-1 Direct Action Pill) -->
-                <a href="{{ route('nifty.unified.monitor') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.unified.monitor') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-white' }}"
-                   title="NIFTY 50 3-in-1 Unified Cockpit (Weightage, Breadth &amp; OI)">
-                    <span class="relative flex h-2 w-2 shrink-0">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-                    </span>
-                    <span class="whitespace-nowrap">Unified Cockpit</span>
-                </a>
-
-                <!-- Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D) -->
+                <!-- 1. Nifty Multi-TF Cockpit -->
                 <a href="{{ route('nifty.multi.timeframe.monitor') }}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.multi.timeframe.monitor') ? 'bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-cyan-300' }}"
                    title="NIFTY 50 Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D)">
@@ -350,49 +420,19 @@
                     <span class="whitespace-nowrap">Nifty Multi-TF</span>
                 </a>
 
-                <!-- Nifty 50 Participation Engine (Directional Strength & Timeframe Alignment) -->
-                <a href="{{ route('nifty.participation.engine') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.participation.*') ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-indigo-500/30' }}"
-                   title="NIFTY 50 Directional Strength & Market Participation Engine">
-                    <span class="text-xs">⚡</span>
-                    <span class="whitespace-nowrap">Participation Engine</span>
+                <!-- 2. V2 (Nifty Multi-Timeframe Monitor V2) -->
+                <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('nifty.multi.timeframe.monitor.v2') ? 'bg-sky-600 text-white ring-2 ring-sky-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-cyan-300' }}"
+                   title="NIFTY 50 Multi-Timeframe Cockpit V2">
+                    <span class="text-xs">🚀</span>
+                    <span class="whitespace-nowrap">V2</span>
                 </a>
 
-                <!-- Bank Nifty Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D) -->
-                <a href="{{ route('banknifty.multi.timeframe.monitor') }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all shadow-xs {{ request()->routeIs('banknifty.multi.timeframe.monitor') ? 'bg-emerald-600 text-white ring-2 ring-emerald-300 ring-offset-1' : 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30' }}"
-                   title="BANK NIFTY Multi-Timeframe Cockpit (1m, 3m, 5m, 15m, 30m, 60m, 1D)">
-                    <span class="text-xs">🏦</span>
-                    <span class="whitespace-nowrap">Bank Nifty Multi-TF</span>
-                </a>
-
-                <!-- 2. Live Straddle Decay & Expansion Radar (Audio Spike Alarm) -->
-                <a href="{{ route('live.straddle.radar') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border {{ request()->routeIs('live.straddle.*') ? 'bg-rose-600 text-white shadow-xs border-rose-600 ring-2 ring-rose-300 ring-offset-1' : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300' }}"
-                   title="Live Straddle Decay &amp; Spike Alert Radar (Intraday Short Straddle Entry Clue)">
-                    <span class="relative flex h-2 w-2 shrink-0">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-500' }} opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 {{ request()->routeIs('live.straddle.*') ? 'bg-white' : 'bg-rose-600' }}"></span>
-                    </span>
-                    <span class="whitespace-nowrap">Straddle Radar</span>
-                    <span class="text-[10px]">🔔</span>
-                </a>
-
-                <!-- 3. Expiry Day-over-Day Dynamics Radar -->
-                <a href="{{ route('expiry.oi.volume.analysis') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('expiry.oi.volume.analysis') ? 'bg-indigo-600 text-white shadow-xs border-indigo-600 ring-1 ring-indigo-400' : 'bg-white hover:bg-indigo-50 text-slate-700 border-slate-200 hover:border-indigo-300' }}"
-                   title="Option Expiry Day-over-Day OI, Volume &amp; Straddle Dynamics">
-                    <svg class="w-3.5 h-3.5 shrink-0 {{ request()->routeIs('expiry.oi.volume.analysis') ? 'text-white' : 'text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
-                    <span class="whitespace-nowrap">Expiry Dynamics</span>
-                </a>
-
-                <!-- 4. 30-Depth Order Flow Confluence Radar -->
+                <!-- 3. 30-Depth Order Flow Confluence Radar -->
                 <a href="{{ route('order-flow-depth.index') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('order-flow-depth.*') ? 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-200' : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-200 hover:border-amber-300' }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('order-flow-depth.*') ? 'bg-amber-500 text-white border-amber-500 ring-1 ring-amber-300 shadow-xs' : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-200 hover:border-amber-300' }}"
                    title="30-Depth Institutional Order Flow &amp; Resting Limits Radar">
-                    <svg class="w-3.5 h-3.5 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-3.5 h-3.5 {{ request()->routeIs('order-flow-depth.*') ? 'text-white' : 'text-amber-600' }} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <circle cx="12" cy="12" r="6"/>
                         <circle cx="12" cy="12" r="2"/>
@@ -400,27 +440,11 @@
                     <span class="whitespace-nowrap">30-Depth</span>
                 </a>
 
-                <!-- 5. Gamma Blast Scalping Radar -->
-                <a href="{{ route('gamma-blast.index') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('gamma-blast.*') ? 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-500 ring-1 ring-fuchsia-400' : 'bg-white hover:bg-fuchsia-50 text-fuchsia-700 border-slate-200 hover:border-fuchsia-300' }}"
-                   title="Institutional Gamma Exposure (GEX) &amp; Scalping Blast Radar">
-                    <span class="text-xs">⚡</span>
-                    <span class="whitespace-nowrap">Gamma Blast</span>
-                </a>
-
-                <!-- 6. NIFTY Option Trader (0Click Execution Desk) -->
-                <a href="{{ route('nifty.option.trader') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border {{ request()->routeIs('nifty.option.trader') ? 'bg-emerald-600 text-white shadow-xs border-emerald-600 ring-2 ring-emerald-300 ring-offset-1' : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-400' }}"
-                   title="Institutional NIFTY Options Execution Desk (0Click.in Integrated)">
-                    <span class="text-xs">🎯</span>
-                    <span class="whitespace-nowrap">Option Trader</span>
-                </a>
-
-                <!-- 7. Strategy Live Trade & Journal -->
+                <!-- 4. Live Trade Execution & Journal -->
                 <a href="{{ route('trading-journal.index') }}"
-                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('trading-journal.*') ? 'bg-indigo-50 text-indigo-900 border-indigo-300 ring-1 ring-indigo-200' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
+                   class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border {{ request()->routeIs('trading-journal.*') ? 'bg-indigo-600 text-white border-indigo-600 ring-1 ring-indigo-300 shadow-xs' : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300' }}"
                    title="Strategy Live Trade Execution &amp; Journal">
-                    <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-3.5 h-3.5 {{ request()->routeIs('trading-journal.*') ? 'text-white' : 'text-indigo-600' }} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
                     <span class="whitespace-nowrap">Live Trade</span>
@@ -473,35 +497,48 @@
         <div class="space-y-3">
             
             <!-- Cherry-Picked Quick Trading Pills in Mobile -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-2 border-b border-slate-100">
-                <a href="{{ route('nifty.unified.monitor') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-xs">
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    Unified Cockpit
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2 border-b border-slate-100">
+                <a href="{{ route('nifty.multi.timeframe.monitor') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 text-white text-xs font-bold shadow-xs">
+                    <span>⏱️</span>
+                    <span>Nifty Multi-TF</span>
                 </a>
-                <a href="{{ route('nifty.option.trader') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow-xs">
-                    <span>🎯</span>
-                    Option Trader
+                <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-xs">
+                    <span>🚀</span>
+                    <span>V2</span>
                 </a>
-                <a href="{{ route('live.straddle.radar') }}" class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-xs">
-                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                    Straddle Radar 🔔
+                <a href="{{ route('order-flow-depth.index') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-semibold shadow-xs">
+                    <span>30-Depth</span>
                 </a>
-                <a href="{{ route('expiry.oi.volume.analysis') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">
-                    <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
-                    Expiry Radar
-                </a>
-                <a href="{{ route('order-flow-depth.index') }}" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-semibold">
-                    30-Depth Radar
-                </a>
-                <a href="{{ route('gamma-blast.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-fuchsia-700 text-white text-xs font-semibold">
-                    ⚡ Gamma Blast
-                </a>
-                <a href="{{ route('trading-journal.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">
-                    💼 Live Trade
+                <a href="{{ route('trading-journal.index') }}" class="flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold shadow-xs">
+                    <span>Live Trade</span>
                 </a>
             </div>
+
+            <!-- Section 0: Top Ideas -->
+            <details class="group/mob" open>
+                <summary class="flex items-center justify-between py-2 text-xs font-bold uppercase tracking-wider text-amber-700 cursor-pointer list-none">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Top Ideas
+                    </span>
+                    <svg class="w-4 h-4 text-slate-400 group-open/mob:rotate-180 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </summary>
+                <div class="pl-4 space-y-1.5 py-1 text-xs">
+                    <a href="{{ route('nifty.unified.monitor') }}" class="block py-1 text-indigo-600 font-bold">⚡ Unified Cockpit (Flagship)</a>
+                    <a href="{{ route('nifty.multi.timeframe.monitor') }}" class="block py-1 text-sky-700 font-bold">⏱️ Nifty Multi-TF</a>
+                    <a href="{{ route('nifty.multi.timeframe.monitor.v2') }}" class="block py-1 text-sky-700 font-bold">🚀 Multi-TF V2</a>
+                    <a href="{{ route('nifty.participation.engine') }}" class="block py-1 text-indigo-600 font-semibold">⚡ Participation Engine</a>
+                    <a href="{{ route('banknifty.multi.timeframe.monitor') }}" class="block py-1 text-emerald-700 font-semibold">🏦 Bank Nifty Multi-TF</a>
+                    <a href="{{ route('live.straddle.radar') }}" class="block py-1 text-rose-600 font-bold">🔴 Straddle Radar 🔔</a>
+                    <a href="{{ route('expiry.oi.volume.analysis') }}" class="block py-1 text-purple-700 font-semibold">⚡ Expiry Dynamics</a>
+                    <a href="{{ route('order-flow-depth.index') }}" class="block py-1 text-amber-700 font-semibold">30-Depth Radar</a>
+                    <a href="{{ route('gamma-blast.index') }}" class="block py-1 text-fuchsia-700 font-semibold">⚡ Gamma Blast Radar</a>
+                    <a href="{{ route('nifty.option.trader') }}" class="block py-1 text-emerald-700 font-bold">🎯 Option Trader</a>
+                    <a href="{{ route('trading-journal.index') }}" class="block py-1 text-indigo-600 font-bold">⚡ Live Trade &amp; Journal</a>
+                </div>
+            </details>
 
             <!-- Section 1: Monitors & Cockpits -->
             <details class="group/mob">

@@ -8727,17 +8727,19 @@
         let x = timeScale.timeToCoordinate(candle.time);
         const containerWidth = container.clientWidth || 99999;
 
-        // Auto-scroll into view if candle is off-screen
-        if (x === null || isNaN(x) || x < 25 || x > (containerWidth - 55)) {
+        // Auto-scroll into view if candle is off-screen (skip during bar replay so logical range is never collapsed)
+        if ((typeof isBarReplayMode === 'undefined' || !isBarReplayMode) && (x === null || isNaN(x) || x < 25 || x > (containerWidth - 55))) {
             try {
                 const visibleRange = timeScale.getVisibleRange();
                 if (visibleRange && (candle.time < visibleRange.from || candle.time > visibleRange.to)) {
                     const span = visibleRange.to - visibleRange.from;
-                    timeScale.setVisibleRange({
-                        from: candle.time - (span * 0.45),
-                        to: candle.time + (span * 0.55)
-                    });
-                    x = timeScale.timeToCoordinate(candle.time);
+                    if (span >= 3600) {
+                        timeScale.setVisibleRange({
+                            from: candle.time - (span * 0.45),
+                            to: candle.time + (span * 0.55)
+                        });
+                        x = timeScale.timeToCoordinate(candle.time);
+                    }
                 }
             } catch (e) {}
         }
@@ -8749,7 +8751,7 @@
         }
 
         const barSpacing = (typeof timeScale.options === 'function' ? timeScale.options().barSpacing : 10) || 10;
-        const colWidth = Math.max(Math.round(barSpacing * 1.5), 16);
+        const colWidth = Math.min(Math.max(Math.round(barSpacing * 1.5), 16), 36);
         const isBull = (candle.close >= candle.open);
 
         const candleColor = isBull ? '#10b981' : '#f43f5e';
@@ -14062,6 +14064,56 @@
         }
     }
 
+    function maintainReplayTimeScale(chart, activeIdx, tf, yesterdayCandles = []) {
+        if (!chart) return;
+        const timeScale = chart.timeScale();
+        const yCount = Array.isArray(yesterdayCandles) ? yesterdayCandles.length : 0;
+        const tfBarsMap = { '1m': 375, '3m': 125, '5m': 75, '15m': 25, '30m': 13, '60m': 7, '1h': 7, '1D': 1 };
+        const sessionBars = tfBarsMap[tf] || 75;
+        const leftOffsetBars = 10;
+        const defaultFrom = (yCount > 0 ? yCount : 0) - leftOffsetBars;
+        const defaultTo = defaultFrom + sessionBars + leftOffsetBars + 5;
+
+        let targetFrom = defaultFrom;
+        let targetTo = defaultTo;
+
+        const curRange = timeScale.getVisibleLogicalRange();
+        if (curRange) {
+            const span = curRange.to - curRange.from;
+            // Only preserve user range if it's a realistic trading chart span (between 20 and 500 bars)
+            if (span >= 20 && span <= 500) {
+                targetFrom = curRange.from;
+                targetTo = curRange.to;
+
+                // If active candle moves past right boundary, scroll view smoothly forward
+                const candleLogicalIndex = yCount + Math.max(0, activeIdx);
+                if (candleLogicalIndex > targetTo - 5) {
+                    const shift = candleLogicalIndex - (targetTo - 5);
+                    targetFrom += shift;
+                    targetTo += shift;
+                }
+            }
+        }
+
+        const applyTargetRange = () => {
+            try {
+                timeScale.applyOptions({
+                    minBarSpacing: 3,
+                    fixLeftEdge: false,
+                    fixRightEdge: false,
+                });
+                timeScale.setVisibleLogicalRange({
+                    from: targetFrom,
+                    to: targetTo,
+                });
+                updateDaySeparators();
+            } catch (e) {}
+        };
+
+        applyTargetRange();
+        requestAnimationFrame(applyTargetRange);
+    }
+
     function applyBarReplaySlice(index, timeStr = null) {
         if (!timestampsList || index < 0 || index >= timestampsList.length) return;
         const curTimeStr = timeStr || timestampsList[index];
@@ -14084,6 +14136,11 @@
                 try {
                     wCandleSeries.setMarkers(visibleMarkers);
                 } catch (e) {}
+            }
+
+            // Lock time scale to natural session width so candles never stretch or zoom out of control
+            if (wChart) {
+                maintainReplayTimeScale(wChart, index, wTimeframe, window._unifiedYesterdayCandles);
             }
         }
 
@@ -14115,6 +14172,10 @@
                         oCandleSeries.setMarkers(visibleOptMarkers);
                     } catch (e) {}
                 }
+
+                if (oChart) {
+                    maintainReplayTimeScale(oChart, optSliceCount - 1, oTimeframe, window._unifiedOptionsYesterdayCandles);
+                }
             }
         }
     }
@@ -14125,6 +14186,7 @@
             try {
                 wCandleSeries.setData(displayCandles);
                 if (window._wCandleMarkers) wCandleSeries.setMarkers(window._wCandleMarkers);
+                if (wChart) adjustChartTimeScale(wChart, window._unifiedTodayCandles, window._unifiedYesterdayCandles, wTimeframe);
             } catch (e) {}
         }
         if (oCandleSeries && window._unifiedOptionsCandles) {
@@ -14132,6 +14194,7 @@
             try {
                 oCandleSeries.setData(displayOptCandles);
                 if (window._oCandleMarkers) oCandleSeries.setMarkers(window._oCandleMarkers);
+                if (oChart) adjustChartTimeScale(oChart, window._unifiedOptionsTodayCandles, window._unifiedOptionsYesterdayCandles, oTimeframe);
             } catch (e) {}
         }
     }
