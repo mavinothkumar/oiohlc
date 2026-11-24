@@ -295,6 +295,7 @@ class AutoTradingV2Engine
                         $currentTrade['exit_time'] = $tStr;
                         $currentTrade['exit_spot'] = $currentTrade['t3_price'];
                         $currentTrade['exit_reason'] = 'Target 3 Hit! Complete profit booked.';
+                        $currentTrade['exit_category'] = 'TARGET_3';
 
                         $candleState = 'TARGET_HIT';
                         $verdictBadge = '🎯 T3 FULL PROFIT';
@@ -369,6 +370,18 @@ class AutoTradingV2Engine
                 }
 
                 if ($exitTriggered) {
+                    $exitCategory = 'STOP_LOSS';
+                    if (str_contains($exitReason, 'Stagnation')) {
+                        $exitCategory = 'STAGNATION_TRAILED';
+                    } elseif ($currentTrade['t2_hit']) {
+                        $exitCategory = 'TARGET_2';
+                    } elseif ($currentTrade['t1_hit']) {
+                        $exitCategory = 'TARGET_1_COST';
+                    } elseif (str_contains($exitReason, 'Market Close')) {
+                        $exitCategory = 'EOD_CLOSE';
+                    }
+                    $currentTrade['exit_category'] = $exitCategory;
+
                     if ($currentTrade['open_lots'] > 0) {
                         $ptsGain = ($isBull ? ($exitPrice - $currentTrade['entry_spot']) : ($currentTrade['entry_spot'] - $exitPrice)) * 0.55;
                         $remGainRs = round($currentTrade['open_lots'] * $ptsGain * $currentTrade['lot_size']);
@@ -471,10 +484,25 @@ class AutoTradingV2Engine
                         } else {
                             // Entry executes on OPEN of next candle (i + 1)
                             $nextCandle = $rawCandles[$i + 1];
+                            $entryTime = $nextCandle['time_str'];
                             $entrySpot = (float)$nextCandle['open'];
                             $atmStrike = round($entrySpot / 100) * 100;
                             $baseSl = ($triggeredDirection === 'BULL') ? $cLow : $cHigh;
                             $riskPts = max(abs($entrySpot - $baseSl), 25.0);
+
+                            $sessWindow = ($entryTime < '11:30') ? 'MORNING' : (($entryTime < '13:30') ? 'MIDDAY' : 'AFTERNOON');
+
+                            $oiNetDiffPct = $oiSnap ? round((float)$oiSnap['diffPct'], 2) : 0.0;
+                            $oiNetDiffLakh = $oiSnap ? round(((float)($oiSnap['diffOi'] ?? 0)) / 100000, 2) : 0.0;
+
+                            $oiSentiment = 'NEUTRAL';
+                            if ($oiNetDiffPct >= 30.0) $oiSentiment = 'STRONG_BULL';
+                            elseif ($oiNetDiffPct >= 15.0) $oiSentiment = 'MILD_BULL';
+                            elseif ($oiNetDiffPct <= -30.0) $oiSentiment = 'STRONG_BEAR';
+                            elseif ($oiNetDiffPct <= -15.0) $oiSentiment = 'MILD_BEAR';
+
+                            $entryBreadth = round(($triggeredDirection === 'BULL') ? $stkBullWt : $stkBearWt, 1);
+                            $entryFlow = round(($triggeredDirection === 'BULL') ? $optUpWt : $optDownWt, 1);
 
                             $t1 = ($triggeredDirection === 'BULL') ? round($entrySpot + ($riskPts * $t1Rr), 1) : round($entrySpot - ($riskPts * $t1Rr), 1);
                             $t2 = ($triggeredDirection === 'BULL') ? round($entrySpot + ($riskPts * $t2Rr), 1) : round($entrySpot - ($riskPts * $t2Rr), 1);
@@ -485,46 +513,53 @@ class AutoTradingV2Engine
                             $strike = ($triggeredDirection === 'BULL') ? $atmStrike - 100 : $atmStrike + 100;
                             $instrument = "NIFTY {$strike} {$optType}";
 
-                            $tradeUid = "T_{$date}_" . str_replace(':', '', $nextCandle['time_str']) . "_{$triggeredDirection}";
+                            $tradeUid = "T_{$date}_" . str_replace(':', '', $entryTime) . "_{$triggeredDirection}";
 
                             $currentTrade = [
-                                'trade_uid'             => $tradeUid,
-                                'date'                  => $date,
-                                'direction'             => $triggeredDirection,
-                                'strategy_mode'         => $config['strategyMode'] ?? 'auto',
-                                'action'                => $action,
-                                'instrument'            => $instrument,
-                                'strike'                => $strike,
-                                'opt_type'              => $optType,
-                                'entry_time'            => $nextCandle['time_str'],
-                                'entry_index'           => $i + 1,
-                                'entry_spot'            => $entrySpot,
-                                'entry_opt_price'       => 95.0,
-                                'entry_lots'            => $entryLots,
-                                'lot_size'              => $lotSize,
-                                'open_lots'             => $entryLots,
-                                'booked_lots'           => 0,
-                                'booked_pnl_rupees'     => 0,
-                                'base_sl'               => $baseSl,
-                                'current_sl'            => $baseSl,
-                                't1_price'              => $t1,
-                                't2_price'              => $t2,
-                                't3_price'              => $t3,
-                                't1_hit'                => false,
-                                't2_hit'                => false,
-                                't3_hit'                => false,
-                                'exit_time'             => null,
-                                'exit_spot'             => null,
-                                'exit_opt_price'        => null,
-                                'exit_reason'           => null,
-                                'pnl_points'            => 0,
-                                'pnl_rupees'            => 0,
-                                'mfe_points'            => 0,
-                                'mae_points'            => 0,
-                                'peak_spot'             => $entrySpot,
-                                'setup_type'            => $setupType,
-                                'entry_reason'          => $setupReason,
-                                'is_stagnation_trailed' => false,
+                                'trade_uid'               => $tradeUid,
+                                'date'                    => $date,
+                                'direction'               => $triggeredDirection,
+                                'strategy_mode'           => $config['strategyMode'] ?? 'auto',
+                                'action'                  => $action,
+                                'instrument'              => $instrument,
+                                'strike'                  => $strike,
+                                'opt_type'                => $optType,
+                                'entry_time'              => $entryTime,
+                                'entry_index'             => $i + 1,
+                                'entry_spot'              => $entrySpot,
+                                'entry_opt_price'         => 95.0,
+                                'entry_lots'              => $entryLots,
+                                'lot_size'                => $lotSize,
+                                'open_lots'               => $entryLots,
+                                'booked_lots'             => 0,
+                                'booked_pnl_rupees'       => 0,
+                                'base_sl'                 => $baseSl,
+                                'current_sl'              => $baseSl,
+                                't1_price'                => $t1,
+                                't2_price'                => $t2,
+                                't3_price'                => $t3,
+                                't1_hit'                  => false,
+                                't2_hit'                  => false,
+                                't3_hit'                  => false,
+                                'exit_time'               => null,
+                                'exit_spot'               => null,
+                                'exit_opt_price'          => null,
+                                'exit_reason'             => null,
+                                'exit_category'           => null,
+                                'pnl_points'              => 0,
+                                'pnl_rupees'              => 0,
+                                'mfe_points'              => 0,
+                                'mae_points'              => 0,
+                                'peak_spot'               => $entrySpot,
+                                'setup_type'              => $setupType,
+                                'entry_reason'            => $setupReason,
+                                'entry_oi_net_diff_pct'   => $oiNetDiffPct,
+                                'entry_oi_net_diff_lakh'  => $oiNetDiffLakh,
+                                'entry_oi_sentiment'      => $oiSentiment,
+                                'entry_stock_breadth_pct' => $entryBreadth,
+                                'entry_options_flow_pct'  => $entryFlow,
+                                'session_window'          => $sessWindow,
+                                'is_stagnation_trailed'   => false,
                             ];
 
                             $candleState = 'TRADE_ENTRY';
@@ -689,10 +724,17 @@ class AutoTradingV2Engine
                     'pnl_rupees'            => $tr['pnl_rupees'],
                     'mfe_points'            => $tr['mfe_points'],
                     'mae_points'            => $tr['mae_points'],
-                    'setup_type'            => $tr['setup_type'],
-                    'entry_reason'          => $tr['entry_reason'],
-                    'is_stagnation_trailed' => $tr['is_stagnation_trailed'],
-                    'telemetry_json'        => $tr['telemetry_json'] ?? null,
+                    'setup_type'              => $tr['setup_type'],
+                    'entry_reason'            => $tr['entry_reason'],
+                    'entry_oi_net_diff_pct'   => $tr['entry_oi_net_diff_pct'] ?? null,
+                    'entry_oi_net_diff_lakh'  => $tr['entry_oi_net_diff_lakh'] ?? null,
+                    'entry_oi_sentiment'      => $tr['entry_oi_sentiment'] ?? null,
+                    'entry_stock_breadth_pct' => $tr['entry_stock_breadth_pct'] ?? null,
+                    'entry_options_flow_pct'  => $tr['entry_options_flow_pct'] ?? null,
+                    'session_window'          => $tr['session_window'] ?? null,
+                    'exit_category'           => $tr['exit_category'] ?? null,
+                    'is_stagnation_trailed'   => $tr['is_stagnation_trailed'],
+                    'telemetry_json'          => $tr['telemetry_json'] ?? null,
                 ]
             );
         }

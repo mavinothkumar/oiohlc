@@ -30,6 +30,10 @@ class AutoTradingBacktestController extends Controller
         $toDate = $request->input('to');
         $statusFilter = $request->input('status', 'all');
         $setupFilter = $request->input('setup', 'all');
+        $oiFilter = $request->input('oi_sentiment', 'all');
+        $directionFilter = $request->input('direction', 'all');
+        $exitFilter = $request->input('exit_category', 'all');
+        $sessionFilter = $request->input('session_window', 'all');
 
         $nowKolkata = Carbon::now('Asia/Kolkata');
         $todayStr = $nowKolkata->toDateString();
@@ -55,10 +59,14 @@ class AutoTradingBacktestController extends Controller
         }
 
         // Query Days
-        $daysQuery = AutoTradeV2Day::with(['trades' => function ($q) use ($setupFilter) {
-            if ($setupFilter !== 'all') {
-                $q->where('setup_type', $setupFilter);
-            }
+        $hasTradeFilters = ($setupFilter !== 'all' || $oiFilter !== 'all' || $directionFilter !== 'all' || $exitFilter !== 'all' || $sessionFilter !== 'all');
+
+        $daysQuery = AutoTradeV2Day::with(['trades' => function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter) {
+            if ($setupFilter !== 'all') $q->where('setup_type', $setupFilter);
+            if ($oiFilter !== 'all') $q->where('entry_oi_sentiment', $oiFilter);
+            if ($directionFilter !== 'all') $q->where('direction', $directionFilter);
+            if ($exitFilter !== 'all') $q->where('exit_category', $exitFilter);
+            if ($sessionFilter !== 'all') $q->where('session_window', $sessionFilter);
             $q->orderBy('entry_time', 'asc');
         }])->orderByDesc('date');
 
@@ -71,6 +79,15 @@ class AutoTradingBacktestController extends Controller
         if ($statusFilter !== 'all') {
             $daysQuery->where('day_status', $statusFilter);
         }
+        if ($hasTradeFilters) {
+            $daysQuery->whereHas('trades', function ($q) use ($setupFilter, $oiFilter, $directionFilter, $exitFilter, $sessionFilter) {
+                if ($setupFilter !== 'all') $q->where('setup_type', $setupFilter);
+                if ($oiFilter !== 'all') $q->where('entry_oi_sentiment', $oiFilter);
+                if ($directionFilter !== 'all') $q->where('direction', $directionFilter);
+                if ($exitFilter !== 'all') $q->where('exit_category', $exitFilter);
+                if ($sessionFilter !== 'all') $q->where('session_window', $sessionFilter);
+            });
+        }
 
         $days = $daysQuery->get();
 
@@ -79,6 +96,10 @@ class AutoTradingBacktestController extends Controller
         if ($fromDate) $tradesQuery->where('date', '>=', $fromDate);
         if ($toDate) $tradesQuery->where('date', '<=', $toDate);
         if ($setupFilter !== 'all') $tradesQuery->where('setup_type', $setupFilter);
+        if ($oiFilter !== 'all') $tradesQuery->where('entry_oi_sentiment', $oiFilter);
+        if ($directionFilter !== 'all') $tradesQuery->where('direction', $directionFilter);
+        if ($exitFilter !== 'all') $tradesQuery->where('exit_category', $exitFilter);
+        if ($sessionFilter !== 'all') $tradesQuery->where('session_window', $sessionFilter);
         $trades = $tradesQuery->get();
 
         // Calculate Global KPI Stats
@@ -190,6 +211,10 @@ class AutoTradingBacktestController extends Controller
             'toDate'           => $toDate,
             'statusFilter'     => $statusFilter,
             'setupFilter'      => $setupFilter,
+            'oiFilter'         => $oiFilter,
+            'directionFilter'  => $directionFilter,
+            'exitFilter'       => $exitFilter,
+            'sessionFilter'    => $sessionFilter,
         ]);
     }
 

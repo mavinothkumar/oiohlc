@@ -170,12 +170,22 @@
 
                 <!-- Outcome Filter -->
                 <div class="flex items-center gap-1.5">
-                    <span class="text-gray-400">Outcome:</span>
+                    <span class="text-gray-400">Day:</span>
                     <select name="status" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
-                        <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>All Outcomes</option>
-                        <option value="WIN" {{ $statusFilter === 'WIN' ? 'selected' : '' }}>🟢 Winning Days Only</option>
-                        <option value="LOSS" {{ $statusFilter === 'LOSS' ? 'selected' : '' }}>🔴 Losing Days Only</option>
-                        <option value="NO_TRADE" {{ $statusFilter === 'NO_TRADE' ? 'selected' : '' }}>⚪ Standby / Flat Days Only</option>
+                        <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>All Days</option>
+                        <option value="WIN" {{ $statusFilter === 'WIN' ? 'selected' : '' }}>🟢 Winning Days</option>
+                        <option value="LOSS" {{ $statusFilter === 'LOSS' ? 'selected' : '' }}>🔴 Losing Days</option>
+                        <option value="NO_TRADE" {{ $statusFilter === 'NO_TRADE' ? 'selected' : '' }}>⚪ Standby / Flat</option>
+                    </select>
+                </div>
+
+                <!-- Direction Filter -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-400">Dir:</span>
+                    <select name="direction" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
+                        <option value="all" {{ $directionFilter === 'all' ? 'selected' : '' }}>All Dir</option>
+                        <option value="BULL" {{ $directionFilter === 'BULL' ? 'selected' : '' }}>🟢 BULL (PE Sell)</option>
+                        <option value="BEAR" {{ $directionFilter === 'BEAR' ? 'selected' : '' }}>🔴 BEAR (CE Sell)</option>
                     </select>
                 </div>
 
@@ -184,14 +194,54 @@
                     <span class="text-gray-400">Setup:</span>
                     <select name="setup" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
                         <option value="all" {{ $setupFilter === 'all' ? 'selected' : '' }}>All Setups</option>
-                        <option value="SQUEEZE_BREAKOUT" {{ $setupFilter === 'SQUEEZE_BREAKOUT' ? 'selected' : '' }}>🚀 Squeeze Breakout</option>
                         <option value="GRADE_A_CONFLUENCE" {{ $setupFilter === 'GRADE_A_CONFLUENCE' ? 'selected' : '' }}>🌟 Grade A+ Confluence</option>
+                        <option value="SQUEEZE_BREAKOUT" {{ $setupFilter === 'SQUEEZE_BREAKOUT' ? 'selected' : '' }}>🚀 Squeeze Breakout</option>
                         <option value="STANDARD" {{ $setupFilter === 'STANDARD' ? 'selected' : '' }}>🎯 Standard Breadth</option>
                     </select>
                 </div>
 
-                <button type="submit" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold transition">Apply Filters</button>
-                <a href="{{ route('automated.trading.backtest') }}" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 transition">Reset</a>
+                <!-- Trending OI Sentiment Filter -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-400">Trending OI:</span>
+                    <select name="oi_sentiment" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
+                        <option value="all" {{ $oiFilter === 'all' ? 'selected' : '' }}>All OI Skews</option>
+                        <option value="STRONG_BULL" {{ $oiFilter === 'STRONG_BULL' ? 'selected' : '' }}>🟢 Strong Bull (≥+30%)</option>
+                        <option value="MILD_BULL" {{ $oiFilter === 'MILD_BULL' ? 'selected' : '' }}>🟢 Mild Bull (+15% to +30%)</option>
+                        <option value="NEUTRAL" {{ $oiFilter === 'NEUTRAL' ? 'selected' : '' }}>⚪ Squeeze / Flat (±15%)</option>
+                        <option value="MILD_BEAR" {{ $oiFilter === 'MILD_BEAR' ? 'selected' : '' }}>🔴 Mild Bear (-15% to -30%)</option>
+                        <option value="STRONG_BEAR" {{ $oiFilter === 'STRONG_BEAR' ? 'selected' : '' }}>🔴 Strong Bear (≤-30%)</option>
+                    </select>
+                </div>
+
+                <!-- Exit Category Filter -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-400">Exit:</span>
+                    <select name="exit_category" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
+                        <option value="all" {{ $exitFilter === 'all' ? 'selected' : '' }}>All Exits</option>
+                        <option value="TARGET_3" {{ $exitFilter === 'TARGET_3' ? 'selected' : '' }}>🎯 Target 3 Hit (Full Profit)</option>
+                        <option value="TARGET_2" {{ $exitFilter === 'TARGET_2' ? 'selected' : '' }}>🎯 Target 2 Hit</option>
+                        <option value="TARGET_1_COST" {{ $exitFilter === 'TARGET_1_COST' ? 'selected' : '' }}>🛡️ T1 Breakeven Trailed</option>
+                        <option value="STAGNATION_TRAILED" {{ $exitFilter === 'STAGNATION_TRAILED' ? 'selected' : '' }}>⏳ Stagnation 1:1 Trailed</option>
+                        <option value="STOP_LOSS" {{ $exitFilter === 'STOP_LOSS' ? 'selected' : '' }}>🔴 Base SL Hit</option>
+                        <option value="EOD_CLOSE" {{ $exitFilter === 'EOD_CLOSE' ? 'selected' : '' }}>🕒 15:20 EOD Close</option>
+                    </select>
+                </div>
+
+                <!-- Session Window Filter -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-gray-400">Session:</span>
+                    <select name="session_window" class="bg-[#141b2e] border border-gray-700 rounded px-2 py-1 text-white text-xs">
+                        <option value="all" {{ $sessionFilter === 'all' ? 'selected' : '' }}>All Sessions</option>
+                        <option value="MORNING" {{ $sessionFilter === 'MORNING' ? 'selected' : '' }}>🌅 Morning (09:35 - 11:30)</option>
+                        <option value="MIDDAY" {{ $sessionFilter === 'MIDDAY' ? 'selected' : '' }}>☀️ Mid-Day (11:30 - 13:30)</option>
+                        <option value="AFTERNOON" {{ $sessionFilter === 'AFTERNOON' ? 'selected' : '' }}>🌇 Afternoon (13:30 - 14:45)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-1.5 ml-auto">
+                    <button type="submit" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-xs cursor-pointer">Apply Filters</button>
+                    <a href="{{ route('automated.trading.backtest') }}" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 transition">Reset</a>
+                </div>
             </form>
         </div>
 
@@ -338,6 +388,22 @@
                                     @if($day->trades->isNotEmpty())
                                         <div class="space-y-2">
                                             @foreach($day->trades as $tr)
+                                                @php
+                                                    $oiPct = $tr->entry_oi_net_diff_pct;
+                                                    if ($oiPct === null && preg_match('/\(([+-]?\d+\.?\d*)%\)/', $tr->entry_reason, $m)) {
+                                                        $oiPct = (float)$m[1];
+                                                    }
+                                                    $oiLakh = $tr->entry_oi_net_diff_lakh;
+                                                    $sent = $tr->entry_oi_sentiment;
+                                                    if (!$sent && $oiPct !== null) {
+                                                        if ($oiPct >= 30) $sent = 'STRONG_BULL';
+                                                        elseif ($oiPct >= 15) $sent = 'MILD_BULL';
+                                                        elseif ($oiPct <= -30) $sent = 'STRONG_BEAR';
+                                                        elseif ($oiPct <= -15) $sent = 'MILD_BEAR';
+                                                        else $sent = 'NEUTRAL';
+                                                    }
+                                                    $window = $tr->session_window ?: ($tr->entry_time < '11:30' ? 'MORNING' : ($tr->entry_time < '13:30' ? 'MIDDAY' : 'AFTERNOON'));
+                                                @endphp
                                                 <div class="bg-[#141d30] border {{ $tr->pnl_rupees >= 0 ? 'border-emerald-900/60' : 'border-rose-900/60' }} rounded-md p-2 text-[11px] space-y-1.5 shadow-sm">
                                                     <div class="flex items-center justify-between flex-wrap gap-1.5">
                                                         <div class="flex items-center gap-1.5 flex-wrap">
@@ -356,12 +422,33 @@
                                                             {{ $tr->pnl_rupees >= 0 ? '+' : '' }}₹{{ number_format($tr->pnl_rupees) }} ({{ $tr->pnl_points >= 0 ? '+' : '' }}{{ $tr->pnl_points }}p)
                                                         </span>
                                                     </div>
+
+                                                    <!-- Tactical Signals (Trending OI & Session Window) -->
+                                                    <div class="flex items-center gap-1.5 flex-wrap text-[9.5px]">
+                                                        @if($oiPct !== null)
+                                                            <span class="px-1.5 py-0.2 rounded font-bold {{ $oiPct >= 0 ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-700' : 'bg-rose-950/90 text-rose-300 border border-rose-700' }}">
+                                                                OI Skew: {{ $oiPct >= 0 ? '+' : '' }}{{ $oiPct }}% {{ $oiLakh ? '('.($oiLakh >= 0 ? '+' : '').$oiLakh.'L)' : '' }} {{ $sent ? '• '.str_replace('_', ' ', $sent) : '' }}
+                                                            </span>
+                                                        @endif
+                                                        <span class="px-1.5 py-0.2 rounded font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                                                            {{ $window }}
+                                                        </span>
+                                                        @if($tr->exit_category)
+                                                            <span class="px-1.5 py-0.2 rounded font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">
+                                                                {{ str_replace('_', ' ', $tr->exit_category) }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+
                                                     <div class="text-[10px] text-gray-300 flex items-center justify-between flex-wrap gap-1 bg-[#0f1626] px-2 py-1 rounded border border-gray-800/60">
                                                         <span><strong class="text-sky-400">Entry:</strong> {{ $tr->entry_time }} @ {{ number_format($tr->entry_spot, 1) }}</span>
                                                         <span><strong class="text-amber-400">Exit:</strong> {{ $tr->exit_time }} @ {{ number_format($tr->exit_spot, 1) }}</span>
                                                     </div>
-                                                    <div class="text-[10px] text-gray-400 pt-0.5">
-                                                        <span class="text-amber-300/90 font-bold">Exit Reason:</span> {{ $tr->exit_reason }}
+                                                    <div class="text-[9.5px] text-gray-400 space-y-0.5 pt-0.5">
+                                                        @if($tr->entry_reason)
+                                                            <div><span class="text-sky-300/90 font-semibold">Trigger:</span> {{ $tr->entry_reason }}</div>
+                                                        @endif
+                                                        <div><span class="text-amber-300/90 font-semibold">Exit:</span> {{ $tr->exit_reason }}</div>
                                                     </div>
                                                 </div>
                                             @endforeach

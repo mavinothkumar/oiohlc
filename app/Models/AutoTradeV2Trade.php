@@ -30,6 +30,10 @@ class AutoTradeV2Trade extends Model
         'mfe_points' => 'float',
         'mae_points' => 'float',
         'is_stagnation_trailed' => 'boolean',
+        'entry_oi_net_diff_pct' => 'float',
+        'entry_oi_net_diff_lakh' => 'float',
+        'entry_stock_breadth_pct' => 'float',
+        'entry_options_flow_pct' => 'float',
         'telemetry_json' => 'array',
     ];
 
