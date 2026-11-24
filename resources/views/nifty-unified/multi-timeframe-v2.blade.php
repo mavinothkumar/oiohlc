@@ -113,7 +113,11 @@
         #trade-cfg-oi-veto-threshold,
         #trade-cfg-oi-veto-threshold option,
         #trade-cfg-oi-squeeze-threshold,
-        #trade-cfg-oi-squeeze-threshold option {
+        #trade-cfg-oi-squeeze-threshold option,
+        #trade-cfg-stagnation-mins,
+        #trade-cfg-stagnation-mins option,
+        #trade-cfg-stagnation-action,
+        #trade-cfg-stagnation-action option {
             color-scheme: dark !important;
             background-color: #101626 !important;
             color: #e2e8f0 !important;
@@ -3073,7 +3077,7 @@
 
     <!-- Quick Settings Dropdown Overlay -->
     <div id="trade-settings-panel" class="hidden bg-[#0e1424] border-b border-gray-700 p-2 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 max-w-full mx-1">
             <!-- Strategy Selection -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-sky-400 mb-1 flex items-center gap-1">
@@ -3164,6 +3168,41 @@
                 <div class="text-[9.5px] text-gray-400 mt-1">Blocks opposing walls; triggers Squeeze Breakout when tight.</div>
             </div>
 
+            <!-- Stagnation / Time-Stop Compression Card -->
+            <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-amber-400 flex items-center gap-1">
+                        <span>⏱️ Stagnation Stop:</span>
+                    </span>
+                    <label class="flex items-center gap-1 cursor-pointer text-[10px]">
+                        <input type="checkbox" id="trade-cfg-stagnation-enabled" checked onchange="updateTradeConfig('stagnationEnabled', this.checked)" class="accent-amber-500">
+                        <span class="text-amber-300 font-bold">Active</span>
+                    </label>
+                </div>
+                <div class="grid grid-cols-3 gap-1 text-[11px] font-mono">
+                    <div>
+                        <span class="text-gray-400 text-[9px] block">Time Limit:</span>
+                        <select id="trade-cfg-stagnation-mins" onchange="updateTradeConfig('stagnationMins', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-white text-xs">
+                            <option value="30">30m (6c)</option>
+                            <option value="45" selected>45m (9c)</option>
+                            <option value="60">60m (12c)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9px] block">Action:</span>
+                        <select id="trade-cfg-stagnation-action" onchange="updateTradeConfig('stagnationAction', this.value)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-white text-xs">
+                            <option value="trail_1to1" selected>1:1 Trail</option>
+                            <option value="square_off">Immediate</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9px] block">Buffer (pts):</span>
+                        <input id="trade-cfg-stagnation-buffer" type="number" min="1" max="25" value="5" onchange="updateTradeConfig('stagnationTrailBuffer', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-center text-white text-xs">
+                    </div>
+                </div>
+                <div class="text-[9px] text-gray-400 mt-1">45m flat ➔ trails 1 pt for 1 pt move, limiting risk.</div>
+            </div>
+
             <!-- Exit Factors Toggles -->
             <div class="bg-[#141b2d] p-2 rounded border border-gray-800">
                 <div class="font-bold text-purple-400 mb-1 flex items-center gap-1">
@@ -3193,6 +3232,10 @@
                     <label class="flex items-center gap-1 cursor-pointer">
                         <input type="checkbox" id="cfg-factor-greeks" checked onchange="updateTradeConfig('f6_greeks', this.checked)" class="accent-sky-500">
                         <span>F6: Theta &amp; Greeks</span>
+                    </label>
+                    <label class="flex items-center gap-1 cursor-pointer col-span-2">
+                        <input type="checkbox" id="cfg-factor-stagnation" checked onchange="updateTradeConfig('f7_stagnation', this.checked)" class="accent-amber-500">
+                        <span class="text-amber-300 font-bold">F7: Stagnation / Time-Stop</span>
                     </label>
                 </div>
             </div>
@@ -3410,13 +3453,27 @@
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="fm-f6-action">ACTIVE EXPANSION</td>
                                 </tr>
+
+                                <!-- Factor 7: Stagnation / Time-Stop Compression -->
+                                <tr id="row-factor-stagnation">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">7️⃣</span>
+                                        <span>Stagnation Time-Stop</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-amber-300" id="fm-f7-anchor">45m Limit (9c) • 1:1 Trail (5p)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="fm-f7-dist">Elapsed: 0m (45m safe)</td>
+                                    <td class="py-1.5 px-1.5" id="fm-f7-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 ACTIVE</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="fm-f7-action">1:1 TRAIL READY</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <div class="mt-2 pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] font-mono text-gray-400">
-                    <span>⚡ Trade Engine dynamically re-checks all 6 factors at every candle close &amp; replay step.</span>
+                    <span>⚡ Trade Engine dynamically re-checks all 7 factors at every candle close &amp; replay step.</span>
                     <span id="exit-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">POSITION IN GOOD HEALTH</span>
                 </div>
             </div>
@@ -14383,10 +14440,15 @@
         f4_reverse: true,
         f5_depth: true,
         f6_greeks: true,
+        f7_stagnation: true,
         historyMode: 'active', // 'active' | 'all'
         oiFilterEnabled: true, // Enable Trending OI filter
         oiVetoThreshold: 25,   // Opposing OI Diff % to Veto entry (e.g. 25%)
-        oiSqueezeThreshold: 15 // Squeeze Breakout Zone % (e.g. 15%)
+        oiSqueezeThreshold: 15, // Squeeze Breakout Zone % (e.g. 15%)
+        stagnationEnabled: true,
+        stagnationMins: 45,
+        stagnationAction: 'trail_1to1', // 'trail_1to1' | 'square_off'
+        stagnationTrailBuffer: 5        // Buffer in points for 1:1 trail
     };
 
     let activeTrade = null;
@@ -14448,6 +14510,23 @@
             oiSqzSel.value = String(tradeEngineConfig.oiSqueezeThreshold);
         }
 
+        const stagEnEl = document.getElementById('trade-cfg-stagnation-enabled');
+        if (stagEnEl && typeof tradeEngineConfig.stagnationEnabled === 'boolean') {
+            stagEnEl.checked = tradeEngineConfig.stagnationEnabled;
+        }
+        const stagMinsSel = document.getElementById('trade-cfg-stagnation-mins');
+        if (stagMinsSel && tradeEngineConfig.stagnationMins) {
+            stagMinsSel.value = String(tradeEngineConfig.stagnationMins);
+        }
+        const stagActSel = document.getElementById('trade-cfg-stagnation-action');
+        if (stagActSel && tradeEngineConfig.stagnationAction) {
+            stagActSel.value = tradeEngineConfig.stagnationAction;
+        }
+        const stagBufInp = document.getElementById('trade-cfg-stagnation-buffer');
+        if (stagBufInp && tradeEngineConfig.stagnationTrailBuffer) {
+            stagBufInp.value = String(tradeEngineConfig.stagnationTrailBuffer);
+        }
+
         const factorMap = {
             'cfg-factor-sl': 'f1_sl',
             'cfg-factor-yd-sr': 'f2_yd_sr',
@@ -14455,6 +14534,7 @@
             'cfg-factor-reverse': 'f4_reverse',
             'cfg-factor-depth': 'f5_depth',
             'cfg-factor-greeks': 'f6_greeks',
+            'cfg-factor-stagnation': 'f7_stagnation',
         };
         Object.entries(factorMap).forEach(([id, key]) => {
             const el = document.getElementById(id);
@@ -14742,16 +14822,53 @@
                 currentTrade.mfePoints = Math.max(currentTrade.mfePoints, m2mCalc.pointsGain);
                 currentTrade.maePoints = Math.min(currentTrade.maePoints, m2mCalc.pointsGain);
 
+                // Track Peak Spot in Trade (High for Bull / Low for Bear)
+                currentTrade.peakSpot = currentTrade.peakSpot !== undefined
+                    ? (isBull ? Math.max(currentTrade.peakSpot, cHigh) : Math.min(currentTrade.peakSpot, cLow))
+                    : (isBull ? cHigh : cLow);
+
                 // Exit Factor Checks
                 let exitTriggered = false;
                 let exitReason = null;
                 let exitPrice = cClose;
 
-                if (tradeEngineConfig.f1_sl) {
+                // F7: Stagnation / Time-Stop Compression (e.g. 45 Mins / 9 Candles)
+                const elapsedCandles = i - currentTrade.entryIndex;
+                const elapsedMins = elapsedCandles * currentTfMinutes;
+                const stagLimit = Number(tradeEngineConfig.stagnationMins) || 45;
+                const stagBuffer = Number(tradeEngineConfig.stagnationTrailBuffer) || 5;
+
+                if (tradeEngineConfig.f7_stagnation && tradeEngineConfig.stagnationEnabled && elapsedMins >= stagLimit && !currentTrade.t1Hit) {
+                    if (tradeEngineConfig.stagnationAction === 'square_off') {
+                        exitTriggered = true;
+                        exitPrice = cClose;
+                        exitReason = `Stagnation Time-Stop Exit (${elapsedMins}m Flat)`;
+                    } else {
+                        // Dynamic 1:1 Trailing with x-value buffer (Point-for-Point)
+                        currentTrade.isStagnationTrailed = true;
+                        const dynamicSl = isBull 
+                            ? Math.round((currentTrade.peakSpot - stagBuffer) * 10) / 10
+                            : Math.round((currentTrade.peakSpot + stagBuffer) * 10) / 10;
+
+                        // Tighten SL point-for-point behind peak spot, never loosen
+                        if (isBull && dynamicSl > currentTrade.currentSl) {
+                            currentTrade.currentSl = dynamicSl;
+                            currentTrade.slType = 'STAGNATION_1TO1_TRAIL';
+                        } else if (!isBull && dynamicSl < currentTrade.currentSl) {
+                            currentTrade.currentSl = dynamicSl;
+                            currentTrade.slType = 'STAGNATION_1TO1_TRAIL';
+                        }
+                    }
+                }
+
+                // F1: Signal Candle SL or Trailed SL (including Stagnation 1:1 Trailed SL)
+                if (!exitTriggered && (tradeEngineConfig.f1_sl || currentTrade.slType === 'STAGNATION_1TO1_TRAIL')) {
                     if ((isBull && cLow <= currentTrade.currentSl) || (!isBull && cHigh >= currentTrade.currentSl)) {
                         exitTriggered = true;
                         exitPrice = currentTrade.currentSl;
-                        exitReason = currentTrade.t2Hit ? 'Trailed SL at T1 Hit (Profit Secured)' : (currentTrade.t1Hit ? 'Trailed SL at Cost Hit (Breakeven Locked)' : 'Signal Candle Base SL Hit');
+                        exitReason = (currentTrade.slType === 'STAGNATION_1TO1_TRAIL')
+                            ? `Stagnation 1:1 Trailed SL Hit (${stagBuffer}pt Buffer)`
+                            : (currentTrade.t2Hit ? 'Trailed SL at T1 Hit (Profit Secured)' : (currentTrade.t1Hit ? 'Trailed SL at Cost Hit (Breakeven Locked)' : 'Signal Candle Base SL Hit'));
                     }
                 }
 
@@ -14790,9 +14907,12 @@
                     currentTrade.exitReason = exitReason;
 
                     candleState = 'STOP_LOSS';
-                    verdictBadgeHtml = currentTrade.t1Hit
-                        ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ TRAILED SL EXIT</span>'
-                        : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🔴 STOPPED OUT</span>';
+                    const isStagnationExit = exitReason && exitReason.includes('Stagnation');
+                    verdictBadgeHtml = isStagnationExit
+                        ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">⏳ STAGNATION EXIT</span>'
+                        : (currentTrade.t1Hit
+                            ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ TRAILED SL EXIT</span>'
+                            : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🔴 STOPPED OUT</span>');
                     diagnosticReason = `${exitReason} at ${exitPrice.toFixed(1)}. Session P&L: ${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts (₹${currentTrade.pnlRupees.toLocaleString('en-IN')}).`;
 
                     sessionTrades.push({ ...currentTrade });
@@ -14824,8 +14944,13 @@
                 if (candleState !== 'TARGET_HIT') {
                     candleState = 'IN_TRADE_HOLD';
                     const distSl = isBull ? (cClose - currentTrade.currentSl) : (currentTrade.currentSl - cClose);
-                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
-                    diagnosticReason = `Holding ${currentTrade.action} ${currentTrade.strike} ${currentTrade.optType} (${currentTrade.openLots}L). Spot: ${cClose.toFixed(1)} (${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts, ₹${currentTrade.pnlRupees.toLocaleString('en-IN')}). SL safe (${distSl.toFixed(1)} pts buffer).`;
+                    if (currentTrade.slType === 'STAGNATION_1TO1_TRAIL') {
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ STAGNATION 1:1 TRAIL</span>';
+                        diagnosticReason = `Stagnant ${elapsedMins}m (>= ${stagLimit}m). Dynamic 1:1 Trailing SL active at ${currentTrade.currentSl.toFixed(1)} (${stagBuffer}pt buffer behind peak ${currentTrade.peakSpot.toFixed(1)}). Buffer: ${distSl.toFixed(1)} pts safe.`;
+                    } else {
+                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
+                        diagnosticReason = `Holding ${currentTrade.action} ${currentTrade.strike} ${currentTrade.optType} (${currentTrade.openLots}L). Spot: ${cClose.toFixed(1)} (${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts, ₹${currentTrade.pnlRupees.toLocaleString('en-IN')}). SL safe (${distSl.toFixed(1)} pts buffer).`;
+                    }
                 }
 
             } else if (i < rawCandles.length - 1) {
@@ -15097,11 +15222,20 @@
             });
             tradePriceLines.push(entryLine);
 
-            // 2. SL Line (Rose)
-            const slLabel = (trade.slType === 'TRAILED_TO_T1') ? `TRAILED SL: ${trade.currentSl} (at T1)` : (trade.t1Hit ? `TRAILED SL: ${trade.currentSl} (Cost Breakeven)` : `SL: ${trade.currentSl} (Signal Low/High)`);
+            // 2. SL Line (Rose / Amber / Green)
+            let slLabel = (trade.slType === 'TRAILED_TO_T1') ? `TRAILED SL: ${trade.currentSl} (at T1)` : (trade.t1Hit ? `TRAILED SL: ${trade.currentSl} (Cost Breakeven)` : `SL: ${trade.currentSl} (Signal Low/High)`);
+            let slColor = '#f43f5e';
+            if (trade.slType === 'STAGNATION_1TO1_TRAIL') {
+                slLabel = `STAGNATION 1:1 SL: ${trade.currentSl} (${tradeEngineConfig.stagnationTrailBuffer || 5}pt buffer)`;
+                slColor = '#f59e0b';
+            } else if (trade.slType === 'TRAILED_TO_T1') {
+                slColor = '#10b981';
+            } else if (trade.t1Hit) {
+                slColor = '#06b6d4';
+            }
             const slLine = wCandleSeries.createPriceLine({
                 price: trade.currentSl,
-                color: '#f43f5e',
+                color: slColor,
                 lineWidth: 2,
                 lineStyle: 2, // Dashed
                 axisLabelVisible: true,
@@ -15523,6 +15657,17 @@
                 summaryBadge.textContent = 'SCANNING MARKET CONDITIONS';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
             }
+            const f7Anchor = document.getElementById('fm-f7-anchor');
+            const f7Dist = document.getElementById('fm-f7-dist');
+            const f7Status = document.getElementById('fm-f7-status');
+            const f7Action = document.getElementById('fm-f7-action');
+            if (f7Anchor) f7Anchor.textContent = `${tradeEngineConfig.stagnationMins || 45}m Limit • 1:1 Trail (${tradeEngineConfig.stagnationTrailBuffer || 5}p)`;
+            if (f7Dist) f7Dist.textContent = 'Elapsed: 0m (45m safe)';
+            if (f7Status) f7Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>`;
+            if (f7Action) {
+                f7Action.textContent = '1:1 TRAIL READY';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
+            }
             return;
         }
 
@@ -15658,6 +15803,43 @@
         if (f6Action) {
             f6Action.textContent = isSell ? 'TIME DECAY BENEFIT' : 'TARGET MOMENTUM';
             f6Action.className = isSell ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-sky-400';
+        }
+
+        // F7: Stagnation / Time-Stop Compression
+        const f7Anchor = document.getElementById('fm-f7-anchor');
+        const f7Dist = document.getElementById('fm-f7-dist');
+        const f7Status = document.getElementById('fm-f7-status');
+        const f7Action = document.getElementById('fm-f7-action');
+
+        const elapsedCandles = activeCandleIndex >= trade.entryIndex ? (activeCandleIndex - trade.entryIndex) : 0;
+        const elapsedMins = elapsedCandles * currentTfMinutes;
+        const stagMins = Number(tradeEngineConfig.stagnationMins) || 45;
+        const stagBuffer = Number(tradeEngineConfig.stagnationTrailBuffer) || 5;
+        const isStagnant = elapsedMins >= stagMins && !trade.t1Hit;
+
+        if (f7Anchor) f7Anchor.textContent = `${stagMins}m Limit (${Math.round(stagMins / currentTfMinutes)}c) • 1:1 Trail (${stagBuffer}p)`;
+        if (f7Dist) {
+            f7Dist.textContent = isStagnant 
+                ? `Stagnant ${elapsedMins}m (>= ${stagMins}m)` 
+                : `Elapsed: ${elapsedMins}m (${Math.max(0, stagMins - elapsedMins)}m safe)`;
+        }
+        if (f7Status) {
+            if (isStagnant) {
+                f7Status.innerHTML = (tradeEngineConfig.stagnationAction === 'square_off')
+                    ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 animate-pulse font-bold">🔴 TIME-STOP</span>`
+                    : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800 font-bold">🟡 1:1 TRAILING</span>`;
+            } else {
+                f7Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 ACTIVE</span>`;
+            }
+        }
+        if (f7Action) {
+            if (isStagnant) {
+                f7Action.textContent = (tradeEngineConfig.stagnationAction === 'square_off') ? 'SQUARE OFF' : `TIGHTEN SL (${trade.currentSl.toFixed(1)})`;
+                f7Action.className = (tradeEngineConfig.stagnationAction === 'square_off') ? 'py-1.5 px-1.5 text-right font-bold text-rose-400' : 'py-1.5 px-1.5 text-right font-bold text-amber-400';
+            } else {
+                f7Action.textContent = 'MOMENTUM OK';
+                f7Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
+            }
         }
 
         // Summary Badge

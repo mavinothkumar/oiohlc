@@ -306,6 +306,28 @@
                 const pnlColor = totalPts >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
                 pnlHtml = `<span class="${pnlColor}">${pnlSign}₹${totalPnlRs.toLocaleString('en-IN')} (${pnlSign}${totalPts} pts)</span>`;
 
+                // Track Peak Spot in Trade
+                currentTrade.peakSpot = currentTrade.peakSpot !== undefined
+                    ? (isBull ? Math.max(currentTrade.peakSpot, cHigh) : Math.min(currentTrade.peakSpot, cLow))
+                    : (isBull ? cHigh : cLow);
+
+                // Stagnation 45m check (9 candles) - Dynamic 1:1 trailing with 5pt buffer
+                const elapsedMins = elapsedCandles * 5;
+                if (elapsedMins >= 45 && !currentTrade.t1Hit) {
+                    currentTrade.isStagnationTrailed = true;
+                    const stagBuffer = 5.0;
+                    const dynamicSl = isBull 
+                        ? Math.round((currentTrade.peakSpot - stagBuffer) * 10) / 10
+                        : Math.round((currentTrade.peakSpot + stagBuffer) * 10) / 10;
+                    if (isBull && dynamicSl > currentTrade.currentSl) {
+                        currentTrade.currentSl = dynamicSl;
+                        currentTrade.slType = 'STAGNATION_1TO1_TRAIL';
+                    } else if (!isBull && dynamicSl < currentTrade.currentSl) {
+                        currentTrade.currentSl = dynamicSl;
+                        currentTrade.slType = 'STAGNATION_1TO1_TRAIL';
+                    }
+                }
+
                 // Target Hits
                 if (!currentTrade.t1Hit && ((isBull && cHigh >= currentTrade.t1) || (!isBull && cLow <= currentTrade.t1))) {
                     currentTrade.t1Hit = true;
@@ -333,18 +355,29 @@
                 } else if ((isBull && cLow <= currentTrade.currentSl) || (!isBull && cHigh >= currentTrade.currentSl)) {
                     // SL Hit
                     candleState = 'EXIT_SL';
-                    verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🔴 STOPPED OUT</span>';
-                    verdictText = 'Stop Loss Triggered';
-                    diagnosticReason = `Price breached SL at ${currentTrade.currentSl.toFixed(1)}. Position closed to preserve capital.`;
+                    const isStagnation = currentTrade.slType === 'STAGNATION_1TO1_TRAIL';
+                    verdictBadge = isStagnation
+                        ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">⏳ STAGNATION EXIT</span>'
+                        : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">🔴 STOPPED OUT</span>';
+                    verdictText = isStagnation ? 'Stagnation Trailed SL Hit' : 'Stop Loss Triggered';
+                    diagnosticReason = isStagnation
+                        ? `Stagnation 1:1 Trailed SL breached at ${currentTrade.currentSl.toFixed(1)} (after 45m without expansion). Risk strictly minimized.`
+                        : `Price breached SL at ${currentTrade.currentSl.toFixed(1)}. Position closed to preserve capital.`;
                     currentTrade.status = currentTrade.t1Hit ? 'PARTIAL_PROFIT_EXIT' : 'STOPPED_OUT';
                     completedTrades.push({ ...currentTrade, pnlRupees: totalPnlRs, pnlPoints: totalPts });
                     currentTrade = null;
                 } else {
                     // Holding
                     candleState = 'HOLDING';
-                    verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
-                    verdictText = 'Holding Position';
-                    diagnosticReason = `Trade active. Distance to SL: ${Math.abs(cClose - currentTrade.currentSl).toFixed(1)} pts safe. Directional flow maintained.`;
+                    if (currentTrade.slType === 'STAGNATION_1TO1_TRAIL') {
+                        verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ STAGNATION 1:1 TRAIL</span>';
+                        verdictText = '1:1 Trailing SL Active';
+                        diagnosticReason = `Trade stagnant for ${elapsedMins}m. SL tightened 1:1 at ${currentTrade.currentSl.toFixed(1)} (5pt buffer behind peak ${currentTrade.peakSpot.toFixed(1)}). Capital protected from sudden gamma expansion.`;
+                    } else {
+                        verdictBadge = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
+                        verdictText = 'Holding Position';
+                        diagnosticReason = `Trade active. Distance to SL: ${Math.abs(cClose - currentTrade.currentSl).toFixed(1)} pts safe. Directional flow maintained.`;
+                    }
                 }
 
             } else {
