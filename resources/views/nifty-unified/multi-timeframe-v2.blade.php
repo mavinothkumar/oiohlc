@@ -642,8 +642,9 @@
                         <!-- Candle & VWAP Telemetry Strip -->
                         <div id="w-candle-telemetry" class="rounded-md bg-[#131722]/90 border border-gray-800/90 px-2 py-1.5 font-mono text-[10px] space-y-1 shrink-0">
                             <div class="flex items-center justify-between gap-1">
-                                <span class="text-gray-400">VWAP <strong id="w-telem-vwap" class="text-fuchsia-300">--</strong></span>
-                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                <span class="text-gray-400 truncate">VWAP <strong id="w-telem-vwap" class="text-fuchsia-300">--</strong> <span class="text-gray-600">|</span> <span id="w-telem-spot-lbl">Spot</span> <strong id="w-telem-spot" class="text-sky-300">--</strong></span>
+                                <span class="flex items-center gap-1 whitespace-nowrap shrink-0">
+                                    <span class="text-gray-400">Diff:</span>
                                     <span id="w-telem-vwap-dist" class="font-bold text-gray-300">--</span>
                                     <span id="w-telem-vwap-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">EXT</span>
                                 </span>
@@ -1041,8 +1042,9 @@
                         <!-- Candle & VWAP Telemetry Strip (Chart 2) -->
                         <div id="o-candle-telemetry" class="rounded-md bg-[#131722]/90 border border-gray-800/90 px-2 py-1.5 font-mono text-[10px] space-y-1 shrink-0">
                             <div class="flex items-center justify-between gap-1">
-                                <span class="text-gray-400">VWAP <strong id="o-telem-vwap" class="text-fuchsia-300">--</strong></span>
-                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                <span class="text-gray-400 truncate">VWAP <strong id="o-telem-vwap" class="text-fuchsia-300">--</strong> <span class="text-gray-600">|</span> <span id="o-telem-spot-lbl">Spot</span> <strong id="o-telem-spot" class="text-sky-300">--</strong></span>
+                                <span class="flex items-center gap-1 whitespace-nowrap shrink-0">
+                                    <span class="text-gray-400">Diff:</span>
                                     <span id="o-telem-vwap-dist" class="font-bold text-gray-300">--</span>
                                     <span id="o-telem-vwap-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">EXT</span>
                                 </span>
@@ -13002,6 +13004,8 @@
     function updateCockpitTelemetry(prefix, candles, candle) {
         if (!candle) return;
         const vwapEl = document.getElementById(`${prefix}-telem-vwap`);
+        const spotLblEl = document.getElementById(`${prefix}-telem-spot-lbl`);
+        const spotEl = document.getElementById(`${prefix}-telem-spot`);
         const distEl = document.getElementById(`${prefix}-telem-vwap-dist`);
         const badgeEl = document.getElementById(`${prefix}-telem-vwap-badge`);
         const highEl = document.getElementById(`${prefix}-telem-high`);
@@ -13014,6 +13018,10 @@
         const c = Number(candle.close || 0);
         const v = Number(candle.volume || 0);
         const rng = Math.max(0, h - l);
+
+        const isFutBasis = (prefix === 'w' ? (typeof wChartBasis !== 'undefined' && wChartBasis === 'future') : (typeof oChartBasis !== 'undefined' && oChartBasis === 'future'));
+        if (spotLblEl) spotLblEl.textContent = isFutBasis ? 'Fut' : 'Spot';
+        if (spotEl) spotEl.textContent = c.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
         if (highEl) highEl.textContent = h.toFixed(1);
         if (lowEl) lowEl.textContent = l.toFixed(1);
