@@ -498,9 +498,12 @@ class AutoTradingV2Engine
                             ? ($oiSnap !== null && (!empty($oiSnap['isBullCrossover']) || !empty($oiSnap['isCallUnwinding'])))
                             : ($oiSnap !== null && (!empty($oiSnap['isBearCrossover']) || !empty($oiSnap['isPutUnwinding'])));
 
-                        $flowCont = ($armDir === 'BULL')
+                        $stkMin70 = ($armDir === 'BULL')
+                            ? ($stkBullWt >= 70.0 || $stkBullCount >= 70.0)
+                            : ($stkBearWt >= 70.0 || $stkBearCount >= 70.0);
+                        $flowCont = $stkMin70 && (($armDir === 'BULL')
                             ? (($stkBullWt >= $contFloor || $optUpWt >= ($contFloor + 5.0)) && !$sBear)
-                            : (($stkBearWt >= $contFloor || $optDownWt >= ($contFloor + 5.0)) && !$sBull);
+                            : (($stkBearWt >= $contFloor || $optDownWt >= ($contFloor + 5.0)) && !$sBull));
 
                         $vwapOk = empty($config['vwapFilterEnabled'])
                             ? true

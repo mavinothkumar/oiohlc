@@ -15936,8 +15936,9 @@
             }
         }
 
-        // Require at least meaningful stock impulse (>= 70%) OR exact stock threshold so pure side-factors can't fire on 50% flat market
-        const hasImpulse = (stkVal >= 70) || stkExactTrigger;
+        // Mandatory Nifty 50 Stock gate: min 70% in either Weight OR Stock Count (or exact stock threshold)
+        const stkMaxSide = isBull ? Math.max(stkBullCount, stkBullWt) : Math.max(stkBearCount, stkBearWt);
+        const hasImpulse = (stkMaxSide >= 70) || stkExactTrigger;
         const meetsScore = hasImpulse && (totalScore >= effectiveThreshold);
 
         return {
@@ -16496,9 +16497,12 @@
                     const oiTrig = (armDir === 'BULL')
                         ? (oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
                         : (oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
-                    const flowCont = (armDir === 'BULL')
+                    const stkMin70 = (armDir === 'BULL')
+                        ? (stkBullWt >= 70 || stkBullCount >= 70)
+                        : (stkBearWt >= 70 || stkBearCount >= 70);
+                    const flowCont = stkMin70 && ((armDir === 'BULL')
                         ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && stkBearWt < sDownTh)
-                        : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && stkBullWt < sUpTh);
+                        : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && stkBullWt < sUpTh));
                     const vwapOk = (tradeEngineConfig.entry_f9_vwap === false)
                         ? true
                         : ((armDir === 'BULL' && cClose >= curVwap) || (armDir === 'BEAR' && cClose <= curVwap));
@@ -17813,9 +17817,12 @@
                 const oiReady = (armDir === 'BULL')
                     ? !!(oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
                     : !!(oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
-                const flowReady = (armDir === 'BULL')
+                const stkMin70 = (armDir === 'BULL')
+                    ? (stkBullWt >= 70 || stkBullCount >= 70)
+                    : (stkBearWt >= 70 || stkBearCount >= 70);
+                const flowReady = stkMin70 && ((armDir === 'BULL')
                     ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && !armSBear)
-                    : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !armSBull);
+                    : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !armSBull));
                 const vwapReady = (tradeEngineConfig.entry_f9_vwap === false)
                     ? true
                     : ((armDir === 'BULL' && cCloseVal >= (vwapVal || cCloseVal)) || (armDir === 'BEAR' && cCloseVal <= (vwapVal || cCloseVal)));
@@ -17849,7 +17856,7 @@
                 }
                 if (gatesEl) {
                     const pill = (lbl, ok) => `<span class="${ok ? 'text-emerald-300' : 'text-gray-400'}">${ok ? '✓' : '⏳'} ${lbl}</span>`;
-                    gatesEl.innerHTML = `${pill(`Flow ≥${contFloor}%`, flowReady)} • ${pill('VWAP Aligned', vwapReady)} • ${pill('OI Cross/Unwind', oiReady)}`;
+                    gatesEl.innerHTML = `${pill('Stk ≥70% (W|C)', stkMin70)} • ${pill(`Flow ≥${contFloor}%`, flowReady)} • ${pill('VWAP Aligned', vwapReady)} • ${pill('OI Cross/Unwind', oiReady)}`;
                 }
                 if (actEl) {
                     if (!driftOk) {
