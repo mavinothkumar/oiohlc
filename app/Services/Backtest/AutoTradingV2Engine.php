@@ -47,6 +47,7 @@ class AutoTradingV2Engine
             'armedLookbackBars'     => 4,
             'maxArmedDriftPts'      => 80.0,
             'armedContMinPct'       => 60.0,
+            'minStkImpulsePct'      => 70.0,
             'stagnationEnabled'     => true,
             'stagnationMins'        => 45,
             'stagnationAction'      => 'trail_1to1', // trail_1to1 or square_off
@@ -498,9 +499,10 @@ class AutoTradingV2Engine
                             ? ($oiSnap !== null && (!empty($oiSnap['isBullCrossover']) || !empty($oiSnap['isCallUnwinding'])))
                             : ($oiSnap !== null && (!empty($oiSnap['isBearCrossover']) || !empty($oiSnap['isPutUnwinding'])));
 
+                        $minStkReq = (float)($config['minStkImpulsePct'] ?? 70.0);
                         $stkMin70 = ($armDir === 'BULL')
-                            ? ($stkBullWt >= 70.0 || $stkBullCount >= 70.0)
-                            : ($stkBearWt >= 70.0 || $stkBearCount >= 70.0);
+                            ? ($stkBullWt >= $minStkReq || $stkBullCount >= $minStkReq)
+                            : ($stkBearWt >= $minStkReq || $stkBearCount >= $minStkReq);
                         $flowCont = $stkMin70 && (($armDir === 'BULL')
                             ? (($stkBullWt >= $contFloor || $optUpWt >= ($contFloor + 5.0)) && !$sBear)
                             : (($stkBearWt >= $contFloor || $optDownWt >= ($contFloor + 5.0)) && !$sBull));

@@ -3271,7 +3271,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-mono mt-1.5 pt-1.5 border-t border-gray-800/70">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-mono mt-1.5 pt-1.5 border-t border-gray-800/70">
                     <div>
                         <span class="text-gray-400 text-[9.5px]">Impulse Lookback:</span>
                         <select id="trade-cfg-armed-lookback" onchange="updateTradeConfig('armedLookbackBars', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
@@ -3298,6 +3298,17 @@
                             <option value="60" selected>≥ 60% Flow</option>
                             <option value="65">≥ 65% Flow</option>
                             <option value="70">≥ 70% Flow</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Min Stk (W|C):</span>
+                        <select id="trade-cfg-min-stk-pct" onchange="updateTradeConfig('minStkImpulsePct', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="60">≥ 60% Stk</option>
+                            <option value="65">≥ 65% Stk</option>
+                            <option value="70" selected>≥ 70% Stk</option>
+                            <option value="75">≥ 75% Stk</option>
+                            <option value="80">≥ 80% Stk</option>
+                            <option value="85">≥ 85% Stk</option>
                         </select>
                     </div>
                 </div>
@@ -15412,6 +15423,7 @@
         armedLookbackBars: 4,  // Lookback bars (5m) for recently blocked STK/OPT impulse
         maxArmedDriftPts: 80,  // Max price drift (pts) from missed impulse to allow delayed OI Crossover/Unwind
         armedContMinPct: 60,   // Min continuation STK% (or OPT% = +5%) on delayed confirmation bar
+        minStkImpulsePct: 70,  // Mandatory min Nifty 50 Stock % in either Weight OR Stock Count
         stagnationEnabled: true,
         stagnationMins: 45,
         stagnationAction: 'trail_1to1', // 'trail_1to1' | 'square_off'
@@ -15509,6 +15521,10 @@
         const armedContSel = document.getElementById('trade-cfg-armed-cont');
         if (armedContSel && tradeEngineConfig.armedContMinPct !== undefined) {
             armedContSel.value = String(tradeEngineConfig.armedContMinPct);
+        }
+        const minStkSel = document.getElementById('trade-cfg-min-stk-pct');
+        if (minStkSel && tradeEngineConfig.minStkImpulsePct !== undefined) {
+            minStkSel.value = String(tradeEngineConfig.minStkImpulsePct);
         }
 
         const stagEnEl = document.getElementById('trade-cfg-stagnation-enabled');
@@ -15936,9 +15952,10 @@
             }
         }
 
-        // Mandatory Nifty 50 Stock gate: min 70% in either Weight OR Stock Count (or exact stock threshold)
+        // Mandatory Nifty 50 Stock gate: min % in either Weight OR Stock Count (or exact stock threshold)
+        const minStkReq = Number(tradeEngineConfig.minStkImpulsePct) || 70;
         const stkMaxSide = isBull ? Math.max(stkBullCount, stkBullWt) : Math.max(stkBearCount, stkBearWt);
-        const hasImpulse = (stkMaxSide >= 70) || stkExactTrigger;
+        const hasImpulse = (stkMaxSide >= minStkReq) || stkExactTrigger;
         const meetsScore = hasImpulse && (totalScore >= effectiveThreshold);
 
         return {
@@ -16497,9 +16514,10 @@
                     const oiTrig = (armDir === 'BULL')
                         ? (oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
                         : (oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
+                    const minStkReq = Number(tradeEngineConfig.minStkImpulsePct) || 70;
                     const stkMin70 = (armDir === 'BULL')
-                        ? (stkBullWt >= 70 || stkBullCount >= 70)
-                        : (stkBearWt >= 70 || stkBearCount >= 70);
+                        ? (stkBullWt >= minStkReq || stkBullCount >= minStkReq)
+                        : (stkBearWt >= minStkReq || stkBearCount >= minStkReq);
                     const flowCont = stkMin70 && ((armDir === 'BULL')
                         ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && stkBearWt < sDownTh)
                         : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && stkBullWt < sUpTh));
@@ -17817,9 +17835,10 @@
                 const oiReady = (armDir === 'BULL')
                     ? !!(oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
                     : !!(oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
+                const minStkReq = Number(tradeEngineConfig.minStkImpulsePct) || 70;
                 const stkMin70 = (armDir === 'BULL')
-                    ? (stkBullWt >= 70 || stkBullCount >= 70)
-                    : (stkBearWt >= 70 || stkBearCount >= 70);
+                    ? (stkBullWt >= minStkReq || stkBullCount >= minStkReq)
+                    : (stkBearWt >= minStkReq || stkBearCount >= minStkReq);
                 const flowReady = stkMin70 && ((armDir === 'BULL')
                     ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && !armSBear)
                     : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !armSBull));
@@ -17856,7 +17875,7 @@
                 }
                 if (gatesEl) {
                     const pill = (lbl, ok) => `<span class="${ok ? 'text-emerald-300' : 'text-gray-400'}">${ok ? '✓' : '⏳'} ${lbl}</span>`;
-                    gatesEl.innerHTML = `${pill('Stk ≥70% (W|C)', stkMin70)} • ${pill(`Flow ≥${contFloor}%`, flowReady)} • ${pill('VWAP Aligned', vwapReady)} • ${pill('OI Cross/Unwind', oiReady)}`;
+                    gatesEl.innerHTML = `${pill(`Stk ≥${minStkReq}% (W|C)`, stkMin70)} • ${pill(`Flow ≥${contFloor}%`, flowReady)} • ${pill('VWAP Aligned', vwapReady)} • ${pill('OI Cross/Unwind', oiReady)}`;
                 }
                 if (actEl) {
                     if (!driftOk) {

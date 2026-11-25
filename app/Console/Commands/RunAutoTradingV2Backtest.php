@@ -30,7 +30,8 @@ class RunAutoTradingV2Backtest extends Command
                             {--oi-unwind-pct=3 : Min OI % drop over 1-3 bars for Unwinding Squeeze}
                             {--armed-lookback=4 : Lookback bars (5m) for recently blocked impulse}
                             {--max-armed-drift=80 : Max price drift (pts) from missed impulse (0 to disable)}
-                            {--armed-cont-pct=60 : Min continuation STK% on delayed OI confirmation}';
+                            {--armed-cont-pct=60 : Min continuation STK% on delayed OI confirmation}
+                            {--min-stk-pct=70 : Mandatory min Nifty 50 Stock % (weight or count)}';
 
     /**
      * The console command description.
@@ -101,6 +102,7 @@ class RunAutoTradingV2Backtest extends Command
             'armedLookbackBars' => (int)$this->option('armed-lookback'),
             'maxArmedDriftPts'  => (float)$this->option('max-armed-drift'),
             'armedContMinPct'   => (float)$this->option('armed-cont-pct'),
+            'minStkImpulsePct'  => (float)$this->option('min-stk-pct'),
         ];
 
         $progressBar = $this->output->createProgressBar($totalDays);

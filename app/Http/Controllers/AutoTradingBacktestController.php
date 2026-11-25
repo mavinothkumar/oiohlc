@@ -295,6 +295,7 @@ class AutoTradingBacktestController extends Controller
             'armedLookbackBars' => (int)$request->input('armedLookbackBars', 4),
             'maxArmedDriftPts'  => (float)$request->input('maxArmedDriftPts', 80.0),
             'armedContMinPct'   => (float)$request->input('armedContMinPct', 60.0),
+            'minStkImpulsePct'  => (float)$request->input('minStkImpulsePct', 70.0),
         ];
 
         $results = $this->engine->runDays($dates, $customConfig);
