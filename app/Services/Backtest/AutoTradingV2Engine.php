@@ -43,6 +43,10 @@ class AutoTradingV2Engine
             'oiFilterEnabled'       => true,
             'oiVetoThreshold'       => 25.0,
             'oiSqueezeThreshold'    => 15.0,
+            'oiUnwindDropPct'       => 3.0,
+            'armedLookbackBars'     => 4,
+            'maxArmedDriftPts'      => 80.0,
+            'armedContMinPct'       => 60.0,
             'stagnationEnabled'     => true,
             'stagnationMins'        => 45,
             'stagnationAction'      => 'trail_1to1', // trail_1to1 or square_off
@@ -54,6 +58,10 @@ class AutoTradingV2Engine
             't2Rr'                  => 2.2,
             't3Rr'                  => 3.2,
             'vwapFilterEnabled'     => true,
+            'vwapDistMode'          => 'points', // points, pct, sigma
+            'vwapMaxUpperDist'      => 165.0,    // P90 upper bound (pts, %, or sigma; <= 0 disables)
+            'vwapMaxLowerDist'      => 170.0,    // P90 lower bound (pts, %, or sigma; <= 0 disables)
+            'vwapMinDist'           => 0.0,      // Optional min distance from VWAP (<= 0 disables)
         ], $customConfig);
 
         $totalDays = count($dates);
@@ -163,11 +171,44 @@ class AutoTradingV2Engine
                         $dVal = (float)($diffOi[$lIdx] ?? 0);
                         $tot = $cVal + $pVal;
                         $diffPct = $tot > 0 ? (($pVal - $cVal) / $tot) * 100 : 0;
+
+                        $prevPePeak = $pVal;
+                        $prevCePeak = $cVal;
+                        for ($lb = 1; $lb <= 3; $lb++) {
+                            if ($lIdx - $lb >= 0) {
+                                $pPe = (float)($putOi[$lIdx - $lb] ?? $pVal);
+                                $pCe = (float)($callOi[$lIdx - $lb] ?? $cVal);
+                                if ($pPe > $prevPePeak) $prevPePeak = $pPe;
+                                if ($pCe > $prevCePeak) $prevCePeak = $pCe;
+                            }
+                        }
+                        $pePrev1 = ($lIdx - 1 >= 0) ? (float)($putOi[$lIdx - 1] ?? $pVal) : $pVal;
+                        $cePrev1 = ($lIdx - 1 >= 0) ? (float)($callOi[$lIdx - 1] ?? $cVal) : $cVal;
+
+                        $peDelta = $pVal - $prevPePeak;
+                        $ceDelta = $cVal - $prevCePeak;
+                        $peDropPct = $prevPePeak > 0 ? (($peDelta / $prevPePeak) * 100.0) : 0.0;
+                        $ceDropPct = $prevCePeak > 0 ? (($ceDelta / $prevCePeak) * 100.0) : 0.0;
+
+                        $unwindDropPct = (float)($config['oiUnwindDropPct'] ?? 3.0);
+                        $isPutUnwinding = ($peDelta < 0 && ($pVal - $pePrev1) < 0 && ($peDropPct <= -$unwindDropPct || $peDelta <= -500000));
+                        $isCallUnwinding = ($ceDelta < 0 && ($cVal - $cePrev1) < 0 && ($ceDropPct <= -$unwindDropPct || $ceDelta <= -500000));
+
+                        $prevDiff1 = $pePrev1 - $cePrev1;
+                        $isBearCrossover = ($lIdx > 0 && $dVal < 0 && $prevDiff1 >= 0 && ($cVal - $cePrev1) > 0 && ($pVal - $pePrev1) < 0);
+                        $isBullCrossover = ($lIdx > 0 && $dVal > 0 && $prevDiff1 <= 0 && ($pVal - $pePrev1) > 0 && ($cVal - $cePrev1) < 0);
+
                         $trendingOiSnapshots[$lTime] = [
-                            'diffPct' => round($diffPct, 1),
-                            'callOi'  => $cVal,
-                            'putOi'   => $pVal,
-                            'diffOi'  => $dVal,
+                            'diffPct'         => round($diffPct, 1),
+                            'callOi'          => $cVal,
+                            'putOi'           => $pVal,
+                            'diffOi'          => $dVal,
+                            'peDropPct'       => round($peDropPct, 1),
+                            'ceDropPct'       => round($ceDropPct, 1),
+                            'isPutUnwinding'  => $isPutUnwinding,
+                            'isCallUnwinding' => $isCallUnwinding,
+                            'isBearCrossover' => $isBearCrossover,
+                            'isBullCrossover' => $isBullCrossover,
                         ];
                     }
                 }
@@ -181,6 +222,7 @@ class AutoTradingV2Engine
         $sessionTrades = [];
         $activeTrades = [];
         $executedSignalsCount = 0;
+        $armedImpulse = null;
         $maxSignalsPerDay = (int)($config['maxSignalsPerDay'] ?? 2);
         $telemetryLogs = [];
 
@@ -202,6 +244,7 @@ class AutoTradingV2Engine
         $niftyLow = 999999;
         $niftyClose = null;
         $cumTpVol = 0.0;
+        $cumTp2Vol = 0.0;
         $cumVol = 0.0;
 
         $count = count($rawCandles);
@@ -213,12 +256,14 @@ class AutoTradingV2Engine
             $cLow = (float)$candle['low'];
             $cClose = (float)$candle['close'];
 
-            // Cumulative Intraday VWAP calculation
+            // Cumulative Intraday VWAP & StdDev calculation
             $cVol = (isset($candle['volume']) && (float)$candle['volume'] > 0) ? (float)$candle['volume'] : 1.0;
             $cTp = ($cHigh + $cLow + $cClose) / 3.0;
             $cumTpVol += ($cTp * $cVol);
+            $cumTp2Vol += ($cTp * $cTp) * $cVol;
             $cumVol += $cVol;
             $curVwap = $cumVol > 0 ? ($cumTpVol / $cumVol) : $cClose;
+            $curVwapSigma = $cumVol > 0 ? sqrt(max(($cumTp2Vol / $cumVol) - ($curVwap * $curVwap), 0.0)) : 0.0;
 
             if ($i === 0) $niftyOpen = $cOpen;
             $niftyHigh = max($niftyHigh, $cHigh);
@@ -433,16 +478,55 @@ class AutoTradingV2Engine
 
                     $triggeredDirection = null;
                     $isConf = false;
+                    $delayedSqueezeInfo = null;
 
                     if ($sBull && $oBull) { $triggeredDirection = 'BULL'; $isConf = true; }
                     elseif ($sBear && $oBear) { $triggeredDirection = 'BEAR'; $isConf = true; }
                     elseif ($sBull && !$oBear) { $triggeredDirection = 'BULL'; $isConf = false; }
                     elseif ($sBear && !$oBull) { $triggeredDirection = 'BEAR'; $isConf = false; }
 
+                    $lookbackBars = (int)($config['armedLookbackBars'] ?? 4);
+                    $maxDriftPts = (float)($config['maxArmedDriftPts'] ?? 80.0);
+                    $contFloor = (float)($config['armedContMinPct'] ?? 60.0);
+
+                    if ($triggeredDirection === null && $armedImpulse !== null && ($i - $armedImpulse['index']) >= 1 && ($i - $armedImpulse['index']) <= $lookbackBars) {
+                        $armDir = $armedImpulse['direction'];
+                        $driftPts = abs($cClose - $armedImpulse['close']);
+                        $driftOk = ($maxDriftPts <= 0 || $driftPts <= $maxDriftPts);
+
+                        $oiTrig = ($armDir === 'BULL')
+                            ? ($oiSnap !== null && (!empty($oiSnap['isBullCrossover']) || !empty($oiSnap['isCallUnwinding'])))
+                            : ($oiSnap !== null && (!empty($oiSnap['isBearCrossover']) || !empty($oiSnap['isPutUnwinding'])));
+
+                        $flowCont = ($armDir === 'BULL')
+                            ? (($stkBullWt >= $contFloor || $optUpWt >= ($contFloor + 5.0)) && !$sBear)
+                            : (($stkBearWt >= $contFloor || $optDownWt >= ($contFloor + 5.0)) && !$sBull);
+
+                        $vwapOk = empty($config['vwapFilterEnabled'])
+                            ? true
+                            : (($armDir === 'BULL' && $cClose >= $curVwap) || ($armDir === 'BEAR' && $cClose <= $curVwap));
+
+                        if ($driftOk && $oiTrig && $flowCont && $vwapOk) {
+                            $triggeredDirection = $armDir;
+                            $isCross = ($armDir === 'BULL') ? !empty($oiSnap['isBullCrossover']) : !empty($oiSnap['isBearCrossover']);
+                            $delayedSqueezeInfo = [
+                                'isCrossover' => $isCross,
+                                'armedTime'   => $armedImpulse['time'],
+                                'armedPeak'   => $armedImpulse['peakLabel'],
+                                'driftPts'    => $driftPts,
+                            ];
+                        }
+                    }
+
                     if ($triggeredDirection !== null) {
                         $setupType = 'STANDARD';
                         $setupBadge = '🎯 STANDARD';
                         $setupReason = 'Breadth confirmation trigger';
+                        if ($delayedSqueezeInfo !== null) {
+                            $setupType = 'SQUEEZE_BREAKOUT';
+                            $setupBadge = $delayedSqueezeInfo['isCrossover'] ? '🔥 PRIORITY OI CROSSOVER' : '🚀 DELAYED SQUEEZE';
+                            $setupReason = "Armed {$delayedSqueezeInfo['armedTime']} ({$delayedSqueezeInfo['armedPeak']}) ➔ OI Confirmed (Drift " . round($delayedSqueezeInfo['driftPts'], 1) . "p)";
+                        }
                         $isVetoed = false;
                         $vetoReason = '';
 
@@ -459,10 +543,17 @@ class AutoTradingV2Engine
                             $sqzTh = (float)($config['oiSqueezeThreshold'] ?? 15.0);
 
                             if (!empty($config['oiFilterEnabled']) && $oiSnap !== null) {
+                                $isPutUnwind = !empty($oiSnap['isPutUnwinding']);
+                                $isCallUnwind = !empty($oiSnap['isCallUnwinding']);
+
                                 if ($triggeredDirection === 'BULL') {
-                                    if ($oiDiffPct <= -$vetoTh) {
+                                    if ($oiDiffPct <= -$vetoTh && !$isCallUnwind) {
                                         $isVetoed = true;
                                         $vetoReason = "Blocked by " . abs($oiDiffPct) . "% Call Writing Wall";
+                                    } elseif ($isCallUnwind) {
+                                        $setupType = 'SQUEEZE_BREAKOUT';
+                                        $setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        $setupReason = "Call OI Unwinding ({$oiSnap['ceDropPct']}%) ➔ Short-Covering Squeeze";
                                     } elseif (abs($oiDiffPct) <= $sqzTh) {
                                         $setupType = 'SQUEEZE_BREAKOUT';
                                         $setupBadge = '🚀 SQUEEZE BREAKOUT';
@@ -473,9 +564,13 @@ class AutoTradingV2Engine
                                         $setupReason = "Breadth + Put Support Floor (+{$oiDiffPct}%) Aligned";
                                     }
                                 } else {
-                                    if ($oiDiffPct >= $vetoTh) {
+                                    if ($oiDiffPct >= $vetoTh && !$isPutUnwind) {
                                         $isVetoed = true;
                                         $vetoReason = "Blocked by +{$oiDiffPct}% Put Writing Floor";
+                                    } elseif ($isPutUnwind) {
+                                        $setupType = 'SQUEEZE_BREAKOUT';
+                                        $setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        $setupReason = "Put OI Unwinding ({$oiSnap['peDropPct']}%) ➔ Breakdown Squeeze";
                                     } elseif (abs($oiDiffPct) <= $sqzTh) {
                                         $setupType = 'SQUEEZE_BREAKOUT';
                                         $setupBadge = '🚀 SQUEEZE BREAKOUT';
@@ -488,14 +583,40 @@ class AutoTradingV2Engine
                                 }
                             }
 
-                            // VWAP Trend Alignment Filter (Factor 9)
+                            // VWAP Trend Alignment & Distance Bounds Filter (Factor 9)
                             if (!$isVetoed && !empty($config['vwapFilterEnabled'])) {
+                                $vwapMode = $config['vwapDistMode'] ?? 'points';
+                                $maxUpper = (float)($config['vwapMaxUpperDist'] ?? 0.0);
+                                $maxLower = (float)($config['vwapMaxLowerDist'] ?? 0.0);
+                                $minDist  = (float)($config['vwapMinDist'] ?? 0.0);
+
+                                $rawDist = $cClose - $curVwap;
+                                if ($vwapMode === 'pct') {
+                                    $signedDist = $curVwap > 0 ? ($rawDist / $curVwap) * 100.0 : 0.0;
+                                    $unit = '%';
+                                } elseif ($vwapMode === 'sigma') {
+                                    $signedDist = $curVwapSigma > 0 ? ($rawDist / $curVwapSigma) : 0.0;
+                                    $unit = 'σ';
+                                } else {
+                                    $signedDist = $rawDist;
+                                    $unit = ' pts';
+                                }
+
                                 if ($triggeredDirection === 'BULL' && $cClose < $curVwap) {
                                     $isVetoed = true;
                                     $vetoReason = "Spot price (" . number_format($cClose, 1) . ") is BELOW VWAP (" . number_format($curVwap, 1) . ")";
                                 } elseif ($triggeredDirection === 'BEAR' && $cClose > $curVwap) {
                                     $isVetoed = true;
                                     $vetoReason = "Spot price (" . number_format($cClose, 1) . ") is ABOVE VWAP (" . number_format($curVwap, 1) . ")";
+                                } elseif ($triggeredDirection === 'BULL' && $maxUpper > 0 && $signedDist > $maxUpper) {
+                                    $isVetoed = true;
+                                    $vetoReason = "Overextended ABOVE VWAP (+" . number_format($signedDist, 2) . "{$unit} > max {$maxUpper}{$unit})";
+                                } elseif ($triggeredDirection === 'BEAR' && $maxLower > 0 && (-$signedDist) > $maxLower) {
+                                    $isVetoed = true;
+                                    $vetoReason = "Overextended BELOW VWAP (-" . number_format(-$signedDist, 2) . "{$unit} > max {$maxLower}{$unit})";
+                                } elseif ($minDist > 0 && abs($signedDist) < $minDist) {
+                                    $isVetoed = true;
+                                    $vetoReason = "Too close to VWAP (" . number_format(abs($signedDist), 2) . "{$unit} < min {$minDist}{$unit})";
                                 }
                             }
 
@@ -503,6 +624,13 @@ class AutoTradingV2Engine
                                 $candleState = 'VETOED';
                                 $verdictBadge = '⛔ VETOED TRAP';
                                 $diagnosticReason = "⛔ {$triggeredDirection} impulse formed, but VETOED by {$vetoReason}. Capital protected from false breakout trap!";
+                                $armedImpulse = [
+                                    'index'     => $i,
+                                    'time'      => $tStr,
+                                    'direction' => $triggeredDirection,
+                                    'close'     => $cClose,
+                                    'peakLabel' => 'STK ' . round($triggeredDirection === 'BULL' ? $stkBullWt : $stkBearWt) . '%',
+                                ];
                             } else {
                                 // Breakout Confirmation Trigger Check on candle (i + 1)
                                 $nextCandle = $rawCandles[$i + 1];
@@ -531,6 +659,7 @@ class AutoTradingV2Engine
                                     $diagnosticReason = "⚠️ {$triggeredDirection} signal formed at {$tStr}, but next candle did not break signal candle's " . ($triggeredDirection === 'BULL' ? "High ({$cHigh})" : "Low ({$cLow})") . ". Entry skipped to avoid false reversal.";
                                 } else {
                                     $executedSignalsCount++;
+                                    $armedImpulse = null;
 
                                     $atmStrike = round($entrySpot / 100) * 100;
                                     $baseSl = ($triggeredDirection === 'BULL') ? $cLow : $cHigh;

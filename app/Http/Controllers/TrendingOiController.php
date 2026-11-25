@@ -14,12 +14,41 @@ use Illuminate\Support\Facades\Artisan;
 class TrendingOiController extends Controller
 {
     /**
+     * Resolve the database table for a given date & symbol, falling back between
+     * live `option_chains` and archived `option_chains_history`.
+     */
+    private function resolveOptionChainTableForDate(string $date, string $symbol = 'NIFTY'): string
+    {
+        $isToday = ($date === today()->toDateString());
+        $primary = $isToday ? 'option_chains' : 'option_chains_history';
+        $fallback = $isToday ? 'option_chains_history' : 'option_chains';
+
+        $hasPrimary = Schema::hasTable($primary) && DB::table($primary)
+            ->where('trading_symbol', $symbol)
+            ->where('captured_at', '>=', "{$date} 09:00:00")
+            ->where('captured_at', '<=', "{$date} 15:35:00")
+            ->exists();
+
+        if ($hasPrimary) {
+            return $primary;
+        }
+
+        $hasFallback = Schema::hasTable($fallback) && DB::table($fallback)
+            ->where('trading_symbol', $symbol)
+            ->where('captured_at', '>=', "{$date} 09:00:00")
+            ->where('captured_at', '<=', "{$date} 15:35:00")
+            ->exists();
+
+        return $hasFallback ? $fallback : $primary;
+    }
+
+    /**
      * Resolve the database table name based on mode.
      */
     private function resolveTable(string $mode, ?string $date = null): string
     {
-        if ($date !== null && $date !== today()->toDateString()) {
-            return 'option_chains_history';
+        if ($date !== null) {
+            return $this->resolveOptionChainTableForDate($date);
         }
         if ($mode === 'history') {
             return 'option_chains_history';
@@ -98,26 +127,7 @@ class TrendingOiController extends Controller
         }
 
         $isToday = ($date === today()->toDateString());
-        $table = $isToday ? 'option_chains' : 'option_chains_history';
-
-        // Auto fallback: if past date is not yet archived and still in option_chains, query option_chains
-        if ($table === 'option_chains_history') {
-            $hasInHistory = DB::table('option_chains_history')
-                ->where('trading_symbol', $targetSymbol)
-                ->where('captured_at', '>=', "{$date} 09:00:00")
-                ->where('captured_at', '<=', "{$date} 15:35:00")
-                ->exists();
-            if (!$hasInHistory) {
-                $hasInLive = DB::table('option_chains')
-                    ->where('trading_symbol', $targetSymbol)
-                    ->where('captured_at', '>=', "{$date} 09:00:00")
-                    ->where('captured_at', '<=', "{$date} 15:35:00")
-                    ->exists();
-                if ($hasInLive) {
-                    $table = 'option_chains';
-                }
-            }
-        }
+        $table = $this->resolveOptionChainTableForDate($date, $targetSymbol);
 
         $indexHint = $this->getOptimalIndexHint($table);
         $endTime = $request->input('end_time');
@@ -129,7 +139,7 @@ class TrendingOiController extends Controller
         $isMarketHours = ($isToday && $isWeekday && $curTimeStr >= '09:15' && $curTimeStr <= '15:30');
         $cacheTtl = $isToday ? ($isMarketHours ? 15 : 30) : 86400;
 
-        $cacheKey = "trending_oi_data_{$date}_{$expiry}_{$interval}_{$mode}_" . md5(json_encode($request->all()));
+        $cacheKey = "trending_oi_data_{$date}_{$expiry}_{$interval}_{$mode}_{$table}_" . md5(json_encode($request->all()));
         if ($request->boolean('refresh')) {
             Cache::store('file')->forget($cacheKey);
         }
@@ -1153,7 +1163,7 @@ class TrendingOiController extends Controller
 
         // Fallback: Check table using indexed captured_at range
         if ($expiries->isEmpty()) {
-            $table = $isToday ? 'option_chains' : 'option_chains_history';
+            $table = $this->resolveOptionChainTableForDate($date, $targetSymbol);
             if (Schema::hasTable($table)) {
                 $optHint = $this->getOptimalIndexHint($table);
                 $expiries = DB::table(DB::raw("{$table}{$optHint}"))
@@ -1194,7 +1204,8 @@ class TrendingOiController extends Controller
         $underlying = $request->input('underlying', 'NSE_INDEX|Nifty 50');
         $isToday    = ($date === today()->toDateString());
 
-        $table = $isToday ? 'option_chains' : 'option_chains_history';
+        $targetSymbol = ($request->input('symbol') === 'BANKNIFTY' || str_contains($underlying, 'Bank') || str_contains($underlying, 'BANK')) ? 'BANKNIFTY' : 'NIFTY';
+        $table = $this->resolveOptionChainTableForDate($date, $targetSymbol);
         $optHint = $this->getOptimalIndexHint($table);
 
         $strikes = DB::table(DB::raw("{$table}{$optHint}"))

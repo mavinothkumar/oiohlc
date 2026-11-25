@@ -22,7 +22,15 @@ class RunAutoTradingV2Backtest extends Command
                             {--all : Process all available trading days in the database}
                             {--fresh : Clear previous backtest tables before running}
                             {--start-time=09:35 : Earliest trade scan time}
-                            {--end-time=14:45 : Latest trade entry time}';
+                            {--end-time=14:45 : Latest trade entry time}
+                            {--vwap-mode=points : VWAP distance mode (points, pct, sigma)}
+                            {--vwap-max-upper=165 : Max upper distance from VWAP (0 to disable)}
+                            {--vwap-max-lower=170 : Max lower distance from VWAP (0 to disable)}
+                            {--vwap-min-dist=0 : Min distance from VWAP (0 to disable)}
+                            {--oi-unwind-pct=3 : Min OI % drop over 1-3 bars for Unwinding Squeeze}
+                            {--armed-lookback=4 : Lookback bars (5m) for recently blocked impulse}
+                            {--max-armed-drift=80 : Max price drift (pts) from missed impulse (0 to disable)}
+                            {--armed-cont-pct=60 : Min continuation STK% on delayed OI confirmation}';
 
     /**
      * The console command description.
@@ -83,8 +91,16 @@ class RunAutoTradingV2Backtest extends Command
         $this->newLine();
 
         $customConfig = [
-            'startTime' => $this->option('start-time') ?: '09:35',
-            'endTime'   => $this->option('end-time') ?: '14:45',
+            'startTime'        => $this->option('start-time') ?: '09:35',
+            'endTime'          => $this->option('end-time') ?: '14:45',
+            'vwapDistMode'     => $this->option('vwap-mode') ?: 'points',
+            'vwapMaxUpperDist' => (float)$this->option('vwap-max-upper'),
+            'vwapMaxLowerDist' => (float)$this->option('vwap-max-lower'),
+            'vwapMinDist'      => (float)$this->option('vwap-min-dist'),
+            'oiUnwindDropPct'   => (float)$this->option('oi-unwind-pct'),
+            'armedLookbackBars' => (int)$this->option('armed-lookback'),
+            'maxArmedDriftPts'  => (float)$this->option('max-armed-drift'),
+            'armedContMinPct'   => (float)$this->option('armed-cont-pct'),
         ];
 
         $progressBar = $this->output->createProgressBar($totalDays);

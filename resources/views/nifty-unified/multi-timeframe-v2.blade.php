@@ -618,24 +618,39 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 1 Timeframe) -->
-                    <div id="w-cockpit-panel" class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
+                    <div id="w-cockpit-panel" class="lg:col-span-3 flex flex-col gap-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
-                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
-                            <div>
-                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-xs sm:text-sm font-bold text-sky-400 font-mono" id="w-stat-time">
-                                    09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
+                        <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-800 shrink-0">
+                            <div class="min-w-0">
+                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold block leading-tight">SELECTED CANDLE</span>
+                                <div class="text-xs font-bold text-sky-400 font-mono whitespace-nowrap" id="w-stat-time">
+                                    09:15 · {{ $selectedTimeframe === '1D' ? '1D' : $selectedTimeframe }}
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 text-right">
-                                <div>
+                            <div class="flex items-center gap-2 text-right shrink-0">
+                                <div class="whitespace-nowrap">
                                     <span class="text-[9px] text-gray-400 block leading-tight">Index Move</span>
-                                    <div id="w-stat-pts" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.0 pts</div>
+                                    <div id="w-stat-pts" class="text-xs font-black font-mono text-emerald-400 whitespace-nowrap">+0.0 pts</div>
                                 </div>
-                                <div class="border-l border-gray-700/80 pl-2">
+                                <div class="border-l border-gray-700/80 pl-2 whitespace-nowrap">
                                     <span class="text-[9px] text-gray-400 block leading-tight">Opt Impulse</span>
-                                    <div id="w-opt-stat-impulse" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.00 pts</div>
+                                    <div id="w-opt-stat-impulse" class="text-xs font-black font-mono text-emerald-400 whitespace-nowrap">+0.00 pts</div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Candle & VWAP Telemetry Strip -->
+                        <div id="w-candle-telemetry" class="rounded-md bg-[#131722]/90 border border-gray-800/90 px-2 py-1.5 font-mono text-[10px] space-y-1 shrink-0">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-gray-400">VWAP <strong id="w-telem-vwap" class="text-fuchsia-300">--</strong></span>
+                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                    <span id="w-telem-vwap-dist" class="font-bold text-gray-300">--</span>
+                                    <span id="w-telem-vwap-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">EXT</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between gap-1 text-[9.5px] text-gray-400 border-t border-gray-800/70 pt-1">
+                                <span class="truncate">H:<strong id="w-telem-high" class="text-gray-200">--</strong> L:<strong id="w-telem-low" class="text-gray-200">--</strong></span>
+                                <span class="whitespace-nowrap">Rng <strong id="w-telem-range" class="text-sky-300">--</strong> · <span id="w-telem-vol-wrap">Vol <strong id="w-telem-vol" class="text-gray-200">--</strong></span></span>
                             </div>
                         </div>
 
@@ -1002,24 +1017,39 @@
                     </div>
 
                     <!-- Right: 25% Dual-Deck Mini Cockpit (Stocks & Options for Chart 2 Timeframe) -->
-                    <div id="o-cockpit-panel" class="lg:col-span-3 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
+                    <div id="o-cockpit-panel" class="lg:col-span-3 flex flex-col gap-2 border-t lg:border-t-0 lg:border-l border-gray-800 lg:pl-2.5 pt-2 lg:pt-0 cockpit-data-panel overflow-y-auto scrollbar-none" style="height: 420px; max-height: 420px;">
                         <!-- Unified Candle Header & Moves -->
-                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 shrink-0">
-                            <div>
-                                <span class="text-[9.5px] uppercase tracking-wider text-gray-400 font-medium">SELECTED CANDLE</span>
-                                <div class="text-xs sm:text-sm font-bold text-sky-400 font-mono" id="o-stat-time">
-                                    09:15 - {{ $selectedTimeframe === '1D' ? '1-Day candle' : $selectedTimeframe . ' candle' }}
+                        <div class="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-800 shrink-0">
+                            <div class="min-w-0">
+                                <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold block leading-tight">SELECTED CANDLE</span>
+                                <div class="text-xs font-bold text-sky-400 font-mono whitespace-nowrap" id="o-stat-time">
+                                    09:15 · {{ $selectedTimeframe === '1D' ? '1D' : $selectedTimeframe }}
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 text-right">
-                                <div>
+                            <div class="flex items-center gap-2 text-right shrink-0">
+                                <div class="whitespace-nowrap">
                                     <span class="text-[9px] text-gray-400 block leading-tight">Index Move</span>
-                                    <div id="o-stk-stat-pts" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.0 pts</div>
+                                    <div id="o-stk-stat-pts" class="text-xs font-black font-mono text-emerald-400 whitespace-nowrap">+0.0 pts</div>
                                 </div>
-                                <div class="border-l border-gray-700/80 pl-2">
+                                <div class="border-l border-gray-700/80 pl-2 whitespace-nowrap">
                                     <span class="text-[9px] text-gray-400 block leading-tight">Opt Impulse</span>
-                                    <div id="o-stat-impulse" class="text-xs sm:text-sm font-black font-mono text-emerald-400">+0.00 pts</div>
+                                    <div id="o-stat-impulse" class="text-xs font-black font-mono text-emerald-400 whitespace-nowrap">+0.00 pts</div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Candle & VWAP Telemetry Strip (Chart 2) -->
+                        <div id="o-candle-telemetry" class="rounded-md bg-[#131722]/90 border border-gray-800/90 px-2 py-1.5 font-mono text-[10px] space-y-1 shrink-0">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-gray-400">VWAP <strong id="o-telem-vwap" class="text-fuchsia-300">--</strong></span>
+                                <span class="flex items-center gap-1 whitespace-nowrap">
+                                    <span id="o-telem-vwap-dist" class="font-bold text-gray-300">--</span>
+                                    <span id="o-telem-vwap-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">EXT</span>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between gap-1 text-[9.5px] text-gray-400 border-t border-gray-800/70 pt-1">
+                                <span class="truncate">H:<strong id="o-telem-high" class="text-gray-200">--</strong> L:<strong id="o-telem-low" class="text-gray-200">--</strong></span>
+                                <span class="whitespace-nowrap">Rng <strong id="o-telem-range" class="text-sky-300">--</strong> · <span id="o-telem-vol-wrap">Vol <strong id="o-telem-vol" class="text-gray-200">--</strong></span></span>
                             </div>
                         </div>
 
@@ -1212,7 +1242,7 @@
 
         <!-- COLUMN 2 (25% WIDTH): TWO ROWS (TRENDING OI & SENTIMENT, OI BUILDUP)          -->
         <!-- ──────────────────────────────────────────────────────────────────────────── -->
-        <div class="xl:col-span-3 flex flex-col space-y-2 w-full cockpit-data-panel">
+        <div class="xl:col-span-3 flex flex-col space-y-2 w-full">
 
             <!-- ── ROW 1: TRENDING OI & SENTIMENT CHART (ALIGNED WITH ROW 1 WEIGHTAGE) ── -->
             <div class="cockpit-card p-2 flex flex-col border-rose-900/40 shadow-md">
@@ -1289,7 +1319,7 @@
                     <button type="button" onclick="stepManualAtmStrike(1)" class="px-1 py-0.2 rounded bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 text-[9px] font-bold shrink-0 cursor-pointer transition select-none" title="Step ATM 1 strike up (+50 pts)">▶</button>
                 </div>
 
-                <div class="relative w-full overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
+                <div class="relative w-full shrink-0 overflow-hidden" id="toi-chart-wrapper" style="height: 250px;">
                     <div id="toi-chart-loading" class="absolute inset-0 bg-[#0d1017]/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-xs text-gray-300 font-medium z-30 transition-all duration-200">
                         <div class="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin"></div>
                         <span id="toi-loading-msg" class="text-[11px] text-amber-300 font-mono font-medium tracking-wide">Loading Trending OI &amp; Sentiment...</span>
@@ -1298,7 +1328,7 @@
                 </div>
 
                 <!-- ── SEPARATE DECISION WIDGET (NET DIFF HERO & OI METRICS) ── -->
-                <div id="toi-decision-widget" class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex flex-col gap-1 select-none">
+                <div id="toi-decision-widget" class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex flex-col gap-1 select-none cockpit-data-panel">
                     <!-- Top Hero: Net Diff (OI Skew) & Direction Conviction -->
                     <div class="flex items-center justify-between bg-gradient-to-r from-[#121622] via-[#161d2d] to-[#121622] px-2.5 py-1.5 rounded-lg border border-slate-700/60 shadow-inner flex-wrap gap-2">
                         <div class="flex items-baseline gap-2">
@@ -3211,7 +3241,7 @@
                         <span class="text-cyan-300 font-bold">Active</span>
                     </label>
                 </div>
-                <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
                     <div>
                         <span class="text-gray-400 text-[9.5px]">Opposing Veto:</span>
                         <select id="trade-cfg-oi-veto-threshold" onchange="updateTradeConfig('oiVetoThreshold', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
@@ -3229,8 +3259,49 @@
                             <option value="20">≤ 20% Tight</option>
                         </select>
                     </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Unwind Drop:</span>
+                        <select id="trade-cfg-oi-unwind-pct" onchange="updateTradeConfig('oiUnwindDropPct', parseFloat(this.value))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="1">≥ 1% Drop</option>
+                            <option value="2">≥ 2% Drop</option>
+                            <option value="3" selected>≥ 3% Drop</option>
+                            <option value="5">≥ 5% Drop</option>
+                            <option value="8">≥ 8% Drop</option>
+                            <option value="10">≥ 10% Drop</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="text-[9.5px] text-gray-400 mt-1">Blocks opposing walls; triggers Squeeze Breakout when tight.</div>
+                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-mono mt-1.5 pt-1.5 border-t border-gray-800/70">
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Impulse Lookback:</span>
+                        <select id="trade-cfg-armed-lookback" onchange="updateTradeConfig('armedLookbackBars', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="2">2 Bars (10m)</option>
+                            <option value="3">3 Bars (15m)</option>
+                            <option value="4" selected>4 Bars (20m)</option>
+                            <option value="6">6 Bars (30m)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Max Drift Slab:</span>
+                        <select id="trade-cfg-armed-drift" onchange="updateTradeConfig('maxArmedDriftPts', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="50">≤ 50 pts (Tight)</option>
+                            <option value="80" selected>≤ 80 pts (Balanced)</option>
+                            <option value="100">≤ 100 pts (Wide)</option>
+                            <option value="120">≤ 120 pts</option>
+                            <option value="0">No Limit</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-[9.5px]">Cont. Floor:</span>
+                        <select id="trade-cfg-armed-cont" onchange="updateTradeConfig('armedContMinPct', parseInt(this.value, 10))" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1.5 py-0.5 text-white text-xs">
+                            <option value="55">≥ 55% Flow</option>
+                            <option value="60" selected>≥ 60% Flow</option>
+                            <option value="65">≥ 65% Flow</option>
+                            <option value="70">≥ 70% Flow</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-[9.5px] text-gray-400 mt-1">Blocks opposing walls; triggers Squeeze / Crossover Breakout when tight, unwinding, or crossing over within Drift Slab.</div>
             </div>
 
             <!-- Stagnation / Time-Stop Compression Card -->
@@ -3343,10 +3414,28 @@
                         <input type="checkbox" id="cfg-entry-f8-daily-cap" checked onchange="updateTradeConfig('entry_f8_daily_cap', this.checked)" class="accent-sky-500">
                         <span>F8: Daily Cap (2/2)</span>
                     </label>
-                    <label class="flex items-center gap-1 cursor-pointer col-span-2" title="F9: VWAP Trend Filter (Bull >= VWAP / Bear <= VWAP)">
+                    <label class="flex items-center gap-1 cursor-pointer col-span-2" title="F9: VWAP Trend Filter (Smart Mean-Reversion / Strict / Off)">
                         <input type="checkbox" id="cfg-entry-f9-vwap" checked onchange="updateTradeConfig('entry_f9_vwap', this.checked)" class="accent-fuchsia-500">
-                        <span class="text-fuchsia-300 font-bold">F9: VWAP Trend Filter</span>
+                        <span class="text-fuchsia-300 font-bold">F9: VWAP Smart Filter</span>
                     </label>
+                </div>
+                <div class="mt-1.5 pt-1.5 border-t border-gray-800/80 grid grid-cols-3 gap-1 text-[9.5px]">
+                    <div>
+                        <span class="text-gray-400 block">VWAP Mode</span>
+                        <select id="trade-cfg-vwap-mode" onchange="updateTradeConfig('vwapMode', this.value)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-fuchsia-300 font-bold">
+                            <option value="smart" selected>Smart Rev</option>
+                            <option value="strict">Strict Bin</option>
+                            <option value="off">Off</option>
+                        </select>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 block">Min Gap (pts)</span>
+                        <input type="number" id="trade-cfg-vwap-min-pts" min="20" max="250" step="10" value="60" onchange="updateTradeConfig('vwapReversalMinPts', parseInt(this.value, 10) || 60)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-white font-mono text-right">
+                    </div>
+                    <div>
+                        <span class="text-gray-400 block">Rev Conf %</span>
+                        <input type="number" id="trade-cfg-vwap-rev-conf" min="70" max="100" step="5" value="85" onchange="updateTradeConfig('vwapCounterConfPct', parseInt(this.value, 10) || 85)" class="w-full bg-[#0a0e18] border border-gray-700 rounded px-1 py-0.5 text-amber-300 font-mono text-right">
+                    </div>
                 </div>
             </div>
 
@@ -3573,7 +3662,7 @@
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 gap-2">
                         <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1.5">
                             <span>⚡ DYNAMIC MULTI-FACTOR ENTRY MATRIX</span>
-                            <span id="em-confidence-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
+                            <span id="em-confidence-badge" class="px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
                         </span>
                         <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span></span>
                     </div>
@@ -4589,8 +4678,9 @@
 
         const typeStr = (type === 'ask') ? 'RES' : 'SUP';
         const basisTag = isFut ? '(FUT)' : '(SPOT)';
-        const defaultTitle = `${dateLabel} ${typeStr} ${basisTag} ₹${price.toLocaleString('en-IN', {maximumFractionDigits: 1})}`;
-        const title = isFut ? (item.raw_label || defaultTitle) : (item.label ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)') : defaultTitle);
+        const defaultTitle = `${dateLabel} ${typeStr} ${basisTag}`;
+        let title = isFut ? (item.raw_label || defaultTitle) : (item.label ? item.label.replace(/^([A-Za-z0-9]+\s+(?:RES|SUP))(?!\s*\(SPOT\))/, '$1 (SPOT)') : defaultTitle);
+        title = title.replace(/\s*₹[\d,]+(?:\.\d+)?/g, '').replace(/\s{2,}/g, ' ').trim();
 
         try {
             const line = series.createPriceLine({
@@ -6103,9 +6193,9 @@
 
         const ltp = Number(feedLtp);
 
-        // Update Spot % Change relative to first candle open
+        // Update Spot % Change relative to first candle open (only when Chart 1 is in Spot basis)
         const firstOpen = Number(weightageData?.candles?.[0]?.open || 0);
-        if (firstOpen > 0) {
+        if (firstOpen > 0 && (typeof wChartBasis === 'undefined' || wChartBasis !== 'future')) {
             const diff = ltp - firstOpen;
             const pct = (diff / firstOpen) * 100;
             const sign = diff >= 0 ? '+' : '';
@@ -6121,8 +6211,8 @@
         const nowSec = Math.floor(Date.now() / 1000) + IST_OFFSET_SEC;
         const currentBucketTime = nowSec - (nowSec % 300);
 
-        // 1. Live stream forming 5m candle on Weightage chart
-        if (wCandleSeries && weightageData && weightageData.candles && weightageData.candles.length > 0) {
+        // 1. Live stream forming 5m candle on Weightage chart (Spot basis only; Futures candles come from FuturesCandleService)
+        if ((typeof wChartBasis === 'undefined' || wChartBasis !== 'future') && wCandleSeries && weightageData && weightageData.candles && weightageData.candles.length > 0) {
             const raw = weightageData.candles;
             let lastCandle = raw[raw.length - 1];
             if (lastCandle) {
@@ -6240,8 +6330,8 @@
             }
         }
 
-        // 2. Live stream forming 5m candle on Options Breadth chart
-        if (oCandleSeries && breadthData && breadthData.nifty_candles && breadthData.nifty_candles.length > 0) {
+        // 2. Live stream forming 5m candle on Options Breadth chart (Spot basis only; Futures candles come from FuturesCandleService)
+        if ((typeof oChartBasis === 'undefined' || oChartBasis !== 'future') && oCandleSeries && breadthData && breadthData.nifty_candles && breadthData.nifty_candles.length > 0) {
             const raw = breadthData.nifty_candles;
             let lastCandle = raw[raw.length - 1];
             if (lastCandle) {
@@ -8892,7 +8982,10 @@
         const sel = document.getElementById('toi-height-select');
         if (sel && sel.value !== String(h)) sel.value = String(h);
 
-        if (toiChartInstance) toiChartInstance.resize();
+        if (toiChartInstance) {
+            toiChartInstance.resize();
+            requestAnimationFrame(() => { if (toiChartInstance) toiChartInstance.resize(); });
+        }
     }
     window.setToiChartHeight = setToiChartHeight;
 
@@ -8974,6 +9067,7 @@
                 secondsVisible: false,
                 barSpacing: 10,
                 minBarSpacing: 3,
+                rightOffset: 16,
                 fixLeftEdge: false,
                 fixRightEdge: false,
             },
@@ -9171,7 +9265,10 @@
         window.addEventListener('resize', () => {
             if (wChart && wContainer) wChart.applyOptions({ width: wContainer.clientWidth });
             if (oChart && oContainer) oChart.applyOptions({ width: oContainer.clientWidth });
-            if (toiChartInstance) toiChartInstance.resize();
+            if (toiChartInstance) {
+            toiChartInstance.resize();
+            requestAnimationFrame(() => { if (toiChartInstance) toiChartInstance.resize(); });
+        }
             if (buildupChartInstance) buildupChartInstance.resize();
             updateDaySeparators();
         });
@@ -10629,6 +10726,10 @@
         const spot = chartData.spot || [];
 
         // ROW 1: Combined Trending OI & Sentiment (Call vs Put vs Sentiment vs Spot)
+        const toiWrapper = document.getElementById('toi-chart-wrapper');
+        if (toiWrapper && currentToiHeight) {
+            toiWrapper.style.height = `${parseInt(currentToiHeight, 10) || 320}px`;
+        }
         const toiCtx = document.getElementById('chart-trending-oi');
         if (toiCtx) {
             if (toiChartInstance) toiChartInstance.destroy();
@@ -10717,6 +10818,7 @@
                             type: 'linear',
                             display: true,
                             position: 'left',
+                            beginAtZero: true,
                             grid: { color: 'rgba(55, 65, 81, 0.3)' },
                             ticks: {
                                 font: { size: 8, family: 'monospace' },
@@ -12864,6 +12966,50 @@
     }
     window.findCandleForTime = findCandleForTime;
 
+    function updateCockpitTelemetry(prefix, candles, candle) {
+        if (!candle) return;
+        const vwapEl = document.getElementById(`${prefix}-telem-vwap`);
+        const distEl = document.getElementById(`${prefix}-telem-vwap-dist`);
+        const badgeEl = document.getElementById(`${prefix}-telem-vwap-badge`);
+        const highEl = document.getElementById(`${prefix}-telem-high`);
+        const lowEl = document.getElementById(`${prefix}-telem-low`);
+        const rngEl = document.getElementById(`${prefix}-telem-range`);
+        const volEl = document.getElementById(`${prefix}-telem-vol`);
+
+        const h = Number(candle.high || 0);
+        const l = Number(candle.low || 0);
+        const c = Number(candle.close || 0);
+        const v = Number(candle.volume || 0);
+        const rng = Math.max(0, h - l);
+
+        if (highEl) highEl.textContent = h.toFixed(1);
+        if (lowEl) lowEl.textContent = l.toFixed(1);
+        if (rngEl) rngEl.textContent = `${rng.toFixed(1)}p`;
+        if (volEl) {
+            volEl.textContent = v >= 1000000 ? `${(v / 1000000).toFixed(2)}M`
+                : (v >= 1000 ? `${(v / 1000).toFixed(1)}K` : (v > 0 ? String(v) : '--'));
+        }
+
+        const vwapList = calculateIntradayVwap(candles || []);
+        const cTime = Number(candle.time || candle.timestamp);
+        const vwapPt = vwapList.find(p => p.time === cTime) || vwapList[vwapList.length - 1];
+        if (vwapPt && vwapPt.value > 0) {
+            const vwap = vwapPt.value;
+            const dist = c - vwap;
+            const distPct = (dist / vwap) * 100;
+            const sign = dist >= 0 ? '+' : '';
+            if (vwapEl) vwapEl.textContent = vwap.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            if (distEl) {
+                distEl.textContent = `${sign}${dist.toFixed(1)}p (${sign}${distPct.toFixed(2)}%)`;
+                distEl.className = `font-bold ${dist >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+            }
+            if (badgeEl) {
+                const isExt = (dist >= 165 || dist <= -170);
+                badgeEl.classList.toggle('hidden', !isExt);
+            }
+        }
+    }
+
     function formatDeltaMicroFooter(currentVal, prevVal, isBullishBox) {
         if (prevVal === null || prevVal === undefined || isNaN(prevVal)) {
             return { deltaText: '--', deltaClass: 'text-gray-500' };
@@ -12928,23 +13074,24 @@
                   || (timeStr ? stkData.breadth_by_time?.[timeStr] : null);
 
         if (candle) {
-            const wTfSuffix = (wTimeframe === '1D') ? '1-Day candle' : `${wTimeframe} candle`;
+            const wTfSuffix = (wTimeframe === '1D') ? '1D' : `${wTimeframe}`;
             const wStatTimeEl = document.getElementById('w-stat-time');
             if (wStatTimeEl) {
                 const isForming = (bStk && bStk.is_complete === false);
                 const tag = isForming
-                    ? '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE FORMING</span>'
-                    : '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">CONFIRMED</span>';
-                wStatTimeEl.innerHTML = `${candle.time_str} - ${wTfSuffix} ${tag}`;
+                    ? '<span class="ml-1 px-1 py-0.2 text-[8px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE</span>'
+                    : '<span class="ml-1 px-1 py-0.2 text-[8px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">OK</span>';
+                wStatTimeEl.innerHTML = `${candle.time_str} · ${wTfSuffix} ${tag}`;
             }
+            updateCockpitTelemetry('w', candles, candle);
         }
 
         if (bStk) {
             const ptsEl = document.getElementById('w-stat-pts');
             if (ptsEl) {
                 const sign = bStk.nifty_move_pts >= 0 ? '+' : '';
-                ptsEl.textContent = `${sign}${Number(bStk.nifty_move_pts).toFixed(1)} pts (${sign}${Number(bStk.nifty_move_pct).toFixed(2)}%)`;
-                ptsEl.className = bStk.nifty_move_pts >= 0 ? 'text-xs font-black font-mono text-emerald-400' : 'text-xs font-black font-mono text-rose-400';
+                ptsEl.textContent = `${sign}${Number(bStk.nifty_move_pts).toFixed(1)} pts`;
+                ptsEl.className = bStk.nifty_move_pts >= 0 ? 'text-xs font-black font-mono text-emerald-400 whitespace-nowrap' : 'text-xs font-black font-mono text-rose-400 whitespace-nowrap';
             }
 
             const gPctEl = document.getElementById('w-stat-green-pct');
@@ -13179,17 +13326,18 @@
 
         if (candle) {
             document.getElementById('o-chart-time').textContent = candle.time_str;
-            const oTfSuffix = (oTimeframe === '1D') ? '1-Day candle' : `${oTimeframe} candle`;
+            const oTfSuffix = (oTimeframe === '1D') ? '1D' : `${oTimeframe}`;
             const oStatTimeEl = document.getElementById('o-stat-time');
             if (oStatTimeEl) {
                 const bOptCheck = (resolvedTime ? optData.breadth_by_time?.[resolvedTime] : null)
                                || (timeStr ? optData.breadth_by_time?.[timeStr] : null);
                 const isForming = (bOptCheck && bOptCheck.is_complete === false);
                 const tag = isForming
-                    ? '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE FORMING</span>'
-                    : '<span class="ml-1.5 px-1 py-0.2 text-[8.5px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">CONFIRMED</span>';
-                oStatTimeEl.innerHTML = `${candle.time_str} - ${oTfSuffix} ${tag}`;
+                    ? '<span class="ml-1 px-1 py-0.2 text-[8px] rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 animate-pulse">LIVE</span>'
+                    : '<span class="ml-1 px-1 py-0.2 text-[8px] rounded bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/20">OK</span>';
+                oStatTimeEl.innerHTML = `${candle.time_str} · ${oTfSuffix} ${tag}`;
             }
+            updateCockpitTelemetry('o', candles, candle);
 
             if (oCandleStyle === 'heikin_ashi' && window._unifiedOptionsHaCandles && window._unifiedOptionsHaCandles.length > 0) {
                 const cTime = Number(candle.time || candle.timestamp);
@@ -15238,13 +15386,21 @@
         oiFilterEnabled: true, // Enable Trending OI filter
         oiVetoThreshold: 25,   // Opposing OI Diff % to Veto entry (e.g. 25%)
         oiSqueezeThreshold: 15, // Squeeze Breakout Zone % (e.g. 15%)
+        oiUnwindDropPct: 3,    // Min % OI drop over 1-3 bars to trigger Unwinding Squeeze
+        armedLookbackBars: 4,  // Lookback bars (5m) for recently blocked STK/OPT impulse
+        maxArmedDriftPts: 80,  // Max price drift (pts) from missed impulse to allow delayed OI Crossover/Unwind
+        armedContMinPct: 60,   // Min continuation STK% (or OPT% = +5%) on delayed confirmation bar
         stagnationEnabled: true,
         stagnationMins: 45,
         stagnationAction: 'trail_1to1', // 'trail_1to1' | 'square_off'
         stagnationTrailBuffer: 5,       // Buffer in points for 1:1 trail
         startTime: '09:35',            // Trading scan starts at 09:35 (skips first 15-20 mins)
         endTime: '14:45',              // No new trade entries after 14:45
-        timeFilterEnabled: true        // Master toggle for trading window filter
+        timeFilterEnabled: true,       // Master toggle for trading window filter
+        vwapMode: 'smart',             // 'smart' (3-zone Mean-Reversion) | 'strict' | 'off'
+        vwapReversalMinPts: 60,        // Min |Spot - VWAP| pts to allow counter-VWAP mean-reversion
+        vwapCounterConfPct: 85,        // Confidence % required for counter-VWAP mean-reversion
+        vwapExtremePts: 150            // Extension pts to flag reversal-risk caution
     };
 
     let activeTrade = null;
@@ -15316,6 +15472,22 @@
         if (oiSqzSel && tradeEngineConfig.oiSqueezeThreshold) {
             oiSqzSel.value = String(tradeEngineConfig.oiSqueezeThreshold);
         }
+        const oiUnwSel = document.getElementById('trade-cfg-oi-unwind-pct');
+        if (oiUnwSel && tradeEngineConfig.oiUnwindDropPct !== undefined) {
+            oiUnwSel.value = String(tradeEngineConfig.oiUnwindDropPct);
+        }
+        const armedLbSel = document.getElementById('trade-cfg-armed-lookback');
+        if (armedLbSel && tradeEngineConfig.armedLookbackBars !== undefined) {
+            armedLbSel.value = String(tradeEngineConfig.armedLookbackBars);
+        }
+        const armedDriftSel = document.getElementById('trade-cfg-armed-drift');
+        if (armedDriftSel && tradeEngineConfig.maxArmedDriftPts !== undefined) {
+            armedDriftSel.value = String(tradeEngineConfig.maxArmedDriftPts);
+        }
+        const armedContSel = document.getElementById('trade-cfg-armed-cont');
+        if (armedContSel && tradeEngineConfig.armedContMinPct !== undefined) {
+            armedContSel.value = String(tradeEngineConfig.armedContMinPct);
+        }
 
         const stagEnEl = document.getElementById('trade-cfg-stagnation-enabled');
         if (stagEnEl && typeof tradeEngineConfig.stagnationEnabled === 'boolean') {
@@ -15346,6 +15518,12 @@
         if (endEl && tradeEngineConfig.endTime) {
             endEl.value = tradeEngineConfig.endTime;
         }
+        const vwapModeEl = document.getElementById('trade-cfg-vwap-mode');
+        if (vwapModeEl && tradeEngineConfig.vwapMode) vwapModeEl.value = tradeEngineConfig.vwapMode;
+        const vwapMinPtsEl = document.getElementById('trade-cfg-vwap-min-pts');
+        if (vwapMinPtsEl && tradeEngineConfig.vwapReversalMinPts) vwapMinPtsEl.value = String(tradeEngineConfig.vwapReversalMinPts);
+        const vwapRevConfEl = document.getElementById('trade-cfg-vwap-rev-conf');
+        if (vwapRevConfEl && tradeEngineConfig.vwapCounterConfPct) vwapRevConfEl.value = String(tradeEngineConfig.vwapCounterConfPct);
 
         const factorMap = {
             'cfg-factor-sl': 'f1_sl',
@@ -15502,6 +15680,35 @@
         const diffPctVal = maxOi > 0 ? ((diff / maxOi) * 100) : 0;
         const skewPctVal = totalOi > 0 ? ((diff / totalOi) * 100) : 0;
 
+        // Detect active OI unwinding over recent 1-3 bars (e.g. trapped Put/Call writers exiting)
+        let prevPePeak = peVal;
+        let prevCePeak = ceVal;
+        for (let lb = 1; lb <= 3; lb++) {
+            if (idx - lb >= 0) {
+                const pPe = (chart.put_oi && chart.put_oi[idx - lb] !== undefined) ? Number(chart.put_oi[idx - lb]) : peVal;
+                const pCe = (chart.call_oi && chart.call_oi[idx - lb] !== undefined) ? Number(chart.call_oi[idx - lb]) : ceVal;
+                if (pPe > prevPePeak) prevPePeak = pPe;
+                if (pCe > prevCePeak) prevCePeak = pCe;
+            }
+        }
+        const pePrev1 = (idx - 1 >= 0 && chart.put_oi && chart.put_oi[idx - 1] !== undefined) ? Number(chart.put_oi[idx - 1]) : peVal;
+        const cePrev1 = (idx - 1 >= 0 && chart.call_oi && chart.call_oi[idx - 1] !== undefined) ? Number(chart.call_oi[idx - 1]) : ceVal;
+
+        const peDelta = peVal - prevPePeak;
+        const ceDelta = ceVal - prevCePeak;
+        const pe1BarDelta = peVal - pePrev1;
+        const ce1BarDelta = ceVal - cePrev1;
+        const peDropPct = prevPePeak > 0 ? ((peDelta / prevPePeak) * 100) : 0;
+        const ceDropPct = prevCePeak > 0 ? ((ceDelta / prevCePeak) * 100) : 0;
+
+        const unwindPct = Number(tradeEngineConfig.oiUnwindDropPct) || 3;
+        const isPutUnwinding = (peDelta < 0 && pe1BarDelta < 0 && (peDropPct <= -unwindPct || peDelta <= -500000));
+        const isCallUnwinding = (ceDelta < 0 && ce1BarDelta < 0 && (ceDropPct <= -unwindPct || ceDelta <= -500000));
+
+        const prevDiff1 = pePrev1 - cePrev1;
+        const isBearCrossover = (idx > 0 && diff < 0 && prevDiff1 >= 0 && ce1BarDelta > 0 && pe1BarDelta < 0);
+        const isBullCrossover = (idx > 0 && diff > 0 && prevDiff1 <= 0 && pe1BarDelta > 0 && ce1BarDelta < 0);
+
         return {
             idx,
             time: labels[idx],
@@ -15511,8 +15718,30 @@
             maxOi,
             totalOi,
             diffPctVal, // > 0: Put OI dominant (bullish floor); < 0: Call OI dominant (bearish wall)
-            skewPctVal
+            skewPctVal,
+            peDelta,
+            ceDelta,
+            peDropPct,
+            ceDropPct,
+            isPutUnwinding,
+            isCallUnwinding,
+            isBearCrossover,
+            isBullCrossover
         };
+    }
+
+    // ── Real Options Breadth Lookup (5m wBreadthData first, then 15m breadthData / findCandleForTime fallback) ──
+    function getOptionsBreadthAtTime(tStr) {
+        if (!tStr) return null;
+        if (wBreadthData?.breadth_by_time?.[tStr]) return wBreadthData.breadth_by_time[tStr];
+        if (breadthData?.breadth_by_time?.[tStr]) return breadthData.breadth_by_time[tStr];
+        if (breadthData?.nifty_candles && typeof findCandleForTime === 'function') {
+            const oc = findCandleForTime(breadthData.nifty_candles, tStr);
+            if (oc?.time_str && breadthData.breadth_by_time?.[oc.time_str]) {
+                return breadthData.breadth_by_time[oc.time_str];
+            }
+        }
+        return null;
     }
 
     // ── Real 30-Depth Helper (5m Aggressive Volume & Delta + Live Intelligence) ──
@@ -15616,27 +15845,31 @@
         // 3. OI Wall / Skew (10 pts max)
         const oiDiffPct = oiSnap ? Number(oiSnap.diffPctVal || 0) : 0;
         const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+        const isPutUnwind = !!(oiSnap && oiSnap.isPutUnwinding);
+        const isCallUnwind = !!(oiSnap && oiSnap.isCallUnwinding);
         let oiSkewPts = 6;
         if (oiSnap) {
             if (isBull) {
-                if (oiDiffPct <= -vetoTh) oiSkewPts = 0;
+                if (oiDiffPct <= -vetoTh && !isCallUnwind) oiSkewPts = 0;
+                else if (isCallUnwind) oiSkewPts = 8;
                 else if (oiDiffPct >= 20) oiSkewPts = 10;
                 else if (oiDiffPct >= 0) oiSkewPts = 8;
                 else oiSkewPts = 4;
             } else {
-                if (oiDiffPct >= vetoTh) oiSkewPts = 0;
+                if (oiDiffPct >= vetoTh && !isPutUnwind) oiSkewPts = 0;
+                else if (isPutUnwind) oiSkewPts = 8;
                 else if (oiDiffPct <= -20) oiSkewPts = 10;
                 else if (oiDiffPct <= 0) oiSkewPts = 8;
                 else oiSkewPts = 4;
             }
         }
 
-        // 4. OI Squeeze (10 pts max)
+        // 4. OI Squeeze (10 pts max — Equilibrium OR Opposing OI Unwinding)
         const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
         let oiSqzPts = 5;
         if (oiSnap) {
             const absOi = Math.abs(oiDiffPct);
-            if (absOi <= sqzTh) oiSqzPts = 10;
+            if (absOi <= sqzTh || (isBull && isCallUnwind) || (!isBull && isPutUnwind)) oiSqzPts = 10;
             else if (absOi <= 25) oiSqzPts = 6;
             else oiSqzPts = 3;
         }
@@ -15652,26 +15885,55 @@
 
         const totalScore = Math.min(100, stkPts + optPts + oiSkewPts + oiSqzPts + depthPts);
 
-        // Hard Gate: VWAP Trend Alignment
-        const vwapValid = (curVwap === null || curVwap === undefined || curVwap <= 0)
-            ? true
-            : (isBull ? (cClose >= curVwap) : (cClose <= curVwap));
+        // 3-Zone Smart VWAP Gate
+        const vwapMode = (tradeEngineConfig.entry_f9_vwap === false) ? 'off' : (tradeEngineConfig.vwapMode || 'smart');
+        const vwapMinGap = Number(tradeEngineConfig.vwapReversalMinPts) || 60;
+        const vwapCounterReq = Number(tradeEngineConfig.vwapCounterConfPct) || 85;
+        const vwapExtremePts = Number(tradeEngineConfig.vwapExtremePts) || 150;
+
+        let vwapValid = true;
+        let vwapState = 'OFF'; // 'ALIGNED' | 'EXTENDED_CAUTION' | 'MEAN_REV' | 'CHOP_VETO' | 'OFF'
+        let vwapDist = 0;
+        let effectiveThreshold = confThreshold;
+
+        if (vwapMode !== 'off' && curVwap !== null && curVwap !== undefined && curVwap > 0) {
+            vwapDist = cClose - curVwap;
+            const absVwapDist = Math.abs(vwapDist);
+            const isAligned = isBull ? (vwapDist >= 0) : (vwapDist <= 0);
+
+            if (isAligned) {
+                vwapValid = true;
+                vwapState = (absVwapDist >= vwapExtremePts) ? 'EXTENDED_CAUTION' : 'ALIGNED';
+            } else if (vwapMode === 'smart' && absVwapDist >= vwapMinGap) {
+                vwapValid = true;
+                vwapState = 'MEAN_REV';
+                effectiveThreshold = Math.max(confThreshold, vwapCounterReq);
+            } else {
+                vwapValid = false;
+                vwapState = 'CHOP_VETO';
+            }
+        }
 
         // Require at least meaningful stock impulse (>= 70%) OR exact stock threshold so pure side-factors can't fire on 50% flat market
         const hasImpulse = (stkVal >= 70) || stkExactTrigger;
-        const meetsScore = hasImpulse && (totalScore >= confThreshold);
+        const meetsScore = hasImpulse && (totalScore >= effectiveThreshold);
 
         return {
             dir,
             isBull,
             totalScore,
-            confThreshold,
+            confThreshold: effectiveThreshold,
+            baseThreshold: confThreshold,
             meetsScore,
             stkPts, optPts, oiSkewPts, oiSqzPts, depthPts,
             stkVal, stkTh, stkExactTrigger,
             optVal, optOpp, optTh,
             oiDiffPct,
             vwapValid,
+            vwapState,
+            vwapDist,
+            vwapMinGap,
+            vwapExtremePts,
             isConf: (optVal >= optTh)
         };
     }
@@ -15716,6 +15978,7 @@
         sessionTrades = [];
         let currentTrade = null;
         let lastVetoedSignal = null;
+        let armedImpulse = null;
         let pendingBreakout = null;
         let executedSignalsCount = 0;
         const maxDailyLimit = (Number(tradeEngineConfig.maxDailyTrades) !== undefined && !isNaN(Number(tradeEngineConfig.maxDailyTrades))) ? Number(tradeEngineConfig.maxDailyTrades) : 2;
@@ -15749,7 +16012,7 @@
             if (i === upToIndex) lastCalculatedVwap = curVwap;
 
             const b = weightageData?.breadth_by_time?.[tStr];
-            const oB = breadthData?.breadth_by_time?.[tStr];
+            const oB = getOptionsBreadthAtTime(tStr);
             const oiSnap = getTrendingOiSnapshotAtTime(tStr);
 
             let stkBullCount = b ? Number(b.green_count_pct || 0) : 0;
@@ -16054,7 +16317,8 @@
                     ? (isBull ? Math.max(currentTrade.peakSpot, cHigh) : Math.min(currentTrade.peakSpot, cLow))
                     : (isBull ? cHigh : cLow);
 
-                // Exit Factor Checks
+                // Exit Factor Checks (Candle-close exits only trigger on confirmed closed candles to prevent live-LTP repainting)
+                const isLiveFormingCandle = (i === rawCandles.length - 1) && isLiveMarketOpen();
                 let exitTriggered = false;
                 let exitReason = null;
                 let exitPrice = cClose;
@@ -16065,7 +16329,7 @@
                 const stagLimit = Number(tradeEngineConfig.stagnationMins) || 45;
                 const stagBuffer = Number(tradeEngineConfig.stagnationTrailBuffer) || 5;
 
-                if (tradeEngineConfig.f7_stagnation && tradeEngineConfig.stagnationEnabled && elapsedMins >= stagLimit && !currentTrade.t1Hit) {
+                if (!isLiveFormingCandle && tradeEngineConfig.f7_stagnation && tradeEngineConfig.stagnationEnabled && elapsedMins >= stagLimit && !currentTrade.t1Hit) {
                     if (tradeEngineConfig.stagnationAction === 'square_off') {
                         exitTriggered = true;
                         exitPrice = cClose;
@@ -16088,8 +16352,8 @@
                     }
                 }
 
-                // F1: Signal Candle SL or Trailed SL (Candle-Close Basis)
-                if (!exitTriggered && (tradeEngineConfig.f1_sl || currentTrade.slType === 'STAGNATION_1TO1_TRAIL')) {
+                // F1: Signal Candle SL or Trailed SL (Confirmed Candle-Close Basis)
+                if (!isLiveFormingCandle && !exitTriggered && (tradeEngineConfig.f1_sl || currentTrade.slType === 'STAGNATION_1TO1_TRAIL')) {
                     if ((isBull && cClose < currentTrade.currentSl) || (!isBull && cClose > currentTrade.currentSl)) {
                         exitTriggered = true;
                         exitPrice = cClose;
@@ -16099,7 +16363,7 @@
                     }
                 }
 
-                if (!exitTriggered && tradeEngineConfig.f4_reverse && i > 0) {
+                if (!isLiveFormingCandle && !exitTriggered && tradeEngineConfig.f4_reverse && i > 0) {
                     const prevC = rawCandles[i - 1];
                     if (b) {
                         const oppStk = isBull
@@ -16195,9 +16459,48 @@
 
                 let triggeredDirection = null;
                 let isConf = evalRes.isConf;
+                let delayedSqueezeInfo = null;
 
                 if (evalRes.meetsScore) {
                     triggeredDirection = evalRes.dir;
+                } else if (armedImpulse && (i - armedImpulse.index) >= 1 && (i - armedImpulse.index) <= (Number(tradeEngineConfig.armedLookbackBars) || 4)) {
+                    const armDir = armedImpulse.direction;
+                    const maxDrift = Number(tradeEngineConfig.maxArmedDriftPts ?? 80);
+                    const contFloor = Number(tradeEngineConfig.armedContMinPct) || 60;
+                    const driftPts = Math.abs(cClose - armedImpulse.close);
+                    const driftOk = (maxDrift <= 0 || driftPts <= maxDrift);
+
+                    const oiTrig = (armDir === 'BULL')
+                        ? (oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
+                        : (oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
+                    const flowCont = (armDir === 'BULL')
+                        ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && stkBearWt < sDownTh)
+                        : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && stkBullWt < sUpTh);
+                    const vwapOk = (tradeEngineConfig.entry_f9_vwap === false)
+                        ? true
+                        : ((armDir === 'BULL' && cClose >= curVwap) || (armDir === 'BEAR' && cClose <= curVwap));
+
+                    if (driftOk && oiTrig && flowCont && vwapOk) {
+                        triggeredDirection = armDir;
+                        const isCross = (armDir === 'BULL') ? oiSnap.isBullCrossover : oiSnap.isBearCrossover;
+                        delayedSqueezeInfo = {
+                            isCrossover: isCross,
+                            armedTime: armedImpulse.time,
+                            armedPeak: armedImpulse.peakLabel,
+                            driftPts: driftPts
+                        };
+                    }
+                }
+
+                // Arm Stage-1 memory if a high-conviction STK/OPT impulse occurred on this bar
+                if (!triggeredDirection) {
+                    const rawBullImp = (stkBullWt >= sUpTh || optUpWt >= oUpTh);
+                    const rawBearImp = (stkBearWt >= sDownTh || optDownWt >= oDownTh);
+                    if (rawBullImp && !rawBearImp) {
+                        armedImpulse = { index: i, time: tStr, direction: 'BULL', close: cClose, peakLabel: `STK ${Math.round(stkBullWt)}% / OPT ${Math.round(optUpWt)}%` };
+                    } else if (rawBearImp && !rawBullImp) {
+                        armedImpulse = { index: i, time: tStr, direction: 'BEAR', close: cClose, peakLabel: `STK ${Math.round(stkBearWt)}% / OPT ${Math.round(optDownWt)}%` };
+                    }
                 }
 
                 if (triggeredDirection) {
@@ -16210,6 +16513,11 @@
                         let setupType = 'STANDARD';
                         let setupBadge = '🎯 STANDARD';
                         let setupReason = 'Breadth confirmation trigger';
+                        if (delayedSqueezeInfo) {
+                            setupType = 'SQUEEZE_BREAKOUT';
+                            setupBadge = delayedSqueezeInfo.isCrossover ? '🔥 PRIORITY OI CROSSOVER' : '🚀 DELAYED SQUEEZE';
+                            setupReason = `Armed ${delayedSqueezeInfo.armedTime} (${delayedSqueezeInfo.armedPeak}) ➔ OI Confirmed (Drift ${delayedSqueezeInfo.driftPts.toFixed(1)}p)`;
+                        }
                         let isVetoed = false;
                         let vetoReason = '';
 
@@ -16232,9 +16540,13 @@
                                 const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
 
                                 if (triggeredDirection === 'BULL') {
-                                    if (oiDiffPct <= -vetoTh) {
+                                    if (oiDiffPct <= -vetoTh && !oiSnap.isCallUnwinding) {
                                         isVetoed = true;
                                         vetoReason = `Blocked by ${Math.abs(oiDiffPct).toFixed(1)}% Call Writing Wall`;
+                                    } else if (oiSnap.isCallUnwinding) {
+                                        setupType = 'SQUEEZE_BREAKOUT';
+                                        setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        setupReason = `Call OI Unwinding (${oiSnap.ceDropPct.toFixed(1)}%) ➔ Short-Covering Squeeze`;
                                     } else if (Math.abs(oiDiffPct) <= sqzTh) {
                                         setupType = 'SQUEEZE_BREAKOUT';
                                         setupBadge = '🚀 SQUEEZE BREAKOUT';
@@ -16249,9 +16561,13 @@
                                         setupReason = `Breadth signal with safe/neutral OI (${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%)`;
                                     }
                                 } else {
-                                    if (oiDiffPct >= vetoTh) {
+                                    if (oiDiffPct >= vetoTh && !oiSnap.isPutUnwinding) {
                                         isVetoed = true;
                                         vetoReason = `Blocked by +${oiDiffPct.toFixed(1)}% Put Writing Floor`;
+                                    } else if (oiSnap.isPutUnwinding) {
+                                        setupType = 'SQUEEZE_BREAKOUT';
+                                        setupBadge = '🚀 SQUEEZE BREAKOUT';
+                                        setupReason = `Put OI Unwinding (${oiSnap.peDropPct.toFixed(1)}%) ➔ Breakdown Squeeze`;
                                     } else if (Math.abs(oiDiffPct) <= sqzTh) {
                                         setupType = 'SQUEEZE_BREAKOUT';
                                         setupBadge = '🚀 SQUEEZE BREAKOUT';
@@ -16268,14 +16584,18 @@
                                 }
                             }
 
-                            // VWAP Trend Alignment Filter Check (Factor 9)
+                            // Smart 3-Zone VWAP Filter Check (Factor 9)
                             if (!isVetoed && tradeEngineConfig.entry_f9_vwap !== false) {
-                                if (triggeredDirection === 'BULL' && cClose < curVwap) {
+                                if (!evalRes.vwapValid) {
                                     isVetoed = true;
-                                    vetoReason = `Blocked by VWAP: Spot (${cClose.toFixed(1)}) is BELOW VWAP (${curVwap.toFixed(1)})`;
-                                } else if (triggeredDirection === 'BEAR' && cClose > curVwap) {
-                                    isVetoed = true;
-                                    vetoReason = `Blocked by VWAP: Spot (${cClose.toFixed(1)}) is ABOVE VWAP (${curVwap.toFixed(1)})`;
+                                    const gapStr = Math.abs(evalRes.vwapDist || 0).toFixed(1);
+                                    vetoReason = `Blocked by VWAP Chop Zone: Spot (${cClose.toFixed(1)}) is only ${gapStr}p counter-VWAP (< ${evalRes.vwapMinGap}p min gap)`;
+                                } else if (evalRes.vwapState === 'MEAN_REV') {
+                                    setupType = 'MEAN_REVERSION';
+                                    setupBadge = '🔄 MEAN-REV VWAP';
+                                    setupReason = `Extended ${Math.abs(evalRes.vwapDist).toFixed(1)}p from VWAP • High-Conf (${evalRes.totalScore}%) Reversal`;
+                                } else if (evalRes.vwapState === 'EXTENDED_CAUTION') {
+                                    setupReason += ` (⚠️ Extended ${Math.abs(evalRes.vwapDist).toFixed(0)}p from VWAP — watch reversal risk)`;
                                 }
                             }
 
@@ -16283,6 +16603,14 @@
                                 candleState = 'VETOED';
                                 verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
                                 diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
+
+                                armedImpulse = {
+                                    index: i,
+                                    time: tStr,
+                                    direction: triggeredDirection,
+                                    close: cClose,
+                                    peakLabel: `STK ${Math.round(triggeredDirection === 'BULL' ? stkBullWt : stkBearWt)}%`
+                                };
 
                                 lastVetoedSignal = {
                                     time: tStr,
@@ -17382,7 +17710,7 @@
         const timeFilterActive = tradeEngineConfig.entry_f1_time !== false && tradeEngineConfig.timeFilterEnabled !== false;
 
         const b = weightageData?.breadth_by_time?.[tStr];
-        const oB = breadthData?.breadth_by_time?.[tStr];
+        const oB = getOptionsBreadthAtTime(tStr);
         const oiSnap = getTrendingOiSnapshotAtTime(tStr);
 
         let stkBullCount = b ? Number(b.green_count_pct || 0) : 0;
@@ -17425,13 +17753,13 @@
         if (confBadge) {
             confBadge.textContent = `SCORE: ${evalRes.totalScore}% / ${evalRes.confThreshold}% (${evalRes.dir})`;
             if (evalRes.meetsScore && evalRes.vwapValid) {
-                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
+                confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
             } else if (evalRes.meetsScore && !evalRes.vwapValid) {
-                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-rose-950 text-rose-300 border border-rose-600';
+                confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-rose-950 text-rose-300 border border-rose-600';
             } else if (evalRes.totalScore >= 70) {
-                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-amber-950 text-amber-300 border border-amber-700';
+                confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-amber-950 text-amber-300 border border-amber-700';
             } else {
-                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-slate-900 text-gray-300 border border-slate-700';
+                confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700';
             }
         }
 
@@ -17562,8 +17890,11 @@
 
         const isBullBias = sBull || (stkBullCount > stkBearCount);
         const isBearBias = sBear || (stkBearCount > stkBullCount);
-        const isBullVetoed = (sBull && oiDiffPct <= -vetoTh);
-        const isBearVetoed = (sBear && oiDiffPct >= vetoTh);
+        const isPutUnwind = !!(oiSnap && oiSnap.isPutUnwinding);
+        const isCallUnwind = !!(oiSnap && oiSnap.isCallUnwinding);
+        const isBullVetoed = (sBull && oiDiffPct <= -vetoTh && !isCallUnwind);
+        const isBearVetoed = (sBear && oiDiffPct >= vetoTh && !isPutUnwind);
+        const isUnwindOverride = (sBull && oiDiffPct <= -vetoTh && isCallUnwind) || (sBear && oiDiffPct >= vetoTh && isPutUnwind);
 
         if (f4State) {
             f4State.innerHTML = (oiDiffPct >= 0)
@@ -17583,6 +17914,12 @@
                 f4Action.textContent = 'TRAP DETECTED - VETO';
                 f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
             }
+        } else if (isUnwindOverride) {
+            if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">🔥 UNWINDING</span>';
+            if (f4Action) {
+                f4Action.textContent = isPutUnwind ? 'PUT FLOOR BREAKING' : 'CALL WALL BREAKING';
+                f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-amber-300';
+            }
         } else if ((sBull && oiDiffPct >= 20) || (sBear && oiDiffPct <= -20)) {
             if (f4Status) f4Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 ALIGNED</span>';
             if (f4Action) {
@@ -17597,24 +17934,35 @@
             }
         }
 
-        // 5. OI Squeeze
+        // 5. OI Squeeze (Tight Equilibrium OR Active Put/Call OI Unwinding)
         const f5Crit = document.getElementById('em-f5-criteria');
         const f5State = document.getElementById('em-f5-state');
         const f5Status = document.getElementById('em-f5-status');
         const f5Action = document.getElementById('em-f5-action');
 
         const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
-        if (f5Crit) f5Crit.textContent = `≤ ${sqzTh}% Tight`;
+        const unwindPct = Number(tradeEngineConfig.oiUnwindDropPct) || 3;
+        if (f5Crit) f5Crit.textContent = `≤ ${sqzTh}% / -${unwindPct}% Unwind`;
 
-        const isSqueeze = Math.abs(oiDiffPct) <= sqzTh;
+        const isEquilibriumSqz = Math.abs(oiDiffPct) <= sqzTh;
+        const isUnwindSqz = (isBearBias && isPutUnwind) || (isBullBias && isCallUnwind);
+        const isSqueeze = isEquilibriumSqz || isUnwindSqz;
+
         if (f5State) {
-            f5State.innerHTML = `<span class="${isSqueeze ? 'text-amber-300 font-bold' : 'text-gray-400'}">Spread: ${Math.abs(oiDiffPct).toFixed(1)}%</span>`;
+            if (isUnwindSqz) {
+                const dropLabel = (isBearBias && isPutUnwind)
+                    ? `Put OI ${oiSnap.peDropPct.toFixed(1)}%`
+                    : `Call OI ${oiSnap.ceDropPct.toFixed(1)}%`;
+                f5State.innerHTML = `<span class="text-amber-300 font-bold">Unwind: ${dropLabel}</span>`;
+            } else {
+                f5State.innerHTML = `<span class="${isEquilibriumSqz ? 'text-amber-300 font-bold' : 'text-gray-400'}">Spread: ${Math.abs(oiDiffPct).toFixed(1)}%</span>`;
+            }
         }
 
         if (isSqueeze) {
             if (f5Status) f5Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">⚡ SQUEEZE</span>';
             if (f5Action) {
-                f5Action.textContent = 'BREAKOUT EXPANSION';
+                f5Action.textContent = isUnwindSqz ? (isPutUnwind ? 'PUT UNWIND SQUEEZE' : 'CALL UNWIND SQUEEZE') : 'BREAKOUT EXPANSION';
                 f5Action.className = 'py-1.5 px-1.5 text-right font-bold text-amber-300';
             }
         } else {
@@ -17742,18 +18090,22 @@
             }
         }
 
-        // 9. VWAP Trend Alignment
+        // 9. Smart 3-Zone VWAP Trend & Mean-Reversion Gate
         const f9Crit = document.getElementById('em-f9-criteria');
         const f9State = document.getElementById('em-f9-state');
         const f9Status = document.getElementById('em-f9-status');
         const f9Action = document.getElementById('em-f9-action');
 
-        if (f9Crit) f9Crit.textContent = 'Bull ≥ VWAP / Bear ≤ VWAP';
+        const vwapMode = (tradeEngineConfig.entry_f9_vwap === false) ? 'off' : (tradeEngineConfig.vwapMode || 'smart');
+        const vwapMinGap = Number(tradeEngineConfig.vwapReversalMinPts) || 60;
+        if (f9Crit) {
+            f9Crit.textContent = (vwapMode === 'smart')
+                ? `Aligned or ≥${vwapMinGap}p Rev`
+                : (vwapMode === 'strict' ? 'Strict Binary' : 'Off');
+        }
 
         const cClose = Number(candle.close);
-        const isVwapBypassed = tradeEngineConfig.entry_f9_vwap === false;
-        let isVwapBullSafe = false;
-        let isVwapBearSafe = false;
+        const isVwapBypassed = (vwapMode === 'off');
 
         if (isVwapBypassed) {
             if (f9State) f9State.innerHTML = '<span class="text-gray-500">Filter Bypassed (OFF)</span>';
@@ -17766,46 +18118,36 @@
             const vwapDiff = cClose - vwapVal;
             const diffPct = (vwapDiff / vwapVal) * 100;
             const isAbove = vwapDiff >= 0;
-            isVwapBullSafe = isAbove;
-            isVwapBearSafe = !isAbove;
 
             if (f9State) {
                 f9State.innerHTML = isAbove
-                    ? `<span class="text-emerald-400 font-bold">+${vwapDiff.toFixed(1)} pts (${diffPct.toFixed(2)}% Above VWAP)</span>`
-                    : `<span class="text-rose-400 font-bold">${vwapDiff.toFixed(1)} pts (${Math.abs(diffPct).toFixed(2)}% Below VWAP)</span>`;
+                    ? `<span class="text-emerald-400 font-bold">+${vwapDiff.toFixed(1)} pts (${diffPct.toFixed(2)}% Above)</span>`
+                    : `<span class="text-rose-400 font-bold">${vwapDiff.toFixed(1)} pts (${Math.abs(diffPct).toFixed(2)}% Below)</span>`;
             }
 
-            if (isBullBias && isAbove) {
-                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 BULL ALIGNED</span>';
+            if (evalRes.vwapState === 'EXTENDED_CAUTION') {
+                if (f9Status) f9Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold">⚠️ EXTENDED</span>`;
                 if (f9Action) {
-                    f9Action.textContent = 'SPOT ≥ VWAP (VALID)';
+                    f9Action.textContent = `REVERSAL RISK (${Math.abs(vwapDiff).toFixed(0)}p)`;
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-amber-300';
+                }
+            } else if (evalRes.vwapState === 'MEAN_REV') {
+                if (f9Status) f9Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-600 font-bold">✓ MEAN-REV</span>`;
+                if (f9Action) {
+                    f9Action.textContent = `REV ALLOWED (≥${evalRes.confThreshold}%)`;
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-cyan-300';
+                }
+            } else if (evalRes.vwapState === 'ALIGNED') {
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ ALIGNED</span>';
+                if (f9Action) {
+                    f9Action.textContent = `${evalRes.dir} VALID`;
                     f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
-                }
-            } else if (isBearBias && !isAbove) {
-                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 BEAR ALIGNED</span>';
-                if (f9Action) {
-                    f9Action.textContent = 'SPOT ≤ VWAP (VALID)';
-                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
-                }
-            } else if (isBullBias && !isAbove) {
-                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VWAP VETO</span>';
-                if (f9Action) {
-                    f9Action.textContent = 'BULL TRAP (BELOW VWAP)';
-                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
-                }
-            } else if (isBearBias && isAbove) {
-                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⛔ VWAP VETO</span>';
-                if (f9Action) {
-                    f9Action.textContent = 'BEAR TRAP (ABOVE VWAP)';
-                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
                 }
             } else {
-                if (f9Status) f9Status.innerHTML = isAbove
-                    ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-emerald-400 border border-emerald-800/60">ABOVE VWAP</span>'
-                    : '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-rose-400 border border-rose-800/60">BELOW VWAP</span>';
+                if (f9Status) f9Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">✗ CHOP VETO</span>';
                 if (f9Action) {
-                    f9Action.textContent = isAbove ? 'BULL PREFERRED' : 'BEAR PREFERRED';
-                    f9Action.className = isAbove ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-rose-400';
+                    f9Action.textContent = `NEAR VWAP (<${vwapMinGap}p)`;
+                    f9Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
                 }
             }
         } else {

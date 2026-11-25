@@ -285,8 +285,16 @@ class AutoTradingBacktestController extends Controller
         }
 
         $customConfig = [
-            'startTime' => $request->input('startTime', '09:35'),
-            'endTime'   => $request->input('endTime', '14:45'),
+            'startTime'        => $request->input('startTime', '09:35'),
+            'endTime'          => $request->input('endTime', '14:45'),
+            'vwapDistMode'     => $request->input('vwapDistMode', 'points'),
+            'vwapMaxUpperDist' => (float)$request->input('vwapMaxUpperDist', 165.0),
+            'vwapMaxLowerDist' => (float)$request->input('vwapMaxLowerDist', 170.0),
+            'vwapMinDist'      => (float)$request->input('vwapMinDist', 0.0),
+            'oiUnwindDropPct'   => (float)$request->input('oiUnwindDropPct', 3.0),
+            'armedLookbackBars' => (int)$request->input('armedLookbackBars', 4),
+            'maxArmedDriftPts'  => (float)$request->input('maxArmedDriftPts', 80.0),
+            'armedContMinPct'   => (float)$request->input('armedContMinPct', 60.0),
         ];
 
         $results = $this->engine->runDays($dates, $customConfig);
