@@ -1683,6 +1683,33 @@
                 </div>
             </div>
 
+            <!-- Entry & Exit Matrix Confidence Alarm Thresholds -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#141926] border border-cyan-900/40 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                    <div>
+                        <div class="font-bold text-cyan-300 text-[11px]">⚡ Entry Matrix Score ≥</div>
+                        <div class="text-[9.5px] text-gray-400">Triggers alarm &amp; trade execution</div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="entry-confidence-threshold-input" min="50" max="100" value="80" class="w-14 bg-[#0b0f19] border border-cyan-700/60 rounded px-1.5 py-0.5 text-right font-mono font-bold text-cyan-300 text-xs focus:outline-none">
+                        <span class="text-gray-400 font-bold">%</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-2 sm:border-l sm:border-gray-800 sm:pl-2">
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" id="exit-risk-alarm-enabled" class="accent-rose-500" checked>
+                        <div>
+                            <div class="font-bold text-rose-300 text-[11px]">🛡️ Exit Risk Alarm ≥</div>
+                            <div class="text-[9.5px] text-gray-400">Alerts when exit risk crosses X%</div>
+                        </div>
+                    </label>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="exit-risk-threshold-input" min="15" max="100" value="40" class="w-14 bg-[#0b0f19] border border-rose-700/60 rounded px-1.5 py-0.5 text-right font-mono font-bold text-rose-300 text-xs focus:outline-none">
+                        <span class="text-gray-400 font-bold">%</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab Switcher (5 Split Sections) -->
             <div class="flex items-center gap-1.5 p-1 bg-[#131722] rounded-lg border border-gray-800 text-xs font-semibold">
                 <button type="button" class="alarm-tab-btn flex-1 py-1.5 px-2 rounded-md transition text-center cursor-pointer bg-blue-600 text-white font-bold" data-tab="stocks">
@@ -3543,11 +3570,12 @@
             <!-- Middle Panel: Dynamic Multi-Factor Entry Matrix Checklist Table -->
             <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
-                        <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 gap-2">
+                        <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1.5">
                             <span>⚡ DYNAMIC MULTI-FACTOR ENTRY MATRIX</span>
+                            <span id="em-confidence-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
                         </span>
-                        <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span> • Entry Screener</span>
+                        <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span></span>
                     </div>
 
                     <!-- Checklist Table -->
@@ -3556,107 +3584,135 @@
                             <thead>
                                 <tr class="text-gray-400 border-b border-gray-800 text-[9.5px] uppercase">
                                     <th class="py-1 px-1.5">Factor</th>
-                                    <th class="py-1 px-1.5">Criteria / Threshold</th>
+                                    <th class="py-1 px-1.5">Weight / Rule</th>
                                     <th class="py-1 px-1.5">Active Candle State</th>
-                                    <th class="py-1 px-1.5">Status</th>
+                                    <th class="py-1 px-1.5">Tick / Score</th>
                                     <th class="py-1 px-1.5 text-right">Verdict</th>
                                 </tr>
                             </thead>
                             <tbody id="entry-matrix-tbody" class="divide-y divide-gray-800/60">
+                                <!-- GROUP 1: SCORED CONFIDENCE FACTORS (100 PTS) -->
+                                <tr class="bg-slate-900/70">
+                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-cyan-300 uppercase">
+                                        📊 Scored Confidence Factors (100 Pts Total • Major: Stock + Options)
+                                    </td>
+                                </tr>
+
+                                <!-- Factor 2: Stock Breadth Surge (40 pts) -->
+                                <tr id="row-em-breadth">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">📊</span>
+                                        <span>Stock Breadth</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f2-criteria">40 pts (≥80%)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f2-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f2-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/40</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f2-action">AWAITING</td>
+                                </tr>
+
+                                <!-- Factor 3: Options Order Flow (30 pts) -->
+                                <tr id="row-em-options">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">⚡</span>
+                                        <span>Options Flow</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f3-criteria">30 pts (≥70%)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f3-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f3-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/30</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f3-action">MIXED</td>
+                                </tr>
+
+                                <!-- Factor 4: Trending OI Wall / Skew (10 pts) -->
+                                <tr id="row-em-oi-veto">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">🧱</span>
+                                        <span>OI Wall / Skew</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-purple-300" id="em-f4-criteria">10 pts (&lt;25% Opp)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f4-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f4-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f4-action">CLEAR</td>
+                                </tr>
+
+                                <!-- Factor 5: Squeeze Equilibrium (10 pts) -->
+                                <tr id="row-em-squeeze">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">🚀</span>
+                                        <span>OI Squeeze</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-emerald-300" id="em-f5-criteria">10 pts (≤15% Tight)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f5-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f5-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f5-action">NORMAL</td>
+                                </tr>
+
+                                <!-- Factor 6: Futures 30-Depth Flow (10 pts) -->
+                                <tr id="row-em-depth">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">🌊</span>
+                                        <span>30-Depth Flow</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-cyan-300" id="em-f6-criteria">10 pts (Δ &amp; Ratio)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f6-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f6-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f6-action">NEUTRAL</td>
+                                </tr>
+
+                                <!-- GROUP 2: BINARY STRATEGY GATES (✓ / ✗) -->
+                                <tr class="bg-slate-900/70">
+                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-fuchsia-300 uppercase">
+                                        🛡️ Strategy Gates (Green ✓ = Go • Red ✗ = Blocked)
+                                    </td>
+                                </tr>
+
+                                <!-- Factor 9: VWAP Trend Filter (HARD GATE) -->
+                                <tr id="row-em-vwap">
+                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
+                                        <span class="text-xs">📈</span>
+                                        <span>VWAP Gate</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-fuchsia-300" id="em-f9-criteria">Hard Gate (Dir)</td>
+                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f9-state">--</td>
+                                    <td class="py-1.5 px-1.5" id="em-f9-status">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
+                                    </td>
+                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f9-action">STANDBY</td>
+                                </tr>
+
                                 <!-- Factor 1: Session Time Window -->
                                 <tr id="row-em-time">
                                     <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">1️⃣</span>
+                                        <span class="text-xs">⏰</span>
                                         <span>Session Time</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-indigo-300" id="em-f1-criteria">09:35 – 14:45</td>
                                     <td class="py-1.5 px-1.5 text-gray-300" id="em-f1-state">--</td>
                                     <td class="py-1.5 px-1.5" id="em-f1-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f1-action">STANDBY</td>
-                                </tr>
-
-                                <!-- Factor 2: Stock Breadth Surge -->
-                                <tr id="row-em-breadth">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">2️⃣</span>
-                                        <span>Stock Breadth</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f2-criteria">≥ 80% Count &amp; Wt</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f2-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f2-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ NEUTRAL</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f2-action">AWAITING SURGE</td>
-                                </tr>
-
-                                <!-- Factor 3: Options Order Flow -->
-                                <tr id="row-em-options">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">3️⃣</span>
-                                        <span>Options Flow</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f3-criteria">≥ 70% Flow Wt</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f3-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f3-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ BALANCED</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f3-action">FLOW MIXED</td>
-                                </tr>
-
-                                <!-- Factor 4: Trending OI Wall Veto -->
-                                <tr id="row-em-oi-veto">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">4️⃣</span>
-                                        <span>OI Wall Veto</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-purple-300" id="em-f4-criteria">&lt; 25% Opposed</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f4-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f4-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ CLEAR</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f4-action">NO RESISTANCE</td>
-                                </tr>
-
-                                <!-- Factor 5: Squeeze Equilibrium -->
-                                <tr id="row-em-squeeze">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">5️⃣</span>
-                                        <span>OI Squeeze</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-emerald-300" id="em-f5-criteria">≤ 15% Tight Band</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f5-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f5-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ WIDE</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f5-action">NORMAL SPREAD</td>
-                                </tr>
-
-                                <!-- Factor 6: Futures 30-Depth Flow -->
-                                <tr id="row-em-depth">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">6️⃣</span>
-                                        <span>30-Depth Flow</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-cyan-300" id="em-f6-criteria">Basis &amp; Delta</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f6-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f6-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STABLE</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f6-action">NEUTRAL</td>
                                 </tr>
 
                                 <!-- Factor 7: Signal Breakout Trigger -->
                                 <tr id="row-em-breakout">
                                     <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">7️⃣</span>
+                                        <span class="text-xs">🎯</span>
                                         <span>Breakout Confirm</span>
                                     </td>
-                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f7-criteria">High/Low Break (i+1)</td>
+                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f7-criteria">H/L Break (i+1)</td>
                                     <td class="py-1.5 px-1.5 text-gray-300" id="em-f7-state">--</td>
                                     <td class="py-1.5 px-1.5" id="em-f7-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f7-action">STANDBY</td>
                                 </tr>
@@ -3664,29 +3720,15 @@
                                 <!-- Factor 8: Daily Session Cap -->
                                 <tr id="row-em-daily-cap">
                                     <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">8️⃣</span>
+                                        <span class="text-xs">🔒</span>
                                         <span>Daily Session Cap</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-sky-300" id="em-f8-criteria">≤ 2 Trades / Day</td>
                                     <td class="py-1.5 px-1.5 text-gray-300" id="em-f8-state">0 / 2 Executed</td>
                                     <td class="py-1.5 px-1.5" id="em-f8-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">🟢 OPEN</span>
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ PASS</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="em-f8-action">READY</td>
-                                </tr>
-
-                                <!-- Factor 9: VWAP Trend Filter -->
-                                <tr id="row-em-vwap">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">9️⃣</span>
-                                        <span>VWAP Trend Filter</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-fuchsia-300" id="em-f9-criteria">Bull ≥ VWAP / Bear ≤ VWAP</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f9-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f9-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STANDBY</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f9-action">STANDBY</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3702,11 +3744,12 @@
             <!-- Right Panel: Dynamic Multi-Factor Exit Matrix Checklist Table -->
             <div id="exit-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5">
-                        <span class="text-xs font-black tracking-wide text-purple-300 flex items-center gap-1">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 gap-2">
+                        <span class="text-xs font-black tracking-wide text-purple-300 flex items-center gap-1.5">
                             <span>🛡️ DYNAMIC MULTI-FACTOR EXIT MATRIX</span>
+                            <span id="exit-ratio-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-700">7/7 SAFE • 0% RISK</span>
                         </span>
-                        <span class="text-[9.5px] text-gray-400 font-mono">Real-Time Risk &amp; S/R Protection</span>
+                        <span class="text-[9.5px] text-gray-400 font-mono">Risk &amp; S/R Protection</span>
                     </div>
 
                     <!-- Checklist Table -->
@@ -3717,11 +3760,17 @@
                                     <th class="py-1 px-1.5">Factor</th>
                                     <th class="py-1 px-1.5">Trigger / Anchor Level</th>
                                     <th class="py-1 px-1.5">Current Distance / State</th>
-                                    <th class="py-1 px-1.5">Status</th>
+                                    <th class="py-1 px-1.5">Tick / Status</th>
                                     <th class="py-1 px-1.5 text-right">Recommendation</th>
                                 </tr>
                             </thead>
                             <tbody id="exit-matrix-tbody" class="divide-y divide-gray-800/60">
+                                <!-- GROUP 1: RISK & S/R GATES (✓ / ✗) -->
+                                <tr class="bg-slate-900/70">
+                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-purple-300 uppercase">
+                                        🛡️ Risk &amp; S/R Gates (✓ Safe • ✗ Against Us)
+                                    </td>
+                                </tr>
                                 <!-- Factor 1: SL -->
                                 <tr id="row-factor-sl">
                                     <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
@@ -3776,6 +3825,13 @@
                                         <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAN</span>
                                     </td>
                                     <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="fm-f4-action">NO REVERSE</td>
+                                </tr>
+
+                                <!-- GROUP 2: FLOW & DECAY FACTORS -->
+                                <tr class="bg-slate-900/70">
+                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-cyan-300 uppercase">
+                                        📊 30-Depth Flow &amp; Decay Factors
+                                    </td>
                                 </tr>
 
                                 <!-- Factor 5: Futures 30-Depth Flow -->
@@ -4187,6 +4243,9 @@
         // 3. High-Probability Confluence Alert (Combined)
         confluenceEnabled: true,
         confluenceSound: 'siren',
+        entryConfidenceThreshold: 80,   // Overall Entry Matrix Confidence % to trigger alarm & trade
+        exitRiskAlarmEnabled: true,     // Alert when Exit Matrix risk % crosses threshold
+        exitRiskAlarmThreshold: 40,     // Exit Risk % threshold (default 40%)
         // 4. Heikin Ashi Single-Wick Entry Filter
         stocksHaWickFilter: true,
         optionsHaWickFilter: true,
@@ -4235,6 +4294,8 @@
     let oWeightageData = null; // Stocks data for Chart 2 (oTimeframe)
     let oBreadthData = null;   // Options data for Chart 2 (oTimeframe)
     let trendingOiData = null;
+    let orderFlow5mData = null;
+    let orderFlowIntelData = null;
     let activeBuildupTf = '5m';
 
     // Chart instances
@@ -8327,6 +8388,34 @@
         const wHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, false, timeStr) : null;
         const oHaAnalysis = candleTime ? getCandleHaWickAnalysis(candleTime, true, timeStr) : null;
 
+        // 0. WEIGHTED ENTRY MATRIX CONFIDENCE ALARM (Catches near-misses like 78% Stk + 100% Opt + 30-Depth when VWAP aligns)
+        if (typeof evaluateEntryConfidence === 'function' && triggerCandle) {
+            const optUpWt = oBreadth ? Number(oBreadth.up_weight || 0) : 0;
+            const optDownWt = oBreadth ? Number(oBreadth.down_weight || 0) : 0;
+            const oiSnap = typeof getTrendingOiSnapshotAtTime === 'function' ? getTrendingOiSnapshotAtTime(timeStr) : null;
+            const depthSnap = typeof getOrderFlowDepthAtTime === 'function' ? getOrderFlowDepthAtTime(timeStr) : null;
+            const cClose = Number(triggerCandle.close || 0);
+            const evalRes = evaluateEntryConfidence({ b: wBreadth, optUpWt, optDownWt, oiSnap, depthSnap, cClose, curVwap: null, tStr: timeStr });
+            if (evalRes.meetsScore && !((wBull && oBull) || (wBear && oBear)) && !wBull && !wBear) {
+                alertedCandlesSet.add(timeStr);
+                triggerAlarmModal({
+                    type: 'CONFLUENCE',
+                    direction: evalRes.dir,
+                    title: `⚡ ENTRY MATRIX ${evalRes.totalScore}% CONFIDENCE (${evalRes.dir})`,
+                    score: evalRes.totalScore,
+                    threshold: evalRes.confThreshold,
+                    time: timeStr,
+                    count: evalRes.isBull ? wBreadth?.green_count : wBreadth?.red_count,
+                    weight: evalRes.isBull ? wBreadth?.green_weight : wBreadth?.red_weight,
+                    optWeight: evalRes.optVal,
+                    optCount: evalRes.isBull ? oBreadth?.up_count : oBreadth?.down_count,
+                    sound: alarmSettings.confluenceSound,
+                    candle: triggerCandle
+                });
+                return;
+            }
+        }
+
         // 1. COMBINED HIGH-PROBABILITY CONFLUENCE (Both Weightage and Options Agree in Same Direction!)
         if (alarmSettings.confluenceEnabled && ((wBull && oBull) || (wBear && oBear))) {
             const isBull = (wBull && oBull);
@@ -9617,7 +9706,11 @@
         }
     }
 
-    async function loadAllData(isSilent = false) {
+    async function loadAllData(isSilent = false, forceRefresh = false) {
+        if (window._stkSyncRetryTimer) {
+            clearTimeout(window._stkSyncRetryTimer);
+            window._stkSyncRetryTimer = null;
+        }
         if (!isSilent) {
             showChartLoaders(selectedDate);
         }
@@ -9628,9 +9721,27 @@
         const wMin = getTfMinutes(wTimeframe);
         const oMin = getTfMinutes(oTimeframe);
         const bMode = alarmSettings.optionsBasketMode || 'fixed';
+        const refreshParam = forceRefresh ? '&refresh=1' : '';
+
+        // 4. Fetch Real 30-Depth Order Flow (5m Aggressive Volume & Delta + Live Intelligence)
+        const pOf5m = fetchJsonSafe(`/api/order-flow/5m-volume-flow?symbol=NIFTY&date=${selectedDate}&_t=${Date.now()}`)
+            .then(data => {
+                if (data && data.success !== false) {
+                    orderFlow5mData = data;
+                }
+            })
+            .catch(e => console.warn('30-Depth 5m flow fetch skipped:', e));
+
+        const pOfIntel = fetchJsonSafe(`/api/order-flow/intelligence/latest?symbol=NIFTY&date=${selectedDate}&_t=${Date.now()}`)
+            .then(data => {
+                if (data && data.success !== false) {
+                    orderFlowIntelData = data.snapshot || null;
+                }
+            })
+            .catch(e => console.warn('30-Depth intelligence fetch skipped:', e));
 
         // 1. Fetch Chart 1 Stocks & Options (wTimeframe with wChartBasis)
-        const pChart1Stk = fetchJsonSafe(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&basis=${wChartBasis}&_t=${Date.now()}`)
+        const pChart1Stk = fetchJsonSafe(`/api/nifty-weightage-monitor/data?date=${selectedDate}&interval=${wMin}&basis=${wChartBasis}${refreshParam}&_t=${Date.now()}`)
             .then(data => {
                 if (data && !data.error) {
                     wWeightageData = data;
@@ -9642,6 +9753,16 @@
                     renderWeightageColumn();
                     if (breadthData) renderOptionsBreadthColumn();
                     buildMasterTimeline();
+
+                    // If the latest closed candle's 5m stock data is still syncing to DB, retry in 5s
+                    const cList = wWeightageData.candles || [];
+                    if (data.is_live && cList.length >= 2) {
+                        const prevClosed = cList[cList.length - 2];
+                        const prevB = prevClosed ? wWeightageData.breadth_by_time?.[prevClosed.time_str] : null;
+                        if (prevB && prevB.is_complete === false) {
+                            window._stkSyncRetryTimer = setTimeout(() => loadAllData(true, true), 5000);
+                        }
+                    }
                 }
             })
             .catch(e => console.error('Error fetching Chart 1 Weightage:', e))
@@ -9770,7 +9891,7 @@
         const pMultiDayOf = fetchMultiDayOrderFlowLevels();
 
         try {
-            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow, pMultiDayOf]);
+            await Promise.allSettled([pChart1Stk, pChart1Opt, pChart2Stk, pChart2Opt, pTrendingOi, pQuant, pOrderFlow, pMultiDayOf, pOf5m, pOfIntel]);
             renderWeightageColumn();
             renderOptionsBreadthColumn();
             applyAllSectionHeights();
@@ -14238,6 +14359,9 @@
             alarmSettings.masterEnabled = document.getElementById('alarm-active-toggle').checked;
             alarmSettings.volume = (parseInt(document.getElementById('alarm-volume-slider').value, 10)) / 100.0;
             alarmSettings.triggerOnClose = document.getElementById('alarm-trigger-on-close-toggle')?.checked !== false;
+            alarmSettings.entryConfidenceThreshold = Math.min(100, Math.max(50, parseInt(document.getElementById('entry-confidence-threshold-input')?.value, 10) || 80));
+            alarmSettings.exitRiskAlarmEnabled = document.getElementById('exit-risk-alarm-enabled')?.checked !== false;
+            alarmSettings.exitRiskAlarmThreshold = Math.min(100, Math.max(15, parseInt(document.getElementById('exit-risk-threshold-input')?.value, 10) || 40));
 
             // 1. Stocks settings
             alarmSettings.stocksAlertEnabled = document.getElementById('stocks-alert-enabled').checked;
@@ -14361,6 +14485,12 @@
     function syncModalFieldsWithSettings() {
         const activeToggle = document.getElementById('alarm-active-toggle');
         if (activeToggle) activeToggle.checked = alarmSettings.masterEnabled;
+        const entryConfIn = document.getElementById('entry-confidence-threshold-input');
+        if (entryConfIn) entryConfIn.value = alarmSettings.entryConfidenceThreshold || 80;
+        const exitRiskEn = document.getElementById('exit-risk-alarm-enabled');
+        if (exitRiskEn) exitRiskEn.checked = alarmSettings.exitRiskAlarmEnabled !== false;
+        const exitRiskIn = document.getElementById('exit-risk-threshold-input');
+        if (exitRiskIn) exitRiskIn.value = alarmSettings.exitRiskAlarmThreshold || 40;
         const statusBadge = document.getElementById('alarm-status-badge');
         if (statusBadge) {
             statusBadge.textContent = alarmSettings.masterEnabled ? 'ENABLED' : 'MUTED';
@@ -14604,7 +14734,7 @@
                 const curBucketIdx = Math.floor((currentMinutes * 60 + currentSeconds - bufferSec) / (tfM * 60));
                 if (lastCandleSyncBucket !== -1 && curBucketIdx !== lastCandleSyncBucket) {
                     lastCandleSyncBucket = curBucketIdx;
-                    loadAllData(true);
+                    loadAllData(true, true);
                 } else if (lastCandleSyncBucket === -1) {
                     lastCandleSyncBucket = curBucketIdx;
                 }
@@ -14620,7 +14750,7 @@
                 const curMinIdx = Math.floor((Math.floor(now.getTime() / 1000) - bufferSec) / 60);
                 if (lastStockSyncBucket !== -1 && curMinIdx !== lastStockSyncBucket) {
                     lastStockSyncBucket = curMinIdx;
-                    loadAllData(true);
+                    loadAllData(true, true);
                 } else if (lastStockSyncBucket === -1) {
                     lastStockSyncBucket = curMinIdx;
                 }
@@ -15385,6 +15515,167 @@
         };
     }
 
+    // ── Real 30-Depth Helper (5m Aggressive Volume & Delta + Live Intelligence) ──
+    function getOrderFlowDepthAtTime(tStr) {
+        const buckets = orderFlow5mData?.buckets || [];
+        let bucket = null;
+        if (buckets.length > 0 && tStr) {
+            bucket = buckets.find(bk => bk.time_bucket === tStr) || null;
+            if (!bucket) {
+                for (let j = buckets.length - 1; j >= 0; j--) {
+                    if (buckets[j].time_bucket <= tStr) {
+                        bucket = buckets[j];
+                        break;
+                    }
+                }
+            }
+        }
+        const intel = orderFlowIntelData || null;
+        const tbqTsqRatio = intel ? Number(intel.tbq_tsq_ratio || 1.0) : null;
+        const askBlockQty = intel ? Number(intel.ask_block_qty || 0) : 0;
+        const askBlockPrice = intel ? Number(intel.ask_block_price || 0) : 0;
+        const bidBlockQty = intel ? Number(intel.bid_block_qty || 0) : 0;
+        const bidBlockPrice = intel ? Number(intel.bid_block_price || 0) : 0;
+
+        if (!bucket && !intel) {
+            return { hasData: false, bias: 'NEUTRAL', buyQty: 0, sellQty: 0, netDelta: 0, ratio: 1.0, runningCvd: 0, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary: 'Awaiting 30-Depth' };
+        }
+
+        const buyQty = bucket ? Number(bucket.buy_qty || 0) : 0;
+        const sellQty = bucket ? Number(bucket.sell_qty || 0) : 0;
+        const netDelta = bucket ? Number(bucket.net_delta || 0) : 0;
+        const runningCvd = bucket ? Number(bucket.running_cvd || 0) : (orderFlow5mData?.summary?.net_cvd || 0);
+        const ratio = (buyQty >= sellQty)
+            ? (sellQty > 0 ? (buyQty / sellQty) : (buyQty > 0 ? 9.9 : 1.0))
+            : (buyQty > 0 ? (sellQty / buyQty) : (sellQty > 0 ? 9.9 : 1.0));
+        const ratioSide = (buyQty >= sellQty) ? 'BUY' : 'SELL';
+
+        let bias = 'NEUTRAL';
+        if (netDelta > 0 && ratio >= 1.25) bias = 'BULL';
+        else if (netDelta < 0 && ratio >= 1.25) bias = 'BEAR';
+        else if (tbqTsqRatio !== null && tbqTsqRatio >= 1.25) bias = 'BULL';
+        else if (tbqTsqRatio !== null && tbqTsqRatio <= 0.80) bias = 'BEAR';
+
+        const fmtQty = (q) => {
+            const abs = Math.abs(q);
+            const sign = q < 0 ? '-' : '+';
+            if (abs >= 100000) return `${sign}${(abs / 100000).toFixed(1)}L`;
+            if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
+            return `${sign}${abs}`;
+        };
+        const summary = bucket
+            ? `${ratio.toFixed(2)}x ${ratioSide} • Δ ${fmtQty(netDelta)} • CVD ${fmtQty(runningCvd)}`
+            : `TBQ/TSQ ${tbqTsqRatio ? tbqTsqRatio.toFixed(2) + 'x' : '--'}`;
+
+        return { hasData: true, bias, buyQty, sellQty, netDelta, ratio, ratioSide, runningCvd, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary };
+    }
+
+    // ── Unified 100-Pt Weighted Entry Confidence Engine ──
+    function evaluateEntryConfidence({ b, optUpWt, optDownWt, oiSnap, depthSnap, cClose, curVwap, tStr }) {
+        const sUpTh = alarmSettings.stocksUpThreshold || 80;
+        const sDownTh = alarmSettings.stocksDownThreshold || 80;
+        const sTrig = alarmSettings.stocksTriggerBy || 'both';
+        const oUpTh = alarmSettings.optionsUpThreshold || 70;
+        const oDownTh = alarmSettings.optionsDownThreshold || 70;
+        const confThreshold = Number(alarmSettings.entryConfidenceThreshold) || 80;
+
+        const stkBullCount = b ? Number(b.green_count_pct || 0) : 0;
+        const stkBearCount = b ? Number(b.red_count_pct || 0) : 0;
+        const stkBullWt = b ? Number(b.green_weight || 0) : 0;
+        const stkBearWt = b ? Number(b.red_weight || 0) : 0;
+
+        const effBullStk = (sTrig === 'both') ? Math.min(stkBullCount, stkBullWt) : (sTrig === 'count' ? stkBullCount : (sTrig === 'weight' ? stkBullWt : Math.max(stkBullCount, stkBullWt)));
+        const effBearStk = (sTrig === 'both') ? Math.min(stkBearCount, stkBearWt) : (sTrig === 'count' ? stkBearCount : (sTrig === 'weight' ? stkBearWt : Math.max(stkBearCount, stkBearWt)));
+
+        // Dominant direction from Stock + Options
+        const bullStrength = effBullStk + (optUpWt * 0.6);
+        const bearStrength = effBearStk + (optDownWt * 0.6);
+        const dir = (bullStrength >= bearStrength) ? 'BULL' : 'BEAR';
+        const isBull = (dir === 'BULL');
+
+        // 1. Stock Breadth (40 pts max)
+        const stkVal = isBull ? effBullStk : effBearStk;
+        const stkTh = isBull ? sUpTh : sDownTh;
+        let stkPts = 0;
+        if (stkVal >= stkTh) stkPts = 40;
+        else if (stkVal >= 70) stkPts = Math.round(30 + ((stkVal - 70) / Math.max(1, stkTh - 70)) * 9);
+        else if (stkVal >= 55) stkPts = Math.round(14 + ((stkVal - 55) / 15) * 15);
+        else stkPts = Math.round((stkVal / 55) * 13);
+        const stkExactTrigger = (stkVal >= stkTh);
+
+        // 2. Options Flow (30 pts max)
+        const optVal = isBull ? optUpWt : optDownWt;
+        const optOpp = isBull ? optDownWt : optUpWt;
+        const optTh = isBull ? oUpTh : oDownTh;
+        let optPts = 0;
+        if (optOpp >= optTh) optPts = 0;
+        else if (optVal >= optTh) optPts = 30;
+        else if (optVal >= 55) optPts = Math.round(16 + ((optVal - 55) / Math.max(1, optTh - 55)) * 13);
+        else optPts = Math.round((optVal / 55) * 15);
+
+        // 3. OI Wall / Skew (10 pts max)
+        const oiDiffPct = oiSnap ? Number(oiSnap.diffPctVal || 0) : 0;
+        const vetoTh = Number(tradeEngineConfig.oiVetoThreshold) || 25;
+        let oiSkewPts = 6;
+        if (oiSnap) {
+            if (isBull) {
+                if (oiDiffPct <= -vetoTh) oiSkewPts = 0;
+                else if (oiDiffPct >= 20) oiSkewPts = 10;
+                else if (oiDiffPct >= 0) oiSkewPts = 8;
+                else oiSkewPts = 4;
+            } else {
+                if (oiDiffPct >= vetoTh) oiSkewPts = 0;
+                else if (oiDiffPct <= -20) oiSkewPts = 10;
+                else if (oiDiffPct <= 0) oiSkewPts = 8;
+                else oiSkewPts = 4;
+            }
+        }
+
+        // 4. OI Squeeze (10 pts max)
+        const sqzTh = Number(tradeEngineConfig.oiSqueezeThreshold) || 15;
+        let oiSqzPts = 5;
+        if (oiSnap) {
+            const absOi = Math.abs(oiDiffPct);
+            if (absOi <= sqzTh) oiSqzPts = 10;
+            else if (absOi <= 25) oiSqzPts = 6;
+            else oiSqzPts = 3;
+        }
+
+        // 5. 30-Depth Volume Flow (10 pts max)
+        let depthPts = 4;
+        if (depthSnap && depthSnap.hasData) {
+            if (depthSnap.bias === dir) depthPts = 10;
+            else if ((isBull && depthSnap.netDelta > 0) || (!isBull && depthSnap.netDelta < 0)) depthPts = 7;
+            else if (depthSnap.bias !== 'NEUTRAL') depthPts = 0;
+            else depthPts = 5;
+        }
+
+        const totalScore = Math.min(100, stkPts + optPts + oiSkewPts + oiSqzPts + depthPts);
+
+        // Hard Gate: VWAP Trend Alignment
+        const vwapValid = (curVwap === null || curVwap === undefined || curVwap <= 0)
+            ? true
+            : (isBull ? (cClose >= curVwap) : (cClose <= curVwap));
+
+        // Require at least meaningful stock impulse (>= 70%) OR exact stock threshold so pure side-factors can't fire on 50% flat market
+        const hasImpulse = (stkVal >= 70) || stkExactTrigger;
+        const meetsScore = hasImpulse && (totalScore >= confThreshold);
+
+        return {
+            dir,
+            isBull,
+            totalScore,
+            confThreshold,
+            meetsScore,
+            stkPts, optPts, oiSkewPts, oiSqzPts, depthPts,
+            stkVal, stkTh, stkExactTrigger,
+            optVal, optOpp, optTh,
+            oiDiffPct,
+            vwapValid,
+            isConf: (optVal >= optTh)
+        };
+    }
+
     function calcOptPriceAndPoints(trade, spotPrice, candleIdx) {
         const isBull = (trade.direction === 'BULL');
         const favorableSpotMove = isBull ? (spotPrice - trade.entrySpot) : (trade.entrySpot - spotPrice);
@@ -15891,34 +16182,23 @@
 
             } else if (i < rawCandles.length - 1 && candleState !== 'CONFIRMED_BREAKOUT' && candleState !== 'BREAKOUT_REJECTED') {
                 const isSessionLocked = (maxDailyLimit > 0 && executedSignalsCount >= maxDailyLimit);
+                const isStkDataComplete = (!b || b.is_complete !== false);
 
-                // 2. If NO active trade, scan for entry signals formed on candle i
-                let sBull = false, sBear = false;
-                if (b) {
-                    if (sTrig === 'both') {
-                        sBull = (b.green_count_pct >= sUpTh && b.green_weight >= sUpTh);
-                        sBear = (b.red_count_pct >= sDownTh && b.red_weight >= sDownTh);
-                    } else {
-                        sBull = (b.green_count_pct >= sUpTh || b.green_weight >= sUpTh);
-                        sBear = (b.red_count_pct >= sDownTh || b.red_weight >= sDownTh);
-                    }
-                }
-
-                let oBull = (optUpWt >= oUpTh);
-                let oBear = (optDownWt >= oDownTh);
-
-                const isConfBull = sBull && oBull;
-                const isConfBear = sBear && oBear;
-                const isStkBull = sBull && !oBear;
-                const isStkBear = sBear && !oBull;
+                if (!isStkDataComplete) {
+                    candleState = 'SYNCING_STOCKS';
+                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950/70 text-sky-300 border border-sky-700/60 font-bold animate-pulse">⏳ SYNCING 5M STOCKS</span>';
+                    diagnosticReason = `Waiting for 5-minute Nifty 50 stock breadth data for ${tStr} to finish storing in DB before evaluating trade entry.`;
+                } else {
+                // 2. If NO active trade, scan for entry signals formed on candle i using Weighted 100-Pt Confidence + Hard Gates
+                const depthSnap = getOrderFlowDepthAtTime(tStr);
+                const evalRes = evaluateEntryConfidence({ b, optUpWt, optDownWt, oiSnap, depthSnap, cClose, curVwap, tStr });
 
                 let triggeredDirection = null;
-                let isConf = false;
+                let isConf = evalRes.isConf;
 
-                if (isConfBull) { triggeredDirection = 'BULL'; isConf = true; }
-                else if (isConfBear) { triggeredDirection = 'BEAR'; isConf = true; }
-                else if (isStkBull) { triggeredDirection = 'BULL'; isConf = false; }
-                else if (isStkBear) { triggeredDirection = 'BEAR'; isConf = false; }
+                if (evalRes.meetsScore) {
+                    triggeredDirection = evalRes.dir;
+                }
 
                 if (triggeredDirection) {
                     const isSessionLocked = (tradeEngineConfig.entry_f8_daily_cap !== false && maxDailyLimit > 0 && executedSignalsCount >= maxDailyLimit);
@@ -16173,6 +16453,7 @@
                         verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ STANDBY (RANGE)</span>';
                         diagnosticReason = `Market Equilibrium / Range: Stocks Bull ${stkBullCount}% vs Bear ${stkBearCount}%, OI Skew ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%. No edge detected.`;
                     }
+                }
                 }
             } else {
                 candleState = 'STANDBY';
@@ -16923,23 +17204,40 @@
             f4Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
         }
 
-        // F5: 30-Depth Volume Flow
-        const spread = orderFlowLevelsData?.basis_spread || 0;
+        // F5: 30-Depth Volume Flow (Real /order-flow-depth 5m Delta & Ratio + Block Wall)
+        const rawCandlesForExit = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles || [];
+        const activeExitCandle = rawCandlesForExit[activeCandleIndex] || rawCandlesForExit[rawCandlesForExit.length - 1];
+        const activeExitTStr = activeExitCandle?.time_str || '';
+        const depthSnap = getOrderFlowDepthAtTime(activeExitTStr);
+
         const f5Anchor = document.getElementById('fm-f5-anchor');
         const f5Dist = document.getElementById('fm-f5-dist');
         const f5Status = document.getElementById('fm-f5-status');
         const f5Action = document.getElementById('fm-f5-action');
-        const spreadSupportive = isBull ? (spread >= 0) : (spread <= 0);
-        if (f5Anchor) f5Anchor.textContent = `Basis Spread: ${spread > 0 ? '+' : ''}${spread} pts`;
-        if (f5Dist) f5Dist.textContent = spreadSupportive ? 'Institutional Flow Aligned' : 'Spread Contraction Warning';
+
+        const depthAligned = !depthSnap.hasData || depthSnap.bias === 'NEUTRAL' || depthSnap.bias === trade.direction;
+        const nearAskWall = isBull && depthSnap.askBlockQty >= 5000 && depthSnap.askBlockPrice > spot && (depthSnap.askBlockPrice - spot) <= 20;
+        const nearBidWall = !isBull && depthSnap.bidBlockQty >= 5000 && depthSnap.bidBlockPrice < spot && (spot - depthSnap.bidBlockPrice) <= 20;
+        const f5Safe = depthAligned && !nearAskWall && !nearBidWall;
+
+        if (f5Anchor) {
+            f5Anchor.textContent = depthSnap.hasData
+                ? `${depthSnap.ratio.toFixed(2)}x ${depthSnap.ratioSide} • Δ ${depthSnap.netDelta >= 0 ? '+' : ''}${Math.round(depthSnap.netDelta / 1000)}k`
+                : 'Awaiting 30-Depth';
+        }
+        if (f5Dist) {
+            if (nearAskWall) f5Dist.textContent = `Ask Wall ${depthSnap.askBlockQty} @ ${depthSnap.askBlockPrice}`;
+            else if (nearBidWall) f5Dist.textContent = `Bid Wall ${depthSnap.bidBlockQty} @ ${depthSnap.bidBlockPrice}`;
+            else f5Dist.textContent = depthSnap.hasData ? depthSnap.summary : 'No 30-Depth Tape';
+        }
         if (f5Status) {
-            f5Status.innerHTML = spreadSupportive
-                ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 SUPPORTIVE</span>`
-                : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-800">🟡 WATCH</span>`;
+            f5Status.innerHTML = f5Safe
+                ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ ${depthSnap.bias === trade.direction ? 'ALIGNED' : 'NEUTRAL'}</span>`
+                : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold animate-pulse">✗ OPPOSED</span>`;
         }
         if (f5Action) {
-            f5Action.textContent = spreadSupportive ? 'FLOW ALIGNED' : 'MONITOR BASIS';
-            f5Action.className = spreadSupportive ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-amber-400';
+            f5Action.textContent = f5Safe ? (depthSnap.bias === trade.direction ? 'FLOW SUPPORTIVE' : 'FLOW NEUTRAL') : (nearAskWall || nearBidWall ? 'WALL WARNING' : 'FLOW REVERSAL');
+            f5Action.className = f5Safe ? 'py-1.5 px-1.5 text-right font-bold text-emerald-400' : 'py-1.5 px-1.5 text-right font-bold text-rose-400';
         }
 
         // F6: Theta & Greeks
@@ -16997,17 +17295,60 @@
             }
         }
 
+        // Exit Ratio & Alarm Evaluation (7 Factors)
+        const f1Safe = (slDist >= 0);
+        const f2Safe = (ydDist > 10);
+        const f3Safe = (tdDist > 10);
+        const f4Safe = true;
+        const f6Safe = isSell || (trade.pnlPoints >= -10);
+        const f7Safe = !isStagnant;
+
+        // Prefix ✓ / ✗ on F1..F4, F6, F7 status badges for instant visual clarity
+        if (f1Status) f1Status.innerHTML = f1Safe ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ SAFE</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold animate-pulse">✗ BREACHED</span>`;
+        if (f2Status) f2Status.innerHTML = f2Safe ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ CLEAR</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold animate-pulse">✗ NEAR WALL</span>`;
+        if (f3Status) f3Status.innerHTML = f3Safe ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ CLEAR</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold animate-pulse">✗ AT BARRIER</span>`;
+        if (f4Status) f4Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ CLEAN</span>`;
+        if (f6Status) f6Status.innerHTML = f6Safe ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ ${isSell ? 'THETA GAIN' : 'ACTIVE Δ'}</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold">✗ DECAY RISK</span>`;
+        if (f7Status) f7Status.innerHTML = f7Safe ? `<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ ACTIVE</span>` : `<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800 font-bold animate-pulse">✗ STAGNANT</span>`;
+
+        const exitChecks = [f1Safe, f2Safe, f3Safe, f4Safe, f5Safe, f6Safe, f7Safe];
+        const safeCount = exitChecks.filter(Boolean).length;
+        const exitRiskPct = Math.round(((exitChecks.length - safeCount) / exitChecks.length) * 100);
+        const exitAlarmTh = Number(alarmSettings.exitRiskAlarmThreshold) || 40;
+
+        const exitRatioBadge = document.getElementById('exit-ratio-badge');
+        if (exitRatioBadge) {
+            exitRatioBadge.textContent = `${safeCount}/${exitChecks.length} SAFE • ${exitRiskPct}% RISK`;
+            exitRatioBadge.className = (exitRiskPct >= exitAlarmTh)
+                ? 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-rose-950 text-rose-300 border border-rose-600 animate-pulse'
+                : (exitRiskPct > 0
+                    ? 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-amber-950 text-amber-300 border border-amber-700'
+                    : 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-700');
+        }
+
+        // Fire Exit Risk Alarm once per candle when threshold breached during live market
+        if (alarmSettings.masterEnabled && alarmSettings.exitRiskAlarmEnabled !== false && exitRiskPct >= exitAlarmTh && isLiveMarketOpen()) {
+            const exitAlarmKey = `${trade.id}_${activeExitTStr}_${exitRiskPct}`;
+            if (window._lastExitAlarmKey !== exitAlarmKey) {
+                window._lastExitAlarmKey = exitAlarmKey;
+                if (typeof playAlarmSound === 'function') playAlarmSound('pulse');
+            }
+        }
+
         // Summary Badge
         const summaryBadge = document.getElementById('exit-engine-summary-badge');
         if (summaryBadge) {
             if (slDist < 0) {
-                summaryBadge.textContent = 'CRITICAL: STOP LOSS BREACHED';
+                summaryBadge.textContent = '✗ CRITICAL: STOP LOSS BREACHED';
+                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-600 animate-pulse';
+            } else if (exitRiskPct >= exitAlarmTh) {
+                summaryBadge.textContent = `⚠️ EXIT RISK ${exitRiskPct}% (≥ ${exitAlarmTh}% ALERT)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-600 animate-pulse';
             } else if (ydDist <= 10 || tdDist <= 10) {
                 summaryBadge.textContent = 'APPROACHING RESISTANCE WALL';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-amber-950 text-amber-300 border border-amber-600';
             } else {
-                summaryBadge.textContent = 'POSITION IN GOOD HEALTH & DIRECTION';
+                summaryBadge.textContent = `✓ POSITION HEALTHY (${safeCount}/${exitChecks.length} SAFE)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700';
             }
         }
@@ -17066,6 +17407,32 @@
                 cumVol += rVol;
             }
             vwapVal = cumVol > 0 ? (cumTpVol / cumVol) : Number(candle.close);
+        }
+
+        const depthSnap = getOrderFlowDepthAtTime(tStr);
+        const evalRes = evaluateEntryConfidence({
+            b,
+            optUpWt,
+            optDownWt,
+            oiSnap,
+            depthSnap,
+            cClose: Number(candle.close),
+            curVwap: vwapVal,
+            tStr
+        });
+
+        const confBadge = document.getElementById('em-confidence-badge');
+        if (confBadge) {
+            confBadge.textContent = `SCORE: ${evalRes.totalScore}% / ${evalRes.confThreshold}% (${evalRes.dir})`;
+            if (evalRes.meetsScore && evalRes.vwapValid) {
+                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
+            } else if (evalRes.meetsScore && !evalRes.vwapValid) {
+                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-rose-950 text-rose-300 border border-rose-600';
+            } else if (evalRes.totalScore >= 70) {
+                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-amber-950 text-amber-300 border border-amber-700';
+            } else {
+                confBadge.className = 'px-1.5 py-0.2 rounded text-[9.5px] font-mono font-black bg-slate-900 text-gray-300 border border-slate-700';
+            }
         }
 
         // 1. Session Time
@@ -17258,32 +17625,48 @@
             }
         }
 
-        // 6. 30-Depth Flow
+        // 6. 30-Depth Flow (Real /order-flow-depth 5m Delta, Ratio & CVD)
         const f6State = document.getElementById('em-f6-state');
         const f6Status = document.getElementById('em-f6-status');
         const f6Action = document.getElementById('em-f6-action');
-        const basisVal = (typeof basisData !== 'undefined' && basisData?.current_basis !== undefined) 
-            ? Number(basisData.current_basis) : 0;
 
-        if (f6State) f6State.textContent = `Basis: ${basisVal >= 0 ? '+' : ''}${basisVal.toFixed(1)} pts`;
-        if (basisVal > 0) {
-            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 PREMIUM</span>';
-            if (f6Action) {
-                f6Action.textContent = 'FLOW BULLISH';
-                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-emerald-400';
-            }
-        } else if (basisVal < -10) {
-            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-800">🔴 DISCOUNT</span>';
-            if (f6Action) {
-                f6Action.textContent = 'BASIS CONTRACTION';
-                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-rose-400';
-            }
-        } else {
-            if (f6Status) f6Status.innerHTML = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ STABLE</span>';
-            if (f6Action) {
-                f6Action.textContent = 'DELTA NEUTRAL';
-                f6Action.className = 'py-1.5 px-1.5 text-right font-bold text-gray-400';
-            }
+        if (f6State) {
+            f6State.innerHTML = depthSnap.hasData
+                ? `<span class="${depthSnap.bias === 'BULL' ? 'text-emerald-300' : (depthSnap.bias === 'BEAR' ? 'text-rose-300' : 'text-cyan-300')}">${depthSnap.summary}</span>`
+                : '<span class="text-gray-400">Awaiting 30-Depth</span>';
+        }
+        if (f6Status) {
+            const dTick = (evalRes.depthPts >= 7) ? '✓' : (evalRes.depthPts <= 2 ? '✗' : '•');
+            const dCls = (evalRes.depthPts >= 7)
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                : (evalRes.depthPts <= 2 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
+            f6Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${dCls}">${dTick} ${evalRes.depthPts}/10</span>`;
+        }
+        if (f6Action) {
+            f6Action.textContent = !depthSnap.hasData ? 'NO TAPE' : (depthSnap.bias === 'BULL' ? 'FLOW BULLISH' : (depthSnap.bias === 'BEAR' ? 'FLOW BEARISH' : 'NEUTRAL'));
+            f6Action.className = `py-1.5 px-1.5 text-right font-bold ${depthSnap.bias === 'BULL' ? 'text-emerald-400' : (depthSnap.bias === 'BEAR' ? 'text-rose-400' : 'text-gray-400')}`;
+        }
+
+        // Update Scored Points Badges on F2, F3, F4, F5
+        if (f2Status) {
+            const sTick = (evalRes.stkPts >= 30) ? '✓' : (evalRes.stkPts < 15 ? '✗' : '•');
+            const sCls = (evalRes.stkPts >= 30) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : 'bg-slate-900 text-gray-300 border-slate-700';
+            f2Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${sCls}">${sTick} ${evalRes.stkPts}/40</span>`;
+        }
+        if (f3Status) {
+            const oTick = (evalRes.optPts >= 24) ? '✓' : (evalRes.optPts === 0 ? '✗' : '•');
+            const oCls = (evalRes.optPts >= 24) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : (evalRes.optPts === 0 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
+            f3Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${oCls}">${oTick} ${evalRes.optPts}/30</span>`;
+        }
+        if (f4Status) {
+            const oiTick = (evalRes.oiSkewPts >= 8) ? '✓' : (evalRes.oiSkewPts === 0 ? '✗' : '•');
+            const oiCls = (evalRes.oiSkewPts >= 8) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : (evalRes.oiSkewPts === 0 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
+            f4Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${oiCls}">${oiTick} ${evalRes.oiSkewPts}/10</span>`;
+        }
+        if (f5Status) {
+            const sqTick = (evalRes.oiSqzPts >= 8) ? '✓' : '•';
+            const sqCls = (evalRes.oiSqzPts >= 8) ? 'bg-amber-950 text-amber-300 border-amber-700' : 'bg-slate-900 text-gray-300 border-slate-700';
+            f5Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${sqCls}">${sqTick} ${evalRes.oiSqzPts}/10</span>`;
         }
 
         // 7. Signal Candle Breakout Confirmation
@@ -17451,17 +17834,14 @@
             } else if (tradeEngineConfig.entry_f4_oi_veto !== false && (isBullVetoed || isBearVetoed)) {
                 summaryBadge.textContent = 'VETOED: OPPOSING OI WALL';
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
-            } else if (!isVwapBypassed && ((sBull && !isVwapBullSafe) || (sBear && !isVwapBearSafe))) {
-                summaryBadge.textContent = '⛔ VETOED: SPOT COUNTER-TREND TO VWAP';
+            } else if (!isVwapBypassed && evalRes.meetsScore && !evalRes.vwapValid) {
+                summaryBadge.textContent = `✗ VETOED: SPOT COUNTER-TREND TO VWAP (SCORE ${evalRes.totalScore}%)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-700';
-            } else if (sBull && (tradeEngineConfig.entry_f4_oi_veto === false || !isBullVetoed)) {
-                summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKOUT READY' : '🟢 BULL SIGNAL: CRITERIA MET';
-                summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
-            } else if (sBear && (tradeEngineConfig.entry_f4_oi_veto === false || !isBearVetoed)) {
-                summaryBadge.textContent = isSqueeze ? '🚀 SQUEEZE BREAKDOWN READY' : '🔴 BEAR SIGNAL: CRITERIA MET';
+            } else if (evalRes.meetsScore && (tradeEngineConfig.entry_f4_oi_veto === false || (!isBullVetoed && !isBearVetoed))) {
+                summaryBadge.textContent = `✓ ${evalRes.dir} READY: SCORE ${evalRes.totalScore}% (≥ ${evalRes.confThreshold}%)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse';
             } else {
-                summaryBadge.textContent = 'SCANNING FOR 80% BREADTH SURGE';
+                summaryBadge.textContent = `SCANNING (${evalRes.totalScore}% / ${evalRes.confThreshold}%)`;
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
             }
         }

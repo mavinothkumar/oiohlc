@@ -251,6 +251,22 @@ class NiftyWeightageMonitorController extends Controller
         mt_srand($dateSeed);
 
         $stock5mBuckets = [];
+        $confirmedEqTs = 0;
+
+        $computeConfirmedEqTs = function ($groupedQuotes): int {
+            $latestBySym = [];
+            foreach ($groupedQuotes as $quotes) {
+                $lastQ = $quotes->last();
+                if ($lastQ) {
+                    $latestBySym[] = (int) ($lastQ->ts ?? Carbon::parse($lastQ->ts_at, 'Asia/Kolkata')->timestamp);
+                }
+            }
+            if (count($latestBySym) < 30) {
+                return 0;
+            }
+            sort($latestBySym);
+            return $latestBySym[count($latestBySym) - 30];
+        };
 
         if ($interval < 5) {
             // For 1m and 3m intervals, query 1-minute real equity quotes
@@ -263,6 +279,7 @@ class NiftyWeightageMonitorController extends Controller
                 ->groupBy('trading_symbol');
 
             if ($realEqQuotes->count() >= 30) {
+                $confirmedEqTs = $computeConfirmedEqTs($realEqQuotes);
                 if ($interval === 1) {
                     foreach ($realEqQuotes as $sym => $quotes) {
                         foreach ($quotes as $q) {
@@ -314,6 +331,7 @@ class NiftyWeightageMonitorController extends Controller
                     ->groupBy('trading_symbol');
 
                 if ($realEqQuotes->count() >= 30) {
+                    $confirmedEqTs = $computeConfirmedEqTs($realEqQuotes);
                     $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($realEqQuotes->toArray(), 5);
                 }
             }
@@ -339,6 +357,7 @@ class NiftyWeightageMonitorController extends Controller
                     ->groupBy('trading_symbol');
 
                 if ($realEqQuotes->count() >= 30) {
+                    $confirmedEqTs = $computeConfirmedEqTs($realEqQuotes);
                     $stock5mBuckets = \App\Services\TimeframeResampler::resampleStockQuotes($realEqQuotes->toArray(), $interval);
                 }
             }
@@ -643,6 +662,9 @@ class NiftyWeightageMonitorController extends Controller
             $nowTs = Carbon::now('Asia/Kolkata')->timestamp;
             $isTodayDate = ($date === Carbon::now('Asia/Kolkata')->toDateString());
             $isComplete = (!$isTodayDate) || ($nowTs >= $candleEndTs);
+            if ($isComplete && $isTodayDate && $confirmedEqTs > 0 && $confirmedEqTs < ($candleEndTs - 60)) {
+                $isComplete = false;
+            }
 
             $breadthByTime[$timeStr] = [
                 'time'               => $timeStr,
