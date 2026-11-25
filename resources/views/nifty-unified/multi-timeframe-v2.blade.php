@@ -3667,6 +3667,28 @@
                         <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span></span>
                     </div>
 
+                    <!-- Armed Setup & Squeeze Readiness Meter (Visible when a recent blocked impulse is waiting for OI Crossover/Unwind) -->
+                    <div id="em-armed-setup-banner" class="hidden mb-2 rounded-md border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-[#141b2d] to-[#141b2d] px-2.5 py-1.5 font-mono text-[10px]">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5">
+                                <span id="em-armed-badge" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black animate-pulse">⏳ ARMED</span>
+                                <span id="em-armed-title" class="font-bold text-gray-200">--</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[9.5px]">
+                                <span id="em-armed-window" class="text-sky-300 font-bold">--</span>
+                                <span class="text-gray-600">|</span>
+                                <span id="em-armed-drift-text" class="font-bold text-emerald-300">Drift: --</span>
+                                <div class="w-14 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                    <div id="em-armed-drift-bar" class="h-full bg-emerald-400 transition-all" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mt-1 pt-1 border-t border-amber-500/20 text-[9.5px]">
+                            <div id="em-armed-gates" class="flex items-center gap-2 text-gray-300">--</div>
+                            <span id="em-armed-action" class="font-black text-amber-300">WAITING FOR OI CROSSOVER / UNWIND</span>
+                        </div>
+                    </div>
+
                     <!-- Checklist Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-left font-mono text-[10.5px]">
@@ -15979,6 +16001,7 @@
         let currentTrade = null;
         let lastVetoedSignal = null;
         let armedImpulse = null;
+        let armedImpulseAtReplay = null;
         let pendingBreakout = null;
         let executedSignalsCount = 0;
         const maxDailyLimit = (Number(tradeEngineConfig.maxDailyTrades) !== undefined && !isNaN(Number(tradeEngineConfig.maxDailyTrades))) ? Number(tradeEngineConfig.maxDailyTrades) : 2;
@@ -16794,6 +16817,10 @@
                 pendingBreakoutAtReplay = pendingBreakout ? { ...pendingBreakout } : null;
                 executedTradesAtReplay = executedSignalsCount;
                 if (lastVetoedSignal) vetoedSignalAtReplay = { ...lastVetoedSignal };
+                const maxLb = Number(tradeEngineConfig.armedLookbackBars) || 4;
+                if (!activeTradeAtReplay && !pendingBreakoutAtReplay && armedImpulse && (i - armedImpulse.index) >= 0 && (i - armedImpulse.index) <= maxLb) {
+                    armedImpulseAtReplay = { ...armedImpulse };
+                }
             }
 
             telemetryLogs.push({
@@ -16818,7 +16845,7 @@
         // Update UI Cockpit, Matrix & Chart Price Lines
         updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal, activePendingBreakout, executedTradesAtReplay);
         updateExitMatrixUI(activeTrade);
-        updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap);
+        updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap, armedImpulseAtReplay);
         updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
     }
@@ -16988,7 +17015,7 @@
                 headerBadge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-amber-950 text-amber-300 font-mono font-bold border border-amber-500/80 animate-pulse';
             }
             if (headerPillText) {
-                headerPillText.textContent = `⚡ PENDING BREAKOUT: ${pendingBreakout.direction} at ${pendingBreakout.signalTime} | Trigger: ${pendingBreakout.triggerPrice.toFixed(2)} (${isBull ? 'High' : 'Low'}) | SL: ${pendingBreakout.baseSl.toFixed(2)}`;
+                headerPillText.textContent = `⚡ PENDING BREAKOUT: ${pendingBreakout.direction} at ${pendingBreakout.signalTime || pendingBreakout.time} | Trigger: ${pendingBreakout.triggerPrice.toFixed(2)} (${isBull ? 'High' : 'Low'}) | SL: ${pendingBreakout.baseSl.toFixed(2)}`;
             }
 
             if (sT1) sT1.textContent = 'T1: AWAIT';
@@ -17683,7 +17710,7 @@
     }
     window.updateExitMatrixUI = updateExitMatrixUI;
 
-    function updateEntryMatrixUI(candleIdx, pendingBreakout = null, executedTradesCount = 0, currentVwap = null) {
+    function updateEntryMatrixUI(candleIdx, pendingBreakout = null, executedTradesCount = 0, currentVwap = null, armedSetup = null) {
         const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
         if (!rawCandles || rawCandles.length === 0) return;
 
@@ -17760,6 +17787,78 @@
                 confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-amber-950 text-amber-300 border border-amber-700';
             } else {
                 confBadge.className = 'px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700';
+            }
+        }
+
+        // 0. Armed Setup & Squeeze Readiness Meter
+        const armedBanner = document.getElementById('em-armed-setup-banner');
+        if (armedBanner) {
+            const maxLb = Number(tradeEngineConfig.armedLookbackBars) || 4;
+            const barsElapsed = armedSetup ? (candleIdx - armedSetup.index) : -1;
+            if (armedSetup && !pendingBreakout && barsElapsed >= 0 && barsElapsed <= maxLb) {
+                armedBanner.classList.remove('hidden');
+                const armDir = armedSetup.direction;
+                const maxDrift = Number(tradeEngineConfig.maxArmedDriftPts ?? 80);
+                const contFloor = Number(tradeEngineConfig.armedContMinPct) || 60;
+                const driftPts = Math.abs(cClose - armedSetup.close);
+                const driftOk = (maxDrift <= 0 || driftPts <= maxDrift);
+                const driftPct = maxDrift > 0 ? Math.min(100, Math.round((driftPts / maxDrift) * 100)) : 0;
+
+                const oiReady = (armDir === 'BULL')
+                    ? !!(oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
+                    : !!(oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
+                const flowReady = (armDir === 'BULL')
+                    ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && !sBear)
+                    : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !sBull);
+                const vwapReady = (tradeEngineConfig.entry_f9_vwap === false)
+                    ? true
+                    : ((armDir === 'BULL' && cClose >= (currentVwap || cClose)) || (armDir === 'BEAR' && cClose <= (currentVwap || cClose)));
+
+                const badgeEl = document.getElementById('em-armed-badge');
+                const titleEl = document.getElementById('em-armed-title');
+                const winEl = document.getElementById('em-armed-window');
+                const dTxtEl = document.getElementById('em-armed-drift-text');
+                const dBarEl = document.getElementById('em-armed-drift-bar');
+                const gatesEl = document.getElementById('em-armed-gates');
+                const actEl = document.getElementById('em-armed-action');
+
+                if (badgeEl) {
+                    badgeEl.textContent = `⏳ ARMED ${armDir}`;
+                    badgeEl.className = armDir === 'BULL'
+                        ? 'px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-black animate-pulse'
+                        : 'px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-black animate-pulse';
+                }
+                if (titleEl) titleEl.textContent = `From ${armedSetup.time} (${armedSetup.peakLabel})`;
+                if (winEl) {
+                    const leftBars = maxLb - barsElapsed;
+                    winEl.textContent = `Window: ${barsElapsed}/${maxLb} bars (${leftBars * 5}m left)`;
+                }
+                if (dTxtEl) {
+                    dTxtEl.textContent = maxDrift > 0 ? `Drift: ${driftPts.toFixed(1)}/${maxDrift}p` : `Drift: ${driftPts.toFixed(1)}p`;
+                    dTxtEl.className = !driftOk ? 'font-bold text-rose-400' : (driftPct >= 65 ? 'font-bold text-amber-300' : 'font-bold text-emerald-300');
+                }
+                if (dBarEl) {
+                    dBarEl.style.width = `${driftPct}%`;
+                    dBarEl.className = !driftOk ? 'h-full bg-rose-500 transition-all' : (driftPct >= 65 ? 'h-full bg-amber-400 transition-all' : 'h-full bg-emerald-400 transition-all');
+                }
+                if (gatesEl) {
+                    const pill = (lbl, ok) => `<span class="${ok ? 'text-emerald-300' : 'text-gray-400'}">${ok ? '✓' : '⏳'} ${lbl}</span>`;
+                    gatesEl.innerHTML = `${pill(`Flow ≥${contFloor}%`, flowReady)} • ${pill('VWAP Aligned', vwapReady)} • ${pill('OI Cross/Unwind', oiReady)}`;
+                }
+                if (actEl) {
+                    if (!driftOk) {
+                        actEl.textContent = 'DRIFT EXCEEDED (SKIPPED)';
+                        actEl.className = 'font-black text-rose-400';
+                    } else if (oiReady && flowReady && vwapReady) {
+                        actEl.textContent = '⚡ SQUEEZE READY TO FIRE!';
+                        actEl.className = 'font-black text-emerald-300 animate-pulse';
+                    } else {
+                        actEl.textContent = 'WAITING FOR OI CROSSOVER / UNWIND';
+                        actEl.className = 'font-black text-amber-300';
+                    }
+                }
+            } else {
+                armedBanner.classList.add('hidden');
             }
         }
 
