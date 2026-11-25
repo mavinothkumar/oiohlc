@@ -382,7 +382,8 @@ class OptionsBreadthMonitorController extends Controller
             $basketMode,
             $strikesArr,
             $range,
-            $spotPrice ?: 23000
+            $spotPrice ?: 23000,
+            $interval
         );
 
         // Fetch previous trading date candles for seamless history pan & SuperTrend burn-in
@@ -931,7 +932,8 @@ class OptionsBreadthMonitorController extends Controller
         string $basketMode = 'dynamic',
         array $allStrikesArr = [],
         int $range = 5,
-        $initialSpot = 23000
+        $initialSpot = 23000,
+        int $interval = 5
     ): array {
         // Query CE & PE options records combined in a single indexed query
         $indexHint = $this->getOptimalIndexHint($table);
@@ -951,8 +953,17 @@ class OptionsBreadthMonitorController extends Controller
         $peGrid = [];
         $timestampsSet = [];
 
+        $stepMin = max(1, $interval);
         foreach ($optRows as $r) {
-            $t = Carbon::parse($r->captured_at)->format('H:i');
+            $ts = Carbon::parse($r->captured_at);
+            $minsSinceOpen = ($ts->hour * 60 + $ts->minute) - (9 * 60 + 15);
+            if ($minsSinceOpen < 0) continue;
+            if ($stepMin >= 375) {
+                $t = '09:15';
+            } else {
+                $bucketMins = (int)(floor($minsSinceOpen / $stepMin) * $stepMin) + (9 * 60 + 15);
+                $t = sprintf('%02d:%02d', intdiv($bucketMins, 60), $bucketMins % 60);
+            }
             if ($r->option_type === 'CE') {
                 $ceGrid[$r->strike_price][$t] = $r;
             } else {
