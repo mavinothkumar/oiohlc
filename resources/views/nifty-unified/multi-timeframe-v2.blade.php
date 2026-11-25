@@ -17003,7 +17003,7 @@
                 const pbSl = document.getElementById('pb-base-sl');
                 if (pbSl) pbSl.textContent = pendingBreakout.baseSl.toFixed(2);
                 const pbTime = document.getElementById('pb-signal-time');
-                if (pbTime) pbTime.textContent = pendingBreakout.signalTime;
+                if (pbTime) pbTime.textContent = pendingBreakout.signalTime || pendingBreakout.time;
                 const pbLabel = document.getElementById('pb-trigger-label');
                 if (pbLabel) pbLabel.textContent = `${isBull ? 'High ≥ ' : 'Low ≤ '}${pendingBreakout.triggerPrice.toFixed(2)}`;
             }
@@ -17800,7 +17800,13 @@
                 const armDir = armedSetup.direction;
                 const maxDrift = Number(tradeEngineConfig.maxArmedDriftPts ?? 80);
                 const contFloor = Number(tradeEngineConfig.armedContMinPct) || 60;
-                const driftPts = Math.abs(cClose - armedSetup.close);
+                const cCloseVal = Number(candle.close);
+                const sUpTh = Number(tradeEngineConfig.stockThreshold) || 80;
+                const sDownTh = Number(tradeEngineConfig.stockThreshold) || 80;
+                const armSBull = (stkBullCount >= sUpTh && stkBullWt >= sUpTh);
+                const armSBear = (stkBearCount >= sDownTh && stkBearWt >= sDownTh);
+
+                const driftPts = Math.abs(cCloseVal - armedSetup.close);
                 const driftOk = (maxDrift <= 0 || driftPts <= maxDrift);
                 const driftPct = maxDrift > 0 ? Math.min(100, Math.round((driftPts / maxDrift) * 100)) : 0;
 
@@ -17808,11 +17814,11 @@
                     ? !!(oiSnap && (oiSnap.isBullCrossover || oiSnap.isCallUnwinding))
                     : !!(oiSnap && (oiSnap.isBearCrossover || oiSnap.isPutUnwinding));
                 const flowReady = (armDir === 'BULL')
-                    ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && !sBear)
-                    : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !sBull);
+                    ? ((stkBullWt >= contFloor || optUpWt >= (contFloor + 5)) && !armSBear)
+                    : ((stkBearWt >= contFloor || optDownWt >= (contFloor + 5)) && !armSBull);
                 const vwapReady = (tradeEngineConfig.entry_f9_vwap === false)
                     ? true
-                    : ((armDir === 'BULL' && cClose >= (currentVwap || cClose)) || (armDir === 'BEAR' && cClose <= (currentVwap || cClose)));
+                    : ((armDir === 'BULL' && cCloseVal >= (vwapVal || cCloseVal)) || (armDir === 'BEAR' && cCloseVal <= (vwapVal || cCloseVal)));
 
                 const badgeEl = document.getElementById('em-armed-badge');
                 const titleEl = document.getElementById('em-armed-title');
