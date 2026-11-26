@@ -3125,6 +3125,12 @@
                 </select>
             </div>
 
+            <!-- ZeroClick Execution Mode Toggle (OFF / SIM / LIVE) -->
+            <button id="btn-zeroclick-mode-toggle" type="button" onclick="cycleZeroClickMode()" title="0click.in Auto-Execution Bridge: OFF | SIM (Paper) | LIVE (Real Broker)" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded text-[9.5px] font-mono font-bold border border-slate-700 flex items-center gap-1 cursor-pointer transition">
+                <span id="zc-mode-icon">🔌</span>
+                <span id="zc-mode-label">0click: OFF</span>
+            </button>
+
             <!-- Show All vs Active Only Toggle -->
             <button id="btn-toggle-trade-history-mode" type="button" onclick="toggleTradeHistoryMode()" title="Toggle: Show Recent Active Trade Only vs Show All Trades of the Day" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9.5px] font-semibold border border-slate-700 flex items-center gap-1 cursor-pointer transition">
                 <span id="trade-history-mode-icon">🔄</span>
@@ -16933,6 +16939,7 @@
         updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap, armedImpulseAtReplay);
         updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
+        syncZeroClickV2Lifecycle(activeTrade, sessionTrades);
     }
     window.runHighProbabilityTradeEngine = runHighProbabilityTradeEngine;
 
@@ -18505,6 +18512,169 @@
         }
     }
     window.toggleTradeDrawerUndock = toggleTradeDrawerUndock;
+
+    // ── ZeroClick.in V2 Execution Bridge (OFF / SIMULATION / LIVE) ───────────────
+    let zeroClickV2Mode = localStorage.getItem('v2_zeroclick_mode') || 'OFF'; // 'OFF' | 'SIMULATION' | 'LIVE'
+
+    function updateZeroClickModeUI() {
+        const btn = document.getElementById('btn-zeroclick-mode-toggle');
+        const icon = document.getElementById('zc-mode-icon');
+        const lbl = document.getElementById('zc-mode-label');
+        if (!btn || !icon || !lbl) return;
+
+        if (zeroClickV2Mode === 'LIVE') {
+            icon.textContent = '⚡';
+            lbl.textContent = '0click: LIVE';
+            btn.className = 'px-2 py-0.5 bg-rose-950/90 hover:bg-rose-900 text-rose-200 rounded text-[9.5px] font-mono font-black border border-rose-500 flex items-center gap-1 cursor-pointer transition shadow-[0_0_8px_rgba(244,63,94,0.4)]';
+        } else if (zeroClickV2Mode === 'SIMULATION') {
+            icon.textContent = '🧪';
+            lbl.textContent = '0click: SIM';
+            btn.className = 'px-2 py-0.5 bg-cyan-950/90 hover:bg-cyan-900 text-cyan-200 rounded text-[9.5px] font-mono font-black border border-cyan-500/70 flex items-center gap-1 cursor-pointer transition';
+        } else {
+            icon.textContent = '🔌';
+            lbl.textContent = '0click: OFF';
+            btn.className = 'px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded text-[9.5px] font-mono font-bold border border-slate-700 flex items-center gap-1 cursor-pointer transition';
+        }
+    }
+
+    function cycleZeroClickMode() {
+        if (zeroClickV2Mode === 'OFF') {
+            zeroClickV2Mode = 'SIMULATION';
+        } else if (zeroClickV2Mode === 'SIMULATION') {
+            if (!confirm('Switch 0click.in bridge from SIMULATION to LIVE real-broker execution?')) {
+                zeroClickV2Mode = 'OFF';
+            } else {
+                zeroClickV2Mode = 'LIVE';
+            }
+        } else {
+            zeroClickV2Mode = 'OFF';
+        }
+        try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
+        updateZeroClickModeUI();
+    }
+    window.cycleZeroClickMode = cycleZeroClickMode;
+
+    function getZeroClickSyncState(dateStr) {
+        const key = `v2_zc_sync_${dateStr}`;
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : { entries: {}, sls: {}, exits: {} };
+        } catch (e) {
+            return { entries: {}, sls: {}, exits: {} };
+        }
+    }
+
+    function saveZeroClickSyncState(dateStr, st) {
+        try { localStorage.setItem(`v2_zc_sync_${dateStr}`, JSON.stringify(st)); } catch (e) {}
+    }
+
+    async function syncZeroClickV2Lifecycle(activeTr, completedTrades) {
+        if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
+        const liveToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (typeof selectedDate === 'undefined' || selectedDate !== liveToday) return;
+        if (typeof isBarReplayMode !== 'undefined' && isBarReplayMode) return;
+
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const st = getZeroClickSyncState(liveToday);
+
+        // 1. Entry & Trailing SL Sync for Active Trade (chosen single leg only)
+        if (activeTr && activeTr.status === 'ACTIVE') {
+            const chosenSide = (activeTr.action === 'SELL') ? 'SELL' : 'BUY';
+            const uid = `${liveToday}_${activeTr.id}_${activeTr.direction}_${chosenSide}`;
+
+            if (!st.entries[uid]) {
+                st.entries[uid] = 'PENDING';
+                saveZeroClickSyncState(liveToday, st);
+                try {
+                    const res = await fetch('/api/v2/zeroclick/entry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                        body: JSON.stringify({
+                            trade_uid: uid,
+                            mode: zeroClickV2Mode,
+                            direction: activeTr.direction,
+                            order_side: chosenSide,
+                            strike: activeTr.strike,
+                            opt_type: activeTr.optType,
+                            instrument: activeTr.instrument,
+                            entry_spot: activeTr.entrySpot,
+                            sl_spot: activeTr.currentSl,
+                            tp_spot: activeTr.t2 || activeTr.t1,
+                            lots: activeTr.entryLots || 1,
+                            candle_time: activeTr.entryTime,
+                            entry_reason: `[${activeTr.setupType || 'STANDARD'}] ${activeTr.setupReason || 'V2 Entry'} | Spot ${activeTr.entrySpot} | SL ${activeTr.baseSl}`
+                        })
+                    }).then(r => r.json());
+                    st.entries[uid] = res.success ? 'SENT' : 'FAILED';
+                    st.sls[uid] = Number(activeTr.currentSl);
+                    saveZeroClickSyncState(liveToday, st);
+                } catch (e) {
+                    st.entries[uid] = 'FAILED';
+                    saveZeroClickSyncState(liveToday, st);
+                }
+            } else if (st.entries[uid] === 'SENT' && Number(activeTr.currentSl) !== Number(st.sls[uid])) {
+                // Trailing SL moved (Cost / T1 / Stagnation 1:1) -> sync to 0click.in
+                st.sls[uid] = Number(activeTr.currentSl);
+                saveZeroClickSyncState(liveToday, st);
+                fetch('/api/v2/zeroclick/sync-sl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                    body: JSON.stringify({
+                        trade_uid: uid,
+                        mode: zeroClickV2Mode,
+                        direction: activeTr.direction,
+                        strike: activeTr.strike,
+                        opt_type: activeTr.optType,
+                        instrument: activeTr.instrument,
+                        current_spot: activeTr.currentSpot,
+                        sl_spot: activeTr.currentSl,
+                        peak_spot: activeTr.peakSpot || activeTr.currentSpot,
+                        candle_time: activeTr.entryTime,
+                        sl_reason: `${activeTr.slType || 'TRAILING_SL'} shifted to ${activeTr.currentSl}`
+                    })
+                }).catch(() => {});
+            }
+        }
+
+        // 2. Pre-Verified Exit Sync for Completed Trades
+        if (Array.isArray(completedTrades)) {
+            for (const tr of completedTrades) {
+                if (!tr || !tr.exitTime) continue;
+                const chosenSide = (tr.action === 'SELL') ? 'SELL' : 'BUY';
+                const uid = `${liveToday}_${tr.id}_${tr.direction}_${chosenSide}`;
+                if (st.entries[uid] === 'SENT' && !st.exits[uid]) {
+                    st.exits[uid] = 'PENDING';
+                    saveZeroClickSyncState(liveToday, st);
+                    try {
+                        const res = await fetch('/api/v2/zeroclick/exit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                            body: JSON.stringify({
+                                trade_uid: uid,
+                                mode: zeroClickV2Mode,
+                                direction: tr.direction,
+                                strike: tr.strike,
+                                opt_type: tr.optType,
+                                instrument: tr.instrument,
+                                exit_spot: tr.exitSpot,
+                                candle_time: tr.exitTime,
+                                exit_reason: `${tr.exitReason || 'V2 Exit'} | Exit @ ${tr.exitSpot} | P&L ${tr.pnlPoints >= 0 ? '+' : ''}${tr.pnlPoints}p`
+                            })
+                        }).then(r => r.json());
+                        st.exits[uid] = res.already_closed ? 'CLOSED_EXTERNALLY' : (res.success ? 'CLOSED' : 'FAILED');
+                        saveZeroClickSyncState(liveToday, st);
+                    } catch (e) {
+                        st.exits[uid] = 'FAILED';
+                        saveZeroClickSyncState(liveToday, st);
+                    }
+                }
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateZeroClickModeUI();
+    });
 
     function toggleTradeSettingsPanel() {
         const panel = document.getElementById('trade-settings-panel');

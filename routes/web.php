@@ -408,6 +408,11 @@ Route::delete('/api/gamma-blast/alerts', [\App\Http\Controllers\GammaBlastRadarC
 
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
+
+// ZeroClick V2 Execution Bridge (Entry, Pre-Verified Exit, Trailing SL Sync)
+Route::post('/api/v2/zeroclick/entry',   [\App\Http\Controllers\ZeroClickBridgeController::class, 'entry'])->name('api.v2.zeroclick.entry');
+Route::post('/api/v2/zeroclick/exit',    [\App\Http\Controllers\ZeroClickBridgeController::class, 'exit'])->name('api.v2.zeroclick.exit');
+Route::post('/api/v2/zeroclick/sync-sl', [\App\Http\Controllers\ZeroClickBridgeController::class, 'syncSl'])->name('api.v2.zeroclick.sync_sl');
 Route::post('/api/nifty-weightage-monitor/alert-log', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'logAlert'])->name('api.nifty.weightage.monitor.alert-log');
 Route::get('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getAlertLogs'])->name('api.nifty.weightage.monitor.alert-logs');
 Route::post('/api/nifty-weightage-monitor/alert-logs/{id}/dispatch', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'dispatchAlertLog'])->name('api.nifty.weightage.monitor.alert-logs.dispatch');
