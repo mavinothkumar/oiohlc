@@ -3524,10 +3524,10 @@
                     <!-- Trade Action & Strategy Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <span id="at-action-badge" class="px-2 py-0.5 rounded text-[11px] font-black tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-600/60">
+                            <span id="at-action-badge" class="px-2 py-0.5 rounded text-xs font-black tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-600/60">
                                 🟢 BUY CALL
                             </span>
-                            <span id="at-instrument" class="font-mono font-bold text-xs text-white">NIFTY 24200 CE</span>
+                            <span id="at-instrument" class="font-mono font-black text-sm sm:text-base tracking-wide text-white">NIFTY 24200 CE</span>
                             <span id="at-setup-badge" class="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
                                 🎯 STANDARD
                             </span>
@@ -3593,42 +3593,42 @@
 
                         <div class="grid grid-cols-2 gap-1.5 mt-1.5 text-[10px] font-mono">
                             <!-- Option Selling Leg Card -->
-                            <div id="card-leg-seller" class="bg-[#151c2e] p-1.5 rounded border border-emerald-900/50 hover:border-emerald-500/50 transition">
-                                <div class="flex items-center justify-between text-[9px] mb-1">
+                            <div id="card-leg-seller" class="bg-[#151c2e] p-2 rounded border border-emerald-900/50 hover:border-emerald-500/50 transition">
+                                <div class="flex items-center justify-between text-[10px] mb-1">
                                     <span class="font-bold text-emerald-300 flex items-center gap-1">
                                         <span>🛡️ SELLING LEG</span>
-                                        <span id="at-sell-chosen-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-black bg-emerald-500 text-slate-950 uppercase">✓ CHOSEN</span>
+                                        <span id="at-sell-chosen-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase">✓ CHOSEN</span>
                                     </span>
-                                    <span id="at-sell-decay-rate" class="text-emerald-400 text-[8.5px]">+₹23/5m</span>
+                                    <span id="at-sell-decay-rate" class="text-emerald-400 text-[9.5px]">+₹23/5m</span>
                                 </div>
-                                <div id="at-sell-instrument" class="font-bold text-white text-[10.5px]">SELL 25500 PE</div>
-                                <div class="flex items-center justify-between text-[9px] text-gray-400 mt-0.5">
-                                    <span>Entry: <span id="at-sell-entry" class="text-amber-300">₹85.0</span></span>
-                                    <span>LTP: <span id="at-sell-curr" class="text-emerald-300">₹58.5</span></span>
+                                <div id="at-sell-instrument" class="font-black text-white text-sm sm:text-base tracking-wide">SELL 25500 PE</div>
+                                <div class="flex items-center justify-between text-[11px] text-gray-400 mt-1">
+                                    <span>Entry: <span id="at-sell-entry" class="text-amber-300 font-bold">₹85.0</span></span>
+                                    <span>LTP: <span id="at-sell-curr" class="text-emerald-300 font-bold">₹58.5</span></span>
                                 </div>
-                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold">
-                                    <span class="text-gray-400 text-[8.5px]">P&L (Δ 0.35):</span>
-                                    <span id="at-sell-pnl" class="text-emerald-400">+₹5,167 (+26.5p)</span>
+                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold text-xs">
+                                    <span class="text-gray-400 text-[10px]">P&L (Δ 0.35):</span>
+                                    <span id="at-sell-pnl" class="text-emerald-400 font-black">+₹5,167 (+26.5p)</span>
                                 </div>
                             </div>
 
                             <!-- Option Buying Leg Card -->
-                            <div id="card-leg-buyer" class="bg-[#151c2e] p-1.5 rounded border border-sky-900/50 hover:border-sky-500/50 transition">
-                                <div class="flex items-center justify-between text-[9px] mb-1">
+                            <div id="card-leg-buyer" class="bg-[#151c2e] p-2 rounded border border-sky-900/50 hover:border-sky-500/50 transition">
+                                <div class="flex items-center justify-between text-[10px] mb-1">
                                     <span class="font-bold text-sky-300 flex items-center gap-1">
                                         <span>🚀 BUYING LEG</span>
-                                        <span id="at-buy-chosen-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-black bg-sky-400 text-slate-950 uppercase">✓ CHOSEN</span>
+                                        <span id="at-buy-chosen-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-black bg-sky-400 text-slate-950 uppercase">✓ CHOSEN</span>
                                     </span>
-                                    <span class="text-sky-400 text-[8.5px]">Gamma Pop</span>
+                                    <span class="text-sky-400 text-[9.5px]">Gamma Pop</span>
                                 </div>
-                                <div id="at-buy-instrument" class="font-bold text-white text-[10.5px]">BUY 25600 CE</div>
-                                <div class="flex items-center justify-between text-[9px] text-gray-400 mt-0.5">
-                                    <span>Entry: <span id="at-buy-entry" class="text-amber-300">₹135.0</span></span>
-                                    <span>LTP: <span id="at-buy-curr" class="text-emerald-300">₹156.0</span></span>
+                                <div id="at-buy-instrument" class="font-black text-white text-sm sm:text-base tracking-wide">BUY 25600 CE</div>
+                                <div class="flex items-center justify-between text-[11px] text-gray-400 mt-1">
+                                    <span>Entry: <span id="at-buy-entry" class="text-amber-300 font-bold">₹135.0</span></span>
+                                    <span>LTP: <span id="at-buy-curr" class="text-emerald-300 font-bold">₹156.0</span></span>
                                 </div>
-                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold">
-                                    <span class="text-gray-400 text-[8.5px]">P&L (Δ 0.52):</span>
-                                    <span id="at-buy-pnl" class="text-emerald-400">+₹4,095 (+21.0p)</span>
+                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold text-xs">
+                                    <span class="text-gray-400 text-[10px]">P&L (Δ 0.52):</span>
+                                    <span id="at-buy-pnl" class="text-emerald-400 font-black">+₹4,095 (+21.0p)</span>
                                 </div>
                             </div>
                         </div>
