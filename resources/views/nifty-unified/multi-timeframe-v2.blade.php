@@ -15861,13 +15861,20 @@
         const sellQty = bucket ? Number(bucket.sell_qty || 0) : 0;
         const netDelta = bucket ? Number(bucket.net_delta || 0) : 0;
         const runningCvd = bucket ? Number(bucket.running_cvd || 0) : (orderFlow5mData?.summary?.net_cvd || 0);
+        const priceChange = bucket && bucket.price_change !== undefined ? Number(bucket.price_change) : 0;
+        const dynamics = bucket?.dynamics || 'NORMAL';
         const ratio = (buyQty >= sellQty)
             ? (sellQty > 0 ? (buyQty / sellQty) : (buyQty > 0 ? 9.9 : 1.0))
             : (buyQty > 0 ? (sellQty / buyQty) : (sellQty > 0 ? 9.9 : 1.0));
         const ratioSide = (buyQty >= sellQty) ? 'BUY' : 'SELL';
 
+        const isBullAbs = (dynamics === 'BULL_ABSORPTION') || (netDelta <= -15000 && priceChange >= 1.0);
+        const isBearAbs = (dynamics === 'BEAR_ABSORPTION') || (netDelta >= 15000 && priceChange <= -1.0);
+
         let bias = 'NEUTRAL';
-        if (netDelta > 0 && ratio >= 1.25) bias = 'BULL';
+        if (isBullAbs) bias = 'BULL';
+        else if (isBearAbs) bias = 'BEAR';
+        else if (netDelta > 0 && ratio >= 1.25) bias = 'BULL';
         else if (netDelta < 0 && ratio >= 1.25) bias = 'BEAR';
         else if (tbqTsqRatio !== null && tbqTsqRatio >= 1.25) bias = 'BULL';
         else if (tbqTsqRatio !== null && tbqTsqRatio <= 0.80) bias = 'BEAR';
@@ -15879,11 +15886,12 @@
             if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
             return `${sign}${abs}`;
         };
+        const absTag = isBullAbs ? '🛡️ BULL ABS • ' : (isBearAbs ? '🧱 BEAR ABS • ' : '');
         const summary = bucket
-            ? `${ratio.toFixed(2)}x ${ratioSide} • Δ ${fmtQty(netDelta)} • CVD ${fmtQty(runningCvd)}`
+            ? `${absTag}${ratio.toFixed(2)}x ${ratioSide} • Δ ${fmtQty(netDelta)} • CVD ${fmtQty(runningCvd)}`
             : `TBQ/TSQ ${tbqTsqRatio ? tbqTsqRatio.toFixed(2) + 'x' : '--'}`;
 
-        return { hasData: true, bias, buyQty, sellQty, netDelta, ratio, ratioSide, runningCvd, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary };
+        return { hasData: true, bias, isBullAbs, isBearAbs, dynamics, buyQty, sellQty, netDelta, ratio, ratioSide, runningCvd, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary };
     }
 
     // ── Unified 100-Pt Weighted Entry Confidence Engine ──

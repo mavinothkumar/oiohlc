@@ -415,87 +415,141 @@
                     </div>
                 </div>
 
-                {{-- Col 2 (70% width): Session Overall Dominance Radar (Left-to-Right Dual Comparison Charts) --}}
+                {{-- Col 2 (70% width): Session Overall Dominance Radar (75% Flow Bars + 25% Net CVD & Ratio Hero) --}}
+                @php
+                    $initIsBuyDom = $initBuyQty > $initSellQty * 1.15;
+                    $initIsSellDom = $initSellQty > $initBuyQty * 1.15;
+                    $initDomRatio = $initBuyQty >= $initSellQty ? $initRatio : $initSellRatio;
+                    $initDomSide = $initBuyQty >= $initSellQty ? 'BUY' : 'SELL';
+                    $initHeroBoxClass = $initIsBuyDom
+                        ? 'bg-emerald-950/35 border-emerald-500/40 shadow-inner shadow-emerald-500/10'
+                        : ($initIsSellDom
+                            ? 'bg-rose-950/35 border-rose-500/40 shadow-inner shadow-rose-500/10'
+                            : 'bg-slate-950/70 border-slate-800');
+                    if ($initIsBuyDom && $initRatio >= 2.0) {
+                        $initBiasText = 'BUY ON DIP';
+                        $initBiasClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+                    } elseif ($initIsBuyDom) {
+                        $initBiasText = 'BULLISH EDGE';
+                        $initBiasClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+                    } elseif ($initIsSellDom && $initSellRatio >= 2.0) {
+                        $initBiasText = 'SELL ON RALLY';
+                        $initBiasClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+                    } elseif ($initIsSellDom) {
+                        $initBiasText = 'BEARISH EDGE';
+                        $initBiasClass = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+                    } else {
+                        $initBiasText = 'BALANCED';
+                        $initBiasClass = 'bg-slate-900 text-slate-400 border-slate-700/60';
+                    }
+                @endphp
                 <div class="lg:col-span-7 xl:col-span-7 flex flex-col justify-stretch">
-                    <div id="session-dominance-radar" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/60 rounded-xl p-2.5 shadow-xl transition-all duration-300 h-full flex flex-col justify-between gap-1.5">
-                        {{-- Top Header: Title & Dynamic Market Dominance Verdict Pill --}}
-                        <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-800/80">
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="text-sm shrink-0">📊</span>
-                                <div class="min-w-0">
-                                    <h3 class="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 flex-wrap leading-tight">
-                                        <span>SESSION ORDER FLOW DOMINANCE</span>
-                                        <span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">09:15 → NOW</span>
-                                    </h3>
+                    <div id="session-dominance-radar" class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-indigo-900/60 rounded-xl p-2.5 shadow-xl transition-all duration-300 h-full">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 h-full items-stretch">
+                            {{-- 75% Left Section: Header + Total Buy / Sell Bars + Volume/Trades Strip --}}
+                            <div class="md:col-span-9 flex flex-col justify-between gap-1.5 min-w-0">
+                                {{-- Top Header: Title & Dynamic Market Dominance Verdict Pill --}}
+                                <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-800/80">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="text-sm shrink-0">📊</span>
+                                        <div class="min-w-0">
+                                            <h3 class="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 flex-wrap leading-tight">
+                                                <span class="truncate">SESSION ORDER FLOW DOMINANCE</span>
+                                                <span class="px-1 py-0.2 rounded text-[7.5px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shrink-0">09:15 → NOW</span>
+                                            </h3>
+                                        </div>
+                                    </div>
+
+                                    {{-- Dynamic Dominance Verdict Pill --}}
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <div id="session-dominance-pill" class="px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 {{ $initIsBuyDom ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-500/20' : ($initIsSellDom ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-xs shadow-rose-500/20' : 'bg-slate-950 text-slate-400 border-slate-800') }}">
+                                            @if ($initIsBuyDom)
+                                                <span>🟢 BUYERS DOMINANT</span>
+                                            @elseif ($initIsSellDom)
+                                                <span>🔴 SELLERS DOMINANT</span>
+                                            @else
+                                                <span>⚖️ BALANCED TAPE</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Dual Left-to-Right Horizontal Progress Charts --}}
+                                <div class="space-y-1.5 py-0.5">
+                                    {{-- 1. TOTAL BUY (ASK / Lifting Offer) --}}
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center justify-between text-[10px] font-mono leading-tight gap-2">
+                                            <span class="flex items-center gap-1.5 font-bold text-emerald-400 shrink-0">
+                                                <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                                                <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL BUY (ASK)</span>
+                                            </span>
+                                            <span class="text-slate-300 text-[9.5px] sm:text-[10px] truncate">
+                                                <strong id="session-buy-vol" class="font-black text-emerald-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initBuyQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
+                                                <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-buy-pct" class="text-emerald-400 font-bold">{{ number_format($initBuyPct, 1) }}%</strong>)</span>
+                                                <span class="text-slate-600 font-sans mx-0.5">·</span>
+                                                <strong id="session-buy-trades" class="text-slate-200 font-bold">{{ number_format($initBuyTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
+                                            </span>
+                                        </div>
+                                        <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
+                                            <div id="session-buy-bar" class="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 rounded-full transition-all duration-500 relative shadow-xs shadow-emerald-500/20" style="width: {{ max(2, min(100, $initBuyPct)) }}%;"></div>
+                                        </div>
+                                    </div>
+
+                                    {{-- 2. TOTAL SELL (BID / Hitting Bid) --}}
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center justify-between text-[10px] font-mono leading-tight gap-2">
+                                            <span class="flex items-center gap-1.5 font-bold text-rose-400 shrink-0">
+                                                <span class="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
+                                                <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL SELL (BID)</span>
+                                            </span>
+                                            <span class="text-slate-300 text-[9.5px] sm:text-[10px] truncate">
+                                                <strong id="session-sell-vol" class="font-black text-rose-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initSellQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
+                                                <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-sell-pct" class="text-rose-400 font-bold">{{ number_format($initSellPct, 1) }}%</strong>)</span>
+                                                <span class="text-slate-600 font-sans mx-0.5">·</span>
+                                                <strong id="session-sell-trades" class="text-slate-200 font-bold">{{ number_format($initSellTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
+                                            </span>
+                                        </div>
+                                        <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
+                                            <div id="session-sell-bar" class="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-pink-500 rounded-full transition-all duration-500 relative shadow-xs shadow-rose-500/20" style="width: {{ max(2, min(100, $initSellPct)) }}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Bottom Summary Micro-Strip: Totals --}}
+                                <div class="flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono pt-1 border-t border-slate-800/80 text-slate-400 flex-wrap gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span>TOTAL VOL: <strong id="session-total-vol" class="text-slate-200 font-bold">{{ $fmtInitQty($initTotVol) }}</strong></span>
+                                        <span class="text-slate-700">|</span>
+                                        <span>TOTAL TRADES: <strong id="session-total-trades" class="text-slate-200 font-bold">{{ number_format($initTotTrd) }}</strong></span>
+                                    </div>
+                                    <span class="text-[8px] text-slate-500 font-sans hidden sm:inline">Aggressive Market Prints (Ask vs Bid)</span>
                                 </div>
                             </div>
 
-                            {{-- Dynamic Dominance Verdict Pill --}}
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <div id="session-dominance-pill" class="px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 {{ $initBuyQty > $initSellQty * 1.15 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-500/20' : ($initSellQty > $initBuyQty * 1.15 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-xs shadow-rose-500/20' : 'bg-slate-950 text-slate-400 border-slate-800') }}">
-                                    @if ($initBuyQty > $initSellQty * 1.15)
-                                        <span>🟢 BUYERS DOMINANT</span> <span class="text-emerald-200 font-sans text-[8px] font-bold">({{ number_format($initRatio, 2) }}x · +{{ $fmtInitQty($initNetDelta) }})</span>
-                                    @elseif ($initSellQty > $initBuyQty * 1.15)
-                                        <span>🔴 SELLERS DOMINANT</span> <span class="text-rose-200 font-sans text-[8px] font-bold">({{ number_format($initSellRatio, 2) }}x · {{ $fmtInitQty($initNetDelta) }})</span>
-                                    @else
-                                        <span>⚖️ BALANCED TAPE</span> <span class="text-slate-400 font-sans text-[8px]">({{ number_format($initBuyPct, 0) }}% vs {{ number_format($initSellPct, 0) }}%)</span>
-                                    @endif
+                            {{-- 25% Right Section: Big Numbers for Net CVD & Ratio + Actionable Bias --}}
+                            <div id="session-hero-panel" class="md:col-span-3 rounded-lg border px-2.5 py-2 flex flex-row md:flex-col justify-between items-center text-center transition-all duration-300 {{ $initHeroBoxClass }}">
+                                {{-- Net CVD Block --}}
+                                <div class="flex flex-col items-center justify-center flex-1">
+                                    <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">NET CVD</span>
+                                    <strong id="session-net-delta" class="text-lg sm:text-xl font-black font-mono leading-none tracking-tight {{ $initNetDelta >= 0 ? 'text-emerald-300' : 'text-rose-300' }}">
+                                        {{ ($initNetDelta >= 0 ? '+' : '') . $fmtInitQty($initNetDelta) }}
+                                    </strong>
                                 </div>
-                            </div>
-                        </div>
 
-                        {{-- Dual Left-to-Right Horizontal Progress Charts --}}
-                        <div class="space-y-1.5 py-0.5">
-                            {{-- 1. TOTAL BUY (ASK / Lifting Offer) --}}
-                            <div class="space-y-0.5">
-                                <div class="flex items-center justify-between text-[10px] font-mono leading-tight">
-                                    <span class="flex items-center gap-1.5 font-bold text-emerald-400">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                                        <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL BUY (ASK)</span>
-                                    </span>
-                                    <span class="text-slate-300 text-[9.5px] sm:text-[10px]">
-                                        <strong id="session-buy-vol" class="font-black text-emerald-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initBuyQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
-                                        <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-buy-pct" class="text-emerald-400 font-bold">{{ number_format($initBuyPct, 1) }}%</strong>)</span>
-                                        <span class="text-slate-600 font-sans mx-0.5">·</span>
-                                        <strong id="session-buy-trades" class="text-slate-200 font-bold">{{ number_format($initBuyTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
-                                    </span>
-                                </div>
-                                <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
-                                    <div id="session-buy-bar" class="h-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 rounded-full transition-all duration-500 relative shadow-xs shadow-emerald-500/20" style="width: {{ max(2, min(100, $initBuyPct)) }}%;"></div>
-                                </div>
-                            </div>
+                                <div class="hidden md:block w-full border-t border-slate-800/80 my-1"></div>
+                                <div class="md:hidden h-8 border-l border-slate-800/80 mx-2"></div>
 
-                            {{-- 2. TOTAL SELL (BID / Hitting Bid) --}}
-                            <div class="space-y-0.5">
-                                <div class="flex items-center justify-between text-[10px] font-mono leading-tight">
-                                    <span class="flex items-center gap-1.5 font-bold text-rose-400">
-                                        <span class="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
-                                        <span class="text-[9.5px] sm:text-[10px] tracking-wide">TOTAL SELL (BID)</span>
-                                    </span>
-                                    <span class="text-slate-300 text-[9.5px] sm:text-[10px]">
-                                        <strong id="session-sell-vol" class="font-black text-rose-300 text-xs sm:text-[13px] font-mono">{{ $fmtInitQty($initSellQty) }}</strong> <span class="text-slate-500 text-[8.5px]">Qty</span>
-                                        <span class="text-slate-400 text-[9px] font-sans">(<strong id="session-sell-pct" class="text-rose-400 font-bold">{{ number_format($initSellPct, 1) }}%</strong>)</span>
-                                        <span class="text-slate-600 font-sans mx-0.5">·</span>
-                                        <strong id="session-sell-trades" class="text-slate-200 font-bold">{{ number_format($initSellTrd) }}</strong> <span class="text-slate-500 text-[8.5px]">trades</span>
+                                {{-- Vol Ratio + Tactical Bias Block --}}
+                                <div class="flex flex-col items-center justify-center flex-1">
+                                    <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">VOL RATIO</span>
+                                    <div class="flex items-baseline justify-center gap-1 leading-none">
+                                        <strong id="session-ratio-val" class="text-lg sm:text-xl font-black font-mono tracking-tight {{ $initBuyQty >= $initSellQty ? 'text-emerald-300' : 'text-rose-300' }}">{{ number_format($initDomRatio, 2) }}x</strong>
+                                        <span id="session-ratio-side" class="text-[9px] font-black font-mono {{ $initBuyQty >= $initSellQty ? 'text-emerald-400' : 'text-rose-400' }}">{{ $initDomSide }}</span>
+                                    </div>
+                                    <span id="session-bias-badge" class="mt-1 px-1.5 py-0.5 rounded text-[7.5px] font-black uppercase tracking-wider border leading-none {{ $initBiasClass }}">
+                                        {{ $initBiasText }}
                                     </span>
                                 </div>
-                                <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/90 relative p-0.5">
-                                    <div id="session-sell-bar" class="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-pink-500 rounded-full transition-all duration-500 relative shadow-xs shadow-rose-500/20" style="width: {{ max(2, min(100, $initSellPct)) }}%;"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Bottom Summary Micro-Strip: Totals, Delta & Order Dominance Ratio --}}
-                        <div class="flex items-center justify-between text-[8px] sm:text-[8.5px] font-mono pt-1 border-t border-slate-800/80 text-slate-400 flex-wrap gap-1">
-                            <div class="flex items-center gap-1.5">
-                                <span>TOTAL VOL: <strong id="session-total-vol" class="text-slate-200 font-bold">{{ $fmtInitQty($initTotVol) }}</strong></span>
-                                <span class="text-slate-700">|</span>
-                                <span>TOTAL TRADES: <strong id="session-total-trades" class="text-slate-200 font-bold">{{ number_format($initTotTrd) }}</strong></span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <span>NET CVD: <strong id="session-net-delta" class="{{ $initNetDelta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold' }}">{{ ($initNetDelta >= 0 ? '+' : '') . $fmtInitQty($initNetDelta) }}</strong></span>
-                                <span class="text-slate-700">|</span>
-                                <span>VOL RATIO: <strong id="session-ratio-val" class="{{ $initBuyQty >= $initSellQty ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold' }}">{{ number_format($initBuyQty >= $initSellQty ? $initRatio : $initSellRatio, 2) }}x {{ $initBuyQty >= $initSellQty ? 'BUY' : 'SELL' }}</strong></span>
                             </div>
                         </div>
                     </div>
@@ -567,6 +621,19 @@
                             </select>
                         </div>
 
+                        {{-- Absorption Highlight Toggle & Saturation Level --}}
+                        <div class="flex items-center gap-1 text-[9px] bg-slate-950 px-1.5 py-0.5 rounded-lg border border-cyan-500/40" title="Highlight Absorption & Effort-vs-Result candles with distinct colors & saturation">
+                            <button type="button" id="btn-v5m-abs-toggle" onclick="toggleV5mAbsHighlight()" class="px-1.5 py-0.2 rounded bg-cyan-600/30 text-cyan-300 border border-cyan-400/50 font-black cursor-pointer transition">
+                                🛡️ Abs: ON
+                            </button>
+                            <select id="sel-v5m-abs-sat" onchange="onV5mAbsSatChange(this.value)" class="bg-transparent text-cyan-300 font-mono font-bold text-[9px] focus:outline-none cursor-pointer" title="Absorption Saturation Sensitivity (Min Net Delta Absorbed)">
+                                <option value="15000" class="bg-slate-900 text-slate-200">Sat: Low (15k)</option>
+                                <option value="35000" selected class="bg-slate-900 text-cyan-300">Sat: Med (35k)</option>
+                                <option value="75000" class="bg-slate-900 text-amber-300">Sat: High (75k)</option>
+                                <option value="150000" class="bg-slate-900 text-rose-300">Sat: Max (1.5L)</option>
+                            </select>
+                        </div>
+
                         {{-- 5M Volume Audio Alert Toggle & Test --}}
                         <button type="button" id="btn-v5m-sound-toggle" onclick="toggleV5mSound()" class="flex items-center gap-1 text-[9px] bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-500/50 text-amber-300 hover:text-white font-bold transition cursor-pointer shadow-xs" title="5-Min Volume Alert Audio (Click to test chime or toggle)">
                             <span id="v5m-sound-icon">🔔</span>
@@ -577,6 +644,18 @@
                             🔄
                         </button>
                     </div>
+                </div>
+
+                {{-- Absorption Color Legend (Visible when Abs Highlight is ON) --}}
+                <div id="v5m-abs-legend" class="flex items-center justify-between flex-wrap gap-2 px-2 py-1 rounded bg-slate-950/90 border border-slate-800/80 text-[9.5px] font-mono">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <span class="flex items-center gap-1 text-emerald-300"><span class="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block"></span> Normal Buy</span>
+                        <span class="flex items-center gap-1 text-rose-300"><span class="w-2.5 h-2.5 rounded-xs bg-rose-500 inline-block"></span> Normal Sell</span>
+                        <span class="flex items-center gap-1 text-cyan-300 font-bold" title="Heavy aggressive selling absorbed by passive buyers while price rises"><span class="w-2.5 h-2.5 rounded-xs bg-cyan-400 inline-block shadow-[0_0_6px_#22d3ee]"></span> 🛡️ Bull Absorption (Sells Absorbed → Up)</span>
+                        <span class="flex items-center gap-1 text-amber-300 font-bold" title="Heavy aggressive buying absorbed by passive sellers while price drops"><span class="w-2.5 h-2.5 rounded-xs bg-amber-400 inline-block shadow-[0_0_6px_#fbbf24]"></span> 🧱 Bear Absorption (Buys Absorbed → Down)</span>
+                        <span class="flex items-center gap-1 text-purple-300 font-bold" title="High volume compressed into tight price range"><span class="w-2.5 h-2.5 rounded-xs bg-purple-400 inline-block shadow-[0_0_6px_#c084fc]"></span> ⚡ Vol Coiling</span>
+                    </div>
+                    <span id="v5m-abs-sat-label" class="text-cyan-400 font-bold">Saturation: ≥35k Δ</span>
                 </div>
 
                 {{-- Interactive Canvas Chart Wrapper with Pinned Rail & Scrollable Body --}}
@@ -3881,36 +3960,74 @@
         if (sellTradesEl) sellTradesEl.textContent = sTrades.toLocaleString();
         if (sellBarEl) sellBarEl.style.width = `${Math.min(100, Math.max(2, sellPct))}%`;
 
-        // Update Summary Strip
+        // Update Summary Strip & 25% Hero Panel (Net CVD, Ratio & Actionable Bias)
         const totVolEl = document.getElementById('session-total-vol');
         const totTradesEl = document.getElementById('session-total-trades');
         const netDeltaEl = document.getElementById('session-net-delta');
         const ratioValEl = document.getElementById('session-ratio-val');
+        const ratioSideEl = document.getElementById('session-ratio-side');
+        const heroPanelEl = document.getElementById('session-hero-panel');
+        const biasBadgeEl = document.getElementById('session-bias-badge');
+
+        const isBuyDom = bQty > sQty * 1.15;
+        const isSellDom = sQty > bQty * 1.15;
+        const domRatio = bQty >= sQty ? ratio : sellRatio;
+        const domSide = bQty >= sQty ? 'BUY' : 'SELL';
 
         if (totVolEl) totVolEl.textContent = fmtQty(totalVol);
         if (totTradesEl) totTradesEl.textContent = totalTrades.toLocaleString();
         if (netDeltaEl) {
             netDeltaEl.textContent = `${netDelta >= 0 ? '+' : ''}${fmtQty(netDelta)}`;
-            netDeltaEl.className = netDelta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+            netDeltaEl.className = `text-lg sm:text-xl font-black font-mono leading-none tracking-tight ${netDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`;
         }
         if (ratioValEl) {
-            const domRatio = bQty >= sQty ? ratio : sellRatio;
-            ratioValEl.textContent = `${domRatio.toFixed(2)}x ${bQty >= sQty ? 'BUY' : 'SELL'}`;
-            ratioValEl.className = bQty >= sQty ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold';
+            ratioValEl.textContent = `${domRatio.toFixed(2)}x`;
+            ratioValEl.className = `text-lg sm:text-xl font-black font-mono tracking-tight ${bQty >= sQty ? 'text-emerald-300' : 'text-rose-300'}`;
+        }
+        if (ratioSideEl) {
+            ratioSideEl.textContent = domSide;
+            ratioSideEl.className = `text-[9px] font-black font-mono ${bQty >= sQty ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (heroPanelEl) {
+            const heroTone = isBuyDom
+                ? 'bg-emerald-950/35 border-emerald-500/40 shadow-inner shadow-emerald-500/10'
+                : (isSellDom
+                    ? 'bg-rose-950/35 border-rose-500/40 shadow-inner shadow-rose-500/10'
+                    : 'bg-slate-950/70 border-slate-800');
+            heroPanelEl.className = `md:col-span-3 rounded-lg border px-2.5 py-2 flex flex-row md:flex-col justify-between items-center text-center transition-all duration-300 ${heroTone}`;
+        }
+        if (biasBadgeEl) {
+            let biasText = 'BALANCED';
+            let biasTone = 'bg-slate-900 text-slate-400 border-slate-700/60';
+            if (isBuyDom && ratio >= 2.0) {
+                biasText = 'BUY ON DIP';
+                biasTone = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+            } else if (isBuyDom) {
+                biasText = 'BULLISH EDGE';
+                biasTone = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+            } else if (isSellDom && sellRatio >= 2.0) {
+                biasText = 'SELL ON RALLY';
+                biasTone = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+            } else if (isSellDom) {
+                biasText = 'BEARISH EDGE';
+                biasTone = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+            }
+            biasBadgeEl.textContent = biasText;
+            biasBadgeEl.className = `mt-1 px-1.5 py-0.5 rounded text-[7.5px] font-black uppercase tracking-wider border leading-none ${biasTone}`;
         }
 
         // Update Dominance Verdict Pill
         const pillEl = document.getElementById('session-dominance-pill');
         if (pillEl) {
-            if (bQty > sQty * 1.15) {
+            if (isBuyDom) {
                 pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-xs shadow-emerald-500/20';
-                pillEl.innerHTML = `<span>🟢 BUYERS DOMINANT</span> <span class="text-emerald-200 font-sans text-[8px] font-bold">(${ratio.toFixed(2)}x · +${fmtQty(netDelta)})</span>`;
-            } else if (sQty > bQty * 1.15) {
+                pillEl.innerHTML = `<span>🟢 BUYERS DOMINANT</span>`;
+            } else if (isSellDom) {
                 pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-xs shadow-rose-500/20';
-                pillEl.innerHTML = `<span>🔴 SELLERS DOMINANT</span> <span class="text-rose-200 font-sans text-[8px] font-bold">(${sellRatio.toFixed(2)}x · ${fmtQty(netDelta)})</span>`;
+                pillEl.innerHTML = `<span>🔴 SELLERS DOMINANT</span>`;
             } else {
                 pillEl.className = 'px-2 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black font-mono border transition-all duration-300 flex items-center gap-1 bg-slate-950 text-slate-300 border-slate-800';
-                pillEl.innerHTML = `<span>⚖️ BALANCED TAPE</span> <span class="text-slate-400 font-sans text-[8px]">(${buyPct.toFixed(0)}% vs ${sellPct.toFixed(0)}%)</span>`;
+                pillEl.innerHTML = `<span>⚖️ BALANCED TAPE</span>`;
             }
         }
     }
@@ -9711,10 +9828,51 @@
         alertThresh: parseInt(localStorage.getItem('order_flow_v5m_alert_thresh') || '100000', 10),
         tableFilter: localStorage.getItem('order_flow_v5m_table_filter') || 'all',
         soundEnabled: localStorage.getItem('order_flow_v5m_sound_enabled') !== 'false',
+        absHighlight: localStorage.getItem('order_flow_v5m_abs_highlight') !== 'false',
+        absSatThresh: parseInt(localStorage.getItem('order_flow_v5m_abs_sat') || '35000', 10),
         alertedCandles: null,
         refreshInterval: null,
         userHasScrolled: false
     };
+
+    function toggleV5mAbsHighlight() {
+        v5mState.absHighlight = !v5mState.absHighlight;
+        try { localStorage.setItem('order_flow_v5m_abs_highlight', String(v5mState.absHighlight)); } catch (e) {}
+        updateV5mAbsUI();
+        render5mVolumeChart();
+    }
+    window.toggleV5mAbsHighlight = toggleV5mAbsHighlight;
+
+    function onV5mAbsSatChange(val) {
+        const num = parseInt(val, 10) || 35000;
+        v5mState.absSatThresh = num;
+        try { localStorage.setItem('order_flow_v5m_abs_sat', String(num)); } catch (e) {}
+        updateV5mAbsUI();
+        render5mVolumeChart();
+    }
+    window.onV5mAbsSatChange = onV5mAbsSatChange;
+
+    function updateV5mAbsUI() {
+        const btn = document.getElementById('btn-v5m-abs-toggle');
+        const sel = document.getElementById('sel-v5m-abs-sat');
+        const legend = document.getElementById('v5m-abs-legend');
+        const satLbl = document.getElementById('v5m-abs-sat-label');
+        if (btn) {
+            btn.textContent = v5mState.absHighlight ? '🛡️ Abs: ON' : '🛡️ Abs: OFF';
+            btn.className = v5mState.absHighlight
+                ? 'px-1.5 py-0.2 rounded bg-cyan-600/30 text-cyan-300 border border-cyan-400/50 font-black cursor-pointer transition'
+                : 'px-1.5 py-0.2 rounded bg-slate-900 text-slate-400 border border-slate-700 font-bold cursor-pointer transition';
+        }
+        if (sel && sel.value !== String(v5mState.absSatThresh)) {
+            sel.value = String(v5mState.absSatThresh);
+        }
+        if (legend) {
+            legend.classList.toggle('hidden', !v5mState.absHighlight);
+        }
+        if (satLbl) {
+            satLbl.textContent = `Saturation: ≥${formatV5mQty(v5mState.absSatThresh)} Δ`;
+        }
+    }
 
     function toggleV5mSound(forcedState) {
         if (typeof forcedState === 'boolean') {
@@ -9727,6 +9885,7 @@
         } catch (e) {}
 
         updateV5mSoundUI();
+        updateV5mAbsUI();
 
         // If toggled ON, immediately test play audio to unlock AudioContext & confirm to user
         if (v5mState.soundEnabled) {
@@ -10513,12 +10672,34 @@
                 const isAlert = Math.abs(delta) >= (thresh / 2);
                 const dRank = ranks.delta.get(b.time);
 
-                ctx.fillStyle = isBull ? (isAlert ? '#10b981' : '#059669') : (isAlert ? '#f43f5e' : '#e11d48');
-                if (isAlert) {
-                    ctx.shadowColor = isBull ? '#10b981' : '#f43f5e';
+                const absSat = v5mState.absSatThresh || 35000;
+                const isAbsHighlight = v5mState.absHighlight !== false;
+                const dyn = b.dynamics || 'NORMAL';
+                const isBullAbs = isAbsHighlight && dyn === 'BULL_ABSORPTION' && Math.abs(delta) >= absSat;
+                const isBearAbs = isAbsHighlight && dyn === 'BEAR_ABSORPTION' && Math.abs(delta) >= absSat;
+                const isVolCoil = isAbsHighlight && dyn === 'VOL_COMPRESSION';
+                const satIntensity = Math.min(1.0, Math.max(0.45, Math.abs(delta) / (absSat * 2.5)));
+
+                if (isBullAbs) {
+                    ctx.fillStyle = satIntensity >= 0.75 ? '#22d3ee' : '#06b6d4';
+                    ctx.shadowColor = '#22d3ee';
+                    ctx.shadowBlur = Math.round(6 + satIntensity * 10);
+                } else if (isBearAbs) {
+                    ctx.fillStyle = satIntensity >= 0.75 ? '#fbbf24' : '#f59e0b';
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = Math.round(6 + satIntensity * 10);
+                } else if (isVolCoil) {
+                    ctx.fillStyle = '#a855f7';
+                    ctx.shadowColor = '#a855f7';
                     ctx.shadowBlur = 8;
                 } else {
-                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = isBull ? (isAlert ? '#10b981' : '#059669') : (isAlert ? '#f43f5e' : '#e11d48');
+                    if (isAlert) {
+                        ctx.shadowColor = isBull ? '#10b981' : '#f43f5e';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
                 }
 
                 if (isBull) {
@@ -10701,27 +10882,73 @@
                 const sellX = centerX + (gap / 2);
                 const sellY = padTop + plotH - sellH;
 
-                // 1. Buy Bar (Green, Left of pair)
-                ctx.fillStyle = isMegaBuy ? '#10b981' : '#059669';
-                if (isMegaBuy) {
-                    ctx.shadowColor = '#10b981';
+                const absSat = v5mState.absSatThresh || 35000;
+                const isAbsHighlight = v5mState.absHighlight !== false;
+                const dyn = b.dynamics || 'NORMAL';
+                const absDelta = Math.abs(Number(b.net_delta || 0));
+                const isBullAbs = isAbsHighlight && dyn === 'BULL_ABSORPTION' && absDelta >= absSat;
+                const isBearAbs = isAbsHighlight && dyn === 'BEAR_ABSORPTION' && absDelta >= absSat;
+                const isVolCoil = isAbsHighlight && dyn === 'VOL_COMPRESSION';
+                const satIntensity = Math.min(1.0, Math.max(0.45, absDelta / (absSat * 2.5)));
+
+                // 1. Buy Bar (Green, or Amber/Orange if Bear Absorption, Violet if Vol Compression)
+                if (isBearAbs) {
+                    ctx.fillStyle = satIntensity >= 0.75 ? '#fbbf24' : '#f59e0b';
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = Math.round(6 + satIntensity * 10);
+                } else if (isVolCoil) {
+                    ctx.fillStyle = '#a855f7';
+                    ctx.shadowColor = '#a855f7';
                     ctx.shadowBlur = 8;
                 } else {
-                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = isMegaBuy ? '#10b981' : '#059669';
+                    if (isMegaBuy) {
+                        ctx.shadowColor = '#10b981';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
                 }
                 ctx.fillRect(buyX, buyY, singleBarW, buyH);
                 ctx.shadowBlur = 0;
 
-                // 2. Sell Bar (Red, Right of pair)
-                ctx.fillStyle = isMegaSell ? '#f43f5e' : '#e11d48';
-                if (isMegaSell) {
-                    ctx.shadowColor = '#f43f5e';
+                // 2. Sell Bar (Red, or Electric Cyan if Bull Absorption, Violet if Vol Compression)
+                if (isBullAbs) {
+                    ctx.fillStyle = satIntensity >= 0.75 ? '#22d3ee' : '#06b6d4';
+                    ctx.shadowColor = '#22d3ee';
+                    ctx.shadowBlur = Math.round(6 + satIntensity * 10);
+                } else if (isVolCoil) {
+                    ctx.fillStyle = '#a855f7';
+                    ctx.shadowColor = '#a855f7';
                     ctx.shadowBlur = 8;
                 } else {
-                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = isMegaSell ? '#f43f5e' : '#e11d48';
+                    if (isMegaSell) {
+                        ctx.shadowColor = '#f43f5e';
+                        ctx.shadowBlur = 8;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
                 }
                 ctx.fillRect(sellX, sellY, singleBarW, sellH);
                 ctx.shadowBlur = 0;
+
+                // Highlight Badge Pill on Absorbed / Coiling Candles
+                if (isScroll && (isBullAbs || isBearAbs || isVolCoil)) {
+                    ctx.save();
+                    const pillTxt = isBullAbs ? '🛡️ BULL ABS' : (isBearAbs ? '🧱 BEAR ABS' : '⚡ COIL');
+                    const pillColor = isBullAbs ? '#22d3ee' : (isBearAbs ? '#fbbf24' : '#c084fc');
+                    const topBarY = Math.min(buyY, sellY);
+                    const badgeY = Math.max(padTop + 10, topBarY - 18);
+                    ctx.font = 'bold 9.5px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = '#050811';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(pillTxt, centerX, badgeY);
+                    ctx.fillStyle = pillColor;
+                    ctx.fillText(pillTxt, centerX, badgeY);
+                    ctx.restore();
+                }
 
                 // Price Move & Effort vs Result (Absorption / Expansion)
                 const pDiff = (b.price_change !== undefined && b.price_change !== null) ? Number(b.price_change) : 0;
@@ -10950,6 +11177,7 @@
         if (filterSel) filterSel.value = String(v5mState.tableFilter);
 
         updateV5mSoundUI();
+        updateV5mAbsUI();
         setV5mChartHeight(v5mState.height);
         setV5mBarMode(v5mState.barMode);
         set5mViewMode(v5mState.viewMode);
