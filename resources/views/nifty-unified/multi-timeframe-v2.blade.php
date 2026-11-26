@@ -2783,6 +2783,23 @@
                 </div>
             </div>
 
+            <!-- Enterprise Dispatch Response Panel (replaces raw JS alert) -->
+            <div id="zc-dispatch-result-banner" class="hidden mx-4 mt-3 rounded-lg border border-emerald-500/40 bg-[#0d1424] p-3 font-mono text-xs space-y-2 shadow-lg">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="zc-res-status-badge" class="px-2 py-0.5 rounded font-black text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-600">HTTP 200</span>
+                        <span id="zc-res-latency" class="text-[11px] text-cyan-300 font-bold">-- ms</span>
+                        <span id="zc-res-message" class="font-bold text-white">--</span>
+                    </div>
+                    <button type="button" onclick="document.getElementById('zc-dispatch-result-banner').classList.add('hidden')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-[10px] font-bold cursor-pointer">✕ Dismiss</button>
+                </div>
+                <div id="zc-res-kpis" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10.5px]"></div>
+                <details class="text-[10px] text-gray-400">
+                    <summary class="cursor-pointer hover:text-cyan-300 font-bold">View Raw JSON Response</summary>
+                    <pre id="zc-res-json" class="mt-1.5 p-2 rounded bg-[#070a12] border border-gray-800 text-gray-300 overflow-x-auto max-h-36 whitespace-pre-wrap break-all"></pre>
+                </details>
+            </div>
+
             <!-- Table Container -->
             <div class="overflow-y-auto flex-1 p-4">
                 <table class="w-full text-left text-xs border-collapse">
@@ -8377,7 +8394,7 @@
                 triggerBtn.disabled = false;
                 triggerBtn.textContent = '🚀 Send';
             }
-            alert(`0Click Response [${data.status_code || 200}]: ${data.message || 'Dispatched'}`);
+            showZeroClickDispatchBanner(data);
             fetchAlertLogs(true);
         })
         .catch(err => {
@@ -8385,9 +8402,63 @@
                 triggerBtn.disabled = false;
                 triggerBtn.textContent = '🚀 Send';
             }
-            alert('Connection error while sending to 0click.in: ' + err.message);
+            showZeroClickDispatchBanner({
+                success: false,
+                status_code: 500,
+                message: 'Connection error: ' + err.message,
+                response: { error: err.message }
+            });
             fetchAlertLogs(true);
         });
+    }
+
+    function showZeroClickDispatchBanner(data) {
+        const banner = document.getElementById('zc-dispatch-result-banner');
+        const badge = document.getElementById('zc-res-status-badge');
+        const lat = document.getElementById('zc-res-latency');
+        const msg = document.getElementById('zc-res-message');
+        const kpis = document.getElementById('zc-res-kpis');
+        const rawJson = document.getElementById('zc-res-json');
+        if (!banner) return;
+
+        const code = data?.status_code || (data?.success ? 200 : 500);
+        const ok = !!(data?.success || (code >= 200 && code < 300));
+        const resp = data?.response || {};
+
+        banner.classList.remove('hidden');
+        banner.className = ok
+            ? 'mx-4 mt-3 rounded-lg border border-emerald-500/50 bg-[#0c1622] p-3 font-mono text-xs space-y-2 shadow-lg'
+            : 'mx-4 mt-3 rounded-lg border border-rose-500/50 bg-[#1a0f18] p-3 font-mono text-xs space-y-2 shadow-lg';
+
+        if (badge) {
+            badge.textContent = `HTTP ${code} ${ok ? 'OK' : 'ERROR'}`;
+            badge.className = ok
+                ? 'px-2 py-0.5 rounded font-black text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-600'
+                : 'px-2 py-0.5 rounded font-black text-[11px] bg-rose-950 text-rose-300 border border-rose-600';
+        }
+        if (lat) lat.textContent = data?.latency_ms ? `${data.latency_ms} ms` : '';
+        if (msg) msg.textContent = resp?.message || data?.message || 'Dispatched';
+
+        if (kpis) {
+            const tile = (label, val, cls = 'text-white') => `
+                <div class="bg-[#080c15] border border-gray-800 rounded px-2 py-1">
+                    <span class="text-gray-500 text-[9px] block uppercase">${label}</span>
+                    <span class="font-bold ${cls}">${val ?? '--'}</span>
+                </div>`;
+            const mode = resp.mode || resp.execution_mode || (data.mode || '--');
+            const sym = resp.trading_symbol || resp.symbol || '--';
+            const fill = resp.execution_price || resp.price ? `₹${resp.execution_price || resp.price}` : '--';
+            const ordId = resp.order_id || resp.webhook_id || resp.status || '--';
+            kpis.innerHTML = [
+                tile('Mode', mode, mode === 'LIVE' ? 'text-rose-300' : 'text-cyan-300'),
+                tile('Contract', sym, 'text-sky-300'),
+                tile('Fill Price', fill, 'text-emerald-300'),
+                tile('Order / Status', ordId, 'text-amber-300'),
+            ].join('');
+        }
+        if (rawJson) {
+            rawJson.textContent = JSON.stringify(data, null, 2);
+        }
     }
 
     function fetchAlertLogs(renderTable = true) {
@@ -18758,10 +18829,10 @@
     });
 
     async function openZeroClickLogsModal() {
-        let modal = document.getElementById('zeroclick-logs-modal');
+        let modal = document.getElementById('zeroclick-v2-logs-modal');
         if (!modal) {
             modal = document.createElement('div');
-            modal.id = 'zeroclick-logs-modal';
+            modal.id = 'zeroclick-v2-logs-modal';
             modal.className = 'fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3';
             modal.innerHTML = `
                 <div class="bg-[#0d121f] border border-cyan-500/40 rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
@@ -18774,10 +18845,10 @@
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="fetchZeroClickLogs()" class="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-bold cursor-pointer">🔄 Refresh</button>
                             <button type="button" onclick="clearZeroClickV2Logs()" class="px-2.5 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700 text-xs font-bold cursor-pointer">🗑️ Clear V2</button>
-                            <button type="button" onclick="document.getElementById('zeroclick-logs-modal').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-bold cursor-pointer">✕ Close</button>
+                            <button type="button" onclick="document.getElementById('zeroclick-v2-logs-modal').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-bold cursor-pointer">✕ Close</button>
                         </div>
                     </div>
-                    <div id="zeroclick-logs-body" class="p-3 overflow-y-auto flex-1 font-mono text-xs space-y-2 text-gray-200">
+                    <div id="zeroclick-v2-logs-body" class="p-3 overflow-y-auto flex-1 font-mono text-xs space-y-2 text-gray-200">
                         Loading logs...
                     </div>
                 </div>
@@ -18790,7 +18861,7 @@
     window.openZeroClickLogsModal = openZeroClickLogsModal;
 
     async function fetchZeroClickLogs() {
-        const body = document.getElementById('zeroclick-logs-body');
+        const body = document.getElementById('zeroclick-v2-logs-body');
         if (!body) return;
         body.innerHTML = '<div class="text-cyan-300 py-4 text-center">Loading 0click.in logs...</div>';
         try {
