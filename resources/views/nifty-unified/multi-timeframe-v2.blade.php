@@ -6474,6 +6474,10 @@
                         chgEl.textContent = `${sign}${lastCandle.move_pts.toFixed(2)} (${sign}${lastCandle.move_pct.toFixed(2)}%)`;
                         chgEl.className = lastCandle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
                     }
+                    if (typeof renderWeightageVwap === 'function') renderWeightageVwap();
+                    if (typeof updateCockpitTelemetry === 'function') {
+                        updateCockpitTelemetry('w', (window._unifiedAllCandles && window._unifiedAllCandles.length > 0) ? window._unifiedAllCandles : raw, lastCandle);
+                    }
                 }
             }
         }
@@ -6558,6 +6562,10 @@
                         const sign = lastCandle.move_pts >= 0 ? '+' : '';
                         moveEl.textContent = `${sign}${lastCandle.move_pts.toFixed(2)} (${sign}${lastCandle.move_pct.toFixed(2)}%)`;
                         moveEl.className = lastCandle.move_pts >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400';
+                    }
+                    if (typeof renderOptionsVwap === 'function') renderOptionsVwap();
+                    if (typeof updateCockpitTelemetry === 'function') {
+                        updateCockpitTelemetry('o', (window._unifiedOptionsCandles && window._unifiedOptionsCandles.length > 0) ? window._unifiedOptionsCandles : raw, lastCandle);
                     }
                 }
             }
@@ -13218,7 +13226,10 @@
                 : (v >= 1000 ? `${(v / 1000).toFixed(1)}K` : (v > 0 ? String(v) : '--'));
         }
 
-        const vwapList = calculateIntradayVwap(candles || []);
+        const vwapSourceCandles = (prefix === 'w')
+            ? ((window._unifiedAllCandles && window._unifiedAllCandles.length > 0) ? window._unifiedAllCandles : (candles || []))
+            : ((window._unifiedOptionsCandles && window._unifiedOptionsCandles.length > 0) ? window._unifiedOptionsCandles : (candles || []));
+        const vwapList = calculateIntradayVwap(vwapSourceCandles);
         const cTime = Number(candle.time || candle.timestamp);
         const vwapPt = vwapList.find(p => p.time === cTime) || vwapList[vwapList.length - 1];
         if (vwapPt && vwapPt.value > 0) {
