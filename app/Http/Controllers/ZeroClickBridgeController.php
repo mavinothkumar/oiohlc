@@ -19,6 +19,10 @@ class ZeroClickBridgeController extends Controller
     public function logs(Request $request): JsonResponse
     {
         $query = ZeroClickAlertLog::orderByDesc('triggered_at')->orderByDesc('id');
+        $category = strtoupper((string) $request->input('category', 'OIOHLC_V2'));
+        if ($category !== 'ALL') {
+            $query->where('category', $category);
+        }
         if ($request->filled('date')) {
             $query->whereDate('trade_date', $request->input('date'));
         }

@@ -18873,6 +18873,9 @@
     }
     window.showZeroClickAlertPopup = showZeroClickAlertPopup;
 
+    const zcInFlightEntries = new Set();
+    const zcInFlightExits = new Set();
+
     async function syncZeroClickV2Lifecycle(activeTr, completedTrades) {
         if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
         const liveToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -18887,9 +18890,8 @@
             const chosenSide = (activeTr.action === 'SELL') ? 'SELL' : 'BUY';
             const uid = `${liveToday}_${activeTr.id}_${activeTr.direction}_${chosenSide}`;
 
-            if (!st.entries[uid]) {
-                st.entries[uid] = 'PENDING';
-                saveZeroClickSyncState(liveToday, st);
+            if (!st.entries[uid] && !zcInFlightEntries.has(uid)) {
+                zcInFlightEntries.add(uid);
                 try {
                     const resp = await fetch('/api/v2/zeroclick/entry', {
                         method: 'POST',
@@ -18935,6 +18937,8 @@
                         statusCode: 500,
                         message: e.message || 'Network error dispatching entry to 0click.in',
                     });
+                } finally {
+                    zcInFlightEntries.delete(uid);
                 }
             } else if (st.entries[uid] === 'SENT' && Number(activeTr.currentSl) !== Number(st.sls[uid])) {
                 // Trailing SL moved (Cost / T1 / Stagnation 1:1) -> sync to 0click.in
@@ -18977,9 +18981,8 @@
                 if (!tr || !tr.exitTime) continue;
                 const chosenSide = (tr.action === 'SELL') ? 'SELL' : 'BUY';
                 const uid = `${liveToday}_${tr.id}_${tr.direction}_${chosenSide}`;
-                if (st.entries[uid] === 'SENT' && !st.exits[uid]) {
-                    st.exits[uid] = 'PENDING';
-                    saveZeroClickSyncState(liveToday, st);
+                if (st.entries[uid] === 'SENT' && !st.exits[uid] && !zcInFlightExits.has(uid)) {
+                    zcInFlightExits.add(uid);
                     try {
                         const resp = await fetch('/api/v2/zeroclick/exit', {
                             method: 'POST',
@@ -19019,6 +19022,8 @@
                             statusCode: 500,
                             message: e.message || 'Network error dispatching exit to 0click.in',
                         });
+                    } finally {
+                        zcInFlightExits.delete(uid);
                     }
                 }
             }
