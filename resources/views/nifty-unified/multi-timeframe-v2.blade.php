@@ -18790,6 +18790,9 @@
             zeroClickV2Mode = targetMode;
             try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
             updateZeroClickModeUI();
+            if ((zeroClickV2Mode === 'SIMULATION' || zeroClickV2Mode === 'LIVE') && typeof syncZeroClickV2Lifecycle === 'function' && typeof activeTrade !== 'undefined') {
+                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : []);
+            }
         }
     }
     window.confirmZeroClickLiveSwitch = confirmZeroClickLiveSwitch;
@@ -18799,6 +18802,9 @@
             zeroClickV2Mode = 'SIMULATION';
             try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
             updateZeroClickModeUI();
+            if (typeof syncZeroClickV2Lifecycle === 'function' && typeof activeTrade !== 'undefined') {
+                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : []);
+            }
         } else if (zeroClickV2Mode === 'SIMULATION') {
             openZeroClickLiveConfirmModal();
         } else {
