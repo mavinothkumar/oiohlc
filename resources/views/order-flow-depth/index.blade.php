@@ -7426,34 +7426,34 @@
             <div class="${rowClasses}">
                 
                 {{-- Bid Orders --}}
-                <div class="col-span-2 text-left text-[10px]">
+                <div class="col-span-2 text-left text-[11px]">
                     ${bidOrderHtml}
                 </div>
 
                 {{-- Bid Qty with horizontal fill bar & block/stack highlight --}}
-                <div class="col-span-2 text-right relative pr-1.5 ${isBidBlock && !isBidInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
+                <div class="col-span-2 text-right relative pr-1.5 text-xs ${isBidBlock && !isBidInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
                     <div class="absolute right-0 top-0 bottom-0 ${bidFillClass} rounded-l ${isBidBlock ? 'border-r-2 border-amber-400' : ''}" style="width: ${bidPct}%;"></div>
                     ${bidQtyHtml}
                 </div>
 
                 {{-- Bid Price --}}
-                <div class="col-span-2 text-right font-mono font-black text-emerald-400 text-xs">
+                <div class="col-span-2 text-right font-mono font-black text-emerald-400 text-sm sm:text-[15px] leading-tight">
                     ${b ? b.price.toFixed(2) : '-'}
                 </div>
 
                 {{-- Ask Price --}}
-                <div class="col-span-2 text-left font-mono font-black text-rose-400 text-xs pl-1.5">
+                <div class="col-span-2 text-left font-mono font-black text-rose-400 text-sm sm:text-[15px] leading-tight pl-1.5">
                     ${a ? a.price.toFixed(2) : '-'}
                 </div>
 
                 {{-- Ask Qty with horizontal fill bar & block/stack highlight --}}
-                <div class="col-span-2 text-left relative pl-1.5 ${isAskBlock && !isAskInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
+                <div class="col-span-2 text-left relative pl-1.5 text-xs ${isAskBlock && !isAskInStack ? 'ring-1 ring-amber-400/60 bg-amber-500/10 rounded' : ''}">
                     <div class="absolute left-0 top-0 bottom-0 ${askFillClass} rounded-r ${isAskBlock ? 'border-l-2 border-amber-400' : ''}" style="width: ${askPct}%;"></div>
                     ${askQtyHtml}
                 </div>
 
                 {{-- Ask Orders --}}
-                <div class="col-span-2 text-right text-[10px]">
+                <div class="col-span-2 text-right text-[11px]">
                     ${askOrderHtml}
                 </div>
 
@@ -7463,11 +7463,11 @@
             // Insert LTP divider right after Level 1 (i == 0)
             if (i === 0 && ltp > 0) {
                 html += `
-                <div class="my-0.5 py-0.5 px-2 rounded bg-amber-500/15 border-y border-amber-400/60 flex items-center justify-between text-[10px] font-black text-amber-300 shadow-sm">
-                    <div class="flex items-center gap-1">
+                <div class="my-0.5 py-1 px-2 rounded bg-amber-500/15 border-y border-amber-400/60 flex items-center justify-between text-[11px] font-black text-amber-300 shadow-sm">
+                    <div class="flex items-center gap-1.5">
                         <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
                         <span>◄ CURRENT TRADING PRICE (LTP):</span>
-                        <span class="text-white bg-slate-900 px-1.5 py-0.2 rounded font-mono text-xs border border-amber-400/40">₹${ltp.toFixed(2)}</span>
+                        <span class="text-white bg-slate-900 px-2 py-0.5 rounded font-mono text-sm sm:text-base font-black border border-amber-400/50">₹${ltp.toFixed(2)}</span>
                     </div>
                     <div class="flex items-center gap-2 text-[9px] text-slate-300 font-mono">
                         <span>Spread: <strong class="text-white">${spread.toFixed(2)} pts</strong></span>
@@ -10940,7 +10940,7 @@
                     const pillColor = isBullAbs ? '#22d3ee' : (isBearAbs ? '#fbbf24' : '#c084fc');
                     const topBarY = Math.min(buyY, sellY);
                     const badgeY = Math.max(padTop + 10, topBarY - 18);
-                    ctx.font = 'bold 9.5px monospace';
+                    ctx.font = 'bold 11px monospace';
                     ctx.textAlign = 'center';
                     ctx.strokeStyle = '#050811';
                     ctx.lineWidth = 3;
