@@ -3595,7 +3595,10 @@
                             <!-- Option Selling Leg Card -->
                             <div id="card-leg-seller" class="bg-[#151c2e] p-1.5 rounded border border-emerald-900/50 hover:border-emerald-500/50 transition">
                                 <div class="flex items-center justify-between text-[9px] mb-1">
-                                    <span class="font-bold text-emerald-300">🛡️ SELLING LEG</span>
+                                    <span class="font-bold text-emerald-300 flex items-center gap-1">
+                                        <span>🛡️ SELLING LEG</span>
+                                        <span id="at-sell-chosen-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-black bg-emerald-500 text-slate-950 uppercase">✓ CHOSEN</span>
+                                    </span>
                                     <span id="at-sell-decay-rate" class="text-emerald-400 text-[8.5px]">+₹23/5m</span>
                                 </div>
                                 <div id="at-sell-instrument" class="font-bold text-white text-[10.5px]">SELL 25500 PE</div>
@@ -3612,7 +3615,10 @@
                             <!-- Option Buying Leg Card -->
                             <div id="card-leg-buyer" class="bg-[#151c2e] p-1.5 rounded border border-sky-900/50 hover:border-sky-500/50 transition">
                                 <div class="flex items-center justify-between text-[9px] mb-1">
-                                    <span class="font-bold text-sky-300">🚀 BUYING LEG</span>
+                                    <span class="font-bold text-sky-300 flex items-center gap-1">
+                                        <span>🚀 BUYING LEG</span>
+                                        <span id="at-buy-chosen-badge" class="hidden px-1 py-0.2 rounded text-[8px] font-black bg-sky-400 text-slate-950 uppercase">✓ CHOSEN</span>
+                                    </span>
                                     <span class="text-sky-400 text-[8.5px]">Gamma Pop</span>
                                 </div>
                                 <div id="at-buy-instrument" class="font-bold text-white text-[10.5px]">BUY 25600 CE</div>
@@ -17220,7 +17226,27 @@
             const atCurrSpot = document.getElementById('at-curr-spot');
             if (atCurrSpot) atCurrSpot.textContent = Number(trade.currentSpot).toFixed(2);
 
-            // Dual Contract Comparison (Seller vs Buyer)
+            // Dual Contract Comparison (Seller vs Buyer) + Highlight Chosen Leg
+            const sellCardEl = document.getElementById('card-leg-seller');
+            const buyCardEl = document.getElementById('card-leg-buyer');
+            const sellChosenBadge = document.getElementById('at-sell-chosen-badge');
+            const buyChosenBadge = document.getElementById('at-buy-chosen-badge');
+            const isSellChosen = (trade.action === 'SELL' || trade.action === 'COMBO');
+            const isBuyChosen = (trade.action === 'BUY' || trade.action === 'COMBO');
+
+            if (sellCardEl) {
+                sellCardEl.className = isSellChosen
+                    ? 'bg-emerald-950/35 p-1.5 rounded border border-emerald-400 ring-2 ring-emerald-400/70 shadow-[0_0_12px_rgba(16,185,129,0.25)] transition'
+                    : 'bg-[#151c2e] p-1.5 rounded border border-slate-800 opacity-60 transition';
+            }
+            if (buyCardEl) {
+                buyCardEl.className = isBuyChosen
+                    ? 'bg-sky-950/35 p-1.5 rounded border border-sky-400 ring-2 ring-sky-400/70 shadow-[0_0_12px_rgba(56,189,248,0.25)] transition'
+                    : 'bg-[#151c2e] p-1.5 rounded border border-slate-800 opacity-60 transition';
+            }
+            if (sellChosenBadge) sellChosenBadge.classList.toggle('hidden', !isSellChosen);
+            if (buyChosenBadge) buyChosenBadge.classList.toggle('hidden', !isBuyChosen);
+
             if (trade.sellerLeg) {
                 const sellInst = document.getElementById('at-sell-instrument');
                 if (sellInst) sellInst.textContent = `${trade.sellerLeg.action} ${trade.sellerLeg.strike} ${trade.sellerLeg.optType}`;
