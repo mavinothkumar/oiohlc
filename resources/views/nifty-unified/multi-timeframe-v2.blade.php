@@ -4042,6 +4042,16 @@
                     </button>
                 </div>
 
+                <!-- Center: Live Session P&amp;L Summary Strip -->
+                <div id="trade-history-summary-pill" class="flex items-center gap-2 flex-wrap px-2.5 py-0.5 rounded bg-[#090d16] border border-gray-800 text-[10.5px] font-mono">
+                    <span class="text-gray-400">Net P&amp;L: <strong id="th-sum-net" class="text-gray-300">₹0 (0.0p)</strong></span>
+                    <span class="text-gray-700">|</span>
+                    <span id="th-sum-wl" class="text-gray-300">0W / 0L</span>
+                    <span class="text-gray-700 hidden sm:inline">|</span>
+                    <span id="th-sum-gpgl" class="hidden sm:inline text-gray-400">GP: ₹0 • GL: ₹0</span>
+                    <span id="th-sum-open-wrap" class="hidden text-sky-300 font-bold"><span class="text-gray-700 mr-1.5">|</span>Open: <span id="th-sum-open">₹0</span> • Day Total: <span id="th-sum-total">₹0</span></span>
+                </div>
+
                 <!-- Center: Telemetry Filters (Active only when telemetry tab is active) -->
                 <div id="telemetry-filters" class="hidden flex items-center gap-1 text-[9.5px] font-mono">
                     <span class="text-gray-500 text-[9px]">FILTER:</span>
@@ -4088,6 +4098,8 @@
                             <td colspan="12" class="text-center py-2 text-gray-500">No trades completed yet in this session.</td>
                         </tr>
                     </tbody>
+                    <tfoot id="trade-history-tfoot" class="hidden border-t-2 border-gray-700 bg-[#131a2b] font-bold text-[11px]">
+                    </tfoot>
                 </table>
             </div>
 
@@ -17385,14 +17397,66 @@
             if (sSl) sSl.textContent = 'SL: --';
         }
 
-        // Populate Trade History Table
+        // Populate Trade History Table & Session P&L Summary
         const histCount = document.getElementById('trade-history-count');
         const histTbody = document.getElementById('trade-history-tbody');
+        const histTfoot = document.getElementById('trade-history-tfoot');
         if (histCount) histCount.textContent = `${allTrades.length} Trades`;
+
+        let totalPts = 0;
+        let totalRs = 0;
+        let winCnt = 0;
+        let lossCnt = 0;
+        let grossProfit = 0;
+        let grossLoss = 0;
+
+        allTrades.forEach(tr => {
+            const pts = Number(tr.pnlPoints || 0);
+            const rs = Number(tr.pnlRupees || 0);
+            totalPts += pts;
+            totalRs += rs;
+            if (rs > 0) { winCnt++; grossProfit += rs; }
+            else if (rs < 0) { lossCnt++; grossLoss += Math.abs(rs); }
+        });
+
+        const sumNetEl = document.getElementById('th-sum-net');
+        const sumWlEl = document.getElementById('th-sum-wl');
+        const sumGpGlEl = document.getElementById('th-sum-gpgl');
+        const sumOpenWrap = document.getElementById('th-sum-open-wrap');
+        const sumOpenEl = document.getElementById('th-sum-open');
+        const sumTotalEl = document.getElementById('th-sum-total');
+
+        const netSign = totalRs >= 0 ? '+' : '';
+        const ptsSign = totalPts >= 0 ? '+' : '';
+        if (sumNetEl) {
+            sumNetEl.textContent = `${netSign}₹${Math.round(totalRs).toLocaleString('en-IN')} (${ptsSign}${totalPts.toFixed(1)}p)`;
+            sumNetEl.className = totalRs > 0 ? 'text-emerald-400 font-black text-xs' : (totalRs < 0 ? 'text-rose-400 font-black text-xs' : 'text-gray-300 font-bold');
+        }
+        const wr = (winCnt + lossCnt) > 0 ? Math.round((winCnt / (winCnt + lossCnt)) * 100) : 0;
+        if (sumWlEl) {
+            sumWlEl.innerHTML = `<span class="text-emerald-300 font-bold">${winCnt}W</span> / <span class="text-rose-300 font-bold">${lossCnt}L</span> <span class="text-gray-400">(${wr}% WR)</span>`;
+        }
+        if (sumGpGlEl) {
+            sumGpGlEl.innerHTML = `GP: <span class="text-emerald-400 font-bold">+₹${Math.round(grossProfit).toLocaleString('en-IN')}</span> • GL: <span class="text-rose-400 font-bold">-₹${Math.round(grossLoss).toLocaleString('en-IN')}</span>`;
+        }
+        if (sumOpenWrap && sumOpenEl && sumTotalEl) {
+            if (trade && trade.status === 'ACTIVE') {
+                const openRs = Number(trade.pnlRupees || 0);
+                const dayTotalRs = totalRs + openRs;
+                sumOpenWrap.classList.remove('hidden');
+                sumOpenEl.textContent = `${openRs >= 0 ? '+' : ''}₹${Math.round(openRs).toLocaleString('en-IN')}`;
+                sumOpenEl.className = openRs >= 0 ? 'text-emerald-300' : 'text-rose-300';
+                sumTotalEl.textContent = `${dayTotalRs >= 0 ? '+' : ''}₹${Math.round(dayTotalRs).toLocaleString('en-IN')}`;
+                sumTotalEl.className = dayTotalRs >= 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black';
+            } else {
+                sumOpenWrap.classList.add('hidden');
+            }
+        }
 
         if (histTbody) {
             if (allTrades.length === 0) {
                 histTbody.innerHTML = `<tr><td colspan="12" class="text-center py-2 text-gray-500">No completed trades yet in this session.</td></tr>`;
+                if (histTfoot) histTfoot.classList.add('hidden');
             } else {
                 histTbody.innerHTML = allTrades.map(tr => {
                     const isWin = tr.pnlPoints >= 0;
@@ -17423,6 +17487,19 @@
                         </tr>
                     `;
                 }).join('');
+
+                if (histTfoot) {
+                    const totCls = totalRs >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    histTfoot.classList.remove('hidden');
+                    histTfoot.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-1.5 px-1 text-right text-gray-300 uppercase tracking-wider">Session Total (${allTrades.length} Trades · ${winCnt}W / ${lossCnt}L):</td>
+                            <td class="py-1.5 px-1 ${totCls}">${ptsSign}${totalPts.toFixed(1)}</td>
+                            <td class="py-1.5 px-1 ${totCls}">${netSign}₹${Math.round(totalRs).toLocaleString('en-IN')}</td>
+                            <td colspan="2" class="py-1.5 px-1 text-right text-[10px] text-gray-400">WR: ${wr}% | GP +₹${Math.round(grossProfit).toLocaleString('en-IN')} / GL -₹${Math.round(grossLoss).toLocaleString('en-IN')}</td>
+                        </tr>
+                    `;
+                }
             }
         }
 
