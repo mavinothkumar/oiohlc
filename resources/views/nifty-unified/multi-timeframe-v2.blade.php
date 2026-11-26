@@ -18875,6 +18875,8 @@
 
     const zcInFlightEntries = new Set();
     const zcInFlightExits = new Set();
+    const zcFailedEntries = new Set();
+    const zcFailedExits = new Set();
 
     async function syncZeroClickV2Lifecycle(activeTr, completedTrades) {
         if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
@@ -18890,7 +18892,7 @@
             const chosenSide = (activeTr.action === 'SELL') ? 'SELL' : 'BUY';
             const uid = `${liveToday}_${activeTr.id}_${activeTr.direction}_${chosenSide}`;
 
-            if (!st.entries[uid] && !zcInFlightEntries.has(uid)) {
+            if (st.entries[uid] !== 'SENT' && !zcInFlightEntries.has(uid) && !zcFailedEntries.has(uid)) {
                 zcInFlightEntries.add(uid);
                 try {
                     const resp = await fetch('/api/v2/zeroclick/entry', {
@@ -18913,9 +18915,13 @@
                         })
                     });
                     const res = await resp.json().catch(() => ({}));
-                    st.entries[uid] = res.success ? 'SENT' : 'FAILED';
-                    st.sls[uid] = Number(activeTr.currentSl);
-                    saveZeroClickSyncState(liveToday, st);
+                    if (res.success) {
+                        st.entries[uid] = 'SENT';
+                        st.sls[uid] = Number(activeTr.currentSl);
+                        saveZeroClickSyncState(liveToday, st);
+                    } else {
+                        zcFailedEntries.add(uid);
+                    }
                     showZeroClickAlertPopup({
                         ok: !!res.success,
                         action: `ENTRY ${chosenSide}`,
@@ -18927,8 +18933,7 @@
                         orderId: res.response?.trade?.order_id || res.response?.order_id || null,
                     });
                 } catch (e) {
-                    st.entries[uid] = 'FAILED';
-                    saveZeroClickSyncState(liveToday, st);
+                    zcFailedEntries.add(uid);
                     showZeroClickAlertPopup({
                         ok: false,
                         action: `ENTRY ${chosenSide}`,
@@ -18981,7 +18986,7 @@
                 if (!tr || !tr.exitTime) continue;
                 const chosenSide = (tr.action === 'SELL') ? 'SELL' : 'BUY';
                 const uid = `${liveToday}_${tr.id}_${tr.direction}_${chosenSide}`;
-                if (st.entries[uid] === 'SENT' && !st.exits[uid] && !zcInFlightExits.has(uid)) {
+                if (st.entries[uid] === 'SENT' && st.exits[uid] !== 'CLOSED' && st.exits[uid] !== 'CLOSED_EXTERNALLY' && !zcInFlightExits.has(uid) && !zcFailedExits.has(uid)) {
                     zcInFlightExits.add(uid);
                     try {
                         const resp = await fetch('/api/v2/zeroclick/exit', {
@@ -19000,8 +19005,12 @@
                             })
                         });
                         const res = await resp.json().catch(() => ({}));
-                        st.exits[uid] = res.already_closed ? 'CLOSED_EXTERNALLY' : (res.success ? 'CLOSED' : 'FAILED');
-                        saveZeroClickSyncState(liveToday, st);
+                        if (res.already_closed || res.success) {
+                            st.exits[uid] = res.already_closed ? 'CLOSED_EXTERNALLY' : 'CLOSED';
+                            saveZeroClickSyncState(liveToday, st);
+                        } else {
+                            zcFailedExits.add(uid);
+                        }
                         showZeroClickAlertPopup({
                             ok: !!res.success,
                             action: res.already_closed ? 'EXIT (ALREADY CLOSED)' : 'EXIT CLOSE',
@@ -19012,8 +19021,7 @@
                             message: res.message || (res.already_closed ? 'Position already closed on 0click.in' : 'Exit dispatched to 0click.in'),
                         });
                     } catch (e) {
-                        st.exits[uid] = 'FAILED';
-                        saveZeroClickSyncState(liveToday, st);
+                        zcFailedExits.add(uid);
                         showZeroClickAlertPopup({
                             ok: false,
                             action: 'EXIT CLOSE',
