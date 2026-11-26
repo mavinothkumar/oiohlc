@@ -18812,6 +18812,50 @@
         try { localStorage.setItem(`v2_zc_sync_${dateStr}`, JSON.stringify(st)); } catch (e) {}
     }
 
+    function showZeroClickAlertPopup({ ok, action, mode, instrument, statusCode, latencyMs, message, orderId }) {
+        let stack = document.getElementById('zc-persistent-alerts');
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.id = 'zc-persistent-alerts';
+            stack.className = 'fixed top-4 right-4 z-[9999999] flex flex-col gap-2.5 w-[360px] max-w-[calc(100vw-2rem)] pointer-events-none font-mono';
+            document.body.appendChild(stack);
+        }
+
+        const card = document.createElement('div');
+        const borderCls = ok ? 'border-emerald-500/70 shadow-[0_10px_30px_rgba(16,185,129,0.25)]' : 'border-rose-500/70 shadow-[0_10px_30px_rgba(244,63,94,0.28)]';
+        const badgeCls = ok ? 'bg-emerald-950 text-emerald-300 border-emerald-600' : 'bg-rose-950 text-rose-300 border-rose-600';
+        const modeCls = mode === 'LIVE' ? 'bg-rose-950/90 text-rose-200 border-rose-500' : 'bg-cyan-950/90 text-cyan-200 border-cyan-600';
+        const icon = ok ? '✅' : '❌';
+        const ts = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+
+        card.className = `pointer-events-auto rounded-xl border ${borderCls} bg-[#0d1322]/95 backdrop-blur-md p-3.5 text-xs text-gray-200 space-y-2`;
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-sm leading-none">${icon}</span>
+                    <span class="font-black text-white tracking-wide">${action || '0CLICK API'}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-black border ${modeCls}">${mode || 'SIM'}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9.5px] font-black border ${badgeCls}">HTTP ${statusCode || (ok ? 200 : 500)}</span>
+                </div>
+                <button type="button" onclick="this.closest('.pointer-events-auto').remove()" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 hover:text-white text-[10px] font-bold cursor-pointer shrink-0" title="Close alert">✕</button>
+            </div>
+            <div class="text-[11px] space-y-1">
+                ${instrument ? `<div class="text-sky-300 font-bold">${instrument}</div>` : ''}
+                <div class="${ok ? 'text-emerald-200' : 'text-rose-200'} leading-snug break-words">${message || (ok ? 'API call completed successfully.' : 'API call failed.')}</div>
+                ${orderId ? `<div class="text-[10px] text-amber-300">Order ID: <span class="font-bold">${orderId}</span></div>` : ''}
+            </div>
+            <div class="flex items-center justify-between pt-1.5 border-t border-gray-800/80 text-[10px] text-gray-400">
+                <span>${ts} IST${latencyMs ? ` • ${latencyMs}ms` : ''}</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openZeroClickLogsModal()" class="text-cyan-300 hover:text-cyan-200 font-bold cursor-pointer">📋 View Logs</button>
+                    <button type="button" onclick="this.closest('.pointer-events-auto').remove()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-200 font-bold cursor-pointer">Close</button>
+                </div>
+            </div>
+        `;
+        stack.prepend(card);
+    }
+    window.showZeroClickAlertPopup = showZeroClickAlertPopup;
+
     async function syncZeroClickV2Lifecycle(activeTr, completedTrades) {
         if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
         const liveToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -18830,7 +18874,7 @@
                 st.entries[uid] = 'PENDING';
                 saveZeroClickSyncState(liveToday, st);
                 try {
-                    const res = await fetch('/api/v2/zeroclick/entry', {
+                    const resp = await fetch('/api/v2/zeroclick/entry', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
                         body: JSON.stringify({
@@ -18848,13 +18892,32 @@
                             candle_time: activeTr.entryTime,
                             entry_reason: `[${activeTr.setupType || 'STANDARD'}] ${activeTr.setupReason || 'V2 Entry'} | Spot ${activeTr.entrySpot} | SL ${activeTr.baseSl}`
                         })
-                    }).then(r => r.json());
+                    });
+                    const res = await resp.json().catch(() => ({}));
                     st.entries[uid] = res.success ? 'SENT' : 'FAILED';
                     st.sls[uid] = Number(activeTr.currentSl);
                     saveZeroClickSyncState(liveToday, st);
+                    showZeroClickAlertPopup({
+                        ok: !!res.success,
+                        action: `ENTRY ${chosenSide}`,
+                        mode: zeroClickV2Mode,
+                        instrument: activeTr.instrument || `NIFTY ${activeTr.strike} ${activeTr.optType || ''}`,
+                        statusCode: res.status_code || resp.status,
+                        latencyMs: res.latency_ms,
+                        message: res.message || (res.success ? 'Entry order dispatched to 0click.in' : 'Entry dispatch failed'),
+                        orderId: res.response?.trade?.order_id || res.response?.order_id || null,
+                    });
                 } catch (e) {
                     st.entries[uid] = 'FAILED';
                     saveZeroClickSyncState(liveToday, st);
+                    showZeroClickAlertPopup({
+                        ok: false,
+                        action: `ENTRY ${chosenSide}`,
+                        mode: zeroClickV2Mode,
+                        instrument: activeTr.instrument || `NIFTY ${activeTr.strike} ${activeTr.optType || ''}`,
+                        statusCode: 500,
+                        message: e.message || 'Network error dispatching entry to 0click.in',
+                    });
                 }
             } else if (st.entries[uid] === 'SENT' && Number(activeTr.currentSl) !== Number(st.sls[uid])) {
                 // Trailing SL moved (Cost / T1 / Stagnation 1:1) -> sync to 0click.in
@@ -18876,6 +18939,17 @@
                         candle_time: activeTr.entryTime,
                         sl_reason: `${activeTr.slType || 'TRAILING_SL'} shifted to ${activeTr.currentSl}`
                     })
+                }).then(async r => {
+                    const res = await r.json().catch(() => ({}));
+                    showZeroClickAlertPopup({
+                        ok: !!res.success,
+                        action: 'UPDATE SL',
+                        mode: zeroClickV2Mode,
+                        instrument: activeTr.instrument || `NIFTY ${activeTr.strike} ${activeTr.optType || ''}`,
+                        statusCode: res.status_code || r.status,
+                        latencyMs: res.latency_ms,
+                        message: res.message || `Trailing SL synced to ${activeTr.currentSl}`,
+                    });
                 }).catch(() => {});
             }
         }
@@ -18890,7 +18964,7 @@
                     st.exits[uid] = 'PENDING';
                     saveZeroClickSyncState(liveToday, st);
                     try {
-                        const res = await fetch('/api/v2/zeroclick/exit', {
+                        const resp = await fetch('/api/v2/zeroclick/exit', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
                             body: JSON.stringify({
@@ -18904,12 +18978,30 @@
                                 candle_time: tr.exitTime,
                                 exit_reason: `${tr.exitReason || 'V2 Exit'} | Exit @ ${tr.exitSpot} | P&L ${tr.pnlPoints >= 0 ? '+' : ''}${tr.pnlPoints}p`
                             })
-                        }).then(r => r.json());
+                        });
+                        const res = await resp.json().catch(() => ({}));
                         st.exits[uid] = res.already_closed ? 'CLOSED_EXTERNALLY' : (res.success ? 'CLOSED' : 'FAILED');
                         saveZeroClickSyncState(liveToday, st);
+                        showZeroClickAlertPopup({
+                            ok: !!res.success,
+                            action: res.already_closed ? 'EXIT (ALREADY CLOSED)' : 'EXIT CLOSE',
+                            mode: zeroClickV2Mode,
+                            instrument: tr.instrument || `NIFTY ${tr.strike} ${tr.optType || ''}`,
+                            statusCode: res.status_code || resp.status,
+                            latencyMs: res.latency_ms,
+                            message: res.message || (res.already_closed ? 'Position already closed on 0click.in' : 'Exit dispatched to 0click.in'),
+                        });
                     } catch (e) {
                         st.exits[uid] = 'FAILED';
                         saveZeroClickSyncState(liveToday, st);
+                        showZeroClickAlertPopup({
+                            ok: false,
+                            action: 'EXIT CLOSE',
+                            mode: zeroClickV2Mode,
+                            instrument: tr.instrument || `NIFTY ${tr.strike} ${tr.optType || ''}`,
+                            statusCode: 500,
+                            message: e.message || 'Network error dispatching exit to 0click.in',
+                        });
                     }
                 }
             }
@@ -18994,6 +19086,16 @@
                 lat.textContent = data.latency_ms ? `${data.latency_ms} ms` : '-- ms';
                 msg.textContent = `Log #${id}: ${data.message || (ok ? 'Resent successfully' : 'Resend failed')}`;
             }
+            showZeroClickAlertPopup({
+                ok: !!data.success && resp.ok,
+                action: `RESEND LOG #${id}`,
+                mode: data.response?.mode || zeroClickV2Mode,
+                instrument: data.response?.trade?.strike ? `NIFTY ${data.response.trade.strike}` : '',
+                statusCode: data.status_code || resp.status,
+                latencyMs: data.latency_ms,
+                message: data.message || (resp.ok ? 'Resent to 0click.in successfully' : 'Resend failed'),
+                orderId: data.response?.trade?.order_id || null,
+            });
             await fetchZeroClickLogs();
         } catch (e) {
             if (btn) {
