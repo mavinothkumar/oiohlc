@@ -6223,7 +6223,7 @@
     // ── LIVE STREAM CANDLE ENGINE & MARKER DENSITY CONTROLS ──
     function updateLiveCandleFromTick(feedLtp) {
         if (!feedLtp || isNaN(feedLtp) || feedLtp <= 0) return;
-        const todayStr = "{{ \Illuminate\Support\Carbon::now('Asia/Kolkata')->toDateString() }}";
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         if (typeof selectedDate !== 'undefined' && selectedDate !== todayStr) return;
 
         const ltp = Number(feedLtp);
@@ -6244,7 +6244,9 @@
         // Shift nowSec by +19800 seconds (5.5 hrs) to align with backend's IST-as-UTC timestamp coordinates
         const IST_OFFSET_SEC = 19800;
         const nowSec = Math.floor(Date.now() / 1000) + IST_OFFSET_SEC;
-        const currentBucketTime = nowSec - (nowSec % 300);
+        const wBucketSec = (typeof getTfMinutes === 'function' && typeof wTimeframe !== 'undefined') ? Math.max(60, getTfMinutes(wTimeframe) * 60) : 300;
+        const oBucketSec = (typeof getTfMinutes === 'function' && typeof oTimeframe !== 'undefined') ? Math.max(60, getTfMinutes(oTimeframe) * 60) : 300;
+        const currentBucketTime = (wBucketSec >= 22500) ? (nowSec - (nowSec % 86400)) : (nowSec - ((nowSec - (9 * 3600 + 15 * 60)) % wBucketSec));
 
         // 1. Live stream forming 5m candle on Weightage chart (Spot basis only; Futures candles come from FuturesCandleService)
         if ((typeof wChartBasis === 'undefined' || wChartBasis !== 'future') && wCandleSeries && weightageData && weightageData.candles && weightageData.candles.length > 0) {
@@ -6334,22 +6336,41 @@
                     close: Number(lastCandle.close),
                 };
 
+                // Keep _unifiedTodayCandles & _unifiedAllCandles in sync
+                if (window._unifiedTodayCandles && window._unifiedTodayCandles.length > 0) {
+                    const utLast = window._unifiedTodayCandles[window._unifiedTodayCandles.length - 1];
+                    if (Number(utLast.time) === liveBar.time) {
+                        utLast.high = liveBar.high;
+                        utLast.low = liveBar.low;
+                        utLast.close = liveBar.close;
+                    } else if (liveBar.time > Number(utLast.time)) {
+                        window._unifiedTodayCandles.push({ ...liveBar, time_str: lastCandle.time_str });
+                    }
+                    if (window._unifiedAllCandles) {
+                        window._unifiedAllCandles = [...(window._unifiedYesterdayCandles || []), ...window._unifiedTodayCandles];
+                    }
+                }
+
                 if (wCandleStyle === 'heikin_ashi') {
                     if (window._unifiedAllCandles && window._unifiedAllCandles.length > 0) {
                         window._unifiedHaCandles = calculateHeikinAshi(window._unifiedAllCandles);
                         const lastHa = window._unifiedHaCandles[window._unifiedHaCandles.length - 1];
                         if (lastHa) {
-                            wCandleSeries.update({
-                                time: lastHa.time,
-                                open: lastHa.open,
-                                high: lastHa.high,
-                                low: lastHa.low,
-                                close: lastHa.close
-                            });
+                            try {
+                                wCandleSeries.update({
+                                    time: lastHa.time,
+                                    open: lastHa.open,
+                                    high: lastHa.high,
+                                    low: lastHa.low,
+                                    close: lastHa.close
+                                });
+                            } catch (e) {}
                         }
                     }
                 } else {
-                    wCandleSeries.update(liveBar);
+                    try {
+                        wCandleSeries.update(liveBar);
+                    } catch (e) {}
                 }
 
                 if (activeCandleIndex >= timestampsList.length - 1) {
@@ -10133,6 +10154,16 @@
             time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time));
 
+        // Preserve live WebSocket Spot LTP on the forming candle across periodic API reloads
+        const liveTodayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const wsSpotLtp = Number(toiStreamConfig?.latest_totals?.spot || 0);
+        if (selectedDate === liveTodayStr && (typeof wChartBasis === 'undefined' || wChartBasis !== 'future') && wsSpotLtp > 0 && todayCandles.length > 0) {
+            const lc = todayCandles[todayCandles.length - 1];
+            lc.high = Math.max(lc.high, wsSpotLtp);
+            lc.low = Math.min(lc.low, wsSpotLtp);
+            lc.close = wsSpotLtp;
+        }
+
         const firstTodayTime = todayCandles[0]?.time || 0;
 
         // Preload Yesterday's candles (if available) before Today's open
@@ -10440,6 +10471,16 @@
             close: Number(c.close),
             time_str: c.time_str,
         })).filter(c => c.time && !isNaN(c.time));
+
+        // Preserve live WebSocket Spot LTP on the forming candle across periodic API reloads
+        const liveTodayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const wsSpotLtp = Number(toiStreamConfig?.latest_totals?.spot || 0);
+        if (selectedDate === liveTodayStr && (typeof wChartBasis === 'undefined' || wChartBasis !== 'future') && wsSpotLtp > 0 && todayCandles.length > 0) {
+            const lc = todayCandles[todayCandles.length - 1];
+            lc.high = Math.max(lc.high, wsSpotLtp);
+            lc.low = Math.min(lc.low, wsSpotLtp);
+            lc.close = wsSpotLtp;
+        }
 
         const firstTodayTime = todayCandles[0]?.time || 0;
 
