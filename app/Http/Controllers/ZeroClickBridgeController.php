@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ZeroClickAlertLog;
 use App\Services\ZeroClickBridgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,25 @@ class ZeroClickBridgeController extends Controller
     public function __construct(ZeroClickBridgeService $bridge)
     {
         $this->bridge = $bridge;
+    }
+
+    public function logs(Request $request): JsonResponse
+    {
+        $query = ZeroClickAlertLog::orderByDesc('triggered_at')->orderByDesc('id');
+        if ($request->filled('date')) {
+            $query->whereDate('trade_date', $request->input('date'));
+        }
+        if ($request->filled('mode') && $request->input('mode') !== 'ALL') {
+            $query->where('mode', strtoupper((string) $request->input('mode')));
+        }
+        $logs = $query->limit(100)->get();
+        return response()->json(['success' => true, 'logs' => $logs]);
+    }
+
+    public function clearLogs(Request $request): JsonResponse
+    {
+        ZeroClickAlertLog::where('category', 'OIOHLC_V2')->delete();
+        return response()->json(['success' => true, 'message' => '0click V2 bridge logs cleared.']);
     }
 
     public function entry(Request $request): JsonResponse

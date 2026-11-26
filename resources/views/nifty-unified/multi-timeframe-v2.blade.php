@@ -3125,10 +3125,14 @@
                 </select>
             </div>
 
-            <!-- ZeroClick Execution Mode Toggle (OFF / SIM / LIVE) -->
+            <!-- ZeroClick Execution Mode Toggle (OFF / SIM / LIVE) + Logs Button -->
             <button id="btn-zeroclick-mode-toggle" type="button" onclick="cycleZeroClickMode()" title="0click.in Auto-Execution Bridge: OFF | SIM (Paper) | LIVE (Real Broker)" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded text-[9.5px] font-mono font-bold border border-slate-700 flex items-center gap-1 cursor-pointer transition">
                 <span id="zc-mode-icon">🔌</span>
                 <span id="zc-mode-label">0click: OFF</span>
+            </button>
+            <button id="btn-zeroclick-logs" type="button" onclick="openZeroClickLogsModal()" title="View all 0click.in API requests & responses" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[9.5px] font-mono font-bold border border-cyan-800/60 flex items-center gap-1 cursor-pointer transition">
+                <span>📋</span>
+                <span class="hidden sm:inline">0click Logs</span>
             </button>
 
             <!-- Show All vs Active Only Toggle -->
@@ -18675,6 +18679,101 @@
     document.addEventListener('DOMContentLoaded', () => {
         updateZeroClickModeUI();
     });
+
+    async function openZeroClickLogsModal() {
+        let modal = document.getElementById('zeroclick-logs-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'zeroclick-logs-modal';
+            modal.className = 'fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3';
+            modal.innerHTML = `
+                <div class="bg-[#0d121f] border border-cyan-500/40 rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-800 bg-[#13192b]">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">📋</span>
+                            <span class="text-sm font-black text-cyan-300 tracking-wide">0click.in API Request &amp; Response Logs</span>
+                            <span class="text-[10px] font-mono text-gray-400">(zero_click_alert_logs)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="fetchZeroClickLogs()" class="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-bold cursor-pointer">🔄 Refresh</button>
+                            <button type="button" onclick="clearZeroClickV2Logs()" class="px-2.5 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700 text-xs font-bold cursor-pointer">🗑️ Clear V2</button>
+                            <button type="button" onclick="document.getElementById('zeroclick-logs-modal').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-bold cursor-pointer">✕ Close</button>
+                        </div>
+                    </div>
+                    <div id="zeroclick-logs-body" class="p-3 overflow-y-auto flex-1 font-mono text-xs space-y-2 text-gray-200">
+                        Loading logs...
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        modal.classList.remove('hidden');
+        await fetchZeroClickLogs();
+    }
+    window.openZeroClickLogsModal = openZeroClickLogsModal;
+
+    async function fetchZeroClickLogs() {
+        const body = document.getElementById('zeroclick-logs-body');
+        if (!body) return;
+        body.innerHTML = '<div class="text-cyan-300 py-4 text-center">Loading 0click.in logs...</div>';
+        try {
+            const res = await fetch(`/api/v2/zeroclick/logs?_t=${Date.now()}`).then(r => r.json());
+            const logs = res.logs || [];
+            if (logs.length === 0) {
+                body.innerHTML = '<div class="text-gray-400 py-8 text-center">No 0click.in requests logged yet.</div>';
+                return;
+            }
+            body.innerHTML = logs.map(l => {
+                const stColor = (l.status === 'SENT' || l.status === 'OPEN' || l.status === 'CLOSED' || l.status === 'ALREADY_CLOSED')
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                    : (l.status === 'FAILED' ? 'bg-rose-950 text-rose-300 border-rose-700' : 'bg-amber-950 text-amber-300 border-amber-700');
+                const modeCls = l.mode === 'LIVE' ? 'text-rose-300 bg-rose-950/70 border-rose-700' : 'text-cyan-300 bg-cyan-950/70 border-cyan-700';
+                const payloadStr = JSON.stringify(l.payload || {}, null, 2);
+                const respStr = JSON.stringify(l.api_response || {}, null, 2);
+                const ts = l.triggered_at ? String(l.triggered_at).replace('T', ' ').substring(0, 19) : '--';
+                return `
+                    <div class="rounded-lg border border-gray-800 bg-[#121829] p-2.5 space-y-1.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-gray-400">${ts}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-black border ${modeCls}">${l.mode || 'SIM'}</span>
+                                <span class="font-black text-white">${l.action || '--'}</span>
+                                <span class="text-sky-300">${l.instrument || ('NIFTY ' + (l.strike || ''))}</span>
+                                <span class="text-gray-400">Spot: ${l.spot_price || '--'} | SL: ${l.sl_price || '--'}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-400">${l.latency_ms ? l.latency_ms + 'ms' : ''}</span>
+                                <span class="text-gray-300">HTTP ${l.api_status_code || '--'}</span>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-black border ${stColor}">${l.status}</span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-gray-400 truncate">Endpoint: <span class="text-gray-300">${l.endpoint_url || '--'}</span></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10.5px]">
+                            <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
+                                <div class="text-amber-300 font-bold mb-1">📤 Sent Payload</div>
+                                <pre class="whitespace-pre-wrap break-all text-gray-300">${payloadStr}</pre>
+                            </div>
+                            <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
+                                <div class="text-emerald-300 font-bold mb-1">📥 Received Response</div>
+                                <pre class="whitespace-pre-wrap break-all text-gray-300">${respStr}</pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            body.innerHTML = `<div class="text-rose-400 py-4 text-center">Failed to load logs: ${e.message}</div>`;
+        }
+    }
+    window.fetchZeroClickLogs = fetchZeroClickLogs;
+
+    async function clearZeroClickV2Logs() {
+        if (!confirm('Clear all OIOHLC_V2 0click.in logs?')) return;
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        await fetch('/api/v2/zeroclick/logs', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf } });
+        await fetchZeroClickLogs();
+    }
+    window.clearZeroClickV2Logs = clearZeroClickV2Logs;
 
     function toggleTradeSettingsPanel() {
         const panel = document.getElementById('trade-settings-panel');

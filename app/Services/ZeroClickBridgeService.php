@@ -53,44 +53,74 @@ class ZeroClickBridgeService
     }
 
     /**
-     * Query 0click.in to verify whether a strike/position is still open.
+     * Query 0click.in to verify whether a strike/position is still open (and log request/response).
      */
     public function checkPositionExists(array $data): array
     {
         $mode = strtoupper((string) ($data['mode'] ?? 'SIMULATION'));
         $mode = in_array($mode, ['LIVE', 'SIMULATION'], true) ? $mode : 'SIMULATION';
+        $startTime = microtime(true);
+
+        $query = array_filter([
+            'strike'           => (int) ($data['strike'] ?? 0),
+            'opt_type'         => strtoupper((string) ($data['opt_type'] ?? '')),
+            'client_trade_uid' => (string) ($data['trade_uid'] ?? ''),
+            'mode'             => $mode,
+            'category'         => 'OIOHLC_V2',
+        ]);
+
+        $log = $this->createLog('CHECK_POSITION', $data, $query, $mode, $this->statusUrl);
 
         try {
-            $query = array_filter([
-                'strike'           => (int) ($data['strike'] ?? 0),
-                'opt_type'         => strtoupper((string) ($data['opt_type'] ?? '')),
-                'client_trade_uid' => (string) ($data['trade_uid'] ?? ''),
-                'mode'             => $mode,
-                'category'         => 'OIOHLC_V2',
-            ]);
-
             $resp = Http::timeout(8)
                 ->withHeaders($this->buildHeaders())
                 ->get($this->statusUrl, $query);
 
-            $body = $resp->json() ?: [];
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            $statusCode = $resp->status();
+            $body = $resp->json() ?: ['raw' => $resp->body()];
+
             if (!$resp->successful()) {
+                $log->update([
+                    'api_status_code' => $statusCode,
+                    'api_response'    => $body,
+                    'latency_ms'      => $latencyMs,
+                    'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                    'status'          => 'FAILED',
+                ]);
                 return [
                     'success' => false,
-                    'is_open' => null, // Unknown due to HTTP error — fail safe
-                    'status'  => $resp->status(),
-                    'message' => $body['message'] ?? "Status check failed ({$resp->status()})",
+                    'is_open' => null,
+                    'status'  => $statusCode,
+                    'message' => $body['message'] ?? "Status check failed ({$statusCode})",
                 ];
             }
 
+            $isOpen = (bool) ($body['is_open'] ?? false);
+            $log->update([
+                'api_status_code' => $statusCode,
+                'api_response'    => $body,
+                'latency_ms'      => $latencyMs,
+                'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                'status'          => $isOpen ? 'OPEN' : 'CLOSED',
+            ]);
+
             return [
                 'success'        => true,
-                'is_open'        => (bool) ($body['is_open'] ?? false),
+                'is_open'        => $isOpen,
                 'trading_symbol' => $body['trading_symbol'] ?? null,
                 'net_qty'        => (int) ($body['net_qty'] ?? 0),
                 'body'           => $body,
             ];
         } catch (\Throwable $e) {
+            $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+            $log->update([
+                'api_status_code' => 500,
+                'api_response'    => ['error' => $e->getMessage()],
+                'latency_ms'      => $latencyMs,
+                'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                'status'          => 'FAILED',
+            ]);
             Log::warning('ZeroClickBridgeService checkPositionExists error: ' . $e->getMessage());
             return [
                 'success' => false,
@@ -190,7 +220,7 @@ class ZeroClickBridgeService
         return $headers;
     }
 
-    protected function createLog(string $actionLabel, array $data, array $payload, string $mode): ZeroClickAlertLog
+    protected function createLog(string $actionLabel, array $data, array $payload, string $mode, ?string $endpointUrl = null): ZeroClickAlertLog
     {
         $now = Carbon::now('Asia/Kolkata');
         return ZeroClickAlertLog::create([
@@ -211,7 +241,7 @@ class ZeroClickBridgeService
             'category'     => 'OIOHLC_V2',
             'payload'      => $payload,
             'status'       => 'PENDING',
-            'endpoint_url' => $this->webhookUrl,
+            'endpoint_url' => $endpointUrl ?: $this->webhookUrl,
         ]);
     }
 
