@@ -2827,6 +2827,53 @@
         </div>
     </div>
 
+    <!-- Enterprise Confirmation Modal for Switching 0click.in Bridge to LIVE -->
+    <div id="zeroclick-live-confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[999999] hidden flex items-center justify-center p-4">
+        <div class="bg-[#0e131f] border border-rose-500/60 rounded-xl shadow-[0_0_40px_rgba(244,63,94,0.25)] w-full max-w-xl overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="px-5 py-3.5 border-b border-rose-500/30 bg-gradient-to-r from-rose-950/60 via-[#151221] to-[#0e131f] flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-rose-950 border border-rose-500/70 flex items-center justify-center text-base">⚡</span>
+                    <div>
+                        <h3 class="text-sm font-bold text-white tracking-wide">0click.in Execution Mode Escalation</h3>
+                        <p class="text-[11px] text-rose-300/90 font-mono">SIMULATION ➔ LIVE REAL-BROKER EXECUTION</p>
+                    </div>
+                </div>
+                <button type="button" onclick="confirmZeroClickLiveSwitch('SIMULATION')" class="text-gray-400 hover:text-white text-lg leading-none px-1.5 cursor-pointer" title="Cancel & Stay in Simulation">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 space-y-4 font-mono text-xs">
+                <!-- Warning Banner -->
+                <div class="rounded-lg border border-rose-500/50 bg-rose-950/30 px-3.5 py-2.5 text-rose-200 flex items-start gap-2.5">
+                    <span class="text-base leading-none mt-0.5">⚠️</span>
+                    <div class="text-[11px] leading-relaxed">
+                        <strong class="text-rose-100">Real Broker Orders Will Be Placed:</strong> Dispatches from <span class="text-white font-bold">OIOHLC V2</span> will execute live orders on your connected broker via <span id="zc-live-endpoint" class="text-cyan-300 font-bold break-all">https://0click.in/api/webhook/tradingview</span>.
+                    </div>
+                </div>
+
+                <!-- Active Strategy & Risk Parameters -->
+                <div>
+                    <div class="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">Active Engine & Risk Guardrails</div>
+                    <div id="zc-live-kpis" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="px-5 py-3.5 border-t border-gray-800 bg-[#0a0e17] flex items-center justify-end gap-2 flex-wrap font-mono text-[11px]">
+                <button type="button" onclick="confirmZeroClickLiveSwitch('OFF')" class="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700 font-bold cursor-pointer transition">
+                    🔌 Turn Bridge OFF
+                </button>
+                <button type="button" onclick="confirmZeroClickLiveSwitch('SIMULATION')" class="px-3 py-1.5 rounded-md bg-cyan-950/90 hover:bg-cyan-900 text-cyan-200 border border-cyan-500/60 font-bold cursor-pointer transition">
+                    🧪 Stay in SIMULATION
+                </button>
+                <button type="button" onclick="confirmZeroClickLiveSwitch('LIVE')" class="px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 font-black cursor-pointer transition shadow-[0_0_12px_rgba(244,63,94,0.45)]">
+                    ⚡ Confirm Switch to LIVE
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Fixed Dropdown Menu for Day AI Data (Positioned dynamically via getBoundingClientRect, immune to overflow) -->
     <div id="day-ai-menu" class="hidden fixed z-[999999] bg-[#131722] border border-purple-500/70 rounded-md shadow-2xl py-1 px-1 text-[11px] font-mono min-w-[220px] backdrop-blur-md">
         <button type="button" onclick="downloadWholeDayAiData('md')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-950/70 text-purple-200 rounded flex items-center gap-2 cursor-pointer transition">
@@ -18689,20 +18736,65 @@
         }
     }
 
+    function openZeroClickLiveConfirmModal() {
+        const modal = document.getElementById('zeroclick-live-confirm-modal');
+        if (!modal) {
+            zeroClickV2Mode = 'LIVE';
+            try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
+            updateZeroClickModeUI();
+            return;
+        }
+        const endpointEl = document.getElementById('zc-live-endpoint');
+        const currentEp = document.getElementById('label-current-endpoint')?.textContent?.trim();
+        if (endpointEl && currentEp) endpointEl.textContent = currentEp;
+
+        const cfg = (typeof tradeEngineConfig !== 'undefined' && tradeEngineConfig) ? tradeEngineConfig : {};
+        const lots = Number(cfg.entryLots || 1);
+        const lotSize = Number(cfg.lotSize || 75);
+        const totalQty = lots * lotSize;
+        const kpis = [
+            { label: 'Strategy Mode', val: cfg.strategyMode || 'DEFAULT', cls: 'text-amber-300' },
+            { label: 'Lots & Qty', val: `${lots}L (${totalQty} qty)`, cls: 'text-cyan-300' },
+            { label: 'Max Daily Cap', val: `${cfg.maxDailyTrades ?? '--'} trades`, cls: 'text-white' },
+            { label: 'Min Stk Impulse', val: `${cfg.minStkImpulsePct ?? '--'}%`, cls: 'text-emerald-300' },
+            { label: 'Unwind / Drift', val: `${cfg.oiUnwindDropPct ?? '--'}% / ${cfg.maxArmedDriftPts ?? '--'}p`, cls: 'text-rose-300' },
+            { label: 'VWAP Filter', val: cfg.vwapMode || 'STRICT', cls: 'text-purple-300' },
+        ];
+        const kpiBox = document.getElementById('zc-live-kpis');
+        if (kpiBox) {
+            kpiBox.innerHTML = kpis.map(k =>
+                `<div class="rounded-md border border-gray-800 bg-[#080c15] px-2.5 py-2">` +
+                `<div class="text-[9.5px] text-gray-500 uppercase">${k.label}</div>` +
+                `<div class="text-[11px] font-bold ${k.cls} mt-0.5 truncate" title="${k.val}">${k.val}</div>` +
+                `</div>`
+            ).join('');
+        }
+        modal.classList.remove('hidden');
+    }
+
+    function confirmZeroClickLiveSwitch(targetMode) {
+        const modal = document.getElementById('zeroclick-live-confirm-modal');
+        if (modal) modal.classList.add('hidden');
+        if (targetMode === 'LIVE' || targetMode === 'SIMULATION' || targetMode === 'OFF') {
+            zeroClickV2Mode = targetMode;
+            try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
+            updateZeroClickModeUI();
+        }
+    }
+    window.confirmZeroClickLiveSwitch = confirmZeroClickLiveSwitch;
+
     function cycleZeroClickMode() {
         if (zeroClickV2Mode === 'OFF') {
             zeroClickV2Mode = 'SIMULATION';
+            try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
+            updateZeroClickModeUI();
         } else if (zeroClickV2Mode === 'SIMULATION') {
-            if (!confirm('Switch 0click.in bridge from SIMULATION to LIVE real-broker execution?')) {
-                zeroClickV2Mode = 'OFF';
-            } else {
-                zeroClickV2Mode = 'LIVE';
-            }
+            openZeroClickLiveConfirmModal();
         } else {
             zeroClickV2Mode = 'OFF';
+            try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
+            updateZeroClickModeUI();
         }
-        try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
-        updateZeroClickModeUI();
     }
     window.cycleZeroClickMode = cycleZeroClickMode;
 
