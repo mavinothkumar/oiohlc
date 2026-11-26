@@ -137,7 +137,7 @@ class ZeroClickBridgeService
     {
         $mode = strtoupper((string) ($data['mode'] ?? 'SIMULATION'));
         $mode = in_array($mode, ['LIVE', 'SIMULATION'], true) ? $mode : 'SIMULATION';
-        $exitReason = (string) ($data['exit_reason'] ?? 'OI_V2_EXIT');
+        $exitReason = mb_substr(trim((string) ($data['exit_reason'] ?? 'OI_V2_EXIT')), 0, 60);
 
         $check = $this->checkPositionExists($data);
         if ($check['success'] && $check['is_open'] === false) {
