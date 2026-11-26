@@ -18940,7 +18940,15 @@
                             <button type="button" onclick="document.getElementById('zeroclick-v2-logs-modal').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-bold cursor-pointer">✕ Close</button>
                         </div>
                     </div>
-                    <div id="zeroclick-v2-logs-body" class="p-3 overflow-y-auto flex-1 font-mono text-xs space-y-2 text-gray-200">
+                    <div id="zc-v2-resend-banner" class="hidden mx-3 mt-2 rounded-lg border px-3 py-2 font-mono text-[11px] flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span id="zc-v2-resend-badge" class="px-1.5 py-0.5 rounded font-black text-[10px]">HTTP 200</span>
+                            <span id="zc-v2-resend-latency" class="text-cyan-300 font-bold">-- ms</span>
+                            <span id="zc-v2-resend-msg" class="text-white font-bold">--</span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('zc-v2-resend-banner').classList.add('hidden')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-[10px] font-bold cursor-pointer">✕</button>
+                    </div>
+                    <div id="zeroclick-v2-logs-body" class="p-3 overflow-y-auto flex-1 font-mono text-xs space-y-1.5 text-gray-200">
                         Loading logs...
                     </div>
                 </div>
@@ -18951,6 +18959,50 @@
         await fetchZeroClickLogs();
     }
     window.openZeroClickLogsModal = openZeroClickLogsModal;
+
+    function toggleZeroClickV2LogDetail(id) {
+        const detail = document.getElementById(`zc-v2-log-detail-${id}`);
+        const arrow = document.getElementById(`zc-v2-log-arrow-${id}`);
+        if (!detail) return;
+        const isHidden = detail.classList.toggle('hidden');
+        if (arrow) arrow.textContent = isHidden ? '▶' : '▼';
+    }
+    window.toggleZeroClickV2LogDetail = toggleZeroClickV2LogDetail;
+
+    async function resendZeroClickV2Log(id, btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.dataset.origHtml = btn.innerHTML;
+            btn.innerHTML = '⏳ Sending...';
+        }
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const resp = await fetch(`/api/v2/zeroclick/logs/${id}/resend`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }
+            });
+            const data = await resp.json().catch(() => ({}));
+            const banner = document.getElementById('zc-v2-resend-banner');
+            const badge = document.getElementById('zc-v2-resend-badge');
+            const lat = document.getElementById('zc-v2-resend-latency');
+            const msg = document.getElementById('zc-v2-resend-msg');
+            if (banner && badge && lat && msg) {
+                const ok = !!data.success && resp.ok;
+                banner.className = `mx-3 mt-2 rounded-lg border px-3 py-2 font-mono text-[11px] flex items-center justify-between gap-2 ${ok ? 'border-emerald-500/40 bg-emerald-950/30' : 'border-rose-500/40 bg-rose-950/30'}`;
+                badge.className = `px-1.5 py-0.5 rounded font-black text-[10px] border ${ok ? 'bg-emerald-950 text-emerald-300 border-emerald-600' : 'bg-rose-950 text-rose-300 border-rose-600'}`;
+                badge.textContent = `HTTP ${data.status_code || resp.status}`;
+                lat.textContent = data.latency_ms ? `${data.latency_ms} ms` : '-- ms';
+                msg.textContent = `Log #${id}: ${data.message || (ok ? 'Resent successfully' : 'Resend failed')}`;
+            }
+            await fetchZeroClickLogs();
+        } catch (e) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = btn.dataset.origHtml || '🚀 Resend';
+            }
+        }
+    }
+    window.resendZeroClickV2Log = resendZeroClickV2Log;
 
     async function fetchZeroClickLogs() {
         const body = document.getElementById('zeroclick-v2-logs-body');
@@ -18972,9 +19024,10 @@
                 const respStr = JSON.stringify(l.api_response || {}, null, 2);
                 const ts = l.triggered_at ? String(l.triggered_at).replace('T', ' ').substring(0, 19) : '--';
                 return `
-                    <div class="rounded-lg border border-gray-800 bg-[#121829] p-2.5 space-y-1.5">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="rounded-lg border border-gray-800 bg-[#121829] px-3 py-2">
+                        <div onclick="toggleZeroClickV2LogDetail(${l.id})" class="flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none hover:bg-white/[0.02] -mx-1 px-1 py-0.5 rounded transition">
                             <div class="flex items-center gap-2 flex-wrap">
+                                <span id="zc-v2-log-arrow-${l.id}" class="text-[10px] text-cyan-400 w-3 inline-block">▶</span>
                                 <span class="text-gray-400">${ts}</span>
                                 <span class="px-1.5 py-0.5 rounded text-[10px] font-black border ${modeCls}">${l.mode || 'SIM'}</span>
                                 <span class="font-black text-white">${l.action || '--'}</span>
@@ -18985,17 +19038,22 @@
                                 <span class="text-gray-400">${l.latency_ms ? l.latency_ms + 'ms' : ''}</span>
                                 <span class="text-gray-300">HTTP ${l.api_status_code || '--'}</span>
                                 <span class="px-1.5 py-0.5 rounded text-[10px] font-black border ${stColor}">${l.status}</span>
+                                <button type="button" onclick="event.stopPropagation(); resendZeroClickV2Log(${l.id}, this)" class="px-2 py-0.5 rounded bg-sky-950 hover:bg-sky-900 text-sky-200 border border-sky-700/80 text-[10px] font-bold cursor-pointer transition" title="Resend this request to 0click.in">
+                                    🚀 Resend
+                                </button>
                             </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 truncate">Endpoint: <span class="text-gray-300">${l.endpoint_url || '--'}</span></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10.5px]">
-                            <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
-                                <div class="text-amber-300 font-bold mb-1">📤 Sent Payload</div>
-                                <pre class="whitespace-pre-wrap break-all text-gray-300">${payloadStr}</pre>
-                            </div>
-                            <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
-                                <div class="text-emerald-300 font-bold mb-1">📥 Received Response</div>
-                                <pre class="whitespace-pre-wrap break-all text-gray-300">${respStr}</pre>
+                        <div id="zc-v2-log-detail-${l.id}" class="hidden mt-2 pt-2 border-t border-gray-800/80 space-y-2">
+                            <div class="text-[10px] text-gray-400 truncate">Endpoint: <span class="text-gray-300">${l.endpoint_url || '--'}</span></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10.5px]">
+                                <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
+                                    <div class="text-amber-300 font-bold mb-1">📤 Sent Payload</div>
+                                    <pre class="whitespace-pre-wrap break-all text-gray-300">${payloadStr}</pre>
+                                </div>
+                                <div class="bg-[#090d16] border border-gray-800 rounded p-2 overflow-x-auto">
+                                    <div class="text-emerald-300 font-bold mb-1">📥 Received Response</div>
+                                    <pre class="whitespace-pre-wrap break-all text-gray-300">${respStr}</pre>
+                                </div>
                             </div>
                         </div>
                     </div>

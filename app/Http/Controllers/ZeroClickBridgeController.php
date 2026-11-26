@@ -52,4 +52,10 @@ class ZeroClickBridgeController extends Controller
         $res = $this->bridge->syncTrailingSl($request->all());
         return response()->json($res, $res['success'] ? 200 : 502);
     }
+
+    public function resendLog(int $id): JsonResponse
+    {
+        $res = $this->bridge->resendLog($id);
+        return response()->json($res, $res['success'] ? 200 : ($res['status_code'] ?? 502));
+    }
 }

@@ -414,6 +414,7 @@ Route::post('/api/v2/zeroclick/entry',   [\App\Http\Controllers\ZeroClickBridgeC
 Route::post('/api/v2/zeroclick/exit',    [\App\Http\Controllers\ZeroClickBridgeController::class, 'exit'])->name('api.v2.zeroclick.exit');
 Route::post('/api/v2/zeroclick/sync-sl', [\App\Http\Controllers\ZeroClickBridgeController::class, 'syncSl'])->name('api.v2.zeroclick.sync_sl');
 Route::get('/api/v2/zeroclick/logs',     [\App\Http\Controllers\ZeroClickBridgeController::class, 'logs'])->name('api.v2.zeroclick.logs');
+Route::post('/api/v2/zeroclick/logs/{id}/resend', [\App\Http\Controllers\ZeroClickBridgeController::class, 'resendLog'])->name('api.v2.zeroclick.logs.resend');
 Route::delete('/api/v2/zeroclick/logs',  [\App\Http\Controllers\ZeroClickBridgeController::class, 'clearLogs'])->name('api.v2.zeroclick.logs.clear');
 Route::post('/api/nifty-weightage-monitor/alert-log', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'logAlert'])->name('api.nifty.weightage.monitor.alert-log');
 Route::get('/api/nifty-weightage-monitor/alert-logs', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getAlertLogs'])->name('api.nifty.weightage.monitor.alert-logs');

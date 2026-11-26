@@ -206,6 +206,63 @@ class ZeroClickBridgeService
         return $this->postToZeroClick($log, $payload);
     }
 
+    /**
+     * Resend an existing ZeroClickAlertLog entry by ID and update its status/response.
+     */
+    public function resendLog(int $id): array
+    {
+        $log = ZeroClickAlertLog::find($id);
+        if (!$log) {
+            return ['success' => false, 'status_code' => 404, 'message' => "Log #{$id} not found."];
+        }
+
+        $payload = is_array($log->payload) ? $log->payload : [];
+        $endpoint = (string) ($log->endpoint_url ?: $this->webhookUrl);
+
+        if (strtoupper((string) $log->action) === 'CHECK_POSITION' || str_contains($endpoint, 'position-status')) {
+            $startTime = microtime(true);
+            try {
+                $resp = Http::timeout(8)
+                    ->withHeaders($this->buildHeaders())
+                    ->get($endpoint, $payload);
+
+                $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+                $statusCode = $resp->status();
+                $body = $resp->json() ?: ['raw' => $resp->body()];
+                $ok = $resp->successful();
+                $isOpen = (bool) ($body['is_open'] ?? false);
+
+                $log->update([
+                    'api_status_code' => $statusCode,
+                    'api_response'    => $body,
+                    'latency_ms'      => $latencyMs,
+                    'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                    'status'          => $ok ? ($isOpen ? 'OPEN' : 'CLOSED') : 'FAILED',
+                ]);
+
+                return [
+                    'success'     => $ok,
+                    'status_code' => $statusCode,
+                    'latency_ms'  => $latencyMs,
+                    'response'    => $body,
+                    'message'     => $body['message'] ?? ($ok ? ($isOpen ? 'Position OPEN' : 'Position CLOSED') : "HTTP {$statusCode}"),
+                ];
+            } catch (\Throwable $e) {
+                $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+                $log->update([
+                    'api_status_code' => 500,
+                    'api_response'    => ['error' => $e->getMessage()],
+                    'latency_ms'      => $latencyMs,
+                    'dispatched_at'   => Carbon::now('Asia/Kolkata'),
+                    'status'          => 'FAILED',
+                ]);
+                return ['success' => false, 'status_code' => 500, 'latency_ms' => $latencyMs, 'message' => $e->getMessage()];
+            }
+        }
+
+        return $this->postToZeroClick($log, $payload);
+    }
+
     protected function buildHeaders(): array
     {
         $headers = [
