@@ -19141,7 +19141,10 @@
                 const modeCls = l.mode === 'LIVE' ? 'text-rose-300 bg-rose-950/70 border-rose-700' : 'text-cyan-300 bg-cyan-950/70 border-cyan-700';
                 const payloadStr = JSON.stringify(l.payload || {}, null, 2);
                 const respStr = JSON.stringify(l.api_response || {}, null, 2);
-                const ts = l.triggered_at ? String(l.triggered_at).replace('T', ' ').substring(0, 19) : '--';
+                const rawTs = l.triggered_at ? new Date(l.triggered_at) : null;
+                const ts = (rawTs && !isNaN(rawTs.getTime()))
+                    ? rawTs.toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' }) + ' IST'
+                    : (l.triggered_at ? String(l.triggered_at).replace('T', ' ').substring(0, 19) : '--');
                 return `
                     <div class="rounded-lg border border-gray-800 bg-[#121829] px-3 py-2">
                         <div onclick="toggleZeroClickV2LogDetail(${l.id})" class="flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none hover:bg-white/[0.02] -mx-1 px-1 py-0.5 rounded transition">
