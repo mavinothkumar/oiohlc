@@ -17318,7 +17318,9 @@
         updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap, armedImpulseAtReplay);
         updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
-        syncZeroClickV2Lifecycle(activeTrade, sessionTrades);
+        if (typeof rawCandles !== 'undefined' && Array.isArray(rawCandles) && upToIndex >= rawCandles.length - 1) {
+            syncZeroClickV2Lifecycle(activeTrade, sessionTrades, true);
+        }
     }
     window.runHighProbabilityTradeEngine = runHighProbabilityTradeEngine;
 
@@ -19413,7 +19415,8 @@
             try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
             updateZeroClickModeUI();
             if ((zeroClickV2Mode === 'SIMULATION' || zeroClickV2Mode === 'LIVE') && typeof syncZeroClickV2Lifecycle === 'function' && typeof activeTrade !== 'undefined') {
-                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : []);
+                const onLiveBar = (typeof timestampsList !== 'undefined' && Array.isArray(timestampsList) && activeCandleIndex >= timestampsList.length - 1);
+                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : [], onLiveBar);
             }
         }
     }
@@ -19425,7 +19428,8 @@
             try { localStorage.setItem('v2_zeroclick_mode', zeroClickV2Mode); } catch (e) {}
             updateZeroClickModeUI();
             if (typeof syncZeroClickV2Lifecycle === 'function' && typeof activeTrade !== 'undefined') {
-                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : []);
+                const onLiveBar = (typeof timestampsList !== 'undefined' && Array.isArray(timestampsList) && activeCandleIndex >= timestampsList.length - 1);
+                syncZeroClickV2Lifecycle(activeTrade, typeof sessionTrades !== 'undefined' ? sessionTrades : [], onLiveBar);
             }
         } else if (zeroClickV2Mode === 'SIMULATION') {
             openZeroClickLiveConfirmModal();
@@ -19496,15 +19500,18 @@
     window.showZeroClickAlertPopup = showZeroClickAlertPopup;
 
     const zcInFlightEntries = new Set();
+    const zcInFlightSls = new Set();
     const zcInFlightExits = new Set();
     const zcFailedEntries = new Set();
     const zcFailedExits = new Set();
 
-    async function syncZeroClickV2Lifecycle(activeTr, completedTrades) {
+    async function syncZeroClickV2Lifecycle(activeTr, completedTrades, isLatestLiveBar = false) {
+        if (!isLatestLiveBar) return;
         if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
         const liveToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         if (typeof selectedDate === 'undefined' || selectedDate !== liveToday) return;
         if (typeof isBarReplayMode !== 'undefined' && isBarReplayMode) return;
+        if (typeof timestampsList !== 'undefined' && Array.isArray(timestampsList) && typeof activeCandleIndex === 'number' && activeCandleIndex < timestampsList.length - 1) return;
 
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const st = getZeroClickSyncState(liveToday);
@@ -19567,7 +19574,9 @@
                 } finally {
                     zcInFlightEntries.delete(uid);
                 }
-            } else if (st.entries[uid] === 'SENT' && Number(activeTr.currentSl) !== Number(st.sls[uid])) {
+            } else if (st.entries[uid] === 'SENT' && Number(activeTr.currentSl) !== Number(st.sls[uid]) && !zcInFlightSls.has(`${uid}_${Number(activeTr.currentSl)}`)) {
+                const slKey = `${uid}_${Number(activeTr.currentSl)}`;
+                zcInFlightSls.add(slKey);
                 // Trailing SL moved (Cost / T1 / Stagnation 1:1) -> sync to 0click.in
                 st.sls[uid] = Number(activeTr.currentSl);
                 saveZeroClickSyncState(liveToday, st);
