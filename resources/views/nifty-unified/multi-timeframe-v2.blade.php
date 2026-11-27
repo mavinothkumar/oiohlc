@@ -19522,6 +19522,13 @@
             const uid = `${liveToday}_${activeTr.id}_${activeTr.direction}_${chosenSide}`;
 
             if (st.entries[uid] !== 'SENT' && !zcInFlightEntries.has(uid) && !zcFailedEntries.has(uid)) {
+                // Settlement guard: wait 15s into a new 5m bar & require signal candle breadth to be complete
+                // so DB VWAP/breadth updates (which finish around :08-:12s) cannot cause premature border-line flickers.
+                const secInto5mBar = Math.floor(Date.now() / 1000) % 300;
+                const sigBreadth = activeTr.signalTime ? weightageData?.breadth_by_time?.[activeTr.signalTime] : null;
+                if (secInto5mBar < 15 || (sigBreadth && sigBreadth.is_complete === false)) {
+                    return;
+                }
                 zcInFlightEntries.add(uid);
                 try {
                     const resp = await fetch('/api/v2/zeroclick/entry', {
@@ -19547,6 +19554,14 @@
                     if (res.success) {
                         st.entries[uid] = 'SENT';
                         st.sls[uid] = Number(activeTr.currentSl);
+                        st.meta = st.meta || {};
+                        st.meta[uid] = {
+                            strike: activeTr.strike,
+                            optType: activeTr.optType,
+                            direction: activeTr.direction,
+                            instrument: activeTr.instrument,
+                            entrySpot: activeTr.entrySpot,
+                        };
                         saveZeroClickSyncState(liveToday, st);
                     } else {
                         zcFailedEntries.add(uid);
@@ -19665,6 +19680,67 @@
                         zcInFlightExits.delete(uid);
                     }
                 }
+            }
+        }
+
+        // 3. Auto-Revoke Safety Net: if a SENT entry vanished from both activeTr & completedTrades (repainted), close it on 0click.in
+        const liveUids = new Set();
+        if (activeTr && activeTr.status === 'ACTIVE') {
+            const side = (activeTr.action === 'SELL') ? 'SELL' : 'BUY';
+            liveUids.add(`${liveToday}_${activeTr.id}_${activeTr.direction}_${side}`);
+        }
+        if (Array.isArray(completedTrades)) {
+            for (const tr of completedTrades) {
+                if (!tr) continue;
+                const side = (tr.action === 'SELL') ? 'SELL' : 'BUY';
+                liveUids.add(`${liveToday}_${tr.id}_${tr.direction}_${side}`);
+            }
+        }
+        for (const [sentUid, sentStatus] of Object.entries(st.entries || {})) {
+            if (sentStatus !== 'SENT') continue;
+            if (liveUids.has(sentUid)) continue;
+            if (st.exits[sentUid] === 'CLOSED' || st.exits[sentUid] === 'CLOSED_EXTERNALLY') continue;
+            if (zcInFlightExits.has(sentUid) || zcFailedExits.has(sentUid)) continue;
+
+            const meta = st.meta?.[sentUid];
+            if (!meta || !meta.strike) continue;
+            zcInFlightExits.add(sentUid);
+            try {
+                const resp = await fetch('/api/v2/zeroclick/exit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                    body: JSON.stringify({
+                        trade_uid: sentUid,
+                        mode: zeroClickV2Mode,
+                        direction: meta.direction,
+                        strike: meta.strike,
+                        opt_type: meta.optType,
+                        instrument: meta.instrument,
+                        exit_spot: Number(activeTr?.currentSpot || meta.entrySpot || 0),
+                        candle_time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' }),
+                        exit_reason: 'Signal Revoked / Repainted after DB settlement'
+                    })
+                });
+                const res = await resp.json().catch(() => ({}));
+                if (res.already_closed || res.success) {
+                    st.exits[sentUid] = res.already_closed ? 'CLOSED_EXTERNALLY' : 'CLOSED';
+                    saveZeroClickSyncState(liveToday, st);
+                } else {
+                    zcFailedExits.add(sentUid);
+                }
+                showZeroClickAlertPopup({
+                    ok: !!res.success,
+                    action: 'EXIT (SIGNAL REVOKED)',
+                    mode: zeroClickV2Mode,
+                    instrument: meta.instrument || `NIFTY ${meta.strike} ${meta.optType || ''}`,
+                    statusCode: res.status_code || resp.status,
+                    latencyMs: res.latency_ms,
+                    message: res.message || 'Revoked signal position closed on 0click.in',
+                });
+            } catch (e) {
+                zcFailedExits.add(sentUid);
+            } finally {
+                zcInFlightExits.delete(sentUid);
             }
         }
     }
