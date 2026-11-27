@@ -587,6 +587,9 @@
                                 <button type="button" onclick="toggleWeightageVwapMode()" id="w-tv-vwap" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs" title="Thick VWAP Line (On / Off)">
                                     VW
                                 </button>
+                                <button type="button" onclick="toggleWeightageMeasureTool()" id="w-tv-measure" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Measure Price &amp; Bars Movement (Click Point A then Point B)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l14-14 4 4L7 21H3v-4zM14 6l2 2M11 9l2 2M8 12l2 2"/></svg>
+                                </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
                                 <button type="button" onclick="clearWeightageManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Weightage Chart">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -986,6 +989,9 @@
                                 </button>
                                 <button type="button" onclick="toggleOptionsVwapMode()" id="o-tv-vwap" class="tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs" title="Thick VWAP Line (On / Off)">
                                     VW
+                                </button>
+                                <button type="button" onclick="toggleOptionsMeasureTool()" id="o-tv-measure" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer" title="Measure Price &amp; Bars Movement (Click Point A then Point B)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l14-14 4 4L7 21H3v-4zM14 6l2 2M11 9l2 2M8 12l2 2"/></svg>
                                 </button>
                                 <div class="w-3.5 h-px bg-gray-700 my-0.5"></div>
                                 <button type="button" onclick="clearOptionsManualDrawings()" class="tv-tool-btn w-6 h-6 flex items-center justify-center rounded transition text-gray-400 hover:text-rose-300 hover:bg-rose-950/60 cursor-pointer" title="Clear all drawings on Options Chart">
@@ -3860,375 +3866,320 @@
                 </div>
 
             <!-- Entry Matrix Panel -->
-            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-1.5 flex-1">
-                <div class="space-y-1.5">
-                    <!-- Header -->
-                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
-                        <span class="text-xs sm:text-sm font-black tracking-wide text-cyan-300 flex items-center gap-2 flex-wrap">
-                            <span>⚡ ENTRY MATRIX</span>
-                            <span id="em-confidence-badge" class="px-2.5 py-0.5 rounded text-sm font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
-                        </span>
-                        <span class="text-xs text-gray-300 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-black">--:--</span></span>
-                    </div>
-
-                    <!-- Executive 2-Card Summary: THIS 5M CANDLE vs OVERALL DAY PICTURE -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
-                        <!-- Card 1: THIS 5M CANDLE -->
-                        <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">🕯️ THIS 5M CANDLE</span>
+            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-2 flex-1">
+                <div class="space-y-2">
+                    <!-- Single Unified Verdict Strip -->
+                    <div class="rounded-lg border border-gray-800 bg-[#12192b] px-3 py-2 font-mono space-y-1.5">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <!-- Left: Score + Direction + Verdict -->
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <span class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">ENTRY MATRIX</span>
+                                <span id="em-hero-score" class="text-lg sm:text-xl font-black text-white leading-none tabular-nums">--%</span>
                                 <span id="em-hero-dir" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700">--</span>
+                                <span id="em-hero-verdict" class="text-xs font-bold text-amber-300">Scanning...</span>
+                                <span style="display:none"><span id="em-confidence-badge">SCORE: --% / 80%</span></span>
                             </div>
-                            <div class="flex items-baseline justify-between gap-2">
-                                <span id="em-hero-score" class="text-xl sm:text-2xl font-black text-white leading-none">--%</span>
-                                <span id="em-hero-verdict" class="text-xs font-bold text-amber-300 text-right">Scanning...</span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
-                                <div id="em-hero-score-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div>
+                            <!-- Right: Candle + Session + VWAP + Day P&L -->
+                            <div class="flex items-center gap-2 text-[11px] flex-wrap">
+                                <span class="text-gray-400">Candle <span id="em-candle-time" class="text-sky-300 font-black">--:--</span></span>
+                                <span class="text-gray-700">|</span>
+                                <span id="em-day-session" class="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/70">OPEN</span>
+                                <span id="em-day-vwap" class="text-xs font-black text-white">VWAP: --</span>
+                                <span class="text-gray-700">|</span>
+                                <span id="em-day-trades" class="text-xs font-black text-emerald-300">0 Trades</span>
+                                <span style="display:none"><span id="em-day-engine">Standby</span></span>
                             </div>
                         </div>
-
-                        <!-- Card 2: OVERALL DAY PICTURE -->
-                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">📅 OVERALL DAY PICTURE</span>
-                                <span id="em-day-session" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/70">OPEN</span>
-                            </div>
-                            <div class="flex items-baseline justify-between gap-2 flex-wrap">
-                                <span id="em-day-vwap" class="text-sm sm:text-base font-black text-white">VWAP: --</span>
-                                <span id="em-day-trades" class="text-xs sm:text-sm font-black text-emerald-300">0 Trades</span>
-                            </div>
-                            <div id="em-day-engine" class="text-xs text-gray-300 font-bold truncate">Standby</div>
+                        <div class="w-full h-1 rounded-full bg-slate-900 overflow-hidden">
+                            <div id="em-hero-score-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div>
                         </div>
                     </div>
 
                     <!-- Armed Setup & Squeeze Readiness Meter -->
-                    <div id="em-armed-setup-banner" class="hidden rounded-md border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-[#141b2d] to-[#141b2d] px-3 py-2 font-mono text-xs">
+                    <div id="em-armed-setup-banner" class="hidden rounded-md border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-[#141b2d] to-[#141b2d] px-3 py-1.5 font-mono text-xs">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5">
-                                <span id="em-armed-badge" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black animate-pulse">⏳ ARMED</span>
+                                <span id="em-armed-badge" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black animate-pulse">ARMED</span>
                                 <span id="em-armed-title" class="font-bold text-gray-200">--</span>
                             </div>
                             <div class="flex items-center gap-2 text-[11px]">
                                 <span id="em-armed-window" class="text-sky-300 font-bold">--</span>
                                 <span class="text-gray-600">|</span>
                                 <span id="em-armed-drift-text" class="font-bold text-emerald-300">Drift: --</span>
-                                <div class="w-16 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                                     <div id="em-armed-drift-bar" class="h-full bg-emerald-400 transition-all" style="width: 0%;"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-amber-500/20 text-[11px]">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mt-1 pt-1 border-t border-amber-500/20 text-[11px]">
                             <div id="em-armed-gates" class="flex items-center gap-2 text-gray-300">--</div>
                             <span id="em-armed-action" class="font-black text-amber-300">WAITING FOR OI CROSSOVER / UNWIND</span>
                         </div>
                     </div>
 
-                    <!-- GROUP 1: 5 SCORED CONFIDENCE FACTORS (2-Column Visual Cards) -->
-                    <div class="space-y-1 font-mono">
-                        <div class="text-[10.5px] font-black tracking-wider text-cyan-300 uppercase">
-                            📊 5M Confidence Factors (100 Pts Total)
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                            <!-- Factor 2: Stock Breadth (40 pts) -->
-                            <div id="row-em-breadth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-sm">📊</span>
-                                        <span class="text-xs sm:text-sm font-black text-white truncate">Stock Breadth</span>
-                                    </div>
-                                    <span id="em-f2-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/40</span></span>
-                                </div>
-                                <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f2-bar" class="h-full bg-sky-400 transition-all duration-300" style="width: 0%;"></div></div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f2-criteria" class="text-sky-300">40 pts (≥80%)</span>
-                                    <span id="em-f2-state" class="font-bold text-gray-200 truncate">--</span>
-                                </div>
-                                <div id="em-f2-action" class="text-[11px] font-bold text-gray-400 text-right">AWAITING</div>
+                    <!-- 80% / 20% Two-Column Body: Confidence Factors (Left 80%) + Stacked Strategy Gates (Right 20%) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-2 items-stretch">
+                        <!-- LEFT 80% (4/5 cols): 5 SCORED CONFIDENCE FACTORS (14px Scannable Rows) -->
+                        <div class="lg:col-span-4 rounded-lg border border-gray-800 bg-[#12192b]/90 overflow-hidden font-mono flex flex-col">
+                            <div class="grid items-center gap-3 px-3 py-1.5 bg-[#0b101d] border-b border-gray-800 text-[11px] font-bold tracking-wider text-gray-400 uppercase shrink-0" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                <div>Confidence Factor (100 Pts)</div>
+                                <div>Live Reading</div>
+                                <div class="text-center">Score</div>
+                                <div class="text-right">Signal</div>
                             </div>
+                            <div class="divide-y divide-gray-800/70 flex-1 flex flex-col justify-between">
+                                <!-- Factor 2: Stock Breadth (40 pts) -->
+                                <div id="row-em-breadth" class="grid items-center gap-3 px-3 py-2.5 flex-1 hover:bg-[#161f35]/70 transition-colors" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-white truncate">Stock Breadth</div>
+                                        <div id="em-f2-criteria" class="text-[11px] text-gray-400 truncate">40 pts (≥80%)</div>
+                                    </div>
+                                    <div class="min-w-0"><span id="em-f2-state" class="text-sm font-bold text-gray-200 block truncate">--</span></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span id="em-f2-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">0/40</span></span>
+                                        <div class="w-full max-w-[84px] h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f2-bar" class="h-full bg-sky-400 transition-all duration-300" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="text-right truncate"><span id="em-f2-action" class="text-sm font-bold text-gray-400 whitespace-nowrap">AWAITING</span></div>
+                                </div>
 
-                            <!-- Factor 3: Options Flow (30 pts) -->
-                            <div id="row-em-options" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-sm">⚡</span>
-                                        <span class="text-xs sm:text-sm font-black text-white truncate">Options Flow</span>
+                                <!-- Factor 3: Options Flow (30 pts) -->
+                                <div id="row-em-options" class="grid items-center gap-3 px-3 py-2.5 flex-1 hover:bg-[#161f35]/70 transition-colors" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-white truncate">Options Flow</div>
+                                        <div id="em-f3-criteria" class="text-[11px] text-gray-400 truncate">30 pts (≥70%)</div>
                                     </div>
-                                    <span id="em-f3-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/30</span></span>
+                                    <div class="min-w-0"><span id="em-f3-state" class="text-sm font-bold text-gray-200 block truncate">--</span></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span id="em-f3-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">0/30</span></span>
+                                        <div class="w-full max-w-[84px] h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f3-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="text-right truncate"><span id="em-f3-action" class="text-sm font-bold text-gray-400 whitespace-nowrap">MIXED</span></div>
                                 </div>
-                                <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f3-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div></div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f3-criteria" class="text-amber-300">30 pts (≥70%)</span>
-                                    <span id="em-f3-state" class="font-bold text-gray-200 truncate">--</span>
-                                </div>
-                                <div id="em-f3-action" class="text-[11px] font-bold text-gray-400 text-right">MIXED</div>
-                            </div>
 
-                            <!-- Factor 4: OI Wall / Skew (10 pts) -->
-                            <div id="row-em-oi-veto" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-sm">🧱</span>
-                                        <span class="text-xs sm:text-sm font-black text-white truncate">OI Wall / Skew</span>
+                                <!-- Factor 4: OI Wall / Skew (10 pts) -->
+                                <div id="row-em-oi-veto" class="grid items-center gap-3 px-3 py-2.5 flex-1 hover:bg-[#161f35]/70 transition-colors" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-white truncate">OI Wall / Skew</div>
+                                        <div id="em-f4-criteria" class="text-[11px] text-gray-400 truncate">10 pts (&lt;25% Opp)</div>
                                     </div>
-                                    <span id="em-f4-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
+                                    <div class="min-w-0"><span id="em-f4-state" class="text-sm font-bold text-gray-200 block truncate">--</span></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span id="em-f4-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">0/10</span></span>
+                                        <div class="w-full max-w-[84px] h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f4-bar" class="h-full bg-purple-400 transition-all duration-300" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="text-right truncate"><span id="em-f4-action" class="text-sm font-bold text-gray-400 whitespace-nowrap">CLEAR</span></div>
                                 </div>
-                                <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f4-bar" class="h-full bg-purple-400 transition-all duration-300" style="width: 0%;"></div></div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f4-criteria" class="text-purple-300">10 pts (&lt;25% Opp)</span>
-                                    <span id="em-f4-state" class="font-bold text-gray-200 truncate">--</span>
-                                </div>
-                                <div id="em-f4-action" class="text-[11px] font-bold text-gray-400 text-right">CLEAR</div>
-                            </div>
 
-                            <!-- Factor 5: OI Squeeze (10 pts) -->
-                            <div id="row-em-squeeze" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-sm">🚀</span>
-                                        <span class="text-xs sm:text-sm font-black text-white truncate">OI Squeeze</span>
+                                <!-- Factor 5: OI Squeeze (10 pts) -->
+                                <div id="row-em-squeeze" class="grid items-center gap-3 px-3 py-2.5 flex-1 hover:bg-[#161f35]/70 transition-colors" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-white truncate">OI Squeeze</div>
+                                        <div id="em-f5-criteria" class="text-[11px] text-gray-400 truncate">10 pts (≤15% Tight)</div>
                                     </div>
-                                    <span id="em-f5-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
+                                    <div class="min-w-0"><span id="em-f5-state" class="text-sm font-bold text-gray-200 block truncate">--</span></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span id="em-f5-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">0/10</span></span>
+                                        <div class="w-full max-w-[84px] h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f5-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="text-right truncate"><span id="em-f5-action" class="text-sm font-bold text-gray-400 whitespace-nowrap">NORMAL</span></div>
                                 </div>
-                                <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f5-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 0%;"></div></div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f5-criteria" class="text-emerald-300">10 pts (≤15% Tight)</span>
-                                    <span id="em-f5-state" class="font-bold text-gray-200 truncate">--</span>
-                                </div>
-                                <div id="em-f5-action" class="text-[11px] font-bold text-gray-400 text-right">NORMAL</div>
-                            </div>
 
-                            <!-- Factor 6: 30-Depth Flow (10 pts) -->
-                            <div id="row-em-depth" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                                <div class="flex items-center justify-between gap-2 flex-wrap">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm">🌊</span>
-                                        <span class="text-xs sm:text-sm font-black text-white">30-Depth Flow</span>
-                                        <span id="em-f6-criteria" class="text-[11px] text-cyan-300">10 pts (Δ &amp; Ratio)</span>
+                                <!-- Factor 6: 30-Depth Flow (10 pts) -->
+                                <div id="row-em-depth" class="grid items-center gap-3 px-3 py-2.5 flex-1 hover:bg-[#161f35]/70 transition-colors" style="grid-template-columns: minmax(0, 2.1fr) minmax(0, 4.1fr) minmax(0, 1.5fr) minmax(0, 2.3fr);">
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-white truncate">30-Depth Flow</div>
+                                        <div id="em-f6-criteria" class="text-[11px] text-gray-400 truncate">10 pts (Δ &amp; Ratio)</div>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <span id="em-f6-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
-                                        <span id="em-f6-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
-                                        <span id="em-f6-action" class="text-xs font-bold text-gray-400">NEUTRAL</span>
+                                    <div class="min-w-0"><span id="em-f6-state" class="text-sm font-bold text-gray-200 block truncate">--</span></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span id="em-f6-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">0/10</span></span>
+                                        <div class="w-full max-w-[84px] h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f6-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div></div>
                                     </div>
+                                    <div class="text-right truncate"><span id="em-f6-action" class="text-sm font-bold text-gray-400 whitespace-nowrap">NEUTRAL</span></div>
                                 </div>
-                                <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f6-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div></div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- GROUP 2: 4 STRATEGY GATES (4-Column Status Cards) -->
-                    <div class="space-y-1 font-mono">
-                        <div class="text-[10.5px] font-black tracking-wider text-fuchsia-300 uppercase">
-                            🛡️ Strategy Gates (Green ✓ = Go • Red ✗ = Blocked)
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-1.5">
+                        <!-- RIGHT 20% (1/5 cols): 4 STACKED STRATEGY GATES -->
+                        <div class="lg:col-span-1 flex flex-col justify-between gap-1.5 font-mono">
                             <!-- Gate 9: VWAP Gate -->
-                            <div id="row-em-vwap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
-                                <div class="flex items-center justify-between gap-1.5">
-                                    <span class="text-xs font-black text-white">📈 VWAP Gate</span>
-                                    <span id="em-f9-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-vwap" class="flex-1 rounded-lg bg-[#12192b] border border-gray-800 px-2.5 py-1.5 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-gray-300 truncate">VWAP Gate</span>
+                                    <span id="em-f9-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span></span>
                                 </div>
-                                <div id="em-f9-state" class="text-xs font-bold text-gray-200 truncate">--</div>
-                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
-                                    <span id="em-f9-criteria" class="text-fuchsia-300 truncate">Hard Gate</span>
-                                    <span id="em-f9-action" class="font-bold text-gray-400 truncate">STANDBY</span>
-                                </div>
+                                <div id="em-f9-state" class="text-xs font-bold text-white truncate">--</div>
+                                <div id="em-f9-action" class="text-[11px] font-bold text-gray-400 truncate">STANDBY</div>
+                                <span id="em-f9-criteria" class="hidden">Hard Gate</span>
                             </div>
 
                             <!-- Gate 1: Session Time -->
-                            <div id="row-em-time" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
-                                <div class="flex items-center justify-between gap-1.5">
-                                    <span class="text-xs font-black text-white">⏰ Session Time</span>
-                                    <span id="em-f1-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-time" class="flex-1 rounded-lg bg-[#12192b] border border-gray-800 px-2.5 py-1.5 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-gray-300 truncate">Session</span>
+                                    <span id="em-f1-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span></span>
                                 </div>
-                                <div id="em-f1-state" class="text-xs font-bold text-gray-200 truncate">--</div>
-                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
-                                    <span id="em-f1-criteria" class="text-indigo-300 truncate">09:35 – 14:45</span>
-                                    <span id="em-f1-action" class="font-bold text-gray-400 truncate">STANDBY</span>
-                                </div>
+                                <div id="em-f1-state" class="text-xs font-bold text-white truncate">--</div>
+                                <div id="em-f1-action" class="text-[11px] font-bold text-gray-400 truncate">STANDBY</div>
+                                <span id="em-f1-criteria" class="hidden">09:35 – 14:45</span>
                             </div>
 
                             <!-- Gate 7: Breakout Confirm -->
-                            <div id="row-em-breakout" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
-                                <div class="flex items-center justify-between gap-1.5">
-                                    <span class="text-xs font-black text-white">🎯 Breakout</span>
-                                    <span id="em-f7-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-breakout" class="flex-1 rounded-lg bg-[#12192b] border border-gray-800 px-2.5 py-1.5 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-gray-300 truncate">Breakout</span>
+                                    <span id="em-f7-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span></span>
                                 </div>
-                                <div id="em-f7-state" class="text-xs font-bold text-gray-200 truncate">--</div>
-                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
-                                    <span id="em-f7-criteria" class="text-amber-300 truncate">H/L Break</span>
-                                    <span id="em-f7-action" class="font-bold text-gray-400 truncate">STANDBY</span>
-                                </div>
+                                <div id="em-f7-state" class="text-xs font-bold text-white truncate">--</div>
+                                <div id="em-f7-action" class="text-[11px] font-bold text-gray-400 truncate">STANDBY</div>
+                                <span id="em-f7-criteria" class="hidden">H/L Break</span>
                             </div>
 
                             <!-- Gate 8: Daily Session Cap -->
-                            <div id="row-em-daily-cap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
-                                <div class="flex items-center justify-between gap-1.5">
-                                    <span class="text-xs font-black text-white">🔒 Daily Cap</span>
-                                    <span id="em-f8-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-daily-cap" class="flex-1 rounded-lg bg-[#12192b] border border-gray-800 px-2.5 py-1.5 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-gray-300 truncate">Daily Cap</span>
+                                    <span id="em-f8-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span></span>
                                 </div>
-                                <div id="em-f8-state" class="text-xs font-bold text-gray-200 truncate">0 / 2 Executed</div>
-                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
-                                    <span id="em-f8-criteria" class="text-sky-300 truncate">≤ 2 / Day</span>
-                                    <span id="em-f8-action" class="font-bold text-emerald-400 truncate">READY</span>
-                                </div>
+                                <div id="em-f8-state" class="text-xs font-bold text-white truncate">0 / 2</div>
+                                <div id="em-f8-action" class="text-[11px] font-bold text-emerald-400 truncate">READY</div>
+                                <span id="em-f8-criteria" class="hidden">≤ 2 / Day</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
-                    <span>⚡ Evaluated at each 5M candle close.</span>
-                    <span id="entry-engine-summary-badge" class="px-2.5 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
+                <div class="pt-1 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
+                    <span>Evaluated at each 5M candle close</span>
+                    <span id="entry-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
                 </div>
             </div>
 
-            <!-- Exit Matrix Panel (Visually Redesigned, Auto-Shown When In Trade) -->
-            <div id="exit-matrix-card" class="hidden bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-1.5 flex-1">
-                <div class="space-y-1.5">
-                    <!-- Header -->
-                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
-                        <span class="text-xs sm:text-sm font-black tracking-wide text-purple-300 flex items-center gap-2 flex-wrap">
-                            <span>🛡️ EXIT MATRIX</span>
-                            <span id="exit-ratio-badge" class="px-2.5 py-0.5 rounded text-sm font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-700">7/7 SAFE • 0% RISK</span>
-                        </span>
-                        <span class="text-xs text-gray-300 font-mono">Risk &amp; S/R Protection</span>
-                    </div>
-
-                    <!-- Executive 2-Card Summary: EXIT SAFETY HEALTH vs ACTIVE POSITION GUARD -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
-                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">🛡️ EXIT SAFETY HEALTH</span>
+            <!-- Exit Matrix Panel (Clean Scannable Rows) -->
+            <div id="exit-matrix-card" class="hidden bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-2 flex-1">
+                <div class="space-y-2">
+                    <!-- Single Unified Exit Verdict Strip -->
+                    <div class="rounded-lg border border-gray-800 bg-[#12192b] px-3 py-2 font-mono space-y-1.5">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">EXIT MATRIX</span>
+                                <span id="exit-hero-safe" class="text-lg sm:text-xl font-black text-emerald-400 leading-none tabular-nums">7 / 7 SAFE</span>
                                 <span id="exit-hero-risk" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700">0% RISK</span>
+                                <span id="exit-hero-verdict" class="text-xs font-bold text-emerald-300">Healthy</span>
+                                <span style="display:none"><span id="exit-ratio-badge">7/7 SAFE • 0% RISK</span></span>
                             </div>
-                            <div class="flex items-baseline justify-between gap-2">
-                                <span id="exit-hero-safe" class="text-xl sm:text-2xl font-black text-emerald-400 leading-none">7 / 7 SAFE</span>
-                                <span id="exit-hero-verdict" class="text-xs font-bold text-emerald-300 text-right">Healthy</span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
-                                <div id="exit-hero-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div>
+                            <div class="flex items-center gap-2 text-[11px] flex-wrap">
+                                <span id="exit-hero-trade" class="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-800 text-gray-200 border border-slate-700">NO ACTIVE TRADE</span>
+                                <span id="exit-hero-sl" class="text-xs font-black text-white">SL Cushion: --</span>
+                                <span class="text-gray-700">|</span>
+                                <span id="exit-hero-watch" class="text-xs text-gray-300 font-bold truncate max-w-[220px]">Scanning 7 factors...</span>
                             </div>
                         </div>
-
-                        <div class="rounded-lg border border-sky-500/30 bg-[#12192b] p-2 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-[11px] font-black tracking-wider text-sky-300 uppercase">📌 POSITION GUARD</span>
-                                <span id="exit-hero-trade" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-200 border border-slate-700">NO ACTIVE TRADE</span>
-                            </div>
-                            <div id="exit-hero-sl" class="text-sm sm:text-base font-black text-white">SL Cushion: --</div>
-                            <div id="exit-hero-watch" class="text-xs text-gray-300 font-bold truncate">Scanning 7 exit factors...</div>
+                        <div class="w-full h-1 rounded-full bg-slate-900 overflow-hidden">
+                            <div id="exit-hero-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div>
                         </div>
                     </div>
 
-                    <!-- 7 Exit Factors in 2-Column Visual Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5 font-mono">
-                        <!-- Factor 1: Signal Candle SL -->
-                        <div id="row-factor-sl" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">1️⃣ Signal Candle SL</span>
-                                <span id="fm-f1-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 SAFE</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f1-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f1-anchor" class="text-rose-300 font-bold">--</span>
-                                <span id="fm-f1-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f1-action" class="text-[11px] font-bold text-emerald-400 text-right">HOLD / SAFE</div>
+                    <!-- 7 Exit Factors (Clean Scannable Rows) -->
+                    <div class="rounded-lg border border-gray-800 bg-[#12192b]/90 overflow-hidden font-mono">
+                        <div class="grid grid-cols-12 items-center gap-2 px-2.5 py-1 bg-[#0b101d] border-b border-gray-800 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                            <div class="col-span-3">Exit Factor</div>
+                            <div class="col-span-3">Trigger / Anchor</div>
+                            <div class="col-span-2">Distance</div>
+                            <div class="col-span-2 text-center">Health</div>
+                            <div class="col-span-2 text-right">Action</div>
                         </div>
-
-                        <!-- Factor 2: Yesterday S/R Wall -->
-                        <div id="row-factor-yd-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">2️⃣ Yesterday S/R Wall</span>
-                                <span id="fm-f2-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAR</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f2-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f2-anchor" class="text-amber-300 font-bold">--</span>
-                                <span id="fm-f2-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f2-action" class="text-[11px] font-bold text-emerald-400 text-right">CLEAR PATH</div>
-                        </div>
-
-                        <!-- Factor 3: Today S/R & H/L -->
-                        <div id="row-factor-td-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">3️⃣ Today S/R &amp; H/L</span>
-                                <span id="fm-f3-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAR</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f3-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f3-anchor" class="text-sky-300 font-bold">--</span>
-                                <span id="fm-f3-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f3-action" class="text-[11px] font-bold text-emerald-400 text-right">CLEAR</div>
-                        </div>
-
-                        <!-- Factor 4: Reverse Signal Cross -->
-                        <div id="row-factor-reverse" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">4️⃣ Reverse Signal Cross</span>
-                                <span id="fm-f4-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAN</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f4-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f4-anchor" class="text-purple-300 font-bold">--</span>
-                                <span id="fm-f4-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f4-action" class="text-[11px] font-bold text-emerald-400 text-right">NO REVERSE</div>
-                        </div>
-
-                        <!-- Factor 5: 30-Depth Volume Flow -->
-                        <div id="row-factor-depth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">5️⃣ 30-Depth Volume Flow</span>
-                                <span id="fm-f5-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 SUPPORTIVE</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f5-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f5-anchor" class="text-cyan-300 font-bold">--</span>
-                                <span id="fm-f5-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f5-action" class="text-[11px] font-bold text-emerald-400 text-right">SUPPORTIVE</div>
-                        </div>
-
-                        <!-- Factor 6: Greeks & Theta Decay -->
-                        <div id="row-factor-greeks" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-black text-white">6️⃣ Greeks &amp; Theta Decay</span>
-                                <span id="fm-f6-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 OPTIMAL</span></span>
-                            </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f6-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
-                            <div class="flex items-center justify-between gap-2 text-[11px]">
-                                <span id="fm-f6-anchor" class="text-indigo-300 font-bold">--</span>
-                                <span id="fm-f6-dist" class="text-gray-200 font-bold truncate">--</span>
-                            </div>
-                            <div id="fm-f6-action" class="text-[11px] font-bold text-emerald-400 text-right">ACTIVE</div>
-                        </div>
-
-                        <!-- Factor 7: Stagnation Time-Stop -->
-                        <div id="row-factor-stagnation" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
-                            <div class="flex items-center justify-between gap-2 flex-wrap">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs sm:text-sm font-black text-white">7️⃣ Stagnation Time-Stop</span>
-                                    <span id="fm-f7-anchor" class="text-[11px] text-amber-300 font-bold">45m Limit • 1:1 Trail</span>
+                        <div class="divide-y divide-gray-800/70">
+                            <!-- Factor 1: Signal Candle SL -->
+                            <div id="row-factor-sl" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Signal Candle SL</div>
+                                <div id="fm-f1-anchor" class="col-span-3 text-[11px] text-rose-300 font-bold truncate">--</div>
+                                <div id="fm-f1-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f1-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">SAFE</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f1-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span id="fm-f7-dist" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
-                                    <span id="fm-f7-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 ACTIVE</span></span>
-                                    <span id="fm-f7-action" class="text-xs font-bold text-emerald-400">1:1 TRAIL READY</span>
-                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f1-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">HOLD / SAFE</span></div>
                             </div>
-                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f7-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+
+                            <!-- Factor 2: Yesterday S/R Wall -->
+                            <div id="row-factor-yd-sr" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Yesterday S/R</div>
+                                <div id="fm-f2-anchor" class="col-span-3 text-[11px] text-amber-300 font-bold truncate">--</div>
+                                <div id="fm-f2-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f2-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">CLEAR</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f2-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f2-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">CLEAR PATH</span></div>
+                            </div>
+
+                            <!-- Factor 3: Today S/R & H/L -->
+                            <div id="row-factor-td-sr" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Today S/R &amp; H/L</div>
+                                <div id="fm-f3-anchor" class="col-span-3 text-[11px] text-sky-300 font-bold truncate">--</div>
+                                <div id="fm-f3-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f3-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">CLEAR</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f3-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f3-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">CLEAR</span></div>
+                            </div>
+
+                            <!-- Factor 4: Reverse Signal Cross -->
+                            <div id="row-factor-reverse" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Reverse Signal</div>
+                                <div id="fm-f4-anchor" class="col-span-3 text-[11px] text-purple-300 font-bold truncate">--</div>
+                                <div id="fm-f4-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f4-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">CLEAN</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f4-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f4-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">NO REVERSE</span></div>
+                            </div>
+
+                            <!-- Factor 5: 30-Depth Volume Flow -->
+                            <div id="row-factor-depth" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">30-Depth Flow</div>
+                                <div id="fm-f5-anchor" class="col-span-3 text-[11px] text-cyan-300 font-bold truncate">--</div>
+                                <div id="fm-f5-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f5-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">SUPPORTIVE</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f5-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f5-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">SUPPORTIVE</span></div>
+                            </div>
+
+                            <!-- Factor 6: Greeks & Theta Decay -->
+                            <div id="row-factor-greeks" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Greeks &amp; Theta</div>
+                                <div id="fm-f6-anchor" class="col-span-3 text-[11px] text-indigo-300 font-bold truncate">--</div>
+                                <div id="fm-f6-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f6-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">OPTIMAL</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f6-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f6-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">ACTIVE</span></div>
+                            </div>
+
+                            <!-- Factor 7: Stagnation Time-Stop -->
+                            <div id="row-factor-stagnation" class="grid grid-cols-12 items-center gap-2 px-2.5 py-1.5 hover:bg-[#161f35]/70 transition-colors">
+                                <div class="col-span-3 text-xs font-bold text-white truncate">Stagnation Stop</div>
+                                <div id="fm-f7-anchor" class="col-span-3 text-[11px] text-amber-300 font-bold truncate">45m Limit • 1:1 Trail</div>
+                                <div id="fm-f7-dist" class="col-span-2 text-[11px] text-gray-200 font-bold truncate">--</div>
+                                <div class="col-span-2 flex flex-col items-center gap-1">
+                                    <span id="fm-f7-status"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">ACTIVE</span></span>
+                                    <div class="w-full max-w-[72px] h-1 rounded-full bg-slate-900 overflow-hidden"><div id="fm-f7-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div></div>
+                                </div>
+                                <div class="col-span-2 text-right truncate"><span id="fm-f7-action" class="text-[11px] font-bold text-emerald-400 whitespace-nowrap">1:1 TRAIL READY</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
-                    <span>⚡ Re-evaluates all 7 exit &amp; trailing factors at every 5M candle close.</span>
-                    <span id="exit-engine-summary-badge" class="px-2.5 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">POSITION IN GOOD HEALTH</span>
+                <div class="pt-1 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
+                    <span>Re-evaluates all 7 exit &amp; trailing factors at every 5M candle close</span>
+                    <span id="exit-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">POSITION IN GOOD HEALTH</span>
                 </div>
             </div>
             </div>
@@ -5949,6 +5900,9 @@
         try {
             localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings));
         } catch (e) {}
+        if (typeof persistSettingsToDb === 'function') {
+            persistSettingsToDb('nifty_unified_alarm_settings', alarmSettings, 'basket_mode');
+        }
 
         syncStrikeBasketModeUI();
 
@@ -7320,6 +7274,138 @@
     }
     window.cycleFibMode = cycleFibMode;
 
+    const measureState = {
+        w: { step: 0, p1: null, p2: null },
+        o: { step: 0, p1: null, p2: null },
+    };
+
+    function getChartKit(prefix) {
+        const isW = (prefix === 'w');
+        const chart = isW ? wChart : oChart;
+        const series = isW ? wCandleSeries : oCandleSeries;
+        const container = document.getElementById(isW ? 'w-chart-container' : 'o-chart-container');
+        const candles = isW
+            ? (window._unifiedAllCandles || weightageData?.candles || weightageData?.nifty_candles || [])
+            : (window._unifiedOptionsCandles || breadthData?.nifty_candles || []);
+        return { chart, series, container, candles };
+    }
+
+    function clearMeasureOverlay(prefix) {
+        measureState[prefix] = { step: 0, p1: null, p2: null };
+        const el = document.getElementById(`${prefix}-measure-overlay`);
+        if (el) el.remove();
+    }
+    window.clearMeasureOverlay = clearMeasureOverlay;
+
+    function renderMeasureOverlay(prefix, previewPoint = null) {
+        const st = measureState[prefix];
+        const { chart, series, container, candles } = getChartKit(prefix);
+        if (!chart || !series || !container || !st.p1) return;
+
+        const endPt = st.p2 || previewPoint;
+        if (!endPt) return;
+
+        let overlay = document.getElementById(`${prefix}-measure-overlay`);
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = `${prefix}-measure-overlay`;
+            overlay.className = 'absolute inset-0 pointer-events-none z-[18] overflow-hidden';
+            container.appendChild(overlay);
+        }
+
+        const x1 = chart.timeScale().timeToCoordinate(st.p1.time);
+        const y1 = series.priceToCoordinate(st.p1.price);
+        const x2 = chart.timeScale().timeToCoordinate(endPt.time);
+        const y2 = series.priceToCoordinate(endPt.price);
+        if (x1 === null || y1 === null || x2 === null || y2 === null) return;
+
+        const left = Math.min(x1, x2);
+        const top = Math.min(y1, y2);
+        const width = Math.max(2, Math.abs(x2 - x1));
+        const height = Math.max(2, Math.abs(y2 - y1));
+
+        const diff = endPt.price - st.p1.price;
+        const pct = st.p1.price > 0 ? (diff / st.p1.price) * 100 : 0;
+        const isUp = diff >= 0;
+        const sign = isUp ? '+' : '';
+
+        const idx1 = candles.findIndex(c => Number(c.time || c.timestamp) === Number(st.p1.time));
+        const idx2 = candles.findIndex(c => Number(c.time || c.timestamp) === Number(endPt.time));
+        const bars = (idx1 !== -1 && idx2 !== -1) ? Math.abs(idx2 - idx1) : 0;
+        const tfMins = (typeof getTfMinutes === 'function') ? getTfMinutes(prefix === 'w' ? wTimeframe : oTimeframe) : 5;
+        const mins = bars * tfMins;
+        const durStr = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+        const t1Str = (idx1 !== -1 && candles[idx1]?.time_str) ? candles[idx1].time_str : '';
+        const t2Str = (idx2 !== -1 && candles[idx2]?.time_str) ? candles[idx2].time_str : '';
+
+        const boxBg = isUp ? 'rgba(16, 185, 129, 0.16)' : 'rgba(244, 63, 94, 0.16)';
+        const boxBorder = isUp ? '#10b981' : '#f43f5e';
+        const pillCls = isUp
+            ? 'bg-emerald-950/95 border-emerald-500 text-emerald-200'
+            : 'bg-rose-950/95 border-rose-500 text-rose-200';
+
+        const pillTop = isUp ? Math.max(6, top - 48) : Math.min(container.clientHeight - 54, top + height + 6);
+        const pillLeft = Math.max(8, Math.min(container.clientWidth - 220, left + width / 2 - 95));
+
+        overlay.innerHTML = `
+            <div style="position:absolute; left:${left}px; top:${top}px; width:${width}px; height:${height}px; background:${boxBg}; border:1.5px dashed ${boxBorder};"></div>
+            <div style="position:absolute; left:${pillLeft}px; top:${pillTop}px;" class="pointer-events-auto rounded-md border px-2.5 py-1 shadow-xl font-mono text-[10.5px] leading-tight ${pillCls}">
+                <div class="flex items-center justify-between gap-2 font-black text-xs">
+                    <span>${sign}${diff.toFixed(2)} pts (${sign}${pct.toFixed(2)}%)</span>
+                    <button type="button" onclick="clearMeasureOverlay('${prefix}')" class="text-gray-300 hover:text-white text-[11px] cursor-pointer" title="Clear measurement">✕</button>
+                </div>
+                <div class="text-[10px] text-gray-200 mt-0.5">${bars} bars • ${durStr}${t1Str && t2Str ? ` (${t1Str} ➔ ${t2Str})` : ''}</div>
+                <div class="text-[9.5px] text-gray-300">${st.p1.price.toFixed(2)} ➔ ${endPt.price.toFixed(2)}</div>
+            </div>
+        `;
+    }
+
+    function handleMeasureChartClick(prefix, param) {
+        if (!param || !param.point) return;
+        const { series, candles } = getChartKit(prefix);
+        if (!series) return;
+        const rawPrice = series.coordinateToPrice(param.point.y);
+        if (rawPrice === null || isNaN(rawPrice)) return;
+        const price = Math.round(rawPrice * 100) / 100;
+        const time = Number(param.time || (candles[candles.length - 1]?.time || candles[candles.length - 1]?.timestamp || 0));
+        if (!time) return;
+
+        const st = measureState[prefix];
+        if (st.step === 0 || st.step === 2) {
+            st.p1 = { price, time };
+            st.p2 = null;
+            st.step = 1;
+            updateTvHint(`Point A: ${price.toFixed(2)}. Move & click Point B on chart...`, prefix);
+            renderMeasureOverlay(prefix, st.p1);
+        } else if (st.step === 1) {
+            st.p2 = { price, time };
+            st.step = 2;
+            renderMeasureOverlay(prefix);
+            if (prefix === 'w') setActiveWeightageTvTool('pointer');
+            else setActiveOptionsTvTool('pointer');
+        }
+    }
+
+    function toggleWeightageMeasureTool() {
+        if (wActiveTvTool === 'measure') {
+            setActiveWeightageTvTool('pointer');
+        } else {
+            clearMeasureOverlay('w');
+            setActiveWeightageTvTool('measure');
+        }
+    }
+    window.toggleWeightageMeasureTool = toggleWeightageMeasureTool;
+
+    function toggleOptionsMeasureTool() {
+        if (oActiveTvTool === 'measure') {
+            setActiveOptionsTvTool('pointer');
+        } else {
+            clearMeasureOverlay('o');
+            setActiveOptionsTvTool('measure');
+        }
+    }
+    window.toggleOptionsMeasureTool = toggleOptionsMeasureTool;
+
     function toggleWeightageHLineTool() {
         if (wActiveTvTool === 'hline') {
             setActiveWeightageTvTool('pointer');
@@ -7483,6 +7569,9 @@
             } else if (wActiveTvTool === 'fib_manual') {
                 isWVis = true;
                 tW = (targetChart === 'w' && customText) ? customText : 'Click Swing Point 1 (High/Low) on Weightage chart...';
+            } else if (wActiveTvTool === 'measure') {
+                isWVis = true;
+                tW = (targetChart === 'w' && customText) ? customText : 'Click Point A (Start) on Weightage chart to measure...';
             }
             wHint.className = isWVis ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
             if (wText && isWVis) wText.textContent = tW;
@@ -7497,6 +7586,9 @@
             } else if (oActiveTvTool === 'fib_manual') {
                 isOVis = true;
                 tO = (targetChart === 'o' && customText) ? customText : 'Click Swing Point 1 (High/Low) on Options chart...';
+            } else if (oActiveTvTool === 'measure') {
+                isOVis = true;
+                tO = (targetChart === 'o' && customText) ? customText : 'Click Point A (Start) on Options chart to measure...';
             }
             oHint.className = isOVis ? 'flex absolute top-2 right-12 z-20 px-2.5 py-1 rounded bg-sky-950/95 border border-sky-400 text-sky-200 text-[10px] font-mono shadow-lg items-center gap-1.5 animate-pulse' : 'hidden';
             if (oText && isOVis) oText.textContent = tO;
@@ -7574,9 +7666,11 @@
         const wBtnFib = document.getElementById('w-tv-fib');
         const wBtnSt = document.getElementById('w-tv-st');
         const wBtnVwap = document.getElementById('w-tv-vwap');
+        const wBtnMeasure = document.getElementById('w-tv-measure');
 
         if (wBtnPointer) wBtnPointer.className = (wActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
         if (wBtnHline) wBtnHline.className = (wActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
+        if (wBtnMeasure) wBtnMeasure.className = (wActiveTvTool === 'measure') ? toolClasses.active : toolClasses.inactive;
         if (wBtnFib) wBtnFib.className = (wActiveTvTool === 'fib_manual' || wTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (wBtnSt) wBtnSt.className = (wTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (wBtnVwap) wBtnVwap.className = (wTvSettings.vwap !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs' : toolClasses.inactive;
@@ -7587,9 +7681,11 @@
         const oBtnFib = document.getElementById('o-tv-fib');
         const oBtnSt = document.getElementById('o-tv-st');
         const oBtnVwap = document.getElementById('o-tv-vwap');
+        const oBtnMeasure = document.getElementById('o-tv-measure');
 
         if (oBtnPointer) oBtnPointer.className = (oActiveTvTool === 'pointer') ? toolClasses.active : toolClasses.inactive;
         if (oBtnHline) oBtnHline.className = (oActiveTvTool === 'hline') ? toolClasses.active : toolClasses.inactive;
+        if (oBtnMeasure) oBtnMeasure.className = (oActiveTvTool === 'measure') ? toolClasses.active : toolClasses.inactive;
         if (oBtnFib) oBtnFib.className = (oActiveTvTool === 'fib_manual' || oTvSettings.fibMode !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-violet-200 bg-violet-900/80 border border-violet-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (oBtnSt) oBtnSt.className = (oTvSettings.superTrend !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-amber-200 bg-amber-900/80 border border-amber-500/50 font-mono text-[9px] font-black cursor-pointer' : toolClasses.inactive;
         if (oBtnVwap) oBtnVwap.className = (oTvSettings.vwap !== 'off') ? 'tv-tool-btn active w-6 h-6 flex items-center justify-center rounded transition text-fuchsia-200 bg-fuchsia-950/90 border border-fuchsia-500/80 font-mono text-[9px] font-black cursor-pointer shadow-xs' : toolClasses.inactive;
@@ -9518,6 +9614,10 @@
                     }
                     return;
                 }
+                if (wActiveTvTool === 'measure') {
+                    handleMeasureChartClick('w', param);
+                    return;
+                }
 
                 const raw = weightageData?.candles || weightageData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
@@ -9605,6 +9705,10 @@
                     }
                     return;
                 }
+                if (oActiveTvTool === 'measure') {
+                    handleMeasureChartClick('o', param);
+                    return;
+                }
 
                 const raw = breadthData?.nifty_candles;
                 if (!param || !param.time || !raw) return;
@@ -9622,9 +9726,30 @@
 
         if (wChart) {
             wChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
-            wChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
+            wChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+                updateDaySeparators();
+                if (measureState.w.p1 && measureState.w.p2) renderMeasureOverlay('w');
+            });
+            wChart.subscribeCrosshairMove(param => {
+                if (wActiveTvTool === 'measure' && measureState.w.step === 1 && param?.point && wCandleSeries) {
+                    const p = wCandleSeries.coordinateToPrice(param.point.y);
+                    const t = Number(param.time || 0);
+                    if (p !== null && !isNaN(p) && t) renderMeasureOverlay('w', { price: Math.round(p * 100) / 100, time: t });
+                }
+            });
         }
         if (oChart) {
+            oChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+                if (measureState.o.p1 && measureState.o.p2) renderMeasureOverlay('o');
+            });
+            oChart.subscribeCrosshairMove(param => {
+                if (oActiveTvTool === 'measure' && measureState.o.step === 1 && param?.point && oCandleSeries) {
+                    const p = oCandleSeries.coordinateToPrice(param.point.y);
+                    const t = Number(param.time || 0);
+                    if (p !== null && !isNaN(p) && t) renderMeasureOverlay('o', { price: Math.round(p * 100) / 100, time: t });
+                }
+            });
+        }
             oChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
             oChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
         }
@@ -15210,9 +15335,56 @@
         renderOfLevelsPreview();
     }
 
+    function persistSettingsToDb(settingKey, data, source = 'ui') {
+        try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            fetch('/api/multi-timeframe-v2/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify({ setting_key: settingKey, settings: data, source })
+            }).catch(() => {});
+        } catch (e) {}
+    }
+
+    async function hydrateSettingsFromDb() {
+        try {
+            const res = await fetch('/api/multi-timeframe-v2/settings');
+            const json = await res.json();
+            if (!json || !json.success || !json.settings) return;
+
+            const dbCfg = json.settings.trade_engine_v2_cfg?.data;
+            if (dbCfg && typeof dbCfg === 'object') {
+                tradeEngineConfig = { ...tradeEngineConfig, ...dbCfg };
+                try { localStorage.setItem('trade_engine_v2_cfg', JSON.stringify(tradeEngineConfig)); } catch (e) {}
+                if (typeof syncTradeSettingsInputs === 'function') syncTradeSettingsInputs();
+                if (typeof updateTradeSettingsBadges === 'function') updateTradeSettingsBadges();
+                if (typeof timestampsList !== 'undefined' && timestampsList?.length > 0 && typeof activeCandleIndex === 'number' && activeCandleIndex >= 0 && typeof runHighProbabilityTradeEngine === 'function') {
+                    runHighProbabilityTradeEngine(activeCandleIndex, timestampsList[activeCandleIndex]);
+                }
+            } else {
+                persistSettingsToDb('trade_engine_v2_cfg', tradeEngineConfig, 'initial_seed');
+            }
+
+            const dbAlarm = json.settings.nifty_unified_alarm_settings?.data;
+            if (dbAlarm && typeof dbAlarm === 'object') {
+                alarmSettings = { ...alarmSettings, ...dbAlarm };
+                try { localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings)); } catch (e) {}
+                if (typeof syncAlarmToolbarUI === 'function') syncAlarmToolbarUI();
+            } else {
+                persistSettingsToDb('nifty_unified_alarm_settings', alarmSettings, 'initial_seed');
+            }
+        } catch (e) {}
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => hydrateSettingsFromDb());
+    } else {
+        hydrateSettingsFromDb();
+    }
+
     function saveAlarmSettings() {
         localStorage.setItem('nifty_unified_alarm_settings', JSON.stringify(alarmSettings));
         localStorage.setItem('nifty_zeroclick_settings', JSON.stringify(zeroClickSettings));
+        persistSettingsToDb('nifty_unified_alarm_settings', alarmSettings, 'alarm_modal');
         updateOverallAndTriggerStats(activeCandleIndex);
         updateMarkerButtonsUI();
         updateTvToolsUI();
@@ -15977,6 +16149,7 @@
         });
         syncTradeSettingsInputs();
         try { localStorage.setItem('trade_engine_v2_cfg', JSON.stringify(tradeEngineConfig)); } catch (e) {}
+        if (typeof persistSettingsToDb === 'function') persistSettingsToDb('trade_engine_v2_cfg', tradeEngineConfig, 'toggle_all_entry');
         if (timestampsList && timestampsList.length > 0 && activeCandleIndex >= 0) {
             runHighProbabilityTradeEngine(activeCandleIndex, timestampsList[activeCandleIndex]);
         }
@@ -15988,6 +16161,7 @@
         try {
             localStorage.setItem('trade_engine_v2_cfg', JSON.stringify(tradeEngineConfig));
         } catch (e) {}
+        if (typeof persistSettingsToDb === 'function') persistSettingsToDb('trade_engine_v2_cfg', tradeEngineConfig, 'trade_cfg');
         updateTradeSettingsBadges();
         if (timestampsList && timestampsList.length > 0 && activeCandleIndex >= 0) {
             runHighProbabilityTradeEngine(activeCandleIndex, timestampsList[activeCandleIndex]);
@@ -16151,10 +16325,11 @@
         const buckets = orderFlow5mData?.buckets || [];
         let bucket = null;
         if (buckets.length > 0 && tStr) {
-            bucket = buckets.find(bk => bk.time_bucket === tStr) || null;
+            bucket = buckets.find(bk => (bk.time_bucket || bk.time) === tStr) || null;
             if (!bucket) {
                 for (let j = buckets.length - 1; j >= 0; j--) {
-                    if (buckets[j].time_bucket <= tStr) {
+                    const bTime = buckets[j].time_bucket || buckets[j].time || '';
+                    if (bTime && bTime <= tStr) {
                         bucket = buckets[j];
                         break;
                     }
@@ -16174,8 +16349,9 @@
 
         const buyQty = bucket ? Number(bucket.buy_qty || 0) : 0;
         const sellQty = bucket ? Number(bucket.sell_qty || 0) : 0;
+        const totalQty = bucket ? Number(bucket.total_qty || (buyQty + sellQty)) : 0;
         const netDelta = bucket ? Number(bucket.net_delta || 0) : 0;
-        const runningCvd = bucket ? Number(bucket.running_cvd || 0) : (orderFlow5mData?.summary?.net_cvd || 0);
+        const runningCvd = bucket ? Number(bucket.cvd ?? bucket.running_cvd ?? 0) : (orderFlow5mData?.summary?.net_cvd || 0);
         const priceChange = bucket && bucket.price_change !== undefined ? Number(bucket.price_change) : 0;
         const dynamics = bucket?.dynamics || 'NORMAL';
         const ratio = (buyQty >= sellQty)
@@ -16183,11 +16359,26 @@
             : (buyQty > 0 ? (sellQty / buyQty) : (sellQty > 0 ? 9.9 : 1.0));
         const ratioSide = (buyQty >= sellQty) ? 'BUY' : 'SELL';
 
-        const isBullAbs = (dynamics === 'BULL_ABSORPTION') || (netDelta <= -15000 && priceChange >= 1.0);
-        const isBearAbs = (dynamics === 'BEAR_ABSORPTION') || (netDelta >= 15000 && priceChange <= -1.0);
+        // Top-3 Volume Rank among session 5m buckets
+        let volRank = null;
+        if (bucket && buckets.length > 0 && totalQty > 0) {
+            let higherCount = 0;
+            for (let k = 0; k < buckets.length; k++) {
+                const kTot = Number(buckets[k].total_qty || ((Number(buckets[k].buy_qty || 0)) + (Number(buckets[k].sell_qty || 0))));
+                if (kTot > totalQty) higherCount++;
+            }
+            if (higherCount < 3) volRank = higherCount + 1;
+        }
+
+        const isFailedBullAbs = (dynamics === 'FAILED_BULL_ABSORPTION');
+        const isFailedBearAbs = (dynamics === 'FAILED_BEAR_ABSORPTION');
+        const isBullAbs = !isFailedBullAbs && ((dynamics === 'BULL_ABSORPTION') || (netDelta <= -15000 && priceChange >= 1.0));
+        const isBearAbs = !isFailedBearAbs && ((dynamics === 'BEAR_ABSORPTION') || (netDelta >= 15000 && priceChange <= -1.0));
 
         let bias = 'NEUTRAL';
-        if (isBullAbs) bias = 'BULL';
+        if (isFailedBullAbs) bias = 'BEAR';
+        else if (isFailedBearAbs) bias = 'BULL';
+        else if (isBullAbs) bias = 'BULL';
         else if (isBearAbs) bias = 'BEAR';
         else if (netDelta > 0 && ratio >= 1.25) bias = 'BULL';
         else if (netDelta < 0 && ratio >= 1.25) bias = 'BEAR';
@@ -16201,12 +16392,19 @@
             if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
             return `${sign}${abs}`;
         };
-        const absTag = isBullAbs ? '🛡️ BULL ABS • ' : (isBearAbs ? '🧱 BEAR ABS • ' : '');
+        const rankTag = volRank === 1 ? '👑 #1 VOL • ' : (volRank ? `🔥 #${volRank} VOL • ` : '');
+        const absTag = isFailedBullAbs ? '🔥 FAILED BULL ABS • '
+            : (isFailedBearAbs ? '🔥 FAILED BEAR ABS • '
+            : (isBullAbs ? '🛡️ BULL ABS • '
+            : (isBearAbs ? '🧱 BEAR ABS • '
+            : (dynamics === 'BEAR_EXPANSION' ? '💥 BEAR EXP • '
+            : (dynamics === 'BULL_EXPANSION' ? '🚀 BULL EXP • '
+            : (dynamics === 'VOL_COMPRESSION' ? '⚡ COIL • ' : ''))))));
         const summary = bucket
-            ? `${absTag}${ratio.toFixed(2)}x ${ratioSide} • Δ ${fmtQty(netDelta)} • CVD ${fmtQty(runningCvd)}`
+            ? `${rankTag}${absTag}${ratio.toFixed(2)}x ${ratioSide} • Δ ${fmtQty(netDelta)} • CVD ${fmtQty(runningCvd)}`
             : `TBQ/TSQ ${tbqTsqRatio ? tbqTsqRatio.toFixed(2) + 'x' : '--'}`;
 
-        return { hasData: true, bias, isBullAbs, isBearAbs, dynamics, buyQty, sellQty, netDelta, ratio, ratioSide, runningCvd, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary };
+        return { hasData: true, bias, volRank, isBullAbs, isBearAbs, isFailedBullAbs, isFailedBearAbs, dynamics, buyQty, sellQty, totalQty, netDelta, ratio, ratioSide, runningCvd, tbqTsqRatio, askBlockQty, askBlockPrice, bidBlockQty, bidBlockPrice, summary };
     }
 
     // ── Unified 100-Pt Weighted Entry Confidence Engine ──
@@ -16321,9 +16519,15 @@
                     vwapState = (absVwapDist >= vwapExtremePts) ? 'EXTENDED_CAUTION' : 'ALIGNED';
                 }
             } else if (vwapMode === 'smart' && absVwapDist >= vwapMinGap) {
-                vwapValid = true;
-                vwapState = 'MEAN_REV';
-                effectiveThreshold = Math.max(confThreshold, vwapCounterReq);
+                const oppExtremeOi = isBull ? (oiDiffPct <= -40 && !isCallUnwind) : (oiDiffPct >= 40 && !isPutUnwind);
+                if (oppExtremeOi) {
+                    vwapValid = false;
+                    vwapState = 'MEAN_REV_OI_VETO';
+                } else {
+                    vwapValid = true;
+                    vwapState = 'MEAN_REV';
+                    effectiveThreshold = Math.max(confThreshold, vwapCounterReq);
+                }
             } else {
                 vwapValid = false;
                 vwapState = 'CHOP_VETO';
@@ -17075,7 +17279,9 @@
                                     const gapStr = Math.abs(evalRes.vwapDist || 0).toFixed(1);
                                     vetoReason = (evalRes.vwapState === 'EXTENDED_VETO')
                                         ? `Blocked by VWAP Over-Extension: Spot (${cClose.toFixed(1)}) is ${gapStr}p beyond VWAP (> ${evalRes.vwapMaxWithTrendPts}p exhaustion cap)`
-                                        : `Blocked by VWAP Chop Zone: Spot (${cClose.toFixed(1)}) is only ${gapStr}p counter-VWAP (< ${evalRes.vwapMinGap}p min gap)`;
+                                        : (evalRes.vwapState === 'MEAN_REV_OI_VETO'
+                                            ? `Blocked by Mean-Rev OI Wall: Extreme opposing OI (${oiDiffPct.toFixed(1)}%) blocks counter-VWAP reversal`
+                                            : `Blocked by VWAP Chop Zone: Spot (${cClose.toFixed(1)}) is only ${gapStr}p counter-VWAP (< ${evalRes.vwapMinGap}p min gap)`);
                                 } else if (evalRes.vwapState === 'MEAN_REV') {
                                     setupType = 'MEAN_REVERSION';
                                     setupBadge = '🔄 MEAN-REV VWAP';
@@ -18972,7 +19178,7 @@
             const dCls = (evalRes.depthPts >= 7)
                 ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
                 : (evalRes.depthPts <= 2 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
-            f6Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${dCls}">${dTick} ${evalRes.depthPts}/10</span>`;
+            f6Status.innerHTML = `<span class="px-2.5 py-0.5 rounded text-sm border font-black tabular-nums ${dCls}">${dTick} ${evalRes.depthPts}/10</span>`;
         }
         if (f6Action) {
             f6Action.textContent = !depthSnap.hasData ? 'NO TAPE' : (depthSnap.bias === 'BULL' ? 'FLOW BULLISH' : (depthSnap.bias === 'BEAR' ? 'FLOW BEARISH' : 'NEUTRAL'));
@@ -18983,22 +19189,22 @@
         if (f2Status) {
             const sTick = (evalRes.stkPts >= 30) ? '✓' : (evalRes.stkPts < 15 ? '✗' : '•');
             const sCls = (evalRes.stkPts >= 30) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : 'bg-slate-900 text-gray-300 border-slate-700';
-            f2Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${sCls}">${sTick} ${evalRes.stkPts}/40</span>`;
+            f2Status.innerHTML = `<span class="px-2.5 py-0.5 rounded text-sm border font-black tabular-nums ${sCls}">${sTick} ${evalRes.stkPts}/40</span>`;
         }
         if (f3Status) {
             const oTick = (evalRes.optPts >= 24) ? '✓' : (evalRes.optPts === 0 ? '✗' : '•');
             const oCls = (evalRes.optPts >= 24) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : (evalRes.optPts === 0 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
-            f3Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${oCls}">${oTick} ${evalRes.optPts}/30</span>`;
+            f3Status.innerHTML = `<span class="px-2.5 py-0.5 rounded text-sm border font-black tabular-nums ${oCls}">${oTick} ${evalRes.optPts}/30</span>`;
         }
         if (f4Status) {
             const oiTick = (evalRes.oiSkewPts >= 8) ? '✓' : (evalRes.oiSkewPts === 0 ? '✗' : '•');
             const oiCls = (evalRes.oiSkewPts >= 8) ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : (evalRes.oiSkewPts === 0 ? 'bg-rose-950 text-rose-300 border-rose-800' : 'bg-slate-900 text-gray-300 border-slate-700');
-            f4Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${oiCls}">${oiTick} ${evalRes.oiSkewPts}/10</span>`;
+            f4Status.innerHTML = `<span class="px-2.5 py-0.5 rounded text-sm border font-black tabular-nums ${oiCls}">${oiTick} ${evalRes.oiSkewPts}/10</span>`;
         }
         if (f5Status) {
             const sqTick = (evalRes.oiSqzPts >= 8) ? '✓' : '•';
             const sqCls = (evalRes.oiSqzPts >= 8) ? 'bg-amber-950 text-amber-300 border-amber-700' : 'bg-slate-900 text-gray-300 border-slate-700';
-            f5Status.innerHTML = `<span class="px-1.5 py-0.2 rounded text-[9px] border font-bold ${sqCls}">${sqTick} ${evalRes.oiSqzPts}/10</span>`;
+            f5Status.innerHTML = `<span class="px-2.5 py-0.5 rounded text-sm border font-black tabular-nums ${sqCls}">${sqTick} ${evalRes.oiSqzPts}/10</span>`;
         }
 
         // 7. Signal Candle Breakout Confirmation
@@ -19507,6 +19713,7 @@
 
     async function syncZeroClickV2Lifecycle(activeTr, completedTrades, isLatestLiveBar = false) {
         if (!isLatestLiveBar) return;
+        if (typeof currentTfMinutes !== 'undefined' && Number(currentTfMinutes) !== 5) return;
         if (zeroClickV2Mode !== 'SIMULATION' && zeroClickV2Mode !== 'LIVE') return;
         const liveToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
         if (typeof selectedDate === 'undefined' || selectedDate !== liveToday) return;
