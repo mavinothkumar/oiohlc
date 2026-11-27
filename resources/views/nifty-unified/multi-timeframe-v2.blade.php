@@ -3845,9 +3845,9 @@
             </div>
 
             <!-- Right Panel (7 cols): Unified Entry / Exit Matrix Switcher -->
-            <div id="matrix-switcher-panel" class="lg:col-span-7 flex flex-col gap-2">
+            <div id="matrix-switcher-panel" class="lg:col-span-7 flex flex-col gap-1.5">
                 <!-- Mode Switcher Bar -->
-                <div class="bg-[#0f1422] border border-gray-800 rounded-lg px-3 py-1.5 flex items-center justify-between gap-2 flex-wrap font-mono">
+                <div class="bg-[#0f1422] border border-gray-800 rounded-lg px-2.5 py-1 flex items-center justify-between gap-2 flex-wrap font-mono">
                     <div class="flex items-center gap-2 text-xs">
                         <span class="font-black text-sky-300 tracking-wide">🧭 DECISION MATRIX</span>
                         <span id="matrix-active-context-pill" class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-gray-300 border border-slate-700">AUTO • STANDBY (ENTRY)</span>
@@ -3860,36 +3860,36 @@
                 </div>
 
             <!-- Entry Matrix Panel -->
-            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-3 shadow-inner flex flex-col justify-between gap-2.5 flex-1">
-                <div class="space-y-2.5">
+            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-1.5 flex-1">
+                <div class="space-y-1.5">
                     <!-- Header -->
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-800 gap-2 flex-wrap">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
                         <span class="text-xs sm:text-sm font-black tracking-wide text-cyan-300 flex items-center gap-2 flex-wrap">
                             <span>⚡ ENTRY MATRIX</span>
-                            <span id="em-confidence-badge" class="px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
+                            <span id="em-confidence-badge" class="px-2.5 py-0.5 rounded text-sm font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
                         </span>
                         <span class="text-xs text-gray-300 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-black">--:--</span></span>
                     </div>
 
                     <!-- Executive 2-Card Summary: THIS 5M CANDLE vs OVERALL DAY PICTURE -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 font-mono">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
                         <!-- Card 1: THIS 5M CANDLE -->
-                        <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                        <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">🕯️ THIS 5M CANDLE</span>
                                 <span id="em-hero-dir" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700">--</span>
                             </div>
                             <div class="flex items-baseline justify-between gap-2">
-                                <span id="em-hero-score" class="text-2xl font-black text-white leading-none">--%</span>
+                                <span id="em-hero-score" class="text-xl sm:text-2xl font-black text-white leading-none">--%</span>
                                 <span id="em-hero-verdict" class="text-xs font-bold text-amber-300 text-right">Scanning...</span>
                             </div>
-                            <div class="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
                                 <div id="em-hero-score-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div>
                             </div>
                         </div>
 
                         <!-- Card 2: OVERALL DAY PICTURE -->
-                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">📅 OVERALL DAY PICTURE</span>
                                 <span id="em-day-session" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/70">OPEN</span>
@@ -3925,13 +3925,13 @@
                     </div>
 
                     <!-- GROUP 1: 5 SCORED CONFIDENCE FACTORS (2-Column Visual Cards) -->
-                    <div class="space-y-1.5 font-mono">
-                        <div class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">
+                    <div class="space-y-1 font-mono">
+                        <div class="text-[10.5px] font-black tracking-wider text-cyan-300 uppercase">
                             📊 5M Confidence Factors (100 Pts Total)
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                             <!-- Factor 2: Stock Breadth (40 pts) -->
-                            <div id="row-em-breadth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1.5">
+                            <div id="row-em-breadth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <span class="text-sm">📊</span>
@@ -3948,7 +3948,7 @@
                             </div>
 
                             <!-- Factor 3: Options Flow (30 pts) -->
-                            <div id="row-em-options" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1.5">
+                            <div id="row-em-options" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <span class="text-sm">⚡</span>
@@ -3965,7 +3965,7 @@
                             </div>
 
                             <!-- Factor 4: OI Wall / Skew (10 pts) -->
-                            <div id="row-em-oi-veto" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1.5">
+                            <div id="row-em-oi-veto" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <span class="text-sm">🧱</span>
@@ -3982,7 +3982,7 @@
                             </div>
 
                             <!-- Factor 5: OI Squeeze (10 pts) -->
-                            <div id="row-em-squeeze" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1.5">
+                            <div id="row-em-squeeze" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                                 <div class="flex items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <span class="text-sm">🚀</span>
@@ -3999,7 +3999,7 @@
                             </div>
 
                             <!-- Factor 6: 30-Depth Flow (10 pts) -->
-                            <div id="row-em-depth" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1.5">
+                            <div id="row-em-depth" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                                 <div class="flex items-center justify-between gap-2 flex-wrap">
                                     <div class="flex items-center gap-2">
                                         <span class="text-sm">🌊</span>
@@ -4018,77 +4018,77 @@
                     </div>
 
                     <!-- GROUP 2: 4 STRATEGY GATES (4-Column Status Cards) -->
-                    <div class="space-y-1.5 font-mono">
-                        <div class="text-[11px] font-black tracking-wider text-fuchsia-300 uppercase">
+                    <div class="space-y-1 font-mono">
+                        <div class="text-[10.5px] font-black tracking-wider text-fuchsia-300 uppercase">
                             🛡️ Strategy Gates (Green ✓ = Go • Red ✗ = Blocked)
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-1.5">
                             <!-- Gate 9: VWAP Gate -->
-                            <div id="row-em-vwap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs sm:text-sm font-black text-white">📈 VWAP Gate</span>
-                                    <span id="em-f9-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-vwap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <span class="text-xs font-black text-white">📈 VWAP Gate</span>
+                                    <span id="em-f9-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
                                 </div>
-                                <div id="em-f9-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f9-criteria" class="text-fuchsia-300">Hard Gate (Dir)</span>
-                                    <span id="em-f9-action" class="font-bold text-gray-400">STANDBY</span>
+                                <div id="em-f9-state" class="text-xs font-bold text-gray-200 truncate">--</div>
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span id="em-f9-criteria" class="text-fuchsia-300 truncate">Hard Gate</span>
+                                    <span id="em-f9-action" class="font-bold text-gray-400 truncate">STANDBY</span>
                                 </div>
                             </div>
 
                             <!-- Gate 1: Session Time -->
-                            <div id="row-em-time" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs sm:text-sm font-black text-white">⏰ Session Time</span>
-                                    <span id="em-f1-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-time" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <span class="text-xs font-black text-white">⏰ Session Time</span>
+                                    <span id="em-f1-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
                                 </div>
-                                <div id="em-f1-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f1-criteria" class="text-indigo-300">09:35 – 14:45</span>
-                                    <span id="em-f1-action" class="font-bold text-gray-400">STANDBY</span>
+                                <div id="em-f1-state" class="text-xs font-bold text-gray-200 truncate">--</div>
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span id="em-f1-criteria" class="text-indigo-300 truncate">09:35 – 14:45</span>
+                                    <span id="em-f1-action" class="font-bold text-gray-400 truncate">STANDBY</span>
                                 </div>
                             </div>
 
                             <!-- Gate 7: Breakout Confirm -->
-                            <div id="row-em-breakout" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs sm:text-sm font-black text-white">🎯 Breakout Confirm</span>
-                                    <span id="em-f7-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-breakout" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <span class="text-xs font-black text-white">🎯 Breakout</span>
+                                    <span id="em-f7-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
                                 </div>
-                                <div id="em-f7-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f7-criteria" class="text-amber-300">H/L Break (i+1)</span>
-                                    <span id="em-f7-action" class="font-bold text-gray-400">STANDBY</span>
+                                <div id="em-f7-state" class="text-xs font-bold text-gray-200 truncate">--</div>
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span id="em-f7-criteria" class="text-amber-300 truncate">H/L Break</span>
+                                    <span id="em-f7-action" class="font-bold text-gray-400 truncate">STANDBY</span>
                                 </div>
                             </div>
 
                             <!-- Gate 8: Daily Session Cap -->
-                            <div id="row-em-daily-cap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs sm:text-sm font-black text-white">🔒 Daily Session Cap</span>
-                                    <span id="em-f8-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                            <div id="row-em-daily-cap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 flex flex-col justify-between gap-0.5">
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <span class="text-xs font-black text-white">🔒 Daily Cap</span>
+                                    <span id="em-f8-status"><span class="px-1.5 py-0.5 rounded text-[10.5px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
                                 </div>
-                                <div id="em-f8-state" class="text-xs sm:text-sm font-bold text-gray-200">0 / 2 Executed</div>
-                                <div class="flex items-center justify-between gap-2 text-[11px]">
-                                    <span id="em-f8-criteria" class="text-sky-300">≤ 2 Trades / Day</span>
-                                    <span id="em-f8-action" class="font-bold text-emerald-400">READY</span>
+                                <div id="em-f8-state" class="text-xs font-bold text-gray-200 truncate">0 / 2 Executed</div>
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span id="em-f8-criteria" class="text-sky-300 truncate">≤ 2 / Day</span>
+                                    <span id="em-f8-action" class="font-bold text-emerald-400 truncate">READY</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-400 flex-wrap gap-2">
+                <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
                     <span>⚡ Evaluated at each 5M candle close.</span>
                     <span id="entry-engine-summary-badge" class="px-2.5 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
                 </div>
             </div>
 
             <!-- Exit Matrix Panel (Visually Redesigned, Auto-Shown When In Trade) -->
-            <div id="exit-matrix-card" class="hidden bg-[#0f1422] border border-gray-800 rounded-lg p-3 shadow-inner flex flex-col justify-between gap-2.5 flex-1">
-                <div class="space-y-2.5">
+            <div id="exit-matrix-card" class="hidden bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-1.5 flex-1">
+                <div class="space-y-1.5">
                     <!-- Header -->
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-800 gap-2 flex-wrap">
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
                         <span class="text-xs sm:text-sm font-black tracking-wide text-purple-300 flex items-center gap-2 flex-wrap">
                             <span>🛡️ EXIT MATRIX</span>
                             <span id="exit-ratio-badge" class="px-2.5 py-0.5 rounded text-sm font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-700">7/7 SAFE • 0% RISK</span>
@@ -4097,22 +4097,22 @@
                     </div>
 
                     <!-- Executive 2-Card Summary: EXIT SAFETY HEALTH vs ACTIVE POSITION GUARD -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 font-mono">
-                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
+                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">🛡️ EXIT SAFETY HEALTH</span>
                                 <span id="exit-hero-risk" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700">0% RISK</span>
                             </div>
                             <div class="flex items-baseline justify-between gap-2">
-                                <span id="exit-hero-safe" class="text-2xl font-black text-emerald-400 leading-none">7 / 7 SAFE</span>
+                                <span id="exit-hero-safe" class="text-xl sm:text-2xl font-black text-emerald-400 leading-none">7 / 7 SAFE</span>
                                 <span id="exit-hero-verdict" class="text-xs font-bold text-emerald-300 text-right">Healthy</span>
                             </div>
-                            <div class="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
                                 <div id="exit-hero-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%;"></div>
                             </div>
                         </div>
 
-                        <div class="rounded-lg border border-sky-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                        <div class="rounded-lg border border-sky-500/30 bg-[#12192b] p-2 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[11px] font-black tracking-wider text-sky-300 uppercase">📌 POSITION GUARD</span>
                                 <span id="exit-hero-trade" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-200 border border-slate-700">NO ACTIVE TRADE</span>
@@ -4123,9 +4123,9 @@
                     </div>
 
                     <!-- 7 Exit Factors in 2-Column Visual Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5 font-mono">
                         <!-- Factor 1: Signal Candle SL -->
-                        <div id="row-factor-sl" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-sl" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">1️⃣ Signal Candle SL</span>
                                 <span id="fm-f1-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 SAFE</span></span>
@@ -4139,7 +4139,7 @@
                         </div>
 
                         <!-- Factor 2: Yesterday S/R Wall -->
-                        <div id="row-factor-yd-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-yd-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">2️⃣ Yesterday S/R Wall</span>
                                 <span id="fm-f2-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAR</span></span>
@@ -4153,7 +4153,7 @@
                         </div>
 
                         <!-- Factor 3: Today S/R & H/L -->
-                        <div id="row-factor-td-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-td-sr" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">3️⃣ Today S/R &amp; H/L</span>
                                 <span id="fm-f3-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAR</span></span>
@@ -4167,7 +4167,7 @@
                         </div>
 
                         <!-- Factor 4: Reverse Signal Cross -->
-                        <div id="row-factor-reverse" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-reverse" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">4️⃣ Reverse Signal Cross</span>
                                 <span id="fm-f4-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 CLEAN</span></span>
@@ -4181,7 +4181,7 @@
                         </div>
 
                         <!-- Factor 5: 30-Depth Volume Flow -->
-                        <div id="row-factor-depth" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-depth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">5️⃣ 30-Depth Volume Flow</span>
                                 <span id="fm-f5-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 SUPPORTIVE</span></span>
@@ -4195,7 +4195,7 @@
                         </div>
 
                         <!-- Factor 6: Greeks & Theta Decay -->
-                        <div id="row-factor-greeks" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-greeks" class="rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-xs sm:text-sm font-black text-white">6️⃣ Greeks &amp; Theta Decay</span>
                                 <span id="fm-f6-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-800">🟢 OPTIMAL</span></span>
@@ -4209,7 +4209,7 @@
                         </div>
 
                         <!-- Factor 7: Stagnation Time-Stop -->
-                        <div id="row-factor-stagnation" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 space-y-1.5">
+                        <div id="row-factor-stagnation" class="md:col-span-2 rounded-lg bg-[#141b2d] border border-gray-800 px-2.5 py-1.5 space-y-1">
                             <div class="flex items-center justify-between gap-2 flex-wrap">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs sm:text-sm font-black text-white">7️⃣ Stagnation Time-Stop</span>
@@ -4226,7 +4226,7 @@
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-400 flex-wrap gap-2">
+                <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
                     <span>⚡ Re-evaluates all 7 exit &amp; trailing factors at every 5M candle close.</span>
                     <span id="exit-engine-summary-badge" class="px-2.5 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">POSITION IN GOOD HEALTH</span>
                 </div>
