@@ -116,6 +116,9 @@
         <!-- Day Excursion Strip -->
         <div id="detail-excursion-strip" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-mono text-xs"></div>
 
+        <!-- Filter-Reactive Worth / Scalp / Failed Summary Strip -->
+        <div id="detail-outcome-strip" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 font-mono text-xs"></div>
+
         <!-- Interactive 5M Spot & STK/OPT Impulse Chart -->
         <div class="bg-[#0a0f1c] border border-gray-800 rounded-xl p-3">
             <div class="text-xs font-mono font-bold text-gray-300 mb-2">📈 5-Minute Spot Trajectory &amp; Impulse Signals (Green ▲ Bull / Red ▼ Bear)</div>
@@ -212,8 +215,11 @@
             const netCls = d.net_move >= 0 ? 'text-emerald-400' : 'text-rose-400';
             const c = d.counts;
             return `
-                <tr onclick="openDayDetail('${d.date}', 'ALL')" class="hover:bg-white/[0.03] cursor-pointer transition">
-                    <td class="py-2.5 px-3 font-bold text-white whitespace-nowrap">${d.date} <span class="text-gray-400 text-xs">(${d.day_name})</span></td>
+                <tr data-date="${d.date}" onclick="openDayDetail('${d.date}', 'ALL')" class="bic-day-row hover:bg-white/[0.03] cursor-pointer transition">
+                    <td class="py-2.5 px-3 font-bold text-white whitespace-nowrap">
+                        <span>${d.date}</span> <span class="text-gray-400 text-xs">(${d.day_name})</span>
+                        <span class="bic-sel-badge hidden ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/60">ACTIVE</span>
+                    </td>
                     <td class="py-2.5 px-3 text-right whitespace-nowrap">
                         <span class="text-gray-300">${d.open.toFixed(1)} ➔ ${d.close.toFixed(1)}</span>
                         <span class="${netCls} font-black ml-1">(${netSign}${d.net_move.toFixed(1)}p)</span>
@@ -274,10 +280,22 @@
         }
     };
 
+    function highlightSelectedSummaryRow(date) {
+        document.querySelectorAll('.bic-day-row').forEach(tr => {
+            const isSel = tr.dataset.date === date;
+            tr.className = isSel
+                ? 'bic-day-row bg-cyan-950/45 ring-1 ring-inset ring-cyan-400/80 cursor-pointer transition'
+                : 'bic-day-row hover:bg-white/[0.03] cursor-pointer transition';
+            const badge = tr.querySelector('.bic-sel-badge');
+            if (badge) badge.classList.toggle('hidden', !isSel);
+        });
+    }
+
     window.openDayDetail = async function(date, filter = 'ALL') {
         const sec = document.getElementById('bic-detail-section');
         sec.classList.remove('hidden');
         currentDetailFilter = filter;
+        highlightSelectedSummaryRow(date);
         const { stk, opt } = getThresholds();
         const res = await fetch(`/api/breadth-impulse-calendar/day?date=${date}&stk_th=${stk}&opt_th=${opt}`).then(r => r.json());
         if (!res.success) {
@@ -332,6 +350,41 @@
             if (currentDetailFilter === 'BULL' || currentDetailFilter === 'BEAR') return s.direction === currentDetailFilter;
             return s.type === currentDetailFilter;
         });
+
+        // Update filter-reactive Worth / Scalp / Failed KPI strip
+        const outcomeStrip = document.getElementById('detail-outcome-strip');
+        if (outcomeStrip) {
+            const total = sigs.length;
+            const worthCnt = sigs.filter(s => s.verdict === 'WORTH_IT').length;
+            const scalpCnt = sigs.filter(s => s.verdict === 'SCALP_CHOP').length;
+            const failedCnt = sigs.filter(s => s.verdict === 'FAILED').length;
+            const avgMfe = total > 0 ? (sigs.reduce((a, s) => a + Number(s.mfe || 0), 0) / total).toFixed(1) : '0.0';
+            const avgMae = total > 0 ? (sigs.reduce((a, s) => a + Number(s.mae || 0), 0) / total).toFixed(1) : '0.0';
+            const pct = (c) => total > 0 ? Math.round((c / total) * 100) : 0;
+
+            outcomeStrip.innerHTML = `
+                <div class="rounded-lg bg-[#141b2d] border border-cyan-800/60 p-2.5">
+                    <div class="text-[10.5px] text-cyan-300 uppercase font-bold">Filtered (${currentDetailFilter})</div>
+                    <div class="text-lg font-black text-white mt-0.5">${total} <span class="text-xs text-gray-400 font-normal">Signals</span></div>
+                </div>
+                <div class="rounded-lg bg-emerald-950/30 border border-emerald-700/60 p-2.5">
+                    <div class="text-[10.5px] text-emerald-300 uppercase font-bold">✅ Total Worth</div>
+                    <div class="text-lg font-black text-emerald-400 mt-0.5">${worthCnt} <span class="text-xs font-bold">(${pct(worthCnt)}%)</span></div>
+                </div>
+                <div class="rounded-lg bg-amber-950/30 border border-amber-700/60 p-2.5">
+                    <div class="text-[10.5px] text-amber-300 uppercase font-bold">⚠️ Scalp / Chop</div>
+                    <div class="text-lg font-black text-amber-300 mt-0.5">${scalpCnt} <span class="text-xs font-bold">(${pct(scalpCnt)}%)</span></div>
+                </div>
+                <div class="rounded-lg bg-rose-950/30 border border-rose-700/60 p-2.5">
+                    <div class="text-[10.5px] text-rose-300 uppercase font-bold">❌ Failed</div>
+                    <div class="text-lg font-black text-rose-400 mt-0.5">${failedCnt} <span class="text-xs font-bold">(${pct(failedCnt)}%)</span></div>
+                </div>
+                <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 col-span-2 sm:col-span-1">
+                    <div class="text-[10.5px] text-gray-400 uppercase font-bold">Avg 60m MFE / MAE</div>
+                    <div class="text-base font-black mt-0.5"><span class="text-emerald-400">+${avgMfe}p</span> <span class="text-gray-500">/</span> <span class="text-rose-400">-${avgMae}p</span></div>
+                </div>
+            `;
+        }
 
         if (sigs.length === 0) {
             tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-gray-400">No signals matched filter "${currentDetailFilter}" on ${d.date}.</td></tr>`;
