@@ -11,6 +11,7 @@
                 <span class="text-xl">📅</span>
                 <h1 class="text-lg sm:text-xl font-black tracking-wide text-cyan-300">BREADTH IMPULSE CALENDAR</h1>
                 <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-200 border border-cyan-700/70">STK + OPT + BOTH</span>
+                <a href="{{ route('scalper.s4.lab') }}" target="_blank" class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-600/70">🔬 S4 3-Bar Lab ↗</a>
             </div>
             <p class="text-xs sm:text-sm text-gray-400 mt-1">
                 Day-wise Upside (Bull) vs Downside (Bear) impulse counts, Open-to-High / Open-to-Low / Total Range, and 5-minute signal worthiness forensics.

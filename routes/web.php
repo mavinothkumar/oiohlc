@@ -416,6 +416,10 @@ Route::get('/breadth-impulse-calendar', [\App\Http\Controllers\BreadthImpulseCal
 Route::get('/api/breadth-impulse-calendar/summary', [\App\Http\Controllers\BreadthImpulseCalendarController::class, 'summary'])->name('api.breadth.impulse.summary');
 Route::get('/api/breadth-impulse-calendar/day', [\App\Http\Controllers\BreadthImpulseCalendarController::class, 'dayDetail'])->name('api.breadth.impulse.day');
 
+// S4 + OI 3-Bar Clean Runner Research Lab (6-Month Forensics)
+Route::get('/scalper-s4-lab', [\App\Http\Controllers\ScalperS4LabController::class, 'index'])->name('scalper.s4.lab');
+Route::get('/api/scalper-s4-lab/data', [\App\Http\Controllers\ScalperS4LabController::class, 'data'])->name('api.scalper.s4.lab.data');
+
 // ZeroClick V2 Execution Bridge (Entry, Pre-Verified Exit, Trailing SL Sync & Logs)
 Route::post('/api/v2/zeroclick/entry',   [\App\Http\Controllers\ZeroClickBridgeController::class, 'entry'])->name('api.v2.zeroclick.entry');
 Route::post('/api/v2/zeroclick/exit',    [\App\Http\Controllers\ZeroClickBridgeController::class, 'exit'])->name('api.v2.zeroclick.exit');

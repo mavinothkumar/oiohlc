@@ -4283,7 +4283,10 @@
 
                 <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
                     <span>🧪 Shadow Paper Monitor ONLY (does not send to 0click.in).</span>
-                    <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="text-cyan-300 hover:text-cyan-200 font-bold">📅 Multi-Day S4 History ↗</a>
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('scalper.s4.lab') }}" target="_blank" class="text-amber-300 hover:text-amber-200 font-bold">🔬 6M 3-Bar Lab ↗</a>
+                        <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="text-cyan-300 hover:text-cyan-200 font-bold">📅 Multi-Day S4 History ↗</a>
+                    </div>
                 </div>
             </div>
             </div>
