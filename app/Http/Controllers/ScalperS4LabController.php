@@ -34,6 +34,7 @@ class ScalperS4LabController extends Controller
         $revTh = max(40, min(95, (float) $request->input('rev_th', 60)));
         $tgtPts = max(10, min(60, (float) $request->input('tgt', 25)));
         $slPts = max(10, min(60, (float) $request->input('sl', 25)));
+        $basketMode = strtolower((string) $request->input('basket_mode', 'fixed')) === 'dynamic' ? 'dynamic' : 'fixed';
 
         $dates = DB::table('nse_working_days')
             ->whereBetween('working_date', [$from, $to])
@@ -46,7 +47,7 @@ class ScalperS4LabController extends Controller
         $daysWithData = 0;
 
         foreach ($dates as $d) {
-            $daySignals = $this->analyzeDay((string) $d, $revTh, $tgtPts, $slPts);
+            $daySignals = $this->analyzeDay((string) $d, $revTh, $tgtPts, $slPts, $basketMode);
             if ($daySignals !== null) {
                 $daysWithData++;
                 foreach ($daySignals as $sig) {
@@ -59,6 +60,7 @@ class ScalperS4LabController extends Controller
             'success'        => true,
             'days_scanned'   => $daysWithData,
             'total_signals'  => count($allSignals),
+            'basket_mode'    => $basketMode,
             'rev_th'         => $revTh,
             'tgt_pts'        => $tgtPts,
             'sl_pts'         => $slPts,
@@ -66,13 +68,13 @@ class ScalperS4LabController extends Controller
         ]);
     }
 
-    protected function analyzeDay(string $date, float $revTh, float $tgtPts, float $slPts): ?array
+    protected function analyzeDay(string $date, float $revTh, float $tgtPts, float $slPts, string $basketMode = 'fixed'): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "s4lab_v2_{$date}_{$revTh}_{$tgtPts}_{$slPts}";
+        $cacheKey = "s4lab_v3_{$date}_{$basketMode}_{$revTh}_{$tgtPts}_{$slPts}";
         $ttl = ($date === $today) ? 45 : 86400;
 
-        return Cache::remember($cacheKey, $ttl, function () use ($date, $revTh, $tgtPts, $slPts) {
+        return Cache::remember($cacheKey, $ttl, function () use ($date, $revTh, $tgtPts, $slPts, $basketMode) {
             $wCtrl = app(NiftyWeightageMonitorController::class);
             $oCtrl = app(OptionsBreadthMonitorController::class);
             $tCtrl = app(TrendingOiController::class);
@@ -88,7 +90,7 @@ class ScalperS4LabController extends Controller
 
             try {
                 $oJson = $oCtrl->getData(Request::create('/api/options-breadth-monitor/data', 'GET', [
-                    'date' => $date, 'timeframe' => '5m',
+                    'date' => $date, 'timeframe' => '5m', 'basket_mode' => $basketMode,
                 ]))->getData(true);
                 $optB = $oJson['breadth_by_time'] ?? [];
             } catch (\Throwable $e) {
@@ -110,7 +112,7 @@ class ScalperS4LabController extends Controller
 
             try {
                 $tJson = $tCtrl->getData(Request::create('/api/trending-oi/data', 'GET', [
-                    'date' => $date, 'expiry' => $expiry, 'interval' => 5,
+                    'date' => $date, 'expiry' => $expiry, 'interval' => 5, 'basket_mode' => $basketMode,
                 ]))->getData(true);
             } catch (\Throwable $e) {
                 return null;
@@ -184,9 +186,13 @@ class ScalperS4LabController extends Controller
                         continue;
                     }
 
-                    // Capture next 3 candles (Bar +1, +2, +3) & check reverse OPT >= $revTh
+                    $isGreenEntry = ($cClose >= (float) ($c['open'] ?? $cClose));
+                    $entryTrap = ($dir === 'BULL' && !$isGreenEntry) || ($dir === 'BEAR' && $isGreenEntry);
+
+                    // Capture next 3 candles (Bar +1, +2, +3) & check reverse OPT >= $revTh and TRAP candles
                     $bars3 = [];
                     $hasRevOpt = false;
+                    $hasTrap3Bar = false;
                     $firstRevIdx = null;
                     $firstRevOpt = 0;
                     for ($bIdx = 1; $bIdx <= 3; $bIdx++) {
@@ -196,10 +202,17 @@ class ScalperS4LabController extends Controller
                         $bc = $candles[$i + $bIdx];
                         $bt = (string) ($bc['time_str'] ?? '');
                         $bClose = (float) ($bc['close'] ?? $cClose);
+                        $bGreen = ($bClose >= (float) ($bc['open'] ?? $bClose));
                         $bMove = round(($dir === 'BULL') ? ($bClose - $cClose) : ($cClose - $bClose), 1);
                         $bob = $optB[$bt] ?? null;
-                        $sameOpt = $bob ? round((float) ($dir === 'BULL' ? ($bob['up_weight'] ?? 0) : ($bob['down_weight'] ?? 0)), 0) : 0;
-                        $oppOpt = $bob ? round((float) ($dir === 'BULL' ? ($bob['down_weight'] ?? 0) : ($bob['up_weight'] ?? 0)), 0) : 0;
+                        $bUp = $bob ? (float) ($bob['up_weight'] ?? 0) : 0;
+                        $bDn = $bob ? (float) ($bob['down_weight'] ?? 0) : 0;
+                        $sameOpt = round(($dir === 'BULL') ? $bUp : $bDn, 0);
+                        $oppOpt = round(($dir === 'BULL') ? $bDn : $bUp, 0);
+                        $bTrap = ($bDn >= 70 && $bGreen) || ($bUp >= 70 && !$bGreen);
+                        if ($bTrap) {
+                            $hasTrap3Bar = true;
+                        }
                         if ($oppOpt >= $revTh) {
                             $hasRevOpt = true;
                             if ($firstRevIdx === null) {
@@ -213,6 +226,7 @@ class ScalperS4LabController extends Controller
                             'same_opt' => $sameOpt,
                             'opp_opt'  => $oppOpt,
                             'is_rev'   => ($oppOpt >= $revTh),
+                            'is_trap'  => $bTrap,
                         ];
                     }
 
@@ -292,8 +306,10 @@ class ScalperS4LabController extends Controller
                         'opt_pct'    => round($optWt, 1),
                         'stk_pct'    => round($stkWt, 1),
                         'oi_diff_l'  => round($oiDiff / 100000, 1),
-                        'clean_3bar' => !$hasRevOpt,
-                        'bars3'      => $bars3,
+                        'clean_3bar'    => !$hasRevOpt,
+                        'entry_trap'    => $entryTrap,
+                        'has_trap_3bar' => $hasTrap3Bar,
+                        'bars3'         => $bars3,
                         'rev_flip'   => $revFlip,
                         'outcome'    => $outcome,
                         'net_pts'    => $netPts,

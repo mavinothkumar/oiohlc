@@ -26,6 +26,11 @@
             </div>
 
             <div class="flex items-center gap-1.5 bg-[#141b2d] border border-gray-700 rounded-lg px-2.5 py-1">
+                <label class="text-gray-400">Basket:</label>
+                <select id="lab-basket" onchange="loadLabData()" class="bg-[#090d16] border border-gray-700 rounded px-1.5 py-0.5 text-sky-300 font-bold focus:outline-none">
+                    <option value="fixed" selected>Fixed (9:15)</option>
+                    <option value="dynamic">Dynamic (ATM)</option>
+                </select>
                 <label class="text-gray-400">Tgt:</label>
                 <input type="number" id="lab-tgt" value="25" min="10" max="60" class="w-11 bg-[#090d16] border border-gray-700 rounded px-1 py-0.5 text-center text-emerald-300 font-bold">
                 <label class="text-gray-400">SL:</label>
@@ -71,6 +76,7 @@
     <div class="bg-[#0f1422] border border-gray-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
         <div class="flex flex-wrap items-center gap-1.5">
             <button type="button" onclick="setLabFilter('CLEAN')" class="lab-flt-btn px-3 py-1 rounded bg-emerald-950 text-emerald-200 border border-emerald-600 font-black cursor-pointer" data-flt="CLEAN">🏆 Clean 3-Bar (No Rev OPT)</button>
+            <button type="button" onclick="setLabFilter('NO_TRAP')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-teal-300 border border-teal-700/60 font-bold cursor-pointer" data-flt="NO_TRAP">🛡️ Clean &amp; No Trap</button>
             <button type="button" onclick="setLabFilter('REVERSED')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="REVERSED">🩸 Reversed in 1–3 Bars</button>
             <button type="button" onclick="setLabFilter('ALL')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="ALL">All S4+OI</button>
             <button type="button" onclick="setLabFilter('LOSSES')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-rose-300 border border-rose-800/60 font-bold cursor-pointer" data-flt="LOSSES">❌ Losses Only</button>
@@ -127,6 +133,7 @@
                 tgt: document.getElementById('lab-tgt').value,
                 sl: document.getElementById('lab-sl').value,
                 rev_th: document.getElementById('lab-rev').value,
+                basket_mode: document.getElementById('lab-basket').value,
             }).toString();
             const res = await fetch(`/api/scalper-s4-lab/data?${qs}`).then(r => r.json());
             allSignals = res.signals || [];
@@ -166,6 +173,7 @@
         const q = (document.getElementById('lab-search')?.value || '').trim().toLowerCase();
         const sigs = allSignals.filter(s => {
             if (currentFilter === 'CLEAN' && !s.clean_3bar) return false;
+            if (currentFilter === 'NO_TRAP' && (!s.clean_3bar || s.entry_trap || s.has_trap_3bar)) return false;
             if (currentFilter === 'REVERSED' && s.clean_3bar) return false;
             if (currentFilter === 'LOSSES' && s.outcome !== 'LOSS') return false;
             if (q && !(`${s.date} ${s.time} ${s.dir} ${s.outcome}`.toLowerCase().includes(q))) return false;
@@ -200,17 +208,19 @@
         const fmtBar = (b) => {
             if (!b) return '<span class="text-gray-600">--</span>';
             const mvCls = b.move >= 0 ? 'text-emerald-300' : 'text-rose-300';
-            const revCls = b.is_rev ? 'bg-rose-950/70 border-rose-600/80 text-rose-200' : 'bg-[#12192b] border-gray-800 text-gray-300';
+            const revCls = b.is_rev ? 'bg-rose-950/70 border-rose-600/80 text-rose-200' : (b.is_trap ? 'bg-amber-950/50 border-amber-600/70 text-amber-200' : 'bg-[#12192b] border-gray-800 text-gray-300');
+            const trapTag = b.is_trap ? ' <span class="text-amber-300 font-black">⚠️TRAP</span>' : '';
             return `<div class="rounded border px-1.5 py-0.5 text-[10.5px] ${revCls}">
-                <div class="flex justify-between gap-1"><span class="text-gray-400">${b.time}</span><span class="${mvCls} font-bold">${b.move >= 0 ? '+' : ''}${b.move}p</span></div>
+                <div class="flex justify-between gap-1"><span class="text-gray-400">${b.time}${trapTag}</span><span class="${mvCls} font-bold">${b.move >= 0 ? '+' : ''}${b.move}p</span></div>
                 <div class="text-[9.5px] text-gray-400">Same ${b.same_opt}% | <span class="${b.is_rev ? 'text-rose-300 font-black' : ''}">Rev ${b.opp_opt}%</span></div>
             </div>`;
         };
 
         tbody.innerHTML = sigs.map(s => {
-            const dBadge = s.dir === 'BULL'
+            const dBadge = (s.dir === 'BULL'
                 ? '<span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-black">▲ BULL</span>'
-                : '<span class="px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700 font-black">▼ BEAR</span>';
+                : '<span class="px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-700 font-black">▼ BEAR</span>')
+                + (s.entry_trap ? ' <span class="px-1 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 text-[9px] font-black">⚠️TRAP</span>' : '');
             const oBadge = s.outcome === 'WIN'
                 ? `<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600 font-black">✅ +${s.net_pts}p</span>`
                 : (s.outcome === 'LOSS'
