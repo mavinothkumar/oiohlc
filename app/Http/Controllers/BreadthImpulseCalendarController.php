@@ -115,7 +115,7 @@ class BreadthImpulseCalendarController extends Controller
                 'timeframe' => '5m',
             ]);
             $wJson = $wCtrl->getData($wReq)->getData(true);
-            $candles = $wJson['candles'] ?? [];
+            $candles = $wJson['nifty_candles'] ?? $wJson['candles'] ?? [];
             $stkBreadth = $wJson['breadth_by_time'] ?? [];
 
             if (empty($candles)) {
