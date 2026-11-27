@@ -206,10 +206,15 @@
     async function loadTelemetryReportData() {
         try {
             // Load weightage breadth, options breadth, and trending OI in parallel
+            const fetchJson = async (url) => {
+                const r = await fetch(url);
+                if (!r.ok) throw new Error(`${url.split('?')[0]} returned HTTP ${r.status}`);
+                return r.json();
+            };
             const [wRes, bRes, toiRes] = await Promise.all([
-                fetch(`/api/nifty-weightage-monitor/data?date=${selectedDate}&timeframe=5m`).then(r => r.json()),
-                fetch(`/api/nifty-options-breadth/data?date=${selectedDate}&expiry=${selectedExpiry}&timeframe=5m`).then(r => r.json()),
-                fetch(`/api/nifty-trending-oi/data?date=${selectedDate}&expiry=${selectedExpiry}&interval=5`).then(r => r.json())
+                fetchJson(`/api/nifty-weightage-monitor/data?date=${selectedDate}&timeframe=5m`),
+                fetchJson(`/api/options-breadth-monitor/data?date=${selectedDate}&expiry=${selectedExpiry}&timeframe=5m`),
+                fetchJson(`/api/trending-oi/data?date=${selectedDate}&expiry=${selectedExpiry}&interval=5`)
             ]);
 
             const rawCandles = wRes?.candles || bRes?.nifty_candles || [];
