@@ -3611,131 +3611,224 @@
                         </span>
                     </div>
 
-                    <!-- Entry & Spot Snapshot Grid -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 my-2 text-[10.5px] font-mono">
-                        <div class="bg-[#151c2e] p-1.5 rounded border border-gray-800">
-                            <span class="text-gray-400 block text-[9px]">ENTRY TIME</span>
-                            <span id="at-entry-time" class="font-bold text-sky-300">09:45</span>
+                    <!-- Row 1: Two-Column Snapshot (Left 2x2 Entry/Spot/Opt + Right Big Net P&L) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 my-2.5 font-mono">
+                        <!-- Left Column: 2x2 Entry & Option Snapshot -->
+                        <div class="lg:col-span-5 grid grid-cols-2 gap-2">
+                            <div class="bg-[#151c2e] p-2.5 rounded-lg border border-gray-800 flex flex-col justify-center">
+                                <span class="text-gray-400 block text-[11px] font-bold tracking-wider">ENTRY TIME</span>
+                                <span id="at-entry-time" class="text-lg sm:text-xl font-black text-sky-300 mt-0.5">09:45</span>
+                            </div>
+                            <div class="bg-[#151c2e] p-2.5 rounded-lg border border-gray-800 flex flex-col justify-center">
+                                <span class="text-gray-400 block text-[11px] font-bold tracking-wider">ENTRY SPOT</span>
+                                <span id="at-entry-spot" class="text-lg sm:text-xl font-black text-white mt-0.5">24,185.00</span>
+                            </div>
+                            <div class="bg-[#151c2e] p-2.5 rounded-lg border border-gray-800 flex flex-col justify-center">
+                                <span class="text-gray-400 block text-[11px] font-bold tracking-wider">OPT ENTRY</span>
+                                <span id="at-entry-opt" class="text-lg sm:text-xl font-black text-amber-300 mt-0.5">₹112.50</span>
+                            </div>
+                            <div class="bg-[#151c2e] p-2.5 rounded-lg border border-gray-800 flex flex-col justify-center">
+                                <span class="text-gray-400 block text-[11px] font-bold tracking-wider">OPT CURRENT</span>
+                                <span id="at-curr-opt" class="text-lg sm:text-xl font-black text-emerald-400 mt-0.5">₹148.00</span>
+                            </div>
                         </div>
-                        <div class="bg-[#151c2e] p-1.5 rounded border border-gray-800">
-                            <span class="text-gray-400 block text-[9px]">ENTRY SPOT</span>
-                            <span id="at-entry-spot" class="font-bold text-white">24,185.00</span>
-                        </div>
-                        <div class="bg-[#151c2e] p-1.5 rounded border border-gray-800">
-                            <span class="text-gray-400 block text-[9px]">OPT ENTRY</span>
-                            <span id="at-entry-opt" class="font-bold text-amber-300">₹112.50</span>
-                        </div>
-                        <div class="bg-[#151c2e] p-1.5 rounded border border-gray-800">
-                            <span class="text-gray-400 block text-[9px]">OPT CURRENT</span>
-                            <span id="at-curr-opt" class="font-bold text-emerald-400">₹148.00</span>
+
+                        <!-- Right Column: Tall Big Net P&L & Telemetry -->
+                        <div class="lg:col-span-7 bg-gradient-to-r from-[#12192c] to-[#18233c] p-3.5 rounded-lg border border-sky-500/35 flex flex-col justify-between gap-2 shadow-xs">
+                            <div class="flex items-start justify-between gap-3 flex-wrap">
+                                <div>
+                                    <span id="at-lots-summary" class="text-xs text-gray-300 block font-bold tracking-wider">NET P&amp;L (3 LOTS / 195 QTY @ 65/LOT)</span>
+                                    <div class="flex items-baseline gap-2.5 mt-1">
+                                        <span id="at-pnl-rupees" class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono leading-none">+₹0</span>
+                                        <span id="at-pnl-points" class="text-base sm:text-lg font-bold text-emerald-300 font-mono">(+0.0 pts)</span>
+                                    </div>
+                                </div>
+                                <div class="text-right text-xs font-mono space-y-1">
+                                    <div><span class="text-gray-400">MFE Peak:</span> <span id="at-mfe" class="text-emerald-300 font-black">+0.0 pts</span></div>
+                                    <div><span class="text-gray-400">MAE DD:</span> <span id="at-mae" class="text-rose-300 font-black">-0.0 pts</span></div>
+                                    <div><span class="text-gray-400">Live Spot:</span> <span id="at-curr-spot" class="text-cyan-300 font-black text-sm">--</span></div>
+                                </div>
+                            </div>
+                            <div class="pt-2 border-t border-slate-700/60 text-xs sm:text-sm font-mono text-gray-300 flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <span>Booked: <span id="at-pnl-booked" class="text-emerald-300 font-black">₹0</span> (<span id="at-lots-booked">0</span> Lots)</span>
+                                    <span class="text-gray-600">&bull;</span>
+                                    <span>Open: <span id="at-pnl-open" class="text-sky-300 font-black">₹0</span> (<span id="at-lots-open">3</span> Lots)</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Live M2M P&L Big Display -->
-                    <div class="bg-gradient-to-r from-[#12192c] to-[#18233c] p-2.5 rounded-lg border border-sky-500/30 flex items-center justify-between mb-2 shadow-xs">
-                        <div>
-                            <span id="at-lots-summary" class="text-[10px] text-gray-400 block font-semibold tracking-wider">NET P&amp;L (3 LOTS / 195 QTY @ 65/LOT)</span>
-                            <div class="flex items-baseline gap-2">
-                                <span id="at-pnl-rupees" class="text-xl font-black text-emerald-400 font-mono">+₹0.00</span>
-                                <span id="at-pnl-points" class="text-xs font-bold text-emerald-300 font-mono">(+0.0 pts)</span>
-                            </div>
-                            <div class="text-[9.5px] font-mono text-gray-400 mt-0.5 flex items-center gap-2">
-                                <span>Booked: <span id="at-pnl-booked" class="text-emerald-300 font-bold">₹0</span> (<span id="at-lots-booked">0</span> Lots)</span>
-                                <span>&bull;</span>
-                                <span>Open: <span id="at-pnl-open" class="text-sky-300 font-bold">₹0</span> (<span id="at-lots-open">3</span> Lots)</span>
-                            </div>
-                        </div>
-                        <div class="text-right text-[10px] font-mono space-y-0.5">
-                            <div><span class="text-gray-400">MFE (Peak):</span> <span id="at-mfe" class="text-emerald-300 font-bold">+0.0 pts</span></div>
-                            <div><span class="text-gray-400">MAE (Drawdown):</span> <span id="at-mae" class="text-rose-300 font-bold">-0.0 pts</span></div>
-                            <div><span class="text-gray-400">Current Spot:</span> <span id="at-curr-spot" class="text-cyan-300 font-bold">--</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Dual Contract Recommendation Card: Option Selling vs Option Buying -->
-                    <div class="mb-2 bg-[#121929] p-2 rounded-lg border border-slate-800">
-                        <div class="flex items-center justify-between pb-1 border-b border-gray-800 text-[10px]">
-                            <span class="font-bold text-sky-400 flex items-center gap-1">
+                    <!-- Row 2: Dual Contract Recommendation Card: Option Selling vs Option Buying -->
+                    <div class="mb-2.5 bg-[#121929] p-2.5 rounded-lg border border-slate-800">
+                        <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 text-xs">
+                            <span class="font-bold text-sky-400 flex items-center gap-1.5">
                                 <span>⚖️ DUAL CONTRACT COMPARISON</span>
                             </span>
-                            <div class="flex items-center gap-1 font-mono text-[9px]">
-                                <button type="button" onclick="setDualLegView('dual')" id="btn-leg-dual" class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 font-bold cursor-pointer">Both</button>
-                                <button type="button" onclick="setDualLegView('sell')" id="btn-leg-sell" class="px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Seller</button>
-                                <button type="button" onclick="setDualLegView('buy')" id="btn-leg-buy" class="px-1.5 py-0.2 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Buyer</button>
+                            <div class="flex items-center gap-1 font-mono text-[11px]">
+                                <button type="button" onclick="setDualLegView('dual')" id="btn-leg-dual" class="px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 font-bold cursor-pointer">Both</button>
+                                <button type="button" onclick="setDualLegView('sell')" id="btn-leg-sell" class="px-2 py-0.5 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Seller</button>
+                                <button type="button" onclick="setDualLegView('buy')" id="btn-leg-buy" class="px-2 py-0.5 rounded text-gray-400 hover:text-white bg-slate-900 border border-slate-800 cursor-pointer">Buyer</button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-1.5 mt-1.5 text-[10px] font-mono">
+                        <div class="grid grid-cols-2 gap-2 mt-2 text-xs font-mono">
                             <!-- Option Selling Leg Card -->
-                            <div id="card-leg-seller" class="bg-[#151c2e] p-2 rounded border border-emerald-900/50 hover:border-emerald-500/50 transition">
-                                <div class="flex items-center justify-between text-[10px] mb-1">
-                                    <span class="font-bold text-emerald-300 flex items-center gap-1">
+                            <div id="card-leg-seller" class="bg-[#151c2e] p-2.5 rounded-lg border border-emerald-900/50 hover:border-emerald-500/50 transition">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-emerald-300 flex items-center gap-1.5">
                                         <span>🛡️ SELLING LEG</span>
-                                        <span id="at-sell-chosen-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500 text-slate-950 uppercase">✓ CHOSEN</span>
+                                        <span id="at-sell-chosen-badge" class="hidden px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500 text-slate-950 uppercase">✓ CHOSEN</span>
                                     </span>
-                                    <span id="at-sell-decay-rate" class="text-emerald-400 text-[9.5px]">+₹23/5m</span>
+                                    <span id="at-sell-decay-rate" class="text-emerald-400 text-[11px]">+₹23/5m</span>
                                 </div>
-                                <div id="at-sell-instrument" class="font-black text-white text-sm sm:text-base tracking-wide">SELL 25500 PE</div>
-                                <div class="flex items-center justify-between text-[11px] text-gray-400 mt-1">
+                                <div id="at-sell-instrument" class="font-black text-white text-base sm:text-lg tracking-wide">SELL 25500 PE</div>
+                                <div class="flex items-center justify-between text-xs sm:text-sm text-gray-300 mt-1">
                                     <span>Entry: <span id="at-sell-entry" class="text-amber-300 font-bold">₹85.0</span></span>
-                                    <span>LTP: <span id="at-sell-curr" class="text-emerald-300 font-bold">₹58.5</span></span>
+                                    <span>LTP: <span id="at-sell-curr" class="text-emerald-300 font-black">₹58.5</span></span>
                                 </div>
-                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold text-xs">
-                                    <span class="text-gray-400 text-[10px]">P&L (Δ 0.35):</span>
+                                <div class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex items-center justify-between font-bold text-sm">
+                                    <span class="text-gray-400 text-xs">P&amp;L (Δ 0.35):</span>
                                     <span id="at-sell-pnl" class="text-emerald-400 font-black">+₹5,167 (+26.5p)</span>
                                 </div>
                             </div>
 
                             <!-- Option Buying Leg Card -->
-                            <div id="card-leg-buyer" class="bg-[#151c2e] p-2 rounded border border-sky-900/50 hover:border-sky-500/50 transition">
-                                <div class="flex items-center justify-between text-[10px] mb-1">
-                                    <span class="font-bold text-sky-300 flex items-center gap-1">
+                            <div id="card-leg-buyer" class="bg-[#151c2e] p-2.5 rounded-lg border border-sky-900/50 hover:border-sky-500/50 transition">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="font-bold text-sky-300 flex items-center gap-1.5">
                                         <span>🚀 BUYING LEG</span>
-                                        <span id="at-buy-chosen-badge" class="hidden px-1.5 py-0.2 rounded text-[9px] font-black bg-sky-400 text-slate-950 uppercase">✓ CHOSEN</span>
+                                        <span id="at-buy-chosen-badge" class="hidden px-1.5 py-0.5 rounded text-[10px] font-black bg-sky-400 text-slate-950 uppercase">✓ CHOSEN</span>
                                     </span>
-                                    <span class="text-sky-400 text-[9.5px]">Gamma Pop</span>
+                                    <span class="text-sky-400 text-[11px]">Gamma Pop</span>
                                 </div>
-                                <div id="at-buy-instrument" class="font-black text-white text-sm sm:text-base tracking-wide">BUY 25600 CE</div>
-                                <div class="flex items-center justify-between text-[11px] text-gray-400 mt-1">
+                                <div id="at-buy-instrument" class="font-black text-white text-base sm:text-lg tracking-wide">BUY 25600 CE</div>
+                                <div class="flex items-center justify-between text-xs sm:text-sm text-gray-300 mt-1">
                                     <span>Entry: <span id="at-buy-entry" class="text-amber-300 font-bold">₹135.0</span></span>
-                                    <span>LTP: <span id="at-buy-curr" class="text-emerald-300 font-bold">₹156.0</span></span>
+                                    <span>LTP: <span id="at-buy-curr" class="text-emerald-300 font-black">₹156.0</span></span>
                                 </div>
-                                <div class="mt-1 pt-1 border-t border-gray-800/80 flex items-center justify-between font-bold text-xs">
-                                    <span class="text-gray-400 text-[10px]">P&L (Δ 0.52):</span>
+                                <div class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex items-center justify-between font-bold text-sm">
+                                    <span class="text-gray-400 text-xs">P&amp;L (Δ 0.52):</span>
                                     <span id="at-buy-pnl" class="text-emerald-400 font-black">+₹4,095 (+21.0p)</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 3 Targets Breakdown & Trailing SL -->
-                    <div class="bg-[#141b2c] p-2 rounded border border-gray-800 text-[10.5px] font-mono space-y-1">
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Stop Loss:</span>
-                            <div class="flex items-center gap-1.5">
-                                <span id="at-sl-val" class="font-bold text-rose-400">24,142.50</span>
-                                <span id="at-sl-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-rose-950 text-rose-300">Base SL</span>
+                    <!-- Row 3: 4 Milestone Boxes (SL, T1, T2, T3) + Overall Journey Speedometer Bar -->
+                    <div class="space-y-2.5 font-mono">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                            <!-- Box 1: Stop Loss -->
+                            <div id="at-box-sl" class="bg-[#141b2c] p-2.5 rounded-lg border border-rose-900/60 flex flex-col justify-between gap-1.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-rose-300">🛡️ STOP LOSS</span>
+                                    <span id="at-sl-pct" class="text-xs font-black text-rose-400">0%</span>
+                                </div>
+                                <div id="at-sl-val" class="text-base sm:text-lg font-black text-rose-400 leading-tight">24,142.50</div>
+                                <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                                    <div id="at-sl-bar" class="h-full bg-rose-500 transition-all duration-300" style="width: 0%;"></div>
+                                </div>
+                                <div class="flex items-center justify-between gap-1 flex-wrap">
+                                    <span id="at-sl-dist" class="text-[11px] text-gray-300 font-bold">--</span>
+                                    <span id="at-sl-badge" class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300">Base SL</span>
+                                </div>
+                            </div>
+
+                            <!-- Box 2: Target 1 -->
+                            <div id="at-box-t1" class="bg-[#141b2c] p-2.5 rounded-lg border border-slate-800 flex flex-col justify-between gap-1.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-emerald-300">🎯 TARGET 1</span>
+                                    <span id="at-t1-pct" class="text-xs font-black text-emerald-400">0%</span>
+                                </div>
+                                <div id="at-t1-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                                    <div id="at-t1-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%;"></div>
+                                </div>
+                                <div class="flex items-center justify-between gap-1 flex-wrap">
+                                    <span id="at-t1-rem" class="text-[11px] text-gray-300 font-bold">--</span>
+                                    <span id="at-t1-badge" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-gray-300">Book 1 Lot</span>
+                                </div>
+                            </div>
+
+                            <!-- Box 3: Target 2 -->
+                            <div id="at-box-t2" class="bg-[#141b2c] p-2.5 rounded-lg border border-slate-800 flex flex-col justify-between gap-1.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-cyan-300">🎯 TARGET 2</span>
+                                    <span id="at-t2-pct" class="text-xs font-black text-cyan-400">0%</span>
+                                </div>
+                                <div id="at-t2-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                                    <div id="at-t2-bar" class="h-full bg-cyan-500 transition-all duration-300" style="width: 0%;"></div>
+                                </div>
+                                <div class="flex items-center justify-between gap-1 flex-wrap">
+                                    <span id="at-t2-rem" class="text-[11px] text-gray-300 font-bold">--</span>
+                                    <span id="at-t2-badge" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-gray-300">Book 1 Lot</span>
+                                </div>
+                            </div>
+
+                            <!-- Box 4: Target 3 (Runner) -->
+                            <div id="at-box-t3" class="bg-[#141b2c] p-2.5 rounded-lg border border-slate-800 flex flex-col justify-between gap-1.5">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-xs font-bold text-amber-300">🚀 TARGET 3</span>
+                                    <span id="at-t3-pct" class="text-xs font-black text-amber-400">0%</span>
+                                </div>
+                                <div id="at-t3-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                                    <div id="at-t3-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div>
+                                </div>
+                                <div class="flex items-center justify-between gap-1 flex-wrap">
+                                    <span id="at-t3-rem" class="text-[11px] text-gray-300 font-bold">--</span>
+                                    <span id="at-t3-badge" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-gray-300">Runner Lot</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 1:</span>
-                            <div class="flex items-center gap-1.5">
-                                <span id="at-t1-val" class="font-bold text-white">--</span>
-                                <span id="at-t1-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Book 1 Lot</span>
+
+                        <!-- Overall Full-Width Trade Journey Meter (SL -> Entry -> T1 -> T2 -> T3) -->
+                        <div class="bg-[#111727] p-3 rounded-lg border border-slate-700/80 space-y-2.5">
+                            <div class="flex items-center justify-between flex-wrap gap-2 text-xs">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-black text-sky-300 tracking-wide">🧭 TRADE JOURNEY METER</span>
+                                    <span id="at-meter-status" class="px-2 py-0.5 rounded bg-slate-800 text-gray-200 font-bold text-[11px]">Tracking...</span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span id="at-meter-booked-pill" class="hidden px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600/70 font-bold text-[11px]">✓ Booked: ₹0</span>
+                                    <span id="at-meter-rem-pill" class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-200 border border-cyan-700/70 font-bold text-[11px]">-- pts to T3</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 2:</span>
-                            <div class="flex items-center gap-1.5">
-                                <span id="at-t2-val" class="font-bold text-white">--</span>
-                                <span id="at-t2-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Book 1 Lot</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Target 3:</span>
-                            <div class="flex items-center gap-1.5">
-                                <span id="at-t3-val" class="font-bold text-white">--</span>
-                                <span id="at-t3-badge" class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400">Runner Lot</span>
+
+                            <!-- Track + Checkpoints + Live Needle -->
+                            <div class="relative pt-5 pb-6 px-1">
+                                <div class="relative h-3.5 rounded-full bg-[#090d16] border border-slate-700 overflow-hidden">
+                                    <div id="at-meter-fill" class="h-full bg-gradient-to-r from-rose-500 via-sky-500 to-emerald-400 transition-all duration-300" style="width: 25%;"></div>
+                                </div>
+
+                                <!-- Checkpoints -->
+                                <div id="at-pin-sl" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 0%;">
+                                    <div class="w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white shadow"></div>
+                                    <span class="mt-1 text-[10px] font-bold text-rose-300 whitespace-nowrap">SL</span>
+                                </div>
+                                <div id="at-pin-entry" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 25%;">
+                                    <div class="w-3.5 h-3.5 rounded-full bg-slate-300 border-2 border-slate-900 shadow"></div>
+                                    <span class="mt-1 text-[10px] font-bold text-gray-300 whitespace-nowrap">ENTRY</span>
+                                </div>
+                                <div id="at-pin-t1" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 50%;">
+                                    <div id="at-dot-t1" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-emerald-400 shadow"></div>
+                                    <span id="at-lbl-t1" class="mt-1 text-[10px] font-bold text-emerald-300 whitespace-nowrap">T1</span>
+                                </div>
+                                <div id="at-pin-t2" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 75%;">
+                                    <div id="at-dot-t2" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-cyan-400 shadow"></div>
+                                    <span id="at-lbl-t2" class="mt-1 text-[10px] font-bold text-cyan-300 whitespace-nowrap">T2</span>
+                                </div>
+                                <div id="at-pin-t3" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 100%;">
+                                    <div id="at-dot-t3" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-amber-400 shadow"></div>
+                                    <span id="at-lbl-t3" class="mt-1 text-[10px] font-bold text-amber-300 whitespace-nowrap">T3</span>
+                                </div>
+
+                                <!-- Live Movable Spot Needle -->
+                                <div id="at-meter-needle" class="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none z-10" style="left: 25%;">
+                                    <span id="at-meter-spot" class="px-1.5 py-0.5 rounded bg-sky-400 text-slate-950 font-black text-[10px] shadow-md whitespace-nowrap">SPOT</span>
+                                    <div class="w-0.5 h-5 bg-sky-300"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -17324,7 +17417,7 @@
             const atPnlRs = document.getElementById('at-pnl-rupees');
             if (atPnlRs) {
                 atPnlRs.textContent = `${pnlSign}₹${activeTrade.pnlRupees.toLocaleString('en-IN')}`;
-                atPnlRs.className = `text-xl font-black font-mono ${pnlColor}`;
+                atPnlRs.className = `text-3xl sm:text-4xl font-black font-mono leading-none ${pnlColor}`;
             }
             const atPnlPts = document.getElementById('at-pnl-points');
             if (atPnlPts) {
@@ -17378,8 +17471,129 @@
                 }
             }
         }
+        // 3. Update 4 Milestone Progress Boxes & Overall Journey Meter in real time
+        if (typeof updateTradeMilestonesAndMeter === 'function') {
+            updateTradeMilestonesAndMeter(activeTrade);
+        }
     }
     window.updateLiveTradeCockpitTicks = updateLiveTradeCockpitTicks;
+
+    function updateTradeMilestonesAndMeter(trade) {
+        if (!trade || trade.status !== 'ACTIVE') return;
+        const isBull = (trade.direction === 'BULL');
+        const spot = Number(trade.currentSpot || trade.entrySpot || 0);
+        const entry = Number(trade.entrySpot || 0);
+        const sl = Number(trade.currentSl || trade.baseSl || 0);
+        const t1 = Number(trade.t1 || 0);
+        const t2 = Number(trade.t2 || 0);
+        const t3 = Number(trade.t3 || 0);
+        const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+
+        // 1. Stop Loss proximity (100% = spot at SL, 0% = at/beyond entry in profit)
+        const slCushion = isBull ? (spot - sl) : (sl - spot);
+        const slSpan = Math.max(1, Math.abs(entry - sl));
+        const slDangerPct = slCushion <= 0 ? 100 : (slCushion >= slSpan ? 0 : clamp(Math.round(((slSpan - slCushion) / slSpan) * 100)));
+        const slPctEl = document.getElementById('at-sl-pct');
+        const slBarEl = document.getElementById('at-sl-bar');
+        const slDistEl = document.getElementById('at-sl-dist');
+        if (slPctEl) slPctEl.textContent = `${slDangerPct}%`;
+        if (slBarEl) slBarEl.style.width = `${slDangerPct}%`;
+        if (slDistEl) {
+            slDistEl.textContent = slCushion >= 0 ? `${slCushion.toFixed(1)}p cushion` : `${Math.abs(slCushion).toFixed(1)}p breached`;
+            slDistEl.className = slCushion >= 0 ? 'text-[11px] text-emerald-300 font-bold' : 'text-[11px] text-rose-400 font-black';
+        }
+
+        // 2. Target 1, 2, 3 progress %
+        const updateTargetBox = (idx, targetVal, hitFlag, barCls) => {
+            const totalDist = Math.max(0.1, isBull ? (targetVal - entry) : (entry - targetVal));
+            const favMove = isBull ? (spot - entry) : (entry - spot);
+            const remPts = isBull ? (targetVal - spot) : (spot - targetVal);
+            const pct = hitFlag ? 100 : clamp(Math.round((favMove / totalDist) * 100));
+
+            const pctEl = document.getElementById(`at-t${idx}-pct`);
+            const barEl = document.getElementById(`at-t${idx}-bar`);
+            const remEl = document.getElementById(`at-t${idx}-rem`);
+            const boxEl = document.getElementById(`at-box-t${idx}`);
+            if (pctEl) pctEl.textContent = `${pct}%`;
+            if (barEl) {
+                barEl.style.width = `${pct}%`;
+                barEl.className = `h-full transition-all duration-300 ${hitFlag ? 'bg-emerald-400' : barCls}`;
+            }
+            if (remEl) {
+                remEl.textContent = hitFlag ? '✅ HIT / BOOKED' : (remPts > 0 ? `${remPts.toFixed(1)}p left` : '🎯 AT TARGET');
+                remEl.className = hitFlag ? 'text-[11px] text-emerald-300 font-black' : 'text-[11px] text-gray-300 font-bold';
+            }
+            if (boxEl) {
+                boxEl.className = hitFlag
+                    ? 'bg-emerald-950/25 p-2.5 rounded-lg border border-emerald-500/60 flex flex-col justify-between gap-1.5'
+                    : 'bg-[#141b2c] p-2.5 rounded-lg border border-slate-800 flex flex-col justify-between gap-1.5';
+            }
+        };
+        updateTargetBox(1, t1, !!trade.t1Hit, 'bg-emerald-500');
+        updateTargetBox(2, t2, !!trade.t2Hit, 'bg-cyan-500');
+        updateTargetBox(3, t3, !!trade.t3Hit, 'bg-amber-400');
+
+        // 3. Overall Trade Journey Meter (Base/Active SL -> T3)
+        const anchorSl = Number(trade.baseSl || sl);
+        const mapPos = (price) => {
+            const denom = isBull ? (t3 - anchorSl) : (anchorSl - t3);
+            if (Math.abs(denom) < 0.1) return 50;
+            const num = isBull ? (price - anchorSl) : (anchorSl - price);
+            return clamp((num / denom) * 100);
+        };
+        const slPos = mapPos(sl);
+        const entryPos = mapPos(entry);
+        const t1Pos = mapPos(t1);
+        const t2Pos = mapPos(t2);
+        const t3Pos = 100;
+        const spotPos = mapPos(spot);
+
+        const setLeft = (id, pct) => { const el = document.getElementById(id); if (el) el.style.left = `${pct}%`; };
+        setLeft('at-pin-sl', slPos);
+        setLeft('at-pin-entry', entryPos);
+        setLeft('at-pin-t1', t1Pos);
+        setLeft('at-pin-t2', t2Pos);
+        setLeft('at-pin-t3', t3Pos);
+        setLeft('at-meter-needle', spotPos);
+
+        const fillEl = document.getElementById('at-meter-fill');
+        if (fillEl) fillEl.style.width = `${spotPos}%`;
+        const needleSpotEl = document.getElementById('at-meter-spot');
+        if (needleSpotEl) needleSpotEl.textContent = spot.toFixed(1);
+
+        const syncDot = (dotId, lblId, hit, lblText, hitCls, idleBorder) => {
+            const dot = document.getElementById(dotId);
+            const lbl = document.getElementById(lblId);
+            if (dot) dot.className = hit ? 'w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white shadow' : `w-3.5 h-3.5 rounded-full bg-slate-700 border-2 ${idleBorder} shadow`;
+            if (lbl) lbl.textContent = hit ? `✓ ${lblText}` : lblText;
+        };
+        syncDot('at-dot-t1', 'at-lbl-t1', !!trade.t1Hit, 'T1', 'bg-emerald-400', 'border-emerald-400');
+        syncDot('at-dot-t2', 'at-lbl-t2', !!trade.t2Hit, 'T2', 'bg-emerald-400', 'border-cyan-400');
+        syncDot('at-dot-t3', 'at-lbl-t3', !!trade.t3Hit, 'T3', 'bg-emerald-400', 'border-amber-400');
+
+        const bookedPill = document.getElementById('at-meter-booked-pill');
+        if (bookedPill) {
+            if (Number(trade.bookedLots || 0) > 0) {
+                bookedPill.classList.remove('hidden');
+                bookedPill.textContent = `✓ Booked: ₹${Number(trade.bookedPnlRupees || 0).toLocaleString('en-IN')} (${trade.bookedLots}L)`;
+            } else {
+                bookedPill.classList.add('hidden');
+            }
+        }
+        const remToT3 = Math.max(0, isBull ? (t3 - spot) : (spot - t3));
+        const remPill = document.getElementById('at-meter-rem-pill');
+        if (remPill) remPill.textContent = `${remToT3.toFixed(1)}p left to T3`;
+
+        const statusEl = document.getElementById('at-meter-status');
+        if (statusEl) {
+            const favPts = isBull ? (spot - entry) : (entry - spot);
+            statusEl.textContent = `${favPts >= 0 ? '+' : ''}${favPts.toFixed(1)}p from Entry • ${Math.round(spotPos)}% to T3`;
+            statusEl.className = favPts >= 0
+                ? 'px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-bold text-[11px]'
+                : 'px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-700/60 font-bold text-[11px]';
+        }
+    }
+    window.updateTradeMilestonesAndMeter = updateTradeMilestonesAndMeter;
 
     function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null, pendingBreakout = null, executedTradesCount = 0) {
         const headerBadge = document.getElementById('header-trade-status-badge');
@@ -17533,7 +17747,7 @@
             const atPnlRs = document.getElementById('at-pnl-rupees');
             if (atPnlRs) {
                 atPnlRs.textContent = `${pnlSign}₹${trade.pnlRupees.toLocaleString('en-IN')}`;
-                atPnlRs.className = `text-xl font-black font-mono ${pnlColor}`;
+                atPnlRs.className = `text-3xl sm:text-4xl font-black font-mono leading-none ${pnlColor}`;
             }
 
             const atPnlPts = document.getElementById('at-pnl-points');
@@ -17680,11 +17894,15 @@
             if (atT3Badge) {
                 if (trade.t3Hit) {
                     atT3Badge.textContent = `🎯 RUNNER BOOKED (+₹${(trade.t3PnlRs || 0).toLocaleString('en-IN')})`;
-                    atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
+                    atT3Badge.className = 'px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold';
                 } else {
                     atT3Badge.textContent = 'Runner Lot (3.0R)';
-                    atT3Badge.className = 'px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-gray-400';
+                    atT3Badge.className = 'px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-gray-300';
                 }
+            }
+
+            if (typeof updateTradeMilestonesAndMeter === 'function') {
+                updateTradeMilestonesAndMeter(trade);
             }
 
         }
