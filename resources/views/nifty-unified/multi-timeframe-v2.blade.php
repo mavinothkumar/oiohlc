@@ -4293,22 +4293,22 @@
         </div>
 
         <!-- Bottom Row: Day Trade History & 5M Telemetry Decision Logs -->
-        <div id="trade-history-section" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2 shadow-inner flex-1 flex flex-col min-h-[110px]">
-            <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 shrink-0 flex-wrap gap-2">
+        <div id="trade-history-section" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex-1 flex flex-col min-h-[120px]">
+            <div class="flex items-center justify-between pb-2 border-b border-gray-800 mb-2 shrink-0 flex-wrap gap-2">
                 <!-- Left: Tabs Toggle -->
-                <div class="flex items-center gap-1 bg-[#090d16] p-0.5 rounded border border-gray-800 text-[10px] font-mono font-bold">
-                    <button id="tab-btn-trades" type="button" onclick="switchTradeDrawerTab('trades')" class="px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 shadow-xs flex items-center gap-1.5 cursor-pointer transition">
+                <div class="flex items-center gap-1.5 bg-[#090d16] p-1 rounded border border-gray-800 text-xs sm:text-[13px] font-mono font-bold">
+                    <button id="tab-btn-trades" type="button" onclick="switchTradeDrawerTab('trades')" class="px-2.5 py-1 rounded bg-sky-950 text-sky-300 border border-sky-700/60 shadow-xs flex items-center gap-1.5 cursor-pointer transition">
                         <span>📜 Session Completed Trades</span>
-                        <span id="trade-history-count" class="text-[9px] px-1 py-0.1 rounded bg-sky-900/80 text-sky-200">0 Trades</span>
+                        <span id="trade-history-count" class="text-[11px] px-1.5 py-0.5 rounded bg-sky-900/80 text-sky-200">0 Trades</span>
                     </button>
-                    <button id="tab-btn-telemetry" type="button" onclick="switchTradeDrawerTab('telemetry')" class="px-2 py-0.5 rounded text-gray-400 hover:text-gray-200 flex items-center gap-1.5 cursor-pointer transition">
+                    <button id="tab-btn-telemetry" type="button" onclick="switchTradeDrawerTab('telemetry')" class="px-2.5 py-1 rounded text-gray-400 hover:text-gray-200 flex items-center gap-1.5 cursor-pointer transition">
                         <span>⏱️ 5M Candle Decision Log</span>
-                        <span id="trade-telemetry-count" class="text-[9px] px-1 py-0.1 rounded bg-slate-800 text-gray-300">0 / 75</span>
+                        <span id="trade-telemetry-count" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-800 text-gray-300">0 / 75</span>
                     </button>
                 </div>
 
                 <!-- Center: Live Session P&amp;L Summary Strip -->
-                <div id="trade-history-summary-pill" class="flex items-center gap-2 flex-wrap px-2.5 py-0.5 rounded bg-[#090d16] border border-gray-800 text-[10.5px] font-mono">
+                <div id="trade-history-summary-pill" class="flex items-center gap-2.5 flex-wrap px-3 py-1 rounded bg-[#090d16] border border-gray-800 text-[13px] font-mono">
                     <span class="text-gray-400">Net P&amp;L: <strong id="th-sum-net" class="text-gray-300">₹0 (0.0p)</strong></span>
                     <span class="text-gray-700">|</span>
                     <span id="th-sum-wl" class="text-gray-300">0W / 0L</span>
@@ -4318,25 +4318,25 @@
                 </div>
 
                 <!-- Center: Telemetry Filters (Active only when telemetry tab is active) -->
-                <div id="telemetry-filters" class="hidden flex items-center gap-1 text-[9.5px] font-mono">
-                    <span class="text-gray-500 text-[9px]">FILTER:</span>
-                    <button type="button" onclick="filterTelemetryLogs('all')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-700/60 cursor-pointer" data-filter="all">All (75)</button>
-                    <button type="button" onclick="filterTelemetryLogs('trades')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-white cursor-pointer" data-filter="trades">Trades &amp; Exits</button>
-                    <button type="button" onclick="filterTelemetryLogs('vetoed')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-amber-300 cursor-pointer" data-filter="vetoed">⛔ Vetoed</button>
-                    <button type="button" onclick="filterTelemetryLogs('intrade')" class="telemetry-filter-btn px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 hover:text-sky-300 cursor-pointer" data-filter="intrade">In-Trade</button>
+                <div id="telemetry-filters" class="hidden flex items-center gap-1.5 text-xs font-mono">
+                    <span class="text-gray-500 text-[11px]">FILTER:</span>
+                    <button type="button" onclick="filterTelemetryLogs('all')" class="telemetry-filter-btn px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-700/60 cursor-pointer" data-filter="all">All (75)</button>
+                    <button type="button" onclick="filterTelemetryLogs('trades')" class="telemetry-filter-btn px-2 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-white cursor-pointer" data-filter="trades">Trades &amp; Exits</button>
+                    <button type="button" onclick="filterTelemetryLogs('vetoed')" class="telemetry-filter-btn px-2 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-amber-300 cursor-pointer" data-filter="vetoed">⛔ Vetoed</button>
+                    <button type="button" onclick="filterTelemetryLogs('intrade')" class="telemetry-filter-btn px-2 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-sky-300 cursor-pointer" data-filter="intrade">In-Trade</button>
                 </div>
 
                 <!-- Right: Action to Open Full-Page Report, Backtest Dashboard & Breadth Impulse Calendar -->
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="px-2 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Breadth Impulse Calendar (Multi-Day STK / OPT / BOTH Counts & Worthiness)">
+                    <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="px-2.5 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 text-xs font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Breadth Impulse Calendar (Multi-Day STK / OPT / BOTH Counts & Worthiness)">
                         <span>📅 Impulse Calendar</span>
                         <span>↗</span>
                     </a>
-                    <a href="{{ route('automated.trading.backtest') }}" target="_blank" class="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Automated Trading Engine Multi-Day Performance Analytics & Backtest">
+                    <a href="{{ route('automated.trading.backtest') }}" target="_blank" class="px-2.5 py-1 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/60 text-xs font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Automated Trading Engine Multi-Day Performance Analytics & Backtest">
                         <span>🚀 Backtest Analytics</span>
                         <span>↗</span>
                     </a>
-                    <a id="btn-open-full-report" href="{{ route('nifty.trade.telemetry.v2', ['date' => $selectedDate, 'expiry' => $selectedExpiry]) }}" target="_blank" class="px-2 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Full-Page 5-Minute Session Forensics Report in New Tab">
+                    <a id="btn-open-full-report" href="{{ route('nifty.trade.telemetry.v2', ['date' => $selectedDate, 'expiry' => $selectedExpiry]) }}" target="_blank" class="px-2.5 py-1 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 text-xs font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Full-Page 5-Minute Session Forensics Report in New Tab">
                         <span>📊 Full 5M Report</span>
                         <span>↗</span>
                     </a>
@@ -4345,46 +4345,46 @@
 
             <!-- Tab Content 1: Completed Trades Table -->
             <div id="tab-content-trades" class="overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
-                <table class="w-full text-left font-mono text-[10px]">
+                <table class="w-full text-left font-mono text-[13px]">
                     <thead>
-                        <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px]">
-                            <th class="py-1 px-1">ID</th>
-                            <th class="py-1 px-1">Type</th>
-                            <th class="py-1 px-1">Setup / OI Skew</th>
-                            <th class="py-1 px-1">Strike</th>
-                            <th class="py-1 px-1">Entry Time</th>
-                            <th class="py-1 px-1">Entry Spot</th>
-                            <th class="py-1 px-1">Exit Time</th>
-                            <th class="py-1 px-1">Exit Spot</th>
-                            <th class="py-1 px-1">Points</th>
-                            <th class="py-1 px-1">P&amp;L (₹)</th>
-                            <th class="py-1 px-1">Exit Reason</th>
-                            <th class="py-1 px-1 text-right">Status</th>
+                        <tr class="text-gray-400 border-b border-gray-800 uppercase text-[11px]">
+                            <th class="py-1.5 px-1.5">ID</th>
+                            <th class="py-1.5 px-1.5">Type</th>
+                            <th class="py-1.5 px-1.5">Setup / OI Skew</th>
+                            <th class="py-1.5 px-1.5">Strike</th>
+                            <th class="py-1.5 px-1.5">Entry Time</th>
+                            <th class="py-1.5 px-1.5">Entry Spot</th>
+                            <th class="py-1.5 px-1.5">Exit Time</th>
+                            <th class="py-1.5 px-1.5">Exit Spot</th>
+                            <th class="py-1.5 px-1.5">Points</th>
+                            <th class="py-1.5 px-1.5">P&amp;L (₹)</th>
+                            <th class="py-1.5 px-1.5">Exit Reason</th>
+                            <th class="py-1.5 px-1.5 text-right">Status</th>
                         </tr>
                     </thead>
                     <tbody id="trade-history-tbody" class="divide-y divide-gray-800/40">
                         <tr>
-                            <td colspan="12" class="text-center py-2 text-gray-500">No trades completed yet in this session.</td>
+                            <td colspan="12" class="text-center py-3 text-gray-500">No trades completed yet in this session.</td>
                         </tr>
                     </tbody>
-                    <tfoot id="trade-history-tfoot" class="hidden border-t-2 border-gray-700 bg-[#131a2b] font-bold text-[11px]">
+                    <tfoot id="trade-history-tfoot" class="hidden border-t-2 border-gray-700 bg-[#131a2b] font-bold text-sm">
                     </tfoot>
                 </table>
             </div>
 
             <!-- Tab Content 2: 5-Minute Candle Decision & Telemetry Log Table -->
             <div id="tab-content-telemetry" class="hidden overflow-x-auto flex-1 overflow-y-auto min-h-[60px]">
-                <table class="w-full text-left font-mono text-[10px]">
+                <table class="w-full text-left font-mono text-[13px]">
                     <thead>
-                        <tr class="text-gray-400 border-b border-gray-800 uppercase text-[9px] sticky top-0 bg-[#0f1422] z-10">
-                            <th class="py-1 px-1.5 w-16">Time</th>
-                            <th class="py-1 px-1.5 w-20">Spot</th>
-                            <th class="py-1 px-1.5 w-36">Stock Breadth</th>
-                            <th class="py-1 px-1.5 w-24">Options Flow</th>
-                            <th class="py-1 px-1.5 w-32">Trending OI Skew</th>
-                            <th class="py-1 px-1.5 w-44">Decision &amp; Verdict</th>
-                            <th class="py-1 px-1.5">Telemetry Diagnostics &amp; Reason</th>
-                            <th class="py-1 px-1.5 text-right w-20">Action</th>
+                        <tr class="text-gray-400 border-b border-gray-800 uppercase text-[11px] sticky top-0 bg-[#0f1422] z-10">
+                            <th class="py-1.5 px-2 w-20">Time</th>
+                            <th class="py-1.5 px-2 w-24">Spot</th>
+                            <th class="py-1.5 px-2 w-40">Stock Breadth</th>
+                            <th class="py-1.5 px-2 w-28">Options Flow</th>
+                            <th class="py-1.5 px-2 w-36">Trending OI Skew</th>
+                            <th class="py-1.5 px-2 w-48">Decision &amp; Verdict</th>
+                            <th class="py-1.5 px-2">Telemetry Diagnostics &amp; Reason</th>
+                            <th class="py-1.5 px-2 text-right w-24">Action</th>
                         </tr>
                     </thead>
                     <tbody id="trade-telemetry-tbody" class="divide-y divide-gray-800/40">
@@ -16964,12 +16964,12 @@
                     };
 
                     candleState = 'CONFIRMED_BREAKOUT';
-                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold">🟢 CONFIRMED BREAKOUT</span>';
+                    verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold">🟢 CONFIRMED BREAKOUT</span>';
                     diagnosticReason = `🟢 Breakout confirmed on candle ${tStr}! High/Low breached trigger ${pendingBreakout.triggerPrice.toFixed(1)}. Entered ${action} ${strike} ${optType} @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)} (1.0R lock), SL: ${baseSl.toFixed(1)}.`;
                     pendingBreakout = null;
                 } else {
                     candleState = 'BREAKOUT_REJECTED';
-                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⚠️ BREAKOUT REJECTED</span>';
+                    verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-rose-950 text-rose-300 border border-rose-700 font-bold">⚠️ BREAKOUT REJECTED</span>';
                     diagnosticReason = `⚠️ Breakout failed at ${tStr}: ${isBull ? 'High ' + cHigh.toFixed(1) : 'Low ' + cLow.toFixed(1)} failed to break trigger ${pendingBreakout.triggerPrice.toFixed(1)}. Whipsaw trade avoided!`;
                     pendingBreakout = null;
                 }
@@ -16994,7 +16994,7 @@
                         currentTrade.currentSl = currentTrade.entrySpot;
                         currentTrade.slType = 'COST_BREAKEVEN';
                         candleState = 'TARGET_HIT';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 1 HIT</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 1 HIT</span>';
                         diagnosticReason = `Target 1 hit at ${currentTrade.t1.toFixed(1)}. 1 Lot partial booked (+₹${currentTrade.t1PnlRs.toLocaleString('en-IN')}). Trailed SL shifted to Cost Breakeven (${currentTrade.entrySpot.toFixed(1)}).`;
                     }
                 }
@@ -17013,7 +17013,7 @@
                         currentTrade.currentSl = currentTrade.t1;
                         currentTrade.slType = 'TRAILED_TO_T1';
                         candleState = 'TARGET_HIT';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 2 HIT</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-purple-950 text-purple-300 border border-purple-700 font-bold">🎯 TARGET 2 HIT</span>';
                         diagnosticReason = `Target 2 hit at ${currentTrade.t2.toFixed(1)}. 1 Lot partial booked (+₹${currentTrade.t2PnlRs.toLocaleString('en-IN')}). Trailed SL locked at Target 1 (${currentTrade.t1.toFixed(1)}).`;
                     }
                 }
@@ -17038,7 +17038,7 @@
                         currentTrade.exitReason = 'Target 3 Hit! Complete profit booked.';
 
                         candleState = 'TARGET_HIT';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">🎯 T3 FULL PROFIT</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold">🎯 T3 FULL PROFIT</span>';
                         diagnosticReason = `Runner Target 3 hit at ${currentTrade.t3.toFixed(1)}. Complete profit booked (+₹${currentTrade.pnlRupees.toLocaleString('en-IN')}, +${currentTrade.pnlPoints.toFixed(1)} pts). Position closed.`;
 
                         sessionTrades.push({ ...currentTrade });
@@ -17233,10 +17233,10 @@
                     candleState = 'IN_TRADE_HOLD';
                     const distSl = isBull ? (cClose - currentTrade.currentSl) : (currentTrade.currentSl - cClose);
                     if (currentTrade.slType === 'STAGNATION_1TO1_TRAIL') {
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ STAGNATION 1:1 TRAIL</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-amber-950 text-amber-300 border border-amber-700 font-bold">🛡️ STAGNATION 1:1 TRAIL</span>';
                         diagnosticReason = `Stagnant ${elapsedMins}m (>= ${stagLimit}m). Dynamic 1:1 Trailing SL active at ${currentTrade.currentSl.toFixed(1)} (${stagBuffer}pt buffer behind peak ${currentTrade.peakSpot.toFixed(1)}). Buffer: ${distSl.toFixed(1)} pts safe.`;
                     } else {
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-sky-950 text-sky-300 border border-sky-700">🔵 IN-TRADE HOLD</span>';
                         diagnosticReason = `Holding ${currentTrade.action} ${currentTrade.strike} ${currentTrade.optType} (${currentTrade.openLots}L). Spot: ${cClose.toFixed(1)} (${currentTrade.pnlPoints >= 0 ? '+' : ''}${currentTrade.pnlPoints.toFixed(1)} pts, ₹${currentTrade.pnlRupees.toLocaleString('en-IN')}). SL safe (${distSl.toFixed(1)} pts buffer).`;
                     }
                 }
@@ -17247,7 +17247,7 @@
 
                 if (!isStkDataComplete) {
                     candleState = 'SYNCING_STOCKS';
-                    verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-sky-950/70 text-sky-300 border border-sky-700/60 font-bold animate-pulse">⏳ SYNCING 5M STOCKS</span>';
+                    verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-sky-950/70 text-sky-300 border border-sky-700/60 font-bold animate-pulse">⏳ SYNCING 5M STOCKS</span>';
                     diagnosticReason = `Waiting for 5-minute Nifty 50 stock breadth data for ${tStr} to finish storing in DB before evaluating trade entry.`;
                 } else {
                 // 2. If NO active trade, scan for entry signals formed on candle i using Weighted 100-Pt Confidence + Hard Gates
@@ -17308,7 +17308,7 @@
                     const isSessionLocked = (tradeEngineConfig.entry_f8_daily_cap !== false && maxDailyLimit > 0 && executedSignalsCount >= maxDailyLimit);
                     if (isSessionLocked) {
                         candleState = 'DAILY_CAP_LOCKED';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-amber-400 border border-amber-600/70 font-bold">🛑 2/2 DAILY CAP</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-slate-900 text-amber-400 border border-amber-600/70 font-bold">🛑 2/2 DAILY CAP</span>';
                         diagnosticReason = `🛑 ${triggeredDirection} impulse formed at ${tStr}, but blocked by Daily Session Cap (${executedSignalsCount}/${maxDailyLimit} trades taken). Session locked to protect daily capital and prevent overtrading.`;
                     } else {
                         let setupType = 'STANDARD';
@@ -17406,7 +17406,7 @@
 
                             if (isVetoed) {
                                 candleState = 'VETOED';
-                                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
+                                verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-amber-950 text-amber-300 border border-amber-600/70 font-bold">⛔ VETOED TRAP</span>';
                                 diagnosticReason = `⛔ ${triggeredDirection} impulse formed (Stocks: ${triggeredDirection === 'BULL' ? stkBullCount : stkBearCount}%), but VETOED by ${vetoReason}. Capital protected from false breakout trap!`;
 
                                 armedImpulse = {
@@ -17444,7 +17444,7 @@
                                 };
 
                                 candleState = 'AWAITING_BREAKOUT';
-                                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-950 text-amber-300 border border-amber-600 font-bold animate-pulse">⚡ AWAITING BREAKOUT</span>';
+                                verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-amber-950 text-amber-300 border border-amber-600 font-bold animate-pulse">⚡ AWAITING BREAKOUT</span>';
                                 diagnosticReason = `⚡ ${setupBadge} formed at ${tStr}! Awaiting candle i+1 breakout above/below ${triggerPrice.toFixed(1)} to confirm entry. SL anchor: ${baseSl.toFixed(1)}.`;
                             } else {
                                 // Immediate entry mode (without waiting for breakout)
@@ -17555,7 +17555,7 @@
 
                                 candleState = 'TRADE_ENTRY';
                                 const badgeColor = (setupType === 'SQUEEZE_BREAKOUT') ? 'bg-amber-950 text-amber-300 border-amber-600/70' : (setupType === 'GRADE_A_CONFLUENCE' ? 'bg-cyan-950 text-cyan-300 border-cyan-600/70' : 'bg-emerald-950 text-emerald-300 border-emerald-600/70');
-                                verdictBadgeHtml = `<span class="px-1.5 py-0.2 rounded text-[9px] ${badgeColor} border font-bold">${setupBadge}</span>`;
+                                verdictBadgeHtml = `<span class="px-2 py-0.5 rounded text-[11px] ${badgeColor} border font-bold">${setupBadge}</span>`;
                                 diagnosticReason = `${setupReason}. Entered ${action} ${strike} ${optType} (${entryLots}L) @ ${entrySpot.toFixed(1)}. T1: ${t1.toFixed(1)}, SL: ${baseSl.toFixed(1)}.`;
                             }
                         }
@@ -17567,34 +17567,34 @@
 
                     if (i === 0) {
                         candleState = 'MARKET_OPEN';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-sky-400 border border-sky-800">⚪ MARKET OPEN</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-slate-900 text-sky-400 border border-sky-800">⚪ MARKET OPEN</span>';
                         diagnosticReason = `Market open bar (09:15). Establishing baseline S/R levels and institutional positioning.`;
                     } else if (timeFilterActive && tStr < startTime) {
                         candleState = 'STANDBY';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-bold">⏰ PRE-09:35 NOISE</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-indigo-950 text-indigo-300 border border-indigo-700/60 font-bold">⏰ PRE-09:35 NOISE</span>';
                         diagnosticReason = `Pre-${startTime} Opening Window: Market settling first 15–20 minutes volatility. No trades taken.`;
                     } else if (timeFilterActive && tStr > endTime) {
                         candleState = 'STANDBY';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700 font-bold">🛑 POST-14:45 CUTOFF</span>';
                         diagnosticReason = `Post-${endTime} Session Cutoff: Late afternoon session closed for new entries. Capital protected.`;
                     } else if (stkBullCount >= 70 || stkBearCount >= 70 || stkBullWt >= 70 || stkBearWt >= 70) {
                         candleState = 'NEAR_MISS';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-950/70 text-yellow-300 border border-yellow-700/50">🟡 NEAR-MISS (70%+)</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-yellow-950/70 text-yellow-300 border border-yellow-700/50">🟡 NEAR-MISS (70%+)</span>';
                         diagnosticReason = `Sub-threshold impulse: Bull ${stkBullCount}% / Bear ${stkBearCount}%. Did not cross the 80% threshold required for disciplined entry.`;
                     } else if ((stkBullCount > 60 && optDownWt > 60) || (stkBearCount > 60 && optUpWt > 60)) {
                         candleState = 'DIVERGENCE';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-orange-950/70 text-orange-300 border border-orange-700/50">🟠 FLOW DIVERGENCE</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-orange-950/70 text-orange-300 border border-orange-700/50">🟠 FLOW DIVERGENCE</span>';
                         diagnosticReason = `Divergence: Stock Breadth leans ${stkBullCount > stkBearCount ? 'Bull' : 'Bear'} while Options Flow leans opposite. Trade blocked to avoid whipsaws.`;
                     } else {
                         candleState = 'STANDBY';
-                        verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ STANDBY (RANGE)</span>';
+                        verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-slate-900 text-slate-400 border border-slate-800">⚪ STANDBY (RANGE)</span>';
                         diagnosticReason = `Market Equilibrium / Range: Stocks Bull ${stkBullCount}% vs Bear ${stkBearCount}%, OI Skew ${oiDiffPct >= 0 ? '+' : ''}${oiDiffPct.toFixed(1)}%. No edge detected.`;
                     }
                 }
                 }
             } else {
                 candleState = 'STANDBY';
-                verdictBadgeHtml = '<span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-slate-400 border border-slate-800">⚪ SESSION CLOSE</span>';
+                verdictBadgeHtml = '<span class="px-2 py-0.5 rounded text-[11px] bg-slate-900 text-slate-400 border border-slate-800">⚪ SESSION CLOSE</span>';
                 diagnosticReason = `Market approaching session close. No new trades initiated.`;
             }
 
@@ -18660,27 +18660,27 @@
                     const isWin = tr.pnlPoints >= 0;
                     const pnlClass = isWin ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
                     const sign = isWin ? '+' : '';
-                    let setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-slate-800 text-slate-300">Standard</span>';
+                    let setupPill = '<span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300">Standard</span>';
                     if (tr.setupType === 'SQUEEZE_BREAKOUT') {
-                        setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-amber-950 text-amber-300 border border-amber-700/60 font-bold">🚀 Squeeze</span>';
+                        setupPill = '<span class="px-1.5 py-0.5 rounded text-[11px] bg-amber-950 text-amber-300 border border-amber-700/60 font-bold">🚀 Squeeze</span>';
                     } else if (tr.setupType === 'GRADE_A_CONFLUENCE') {
-                        setupPill = '<span class="px-1 py-0.2 rounded text-[8.5px] bg-cyan-950 text-cyan-300 border border-cyan-700/60 font-bold">🌟 Grade A+</span>';
+                        setupPill = '<span class="px-1.5 py-0.5 rounded text-[11px] bg-cyan-950 text-cyan-300 border border-cyan-700/60 font-bold">🌟 Grade A+</span>';
                     }
                     return `
                         <tr class="hover:bg-slate-800/40">
-                            <td class="py-1 px-1 text-gray-400">${tr.id}</td>
-                            <td class="py-1 px-1 font-bold ${tr.direction === 'BULL' ? 'text-emerald-300' : 'text-rose-300'}">${tr.action} ${tr.optType} (${tr.entryLots}L)</td>
-                            <td class="py-1 px-1">${setupPill} <span class="text-[9px] text-gray-400">(${tr.oiDiffPct >= 0 ? '+' : ''}${Number(tr.oiDiffPct || 0).toFixed(0)}%)</span></td>
-                            <td class="py-1 px-1 text-white">${tr.strike}</td>
-                            <td class="py-1 px-1 text-gray-300">${tr.entryTime}</td>
-                            <td class="py-1 px-1 text-gray-200">${Number(tr.entrySpot).toFixed(1)}</td>
-                            <td class="py-1 px-1 text-gray-300">${tr.exitTime || '--'}</td>
-                            <td class="py-1 px-1 text-gray-200">${tr.exitSpot ? Number(tr.exitSpot).toFixed(1) : '--'}</td>
-                            <td class="py-1 px-1 ${pnlClass}">${sign}${tr.pnlPoints.toFixed(1)}</td>
-                            <td class="py-1 px-1 ${pnlClass}">${sign}₹${tr.pnlRupees.toLocaleString('en-IN')}</td>
-                            <td class="py-1 px-1 text-gray-300">${tr.exitReason || tr.status}</td>
-                            <td class="py-1 px-1 text-right">
-                                <span class="px-1 py-0.2 rounded text-[8.5px] ${isWin ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}">${tr.status}</span>
+                            <td class="py-2 px-1.5 text-gray-400">${tr.id}</td>
+                            <td class="py-2 px-1.5 font-bold ${tr.direction === 'BULL' ? 'text-emerald-300' : 'text-rose-300'}">${tr.action} ${tr.optType} (${tr.entryLots}L)</td>
+                            <td class="py-2 px-1.5">${setupPill} <span class="text-[11px] text-gray-400">(${tr.oiDiffPct >= 0 ? '+' : ''}${Number(tr.oiDiffPct || 0).toFixed(0)}%)</span></td>
+                            <td class="py-2 px-1.5 text-white">${tr.strike}</td>
+                            <td class="py-2 px-1.5 text-gray-300">${tr.entryTime}</td>
+                            <td class="py-2 px-1.5 text-gray-200">${Number(tr.entrySpot).toFixed(1)}</td>
+                            <td class="py-2 px-1.5 text-gray-300">${tr.exitTime || '--'}</td>
+                            <td class="py-2 px-1.5 text-gray-200">${tr.exitSpot ? Number(tr.exitSpot).toFixed(1) : '--'}</td>
+                            <td class="py-2 px-1.5 ${pnlClass}">${sign}${tr.pnlPoints.toFixed(1)}</td>
+                            <td class="py-2 px-1.5 ${pnlClass}">${sign}₹${tr.pnlRupees.toLocaleString('en-IN')}</td>
+                            <td class="py-2 px-1.5 text-gray-300">${tr.exitReason || tr.status}</td>
+                            <td class="py-2 px-1.5 text-right">
+                                <span class="px-1.5 py-0.5 rounded text-[11px] ${isWin ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}">${tr.status}</span>
                             </td>
                         </tr>
                     `;
@@ -18691,10 +18691,10 @@
                     histTfoot.classList.remove('hidden');
                     histTfoot.innerHTML = `
                         <tr>
-                            <td colspan="8" class="py-1.5 px-1 text-right text-gray-300 uppercase tracking-wider">Session Total (${allTrades.length} Trades · ${winCnt}W / ${lossCnt}L):</td>
-                            <td class="py-1.5 px-1 ${totCls}">${ptsSign}${totalPts.toFixed(1)}</td>
-                            <td class="py-1.5 px-1 ${totCls}">${netSign}₹${Math.round(totalRs).toLocaleString('en-IN')}</td>
-                            <td colspan="2" class="py-1.5 px-1 text-right text-[10px] text-gray-400">WR: ${wr}% | GP +₹${Math.round(grossProfit).toLocaleString('en-IN')} / GL -₹${Math.round(grossLoss).toLocaleString('en-IN')}</td>
+                            <td colspan="8" class="py-2 px-1.5 text-right text-gray-300 uppercase tracking-wider">Session Total (${allTrades.length} Trades · ${winCnt}W / ${lossCnt}L):</td>
+                            <td class="py-2 px-1.5 ${totCls}">${ptsSign}${totalPts.toFixed(1)}</td>
+                            <td class="py-2 px-1.5 ${totCls}">${netSign}₹${Math.round(totalRs).toLocaleString('en-IN')}</td>
+                            <td colspan="2" class="py-2 px-1.5 text-right text-xs text-gray-400">WR: ${wr}% | GP +₹${Math.round(grossProfit).toLocaleString('en-IN')} / GL -₹${Math.round(grossLoss).toLocaleString('en-IN')}</td>
                         </tr>
                     `;
                 }
@@ -18811,18 +18811,18 @@
 
             return `
                 <tr class="${rowBg} ${futureClass} transition" ${isCurrentActive ? 'data-active-row="true"' : ''}>
-                    <td class="py-1 px-1.5 font-bold ${isCurrentActive ? 'text-sky-300' : 'text-gray-300'}">
+                    <td class="py-1.5 px-2 font-bold ${isCurrentActive ? 'text-sky-300' : 'text-gray-300'}">
                         ${log.time}
-                        ${isCurrentActive ? '<span class="text-[8px] text-cyan-400 ml-1 font-bold">● NOW</span>' : ''}
+                        ${isCurrentActive ? '<span class="text-[10px] text-cyan-400 ml-1 font-bold">● NOW</span>' : ''}
                     </td>
-                    <td class="py-1 px-1.5 text-gray-200">${log.spot ? Number(log.spot).toFixed(1) : '--'}</td>
-                    <td class="py-1 px-1.5">${log.breadthHtml || '--'}</td>
-                    <td class="py-1 px-1.5">${log.optionsFlowHtml || '--'}</td>
-                    <td class="py-1 px-1.5">${log.oiSkewHtml || '--'}</td>
-                    <td class="py-1 px-1.5">${log.verdictBadgeHtml || log.state}</td>
-                    <td class="py-1 px-1.5 text-gray-300 text-[9.5px] leading-snug">${log.diagnosticReason || '--'}</td>
-                    <td class="py-1 px-1.5 text-right">
-                        <button type="button" onclick="jumpToTelemetryCandle('${log.time}')" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-sky-900 text-sky-300 border border-slate-700 hover:border-sky-600 text-[9px] cursor-pointer transition" title="Jump Replay & Timeline to ${log.time}">
+                    <td class="py-1.5 px-2 text-gray-200">${log.spot ? Number(log.spot).toFixed(1) : '--'}</td>
+                    <td class="py-1.5 px-2">${log.breadthHtml || '--'}</td>
+                    <td class="py-1.5 px-2">${log.optionsFlowHtml || '--'}</td>
+                    <td class="py-1.5 px-2">${log.oiSkewHtml || '--'}</td>
+                    <td class="py-1.5 px-2">${log.verdictBadgeHtml || log.state}</td>
+                    <td class="py-1.5 px-2 text-gray-300 text-xs leading-snug">${log.diagnosticReason || '--'}</td>
+                    <td class="py-1.5 px-2 text-right">
+                        <button type="button" onclick="jumpToTelemetryCandle('${log.time}')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-900 text-sky-300 border border-slate-700 hover:border-sky-600 text-[11px] cursor-pointer transition" title="Jump Replay & Timeline to ${log.time}">
                             🎯 Jump
                         </button>
                     </td>
