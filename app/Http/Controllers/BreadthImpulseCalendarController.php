@@ -103,7 +103,7 @@ class BreadthImpulseCalendarController extends Controller
     protected function getDayAnalysis(string $date, float $stkTh, float $optTh, bool $includeTimeline): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "bic_v1_{$date}_{$stkTh}_{$optTh}_" . ($includeTimeline ? 'full' : 'sum');
+        $cacheKey = "bic_v2_{$date}_{$stkTh}_{$optTh}_" . ($includeTimeline ? 'full' : 'sum');
         $ttl = ($date === $today) ? 45 : 86400;
 
         return Cache::remember($cacheKey, $ttl, function () use ($date, $stkTh, $optTh, $includeTimeline) {
@@ -157,17 +157,30 @@ class BreadthImpulseCalendarController extends Controller
                 'bear_total' => 0,
                 'worth_hits' => 0,
                 'total_sigs' => 0,
+                's4_total'   => 0,
+                's4_wins'    => 0,
+                's4_losses'  => 0,
             ];
 
             $mfeSum = 0.0;
             $signals = [];
             $chartBars = [];
             $n = count($candles);
+            $cumTpVol = 0.0;
+            $cumVol = 0.0;
+            $prevOptBull = false;
+            $prevOptBear = false;
 
             for ($i = 0; $i < $n; $i++) {
                 $c = $candles[$i];
                 $tStr = (string) ($c['time_str'] ?? '');
                 $cClose = (float) ($c['close'] ?? 0);
+                $cVol = max(1.0, (float) ($c['volume'] ?? 1));
+                $cTp = ((float) ($c['high'] ?? $cClose) + (float) ($c['low'] ?? $cClose) + $cClose) / 3.0;
+                $cumTpVol += $cTp * $cVol;
+                $cumVol += $cVol;
+                $vwap = $cumVol > 0 ? ($cumTpVol / $cumVol) : $cClose;
+
                 $sb = $stkBreadth[$tStr] ?? null;
                 $ob = $optBreadth[$tStr] ?? null;
 
@@ -183,6 +196,11 @@ class BreadthImpulseCalendarController extends Controller
                 $stkBear = ($rCnt >= $stkTh && $rWt >= $stkTh);
                 $optBull = ($oUpWt >= $optTh);
                 $optBear = ($oDnWt >= $optTh);
+
+                $isFreshOptBull = ($optBull && !$prevOptBull);
+                $isFreshOptBear = ($optBear && !$prevOptBear);
+                $prevOptBull = $optBull;
+                $prevOptBear = $optBear;
 
                 $bullType = null;
                 if ($stkBull && $optBull) {
@@ -214,6 +232,15 @@ class BreadthImpulseCalendarController extends Controller
                     $counts['total_sigs']++;
                     if ($sigEval['worth_it']) $counts['worth_hits']++;
                     $mfeSum += $sigEval['mfe'];
+
+                    $isS4 = ($isFreshOptBull && $cClose >= $vwap && $gWt >= 60.0 && $tStr >= '09:50' && $tStr <= '14:35');
+                    $s4Res = $isS4 ? $this->evaluateFixedTargetSl($candles, $i, 'BULL', $cClose, 15.0, 25.0) : null;
+                    if ($isS4) {
+                        $counts['s4_total']++;
+                        if ($s4Res === 'WIN') $counts['s4_wins']++;
+                        elseif ($s4Res === 'LOSS') $counts['s4_losses']++;
+                    }
+
                     if ($includeTimeline) {
                         $signals[] = array_merge([
                             'time'      => $tStr,
@@ -224,6 +251,8 @@ class BreadthImpulseCalendarController extends Controller
                             'stk_cnt'   => round($gCnt, 1),
                             'stk_wt'    => round($gWt, 1),
                             'opt_pct'   => round($oUpWt, 1),
+                            'is_s4'     => $isS4,
+                            's4_result' => $s4Res,
                         ], $sigEval);
                     }
                 }
@@ -234,6 +263,15 @@ class BreadthImpulseCalendarController extends Controller
                     $counts['total_sigs']++;
                     if ($sigEval['worth_it']) $counts['worth_hits']++;
                     $mfeSum += $sigEval['mfe'];
+
+                    $isS4 = ($isFreshOptBear && $cClose <= $vwap && $rWt >= 60.0 && $tStr >= '09:50' && $tStr <= '14:35');
+                    $s4Res = $isS4 ? $this->evaluateFixedTargetSl($candles, $i, 'BEAR', $cClose, 15.0, 25.0) : null;
+                    if ($isS4) {
+                        $counts['s4_total']++;
+                        if ($s4Res === 'WIN') $counts['s4_wins']++;
+                        elseif ($s4Res === 'LOSS') $counts['s4_losses']++;
+                    }
+
                     if ($includeTimeline) {
                         $signals[] = array_merge([
                             'time'      => $tStr,
@@ -244,6 +282,8 @@ class BreadthImpulseCalendarController extends Controller
                             'stk_cnt'   => round($rCnt, 1),
                             'stk_wt'    => round($rWt, 1),
                             'opt_pct'   => round($oDnWt, 1),
+                            'is_s4'     => $isS4,
+                            's4_result' => $s4Res,
                         ], $sigEval);
                     }
                 }
@@ -369,5 +409,22 @@ class BreadthImpulseCalendarController extends Controller
             'verdict'  => $verdict,
             'reason'   => $reason,
         ];
+    }
+
+    protected function evaluateFixedTargetSl(array $candles, int $idx, string $dir, float $entrySpot, float $tgtPts, float $slPts): string
+    {
+        $n = count($candles);
+        if ($idx >= $n - 1) return 'LIVE';
+        $endIdx = min($n - 1, $idx + 12);
+        $isBull = ($dir === 'BULL');
+        for ($j = $idx + 1; $j <= $endIdx; $j++) {
+            $h = (float) ($candles[$j]['high'] ?? $entrySpot);
+            $l = (float) ($candles[$j]['low'] ?? $entrySpot);
+            $fav = $isBull ? ($h - $entrySpot) : ($entrySpot - $l);
+            $adv = $isBull ? ($entrySpot - $l) : ($h - $entrySpot);
+            if ($adv >= $slPts) return 'LOSS';
+            if ($fav >= $tgtPts) return 'WIN';
+        }
+        return 'TIMEOUT';
     }
 }

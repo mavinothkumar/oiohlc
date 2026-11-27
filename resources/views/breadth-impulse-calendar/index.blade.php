@@ -84,11 +84,12 @@
                         <th class="py-2.5 px-3 text-center text-emerald-300">▲ Upside (STK / OPT / BOTH)</th>
                         <th class="py-2.5 px-3 text-center text-rose-300">▼ Selling (STK / OPT / BOTH)</th>
                         <th class="py-2.5 px-3 text-center">Pressure</th>
+                        <th class="py-2.5 px-3 text-center text-amber-300">🏆 S4 (15p/25p)</th>
                         <th class="py-2.5 px-3 text-right">Worthiness</th>
                     </tr>
                 </thead>
                 <tbody id="bic-summary-tbody" class="divide-y divide-gray-800/70">
-                    <tr><td colspan="9" class="py-8 text-center text-gray-400">Loading last 10 working days...</td></tr>
+                    <tr><td colspan="10" class="py-8 text-center text-gray-400">Loading last 10 working days...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -110,6 +111,7 @@
                 <button type="button" onclick="setDetailFilter('BOTH')" class="bic-flt-btn px-2.5 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="BOTH">BOTH</button>
                 <button type="button" onclick="setDetailFilter('STK')" class="bic-flt-btn px-2.5 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="STK">STK</button>
                 <button type="button" onclick="setDetailFilter('OPT')" class="bic-flt-btn px-2.5 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="OPT">OPT</button>
+                <button type="button" onclick="setDetailFilter('S4')" class="bic-flt-btn px-2.5 py-1 rounded bg-amber-950/70 text-amber-300 border border-amber-600/70 font-black cursor-pointer" data-flt="S4" title="Fresh OPT ≥70% + With VWAP + STK ≥60% + 09:50–14:35 (+15p / -25p SL)">🏆 S4 (73%)</button>
             </div>
         </div>
 
@@ -238,6 +240,11 @@
                         </button>
                     </td>
                     <td class="py-2.5 px-3 text-center whitespace-nowrap">${pressureBadgeHtml(d.pressure)}</td>
+                    <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                        <button type="button" onclick="event.stopPropagation(); openDayDetail('${d.date}', 'S4')" class="px-2 py-0.5 rounded bg-amber-950/60 hover:bg-amber-900 text-amber-200 border border-amber-700/60 font-bold cursor-pointer text-xs">
+                            ${(c.s4_total || 0) > 0 ? `${c.s4_wins}W/${c.s4_losses}L (${Math.round((c.s4_wins / Math.max(1, c.s4_wins + c.s4_losses)) * 100)}%)` : '0 sigs'}
+                        </button>
+                    </td>
                     <td class="py-2.5 px-3 text-right whitespace-nowrap">
                         <span class="font-black ${d.worth_rate >= 60 ? 'text-emerald-400' : (d.worth_rate >= 40 ? 'text-amber-300' : 'text-rose-400')}">${d.worth_rate}%</span>
                         <span class="text-xs text-gray-400 ml-1">(+${d.avg_mfe}p)</span>
@@ -347,6 +354,7 @@
         if (!d) return;
         const sigs = (d.signals || []).filter(s => {
             if (currentDetailFilter === 'ALL') return true;
+            if (currentDetailFilter === 'S4') return !!s.is_s4;
             if (currentDetailFilter === 'BULL' || currentDetailFilter === 'BEAR') return s.direction === currentDetailFilter;
             return s.type === currentDetailFilter;
         });
@@ -421,7 +429,7 @@
                     <td class="py-2 px-3 text-right">${fmtMv(s.move_15m)}</td>
                     <td class="py-2 px-3 text-right">${fmtMv(s.move_30m)}</td>
                     <td class="py-2 px-3 text-right whitespace-nowrap"><span class="text-emerald-400 font-bold">+${s.mfe}p</span> / <span class="text-rose-400">-${s.mae}p</span></td>
-                    <td class="py-2 px-3"><div class="flex items-center gap-2 flex-wrap">${vBadge}<span class="text-xs text-gray-300">${s.reason}</span></div></td>
+                    <td class="py-2 px-3"><div class="flex items-center gap-2 flex-wrap">${vBadge}${s.is_s4 ? `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-black border ${s.s4_result === 'WIN' ? 'bg-emerald-950 text-emerald-300 border-emerald-600' : (s.s4_result === 'LOSS' ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-amber-950 text-amber-300 border-amber-600')}">🏆 S4 ${s.s4_result || ''}</span>` : ''}<span class="text-xs text-gray-300">${s.reason}</span></div></td>
                 </tr>
             `;
         }).join('');
