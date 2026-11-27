@@ -103,7 +103,7 @@ class BreadthImpulseCalendarController extends Controller
     protected function getDayAnalysis(string $date, float $stkTh, float $optTh, bool $includeTimeline): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "bic_v2_{$date}_{$stkTh}_{$optTh}_" . ($includeTimeline ? 'full' : 'sum');
+        $cacheKey = "bic_v3_{$date}_{$stkTh}_{$optTh}_" . ($includeTimeline ? 'full' : 'sum');
         $ttl = ($date === $today) ? 45 : 86400;
 
         return Cache::remember($cacheKey, $ttl, function () use ($date, $stkTh, $optTh, $includeTimeline) {
@@ -133,6 +133,37 @@ class BreadthImpulseCalendarController extends Controller
                 $oJson = [];
             }
             $optBreadth = $oJson['breadth_by_time'] ?? [];
+
+            // Load Trending OI sentiment (PE_OI - CE_OI) per 5m candle
+            $toiMap = [];
+            try {
+                $expiry = DB::table('nse_expiries')
+                    ->where('trading_symbol', 'NIFTY')
+                    ->where('instrument_type', 'OPT')
+                    ->where('expiry_date', '>=', $date)
+                    ->orderBy('expiry_date')
+                    ->value('expiry_date');
+                if ($expiry) {
+                    $tCtrl = app(TrendingOiController::class);
+                    $tJson = $tCtrl->getData(Request::create('/api/trending-oi/data', 'GET', [
+                        'date'     => $date,
+                        'expiry'   => $expiry,
+                        'interval' => 5,
+                    ]))->getData(true);
+                    $tLabels = $tJson['chart']['labels'] ?? [];
+                    $tCallOi = $tJson['chart']['call_oi'] ?? [];
+                    $tPutOi  = $tJson['chart']['put_oi'] ?? [];
+                    $tSent   = $tJson['chart']['sentiment'] ?? [];
+                    foreach ($tLabels as $idx => $lbl) {
+                        $tKey = substr((string) $lbl, 0, 5);
+                        $ce = (float) ($tCallOi[$idx] ?? 0);
+                        $pe = (float) ($tPutOi[$idx] ?? 0);
+                        $toiMap[$tKey] = isset($tSent[$idx]) ? (float) $tSent[$idx] : ($pe - $ce);
+                    }
+                }
+            } catch (\Throwable $e) {
+                $toiMap = [];
+            }
 
             // Day OHLC & Open-to-High / Open-to-Low / Total Range
             $dayOpen = (float) ($candles[0]['open'] ?? 0);
@@ -234,6 +265,8 @@ class BreadthImpulseCalendarController extends Controller
                     $mfeSum += $sigEval['mfe'];
 
                     $isS4 = ($isFreshOptBull && $cClose >= $vwap && $gWt >= 60.0 && $tStr >= '09:50' && $tStr <= '14:35');
+                    $oiDiff = $toiMap[$tStr] ?? null;
+                    $oiAligned = ($oiDiff !== null) ? ($oiDiff > 0) : null;
                     $s4Res = $isS4 ? $this->evaluateFixedTargetSl($candles, $i, 'BULL', $cClose, 15.0, 25.0) : null;
                     if ($isS4) {
                         $counts['s4_total']++;
@@ -243,16 +276,18 @@ class BreadthImpulseCalendarController extends Controller
 
                     if ($includeTimeline) {
                         $signals[] = array_merge([
-                            'time'      => $tStr,
-                            'direction' => 'BULL',
-                            'type'      => $bullType,
-                            'spot'      => round($cClose, 2),
-                            'stk_pct'   => round(max($gCnt, $gWt), 1),
-                            'stk_cnt'   => round($gCnt, 1),
-                            'stk_wt'    => round($gWt, 1),
-                            'opt_pct'   => round($oUpWt, 1),
-                            'is_s4'     => $isS4,
-                            's4_result' => $s4Res,
+                            'time'       => $tStr,
+                            'direction'  => 'BULL',
+                            'type'       => $bullType,
+                            'spot'       => round($cClose, 2),
+                            'stk_pct'    => round(max($gCnt, $gWt), 1),
+                            'stk_cnt'    => round($gCnt, 1),
+                            'stk_wt'     => round($gWt, 1),
+                            'opt_pct'    => round($oUpWt, 1),
+                            'is_s4'      => $isS4,
+                            's4_result'  => $s4Res,
+                            'oi_aligned' => $oiAligned,
+                            'oi_diff_l'  => $oiDiff !== null ? round($oiDiff / 100000, 1) : null,
                         ], $sigEval);
                     }
                 }
@@ -265,6 +300,8 @@ class BreadthImpulseCalendarController extends Controller
                     $mfeSum += $sigEval['mfe'];
 
                     $isS4 = ($isFreshOptBear && $cClose <= $vwap && $rWt >= 60.0 && $tStr >= '09:50' && $tStr <= '14:35');
+                    $oiDiff = $toiMap[$tStr] ?? null;
+                    $oiAligned = ($oiDiff !== null) ? ($oiDiff < 0) : null;
                     $s4Res = $isS4 ? $this->evaluateFixedTargetSl($candles, $i, 'BEAR', $cClose, 15.0, 25.0) : null;
                     if ($isS4) {
                         $counts['s4_total']++;
@@ -274,16 +311,18 @@ class BreadthImpulseCalendarController extends Controller
 
                     if ($includeTimeline) {
                         $signals[] = array_merge([
-                            'time'      => $tStr,
-                            'direction' => 'BEAR',
-                            'type'      => $bearType,
-                            'spot'      => round($cClose, 2),
-                            'stk_pct'   => round(max($rCnt, $rWt), 1),
-                            'stk_cnt'   => round($rCnt, 1),
-                            'stk_wt'    => round($rWt, 1),
-                            'opt_pct'   => round($oDnWt, 1),
-                            'is_s4'     => $isS4,
-                            's4_result' => $s4Res,
+                            'time'       => $tStr,
+                            'direction'  => 'BEAR',
+                            'type'       => $bearType,
+                            'spot'       => round($cClose, 2),
+                            'stk_pct'    => round(max($rCnt, $rWt), 1),
+                            'stk_cnt'    => round($rCnt, 1),
+                            'stk_wt'     => round($rWt, 1),
+                            'opt_pct'    => round($oDnWt, 1),
+                            'is_s4'      => $isS4,
+                            's4_result'  => $s4Res,
+                            'oi_aligned' => $oiAligned,
+                            'oi_diff_l'  => $oiDiff !== null ? round($oiDiff / 100000, 1) : null,
                         ], $sigEval);
                     }
                 }

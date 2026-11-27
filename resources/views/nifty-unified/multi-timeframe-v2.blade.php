@@ -4220,8 +4220,8 @@
                         </div>
                     </div>
 
-                    <!-- 4 Live S4 Gate Cards -->
-                    <div class="grid grid-cols-2 xl:grid-cols-4 gap-1.5 font-mono">
+                    <!-- 5 Live S4 + Trending OI Gate Cards -->
+                    <div class="grid grid-cols-2 xl:grid-cols-5 gap-1.5 font-mono">
                         <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
                             <div class="flex items-center justify-between gap-1 text-[11px]">
                                 <span class="font-black text-white">⚡ Fresh OPT≥70%</span>
@@ -4244,6 +4244,13 @@
                             <div id="sc-g3-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
                         </div>
                         <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
+                            <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <span class="font-black text-white">🧱 Trend OI</span>
+                                <span id="sc-g5-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                            </div>
+                            <div id="sc-g5-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                        <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 col-span-2 xl:col-span-1">
                             <div class="flex items-center justify-between gap-1 text-[11px]">
                                 <span class="font-black text-white">⏰ 09:50–14:35</span>
                                 <span id="sc-g4-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
@@ -18085,19 +18092,23 @@
 
             // Evaluate S4 entry on completed bars only (i < rawCandles.length - 1)
             if (!openTrade && i < rawCandles.length - 1 && tStr >= '09:50' && tStr <= '14:35') {
+                const oiSnapBar = (typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(tStr) : null;
+                const oiDiffBar = oiSnapBar ? Number(oiSnapBar.diff || 0) : null;
                 if (isFreshBull && cClose >= vwap && gWt >= 60) {
                     openTrade = {
                         time: tStr, entryIdx: i, dir: 'BULL', entry: cClose,
                         target: Math.round((cClose + 15) * 100) / 100,
                         sl: Math.round((cClose - 25) * 100) / 100,
-                        optPct: Math.round(oUp), stkPct: Math.round(gWt), status: 'LIVE', pts: 0
+                        optPct: Math.round(oUp), stkPct: Math.round(gWt), status: 'LIVE', pts: 0,
+                        oiAligned: oiDiffBar !== null ? (oiDiffBar > 0) : null,
                     };
                 } else if (isFreshBear && cClose <= vwap && rWt >= 60) {
                     openTrade = {
                         time: tStr, entryIdx: i, dir: 'BEAR', entry: cClose,
                         target: Math.round((cClose - 15) * 100) / 100,
                         sl: Math.round((cClose + 25) * 100) / 100,
-                        optPct: Math.round(oDn), stkPct: Math.round(rWt), status: 'LIVE', pts: 0
+                        optPct: Math.round(oDn), stkPct: Math.round(rWt), status: 'LIVE', pts: 0,
+                        oiAligned: oiDiffBar !== null ? (oiDiffBar < 0) : null,
                     };
                 }
             }
@@ -18168,6 +18179,12 @@
         setGate(3, domStk >= 60, domStk >= 60 ? '✓ ≥60%' : 'LOW', `STK ${domStk.toFixed(0)}%`);
         setGate(4, timeOk, timeOk ? '✓ OPEN' : 'CLOSED', lastState.tStr);
 
+        const lastOiSnap = (typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(lastState.tStr) : null;
+        const lastOiDiff = lastOiSnap ? Number(lastOiSnap.diff || 0) : 0;
+        const lastOiAligned = lastOiSnap ? ((domDir === 'BULL') ? (lastOiDiff > 0) : (lastOiDiff < 0)) : false;
+        const lastOiL = (lastOiDiff / 100000).toFixed(1);
+        setGate(5, lastOiAligned, lastOiSnap ? (lastOiAligned ? '✓ ALIGNED' : '✗ OPPOSED') : '--', lastOiSnap ? `${lastOiDiff > 0 ? 'Put' : 'Call'} ${lastOiDiff >= 0 ? '+' : ''}${lastOiL}L` : 'No OI');
+
         // Render Today's S4 Signals Table
         const tbody = document.getElementById('scalper-signals-tbody');
         if (tbody) {
@@ -18184,9 +18201,12 @@
                             : (r.status === 'LIVE'
                                 ? `<span class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-600 font-bold animate-pulse">⏳ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`
                                 : `<span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700 font-bold">⏱️ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`));
+                    const oiTag = r.oiAligned === true
+                        ? '<span class="ml-1 px-1 rounded text-[9.5px] bg-cyan-950 text-cyan-300 border border-cyan-700">OI ✓</span>'
+                        : (r.oiAligned === false ? '<span class="ml-1 px-1 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">OI ✗</span>' : '');
                     return `<tr>
                         <td class="py-1 px-2 text-sky-300 font-bold">${r.time}</td>
-                        <td class="py-1 px-2 font-black ${dCls}">${r.dir}</td>
+                        <td class="py-1 px-2 font-black ${dCls}">${r.dir}${oiTag}</td>
                         <td class="py-1 px-2 text-right text-white">${r.entry.toFixed(1)}</td>
                         <td class="py-1 px-2 text-right text-gray-300">${r.optPct}% / ${r.stkPct}%</td>
                         <td class="py-1 px-2 text-right text-gray-400">${r.target.toFixed(0)} / ${r.sl.toFixed(0)}</td>

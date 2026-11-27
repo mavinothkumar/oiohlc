@@ -116,6 +116,7 @@
                 <button type="button" onclick="setDetailFilter('STK')" class="bic-flt-btn px-2.5 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="STK">STK</button>
                 <button type="button" onclick="setDetailFilter('OPT')" class="bic-flt-btn px-2.5 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="OPT">OPT</button>
                 <button type="button" onclick="setDetailFilter('S4')" class="bic-flt-btn px-2.5 py-1 rounded bg-amber-950/70 text-amber-300 border border-amber-600/70 font-black cursor-pointer" data-flt="S4" title="Fresh OPT ≥70% + With VWAP + STK ≥60% + 09:50–14:35 (+15p / -25p SL)">🏆 S4 (73%)</button>
+                <button type="button" onclick="setDetailFilter('S4_OI')" class="bic-flt-btn px-2.5 py-1 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-600/70 font-black cursor-pointer" data-flt="S4_OI" title="S4 + Trending OI Sentiment Aligned (75% Win Rate)">🧱 S4+OI (75%)</button>
             </div>
         </div>
 
@@ -369,11 +370,12 @@
         const sigs = (d.signals || []).filter(s => {
             if (currentDetailFilter === 'ALL') return true;
             if (currentDetailFilter === 'S4') return !!s.is_s4;
+            if (currentDetailFilter === 'S4_OI') return !!s.is_s4 && s.oi_aligned === true;
             if (currentDetailFilter === 'BULL' || currentDetailFilter === 'BEAR') return s.direction === currentDetailFilter;
             return s.type === currentDetailFilter;
         });
 
-        // Update filter-reactive Worth / Scalp / Failed KPI strip (and exact S4 W/L when S4 filter is active)
+        // Update filter-reactive Worth / Scalp / Failed KPI strip (and exact S4 W/L when S4 / S4_OI filter is active)
         const outcomeStrip = document.getElementById('detail-outcome-strip');
         if (outcomeStrip) {
             const total = sigs.length;
@@ -381,7 +383,7 @@
             const avgMae = total > 0 ? (sigs.reduce((a, s) => a + Number(s.mae || 0), 0) / total).toFixed(1) : '0.0';
             const pct = (c, denom = total) => denom > 0 ? Math.round((c / denom) * 100) : 0;
 
-            if (currentDetailFilter === 'S4') {
+            if (currentDetailFilter === 'S4' || currentDetailFilter === 'S4_OI') {
                 const s4Wins = sigs.filter(s => s.s4_result === 'WIN').length;
                 const s4Losses = sigs.filter(s => s.s4_result === 'LOSS').length;
                 const s4Dec = s4Wins + s4Losses;
@@ -473,7 +475,7 @@
                     <td class="py-2 px-3 text-right">${fmtMv(s.move_15m)}</td>
                     <td class="py-2 px-3 text-right">${fmtMv(s.move_30m)}</td>
                     <td class="py-2 px-3 text-right whitespace-nowrap"><span class="text-emerald-400 font-bold">+${s.mfe}p</span> / <span class="text-rose-400">-${s.mae}p</span></td>
-                    <td class="py-2 px-3"><div class="flex items-center gap-2 flex-wrap">${vBadge}${s.is_s4 ? `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-black border ${s.s4_result === 'WIN' ? 'bg-emerald-950 text-emerald-300 border-emerald-600' : (s.s4_result === 'LOSS' ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-amber-950 text-amber-300 border-amber-600')}">🏆 S4 ${s.s4_result || ''}</span>` : ''}<span class="text-xs text-gray-300">${s.reason}</span></div></td>
+                    <td class="py-2 px-3"><div class="flex items-center gap-2 flex-wrap">${vBadge}${s.is_s4 ? `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-black border ${s.s4_result === 'WIN' ? 'bg-emerald-950 text-emerald-300 border-emerald-600' : (s.s4_result === 'LOSS' ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-amber-950 text-amber-300 border-amber-600')}">🏆 S4 ${s.s4_result || ''}</span>` : ''}${s.oi_aligned !== null && s.oi_aligned !== undefined ? `<span class="px-1.5 py-0.5 rounded text-[10.5px] font-bold border ${s.oi_aligned ? 'bg-cyan-950 text-cyan-300 border-cyan-700' : 'bg-slate-900 text-gray-400 border-slate-700'}">OI ${s.oi_aligned ? '✓' : '✗'} (${s.oi_diff_l >= 0 ? '+' : ''}${s.oi_diff_l}L)</span>` : ''}<span class="text-xs text-gray-300">${s.reason}</span></div></td>
                 </tr>
             `;
         }).join('');
