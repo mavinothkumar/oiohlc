@@ -3740,7 +3740,7 @@
                                     <span class="text-xs font-bold text-emerald-300">🎯 TARGET 1</span>
                                     <span id="at-t1-pct" class="text-xs font-black text-emerald-400">0%</span>
                                 </div>
-                                <div id="at-t1-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div id="at-t1-val" class="text-base sm:text-lg font-black text-white leading-tight whitespace-nowrap">--</div>
                                 <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
                                     <div id="at-t1-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%;"></div>
                                 </div>
@@ -3756,7 +3756,7 @@
                                     <span class="text-xs font-bold text-cyan-300">🎯 TARGET 2</span>
                                     <span id="at-t2-pct" class="text-xs font-black text-cyan-400">0%</span>
                                 </div>
-                                <div id="at-t2-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div id="at-t2-val" class="text-base sm:text-lg font-black text-white leading-tight whitespace-nowrap">--</div>
                                 <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
                                     <div id="at-t2-bar" class="h-full bg-cyan-500 transition-all duration-300" style="width: 0%;"></div>
                                 </div>
@@ -3772,7 +3772,7 @@
                                     <span class="text-xs font-bold text-amber-300">🚀 TARGET 3</span>
                                     <span id="at-t3-pct" class="text-xs font-black text-amber-400">0%</span>
                                 </div>
-                                <div id="at-t3-val" class="text-base sm:text-lg font-black text-white leading-tight">--</div>
+                                <div id="at-t3-val" class="text-base sm:text-lg font-black text-white leading-tight whitespace-nowrap">--</div>
                                 <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
                                     <div id="at-t3-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div>
                                 </div>
@@ -3797,37 +3797,39 @@
                             </div>
 
                             <!-- Track + Checkpoints + Live Needle -->
-                            <div class="relative pt-5 pb-6 px-1">
+                            <div class="relative pt-10 pb-6 px-2">
                                 <div class="relative h-3.5 rounded-full bg-[#090d16] border border-slate-700 overflow-hidden">
                                     <div id="at-meter-fill" class="h-full bg-gradient-to-r from-rose-500 via-sky-500 to-emerald-400 transition-all duration-300" style="width: 25%;"></div>
                                 </div>
 
-                                <!-- Checkpoints -->
-                                <div id="at-pin-sl" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 0%;">
+                                <!-- SL Pin placed ABOVE the track so it never overlaps ENTRY / T1 / T2 below -->
+                                <div id="at-pin-sl" class="absolute top-4 -translate-x-1/2 flex flex-col items-center pointer-events-none z-10" style="left: 0%;">
+                                    <span class="mb-0.5 px-1.5 py-0.2 rounded bg-rose-950/95 border border-rose-500/80 text-[9.5px] font-black text-rose-300 whitespace-nowrap shadow">🛡️ SL</span>
                                     <div class="w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white shadow"></div>
-                                    <span class="mt-1 text-[10px] font-bold text-rose-300 whitespace-nowrap">SL</span>
                                 </div>
-                                <div id="at-pin-entry" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 25%;">
+
+                                <!-- Target & Entry Checkpoints BELOW the track -->
+                                <div id="at-pin-entry" class="absolute top-10 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 25%;">
                                     <div class="w-3.5 h-3.5 rounded-full bg-slate-300 border-2 border-slate-900 shadow"></div>
                                     <span class="mt-1 text-[10px] font-bold text-gray-300 whitespace-nowrap">ENTRY</span>
                                 </div>
-                                <div id="at-pin-t1" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 50%;">
+                                <div id="at-pin-t1" class="absolute top-10 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 50%;">
                                     <div id="at-dot-t1" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-emerald-400 shadow"></div>
                                     <span id="at-lbl-t1" class="mt-1 text-[10px] font-bold text-emerald-300 whitespace-nowrap">T1</span>
                                 </div>
-                                <div id="at-pin-t2" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 75%;">
+                                <div id="at-pin-t2" class="absolute top-10 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 75%;">
                                     <div id="at-dot-t2" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-cyan-400 shadow"></div>
                                     <span id="at-lbl-t2" class="mt-1 text-[10px] font-bold text-cyan-300 whitespace-nowrap">T2</span>
                                 </div>
-                                <div id="at-pin-t3" class="absolute top-5 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 100%;">
+                                <div id="at-pin-t3" class="absolute top-10 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="left: 100%;">
                                     <div id="at-dot-t3" class="w-3.5 h-3.5 rounded-full bg-slate-700 border-2 border-amber-400 shadow"></div>
                                     <span id="at-lbl-t3" class="mt-1 text-[10px] font-bold text-amber-300 whitespace-nowrap">T3</span>
                                 </div>
 
                                 <!-- Live Movable Spot Needle -->
-                                <div id="at-meter-needle" class="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none z-10" style="left: 25%;">
+                                <div id="at-meter-needle" class="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-300 pointer-events-none z-20" style="left: 25%;">
                                     <span id="at-meter-spot" class="px-1.5 py-0.5 rounded bg-sky-400 text-slate-950 font-black text-[10px] shadow-md whitespace-nowrap">SPOT</span>
-                                    <div class="w-0.5 h-5 bg-sky-300"></div>
+                                    <div class="w-0.5 h-9 bg-sky-300"></div>
                                 </div>
                             </div>
                         </div>
@@ -17860,7 +17862,7 @@
             }
 
             const atT1Val = document.getElementById('at-t1-val');
-            if (atT1Val) atT1Val.textContent = `${trade.t1.toFixed(2)} (+${Math.abs(trade.t1 - trade.entrySpot).toFixed(1)} pts)`;
+            if (atT1Val) atT1Val.textContent = `${trade.t1.toFixed(2)} (+${Math.abs(trade.t1 - trade.entrySpot).toFixed(1)})`;
 
             const atT1Badge = document.getElementById('at-t1-badge');
             if (atT1Badge) {
@@ -17874,7 +17876,7 @@
             }
 
             const atT2Val = document.getElementById('at-t2-val');
-            if (atT2Val) atT2Val.textContent = `${trade.t2.toFixed(2)} (+${Math.abs(trade.t2 - trade.entrySpot).toFixed(1)} pts)`;
+            if (atT2Val) atT2Val.textContent = `${trade.t2.toFixed(2)} (+${Math.abs(trade.t2 - trade.entrySpot).toFixed(1)})`;
 
             const atT2Badge = document.getElementById('at-t2-badge');
             if (atT2Badge) {
@@ -17888,7 +17890,7 @@
             }
 
             const atT3Val = document.getElementById('at-t3-val');
-            if (atT3Val) atT3Val.textContent = `${trade.t3.toFixed(2)} (+${Math.abs(trade.t3 - trade.entrySpot).toFixed(1)} pts)`;
+            if (atT3Val) atT3Val.textContent = `${trade.t3.toFixed(2)} (+${Math.abs(trade.t3 - trade.entrySpot).toFixed(1)})`;
 
             const atT3Badge = document.getElementById('at-t3-badge');
             if (atT3Badge) {
