@@ -368,6 +368,8 @@ Route::get('/nifty-unified-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonito
 Route::get('/nifty-multi-timeframe-monitor-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'index'])->name('nifty.multi.timeframe.monitor.v2');
 Route::get('/nifty-trade-telemetry-v2', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'telemetryReport'])->name('nifty.trade.telemetry.v2');
 Route::get('/api/multi-timeframe-v2/option-snapshot', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'getOptionSnapshot'])->name('api.multi-timeframe-v2.option-snapshot');
+Route::get('/api/multi-timeframe-v2/settings', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'getSettings'])->name('api.multi-timeframe-v2.settings.get');
+Route::post('/api/multi-timeframe-v2/settings', [\App\Http\Controllers\NiftyMultiTimeframeMonitorV2Controller::class, 'saveSettings'])->name('api.multi-timeframe-v2.settings.save');
 
 // Automated Trading Engine (V2 Backtest & Multi-Day Performance Analytics)
 Route::get('/automated-trading-backtest', [\App\Http\Controllers\AutoTradingBacktestController::class, 'index'])->name('automated.trading.backtest');
@@ -408,6 +410,11 @@ Route::delete('/api/gamma-blast/alerts', [\App\Http\Controllers\GammaBlastRadarC
 
 Route::get('/nifty-weightage-monitor', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'index'])->name('nifty.weightage.monitor');
 Route::get('/api/nifty-weightage-monitor/data', [\App\Http\Controllers\NiftyWeightageMonitorController::class, 'getData'])->name('api.nifty.weightage.monitor.data');
+
+// Breadth Impulse Calendar (Multi-Day STK / OPT / BOTH Counts & Worthiness Forensics)
+Route::get('/breadth-impulse-calendar', [\App\Http\Controllers\BreadthImpulseCalendarController::class, 'index'])->name('breadth.impulse.calendar');
+Route::get('/api/breadth-impulse-calendar/summary', [\App\Http\Controllers\BreadthImpulseCalendarController::class, 'summary'])->name('api.breadth.impulse.summary');
+Route::get('/api/breadth-impulse-calendar/day', [\App\Http\Controllers\BreadthImpulseCalendarController::class, 'dayDetail'])->name('api.breadth.impulse.day');
 
 // ZeroClick V2 Execution Bridge (Entry, Pre-Verified Exit, Trailing SL Sync & Logs)
 Route::post('/api/v2/zeroclick/entry',   [\App\Http\Controllers\ZeroClickBridgeController::class, 'entry'])->name('api.v2.zeroclick.entry');
