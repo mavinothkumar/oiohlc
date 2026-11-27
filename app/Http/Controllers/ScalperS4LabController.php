@@ -69,7 +69,7 @@ class ScalperS4LabController extends Controller
     protected function analyzeDay(string $date, float $revTh, float $tgtPts, float $slPts): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "s4lab_v1_{$date}_{$revTh}_{$tgtPts}_{$slPts}";
+        $cacheKey = "s4lab_v2_{$date}_{$revTh}_{$tgtPts}_{$slPts}";
         $ttl = ($date === $today) ? 45 : 86400;
 
         return Cache::remember($cacheKey, $ttl, function () use ($date, $revTh, $tgtPts, $slPts) {
@@ -187,6 +187,8 @@ class ScalperS4LabController extends Controller
                     // Capture next 3 candles (Bar +1, +2, +3) & check reverse OPT >= $revTh
                     $bars3 = [];
                     $hasRevOpt = false;
+                    $firstRevIdx = null;
+                    $firstRevOpt = 0;
                     for ($bIdx = 1; $bIdx <= 3; $bIdx++) {
                         if ($i + $bIdx >= $n) {
                             break;
@@ -200,6 +202,10 @@ class ScalperS4LabController extends Controller
                         $oppOpt = $bob ? round((float) ($dir === 'BULL' ? ($bob['down_weight'] ?? 0) : ($bob['up_weight'] ?? 0)), 0) : 0;
                         if ($oppOpt >= $revTh) {
                             $hasRevOpt = true;
+                            if ($firstRevIdx === null) {
+                                $firstRevIdx = $i + $bIdx;
+                                $firstRevOpt = $oppOpt;
+                            }
                         }
                         $bars3[] = [
                             'time'     => $bt,
@@ -207,6 +213,46 @@ class ScalperS4LabController extends Controller
                             'same_opt' => $sameOpt,
                             'opp_opt'  => $oppOpt,
                             'is_rev'   => ($oppOpt >= $revTh),
+                        ];
+                    }
+
+                    // If a Reverse OPT signal occurred in Bar +1..+3, evaluate how THAT opposite signal reacted
+                    $revFlip = null;
+                    if ($firstRevIdx !== null && $firstRevIdx < $n - 1) {
+                        $revDir = ($dir === 'BULL') ? 'BEAR' : 'BULL';
+                        $revEntry = (float) ($candles[$firstRevIdx]['close'] ?? $cClose);
+                        $revTime = (string) ($candles[$firstRevIdx]['time_str'] ?? '');
+                        $revOut = 'TIMEOUT';
+                        $revMfe = 0.0;
+                        $revMae = 0.0;
+                        $revEndJ = min($n - 1, $firstRevIdx + 12);
+                        for ($rj = $firstRevIdx + 1; $rj <= $revEndJ; $rj++) {
+                            $rh = (float) $candles[$rj]['high'];
+                            $rl = (float) $candles[$rj]['low'];
+                            $rfav = ($revDir === 'BULL') ? ($rh - $revEntry) : ($revEntry - $rl);
+                            $radv = ($revDir === 'BULL') ? ($revEntry - $rl) : ($rh - $revEntry);
+                            $revMfe = max($revMfe, $rfav);
+                            $revMae = max($revMae, $radv);
+                            if ($revOut === 'TIMEOUT') {
+                                if ($radv >= $slPts) {
+                                    $revOut = 'LOSS';
+                                } elseif ($rfav >= $tgtPts) {
+                                    $revOut = 'WIN';
+                                }
+                            }
+                        }
+                        $revEndClose = (float) ($candles[$revEndJ]['close'] ?? $revEntry);
+                        $revToPts = round(($revDir === 'BULL') ? ($revEndClose - $revEntry) : ($revEntry - $revEndClose), 1);
+                        $revNet = ($revOut === 'WIN') ? $tgtPts : (($revOut === 'LOSS') ? -$slPts : $revToPts);
+                        $revFlip = [
+                            'time'    => $revTime,
+                            'dir'     => $revDir,
+                            'spot'    => round($revEntry, 2),
+                            'opt_pct' => $firstRevOpt,
+                            'outcome' => $revOut,
+                            'net_pts' => $revNet,
+                            'mfe'     => round($revMfe, 1),
+                            'mae'     => round($revMae, 1),
                         ];
                     }
 
@@ -248,6 +294,7 @@ class ScalperS4LabController extends Controller
                         'oi_diff_l'  => round($oiDiff / 100000, 1),
                         'clean_3bar' => !$hasRevOpt,
                         'bars3'      => $bars3,
+                        'rev_flip'   => $revFlip,
                         'outcome'    => $outcome,
                         'net_pts'    => $netPts,
                         'mfe'        => round($mfe, 1),

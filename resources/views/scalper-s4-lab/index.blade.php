@@ -62,8 +62,8 @@
             <div id="lab-kpi-flt-net" class="text-xl font-black text-purple-300 mt-1">--</div>
         </div>
         <div class="bg-[#0f1422] border border-gray-800 rounded-xl p-3">
-            <div class="text-[11px] text-gray-400 uppercase font-bold">Avg 60m MFE / MAE</div>
-            <div id="lab-kpi-mfe" class="text-lg font-black text-white mt-1">--</div>
+            <div class="text-[11px] text-gray-400 uppercase font-bold">🔄 Reverse-Signal Flip</div>
+            <div id="lab-kpi-flip" class="text-lg font-black text-amber-300 mt-1">--</div>
         </div>
     </div>
 
@@ -96,6 +96,7 @@
                         <th class="py-2 px-2.5 text-center">Bar +3 (15m)</th>
                         <th class="py-2 px-2.5 text-right">60m MFE/MAE</th>
                         <th class="py-2 px-2.5 text-right">Outcome</th>
+                        <th class="py-2 px-2.5 text-right">🔄 Opp Flip Reaction</th>
                         <th class="py-2 px-2.5 text-right">Chart</th>
                     </tr>
                 </thead>
@@ -176,14 +177,19 @@
         const l = sigs.filter(s => s.outcome === 'LOSS').length;
         const wr = (w + l) > 0 ? Math.round((w / (w + l)) * 1000) / 10 : 0;
         const net = Math.round(sigs.reduce((a, s) => a + Number(s.net_pts || 0), 0) * 10) / 10;
-        const avgMfe = sigs.length ? (sigs.reduce((a, s) => a + Number(s.mfe || 0), 0) / sigs.length).toFixed(1) : '0.0';
-        const avgMae = sigs.length ? (sigs.reduce((a, s) => a + Number(s.mae || 0), 0) / sigs.length).toFixed(1) : '0.0';
+        const flips = sigs.filter(s => s.rev_flip);
+        const fW = flips.filter(s => s.rev_flip.outcome === 'WIN').length;
+        const fL = flips.filter(s => s.rev_flip.outcome === 'LOSS').length;
+        const fWr = (fW + fL) > 0 ? Math.round((fW / (fW + fL)) * 1000) / 10 : 0;
+        const fNet = Math.round(flips.reduce((a, s) => a + Number(s.rev_flip.net_pts || 0), 0) * 10) / 10;
+        document.getElementById('lab-kpi-flip').innerHTML = flips.length
+            ? `<span class="${fWr >= 50 ? 'text-emerald-400' : 'text-rose-400'}">${fWr}%</span> <span class="text-xs text-gray-300">(${fW}W/${fL}L, ${fNet >= 0 ? '+' : ''}${fNet}p)</span>`
+            : '<span class="text-gray-500">N/A (Clean)</span>';
 
         document.getElementById('lab-kpi-flt-wr').textContent = `${wr}% (${w}W/${l}L)`;
         const netEl = document.getElementById('lab-kpi-flt-net');
         netEl.textContent = `${net >= 0 ? '+' : ''}${net}p`;
         netEl.className = `text-xl font-black mt-1 ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-        document.getElementById('lab-kpi-mfe').innerHTML = `<span class="text-emerald-400">+${avgMfe}p</span> / <span class="text-rose-400">-${avgMae}p</span>`;
 
         const tbody = document.getElementById('lab-tbody');
         if (sigs.length === 0) {
@@ -210,6 +216,13 @@
                 : (s.outcome === 'LOSS'
                     ? `<span class="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-600 font-black">❌ ${s.net_pts}p</span>`
                     : `<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600 font-bold">⏱️ ${s.net_pts >= 0 ? '+' : ''}${s.net_pts}p</span>`);
+            const rf = s.rev_flip;
+            const flipHtml = rf
+                ? `<div class="text-[10.5px] leading-tight">
+                    <span class="font-black ${rf.outcome === 'WIN' ? 'text-emerald-300' : (rf.outcome === 'LOSS' ? 'text-rose-300' : 'text-amber-300')}">${rf.dir} ${rf.outcome === 'WIN' ? '✅' : (rf.outcome === 'LOSS' ? '❌' : '⏱️')} ${rf.net_pts >= 0 ? '+' : ''}${rf.net_pts}p</span>
+                    <div class="text-[9.5px] text-gray-400">@ ${rf.time} (${rf.opt_pct}%) • +${rf.mfe}p/-${rf.mae}p</div>
+                   </div>`
+                : '<span class="text-gray-600 text-[10.5px]">--</span>';
             return `<tr class="hover:bg-white/[0.02]">
                 <td class="py-2 px-2.5 whitespace-nowrap"><span class="font-bold text-white">${s.date}</span> <span class="text-sky-300 font-black">${s.time}</span></td>
                 <td class="py-2 px-2.5">${dBadge}</td>
@@ -220,6 +233,7 @@
                 <td class="py-1.5 px-2">${fmtBar(s.bars3?.[2])}</td>
                 <td class="py-2 px-2.5 text-right whitespace-nowrap"><span class="text-emerald-400">+${s.mfe}p</span> / <span class="text-rose-400">-${s.mae}p</span></td>
                 <td class="py-2 px-2.5 text-right whitespace-nowrap">${oBadge}</td>
+                <td class="py-2 px-2.5 text-right whitespace-nowrap">${flipHtml}</td>
                 <td class="py-2 px-2.5 text-right"><a href="/nifty-multi-timeframe-monitor-v2?date=${s.date}&expiry=${s.expiry}" target="_blank" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 text-[10.5px] font-bold">Chart ↗</a></td>
             </tr>`;
         }).join('');
