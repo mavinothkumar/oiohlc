@@ -9743,7 +9743,9 @@
             });
         }
         if (oChart) {
+            oChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
             oChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+                updateDaySeparators();
                 if (measureState.o.p1 && measureState.o.p2) renderMeasureOverlay('o');
             });
             oChart.subscribeCrosshairMove(param => {
@@ -9753,9 +9755,6 @@
                     if (p !== null && !isNaN(p) && t) renderMeasureOverlay('o', { price: Math.round(p * 100) / 100, time: t });
                 }
             });
-        }
-            oChart.timeScale().subscribeVisibleTimeRangeChange(updateDaySeparators);
-            oChart.timeScale().subscribeVisibleLogicalRangeChange(updateDaySeparators);
         }
 
         window.addEventListener('resize', () => {
