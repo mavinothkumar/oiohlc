@@ -15640,7 +15640,8 @@
         vwapMode: 'smart',             // 'smart' (3-zone Mean-Reversion) | 'strict' | 'off'
         vwapReversalMinPts: 60,        // Min |Spot - VWAP| pts to allow counter-VWAP mean-reversion
         vwapCounterConfPct: 85,        // Confidence % required for counter-VWAP mean-reversion
-        vwapExtremePts: 150            // Extension pts to flag reversal-risk caution
+        vwapExtremePts: 150,           // Extension pts to flag reversal-risk caution
+        vwapMaxWithTrendPts: 120       // Max |Spot - VWAP| pts for with-trend entries (blocks exhaustion chasing)
     };
 
     let activeTrade = null;
@@ -16142,9 +16143,10 @@
         const vwapMinGap = Number(tradeEngineConfig.vwapReversalMinPts) || 60;
         const vwapCounterReq = Number(tradeEngineConfig.vwapCounterConfPct) || 85;
         const vwapExtremePts = Number(tradeEngineConfig.vwapExtremePts) || 150;
+        const vwapMaxWithTrendPts = Number(tradeEngineConfig.vwapMaxWithTrendPts) || 120;
 
         let vwapValid = true;
-        let vwapState = 'OFF'; // 'ALIGNED' | 'EXTENDED_CAUTION' | 'MEAN_REV' | 'CHOP_VETO' | 'OFF'
+        let vwapState = 'OFF'; // 'ALIGNED' | 'EXTENDED_CAUTION' | 'EXTENDED_VETO' | 'MEAN_REV' | 'CHOP_VETO' | 'OFF'
         let vwapDist = 0;
         let effectiveThreshold = confThreshold;
 
@@ -16154,8 +16156,13 @@
             const isAligned = isBull ? (vwapDist >= 0) : (vwapDist <= 0);
 
             if (isAligned) {
-                vwapValid = true;
-                vwapState = (absVwapDist >= vwapExtremePts) ? 'EXTENDED_CAUTION' : 'ALIGNED';
+                if (vwapMode === 'smart' && absVwapDist > vwapMaxWithTrendPts) {
+                    vwapValid = false;
+                    vwapState = 'EXTENDED_VETO';
+                } else {
+                    vwapValid = true;
+                    vwapState = (absVwapDist >= vwapExtremePts) ? 'EXTENDED_CAUTION' : 'ALIGNED';
+                }
             } else if (vwapMode === 'smart' && absVwapDist >= vwapMinGap) {
                 vwapValid = true;
                 vwapState = 'MEAN_REV';
@@ -16188,11 +16195,62 @@
             vwapDist,
             vwapMinGap,
             vwapExtremePts,
+            vwapMaxWithTrendPts,
             isConf: (optVal >= optTh)
         };
     }
 
+    // ── Real Option Snapshot Cache (non-blocking lookup for accurate LTP & Delta) ──
+    const v2OptionSnapCache = new Map();
+    const v2OptionSnapInFlight = new Set();
+
+    function getV2OptionSnapKey(tStr) {
+        return `${typeof selectedDate !== 'undefined' ? selectedDate : ''}_${typeof selectedExpiry !== 'undefined' ? selectedExpiry : ''}_${tStr}`;
+    }
+
+    function lookupV2OptionRow(tStr, strike, optType) {
+        if (!tStr || !strike || !optType) return null;
+        const rows = v2OptionSnapCache.get(getV2OptionSnapKey(tStr));
+        if (!Array.isArray(rows) || rows.length === 0) return null;
+        const stNum = Number(strike);
+        const typeUpper = String(optType).toUpperCase();
+        return rows.find(r => Number(r.strike_price) === stNum && String(r.option_type).toUpperCase() === typeUpper) || null;
+    }
+
+    function prefetchV2OptionSnapshot(tStr) {
+        if (!tStr || typeof selectedDate === 'undefined' || !selectedDate) return;
+        const key = getV2OptionSnapKey(tStr);
+        if (v2OptionSnapCache.has(key) || v2OptionSnapInFlight.has(key)) return;
+        v2OptionSnapInFlight.add(key);
+        const expParam = (typeof selectedExpiry !== 'undefined' && selectedExpiry) ? `&expiry=${encodeURIComponent(selectedExpiry)}` : '';
+        fetch(`/api/multi-timeframe-v2/option-snapshot?date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(tStr)}${expParam}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res && res.success && Array.isArray(res.rows)) {
+                    v2OptionSnapCache.set(key, res.rows);
+                } else {
+                    v2OptionSnapCache.set(key, []);
+                }
+            })
+            .catch(() => { v2OptionSnapCache.set(key, []); })
+            .finally(() => { v2OptionSnapInFlight.delete(key); });
+    }
+
     function calcOptPriceAndPoints(trade, spotPrice, candleIdx) {
+        const rawCandles = weightageData?.candles || weightageData?.nifty_candles || window._unifiedTodayCandles;
+        const cTime = (rawCandles && rawCandles[candleIdx]) ? rawCandles[candleIdx].time_str : null;
+        if (cTime && trade.action !== 'COMBO') {
+            const liveRow = lookupV2OptionRow(cTime, trade.strike, trade.optType);
+            if (liveRow && Number(liveRow.ltp) > 0) {
+                const curOptPrice = Math.round(Number(liveRow.ltp) * 10) / 10;
+                const ptsGain = (trade.action === 'BUY')
+                    ? Math.round((curOptPrice - trade.entryOptPrice) * 10) / 10
+                    : Math.round((trade.entryOptPrice - curOptPrice) * 10) / 10;
+                return { optPrice: curOptPrice, pointsGain: ptsGain, isRealLtp: true };
+            }
+            prefetchV2OptionSnapshot(cTime);
+        }
+
         const isBull = (trade.direction === 'BULL');
         const favorableSpotMove = isBull ? (spotPrice - trade.entrySpot) : (trade.entrySpot - spotPrice);
         const elapsedCandles = Math.max(0, candleIdx - trade.entryIndex);
@@ -16371,7 +16429,11 @@
                     const t2 = isBull ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
                     const t3 = isBull ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
 
-                    const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
+                    const entrySnapRow = (action !== 'COMBO') ? lookupV2OptionRow(tStr, strike, optType) : null;
+                    if (!entrySnapRow && action !== 'COMBO') prefetchV2OptionSnapshot(tStr);
+                    const entryOptPrice = (entrySnapRow && Number(entrySnapRow.ltp) > 0)
+                        ? Math.round(Number(entrySnapRow.ltp) * 10) / 10
+                        : ((action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0));
                     const entryLots = Number(tradeEngineConfig.entryLots) || 3;
                     const lotSize = Number(tradeEngineConfig.lotSize) || 65;
 
@@ -16848,7 +16910,9 @@
                                 if (!evalRes.vwapValid) {
                                     isVetoed = true;
                                     const gapStr = Math.abs(evalRes.vwapDist || 0).toFixed(1);
-                                    vetoReason = `Blocked by VWAP Chop Zone: Spot (${cClose.toFixed(1)}) is only ${gapStr}p counter-VWAP (< ${evalRes.vwapMinGap}p min gap)`;
+                                    vetoReason = (evalRes.vwapState === 'EXTENDED_VETO')
+                                        ? `Blocked by VWAP Over-Extension: Spot (${cClose.toFixed(1)}) is ${gapStr}p beyond VWAP (> ${evalRes.vwapMaxWithTrendPts}p exhaustion cap)`
+                                        : `Blocked by VWAP Chop Zone: Spot (${cClose.toFixed(1)}) is only ${gapStr}p counter-VWAP (< ${evalRes.vwapMinGap}p min gap)`;
                                 } else if (evalRes.vwapState === 'MEAN_REV') {
                                     setupType = 'MEAN_REVERSION';
                                     setupBadge = '🔄 MEAN-REV VWAP';
@@ -16947,7 +17011,11 @@
                                 const t2 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t2Pts) * 10) / 10 : Math.round((entrySpot - t2Pts) * 10) / 10;
                                 const t3 = (triggeredDirection === 'BULL') ? Math.round((entrySpot + t3Pts) * 10) / 10 : Math.round((entrySpot - t3Pts) * 10) / 10;
 
-                                const entryOptPrice = (action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0);
+                                const entrySnapRow = (action !== 'COMBO') ? lookupV2OptionRow(tStr, strike, optType) : null;
+                    if (!entrySnapRow && action !== 'COMBO') prefetchV2OptionSnapshot(tStr);
+                    const entryOptPrice = (entrySnapRow && Number(entrySnapRow.ltp) > 0)
+                        ? Math.round(Number(entrySnapRow.ltp) * 10) / 10
+                        : ((action === 'BUY') ? 135.0 : (action === 'COMBO' ? 120.0 : 85.0));
                                 const entryLots = Number(tradeEngineConfig.entryLots) || 3;
                                 const lotSize = Number(tradeEngineConfig.lotSize) || 65;
 
@@ -19056,7 +19124,9 @@
                             <span class="text-sm font-black text-cyan-300 tracking-wide">0click.in API Request &amp; Response Logs</span>
                             <span class="text-[10px] font-mono text-gray-400">(zero_click_alert_logs)</span>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <input type="date" id="zc-v2-logs-date" onchange="fetchZeroClickLogs()" class="px-2 py-1 rounded bg-[#0a0f1c] text-cyan-200 border border-cyan-800/80 text-xs font-mono cursor-pointer focus:outline-none focus:border-cyan-500" title="Filter logs by trade date (IST)">
+                            <button type="button" onclick="setZeroClickLogsToday()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-xs font-bold cursor-pointer" title="Jump to Today">Today</button>
                             <button type="button" onclick="fetchZeroClickLogs()" class="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-200 border border-cyan-700 text-xs font-bold cursor-pointer">🔄 Refresh</button>
                             <button type="button" onclick="clearZeroClickV2Logs()" class="px-2.5 py-1 rounded bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700 text-xs font-bold cursor-pointer">🗑️ Clear V2</button>
                             <button type="button" onclick="document.getElementById('zeroclick-v2-logs-modal').classList.add('hidden')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-bold cursor-pointer">✕ Close</button>
@@ -19077,10 +19147,23 @@
             `;
             document.body.appendChild(modal);
         }
+        const dateInput = document.getElementById('zc-v2-logs-date');
+        const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (dateInput && !dateInput.value) {
+            dateInput.value = todayIst;
+        }
         modal.classList.remove('hidden');
         await fetchZeroClickLogs();
     }
     window.openZeroClickLogsModal = openZeroClickLogsModal;
+
+    function setZeroClickLogsToday() {
+        const dateInput = document.getElementById('zc-v2-logs-date');
+        const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (dateInput) dateInput.value = todayIst;
+        fetchZeroClickLogs();
+    }
+    window.setZeroClickLogsToday = setZeroClickLogsToday;
 
     function toggleZeroClickV2LogDetail(id) {
         const detail = document.getElementById(`zc-v2-log-detail-${id}`);
@@ -19139,12 +19222,16 @@
     async function fetchZeroClickLogs() {
         const body = document.getElementById('zeroclick-v2-logs-body');
         if (!body) return;
-        body.innerHTML = '<div class="text-cyan-300 py-4 text-center">Loading 0click.in logs...</div>';
+        const dateInput = document.getElementById('zc-v2-logs-date');
+        const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const dateVal = (dateInput && dateInput.value) ? dateInput.value : todayIst;
+        if (dateInput && !dateInput.value) dateInput.value = dateVal;
+        body.innerHTML = `<div class="text-cyan-300 py-4 text-center">Loading 0click.in logs for ${dateVal}...</div>`;
         try {
-            const res = await fetch(`/api/v2/zeroclick/logs?_t=${Date.now()}`).then(r => r.json());
+            const res = await fetch(`/api/v2/zeroclick/logs?date=${encodeURIComponent(dateVal)}&_t=${Date.now()}`).then(r => r.json());
             const logs = res.logs || [];
             if (logs.length === 0) {
-                body.innerHTML = '<div class="text-gray-400 py-8 text-center">No 0click.in requests logged yet.</div>';
+                body.innerHTML = `<div class="text-gray-400 py-8 text-center">No 0click.in requests logged for ${dateVal}.</div>`;
                 return;
             }
             body.innerHTML = logs.map(l => {
