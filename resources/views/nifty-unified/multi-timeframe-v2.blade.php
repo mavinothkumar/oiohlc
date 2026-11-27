@@ -6160,6 +6160,7 @@
             if (!obj || !obj.feeds) return;
 
             let oiUpdated = false;
+            let tradeTickUpdated = false;
             const strikeKeys = toiStreamConfig.strike_keys || {};
             const uKey = toiStreamConfig.underlying_key;
 
@@ -6192,6 +6193,7 @@
                     const spotEl = document.getElementById('spot-price-display');
                     if (spotEl) spotEl.textContent = Number(feedLtp).toFixed(2);
                     oiUpdated = true;
+                    tradeTickUpdated = true;
                     updateLiveCandleFromTick(feedLtp);
                     renderTrendingOiStrikes(feedLtp);
                 }
@@ -6205,8 +6207,20 @@
                     }
                     if (feedLtp !== null && feedLtp !== undefined && feedLtp > 0) {
                         sk.ltp = feedLtp;
+                        if (typeof activeTrade !== 'undefined' && activeTrade && activeTrade.status === 'ACTIVE') {
+                            const sNum = Number(sk.strike);
+                            if (sNum === Number(activeTrade.strike)
+                                || (activeTrade.sellerLeg && sNum === Number(activeTrade.sellerLeg.strike))
+                                || (activeTrade.buyerLeg && sNum === Number(activeTrade.buyerLeg.strike))) {
+                                tradeTickUpdated = true;
+                            }
+                        }
                     }
                 }
+            }
+
+            if (tradeTickUpdated && typeof updateLiveTradeCockpitTicks === 'function') {
+                updateLiveTradeCockpitTicks(toiStreamConfig.latest_totals?.spot);
             }
 
             if (oiUpdated) {
@@ -16606,25 +16620,31 @@
 
                 // Calculate Dual Leg Metrics (Seller vs Buyer)
                 const legMetrics = calcLegMetrics(currentTrade.direction, currentTrade.entrySpot, cClose, i, currentTrade.entryIndex);
+                const sellEntryReal = (currentTrade.action === 'SELL' && currentTrade.entryOptPrice > 0) ? currentTrade.entryOptPrice : legMetrics.seller.entryOpt;
+                const sellCurReal = (currentTrade.action === 'SELL' && currentTrade.currentOptPrice > 0) ? currentTrade.currentOptPrice : legMetrics.seller.curOpt;
+                const sellPtsReal = Math.round((sellEntryReal - sellCurReal) * 10) / 10;
                 currentTrade.sellerLeg = {
                     action: 'SELL',
                     strike: isBull ? ((currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100) - 100) : ((currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100) + 100),
                     optType: isBull ? 'PE' : 'CE',
-                    entryOpt: legMetrics.seller.entryOpt,
-                    curOpt: legMetrics.seller.curOpt,
-                    pnlPoints: legMetrics.seller.pts,
-                    pnlRupees: Math.round(legMetrics.seller.pts * currentTrade.entryLots * currentTrade.lotSize),
+                    entryOpt: sellEntryReal,
+                    curOpt: sellCurReal,
+                    pnlPoints: sellPtsReal,
+                    pnlRupees: Math.round(sellPtsReal * currentTrade.entryLots * currentTrade.lotSize),
                     delta: 0.35,
                     thetaRate: legMetrics.seller.thetaRate
                 };
+                const buyEntryReal = (currentTrade.action === 'BUY' && currentTrade.entryOptPrice > 0) ? currentTrade.entryOptPrice : legMetrics.buyer.entryOpt;
+                const buyCurReal = (currentTrade.action === 'BUY' && currentTrade.currentOptPrice > 0) ? currentTrade.currentOptPrice : legMetrics.buyer.curOpt;
+                const buyPtsReal = Math.round((buyCurReal - buyEntryReal) * 10) / 10;
                 currentTrade.buyerLeg = {
                     action: 'BUY',
                     strike: currentTrade.atmStrike || Math.round(currentTrade.entrySpot / 100) * 100,
                     optType: isBull ? 'CE' : 'PE',
-                    entryOpt: legMetrics.buyer.entryOpt,
-                    curOpt: legMetrics.buyer.curOpt,
-                    pnlPoints: legMetrics.buyer.pts,
-                    pnlRupees: Math.round(legMetrics.buyer.pts * currentTrade.entryLots * currentTrade.lotSize),
+                    entryOpt: buyEntryReal,
+                    curOpt: buyCurReal,
+                    pnlPoints: buyPtsReal,
+                    pnlRupees: Math.round(buyPtsReal * currentTrade.entryLots * currentTrade.lotSize),
                     delta: 0.52,
                     thetaRate: legMetrics.buyer.thetaRate
                 };
@@ -17148,6 +17168,9 @@
 
         // Update UI Cockpit, Matrix & Chart Price Lines
         updateTradeCockpitUI(activeTrade, sessionTrades, vetoedSignalAtReplay || lastVetoedSignal, activePendingBreakout, executedTradesAtReplay);
+        if (typeof updateLiveTradeCockpitTicks === 'function' && activeTrade && activeTrade.status === 'ACTIVE') {
+            updateLiveTradeCockpitTicks(typeof toiStreamConfig !== 'undefined' ? toiStreamConfig?.latest_totals?.spot : null);
+        }
         updateExitMatrixUI(activeTrade);
         updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap, armedImpulseAtReplay);
         updateTradePriceLines(activeTrade, activePendingBreakout);
@@ -17256,6 +17279,107 @@
             tradePriceLines.push(t3Line);
         }
     }
+
+    function getLiveOptionLtp(strike, optType) {
+        if (typeof toiStreamConfig === 'undefined' || !toiStreamConfig || !toiStreamConfig.strike_keys) return null;
+        const targetStrike = Number(strike);
+        const targetType = String(optType || '').toUpperCase();
+        for (const sk of Object.values(toiStreamConfig.strike_keys)) {
+            if (Number(sk.strike) === targetStrike && String(sk.type || '').toUpperCase() === targetType && Number(sk.ltp) > 0) {
+                return Number(sk.ltp);
+            }
+        }
+        return null;
+    }
+
+    function updateLiveTradeCockpitTicks(spotLtp) {
+        if (typeof activeTrade === 'undefined' || !activeTrade || activeTrade.status !== 'ACTIVE') return;
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        if (typeof selectedDate !== 'undefined' && selectedDate !== todayStr) return;
+        if (typeof isBarReplayMode !== 'undefined' && isBarReplayMode) return;
+
+        if (spotLtp && !isNaN(spotLtp) && Number(spotLtp) > 0) {
+            activeTrade.currentSpot = Number(spotLtp);
+            const atCurrSpot = document.getElementById('at-curr-spot');
+            if (atCurrSpot) atCurrSpot.textContent = activeTrade.currentSpot.toFixed(2);
+        }
+
+        // 1. Live Option LTP & Real Money P&L for Chosen Leg
+        const liveChosenLtp = getLiveOptionLtp(activeTrade.strike, activeTrade.optType);
+        if (liveChosenLtp !== null && activeTrade.entryOptPrice > 0) {
+            activeTrade.currentOptPrice = liveChosenLtp;
+            const ptsGain = (activeTrade.action === 'BUY')
+                ? (liveChosenLtp - activeTrade.entryOptPrice)
+                : (activeTrade.entryOptPrice - liveChosenLtp);
+            activeTrade.openPnlRupees = Math.round(activeTrade.openLots * ptsGain * activeTrade.lotSize);
+            activeTrade.pnlRupees = activeTrade.bookedPnlRupees + activeTrade.openPnlRupees;
+            activeTrade.pnlPoints = Math.round((activeTrade.pnlRupees / (activeTrade.entryLots * activeTrade.lotSize)) * 10) / 10;
+
+            const atCurrOpt = document.getElementById('at-curr-opt');
+            if (atCurrOpt) atCurrOpt.textContent = `₹${liveChosenLtp.toFixed(2)}`;
+
+            const pnlColor = (activeTrade.pnlPoints >= 0) ? 'text-emerald-400' : 'text-rose-400';
+            const pnlSign = (activeTrade.pnlPoints >= 0) ? '+' : '';
+
+            const atPnlRs = document.getElementById('at-pnl-rupees');
+            if (atPnlRs) {
+                atPnlRs.textContent = `${pnlSign}₹${activeTrade.pnlRupees.toLocaleString('en-IN')}`;
+                atPnlRs.className = `text-xl font-black font-mono ${pnlColor}`;
+            }
+            const atPnlPts = document.getElementById('at-pnl-points');
+            if (atPnlPts) {
+                atPnlPts.textContent = `(${pnlSign}${activeTrade.pnlPoints.toFixed(1)} pts)`;
+                atPnlPts.className = `text-xs font-bold font-mono ${pnlColor}`;
+            }
+            const atPnlOpen = document.getElementById('at-pnl-open');
+            if (atPnlOpen) {
+                const openSign = (activeTrade.openPnlRupees >= 0) ? '+' : '';
+                atPnlOpen.textContent = `${openSign}₹${activeTrade.openPnlRupees.toLocaleString('en-IN')}`;
+                atPnlOpen.className = (activeTrade.openPnlRupees >= 0) ? 'text-sky-300 font-bold' : 'text-rose-300 font-bold';
+            }
+            const headerPillText = document.getElementById('trade-header-pill-text');
+            if (headerPillText) {
+                headerPillText.textContent = `${activeTrade.action} ${activeTrade.strike} ${activeTrade.optType} @ ${activeTrade.entryTime} [${activeTrade.setupBadge || 'STANDARD'}] | P&L: ${pnlSign}₹${activeTrade.pnlRupees.toLocaleString('en-IN')} (${pnlSign}${activeTrade.pnlPoints} pts)`;
+            }
+        }
+
+        // 2. Live Strike LTPs for Dual Contract Comparison (Selling & Buying Legs)
+        if (activeTrade.sellerLeg) {
+            const liveSellLtp = getLiveOptionLtp(activeTrade.sellerLeg.strike, activeTrade.sellerLeg.optType);
+            if (liveSellLtp !== null) {
+                activeTrade.sellerLeg.curOpt = liveSellLtp;
+                activeTrade.sellerLeg.pnlPoints = Math.round((activeTrade.sellerLeg.entryOpt - liveSellLtp) * 10) / 10;
+                activeTrade.sellerLeg.pnlRupees = Math.round(activeTrade.sellerLeg.pnlPoints * activeTrade.entryLots * activeTrade.lotSize);
+                const sellCurr = document.getElementById('at-sell-curr');
+                if (sellCurr) sellCurr.textContent = `₹${liveSellLtp.toFixed(1)}`;
+                const sellPnl = document.getElementById('at-sell-pnl');
+                if (sellPnl) {
+                    const sSign = activeTrade.sellerLeg.pnlPoints >= 0 ? '+' : '';
+                    const sCls = activeTrade.sellerLeg.pnlPoints >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    sellPnl.textContent = `${sSign}₹${activeTrade.sellerLeg.pnlRupees.toLocaleString('en-IN')} (${sSign}${activeTrade.sellerLeg.pnlPoints.toFixed(1)}p)`;
+                    sellPnl.className = `font-bold ${sCls}`;
+                }
+            }
+        }
+        if (activeTrade.buyerLeg) {
+            const liveBuyLtp = getLiveOptionLtp(activeTrade.buyerLeg.strike, activeTrade.buyerLeg.optType);
+            if (liveBuyLtp !== null) {
+                activeTrade.buyerLeg.curOpt = liveBuyLtp;
+                activeTrade.buyerLeg.pnlPoints = Math.round((liveBuyLtp - activeTrade.buyerLeg.entryOpt) * 10) / 10;
+                activeTrade.buyerLeg.pnlRupees = Math.round(activeTrade.buyerLeg.pnlPoints * activeTrade.entryLots * activeTrade.lotSize);
+                const buyCurr = document.getElementById('at-buy-curr');
+                if (buyCurr) buyCurr.textContent = `₹${liveBuyLtp.toFixed(1)}`;
+                const buyPnl = document.getElementById('at-buy-pnl');
+                if (buyPnl) {
+                    const bSign = activeTrade.buyerLeg.pnlPoints >= 0 ? '+' : '';
+                    const bCls = activeTrade.buyerLeg.pnlPoints >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    buyPnl.textContent = `${bSign}₹${activeTrade.buyerLeg.pnlRupees.toLocaleString('en-IN')} (${bSign}${activeTrade.buyerLeg.pnlPoints.toFixed(1)}p)`;
+                    buyPnl.className = `font-bold ${bCls}`;
+                }
+            }
+        }
+    }
+    window.updateLiveTradeCockpitTicks = updateLiveTradeCockpitTicks;
 
     function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null, pendingBreakout = null, executedTradesCount = 0) {
         const headerBadge = document.getElementById('header-trade-status-badge');
