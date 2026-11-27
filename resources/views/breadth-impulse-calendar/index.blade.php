@@ -42,7 +42,7 @@
     </div>
 
     <!-- Aggregate KPI Strip across Loaded Days -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 font-mono">
         <div class="bg-[#0f1422] border border-gray-800 rounded-xl p-3">
             <div class="text-[11px] text-gray-400 uppercase font-bold">Days Loaded</div>
             <div id="kpi-days-cnt" class="text-2xl font-black text-white mt-1">--</div>
@@ -59,9 +59,13 @@
             <div class="text-[11px] text-purple-300 uppercase font-bold">⚡ Avg Day Range</div>
             <div id="kpi-avg-range" class="text-2xl font-black text-purple-300 mt-1">--</div>
         </div>
-        <div class="bg-[#0f1422] border border-cyan-900/50 rounded-xl p-3 col-span-2 lg:col-span-1">
+        <div class="bg-[#0f1422] border border-cyan-900/50 rounded-xl p-3">
             <div class="text-[11px] text-cyan-300 uppercase font-bold">✅ Overall Worth Rate</div>
             <div id="kpi-worth-rate" class="text-2xl font-black text-cyan-300 mt-1">--</div>
+        </div>
+        <div class="bg-[#0f1422] border border-amber-700/60 rounded-xl p-3">
+            <div class="text-[11px] text-amber-300 uppercase font-bold">🏆 S4 (Scalper) W / L</div>
+            <div id="kpi-s4-wl" class="text-xl sm:text-2xl font-black text-amber-300 mt-1">--</div>
         </div>
     </div>
 
@@ -198,19 +202,29 @@
             return;
         }
 
-        let totBull = 0, totBear = 0, totRange = 0, totSigs = 0, totWorth = 0;
+        let totBull = 0, totBear = 0, totRange = 0, totSigs = 0, totWorth = 0, totS4W = 0, totS4L = 0;
         days.forEach(d => {
             totBull += d.counts.bull_total;
             totBear += d.counts.bear_total;
             totRange += d.total_range;
             totSigs += d.counts.total_sigs;
             totWorth += d.counts.worth_hits;
+            totS4W += Number(d.counts.s4_wins || 0);
+            totS4L += Number(d.counts.s4_losses || 0);
         });
         document.getElementById('kpi-days-cnt').textContent = days.length;
         document.getElementById('kpi-bull-cnt').textContent = totBull;
         document.getElementById('kpi-bear-cnt').textContent = totBear;
         document.getElementById('kpi-avg-range').textContent = `${(totRange / days.length).toFixed(1)}p`;
         document.getElementById('kpi-worth-rate').textContent = totSigs > 0 ? `${Math.round((totWorth / totSigs) * 100)}%` : '--';
+        const kpiS4El = document.getElementById('kpi-s4-wl');
+        if (kpiS4El) {
+            const s4Dec = totS4W + totS4L;
+            const s4Wr = s4Dec > 0 ? Math.round((totS4W / s4Dec) * 100) : 0;
+            kpiS4El.innerHTML = s4Dec > 0
+                ? `<span class="text-emerald-400">${totS4W}W</span>/<span class="text-rose-400">${totS4L}L</span> <span class="text-sm text-amber-300">(${s4Wr}%)</span>`
+                : '0W / 0L';
+        }
 
         tbody.innerHTML = days.map(d => {
             const netSign = d.net_move >= 0 ? '+' : '';
@@ -359,39 +373,69 @@
             return s.type === currentDetailFilter;
         });
 
-        // Update filter-reactive Worth / Scalp / Failed KPI strip
+        // Update filter-reactive Worth / Scalp / Failed KPI strip (and exact S4 W/L when S4 filter is active)
         const outcomeStrip = document.getElementById('detail-outcome-strip');
         if (outcomeStrip) {
             const total = sigs.length;
-            const worthCnt = sigs.filter(s => s.verdict === 'WORTH_IT').length;
-            const scalpCnt = sigs.filter(s => s.verdict === 'SCALP_CHOP').length;
-            const failedCnt = sigs.filter(s => s.verdict === 'FAILED').length;
             const avgMfe = total > 0 ? (sigs.reduce((a, s) => a + Number(s.mfe || 0), 0) / total).toFixed(1) : '0.0';
             const avgMae = total > 0 ? (sigs.reduce((a, s) => a + Number(s.mae || 0), 0) / total).toFixed(1) : '0.0';
-            const pct = (c) => total > 0 ? Math.round((c / total) * 100) : 0;
+            const pct = (c, denom = total) => denom > 0 ? Math.round((c / denom) * 100) : 0;
 
-            outcomeStrip.innerHTML = `
-                <div class="rounded-lg bg-[#141b2d] border border-cyan-800/60 p-2.5">
-                    <div class="text-[10.5px] text-cyan-300 uppercase font-bold">Filtered (${currentDetailFilter})</div>
-                    <div class="text-lg font-black text-white mt-0.5">${total} <span class="text-xs text-gray-400 font-normal">Signals</span></div>
-                </div>
-                <div class="rounded-lg bg-emerald-950/30 border border-emerald-700/60 p-2.5">
-                    <div class="text-[10.5px] text-emerald-300 uppercase font-bold">✅ Total Worth</div>
-                    <div class="text-lg font-black text-emerald-400 mt-0.5">${worthCnt} <span class="text-xs font-bold">(${pct(worthCnt)}%)</span></div>
-                </div>
-                <div class="rounded-lg bg-amber-950/30 border border-amber-700/60 p-2.5">
-                    <div class="text-[10.5px] text-amber-300 uppercase font-bold">⚠️ Scalp / Chop</div>
-                    <div class="text-lg font-black text-amber-300 mt-0.5">${scalpCnt} <span class="text-xs font-bold">(${pct(scalpCnt)}%)</span></div>
-                </div>
-                <div class="rounded-lg bg-rose-950/30 border border-rose-700/60 p-2.5">
-                    <div class="text-[10.5px] text-rose-300 uppercase font-bold">❌ Failed</div>
-                    <div class="text-lg font-black text-rose-400 mt-0.5">${failedCnt} <span class="text-xs font-bold">(${pct(failedCnt)}%)</span></div>
-                </div>
-                <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 col-span-2 sm:col-span-1">
-                    <div class="text-[10.5px] text-gray-400 uppercase font-bold">Avg 60m MFE / MAE</div>
-                    <div class="text-base font-black mt-0.5"><span class="text-emerald-400">+${avgMfe}p</span> <span class="text-gray-500">/</span> <span class="text-rose-400">-${avgMae}p</span></div>
-                </div>
-            `;
+            if (currentDetailFilter === 'S4') {
+                const s4Wins = sigs.filter(s => s.s4_result === 'WIN').length;
+                const s4Losses = sigs.filter(s => s.s4_result === 'LOSS').length;
+                const s4Dec = s4Wins + s4Losses;
+                const s4NetPts = (s4Wins * 15) - (s4Losses * 25);
+                const s4Wr = pct(s4Wins, s4Dec);
+                outcomeStrip.innerHTML = `
+                    <div class="rounded-lg bg-[#141b2d] border border-amber-700/60 p-2.5">
+                        <div class="text-[10.5px] text-amber-300 uppercase font-bold">🏆 S4 (Scalper)</div>
+                        <div class="text-lg font-black text-white mt-0.5">${total} <span class="text-xs text-gray-400 font-normal">Signals</span></div>
+                    </div>
+                    <div class="rounded-lg bg-emerald-950/30 border border-emerald-700/60 p-2.5">
+                        <div class="text-[10.5px] text-emerald-300 uppercase font-bold">✅ S4 Wins (+15p)</div>
+                        <div class="text-lg font-black text-emerald-400 mt-0.5">${s4Wins} <span class="text-xs font-bold">(${s4Wr}%)</span></div>
+                    </div>
+                    <div class="rounded-lg bg-rose-950/30 border border-rose-700/60 p-2.5">
+                        <div class="text-[10.5px] text-rose-300 uppercase font-bold">❌ S4 Losses (-25p)</div>
+                        <div class="text-lg font-black text-rose-400 mt-0.5">${s4Losses} <span class="text-xs font-bold">(${pct(s4Losses, s4Dec)}%)</span></div>
+                    </div>
+                    <div class="rounded-lg bg-[#141b2d] border border-cyan-800/60 p-2.5">
+                        <div class="text-[10.5px] text-cyan-300 uppercase font-bold">💰 S4 Net Spot Pts</div>
+                        <div class="text-lg font-black ${s4NetPts >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-0.5">${s4NetPts >= 0 ? '+' : ''}${s4NetPts}p</div>
+                    </div>
+                    <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 col-span-2 sm:col-span-1">
+                        <div class="text-[10.5px] text-gray-400 uppercase font-bold">Avg 60m MFE / MAE</div>
+                        <div class="text-base font-black mt-0.5"><span class="text-emerald-400">+${avgMfe}p</span> <span class="text-gray-500">/</span> <span class="text-rose-400">-${avgMae}p</span></div>
+                    </div>
+                `;
+            } else {
+                const worthCnt = sigs.filter(s => s.verdict === 'WORTH_IT').length;
+                const scalpCnt = sigs.filter(s => s.verdict === 'SCALP_CHOP').length;
+                const failedCnt = sigs.filter(s => s.verdict === 'FAILED').length;
+                outcomeStrip.innerHTML = `
+                    <div class="rounded-lg bg-[#141b2d] border border-cyan-800/60 p-2.5">
+                        <div class="text-[10.5px] text-cyan-300 uppercase font-bold">Filtered (${currentDetailFilter})</div>
+                        <div class="text-lg font-black text-white mt-0.5">${total} <span class="text-xs text-gray-400 font-normal">Signals</span></div>
+                    </div>
+                    <div class="rounded-lg bg-emerald-950/30 border border-emerald-700/60 p-2.5">
+                        <div class="text-[10.5px] text-emerald-300 uppercase font-bold">✅ Total Worth</div>
+                        <div class="text-lg font-black text-emerald-400 mt-0.5">${worthCnt} <span class="text-xs font-bold">(${pct(worthCnt)}%)</span></div>
+                    </div>
+                    <div class="rounded-lg bg-amber-950/30 border border-amber-700/60 p-2.5">
+                        <div class="text-[10.5px] text-amber-300 uppercase font-bold">⚠️ Scalp / Chop</div>
+                        <div class="text-lg font-black text-amber-300 mt-0.5">${scalpCnt} <span class="text-xs font-bold">(${pct(scalpCnt)}%)</span></div>
+                    </div>
+                    <div class="rounded-lg bg-rose-950/30 border border-rose-700/60 p-2.5">
+                        <div class="text-[10.5px] text-rose-300 uppercase font-bold">❌ Failed</div>
+                        <div class="text-lg font-black text-rose-400 mt-0.5">${failedCnt} <span class="text-xs font-bold">(${pct(failedCnt)}%)</span></div>
+                    </div>
+                    <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 col-span-2 sm:col-span-1">
+                        <div class="text-[10.5px] text-gray-400 uppercase font-bold">Avg 60m MFE / MAE</div>
+                        <div class="text-base font-black mt-0.5"><span class="text-emerald-400">+${avgMfe}p</span> <span class="text-gray-500">/</span> <span class="text-rose-400">-${avgMae}p</span></div>
+                    </div>
+                `;
+            }
         }
 
         if (sigs.length === 0) {
