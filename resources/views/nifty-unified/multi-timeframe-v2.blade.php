@@ -3862,6 +3862,10 @@
                         <button type="button" id="btn-matrix-auto" onclick="setMatrixViewMode('auto')" class="px-2.5 py-0.5 rounded bg-sky-950 text-sky-200 border border-sky-600 font-black cursor-pointer transition">🔄 Auto</button>
                         <button type="button" id="btn-matrix-entry" onclick="setMatrixViewMode('entry')" class="px-2.5 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-white border border-slate-700 font-bold cursor-pointer transition">⚡ Entry</button>
                         <button type="button" id="btn-matrix-exit" onclick="setMatrixViewMode('exit')" class="px-2.5 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-white border border-slate-700 font-bold cursor-pointer transition">🛡️ Exit</button>
+                        <button type="button" id="btn-matrix-scalper" onclick="setMatrixViewMode('scalper')" class="px-2.5 py-0.5 rounded bg-slate-900 text-amber-300 hover:text-amber-200 border border-amber-700/60 font-bold cursor-pointer transition flex items-center gap-1" title="Live S4 Quick Scalper Shadow Monitor (Read-Only)">
+                            <span>⚡ Scalper</span>
+                            <span id="scalper-tab-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-amber-950 text-amber-300 border border-amber-700/70">0W/0L</span>
+                        </button>
                     </div>
                 </div>
 
@@ -4180,6 +4184,99 @@
                 <div class="pt-1 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
                     <span>Re-evaluates all 7 exit &amp; trailing factors at every 5M candle close</span>
                     <span id="exit-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700">POSITION IN GOOD HEALTH</span>
+                </div>
+            </div>
+
+            <!-- Scalper Panel (S4 Shadow Monitor: Fresh OPT >= 70% + With VWAP + STK >= 60% + 09:50-14:35, +15p / -25p SL) -->
+            <div id="scalper-matrix-card" class="hidden bg-[#0f1422] border border-amber-500/40 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-2 flex-1">
+                <div class="space-y-2">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
+                        <span class="text-xs sm:text-sm font-black tracking-wide text-amber-300 flex items-center gap-2 flex-wrap">
+                            <span>⚡ QUICK SCALPER (S4 SHADOW)</span>
+                            <span id="scalper-status-pill" class="px-2 py-0.5 rounded text-xs font-mono font-black bg-slate-900 text-gray-300 border border-slate-700">STANDBY</span>
+                        </span>
+                        <span id="scalper-record-pill" class="text-xs font-mono font-bold text-gray-300">0W / 0L • +0.0p</span>
+                    </div>
+
+                    <!-- Top 2-Card Summary: ACTIVE SCALP SHADOW vs TODAY'S S4 SCOREBOARD -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 font-mono">
+                        <div class="rounded-lg border border-amber-500/30 bg-[#12192b] p-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-black tracking-wider text-amber-300 uppercase">🎯 ACTIVE SCALP SHADOW</span>
+                                <span id="scalper-active-dir" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700">NONE</span>
+                            </div>
+                            <div id="scalper-active-pnl" class="text-xl sm:text-2xl font-black text-gray-300 leading-none">Watching...</div>
+                            <div id="scalper-active-levels" class="text-[11px] text-gray-300 font-bold truncate">Waiting for Fresh OPT ≥ 70% + VWAP + STK ≥ 60%</div>
+                        </div>
+
+                        <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">📊 TODAY'S S4 SCOREBOARD</span>
+                                <span id="scalper-winrate-pill" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700">--% WIN</span>
+                            </div>
+                            <div id="scalper-day-net" class="text-xl sm:text-2xl font-black text-white leading-none">+0.0 pts</div>
+                            <div id="scalper-day-counts" class="text-[11px] text-gray-300 font-bold">0 Signals • 0W (+15p) / 0L (-25p)</div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Live S4 Gate Cards -->
+                    <div class="grid grid-cols-2 xl:grid-cols-4 gap-1.5 font-mono">
+                        <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
+                            <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <span class="font-black text-white">⚡ Fresh OPT≥70%</span>
+                                <span id="sc-g1-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                            </div>
+                            <div id="sc-g1-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                        <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
+                            <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <span class="font-black text-white">📈 With VWAP</span>
+                                <span id="sc-g2-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                            </div>
+                            <div id="sc-g2-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                        <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
+                            <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <span class="font-black text-white">📊 STK ≥ 60%</span>
+                                <span id="sc-g3-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                            </div>
+                            <div id="sc-g3-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                        <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
+                            <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <span class="font-black text-white">⏰ 09:50–14:35</span>
+                                <span id="sc-g4-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                            </div>
+                            <div id="sc-g4-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Today's S4 Shadow Trades List -->
+                    <div class="bg-[#0b101c] border border-gray-800 rounded-lg overflow-hidden">
+                        <div class="max-h-32 overflow-y-auto">
+                            <table class="w-full text-left font-mono text-[11px]">
+                                <thead class="bg-[#131a2c] text-gray-400 text-[10px] uppercase sticky top-0">
+                                    <tr>
+                                        <th class="py-1 px-2">Time</th>
+                                        <th class="py-1 px-2">Dir</th>
+                                        <th class="py-1 px-2 text-right">Entry</th>
+                                        <th class="py-1 px-2 text-right">OPT / STK</th>
+                                        <th class="py-1 px-2 text-right">Tgt / SL</th>
+                                        <th class="py-1 px-2 text-right">Outcome</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scalper-signals-tbody" class="divide-y divide-gray-800/60">
+                                    <tr><td colspan="6" class="py-3 text-center text-gray-500">No S4 shadow signals yet today.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-1.5 border-t border-gray-800 flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
+                    <span>🧪 Shadow Paper Monitor ONLY (does not send to 0click.in).</span>
+                    <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="text-cyan-300 hover:text-cyan-200 font-bold">📅 Multi-Day S4 History ↗</a>
                 </div>
             </div>
             </div>
@@ -6322,6 +6419,9 @@
 
             if (tradeTickUpdated && typeof updateLiveTradeCockpitTicks === 'function') {
                 updateLiveTradeCockpitTicks(toiStreamConfig.latest_totals?.spot);
+            }
+            if (isSpot && feedLtp && typeof updateScalperLiveSpot === 'function') {
+                updateScalperLiveSpot(feedLtp);
             }
 
             if (oiUpdated) {
@@ -17525,6 +17625,9 @@
         }
         updateExitMatrixUI(activeTrade);
         updateEntryMatrixUI(upToIndex, activePendingBreakout, executedTradesAtReplay, lastCalculatedVwap, armedImpulseAtReplay);
+        if (typeof evaluateScalperS4Shadow === 'function') {
+            evaluateScalperS4Shadow(rawCandles, upToIndex);
+        }
         updateTradePriceLines(activeTrade, activePendingBreakout);
         renderTelemetryTable();
         if (typeof rawCandles !== 'undefined' && Array.isArray(rawCandles) && upToIndex >= rawCandles.length - 1) {
@@ -17856,22 +17959,29 @@
     }
     window.updateTradeMilestonesAndMeter = updateTradeMilestonesAndMeter;
 
-    let matrixViewMode = localStorage.getItem('v2_matrix_view_mode') || 'auto'; // 'auto' | 'entry' | 'exit'
+    let matrixViewMode = localStorage.getItem('v2_matrix_view_mode') || 'auto'; // 'auto' | 'entry' | 'exit' | 'scalper'
 
     function syncMatrixAutoVisibility(trade) {
         const entryCard = document.getElementById('entry-matrix-card');
         const exitCard = document.getElementById('exit-matrix-card');
+        const scalperCard = document.getElementById('scalper-matrix-card');
         const ctxPill = document.getElementById('matrix-active-context-pill');
         if (!entryCard || !exitCard) return;
 
         const isActive = !!(trade && trade.status === 'ACTIVE');
-        const showExit = (matrixViewMode === 'exit') || (matrixViewMode === 'auto' && isActive);
+        const showScalper = (matrixViewMode === 'scalper');
+        const showExit = !showScalper && ((matrixViewMode === 'exit') || (matrixViewMode === 'auto' && isActive));
+        const showEntry = !showScalper && !showExit;
 
-        entryCard.classList.toggle('hidden', showExit);
+        entryCard.classList.toggle('hidden', !showEntry);
         exitCard.classList.toggle('hidden', !showExit);
+        if (scalperCard) scalperCard.classList.toggle('hidden', !showScalper);
 
         if (ctxPill) {
-            if (matrixViewMode === 'auto') {
+            if (matrixViewMode === 'scalper') {
+                ctxPill.textContent = 'SHADOW • S4 QUICK SCALPER';
+                ctxPill.className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-amber-950 text-amber-200 border border-amber-600/70';
+            } else if (matrixViewMode === 'auto') {
                 ctxPill.textContent = isActive ? 'AUTO • IN TRADE (EXIT)' : 'AUTO • STANDBY (ENTRY)';
                 ctxPill.className = isActive
                     ? 'px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-200 border border-purple-600/70'
@@ -17888,19 +17998,237 @@
         const btnAuto = document.getElementById('btn-matrix-auto');
         const btnEntry = document.getElementById('btn-matrix-entry');
         const btnExit = document.getElementById('btn-matrix-exit');
+        const btnScalper = document.getElementById('btn-matrix-scalper');
         const activeCls = 'px-2.5 py-0.5 rounded bg-sky-950 text-sky-200 border border-sky-500 font-black cursor-pointer transition';
         const idleCls = 'px-2.5 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-white border border-slate-700 font-bold cursor-pointer transition';
+        const scalperActiveCls = 'px-2.5 py-0.5 rounded bg-amber-950 text-amber-200 border border-amber-500 font-black cursor-pointer transition flex items-center gap-1';
+        const scalperIdleCls = 'px-2.5 py-0.5 rounded bg-slate-900 text-amber-300 hover:text-amber-200 border border-amber-700/60 font-bold cursor-pointer transition flex items-center gap-1';
         if (btnAuto) btnAuto.className = (matrixViewMode === 'auto') ? activeCls : idleCls;
         if (btnEntry) btnEntry.className = (matrixViewMode === 'entry') ? activeCls : idleCls;
         if (btnExit) btnExit.className = (matrixViewMode === 'exit') ? activeCls : idleCls;
+        if (btnScalper) btnScalper.className = (matrixViewMode === 'scalper') ? scalperActiveCls : scalperIdleCls;
     }
 
     function setMatrixViewMode(mode) {
-        matrixViewMode = (mode === 'entry' || mode === 'exit') ? mode : 'auto';
+        matrixViewMode = (mode === 'entry' || mode === 'exit' || mode === 'scalper') ? mode : 'auto';
         try { localStorage.setItem('v2_matrix_view_mode', matrixViewMode); } catch (e) {}
         syncMatrixAutoVisibility(typeof activeTrade !== 'undefined' ? activeTrade : null);
     }
     window.setMatrixViewMode = setMatrixViewMode;
+
+    // ── S4 Quick Scalper Shadow Monitor (Read-Only, Isolated from V2 & 0click.in) ──
+    let activeScalperShadowTrade = null;
+
+    function evaluateScalperS4Shadow(rawCandles, upToIndex) {
+        if (!Array.isArray(rawCandles) || rawCandles.length === 0) return;
+        const limitIdx = Math.min(rawCandles.length - 1, Math.max(0, Number(upToIndex)));
+        let cumTpVol = 0, cumVol = 0;
+        let prevOptBull = false, prevOptBear = false;
+        const trades = [];
+        let openTrade = null;
+
+        let lastState = { tStr: '--:--', close: 0, vwap: 0, oUp: 0, oDn: 0, gWt: 0, rWt: 0, isFreshBull: false, isFreshBear: false };
+
+        for (let i = 0; i <= limitIdx; i++) {
+            const c = rawCandles[i];
+            const tStr = String(c.time_str || '');
+            const cHigh = Number(c.high || 0);
+            const cLow = Number(c.low || 0);
+            const cClose = Number(c.close || 0);
+            const vol = Math.max(1, Number(c.volume || 1));
+            cumTpVol += ((cHigh + cLow + cClose) / 3) * vol;
+            cumVol += vol;
+            const vwap = cumVol > 0 ? (cumTpVol / cumVol) : cClose;
+
+            // Check exit on open shadow trade (+15p target / -25p SL / 12-bar timeout)
+            if (openTrade) {
+                const isBull = (openTrade.dir === 'BULL');
+                const fav = isBull ? (cHigh - openTrade.entry) : (openTrade.entry - cLow);
+                const adv = isBull ? (openTrade.entry - cLow) : (cHigh - openTrade.entry);
+                if (adv >= 25) {
+                    openTrade.status = 'LOSS';
+                    openTrade.exitTime = tStr;
+                    openTrade.pts = -25.0;
+                    trades.push(openTrade);
+                    openTrade = null;
+                } else if (fav >= 15) {
+                    openTrade.status = 'WIN';
+                    openTrade.exitTime = tStr;
+                    openTrade.pts = 15.0;
+                    trades.push(openTrade);
+                    openTrade = null;
+                } else if ((i - openTrade.entryIdx) >= 12) {
+                    const curPts = isBull ? (cClose - openTrade.entry) : (openTrade.entry - cClose);
+                    openTrade.status = 'TIMEOUT';
+                    openTrade.exitTime = tStr;
+                    openTrade.pts = Math.round(curPts * 10) / 10;
+                    trades.push(openTrade);
+                    openTrade = null;
+                }
+            }
+
+            const sb = weightageData?.breadth_by_time?.[tStr];
+            const ob = (typeof getOptionsBreadthAtTime === 'function') ? getOptionsBreadthAtTime(tStr) : null;
+            const gWt = sb ? Number(sb.green_weight || 0) : 0;
+            const rWt = sb ? Number(sb.red_weight || 0) : 0;
+            const oUp = ob ? Number(ob.up_weight || 0) : 0;
+            const oDn = ob ? Number(ob.down_weight || 0) : 0;
+
+            const isFreshBull = (oUp >= 70 && !prevOptBull);
+            const isFreshBear = (oDn >= 70 && !prevOptBear);
+            prevOptBull = (oUp >= 70);
+            prevOptBear = (oDn >= 70);
+
+            if (i === limitIdx) {
+                lastState = { tStr, close: cClose, vwap, oUp, oDn, gWt, rWt, isFreshBull, isFreshBear };
+            }
+
+            // Evaluate S4 entry on completed bars only (i < rawCandles.length - 1)
+            if (!openTrade && i < rawCandles.length - 1 && tStr >= '09:50' && tStr <= '14:35') {
+                if (isFreshBull && cClose >= vwap && gWt >= 60) {
+                    openTrade = {
+                        time: tStr, entryIdx: i, dir: 'BULL', entry: cClose,
+                        target: Math.round((cClose + 15) * 100) / 100,
+                        sl: Math.round((cClose - 25) * 100) / 100,
+                        optPct: Math.round(oUp), stkPct: Math.round(gWt), status: 'LIVE', pts: 0
+                    };
+                } else if (isFreshBear && cClose <= vwap && rWt >= 60) {
+                    openTrade = {
+                        time: tStr, entryIdx: i, dir: 'BEAR', entry: cClose,
+                        target: Math.round((cClose - 15) * 100) / 100,
+                        sl: Math.round((cClose + 25) * 100) / 100,
+                        optPct: Math.round(oDn), stkPct: Math.round(rWt), status: 'LIVE', pts: 0
+                    };
+                }
+            }
+        }
+
+        if (openTrade) {
+            const curSpot = Number(rawCandles[limitIdx]?.close || openTrade.entry);
+            openTrade.pts = Math.round(((openTrade.dir === 'BULL') ? (curSpot - openTrade.entry) : (openTrade.entry - curSpot)) * 10) / 10;
+        }
+        activeScalperShadowTrade = openTrade;
+
+        const wins = trades.filter(t => t.status === 'WIN').length;
+        const losses = trades.filter(t => t.status === 'LOSS').length;
+        const closedPts = Math.round(trades.reduce((a, t) => a + t.pts, 0) * 10) / 10;
+        const wr = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : null;
+
+        // Update Tab Badge & Header Pills
+        const tabBadge = document.getElementById('scalper-tab-badge');
+        if (tabBadge) {
+            tabBadge.textContent = openTrade ? `LIVE ${openTrade.pts >= 0 ? '+' : ''}${openTrade.pts}p` : `${wins}W/${losses}L`;
+            tabBadge.className = openTrade
+                ? 'px-1 py-0.2 rounded text-[9.5px] bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse'
+                : 'px-1 py-0.2 rounded text-[9.5px] bg-amber-950 text-amber-300 border border-amber-700/70';
+        }
+        const statusPill = document.getElementById('scalper-status-pill');
+        if (statusPill) {
+            statusPill.textContent = openTrade ? `⚡ LIVE ${openTrade.dir}` : 'STANDBY';
+            statusPill.className = openTrade
+                ? 'px-2 py-0.5 rounded text-xs font-mono font-black bg-emerald-950 text-emerald-300 border border-emerald-600 animate-pulse'
+                : 'px-2 py-0.5 rounded text-xs font-mono font-black bg-slate-900 text-gray-300 border border-slate-700';
+        }
+        const recPill = document.getElementById('scalper-record-pill');
+        if (recPill) recPill.textContent = `${wins}W / ${losses}L • ${closedPts >= 0 ? '+' : ''}${closedPts}p`;
+
+        const wrPill = document.getElementById('scalper-winrate-pill');
+        if (wrPill) wrPill.textContent = wr !== null ? `${wr}% WIN` : '--% WIN';
+        const netEl = document.getElementById('scalper-day-net');
+        if (netEl) {
+            netEl.textContent = `${closedPts >= 0 ? '+' : ''}${closedPts.toFixed(1)} pts`;
+            netEl.className = `text-xl sm:text-2xl font-black leading-none ${closedPts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        const cntEl = document.getElementById('scalper-day-counts');
+        if (cntEl) cntEl.textContent = `${trades.length + (openTrade ? 1 : 0)} Signals • ${wins}W (+15p) / ${losses}L (-25p)`;
+
+        renderScalperActiveCard(openTrade);
+
+        // Update 4 Gate Cards for lastState
+        const domDir = (lastState.oUp >= lastState.oDn) ? 'BULL' : 'BEAR';
+        const domOpt = Math.max(lastState.oUp, lastState.oDn);
+        const domFresh = (domDir === 'BULL') ? lastState.isFreshBull : lastState.isFreshBear;
+        const domVwap = (domDir === 'BULL') ? (lastState.close >= lastState.vwap) : (lastState.close <= lastState.vwap);
+        const domStk = (domDir === 'BULL') ? lastState.gWt : lastState.rWt;
+        const timeOk = (lastState.tStr >= '09:50' && lastState.tStr <= '14:35');
+
+        const setGate = (num, ok, badgeTxt, valTxt) => {
+            const b = document.getElementById(`sc-g${num}-badge`);
+            const v = document.getElementById(`sc-g${num}-val`);
+            if (b) {
+                b.textContent = badgeTxt;
+                b.className = ok
+                    ? 'px-1.5 py-0.2 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold'
+                    : 'px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700';
+            }
+            if (v) v.textContent = valTxt;
+        };
+        setGate(1, domOpt >= 70 && domFresh, domFresh ? '✓ FRESH' : (domOpt >= 70 ? 'CONT' : 'WAIT'), `${domDir} OPT ${domOpt.toFixed(0)}%`);
+        setGate(2, domVwap, domVwap ? '✓ ALIGNED' : '✗ COUNTER', `${(lastState.close - lastState.vwap) >= 0 ? '+' : ''}${(lastState.close - lastState.vwap).toFixed(1)}p vs VWAP`);
+        setGate(3, domStk >= 60, domStk >= 60 ? '✓ ≥60%' : 'LOW', `STK ${domStk.toFixed(0)}%`);
+        setGate(4, timeOk, timeOk ? '✓ OPEN' : 'CLOSED', lastState.tStr);
+
+        // Render Today's S4 Signals Table
+        const tbody = document.getElementById('scalper-signals-tbody');
+        if (tbody) {
+            const allRows = openTrade ? [openTrade, ...trades.slice().reverse()] : trades.slice().reverse();
+            if (allRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-3 text-center text-gray-500">No S4 shadow signals yet today.</td></tr>';
+            } else {
+                tbody.innerHTML = allRows.map(r => {
+                    const dCls = r.dir === 'BULL' ? 'text-emerald-300' : 'text-rose-300';
+                    const oBadge = r.status === 'WIN'
+                        ? '<span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">✅ +15p</span>'
+                        : (r.status === 'LOSS'
+                            ? '<span class="px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold">❌ -25p</span>'
+                            : (r.status === 'LIVE'
+                                ? `<span class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-600 font-bold animate-pulse">⏳ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`
+                                : `<span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700 font-bold">⏱️ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`));
+                    return `<tr>
+                        <td class="py-1 px-2 text-sky-300 font-bold">${r.time}</td>
+                        <td class="py-1 px-2 font-black ${dCls}">${r.dir}</td>
+                        <td class="py-1 px-2 text-right text-white">${r.entry.toFixed(1)}</td>
+                        <td class="py-1 px-2 text-right text-gray-300">${r.optPct}% / ${r.stkPct}%</td>
+                        <td class="py-1 px-2 text-right text-gray-400">${r.target.toFixed(0)} / ${r.sl.toFixed(0)}</td>
+                        <td class="py-1 px-2 text-right">${oBadge}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    }
+
+    function renderScalperActiveCard(openTrade) {
+        const dirEl = document.getElementById('scalper-active-dir');
+        const pnlEl = document.getElementById('scalper-active-pnl');
+        const lvlEl = document.getElementById('scalper-active-levels');
+        if (!openTrade) {
+            if (dirEl) { dirEl.textContent = 'NONE'; dirEl.className = 'px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700'; }
+            if (pnlEl) { pnlEl.textContent = 'Watching...'; pnlEl.className = 'text-xl sm:text-2xl font-black text-gray-400 leading-none'; }
+            if (lvlEl) lvlEl.textContent = 'Waiting for Fresh OPT ≥ 70% + VWAP + STK ≥ 60%';
+            return;
+        }
+        if (dirEl) {
+            dirEl.textContent = `${openTrade.dir === 'BULL' ? '▲' : '▼'} ${openTrade.dir} @ ${openTrade.time}`;
+            dirEl.className = openTrade.dir === 'BULL'
+                ? 'px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-600'
+                : 'px-2 py-0.5 rounded text-[11px] font-black bg-rose-950 text-rose-300 border border-rose-600';
+        }
+        if (pnlEl) {
+            pnlEl.textContent = `${openTrade.pts >= 0 ? '+' : ''}${openTrade.pts.toFixed(1)} pts`;
+            pnlEl.className = `text-xl sm:text-2xl font-black leading-none ${openTrade.pts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+        }
+        if (lvlEl) lvlEl.textContent = `Entry ${openTrade.entry.toFixed(1)} • Tgt ${openTrade.target.toFixed(1)} (+15p) • SL ${openTrade.sl.toFixed(1)} (-25p)`;
+    }
+
+    function updateScalperLiveSpot(spotLtp) {
+        if (!activeScalperShadowTrade || !spotLtp || isNaN(spotLtp)) return;
+        const s = Number(spotLtp);
+        activeScalperShadowTrade.pts = Math.round(((activeScalperShadowTrade.dir === 'BULL') ? (s - activeScalperShadowTrade.entry) : (activeScalperShadowTrade.entry - s)) * 10) / 10;
+        renderScalperActiveCard(activeScalperShadowTrade);
+        const tabBadge = document.getElementById('scalper-tab-badge');
+        if (tabBadge) tabBadge.textContent = `LIVE ${activeScalperShadowTrade.pts >= 0 ? '+' : ''}${activeScalperShadowTrade.pts}p`;
+    }
+    window.updateScalperLiveSpot = updateScalperLiveSpot;
 
     function updateTradeCockpitUI(trade, allTrades, lastVetoedSignal = null, pendingBreakout = null, executedTradesCount = 0) {
         syncMatrixAutoVisibility(trade);
