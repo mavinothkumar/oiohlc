@@ -3844,199 +3844,227 @@
                 </div>
             </div>
 
-            <!-- Middle Panel: Dynamic Multi-Factor Entry Matrix Checklist Table -->
-            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-2.5 shadow-inner flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 mb-1.5 gap-2">
-                        <span class="text-xs font-black tracking-wide text-cyan-300 flex items-center gap-1.5">
-                            <span>⚡ DYNAMIC MULTI-FACTOR ENTRY MATRIX</span>
+            <!-- Middle Panel: Dynamic Multi-Factor Entry Matrix (Executive 5M + Day Picture + Visual Cards) -->
+            <div id="entry-matrix-card" class="bg-[#0f1422] border border-gray-800 rounded-lg p-3 shadow-inner flex flex-col justify-between gap-2.5">
+                <div class="space-y-2.5">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-800 gap-2 flex-wrap">
+                        <span class="text-xs sm:text-sm font-black tracking-wide text-cyan-300 flex items-center gap-2 flex-wrap">
+                            <span>⚡ ENTRY MATRIX</span>
                             <span id="em-confidence-badge" class="px-2.5 py-0.5 rounded text-sm sm:text-base font-mono font-black tracking-wide bg-slate-900 text-gray-300 border border-slate-700">SCORE: --% / 80%</span>
                         </span>
-                        <span class="text-[9.5px] text-gray-400 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-bold">--:--</span></span>
+                        <span class="text-xs text-gray-300 font-mono">Candle: <span id="em-candle-time" class="text-sky-300 font-black">--:--</span></span>
                     </div>
 
-                    <!-- Armed Setup & Squeeze Readiness Meter (Visible when a recent blocked impulse is waiting for OI Crossover/Unwind) -->
-                    <div id="em-armed-setup-banner" class="hidden mb-2 rounded-md border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-[#141b2d] to-[#141b2d] px-2.5 py-1.5 font-mono text-[10px]">
+                    <!-- Executive 2-Card Summary: THIS 5M CANDLE vs OVERALL DAY PICTURE -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 font-mono">
+                        <!-- Card 1: THIS 5M CANDLE -->
+                        <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">🕯️ THIS 5M CANDLE</span>
+                                <span id="em-hero-dir" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700">--</span>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-2">
+                                <span id="em-hero-score" class="text-2xl font-black text-white leading-none">--%</span>
+                                <span id="em-hero-verdict" class="text-xs font-bold text-amber-300 text-right">Scanning...</span>
+                            </div>
+                            <div class="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                                <div id="em-hero-score-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: OVERALL DAY PICTURE -->
+                        <div class="rounded-lg border border-purple-500/30 bg-[#12192b] p-2.5 space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[11px] font-black tracking-wider text-purple-300 uppercase">📅 OVERALL DAY PICTURE</span>
+                                <span id="em-day-session" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/70">OPEN</span>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-2 flex-wrap">
+                                <span id="em-day-vwap" class="text-sm sm:text-base font-black text-white">VWAP: --</span>
+                                <span id="em-day-trades" class="text-xs sm:text-sm font-black text-emerald-300">0 Trades</span>
+                            </div>
+                            <div id="em-day-engine" class="text-xs text-gray-300 font-bold truncate">Standby</div>
+                        </div>
+                    </div>
+
+                    <!-- Armed Setup & Squeeze Readiness Meter -->
+                    <div id="em-armed-setup-banner" class="hidden rounded-md border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-[#141b2d] to-[#141b2d] px-3 py-2 font-mono text-xs">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5">
                                 <span id="em-armed-badge" class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black animate-pulse">⏳ ARMED</span>
                                 <span id="em-armed-title" class="font-bold text-gray-200">--</span>
                             </div>
-                            <div class="flex items-center gap-2 text-[9.5px]">
+                            <div class="flex items-center gap-2 text-[11px]">
                                 <span id="em-armed-window" class="text-sky-300 font-bold">--</span>
                                 <span class="text-gray-600">|</span>
                                 <span id="em-armed-drift-text" class="font-bold text-emerald-300">Drift: --</span>
-                                <div class="w-14 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                <div class="w-16 h-2 bg-gray-800 rounded-full overflow-hidden">
                                     <div id="em-armed-drift-bar" class="h-full bg-emerald-400 transition-all" style="width: 0%;"></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-wrap items-center justify-between gap-2 mt-1 pt-1 border-t border-amber-500/20 text-[9.5px]">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-amber-500/20 text-[11px]">
                             <div id="em-armed-gates" class="flex items-center gap-2 text-gray-300">--</div>
                             <span id="em-armed-action" class="font-black text-amber-300">WAITING FOR OI CROSSOVER / UNWIND</span>
                         </div>
                     </div>
 
-                    <!-- Checklist Table -->
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left font-mono text-[10.5px]">
-                            <thead>
-                                <tr class="text-gray-400 border-b border-gray-800 text-[9.5px] uppercase">
-                                    <th class="py-1 px-1.5">Factor</th>
-                                    <th class="py-1 px-1.5">Weight / Rule</th>
-                                    <th class="py-1 px-1.5">Active Candle State</th>
-                                    <th class="py-1 px-1.5">Tick / Score</th>
-                                    <th class="py-1 px-1.5 text-right">Verdict</th>
-                                </tr>
-                            </thead>
-                            <tbody id="entry-matrix-tbody" class="divide-y divide-gray-800/60">
-                                <!-- GROUP 1: SCORED CONFIDENCE FACTORS (100 PTS) -->
-                                <tr class="bg-slate-900/70">
-                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-cyan-300 uppercase">
-                                        📊 Scored Confidence Factors (100 Pts Total • Major: Stock + Options)
-                                    </td>
-                                </tr>
+                    <!-- GROUP 1: 5 SCORED CONFIDENCE FACTORS (Visual Cards with Progress Bars) -->
+                    <div class="space-y-1.5 font-mono">
+                        <div class="text-[11px] font-black tracking-wider text-cyan-300 uppercase">
+                            📊 5M Confidence Factors (100 Pts Total)
+                        </div>
 
-                                <!-- Factor 2: Stock Breadth Surge (40 pts) -->
-                                <tr id="row-em-breadth">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">📊</span>
-                                        <span>Stock Breadth</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f2-criteria">40 pts (≥80%)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f2-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f2-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/40</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f2-action">AWAITING</td>
-                                </tr>
+                        <!-- Factor 2: Stock Breadth (40 pts) -->
+                        <div id="row-em-breadth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">📊</span>
+                                    <span class="text-xs sm:text-sm font-black text-white">Stock Breadth</span>
+                                    <span id="em-f2-criteria" class="text-[11px] text-sky-300">40 pts (≥80%)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="em-f2-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
+                                    <span id="em-f2-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/40</span></span>
+                                    <span id="em-f2-action" class="text-xs font-bold text-gray-400">AWAITING</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f2-bar" class="h-full bg-sky-400 transition-all duration-300" style="width: 0%;"></div></div>
+                        </div>
 
-                                <!-- Factor 3: Options Order Flow (30 pts) -->
-                                <tr id="row-em-options">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">⚡</span>
-                                        <span>Options Flow</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f3-criteria">30 pts (≥70%)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f3-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f3-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/30</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f3-action">MIXED</td>
-                                </tr>
+                        <!-- Factor 3: Options Flow (30 pts) -->
+                        <div id="row-em-options" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">⚡</span>
+                                    <span class="text-xs sm:text-sm font-black text-white">Options Flow</span>
+                                    <span id="em-f3-criteria" class="text-[11px] text-amber-300">30 pts (≥70%)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="em-f3-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
+                                    <span id="em-f3-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/30</span></span>
+                                    <span id="em-f3-action" class="text-xs font-bold text-gray-400">MIXED</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f3-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div></div>
+                        </div>
 
-                                <!-- Factor 4: Trending OI Wall / Skew (10 pts) -->
-                                <tr id="row-em-oi-veto">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">🧱</span>
-                                        <span>OI Wall / Skew</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-purple-300" id="em-f4-criteria">10 pts (&lt;25% Opp)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f4-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f4-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f4-action">CLEAR</td>
-                                </tr>
+                        <!-- Factor 4: OI Wall / Skew (10 pts) -->
+                        <div id="row-em-oi-veto" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">🧱</span>
+                                    <span class="text-xs sm:text-sm font-black text-white">OI Wall / Skew</span>
+                                    <span id="em-f4-criteria" class="text-[11px] text-purple-300">10 pts (&lt;25% Opp)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="em-f4-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
+                                    <span id="em-f4-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
+                                    <span id="em-f4-action" class="text-xs font-bold text-gray-400">CLEAR</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f4-bar" class="h-full bg-purple-400 transition-all duration-300" style="width: 0%;"></div></div>
+                        </div>
 
-                                <!-- Factor 5: Squeeze Equilibrium (10 pts) -->
-                                <tr id="row-em-squeeze">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">🚀</span>
-                                        <span>OI Squeeze</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-emerald-300" id="em-f5-criteria">10 pts (≤15% Tight)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f5-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f5-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f5-action">NORMAL</td>
-                                </tr>
+                        <!-- Factor 5: OI Squeeze (10 pts) -->
+                        <div id="row-em-squeeze" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">🚀</span>
+                                    <span class="text-xs sm:text-sm font-black text-white">OI Squeeze</span>
+                                    <span id="em-f5-criteria" class="text-[11px] text-emerald-300">10 pts (≤15% Tight)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="em-f5-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
+                                    <span id="em-f5-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
+                                    <span id="em-f5-action" class="text-xs font-bold text-gray-400">NORMAL</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f5-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 0%;"></div></div>
+                        </div>
 
-                                <!-- Factor 6: Futures 30-Depth Flow (10 pts) -->
-                                <tr id="row-em-depth">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">🌊</span>
-                                        <span>30-Depth Flow</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-cyan-300" id="em-f6-criteria">10 pts (Δ &amp; Ratio)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f6-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f6-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f6-action">NEUTRAL</td>
-                                </tr>
+                        <!-- Factor 6: 30-Depth Flow (10 pts) -->
+                        <div id="row-em-depth" class="rounded-lg bg-[#141b2d] border border-gray-800 px-3 py-2 space-y-1">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">🌊</span>
+                                    <span class="text-xs sm:text-sm font-black text-white">30-Depth Flow</span>
+                                    <span id="em-f6-criteria" class="text-[11px] text-cyan-300">10 pts (Δ &amp; Ratio)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="em-f6-state" class="text-xs sm:text-sm font-bold text-gray-200">--</span>
+                                    <span id="em-f6-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ 0/10</span></span>
+                                    <span id="em-f6-action" class="text-xs font-bold text-gray-400">NEUTRAL</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden"><div id="em-f6-bar" class="h-full bg-cyan-400 transition-all duration-300" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
 
-                                <!-- GROUP 2: BINARY STRATEGY GATES (✓ / ✗) -->
-                                <tr class="bg-slate-900/70">
-                                    <td colspan="5" class="py-1 px-1.5 text-[9px] font-black tracking-wider text-fuchsia-300 uppercase">
-                                        🛡️ Strategy Gates (Green ✓ = Go • Red ✗ = Blocked)
-                                    </td>
-                                </tr>
+                    <!-- GROUP 2: 4 STRATEGY GATES (2x2 Big Status Cards) -->
+                    <div class="space-y-1.5 font-mono">
+                        <div class="text-[11px] font-black tracking-wider text-fuchsia-300 uppercase">
+                            🛡️ Strategy Gates (Green ✓ = Go • Red ✗ = Blocked)
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <!-- Gate 9: VWAP Gate -->
+                            <div id="row-em-vwap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs sm:text-sm font-black text-white">📈 VWAP Gate</span>
+                                    <span id="em-f9-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                                </div>
+                                <div id="em-f9-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
+                                <div class="flex items-center justify-between gap-2 text-[11px]">
+                                    <span id="em-f9-criteria" class="text-fuchsia-300">Hard Gate (Dir)</span>
+                                    <span id="em-f9-action" class="font-bold text-gray-400">STANDBY</span>
+                                </div>
+                            </div>
 
-                                <!-- Factor 9: VWAP Trend Filter (HARD GATE) -->
-                                <tr id="row-em-vwap">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">📈</span>
-                                        <span>VWAP Gate</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-fuchsia-300" id="em-f9-criteria">Hard Gate (Dir)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f9-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f9-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f9-action">STANDBY</td>
-                                </tr>
+                            <!-- Gate 1: Session Time -->
+                            <div id="row-em-time" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs sm:text-sm font-black text-white">⏰ Session Time</span>
+                                    <span id="em-f1-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                                </div>
+                                <div id="em-f1-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
+                                <div class="flex items-center justify-between gap-2 text-[11px]">
+                                    <span id="em-f1-criteria" class="text-indigo-300">09:35 – 14:45</span>
+                                    <span id="em-f1-action" class="font-bold text-gray-400">STANDBY</span>
+                                </div>
+                            </div>
 
-                                <!-- Factor 1: Session Time Window -->
-                                <tr id="row-em-time">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">⏰</span>
-                                        <span>Session Time</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-indigo-300" id="em-f1-criteria">09:35 – 14:45</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f1-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f1-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f1-action">STANDBY</td>
-                                </tr>
+                            <!-- Gate 7: Breakout Confirm -->
+                            <div id="row-em-breakout" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs sm:text-sm font-black text-white">🎯 Breakout Confirm</span>
+                                    <span id="em-f7-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                                </div>
+                                <div id="em-f7-state" class="text-xs sm:text-sm font-bold text-gray-200">--</div>
+                                <div class="flex items-center justify-between gap-2 text-[11px]">
+                                    <span id="em-f7-criteria" class="text-amber-300">H/L Break (i+1)</span>
+                                    <span id="em-f7-action" class="font-bold text-gray-400">STANDBY</span>
+                                </div>
+                            </div>
 
-                                <!-- Factor 7: Signal Breakout Trigger -->
-                                <tr id="row-em-breakout">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">🎯</span>
-                                        <span>Breakout Confirm</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-amber-300" id="em-f7-criteria">H/L Break (i+1)</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f7-state">--</td>
-                                    <td class="py-1.5 px-1.5" id="em-f7-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-gray-400" id="em-f7-action">STANDBY</td>
-                                </tr>
-
-                                <!-- Factor 8: Daily Session Cap -->
-                                <tr id="row-em-daily-cap">
-                                    <td class="py-1.5 px-1.5 font-bold text-white flex items-center gap-1">
-                                        <span class="text-xs">🔒</span>
-                                        <span>Daily Session Cap</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-sky-300" id="em-f8-criteria">≤ 2 Trades / Day</td>
-                                    <td class="py-1.5 px-1.5 text-gray-300" id="em-f8-state">0 / 2 Executed</td>
-                                    <td class="py-1.5 px-1.5" id="em-f8-status">
-                                        <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">✓ PASS</span>
-                                    </td>
-                                    <td class="py-1.5 px-1.5 text-right font-bold text-emerald-400" id="em-f8-action">READY</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <!-- Gate 8: Daily Session Cap -->
+                            <div id="row-em-daily-cap" class="rounded-lg bg-[#141b2d] border border-gray-800 p-2.5 flex flex-col justify-between gap-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs sm:text-sm font-black text-white">🔒 Daily Session Cap</span>
+                                    <span id="em-f8-status"><span class="px-1.5 py-0.5 rounded text-[11px] bg-slate-900 text-gray-400 border border-slate-700">⚪ --</span></span>
+                                </div>
+                                <div id="em-f8-state" class="text-xs sm:text-sm font-bold text-gray-200">0 / 2 Executed</div>
+                                <div class="flex items-center justify-between gap-2 text-[11px]">
+                                    <span id="em-f8-criteria" class="text-sky-300">≤ 2 Trades / Day</span>
+                                    <span id="em-f8-action" class="font-bold text-emerald-400">READY</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-2 pt-1.5 border-t border-gray-800 flex items-center justify-between text-[9.5px] font-mono text-gray-400">
-                    <span>⚡ Evaluates all 9 entry &amp; breakout confirmation criteria at each 5M candle close.</span>
-                    <span id="entry-engine-summary-badge" class="px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
+                <div class="pt-2 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-400 flex-wrap gap-2">
+                    <span>⚡ Evaluated at each 5M candle close.</span>
+                    <span id="entry-engine-summary-badge" class="px-2.5 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700">SCANNING CRITERIA</span>
                 </div>
             </div>
 
@@ -19030,6 +19058,77 @@
                 summaryBadge.className = 'px-2 py-0.5 rounded font-bold bg-slate-900 text-gray-400 border border-slate-700';
             }
         }
+        // Populate Executive 2-Card Summary (This 5m Candle + Overall Day Picture) & Factor Progress Bars
+        const heroDir = document.getElementById('em-hero-dir');
+        const heroScore = document.getElementById('em-hero-score');
+        const heroBar = document.getElementById('em-hero-score-bar');
+        const heroVerdict = document.getElementById('em-hero-verdict');
+        if (heroDir) {
+            heroDir.textContent = evalRes.dir === 'BULL' ? '🐂 BULLISH' : (evalRes.dir === 'BEAR' ? '🐻 BEARISH' : '⚖️ MIXED');
+            heroDir.className = evalRes.dir === 'BULL'
+                ? 'px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-600/70'
+                : (evalRes.dir === 'BEAR'
+                    ? 'px-2 py-0.5 rounded text-[11px] font-black bg-rose-950 text-rose-300 border border-rose-600/70'
+                    : 'px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700');
+        }
+        if (heroScore) heroScore.textContent = `${evalRes.totalScore}% / ${evalRes.confThreshold}%`;
+        if (heroBar) {
+            const pct = Math.min(100, Math.max(0, Number(evalRes.totalScore || 0)));
+            heroBar.style.width = `${pct}%`;
+            heroBar.className = `h-full transition-all duration-300 ${evalRes.meetsScore && evalRes.vwapValid ? 'bg-emerald-400' : (evalRes.meetsScore ? 'bg-rose-400' : (pct >= 65 ? 'bg-amber-400' : 'bg-cyan-400'))}`;
+        }
+        if (heroVerdict) {
+            if (evalRes.meetsScore && evalRes.vwapValid) {
+                heroVerdict.textContent = '✅ READY TO ENTER';
+                heroVerdict.className = 'text-xs font-black text-emerald-400 text-right';
+            } else if (evalRes.meetsScore && !evalRes.vwapValid) {
+                heroVerdict.textContent = '🚫 BLOCKED BY VWAP';
+                heroVerdict.className = 'text-xs font-black text-rose-400 text-right';
+            } else {
+                const need = Math.max(0, (evalRes.confThreshold || 80) - (evalRes.totalScore || 0));
+                heroVerdict.textContent = `⏳ Need +${need}% more`;
+                heroVerdict.className = 'text-xs font-bold text-amber-300 text-right';
+            }
+        }
+
+        const daySession = document.getElementById('em-day-session');
+        const dayVwap = document.getElementById('em-day-vwap');
+        const dayTrades = document.getElementById('em-day-trades');
+        const dayEngine = document.getElementById('em-day-engine');
+        if (daySession) {
+            daySession.textContent = isTimeAllowed ? `OPEN (${startTime}–${endTime})` : (tStr < startTime ? `PRE-${startTime}` : `CLOSED (${endTime})`);
+            daySession.className = isTimeAllowed
+                ? 'px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700/70'
+                : 'px-2 py-0.5 rounded text-[11px] font-black bg-rose-950 text-rose-300 border border-rose-700/70';
+        }
+        if (dayVwap && vwapVal > 0 && cClose > 0) {
+            const vd = cClose - vwapVal;
+            dayVwap.textContent = vd >= 0 ? `Above VWAP (+${vd.toFixed(1)}p)` : `Below VWAP (${vd.toFixed(1)}p)`;
+            dayVwap.className = `text-sm sm:text-base font-black ${vd >= 0 ? 'text-emerald-300' : 'text-rose-300'}`;
+        }
+        if (dayTrades) {
+            const dayPnl = (typeof sessionTrades !== 'undefined' && Array.isArray(sessionTrades))
+                ? sessionTrades.reduce((acc, t) => acc + Number(t.pnlRupees || 0), 0) + ((activeTrade && activeTrade.status === 'ACTIVE') ? Number(activeTrade.pnlRupees || 0) : 0)
+                : 0;
+            const dSign = dayPnl >= 0 ? '+' : '';
+            dayTrades.textContent = `${executedTradesCount} Trade${executedTradesCount === 1 ? '' : 's'} • ${dSign}₹${Math.round(dayPnl).toLocaleString('en-IN')}`;
+            dayTrades.className = `text-xs sm:text-sm font-black ${dayPnl >= 0 ? 'text-emerald-300' : 'text-rose-300'}`;
+        }
+        if (dayEngine && summaryBadge) {
+            dayEngine.textContent = summaryBadge.textContent;
+        }
+
+        // Sync 5 factor progress bars from rendered score text (e.g. "34/40")
+        [2, 3, 4, 5, 6].forEach(num => {
+            const stEl = document.getElementById(`em-f${num}-status`);
+            const barEl = document.getElementById(`em-f${num}-bar`);
+            if (!stEl || !barEl) return;
+            const m = (stEl.textContent || '').match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+            if (m) {
+                const pct = Math.min(100, Math.max(0, Math.round((Number(m[1]) / Math.max(1, Number(m[2]))) * 100)));
+                barEl.style.width = `${pct}%`;
+            }
+        });
     }
     window.updateEntryMatrixUI = updateEntryMatrixUI;
 
