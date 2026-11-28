@@ -18275,7 +18275,7 @@
                         optPct: Math.round(isBull ? oUp : oDn), stkPct: Math.round(isBull ? gWt : rWt),
                         status: 'LIVE', pts: 0, bstScore, simWr, orOk, sudOk, pcrOk,
                     };
-                    if (i === rawCandles.length - 2) {
+                    if (i === limitIdx || i === limitIdx - 1) {
                         latestTriggeredBar = openTrade;
                     }
                 }
@@ -18288,11 +18288,14 @@
         }
         activeScalperShadowTrade = openTrade;
 
-        // Fire High-Probability Live Alert ONLY on today's live chart when the latest completed bar just triggered
+        // Fire High-Probability Alert on Live Today's just-closed bar OR during Replay bar-by-bar stepping
         const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-        const isLiveToday = (typeof selectedDate !== 'undefined' && selectedDate === todayIst) && (!typeof isReplayMode === 'boolean' || !isReplayMode) && (limitIdx >= rawCandles.length - 1);
+        const inReplay = (typeof isReplayMode === 'boolean' && isReplayMode) || (limitIdx < rawCandles.length - 1);
+        const isLiveToday = (typeof selectedDate !== 'undefined' && selectedDate === todayIst) && !inReplay && (limitIdx >= rawCandles.length - 1);
+        const shouldAlertLive = isLiveToday && latestTriggeredBar && (latestTriggeredBar.entryIdx === rawCandles.length - 2);
+        const shouldAlertReplay = inReplay && latestTriggeredBar && (latestTriggeredBar.entryIdx === limitIdx || latestTriggeredBar.entryIdx === limitIdx - 1);
         const alertMode = getScalperAlertMode();
-        if (isLiveToday && latestTriggeredBar && alertMode !== 'off') {
+        if ((shouldAlertLive || shouldAlertReplay) && alertMode !== 'off') {
             if (alertMode === 'all' || latestTriggeredBar.bstScore >= 2) {
                 fireScalperHighProbAlert(latestTriggeredBar);
             }
