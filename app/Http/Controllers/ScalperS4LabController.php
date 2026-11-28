@@ -71,7 +71,7 @@ class ScalperS4LabController extends Controller
     protected function analyzeDay(string $date, float $revTh, float $tgtPts, float $slPts, string $basketMode = 'fixed'): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "s4lab_v5_{$date}_{$basketMode}_{$revTh}_{$tgtPts}_{$slPts}";
+        $cacheKey = "s4lab_v6_{$date}_{$basketMode}_{$revTh}_{$tgtPts}_{$slPts}";
         $ttl = ($date === $today) ? 45 : 86400;
 
         return Cache::remember($cacheKey, $ttl, function () use ($date, $revTh, $tgtPts, $slPts, $basketMode) {
@@ -150,6 +150,7 @@ class ScalperS4LabController extends Controller
             };
 
             $dayName = Carbon::parse($date)->format('D');
+            $dayOpen = (float) ($candles[0]['open'] ?? 0);
             $cumTpVol = 0.0;
             $cumVol = 0.0;
             $n = count($candles);
@@ -218,6 +219,10 @@ class ScalperS4LabController extends Controller
                     $isSudden = ($prevSameOpt < 55.0);
                     $orBreakout = ($orHi > -1e8 && $orLo < 1e8) ? (($dir === 'BULL') ? ($cClose > $orHi) : ($cClose < $orLo)) : false;
                     $after1030 = ($tStr >= '10:30');
+                    $fromOpenPts = round(($dir === 'BULL') ? ($cClose - $dayOpen) : ($dayOpen - $cClose), 1);
+                    $withDayOpen = ($fromOpenPts >= 0);
+                    $oi2 = ($i >= 2) ? $getToiAt((string) ($candles[$i - 2]['time_str'] ?? '')) : $oiDiff;
+                    $oiAcc10m = ($oi2 !== null) ? ((($dir === 'BULL') ? ($oiDiff - $oi2) : ($oi2 - $oiDiff)) > 0) : false;
 
                     // Capture next 3 candles (Bar +1, +2, +3) & check reverse OPT >= $revTh and TRAP candles
                     $bars3 = [];
@@ -342,6 +347,9 @@ class ScalperS4LabController extends Controller
                         'is_sudden'     => $isSudden,
                         'or_breakout'   => $orBreakout,
                         'after_1030'    => $after1030,
+                        'with_day_open' => $withDayOpen,
+                        'from_open_pts' => $fromOpenPts,
+                        'oi_acc_10m'    => $oiAcc10m,
                         'clean_3bar'    => !$hasRevOpt,
                         'entry_trap'    => $entryTrap,
                         'has_trap_3bar' => $hasTrap3Bar,

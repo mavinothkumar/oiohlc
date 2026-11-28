@@ -92,6 +92,8 @@
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-emerald-200"><input type="checkbox" id="flt-or-brk" onchange="renderLabTable()"> 🚀 OR Breakout</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-sky-200"><input type="checkbox" id="flt-after-1030" onchange="renderLabTable()"> 🕙 After 10:30</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-purple-200"><input type="checkbox" id="flt-opt-77" onchange="renderLabTable()"> 🔥 OPT ≥ 77%</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-yellow-200"><input type="checkbox" id="flt-with-open" onchange="renderLabTable()"> 🌞 With Day-Open</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-teal-200"><input type="checkbox" id="flt-oi-acc" onchange="renderLabTable()"> 📈 10m OI Accel</label>
             <span class="text-gray-600">|</span>
             <button type="button" onclick="applyLabPreset('combo1')" class="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 font-bold cursor-pointer">Preset: 71.6% (PCR+Sudden+OR)</button>
             <button type="button" onclick="applyLabPreset('combo2')" class="px-2 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-700/70 font-bold cursor-pointer">Preset: 70.2% (OPT≥77+10:30)</button>
@@ -187,14 +189,16 @@
         const orb = document.getElementById('flt-or-brk');
         const t10 = document.getElementById('flt-after-1030');
         const o77 = document.getElementById('flt-opt-77');
+        const wop = document.getElementById('flt-with-open');
+        const oia = document.getElementById('flt-oi-acc');
         if (preset === 'combo1') {
-            pcr.checked = true; sud.checked = true; orb.checked = true; t10.checked = false; o77.checked = false;
+            pcr.checked = true; sud.checked = true; orb.checked = true; t10.checked = false; o77.checked = false; if (wop) wop.checked = false; if (oia) oia.checked = false;
             setLabFilter('ALL');
         } else if (preset === 'combo2') {
-            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = true; o77.checked = true;
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = true; o77.checked = true; if (wop) wop.checked = false; if (oia) oia.checked = false;
             setLabFilter('ALL');
         } else {
-            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = false; o77.checked = false;
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = false; o77.checked = false; if (wop) wop.checked = false; if (oia) oia.checked = false;
             renderLabTable();
         }
     };
@@ -206,6 +210,8 @@
         const useOrb = document.getElementById('flt-or-brk')?.checked;
         const use1030 = document.getElementById('flt-after-1030')?.checked;
         const useOpt77 = document.getElementById('flt-opt-77')?.checked;
+        const useWithOpen = document.getElementById('flt-with-open')?.checked;
+        const useOiAcc = document.getElementById('flt-oi-acc')?.checked;
         const sigs = allSignals.filter(s => {
             if (currentFilter === 'CLEAN' && !s.clean_3bar) return false;
             if (currentFilter === 'NO_TRAP' && (!s.clean_3bar || s.entry_trap || s.has_trap_3bar)) return false;
@@ -216,6 +222,8 @@
             if (useOrb && !s.or_breakout) return false;
             if (use1030 && !s.after_1030) return false;
             if (useOpt77 && Number(s.opt_pct || 0) < 77) return false;
+            if (useWithOpen && !s.with_day_open) return false;
+            if (useOiAcc && !s.oi_acc_10m) return false;
             if (q && !(`${s.date} ${s.time} ${s.dir} ${s.outcome}`.toLowerCase().includes(q))) return false;
             return true;
         });

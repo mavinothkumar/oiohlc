@@ -4200,7 +4200,7 @@
                             <span class="text-[10px] font-mono text-gray-400">Mandatory Base: <span class="text-purple-300 font-bold">OPT ≥ 77%</span> • <span class="text-sky-300 font-bold">After 10:30</span> • <span class="text-cyan-300 font-bold">Trend OI</span> • <span class="text-emerald-300 font-bold">+25p / -25p (1:1)</span></span>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap font-mono">
-                            <button type="button" id="sc-alert-mode-btn" onclick="cycleScalperAlertMode()" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 cursor-pointer" title="Click to switch S4 High-Prob Alert Mode">🔔 Alert: ON (≥2/3)</button>
+                            <button type="button" id="sc-alert-mode-btn" onclick="cycleScalperAlertMode()" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 cursor-pointer" title="Click to switch S4 High-Prob Alert Mode">🔔 Alert: ON (≥3/5)</button>
                             <button type="button" onclick="testScalperAlert()" class="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 cursor-pointer" title="Test S4 Alert Sound & Popup">Test 🔔</button>
                             <span id="scalper-record-pill" class="text-xs font-bold text-gray-300">0W / 0L • +0.0p</span>
                         </div>
@@ -4266,37 +4266,51 @@
                         </div>
                     </div>
 
-                    <!-- 3 Booster Status Cards + Single Candle Probability Gauge (No Checkboxes — Auto-Evaluated Per Candle) -->
+                    <!-- 5 Booster Status Cards + Unified 10-Gate Probability Gauge (Auto-Evaluated Per Candle) -->
                     <div class="rounded-lg bg-[#111829] border border-purple-500/30 p-2 space-y-2 font-mono">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-1.5">
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-1.5">
                             <div id="sc-bst-or-card" class="rounded-lg bg-[#0b101c] border border-gray-800 p-2 transition">
-                                <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
                                     <span class="font-black text-emerald-200">🚀 OR Breakout</span>
-                                    <span id="sc-bst-or-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                                    <span id="sc-bst-or-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
                                 </div>
-                                <div id="sc-bst-or-val" class="text-[11px] font-bold text-gray-300 mt-1 truncate">--</div>
+                                <div id="sc-bst-or-val" class="text-[10.5px] font-bold text-gray-300 mt-1 truncate">--</div>
                             </div>
                             <div id="sc-bst-sud-card" class="rounded-lg bg-[#0b101c] border border-gray-800 p-2 transition">
-                                <div class="flex items-center justify-between gap-1 text-[11px]">
-                                    <span class="font-black text-amber-200">⚡ Sudden (&lt;55% Prev)</span>
-                                    <span id="sc-bst-sud-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span class="font-black text-amber-200">⚡ Sudden &lt;55%</span>
+                                    <span id="sc-bst-sud-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
                                 </div>
-                                <div id="sc-bst-sud-val" class="text-[11px] font-bold text-gray-300 mt-1 truncate">--</div>
+                                <div id="sc-bst-sud-val" class="text-[10.5px] font-bold text-gray-300 mt-1 truncate">--</div>
                             </div>
                             <div id="sc-bst-pcr-card" class="rounded-lg bg-[#0b101c] border border-gray-800 p-2 transition">
-                                <div class="flex items-center justify-between gap-1 text-[11px]">
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
                                     <span class="font-black text-cyan-200">🧲 Trapped PCR</span>
-                                    <span id="sc-bst-pcr-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                                    <span id="sc-bst-pcr-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
                                 </div>
-                                <div id="sc-bst-pcr-val" class="text-[11px] font-bold text-gray-300 mt-1 truncate">--</div>
+                                <div id="sc-bst-pcr-val" class="text-[10.5px] font-bold text-gray-300 mt-1 truncate">--</div>
+                            </div>
+                            <div id="sc-bst-opn-card" class="rounded-lg bg-[#0b101c] border border-gray-800 p-2 transition">
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span class="font-black text-yellow-200">🌞 With Open</span>
+                                    <span id="sc-bst-opn-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                                </div>
+                                <div id="sc-bst-opn-val" class="text-[10.5px] font-bold text-gray-300 mt-1 truncate">--</div>
+                            </div>
+                            <div id="sc-bst-oia-card" class="rounded-lg bg-[#0b101c] border border-gray-800 p-2 transition col-span-2 lg:col-span-1">
+                                <div class="flex items-center justify-between gap-1 text-[10.5px]">
+                                    <span class="font-black text-teal-200">📈 10m OI Accel</span>
+                                    <span id="sc-bst-oia-badge" class="px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
+                                </div>
+                                <div id="sc-bst-oia-val" class="text-[10.5px] font-bold text-gray-300 mt-1 truncate">--</div>
                             </div>
                         </div>
 
-                        <!-- Unified 8-Gate Setup & Probability Bar -->
+                        <!-- Unified 10-Gate Setup & Probability Bar -->
                         <div class="bg-[#0b101c] border border-gray-800 rounded-lg p-2 space-y-1.5">
                             <div class="flex items-center justify-between gap-2 flex-wrap text-[11px]">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-gray-300 font-black uppercase">Setup Readiness (5 Base + 3 Boosters):</span>
+                                    <span class="text-gray-300 font-black uppercase">Setup Readiness (5 Base + 5 Boosters):</span>
                                     <span id="sc-prob-tier" class="px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-gray-300 border border-slate-700">--</span>
                                     <span id="sc-base-count" class="text-[10.5px] text-amber-300 font-bold">Base 0/5</span>
                                 </div>
@@ -18086,16 +18100,24 @@
     // ── S4 Quick Scalper Shadow Monitor (Read-Only, Isolated from V2 & 0click.in) ──
     let activeScalperShadowTrade = null;
     const alertedScalperTimesSet = new Set();
-    const SCALPER_6M_STATS = {
-        0: { n: 100, w: 66, l: 28, wr: 70.2, net: 933.3 },
-        1: { n: 68,  w: 50, l: 14, wr: 78.1, net: 895.5 },
-        2: { n: 82,  w: 56, l: 22, wr: 71.8, net: 853.9 },
-        3: { n: 56,  w: 44, l: 9,  wr: 83.0, net: 884.4 },
-        4: { n: 76,  w: 55, l: 20, wr: 73.3, net: 868.3 },
-        5: { n: 47,  w: 39, l: 8,  wr: 83.0, net: 775.0 },
-        6: { n: 61,  w: 45, l: 16, wr: 73.8, net: 725.0 },
-        7: { n: 38,  w: 33, l: 5,  wr: 86.8, net: 700.0 },
-    };
+    const SCALPER_6M_STATS = [
+        {"n":110,"w":73,"l":31,"wr":70.2,"net":1033.3},{"n":77,"w":57,"l":16,"wr":78.1,"net":1020.5},
+        {"n":91,"w":63,"l":24,"wr":72.4,"net":978.9},{"n":64,"w":51,"l":10,"wr":83.6,"net":1034.4},
+        {"n":84,"w":61,"l":22,"wr":73.5,"net":968.3},{"n":55,"w":45,"l":10,"wr":81.8,"net":875},
+        {"n":68,"w":51,"l":17,"wr":75,"net":850},{"n":45,"w":39,"l":6,"wr":86.7,"net":825},
+        {"n":102,"w":70,"l":27,"wr":72.2,"net":1065},{"n":77,"w":57,"l":16,"wr":78.1,"net":1020.5},
+        {"n":86,"w":61,"l":21,"wr":74.4,"net":1003.9},{"n":64,"w":51,"l":10,"wr":83.6,"net":1034.4},
+        {"n":76,"w":58,"l":18,"wr":76.3,"net":1000},{"n":55,"w":45,"l":10,"wr":81.8,"net":875},
+        {"n":63,"w":49,"l":14,"wr":77.8,"net":875},{"n":45,"w":39,"l":6,"wr":86.7,"net":825},
+        {"n":68,"w":47,"l":17,"wr":73.4,"net":751.8},{"n":48,"w":37,"l":8,"wr":82.2,"net":733.5},
+        {"n":54,"w":38,"l":14,"wr":73.1,"net":622.4},{"n":40,"w":32,"l":6,"wr":84.2,"net":672.4},
+        {"n":52,"w":39,"l":12,"wr":76.5,"net":668.3},{"n":34,"w":29,"l":5,"wr":85.3,"net":600},
+        {"n":39,"w":30,"l":9,"wr":76.9,"net":525},{"n":27,"w":24,"l":3,"wr":88.9,"net":525},
+        {"n":62,"w":45,"l":14,"wr":76.3,"net":783.5},{"n":48,"w":37,"l":8,"wr":82.2,"net":733.5},
+        {"n":51,"w":37,"l":12,"wr":75.5,"net":647.4},{"n":40,"w":32,"l":6,"wr":84.2,"net":672.4},
+        {"n":46,"w":37,"l":9,"wr":80.4,"net":700},{"n":34,"w":29,"l":5,"wr":85.3,"net":600},
+        {"n":36,"w":29,"l":7,"wr":80.6,"net":550},{"n":27,"w":24,"l":3,"wr":88.9,"net":525}
+    ];
 
     function getScalperAlertMode() {
         const m = localStorage.getItem('v2_scalper_alert_mode') || 'hi2'; // 'hi2' (>=2/3 boosters) | 'all' (all mandatory) | 'off'
@@ -18107,7 +18129,7 @@
         const btn = document.getElementById('sc-alert-mode-btn');
         if (!btn) return;
         if (m === 'hi2') {
-            btn.textContent = '🔔 Alert: ON (≥2/3)';
+            btn.textContent = '🔔 Alert: ON (≥3/5)';
             btn.className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-600 cursor-pointer';
         } else if (m === 'all') {
             btn.textContent = '🔔 Alert: ALL (≥70%)';
@@ -18133,7 +18155,7 @@
         if (!sig || alertedScalperTimesSet.has(sig.time)) return;
         alertedScalperTimesSet.add(sig.time);
         try { if (typeof playSoundByName === 'function') playSoundByName('siren', 0.9); } catch (_) {}
-        const tags = [sig.orOk ? '🚀OR' : null, sig.sudOk ? '⚡Sudden' : null, sig.pcrOk ? '🧲PCR' : null].filter(Boolean).join(' + ') || 'Base Only';
+        const tags = [sig.orOk ? '🚀OR' : null, sig.sudOk ? '⚡Sudden' : null, sig.pcrOk ? '🧲PCR' : null, sig.opnOk ? '🌞Open' : null, sig.oiaOk ? '📈OI+' : null].filter(Boolean).join(' + ') || 'Base Only';
         const optAction = sig.dir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
         try {
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -18157,7 +18179,7 @@
                 volume: 0.9,
                 isConfluence: true,
                 confluenceState: 'CONFLUENCE',
-                confluenceText: `${optAction} | 5/5 Base + ${sig.bstScore}/3 Boosters (${tags}) → ${sig.simWr}% 6.5M Win Rate. Spot ${sig.entry.toFixed(1)} | Tgt ${sig.target.toFixed(1)} (+25p) | SL ${sig.sl.toFixed(1)} (-25p)`,
+                confluenceText: `${optAction} | 5/5 Base + ${sig.bstScore}/5 Boosters (${tags}) → ${sig.simWr}% 6.5M Win Rate. Spot ${sig.entry.toFixed(1)} | Tgt ${sig.target.toFixed(1)} (+25p) | SL ${sig.sl.toFixed(1)} (-25p)`,
             });
         }
     }
@@ -18171,17 +18193,20 @@
             sl: 25825.0,
             optPct: 83,
             stkPct: 72,
-            bstScore: 3,
-            simWr: 86.8,
+            bstScore: 5,
+            simWr: 88.9,
             orOk: true,
             sudOk: true,
             pcrOk: true,
+            opnOk: true,
+            oiaOk: true,
         });
     };
 
     function evaluateScalperS4Shadow(rawCandles, upToIndex) {
         if (!Array.isArray(rawCandles) || rawCandles.length === 0) return;
         const limitIdx = Math.min(rawCandles.length - 1, Math.max(0, Number(upToIndex)));
+        const dayOpen = Number(rawCandles[0]?.open || rawCandles[0]?.close || 0);
         let cumTpVol = 0, cumVol = 0;
         let orHi = -1e9, orLo = 1e9;
         let prevOptBull = false, prevOptBear = false;
@@ -18189,7 +18214,7 @@
         let openTrade = null;
         let latestTriggeredBar = null;
 
-        let lastState = { tStr: '--:--', close: 0, vwap: 0, oUp: 0, oDn: 0, gWt: 0, rWt: 0, isFreshBull: false, isFreshBear: false, pcr: 1.0, prevSameBull: 50, prevSameBear: 50, orHi: -1e9, orLo: 1e9 };
+        let lastState = { tStr: '--:--', close: 0, vwap: 0, oUp: 0, oDn: 0, gWt: 0, rWt: 0, isFreshBull: false, isFreshBear: false, pcr: 1.0, prevSameBull: 50, prevSameBear: 50, orHi: -1e9, orLo: 1e9, oiDiff: 0, oiDiff2: 0 };
 
         for (let i = 0; i <= limitIdx; i++) {
             const c = rawCandles[i];
@@ -18250,15 +18275,19 @@
             const prevSameBull = obPrev ? Number(obPrev.up_weight || 50) : 50;
             const prevSameBear = obPrev ? Number(obPrev.down_weight || 50) : 50;
             const pcr = Number(ob?.greeks?.pcr ?? 1.0);
+            const oiSnapCur = (typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(tStr) : null;
+            const oiDiffCur = oiSnapCur ? Number(oiSnapCur.diff || 0) : null;
+            const t2 = (i >= 2) ? String(rawCandles[i - 2]?.time_str || '') : '';
+            const oiSnap2 = (t2 && typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(t2) : null;
+            const oiDiff2 = oiSnap2 ? Number(oiSnap2.diff || 0) : oiDiffCur;
 
             if (i === limitIdx) {
-                lastState = { tStr, close: cClose, vwap, oUp, oDn, gWt, rWt, isFreshBull, isFreshBear, pcr, prevSameBull, prevSameBear, orHi, orLo };
+                lastState = { tStr, close: cClose, vwap, oUp, oDn, gWt, rWt, isFreshBull, isFreshBear, pcr, prevSameBull, prevSameBear, orHi, orLo, oiDiff: oiDiffCur, oiDiff2 };
             }
 
             // Evaluate Mandatory S4+OI entry on completed bars only (OPT >= 77%, After 10:30, With VWAP, STK >= 60%, Trend OI)
             if (!openTrade && i < rawCandles.length - 1 && tStr >= '10:30' && tStr <= '14:35') {
-                const oiSnapBar = (typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(tStr) : null;
-                const oiDiffBar = oiSnapBar ? Number(oiSnapBar.diff || 0) : null;
+                const oiDiffBar = oiDiffCur;
                 let candDir = null;
                 if (isFreshBull && cClose >= vwap && gWt >= 60 && oiDiffBar !== null && oiDiffBar > 0) candDir = 'BULL';
                 else if (isFreshBear && cClose <= vwap && rWt >= 60 && oiDiffBar !== null && oiDiffBar < 0) candDir = 'BEAR';
@@ -18268,8 +18297,10 @@
                     const orOk = (orHi > -1e8 && orLo < 1e8) ? (isBull ? (cClose > orHi) : (cClose < orLo)) : false;
                     const sudOk = (isBull ? prevSameBull : prevSameBear) < 55;
                     const pcrOk = isBull ? (pcr < 1.0) : (pcr > 1.0);
-                    const bstScore = (orOk ? 1 : 0) + (sudOk ? 1 : 0) + (pcrOk ? 1 : 0);
-                    const mask = (orOk ? 1 : 0) | (sudOk ? 2 : 0) | (pcrOk ? 4 : 0);
+                    const opnOk = isBull ? (cClose >= dayOpen) : (cClose <= dayOpen);
+                    const oiaOk = (oiDiffBar !== null && oiDiff2 !== null) ? (isBull ? (oiDiffBar - oiDiff2 > 0) : (oiDiff2 - oiDiffBar > 0)) : false;
+                    const bstScore = (orOk ? 1 : 0) + (sudOk ? 1 : 0) + (pcrOk ? 1 : 0) + (opnOk ? 1 : 0) + (oiaOk ? 1 : 0);
+                    const mask = (orOk ? 1 : 0) | (sudOk ? 2 : 0) | (pcrOk ? 4 : 0) | (opnOk ? 8 : 0) | (oiaOk ? 16 : 0);
                     const simWr = (SCALPER_6M_STATS[mask] || SCALPER_6M_STATS[0]).wr;
 
                     openTrade = {
@@ -18277,7 +18308,7 @@
                         target: Math.round((isBull ? (cClose + 25) : (cClose - 25)) * 100) / 100,
                         sl: Math.round((isBull ? (cClose - 25) : (cClose + 25)) * 100) / 100,
                         optPct: Math.round(isBull ? oUp : oDn), stkPct: Math.round(isBull ? gWt : rWt),
-                        status: 'LIVE', pts: 0, bstScore, simWr, orOk, sudOk, pcrOk,
+                        status: 'LIVE', pts: 0, bstScore, simWr, orOk, sudOk, pcrOk, opnOk, oiaOk,
                     };
                     if (i === limitIdx || i === limitIdx - 1) {
                         latestTriggeredBar = openTrade;
@@ -18300,7 +18331,7 @@
         const shouldAlertReplay = inReplay && latestTriggeredBar && (latestTriggeredBar.entryIdx === limitIdx || latestTriggeredBar.entryIdx === limitIdx - 1);
         const alertMode = getScalperAlertMode();
         if ((shouldAlertLive || shouldAlertReplay) && alertMode !== 'off') {
-            if (alertMode === 'all' || latestTriggeredBar.bstScore >= 2) {
+            if (alertMode === 'all' || latestTriggeredBar.bstScore >= 3) {
                 fireScalperHighProbAlert(latestTriggeredBar);
             }
         }
@@ -18370,12 +18401,16 @@
         const lastOiL = (lastOiDiff / 100000).toFixed(1);
         setGate(5, lastOiAligned, lastOiSnap ? (lastOiAligned ? '✓ ALIGNED' : '✗ OPPOSED') : '--', lastOiSnap ? `${lastOiDiff > 0 ? 'Put' : 'Call'} ${lastOiDiff >= 0 ? '+' : ''}${lastOiL}L` : 'No OI');
 
-        // Update 3 Booster Cards + Single Graphical Candle Probability Gauge
+        // Update 5 Booster Cards + Unified 10-Gate Probability Gauge
         const hasOr = (lastState.orHi > -1e8 && lastState.orLo < 1e8);
         const liveOrOk = hasOr ? (domDir === 'BULL' ? (lastState.close > lastState.orHi) : (lastState.close < lastState.orLo)) : false;
         const livePrevSame = (domDir === 'BULL') ? lastState.prevSameBull : lastState.prevSameBear;
         const liveSudOk = livePrevSame < 55;
         const livePcrOk = (domDir === 'BULL') ? (lastState.pcr < 1.0) : (lastState.pcr > 1.0);
+        const liveFromOpen = (domDir === 'BULL') ? (lastState.close - dayOpen) : (dayOpen - lastState.close);
+        const liveOpnOk = liveFromOpen >= 0;
+        const liveOiDelta = (lastState.oiDiff !== null && lastState.oiDiff2 !== null) ? ((domDir === 'BULL') ? (lastState.oiDiff - lastState.oiDiff2) : (lastState.oiDiff2 - lastState.oiDiff)) : 0;
+        const liveOiaOk = liveOiDelta > 0;
 
         const setBoosterCard = (key, ok, valTxt, activeCls) => {
             const card = document.getElementById(`sc-bst-${key}-card`);
@@ -18383,16 +18418,18 @@
             const val = document.getElementById(`sc-bst-${key}-val`);
             if (card) card.className = `rounded-lg bg-[#0b101c] border p-2 transition ${ok ? activeCls : 'border-gray-800 opacity-70'}`;
             if (badge) {
-                badge.textContent = ok ? '✓ ACTIVE' : '✗ INACTIVE';
+                badge.textContent = ok ? '✓ ACTIVE' : '✗ OFF';
                 badge.className = ok
-                    ? 'px-1.5 py-0.2 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-black'
-                    : 'px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-500 border border-slate-700';
+                    ? 'px-1 py-0.2 rounded text-[9.5px] bg-emerald-950 text-emerald-300 border border-emerald-600 font-black'
+                    : 'px-1 py-0.2 rounded text-[9.5px] bg-slate-900 text-gray-500 border border-slate-700';
             }
             if (val) val.textContent = valTxt;
         };
-        setBoosterCard('or', liveOrOk, hasOr ? (liveOrOk ? `${domDir === 'BULL' ? '>' : '<'} OR (${lastState.orLo.toFixed(0)}–${lastState.orHi.toFixed(0)})` : `Inside OR (${lastState.orLo.toFixed(0)}–${lastState.orHi.toFixed(0)})`) : 'Building OR...', 'border-emerald-500/60');
-        setBoosterCard('sud', liveSudOk, `Prev 5m: ${livePrevSame.toFixed(0)}% (${liveSudOk ? '<55% Fresh' : '≥55% Buildup'})`, 'border-amber-500/60');
-        setBoosterCard('pcr', livePcrOk, `PCR ${lastState.pcr.toFixed(2)} (${domDir === 'BULL' ? 'Need <1.0' : 'Need >1.0'})`, 'border-cyan-500/60');
+        setBoosterCard('or', liveOrOk, hasOr ? (liveOrOk ? `${domDir === 'BULL' ? '>' : '<'} OR (${lastState.orLo.toFixed(0)}–${lastState.orHi.toFixed(0)})` : `Inside (${lastState.orLo.toFixed(0)}–${lastState.orHi.toFixed(0)})`) : 'Building OR...', 'border-emerald-500/60');
+        setBoosterCard('sud', liveSudOk, `Prev: ${livePrevSame.toFixed(0)}% (${liveSudOk ? '<55%' : '≥55%'})`, 'border-amber-500/60');
+        setBoosterCard('pcr', livePcrOk, `PCR ${lastState.pcr.toFixed(2)} (${domDir === 'BULL' ? '<1.0' : '>1.0'})`, 'border-cyan-500/60');
+        setBoosterCard('opn', liveOpnOk, `${liveFromOpen >= 0 ? '+' : ''}${liveFromOpen.toFixed(0)}p vs Open`, 'border-yellow-500/60');
+        setBoosterCard('oia', liveOiaOk, `10m Δ ${(liveOiDelta / 100000) >= 0 ? '+' : ''}${(liveOiDelta / 100000).toFixed(1)}L`, 'border-teal-500/60');
 
         const basePassCount = (domOpt >= 77 && domFresh ? 1 : 0) + (domVwap ? 1 : 0) + (domStk >= 60 ? 1 : 0) + (lastOiAligned ? 1 : 0) + (timeOk ? 1 : 0);
         const missingBase = [];
@@ -18402,8 +18439,8 @@
         if (!lastOiAligned) missingBase.push('Trend OI');
         if (!timeOk) missingBase.push('10:30–14:35');
 
-        const bstScore = (liveOrOk ? 1 : 0) + (liveSudOk ? 1 : 0) + (livePcrOk ? 1 : 0);
-        const mask = (liveOrOk ? 1 : 0) | (liveSudOk ? 2 : 0) | (livePcrOk ? 4 : 0);
+        const bstScore = (liveOrOk ? 1 : 0) + (liveSudOk ? 1 : 0) + (livePcrOk ? 1 : 0) + (liveOpnOk ? 1 : 0) + (liveOiaOk ? 1 : 0);
+        const mask = (liveOrOk ? 1 : 0) | (liveSudOk ? 2 : 0) | (livePcrOk ? 4 : 0) | (liveOpnOk ? 8 : 0) | (liveOiaOk ? 16 : 0);
         const sim = SCALPER_6M_STATS[mask] || SCALPER_6M_STATS[0];
         const totalScore = basePassCount + bstScore;
         const optActionTxt = domDir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
@@ -18418,19 +18455,19 @@
         const tierEl = document.getElementById('sc-prob-tier');
         if (tierEl) {
             if (basePassCount < 5) {
-                tierEl.textContent = `⏸️ NO SIGNAL (${totalScore}/8 Gates)`;
+                tierEl.textContent = `⏸️ NO SIGNAL (${totalScore}/10 Gates)`;
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-amber-300 border border-amber-700/60';
-            } else if (bstScore === 3) {
-                tierEl.textContent = '🔥 ULTRA HIGH (8/8)';
+            } else if (bstScore >= 4) {
+                tierEl.textContent = `🔥 ULTRA HIGH (${totalScore}/10)`;
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500';
-            } else if (bstScore === 2) {
-                tierEl.textContent = '⚡ HIGH PROB (7/8)';
+            } else if (bstScore === 3) {
+                tierEl.textContent = `⚡ HIGH PROB (8/10)`;
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-cyan-950 text-cyan-300 border border-cyan-500';
-            } else if (bstScore === 1) {
-                tierEl.textContent = '✅ GOOD (6/8)';
+            } else if (bstScore >= 1) {
+                tierEl.textContent = `✅ GOOD (${totalScore}/10)`;
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-sky-950 text-sky-300 border border-sky-600';
             } else {
-                tierEl.textContent = '📊 BASE (5/8)';
+                tierEl.textContent = '📊 BASE (5/10)';
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-gray-300 border border-slate-700';
             }
         }
@@ -18438,17 +18475,17 @@
         const probFill = document.getElementById('sc-prob-fill');
         if (probLbl) {
             probLbl.textContent = basePassCount === 5
-                ? `${sim.wr}% Win Rate (${bstScore}/3 Boosters • ${sim.w}W/${sim.l}L • +${sim.net}p)`
-                : `Blocked (Boosters ${bstScore}/3 ready → would be ${sim.wr}% if 5/5 Base passes)`;
+                ? `${sim.wr}% Win Rate (${bstScore}/5 Boosters • ${sim.w}W/${sim.l}L • +${sim.net}p)`
+                : `Blocked (Boosters ${bstScore}/5 ready → would be ${sim.wr}% if 5/5 Base passes)`;
             probLbl.className = `text-xs font-black ${basePassCount === 5 ? 'text-emerald-300' : 'text-gray-400'}`;
         }
         if (probFill) {
-            const fillPct = basePassCount === 5 ? sim.wr : Math.round((totalScore / 8) * 100);
+            const fillPct = basePassCount === 5 ? sim.wr : Math.round((totalScore / 10) * 100);
             probFill.style.width = `${fillPct}%`;
-            probFill.className = `h-full transition-all duration-300 ${basePassCount < 5 ? 'bg-amber-600/70' : (bstScore === 3 ? 'bg-emerald-400' : (bstScore === 2 ? 'bg-cyan-400' : (bstScore === 1 ? 'bg-sky-500' : 'bg-amber-500')))}`;
+            probFill.className = `h-full transition-all duration-300 ${basePassCount < 5 ? 'bg-amber-600/70' : (bstScore >= 4 ? 'bg-emerald-400' : (bstScore === 3 ? 'bg-cyan-400' : (bstScore >= 1 ? 'bg-sky-500' : 'bg-amber-500')))}`;
         }
 
-        // Render Today's S4 Signals Table (All Mandatory Signals + Active Boosters + Historical WR)
+        // Render Today's S4 Signals Table (All Mandatory Signals + 5 Active Boosters + Historical WR)
         const tbody = document.getElementById('scalper-signals-tbody');
         if (tbody) {
             const combined = [...(openTrade ? [openTrade] : []), ...trades.slice().reverse()];
@@ -18468,6 +18505,8 @@
                         `<span class="px-1 rounded text-[9px] ${r.orOk ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">OR</span>`,
                         `<span class="px-1 rounded text-[9px] ${r.sudOk ? 'bg-amber-950 text-amber-300 border border-amber-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">SUD</span>`,
                         `<span class="px-1 rounded text-[9px] ${r.pcrOk ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">PCR</span>`,
+                        `<span class="px-1 rounded text-[9px] ${r.opnOk ? 'bg-yellow-950 text-yellow-300 border border-yellow-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">OPN</span>`,
+                        `<span class="px-1 rounded text-[9px] ${r.oiaOk ? 'bg-teal-950 text-teal-300 border border-teal-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">OI+</span>`,
                     ].join(' ');
                     const actTxt = r.dir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
                     return `<tr>
