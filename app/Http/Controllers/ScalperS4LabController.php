@@ -71,7 +71,7 @@ class ScalperS4LabController extends Controller
     protected function analyzeDay(string $date, float $revTh, float $tgtPts, float $slPts, string $basketMode = 'fixed'): ?array
     {
         $today = Carbon::now('Asia/Kolkata')->toDateString();
-        $cacheKey = "s4lab_v4_{$date}_{$basketMode}_{$revTh}_{$tgtPts}_{$slPts}";
+        $cacheKey = "s4lab_v5_{$date}_{$basketMode}_{$revTh}_{$tgtPts}_{$slPts}";
         $ttl = ($date === $today) ? 45 : 86400;
 
         return Cache::remember($cacheKey, $ttl, function () use ($date, $revTh, $tgtPts, $slPts, $basketMode) {
@@ -123,16 +123,31 @@ class ScalperS4LabController extends Controller
             $putOi  = $tJson['chart']['put_oi'] ?? [];
             $sent   = $tJson['chart']['sentiment'] ?? [];
 
-            $toiMap = [];
+            $toiList = [];
             foreach ($labels as $idx => $lbl) {
                 $tKey = substr((string) $lbl, 0, 5);
                 $ce = (float) ($callOi[$idx] ?? 0);
                 $pe = (float) ($putOi[$idx] ?? 0);
-                $toiMap[$tKey] = isset($sent[$idx]) ? (float) $sent[$idx] : ($pe - $ce);
+                $toiList[] = [
+                    't' => $tKey,
+                    'v' => isset($sent[$idx]) ? (float) $sent[$idx] : ($pe - $ce),
+                ];
             }
-            if (empty($toiMap)) {
+            if (empty($toiList)) {
                 return null;
             }
+            usort($toiList, fn($a, $b) => strcmp($a['t'], $b['t']));
+            $getToiAt = function (string $targetTime) use ($toiList): ?float {
+                $found = null;
+                foreach ($toiList as $row) {
+                    if ($row['t'] <= $targetTime) {
+                        $found = $row['v'];
+                    } else {
+                        break;
+                    }
+                }
+                return $found;
+            };
 
             $dayName = Carbon::parse($date)->format('D');
             $cumTpVol = 0.0;
@@ -179,10 +194,10 @@ class ScalperS4LabController extends Controller
                 if ($tStr < '09:50' || $tStr > '14:35') {
                     continue;
                 }
-                if (!isset($toiMap[$tStr])) {
+                $oiDiff = $getToiAt($tStr);
+                if ($oiDiff === null) {
                     continue;
                 }
-                $oiDiff = $toiMap[$tStr];
 
                 foreach (['BULL', 'BEAR'] as $dir) {
                     $isFresh = ($dir === 'BULL') ? $isFreshBull : $isFreshBear;
