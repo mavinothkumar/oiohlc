@@ -75,11 +75,12 @@
     <!-- Filter Bar -->
     <div class="bg-[#0f1422] border border-gray-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
         <div class="flex flex-wrap items-center gap-1.5">
-            <button type="button" onclick="setLabFilter('CLEAN')" class="lab-flt-btn px-3 py-1 rounded bg-emerald-950 text-emerald-200 border border-emerald-600 font-black cursor-pointer" data-flt="CLEAN">🏆 Clean 3-Bar (No Rev OPT)</button>
+            <button type="button" onclick="setLabFilter('ALL')" class="lab-flt-btn px-3 py-1 rounded bg-emerald-950 text-emerald-200 border border-emerald-500 font-black cursor-pointer" data-flt="ALL">All S4+OI</button>
+            <button type="button" onclick="setLabFilter('WINS')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-emerald-300 border border-emerald-800/60 font-bold cursor-pointer" data-flt="WINS">✅ Wins Only</button>
+            <button type="button" onclick="setLabFilter('LOSSES')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-rose-300 border border-rose-800/60 font-bold cursor-pointer" data-flt="LOSSES">❌ Losses Only</button>
+            <button type="button" onclick="setLabFilter('CLEAN')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="CLEAN">🏆 Clean 3-Bar (No Rev OPT)</button>
             <button type="button" onclick="setLabFilter('NO_TRAP')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-teal-300 border border-teal-700/60 font-bold cursor-pointer" data-flt="NO_TRAP">🛡️ Clean &amp; No Trap</button>
             <button type="button" onclick="setLabFilter('REVERSED')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="REVERSED">🩸 Reversed in 1–3 Bars</button>
-            <button type="button" onclick="setLabFilter('ALL')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-gray-300 border border-slate-700 font-bold cursor-pointer" data-flt="ALL">All S4+OI</button>
-            <button type="button" onclick="setLabFilter('LOSSES')" class="lab-flt-btn px-3 py-1 rounded bg-slate-900 text-rose-300 border border-rose-800/60 font-bold cursor-pointer" data-flt="LOSSES">❌ Losses Only</button>
         </div>
         <div class="flex items-center gap-2">
             <input type="text" id="lab-search" onkeyup="renderLabTable()" placeholder="Search date (2026-11), time (12:55), BULL/BEAR..." class="bg-[#090d16] border border-gray-700 rounded px-2.5 py-1 text-xs text-white w-64 focus:outline-none">
@@ -87,11 +88,19 @@
         </div>
         <div class="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-gray-800/80 text-[11px]">
             <span class="text-gray-400 font-bold uppercase">Pre-Entry Filters:</span>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 text-purple-200">
+                <span>🔥 OPT ≥</span>
+                <select id="flt-opt-min" onchange="renderLabTable()" class="bg-[#090d16] border border-gray-700 rounded px-1 py-0.2 text-purple-300 font-bold focus:outline-none">
+                    <option value="70" selected>70% (All)</option>
+                    <option value="75">75%+</option>
+                    <option value="77">77%+</option>
+                    <option value="80">80%+</option>
+                </select>
+            </label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-cyan-200"><input type="checkbox" id="flt-pcr-against" onchange="renderLabTable()"> 🧲 Trapped PCR</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-amber-200"><input type="checkbox" id="flt-sudden" onchange="renderLabTable()"> ⚡ Sudden (&lt;55% prev)</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-emerald-200"><input type="checkbox" id="flt-or-brk" onchange="renderLabTable()"> 🚀 OR Breakout</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-sky-200"><input type="checkbox" id="flt-after-1030" onchange="renderLabTable()"> 🕙 After 10:30</label>
-            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-purple-200"><input type="checkbox" id="flt-opt-77" onchange="renderLabTable()"> 🔥 OPT ≥ 77%</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-yellow-200"><input type="checkbox" id="flt-with-open" onchange="renderLabTable()"> 🌞 With Day-Open</label>
             <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-teal-200"><input type="checkbox" id="flt-oi-acc" onchange="renderLabTable()"> 📈 10m OI Accel</label>
             <span class="text-gray-600">|</span>
@@ -134,7 +143,7 @@
 (function() {
     'use strict';
     let allSignals = [];
-    let currentFilter = 'CLEAN';
+    let currentFilter = 'ALL';
     let lastFiltered = [];
 
     window.loadLabData = async function() {
@@ -188,18 +197,18 @@
         const sud = document.getElementById('flt-sudden');
         const orb = document.getElementById('flt-or-brk');
         const t10 = document.getElementById('flt-after-1030');
-        const o77 = document.getElementById('flt-opt-77');
+        const oMin = document.getElementById('flt-opt-min');
         const wop = document.getElementById('flt-with-open');
         const oia = document.getElementById('flt-oi-acc');
         if (preset === 'combo1') {
-            pcr.checked = true; sud.checked = true; orb.checked = true; t10.checked = false; o77.checked = false; if (wop) wop.checked = false; if (oia) oia.checked = false;
+            pcr.checked = true; sud.checked = true; orb.checked = true; t10.checked = false; if (oMin) oMin.value = '70'; if (wop) wop.checked = false; if (oia) oia.checked = false;
             setLabFilter('ALL');
         } else if (preset === 'combo2') {
-            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = true; o77.checked = true; if (wop) wop.checked = false; if (oia) oia.checked = false;
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = true; if (oMin) oMin.value = '77'; if (wop) wop.checked = false; if (oia) oia.checked = false;
             setLabFilter('ALL');
         } else {
-            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = false; o77.checked = false; if (wop) wop.checked = false; if (oia) oia.checked = false;
-            renderLabTable();
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = false; if (oMin) oMin.value = '70'; if (wop) wop.checked = false; if (oia) oia.checked = false;
+            setLabFilter('ALL');
         }
     };
 
@@ -209,19 +218,20 @@
         const useSud = document.getElementById('flt-sudden')?.checked;
         const useOrb = document.getElementById('flt-or-brk')?.checked;
         const use1030 = document.getElementById('flt-after-1030')?.checked;
-        const useOpt77 = document.getElementById('flt-opt-77')?.checked;
+        const minOpt = Number(document.getElementById('flt-opt-min')?.value || 70);
         const useWithOpen = document.getElementById('flt-with-open')?.checked;
         const useOiAcc = document.getElementById('flt-oi-acc')?.checked;
         const sigs = allSignals.filter(s => {
             if (currentFilter === 'CLEAN' && !s.clean_3bar) return false;
             if (currentFilter === 'NO_TRAP' && (!s.clean_3bar || s.entry_trap || s.has_trap_3bar)) return false;
             if (currentFilter === 'REVERSED' && s.clean_3bar) return false;
+            if (currentFilter === 'WINS' && s.outcome !== 'WIN') return false;
             if (currentFilter === 'LOSSES' && s.outcome !== 'LOSS') return false;
             if (usePcr && !s.pcr_against) return false;
             if (useSud && !s.is_sudden) return false;
             if (useOrb && !s.or_breakout) return false;
             if (use1030 && !s.after_1030) return false;
-            if (useOpt77 && Number(s.opt_pct || 0) < 77) return false;
+            if (Number(s.opt_pct || 0) < minOpt) return false;
             if (useWithOpen && !s.with_day_open) return false;
             if (useOiAcc && !s.oi_acc_10m) return false;
             if (q && !(`${s.date} ${s.time} ${s.dir} ${s.outcome}`.toLowerCase().includes(q))) return false;
