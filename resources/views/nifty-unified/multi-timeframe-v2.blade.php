@@ -4292,18 +4292,18 @@
                             </div>
                         </div>
 
-                        <!-- Graphical Probability Bar for Selected / Live Candle -->
+                        <!-- Unified 8-Gate Setup & Probability Bar -->
                         <div class="bg-[#0b101c] border border-gray-800 rounded-lg p-2 space-y-1.5">
                             <div class="flex items-center justify-between gap-2 flex-wrap text-[11px]">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-gray-300 font-black uppercase">Selected Candle Probability:</span>
+                                    <span class="text-gray-300 font-black uppercase">Setup Readiness (5 Base + 3 Boosters):</span>
                                     <span id="sc-prob-tier" class="px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-gray-300 border border-slate-700">--</span>
-                                    <span id="sc-base-count" class="text-[10.5px] text-gray-400 font-bold">Base 0/5</span>
+                                    <span id="sc-base-count" class="text-[10.5px] text-amber-300 font-bold">Base 0/5</span>
                                 </div>
-                                <span id="sc-prob-lbl" class="text-xs font-black text-emerald-300">70.2% (0/3 Boosters • 66W/28L)</span>
+                                <span id="sc-prob-lbl" class="text-xs font-black text-gray-400">Waiting for 5/5 Base...</span>
                             </div>
                             <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-gray-800">
-                                <div id="sc-prob-fill" class="h-full bg-emerald-500 transition-all duration-300" style="width: 70.2%"></div>
+                                <div id="sc-prob-fill" class="h-full bg-slate-600 transition-all duration-300" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
@@ -18130,9 +18130,10 @@
         alertedScalperTimesSet.add(sig.time);
         try { if (typeof playSoundByName === 'function') playSoundByName('siren', 0.9); } catch (_) {}
         const tags = [sig.orOk ? '🚀OR' : null, sig.sudOk ? '⚡Sudden' : null, sig.pcrOk ? '🧲PCR' : null].filter(Boolean).join(' + ') || 'Base Only';
+        const optAction = sig.dir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
         try {
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(`⚡ S4 ${sig.dir} (${sig.simWr}% • ${sig.bstScore}/3)`, {
+                new Notification(`⚡ S4 ${sig.dir} (${optAction}) • ${sig.simWr}%`, {
                     body: `@ ${sig.time} • Spot ${sig.entry.toFixed(1)} | Tgt ${sig.target.toFixed(1)} (+25p) | SL ${sig.sl.toFixed(1)} (-25p) | ${tags}`,
                 });
             }
@@ -18141,7 +18142,7 @@
             triggerAlarmModal({
                 type: 'CONFLUENCE',
                 direction: sig.dir,
-                title: `⚡ S4 HIGH-PROB ${sig.dir} (${sig.simWr}% • ${sig.bstScore}/3)`,
+                title: `⚡ S4 ${sig.dir} (${optAction}) • ${sig.simWr}%`,
                 score: sig.optPct,
                 threshold: 77,
                 time: sig.time,
@@ -18152,7 +18153,7 @@
                 volume: 0.9,
                 isConfluence: true,
                 confluenceState: 'CONFLUENCE',
-                confluenceText: `S4 Mandatory + ${sig.bstScore}/3 Boosters (${tags}) → ${sig.simWr}% 6.5M Win Rate. Entry ${sig.entry.toFixed(1)} | Tgt ${sig.target.toFixed(1)} (+25p) | SL ${sig.sl.toFixed(1)} (-25p)`,
+                confluenceText: `${optAction} | 5/5 Base + ${sig.bstScore}/3 Boosters (${tags}) → ${sig.simWr}% 6.5M Win Rate. Spot ${sig.entry.toFixed(1)} | Tgt ${sig.target.toFixed(1)} (+25p) | SL ${sig.sl.toFixed(1)} (-25p)`,
             });
         }
     }
@@ -18387,34 +18388,57 @@
         setBoosterCard('pcr', livePcrOk, `PCR ${lastState.pcr.toFixed(2)} (${domDir === 'BULL' ? 'Need <1.0' : 'Need >1.0'})`, 'border-cyan-500/60');
 
         const basePassCount = (domOpt >= 77 && domFresh ? 1 : 0) + (domVwap ? 1 : 0) + (domStk >= 60 ? 1 : 0) + (lastOiAligned ? 1 : 0) + (timeOk ? 1 : 0);
+        const missingBase = [];
+        if (!(domOpt >= 77 && domFresh)) missingBase.push('Fresh OPT≥77%');
+        if (!domVwap) missingBase.push('VWAP');
+        if (!(domStk >= 60)) missingBase.push('STK≥60%');
+        if (!lastOiAligned) missingBase.push('Trend OI');
+        if (!timeOk) missingBase.push('10:30–14:35');
+
         const bstScore = (liveOrOk ? 1 : 0) + (liveSudOk ? 1 : 0) + (livePcrOk ? 1 : 0);
         const mask = (liveOrOk ? 1 : 0) | (liveSudOk ? 2 : 0) | (livePcrOk ? 4 : 0);
         const sim = SCALPER_6M_STATS[mask] || SCALPER_6M_STATS[0];
+        const totalScore = basePassCount + bstScore;
+        const optActionTxt = domDir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
 
         const baseCntEl = document.getElementById('sc-base-count');
-        if (baseCntEl) baseCntEl.textContent = `Base ${basePassCount}/5`;
+        if (baseCntEl) {
+            baseCntEl.textContent = basePassCount === 5
+                ? `✅ 5/5 Base (${optActionTxt})`
+                : `⏳ Base ${basePassCount}/5 (Need: ${missingBase.join(', ')})`;
+            baseCntEl.className = `text-[10.5px] font-bold ${basePassCount === 5 ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
         const tierEl = document.getElementById('sc-prob-tier');
         if (tierEl) {
-            if (bstScore === 3) {
-                tierEl.textContent = '🔥 ULTRA HIGH (3/3)';
+            if (basePassCount < 5) {
+                tierEl.textContent = `⏸️ NO SIGNAL (${totalScore}/8 Gates)`;
+                tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-amber-300 border border-amber-700/60';
+            } else if (bstScore === 3) {
+                tierEl.textContent = '🔥 ULTRA HIGH (8/8)';
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-emerald-950 text-emerald-300 border border-emerald-500';
             } else if (bstScore === 2) {
-                tierEl.textContent = '⚡ HIGH PROB (2/3)';
+                tierEl.textContent = '⚡ HIGH PROB (7/8)';
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-cyan-950 text-cyan-300 border border-cyan-500';
             } else if (bstScore === 1) {
-                tierEl.textContent = '✅ GOOD (1/3)';
+                tierEl.textContent = '✅ GOOD (6/8)';
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-sky-950 text-sky-300 border border-sky-600';
             } else {
-                tierEl.textContent = '📊 BASE ONLY (0/3)';
+                tierEl.textContent = '📊 BASE (5/8)';
                 tierEl.className = 'px-2 py-0.5 rounded text-[10.5px] font-black bg-slate-900 text-gray-300 border border-slate-700';
             }
         }
         const probLbl = document.getElementById('sc-prob-lbl');
         const probFill = document.getElementById('sc-prob-fill');
-        if (probLbl) probLbl.textContent = `${sim.wr}% (${bstScore}/3 Boosters • ${sim.w}W/${sim.l}L • +${sim.net}p)`;
+        if (probLbl) {
+            probLbl.textContent = basePassCount === 5
+                ? `${sim.wr}% Win Rate (${bstScore}/3 Boosters • ${sim.w}W/${sim.l}L • +${sim.net}p)`
+                : `Blocked (Boosters ${bstScore}/3 ready → would be ${sim.wr}% if 5/5 Base passes)`;
+            probLbl.className = `text-xs font-black ${basePassCount === 5 ? 'text-emerald-300' : 'text-gray-400'}`;
+        }
         if (probFill) {
-            probFill.style.width = `${sim.wr}%`;
-            probFill.className = `h-full transition-all duration-300 ${bstScore === 3 ? 'bg-emerald-400' : (bstScore === 2 ? 'bg-cyan-400' : (bstScore === 1 ? 'bg-sky-500' : 'bg-amber-500'))}`;
+            const fillPct = basePassCount === 5 ? sim.wr : Math.round((totalScore / 8) * 100);
+            probFill.style.width = `${fillPct}%`;
+            probFill.className = `h-full transition-all duration-300 ${basePassCount < 5 ? 'bg-amber-600/70' : (bstScore === 3 ? 'bg-emerald-400' : (bstScore === 2 ? 'bg-cyan-400' : (bstScore === 1 ? 'bg-sky-500' : 'bg-amber-500')))}`;
         }
 
         // Render Today's S4 Signals Table (All Mandatory Signals + Active Boosters + Historical WR)
@@ -18438,9 +18462,10 @@
                         `<span class="px-1 rounded text-[9px] ${r.sudOk ? 'bg-amber-950 text-amber-300 border border-amber-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">SUD</span>`,
                         `<span class="px-1 rounded text-[9px] ${r.pcrOk ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'bg-slate-900 text-gray-600 border border-slate-800'}">PCR</span>`,
                     ].join(' ');
+                    const actTxt = r.dir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
                     return `<tr>
                         <td class="py-1 px-2 text-sky-300 font-bold">${r.time}</td>
-                        <td class="py-1 px-2 font-black ${dCls}">${r.dir} <span class="ml-1 text-[10px] text-purple-300">${r.simWr}%</span> <span class="ml-1 inline-flex gap-0.5">${bPills}</span></td>
+                        <td class="py-1 px-2 font-black ${dCls}">${r.dir} <span class="text-[9.5px] text-gray-300 font-bold">(${actTxt})</span> <span class="ml-1 text-[10px] text-purple-300">${r.simWr}%</span> <span class="ml-1 inline-flex gap-0.5">${bPills}</span></td>
                         <td class="py-1 px-2 text-right text-white">${r.entry.toFixed(1)}</td>
                         <td class="py-1 px-2 text-right text-gray-300">${r.optPct}% / ${r.stkPct}%</td>
                         <td class="py-1 px-2 text-right text-gray-400">${r.target.toFixed(0)} / ${r.sl.toFixed(0)}</td>
@@ -18462,7 +18487,8 @@
             return;
         }
         if (dirEl) {
-            dirEl.textContent = `${openTrade.dir === 'BULL' ? '▲' : '▼'} ${openTrade.dir} @ ${openTrade.time}`;
+            const act = openTrade.dir === 'BULL' ? 'BUY CE / SELL PE' : 'BUY PE / SELL CE';
+            dirEl.textContent = `${openTrade.dir === 'BULL' ? '▲' : '▼'} ${openTrade.dir} (${act}) @ ${openTrade.time}`;
             dirEl.className = openTrade.dir === 'BULL'
                 ? 'px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-600'
                 : 'px-2 py-0.5 rounded text-[11px] font-black bg-rose-950 text-rose-300 border border-rose-600';
