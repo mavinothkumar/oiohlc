@@ -4187,15 +4187,18 @@
                 </div>
             </div>
 
-            <!-- Scalper Panel (S4 Shadow Monitor: Fresh OPT >= 70% + With VWAP + STK >= 60% + 09:50-14:35, +15p / -25p SL) -->
+            <!-- Scalper Panel (S4 High-Probability Monitor: Mandatory Fresh OPT >= 77% + After 10:30 + VWAP + STK >= 60% + Trend OI, +25p / -25p 1:1) -->
             <div id="scalper-matrix-card" class="hidden bg-[#0f1422] border border-amber-500/40 rounded-lg p-2.5 shadow-inner flex flex-col justify-between gap-2 flex-1">
                 <div class="space-y-2">
                     <!-- Header -->
                     <div class="flex items-center justify-between pb-1.5 border-b border-gray-800 gap-2 flex-wrap">
-                        <span class="text-xs sm:text-sm font-black tracking-wide text-amber-300 flex items-center gap-2 flex-wrap">
-                            <span>⚡ QUICK SCALPER (S4 SHADOW)</span>
-                            <span id="scalper-status-pill" class="px-2 py-0.5 rounded text-xs font-mono font-black bg-slate-900 text-gray-300 border border-slate-700">STANDBY</span>
-                        </span>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-xs sm:text-sm font-black tracking-wide text-amber-300 flex items-center gap-2 flex-wrap">
+                                <span>⚡ QUICK SCALPER (S4 SHADOW)</span>
+                                <span id="scalper-status-pill" class="px-2 py-0.5 rounded text-xs font-mono font-black bg-slate-900 text-gray-300 border border-slate-700">STANDBY</span>
+                            </span>
+                            <span class="text-[10px] font-mono text-gray-400">Mandatory High-Prob Base: <span class="text-purple-300 font-bold">OPT ≥ 77%</span> • <span class="text-sky-300 font-bold">After 10:30</span> • <span class="text-cyan-300 font-bold">Trend OI</span> • <span class="text-emerald-300 font-bold">+25p / -25p (1:1)</span></span>
+                        </div>
                         <span id="scalper-record-pill" class="text-xs font-mono font-bold text-gray-300">0W / 0L • +0.0p</span>
                     </div>
 
@@ -4207,7 +4210,7 @@
                                 <span id="scalper-active-dir" class="px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700">NONE</span>
                             </div>
                             <div id="scalper-active-pnl" class="text-xl sm:text-2xl font-black text-gray-300 leading-none">Watching...</div>
-                            <div id="scalper-active-levels" class="text-[11px] text-gray-300 font-bold truncate">Waiting for Fresh OPT ≥ 70% + VWAP + STK ≥ 60%</div>
+                            <div id="scalper-active-levels" class="text-[11px] text-gray-300 font-bold truncate">Waiting for Fresh OPT ≥ 77% + After 10:30 + Trend OI</div>
                         </div>
 
                         <div class="rounded-lg border border-cyan-500/30 bg-[#12192b] p-2 space-y-1">
@@ -4216,15 +4219,15 @@
                                 <span id="scalper-winrate-pill" class="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-950 text-emerald-300 border border-emerald-700">--% WIN</span>
                             </div>
                             <div id="scalper-day-net" class="text-xl sm:text-2xl font-black text-white leading-none">+0.0 pts</div>
-                            <div id="scalper-day-counts" class="text-[11px] text-gray-300 font-bold">0 Signals • 0W (+15p) / 0L (-25p)</div>
+                            <div id="scalper-day-counts" class="text-[11px] text-gray-300 font-bold">0 Active • 0W (+25p) / 0L (-25p)</div>
                         </div>
                     </div>
 
-                    <!-- 5 Live S4 + Trending OI Gate Cards -->
+                    <!-- 5 Mandatory Base Gate Cards -->
                     <div class="grid grid-cols-2 xl:grid-cols-5 gap-1.5 font-mono">
                         <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2">
                             <div class="flex items-center justify-between gap-1 text-[11px]">
-                                <span class="font-black text-white">⚡ Fresh OPT≥70%</span>
+                                <span class="font-black text-white">⚡ Fresh OPT≥77%</span>
                                 <span id="sc-g1-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
                             </div>
                             <div id="sc-g1-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
@@ -4252,10 +4255,55 @@
                         </div>
                         <div class="rounded-lg bg-[#141b2d] border border-gray-800 p-2 col-span-2 xl:col-span-1">
                             <div class="flex items-center justify-between gap-1 text-[11px]">
-                                <span class="font-black text-white">⏰ 09:50–14:35</span>
+                                <span class="font-black text-white">🕙 10:30–14:35</span>
                                 <span id="sc-g4-badge" class="px-1.5 py-0.2 rounded text-[10px] bg-slate-900 text-gray-400 border border-slate-700">--</span>
                             </div>
                             <div id="sc-g4-val" class="text-xs font-bold text-gray-200 mt-1 truncate">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Optional High-Probability Boosters + Live & 6M Confidence Bars -->
+                    <div class="rounded-lg bg-[#111829] border border-purple-500/30 p-2 space-y-2 font-mono">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="text-[10.5px] font-black uppercase tracking-wider text-purple-300">🎯 Optional High-Prob Boosters (Live Status + Filter)</span>
+                            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                <label class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0b101c] border border-gray-700 cursor-pointer hover:border-emerald-500/60">
+                                    <input type="checkbox" id="sc-bst-or" onchange="onScalperBoosterChange()" class="accent-emerald-500">
+                                    <span class="font-bold text-emerald-200">🚀 OR Breakout</span>
+                                    <span id="sc-bst-or-live" class="text-[10px] text-gray-400">--</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0b101c] border border-gray-700 cursor-pointer hover:border-amber-500/60">
+                                    <input type="checkbox" id="sc-bst-sud" onchange="onScalperBoosterChange()" class="accent-amber-500">
+                                    <span class="font-bold text-amber-200">⚡ Sudden (&lt;55%)</span>
+                                    <span id="sc-bst-sud-live" class="text-[10px] text-gray-400">--</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0b101c] border border-gray-700 cursor-pointer hover:border-cyan-500/60">
+                                    <input type="checkbox" id="sc-bst-pcr" onchange="onScalperBoosterChange()" class="accent-cyan-500">
+                                    <span class="font-bold text-cyan-200">🧲 Trapped PCR</span>
+                                    <span id="sc-bst-pcr-live" class="text-[10px] text-gray-400">--</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div class="bg-[#0b101c] border border-gray-800 rounded p-1.5">
+                                <div class="flex justify-between text-[10.5px] mb-1">
+                                    <span class="text-gray-400 font-bold">Live Booster Readiness</span>
+                                    <span id="sc-bar-live-lbl" class="font-black text-sky-300">0/3 (0%)</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                                    <div id="sc-bar-live-fill" class="h-full bg-sky-500 transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="bg-[#0b101c] border border-gray-800 rounded p-1.5">
+                                <div class="flex justify-between text-[10.5px] mb-1">
+                                    <span class="text-gray-400 font-bold">6.5M Simulated Win Rate (Active Combo)</span>
+                                    <span id="sc-bar-hist-lbl" class="font-black text-emerald-300">70.2% (66W/28L • +933.3p)</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                                    <div id="sc-bar-hist-fill" class="h-full bg-emerald-500 transition-all duration-300" style="width: 70.2%"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -18032,16 +18080,61 @@
 
     // ── S4 Quick Scalper Shadow Monitor (Read-Only, Isolated from V2 & 0click.in) ──
     let activeScalperShadowTrade = null;
+    let lastScalperArgs = null;
+    const SCALPER_6M_STATS = {
+        0: { n: 100, w: 66, l: 28, wr: 70.2, net: 933.3 },
+        1: { n: 68,  w: 50, l: 14, wr: 78.1, net: 895.5 },
+        2: { n: 82,  w: 56, l: 22, wr: 71.8, net: 853.9 },
+        3: { n: 56,  w: 44, l: 9,  wr: 83.0, net: 884.4 },
+        4: { n: 76,  w: 55, l: 20, wr: 73.3, net: 868.3 },
+        5: { n: 47,  w: 39, l: 8,  wr: 83.0, net: 775.0 },
+        6: { n: 61,  w: 45, l: 16, wr: 73.8, net: 725.0 },
+        7: { n: 38,  w: 33, l: 5,  wr: 86.8, net: 700.0 },
+    };
+
+    function getScalperBoosters() {
+        try {
+            const raw = JSON.parse(localStorage.getItem('v2_scalper_boosters') || '{}');
+            return { or: !!raw.or, sud: !!raw.sud, pcr: !!raw.pcr };
+        } catch (_) {
+            return { or: false, sud: false, pcr: false };
+        }
+    }
+
+    function syncScalperBoosterInputs() {
+        const b = getScalperBoosters();
+        const elOr = document.getElementById('sc-bst-or');
+        const elSud = document.getElementById('sc-bst-sud');
+        const elPcr = document.getElementById('sc-bst-pcr');
+        if (elOr) elOr.checked = b.or;
+        if (elSud) elSud.checked = b.sud;
+        if (elPcr) elPcr.checked = b.pcr;
+    }
+    syncScalperBoosterInputs();
+
+    window.onScalperBoosterChange = function() {
+        const b = {
+            or: !!document.getElementById('sc-bst-or')?.checked,
+            sud: !!document.getElementById('sc-bst-sud')?.checked,
+            pcr: !!document.getElementById('sc-bst-pcr')?.checked,
+        };
+        try { localStorage.setItem('v2_scalper_boosters', JSON.stringify(b)); } catch (_) {}
+        if (lastScalperArgs) evaluateScalperS4Shadow(lastScalperArgs.rawCandles, lastScalperArgs.upToIndex);
+    };
 
     function evaluateScalperS4Shadow(rawCandles, upToIndex) {
         if (!Array.isArray(rawCandles) || rawCandles.length === 0) return;
+        lastScalperArgs = { rawCandles, upToIndex };
+        const bst = getScalperBoosters();
         const limitIdx = Math.min(rawCandles.length - 1, Math.max(0, Number(upToIndex)));
         let cumTpVol = 0, cumVol = 0;
+        let orHi = -1e9, orLo = 1e9;
         let prevOptBull = false, prevOptBear = false;
         const trades = [];
+        const skippedSignals = [];
         let openTrade = null;
 
-        let lastState = { tStr: '--:--', close: 0, vwap: 0, oUp: 0, oDn: 0, gWt: 0, rWt: 0, isFreshBull: false, isFreshBear: false };
+        let lastState = { tStr: '--:--', close: 0, vwap: 0, oUp: 0, oDn: 0, gWt: 0, rWt: 0, isFreshBull: false, isFreshBear: false, pcr: 1.0, prevSameBull: 50, prevSameBear: 50, orHi: -1e9, orLo: 1e9 };
 
         for (let i = 0; i <= limitIdx; i++) {
             const c = rawCandles[i];
@@ -18049,12 +18142,16 @@
             const cHigh = Number(c.high || 0);
             const cLow = Number(c.low || 0);
             const cClose = Number(c.close || 0);
+            if (tStr <= '09:45') {
+                orHi = Math.max(orHi, cHigh);
+                orLo = Math.min(orLo, cLow);
+            }
             const vol = Math.max(1, Number(c.volume || 1));
             cumTpVol += ((cHigh + cLow + cClose) / 3) * vol;
             cumVol += vol;
             const vwap = cumVol > 0 ? (cumTpVol / cumVol) : cClose;
 
-            // Check exit on open shadow trade (+15p target / -25p SL / 12-bar timeout)
+            // Check exit on open shadow trade (+25p target / -25p SL / 12-bar timeout, 1:1)
             if (openTrade) {
                 const isBull = (openTrade.dir === 'BULL');
                 const fav = isBull ? (cHigh - openTrade.entry) : (openTrade.entry - cLow);
@@ -18065,10 +18162,10 @@
                     openTrade.pts = -25.0;
                     trades.push(openTrade);
                     openTrade = null;
-                } else if (fav >= 15) {
+                } else if (fav >= 25) {
                     openTrade.status = 'WIN';
                     openTrade.exitTime = tStr;
-                    openTrade.pts = 15.0;
+                    openTrade.pts = 25.0;
                     trades.push(openTrade);
                     openTrade = null;
                 } else if ((i - openTrade.entryIdx) >= 12) {
@@ -18088,35 +18185,57 @@
             const oUp = ob ? Number(ob.up_weight || 0) : 0;
             const oDn = ob ? Number(ob.down_weight || 0) : 0;
 
-            const isFreshBull = (oUp >= 70 && !prevOptBull);
-            const isFreshBear = (oDn >= 70 && !prevOptBear);
-            prevOptBull = (oUp >= 70);
-            prevOptBear = (oDn >= 70);
+            const isFreshBull = (oUp >= 77 && !prevOptBull);
+            const isFreshBear = (oDn >= 77 && !prevOptBear);
+            prevOptBull = (oUp >= 77);
+            prevOptBear = (oDn >= 77);
+
+            const prevT = (i >= 1) ? String(rawCandles[i - 1]?.time_str || '') : '';
+            const obPrev = (prevT && typeof getOptionsBreadthAtTime === 'function') ? getOptionsBreadthAtTime(prevT) : null;
+            const prevSameBull = obPrev ? Number(obPrev.up_weight || 50) : 50;
+            const prevSameBear = obPrev ? Number(obPrev.down_weight || 50) : 50;
+            const pcr = Number(ob?.greeks?.pcr ?? 1.0);
 
             if (i === limitIdx) {
-                lastState = { tStr, close: cClose, vwap, oUp, oDn, gWt, rWt, isFreshBull, isFreshBear };
+                lastState = { tStr, close: cClose, vwap, oUp, oDn, gWt, rWt, isFreshBull, isFreshBear, pcr, prevSameBull, prevSameBear, orHi, orLo };
             }
 
-            // Evaluate S4 entry on completed bars only (i < rawCandles.length - 1)
-            if (!openTrade && i < rawCandles.length - 1 && tStr >= '09:50' && tStr <= '14:35') {
+            // Evaluate Mandatory S4+OI entry on completed bars only (OPT >= 77%, After 10:30, With VWAP, STK >= 60%, Trend OI)
+            if (!openTrade && i < rawCandles.length - 1 && tStr >= '10:30' && tStr <= '14:35') {
                 const oiSnapBar = (typeof getTrendingOiSnapshotAtTime === 'function') ? getTrendingOiSnapshotAtTime(tStr) : null;
                 const oiDiffBar = oiSnapBar ? Number(oiSnapBar.diff || 0) : null;
-                if (isFreshBull && cClose >= vwap && gWt >= 60) {
-                    openTrade = {
-                        time: tStr, entryIdx: i, dir: 'BULL', entry: cClose,
-                        target: Math.round((cClose + 15) * 100) / 100,
-                        sl: Math.round((cClose - 25) * 100) / 100,
-                        optPct: Math.round(oUp), stkPct: Math.round(gWt), status: 'LIVE', pts: 0,
-                        oiAligned: oiDiffBar !== null ? (oiDiffBar > 0) : null,
-                    };
-                } else if (isFreshBear && cClose <= vwap && rWt >= 60) {
-                    openTrade = {
-                        time: tStr, entryIdx: i, dir: 'BEAR', entry: cClose,
-                        target: Math.round((cClose - 15) * 100) / 100,
-                        sl: Math.round((cClose + 25) * 100) / 100,
-                        optPct: Math.round(oDn), stkPct: Math.round(rWt), status: 'LIVE', pts: 0,
-                        oiAligned: oiDiffBar !== null ? (oiDiffBar < 0) : null,
-                    };
+                let candDir = null;
+                if (isFreshBull && cClose >= vwap && gWt >= 60 && oiDiffBar !== null && oiDiffBar > 0) candDir = 'BULL';
+                else if (isFreshBear && cClose <= vwap && rWt >= 60 && oiDiffBar !== null && oiDiffBar < 0) candDir = 'BEAR';
+
+                if (candDir) {
+                    const isBull = (candDir === 'BULL');
+                    const orOk = (orHi > -1e8 && orLo < 1e8) ? (isBull ? (cClose > orHi) : (cClose < orLo)) : false;
+                    const sudOk = (isBull ? prevSameBull : prevSameBear) < 55;
+                    const pcrOk = isBull ? (pcr < 1.0) : (pcr > 1.0);
+                    const bstScore = (orOk ? 1 : 0) + (sudOk ? 1 : 0) + (pcrOk ? 1 : 0);
+                    const missing = [];
+                    if (bst.or && !orOk) missing.push('OR');
+                    if (bst.sud && !sudOk) missing.push('Sudden');
+                    if (bst.pcr && !pcrOk) missing.push('PCR');
+
+                    if (missing.length === 0) {
+                        openTrade = {
+                            time: tStr, entryIdx: i, dir: candDir, entry: cClose,
+                            target: Math.round((isBull ? (cClose + 25) : (cClose - 25)) * 100) / 100,
+                            sl: Math.round((isBull ? (cClose - 25) : (cClose + 25)) * 100) / 100,
+                            optPct: Math.round(isBull ? oUp : oDn), stkPct: Math.round(isBull ? gWt : rWt),
+                            status: 'LIVE', pts: 0, bstScore,
+                        };
+                    } else {
+                        skippedSignals.push({
+                            time: tStr, dir: candDir, entry: cClose,
+                            target: Math.round((isBull ? (cClose + 25) : (cClose - 25)) * 100) / 100,
+                            sl: Math.round((isBull ? (cClose - 25) : (cClose + 25)) * 100) / 100,
+                            optPct: Math.round(isBull ? oUp : oDn), stkPct: Math.round(isBull ? gWt : rWt),
+                            status: 'SKIPPED', missing: missing.join('+'), bstScore,
+                        });
+                    }
                 }
             }
         }
@@ -18158,17 +18277,17 @@
             netEl.className = `text-xl sm:text-2xl font-black leading-none ${closedPts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
         const cntEl = document.getElementById('scalper-day-counts');
-        if (cntEl) cntEl.textContent = `${trades.length + (openTrade ? 1 : 0)} Signals • ${wins}W (+15p) / ${losses}L (-25p)`;
+        if (cntEl) cntEl.textContent = `${trades.length + (openTrade ? 1 : 0)} Active (${skippedSignals.length} Skipped) • ${wins}W (+25p) / ${losses}L (-25p)`;
 
         renderScalperActiveCard(openTrade);
 
-        // Update 4 Gate Cards for lastState
+        // Update 5 Mandatory Gate Cards for lastState
         const domDir = (lastState.oUp >= lastState.oDn) ? 'BULL' : 'BEAR';
         const domOpt = Math.max(lastState.oUp, lastState.oDn);
         const domFresh = (domDir === 'BULL') ? lastState.isFreshBull : lastState.isFreshBear;
         const domVwap = (domDir === 'BULL') ? (lastState.close >= lastState.vwap) : (lastState.close <= lastState.vwap);
         const domStk = (domDir === 'BULL') ? lastState.gWt : lastState.rWt;
-        const timeOk = (lastState.tStr >= '09:50' && lastState.tStr <= '14:35');
+        const timeOk = (lastState.tStr >= '10:30' && lastState.tStr <= '14:35');
 
         const setGate = (num, ok, badgeTxt, valTxt) => {
             const b = document.getElementById(`sc-g${num}-badge`);
@@ -18181,7 +18300,7 @@
             }
             if (v) v.textContent = valTxt;
         };
-        setGate(1, domOpt >= 70 && domFresh, domFresh ? '✓ FRESH' : (domOpt >= 70 ? 'CONT' : 'WAIT'), `${domDir} OPT ${domOpt.toFixed(0)}%`);
+        setGate(1, domOpt >= 77 && domFresh, domFresh ? '✓ FRESH' : (domOpt >= 77 ? 'CONT' : 'WAIT'), `${domDir} OPT ${domOpt.toFixed(0)}%`);
         setGate(2, domVwap, domVwap ? '✓ ALIGNED' : '✗ COUNTER', `${(lastState.close - lastState.vwap) >= 0 ? '+' : ''}${(lastState.close - lastState.vwap).toFixed(1)}p vs VWAP`);
         setGate(3, domStk >= 60, domStk >= 60 ? '✓ ≥60%' : 'LOW', `STK ${domStk.toFixed(0)}%`);
         setGate(4, timeOk, timeOk ? '✓ OPEN' : 'CLOSED', lastState.tStr);
@@ -18192,28 +18311,72 @@
         const lastOiL = (lastOiDiff / 100000).toFixed(1);
         setGate(5, lastOiAligned, lastOiSnap ? (lastOiAligned ? '✓ ALIGNED' : '✗ OPPOSED') : '--', lastOiSnap ? `${lastOiDiff > 0 ? 'Put' : 'Call'} ${lastOiDiff >= 0 ? '+' : ''}${lastOiL}L` : 'No OI');
 
-        // Render Today's S4 Signals Table
+        // Update 3 Optional Boosters Live Status + 2 Confidence Bars
+        const liveOrOk = (lastState.orHi > -1e8 && lastState.orLo < 1e8) ? (domDir === 'BULL' ? (lastState.close > lastState.orHi) : (lastState.close < lastState.orLo)) : false;
+        const livePrevSame = (domDir === 'BULL') ? lastState.prevSameBull : lastState.prevSameBear;
+        const liveSudOk = livePrevSame < 55;
+        const livePcrOk = (domDir === 'BULL') ? (lastState.pcr < 1.0) : (lastState.pcr > 1.0);
+
+        const orLiveEl = document.getElementById('sc-bst-or-live');
+        if (orLiveEl) {
+            orLiveEl.textContent = liveOrOk ? '✓' : '✗';
+            orLiveEl.className = `text-[10px] font-black ${liveOrOk ? 'text-emerald-400' : 'text-gray-500'}`;
+        }
+        const sudLiveEl = document.getElementById('sc-bst-sud-live');
+        if (sudLiveEl) {
+            sudLiveEl.textContent = `${liveSudOk ? '✓' : '✗'} ${livePrevSame.toFixed(0)}%`;
+            sudLiveEl.className = `text-[10px] font-black ${liveSudOk ? 'text-amber-300' : 'text-gray-500'}`;
+        }
+        const pcrLiveEl = document.getElementById('sc-bst-pcr-live');
+        if (pcrLiveEl) {
+            pcrLiveEl.textContent = `${livePcrOk ? '✓' : '✗'} ${lastState.pcr.toFixed(2)}`;
+            pcrLiveEl.className = `text-[10px] font-black ${livePcrOk ? 'text-cyan-300' : 'text-gray-500'}`;
+        }
+
+        const liveScore = (liveOrOk ? 1 : 0) + (liveSudOk ? 1 : 0) + (livePcrOk ? 1 : 0);
+        const livePct = Math.round((liveScore / 3) * 100);
+        const liveLbl = document.getElementById('sc-bar-live-lbl');
+        const liveFill = document.getElementById('sc-bar-live-fill');
+        if (liveLbl) liveLbl.textContent = `${liveScore}/3 (${livePct}%)`;
+        if (liveFill) {
+            liveFill.style.width = `${livePct}%`;
+            liveFill.className = `h-full transition-all duration-300 ${liveScore >= 2 ? 'bg-emerald-500' : (liveScore === 1 ? 'bg-amber-500' : 'bg-slate-600')}`;
+        }
+
+        const mask = (bst.or ? 1 : 0) | (bst.sud ? 2 : 0) | (bst.pcr ? 4 : 0);
+        const sim = SCALPER_6M_STATS[mask] || SCALPER_6M_STATS[0];
+        const histLbl = document.getElementById('sc-bar-hist-lbl');
+        const histFill = document.getElementById('sc-bar-hist-fill');
+        if (histLbl) histLbl.textContent = `${sim.wr}% (${sim.w}W/${sim.l}L • +${sim.net}p)`;
+        if (histFill) histFill.style.width = `${sim.wr}%`;
+
+        // Render Today's S4 Signals Table (Active + Dimmed Skipped)
         const tbody = document.getElementById('scalper-signals-tbody');
         if (tbody) {
-            const allRows = openTrade ? [openTrade, ...trades.slice().reverse()] : trades.slice().reverse();
-            if (allRows.length === 0) {
+            const combined = [
+                ...(openTrade ? [openTrade] : []),
+                ...trades,
+                ...skippedSignals,
+            ].sort((a, b) => String(b.time).localeCompare(String(a.time)));
+            if (combined.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="py-3 text-center text-gray-500">No S4 shadow signals yet today.</td></tr>';
             } else {
-                tbody.innerHTML = allRows.map(r => {
+                tbody.innerHTML = combined.map(r => {
+                    const isSkip = r.status === 'SKIPPED';
                     const dCls = r.dir === 'BULL' ? 'text-emerald-300' : 'text-rose-300';
-                    const oBadge = r.status === 'WIN'
-                        ? '<span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">✅ +15p</span>'
-                        : (r.status === 'LOSS'
-                            ? '<span class="px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold">❌ -25p</span>'
-                            : (r.status === 'LIVE'
-                                ? `<span class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-600 font-bold animate-pulse">⏳ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`
-                                : `<span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700 font-bold">⏱️ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`));
-                    const oiTag = r.oiAligned === true
-                        ? '<span class="ml-1 px-1 rounded text-[9.5px] bg-cyan-950 text-cyan-300 border border-cyan-700">OI ✓</span>'
-                        : (r.oiAligned === false ? '<span class="ml-1 px-1 rounded text-[9.5px] bg-slate-900 text-gray-400 border border-slate-700">OI ✗</span>' : '');
-                    return `<tr>
+                    const oBadge = isSkip
+                        ? `<span class="px-1.5 py-0.2 rounded bg-slate-900 text-gray-400 border border-slate-700 font-bold">⏭️ SKIP (${r.missing})</span>`
+                        : (r.status === 'WIN'
+                            ? '<span class="px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">✅ +25p</span>'
+                            : (r.status === 'LOSS'
+                                ? '<span class="px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-700 font-bold">❌ -25p</span>'
+                                : (r.status === 'LIVE'
+                                    ? `<span class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-600 font-bold animate-pulse">⏳ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`
+                                    : `<span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-700 font-bold">⏱️ ${r.pts >= 0 ? '+' : ''}${r.pts}p</span>`)));
+                    const bstTag = `<span class="ml-1 px-1 rounded text-[9.5px] ${isSkip ? 'bg-slate-900 text-gray-500 border border-slate-800' : 'bg-purple-950 text-purple-300 border border-purple-700'}">${r.bstScore}/3</span>`;
+                    return `<tr class="${isSkip ? 'opacity-45' : ''}">
                         <td class="py-1 px-2 text-sky-300 font-bold">${r.time}</td>
-                        <td class="py-1 px-2 font-black ${dCls}">${r.dir}${oiTag}</td>
+                        <td class="py-1 px-2 font-black ${dCls}">${r.dir}${bstTag}</td>
                         <td class="py-1 px-2 text-right text-white">${r.entry.toFixed(1)}</td>
                         <td class="py-1 px-2 text-right text-gray-300">${r.optPct}% / ${r.stkPct}%</td>
                         <td class="py-1 px-2 text-right text-gray-400">${r.target.toFixed(0)} / ${r.sl.toFixed(0)}</td>
@@ -18231,7 +18394,7 @@
         if (!openTrade) {
             if (dirEl) { dirEl.textContent = 'NONE'; dirEl.className = 'px-2 py-0.5 rounded text-[11px] font-black bg-slate-800 text-gray-300 border border-slate-700'; }
             if (pnlEl) { pnlEl.textContent = 'Watching...'; pnlEl.className = 'text-xl sm:text-2xl font-black text-gray-400 leading-none'; }
-            if (lvlEl) lvlEl.textContent = 'Waiting for Fresh OPT ≥ 70% + VWAP + STK ≥ 60%';
+            if (lvlEl) lvlEl.textContent = 'Waiting for Fresh OPT ≥ 77% + After 10:30 + Trend OI';
             return;
         }
         if (dirEl) {
@@ -18244,7 +18407,7 @@
             pnlEl.textContent = `${openTrade.pts >= 0 ? '+' : ''}${openTrade.pts.toFixed(1)} pts`;
             pnlEl.className = `text-xl sm:text-2xl font-black leading-none ${openTrade.pts >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
         }
-        if (lvlEl) lvlEl.textContent = `Entry ${openTrade.entry.toFixed(1)} • Tgt ${openTrade.target.toFixed(1)} (+15p) • SL ${openTrade.sl.toFixed(1)} (-25p)`;
+        if (lvlEl) lvlEl.textContent = `Entry ${openTrade.entry.toFixed(1)} • Tgt ${openTrade.target.toFixed(1)} (+25p) • SL ${openTrade.sl.toFixed(1)} (-25p)`;
     }
 
     function updateScalperLiveSpot(spotLtp) {
