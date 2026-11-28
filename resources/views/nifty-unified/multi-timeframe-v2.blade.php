@@ -10150,7 +10150,7 @@
     window.updateDaySeparators = updateDaySeparators;
 
     // ── Dedicated Enterprise Active Candle Highlighter ──────────────────────────
-    let isCandleHighlightEnabled = false; // Default: hidden (clean live market viewing)
+    let isCandleHighlightEnabled = localStorage.getItem('nifty_unified_candle_hl') === 'true';
     let currentActiveCandleTimeStr = null;
 
     function toggleActiveCandleHighlight(forceState = null) {
@@ -10159,6 +10159,9 @@
         } else {
             isCandleHighlightEnabled = !isCandleHighlightEnabled;
         }
+        try {
+            localStorage.setItem('nifty_unified_candle_hl', isCandleHighlightEnabled ? 'true' : 'false');
+        } catch (_) {}
         updateCandleHighlightButtonsUI();
         if (isCandleHighlightEnabled) {
             updateActiveCandleHighlight();
@@ -10189,6 +10192,7 @@
         });
     }
     window.updateCandleHighlightButtonsUI = updateCandleHighlightButtonsUI;
+    updateCandleHighlightButtonsUI();
 
     // Quick keyboard shortcut: press 'H' to toggle highlight on/off
     document.addEventListener('keydown', (e) => {
@@ -18290,7 +18294,7 @@
 
         // Fire High-Probability Alert on Live Today's just-closed bar OR during Replay bar-by-bar stepping
         const todayIst = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-        const inReplay = (typeof isReplayMode === 'boolean' && isReplayMode) || (limitIdx < rawCandles.length - 1);
+        const inReplay = (typeof isBarReplayMode === 'boolean' && isBarReplayMode) || (limitIdx < rawCandles.length - 1);
         const isLiveToday = (typeof selectedDate !== 'undefined' && selectedDate === todayIst) && !inReplay && (limitIdx >= rawCandles.length - 1);
         const shouldAlertLive = isLiveToday && latestTriggeredBar && (latestTriggeredBar.entryIdx === rawCandles.length - 2);
         const shouldAlertReplay = inReplay && latestTriggeredBar && (latestTriggeredBar.entryIdx === limitIdx || latestTriggeredBar.entryIdx === limitIdx - 1);
