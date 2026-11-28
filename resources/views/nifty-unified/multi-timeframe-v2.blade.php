@@ -4326,8 +4326,12 @@
                     <button type="button" onclick="filterTelemetryLogs('intrade')" class="telemetry-filter-btn px-2 py-0.5 rounded bg-slate-900 text-gray-400 hover:text-sky-300 cursor-pointer" data-filter="intrade">In-Trade</button>
                 </div>
 
-                <!-- Right: Action to Open Full-Page Report, Backtest Dashboard & Breadth Impulse Calendar -->
+                <!-- Right: Action to Open Full-Page Report, Backtest Dashboard, Impulse Calendar & S4 Lab -->
                 <div class="flex items-center gap-1.5 flex-wrap">
+                    <a href="{{ route('scalper.s4.lab') }}" target="_blank" class="px-2.5 py-1 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-700/60 text-xs font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open S4 + OI 3-Bar Runner Lab (6-Month Forensics)">
+                        <span>⚡ S4 Lab</span>
+                        <span>↗</span>
+                    </a>
                     <a href="{{ route('breadth.impulse.calendar') }}" target="_blank" class="px-2.5 py-1 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border border-cyan-700/60 text-xs font-mono font-bold flex items-center gap-1 transition shadow-xs" title="Open Breadth Impulse Calendar (Multi-Day STK / OPT / BOTH Counts & Worthiness)">
                         <span>📅 Impulse Calendar</span>
                         <span>↗</span>
