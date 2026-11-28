@@ -85,6 +85,18 @@
             <input type="text" id="lab-search" onkeyup="renderLabTable()" placeholder="Search date (2026-11), time (12:55), BULL/BEAR..." class="bg-[#090d16] border border-gray-700 rounded px-2.5 py-1 text-xs text-white w-64 focus:outline-none">
             <span id="lab-loading" class="hidden text-sky-300 animate-pulse font-bold">Scanning 6 months...</span>
         </div>
+        <div class="w-full flex flex-wrap items-center gap-2 pt-2 border-t border-gray-800/80 text-[11px]">
+            <span class="text-gray-400 font-bold uppercase">Pre-Entry Filters:</span>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-cyan-200"><input type="checkbox" id="flt-pcr-against" onchange="renderLabTable()"> 🧲 Trapped PCR</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-amber-200"><input type="checkbox" id="flt-sudden" onchange="renderLabTable()"> ⚡ Sudden (&lt;55% prev)</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-emerald-200"><input type="checkbox" id="flt-or-brk" onchange="renderLabTable()"> 🚀 OR Breakout</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-sky-200"><input type="checkbox" id="flt-after-1030" onchange="renderLabTable()"> 🕙 After 10:30</label>
+            <label class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#141b2d] border border-gray-700 cursor-pointer text-purple-200"><input type="checkbox" id="flt-opt-77" onchange="renderLabTable()"> 🔥 OPT ≥ 77%</label>
+            <span class="text-gray-600">|</span>
+            <button type="button" onclick="applyLabPreset('combo1')" class="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 font-bold cursor-pointer">Preset: 71.6% (PCR+Sudden+OR)</button>
+            <button type="button" onclick="applyLabPreset('combo2')" class="px-2 py-0.5 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-700/70 font-bold cursor-pointer">Preset: 70.2% (OPT≥77+10:30)</button>
+            <button type="button" onclick="applyLabPreset('reset')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-gray-300 border border-gray-700 font-bold cursor-pointer">Reset</button>
+        </div>
     </div>
 
     <!-- Signals + 3-Bar Timeline Table -->
@@ -169,13 +181,41 @@
         renderLabTable();
     };
 
+    window.applyLabPreset = function(preset) {
+        const pcr = document.getElementById('flt-pcr-against');
+        const sud = document.getElementById('flt-sudden');
+        const orb = document.getElementById('flt-or-brk');
+        const t10 = document.getElementById('flt-after-1030');
+        const o77 = document.getElementById('flt-opt-77');
+        if (preset === 'combo1') {
+            pcr.checked = true; sud.checked = true; orb.checked = true; t10.checked = false; o77.checked = false;
+            setLabFilter('ALL');
+        } else if (preset === 'combo2') {
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = true; o77.checked = true;
+            setLabFilter('ALL');
+        } else {
+            pcr.checked = false; sud.checked = false; orb.checked = false; t10.checked = false; o77.checked = false;
+            renderLabTable();
+        }
+    };
+
     window.renderLabTable = function() {
         const q = (document.getElementById('lab-search')?.value || '').trim().toLowerCase();
+        const usePcr = document.getElementById('flt-pcr-against')?.checked;
+        const useSud = document.getElementById('flt-sudden')?.checked;
+        const useOrb = document.getElementById('flt-or-brk')?.checked;
+        const use1030 = document.getElementById('flt-after-1030')?.checked;
+        const useOpt77 = document.getElementById('flt-opt-77')?.checked;
         const sigs = allSignals.filter(s => {
             if (currentFilter === 'CLEAN' && !s.clean_3bar) return false;
             if (currentFilter === 'NO_TRAP' && (!s.clean_3bar || s.entry_trap || s.has_trap_3bar)) return false;
             if (currentFilter === 'REVERSED' && s.clean_3bar) return false;
             if (currentFilter === 'LOSSES' && s.outcome !== 'LOSS') return false;
+            if (usePcr && !s.pcr_against) return false;
+            if (useSud && !s.is_sudden) return false;
+            if (useOrb && !s.or_breakout) return false;
+            if (use1030 && !s.after_1030) return false;
+            if (useOpt77 && Number(s.opt_pct || 0) < 77) return false;
             if (q && !(`${s.date} ${s.time} ${s.dir} ${s.outcome}`.toLowerCase().includes(q))) return false;
             return true;
         });
